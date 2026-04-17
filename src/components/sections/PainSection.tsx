@@ -3,26 +3,42 @@
 import { motion } from 'framer-motion'
 import { FadeInView } from '@/components/ui/FadeInView'
 
-// SVG coordinate space: 1000 × 520, center at (500, 260)
+// SVG coordinate space: 1000 × 680, center at (500, 340)
 const W = 1000
-const H = 520
+const H = 680
 
-// Center card bounds in SVG space (centered at 500, 260)
-const CARD = { l: 338, t: 146, w: 324, h: 228 }
+// Center card bounds in SVG space — contains inner ring (rx=140, ry=105)
+const CARD = { l: 310, t: 200, w: 380, h: 280 }
+
+// Approximate outer pill half-dimensions in SVG units (used to offset line start to pill edge)
+const OUTER_PILL_RX = 38
+const OUTER_PILL_RY = 11
+
+// Returns the point on the outer pill's elliptical edge facing toward `to`
+function pillEdge(from: { x: number; y: number }, to: { x: number; y: number }) {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const len = Math.sqrt(dx * dx + dy * dy)
+  if (len === 0) return from
+  const nx = dx / len
+  const ny = dy / len
+  const scale = 1 / Math.sqrt((nx / OUTER_PILL_RX) ** 2 + (ny / OUTER_PILL_RY) ** 2)
+  return { x: from.x + nx * scale, y: from.y + ny * scale }
+}
 
 // 10 pairs — outer = third-party tool, inner = School Stack feature at same angle
-// Outer ring: rx=382, ry=186 | Inner ring: rx=105, ry=75 (inside the card)
+// Outer ring: rx=390, ry=240 | Inner ring: rx=140, ry=105
 const PAIRS = [
-  { tool: 'Google Forms', feature: 'Enrollment',  outer: { x: 500, y: 74  }, inner: { x: 500, y: 185 }, delay: 0    },
-  { tool: 'Venmo',        feature: 'Payments',    outer: { x: 725, y: 110 }, inner: { x: 562, y: 199 }, delay: 0.2  },
-  { tool: 'Stripe',       feature: 'Billing',     outer: { x: 863, y: 203 }, inner: { x: 600, y: 237 }, delay: 0.4  },
-  { tool: 'Gmail',        feature: 'Messaging',   outer: { x: 863, y: 317 }, inner: { x: 600, y: 283 }, delay: 0.6  },
-  { tool: 'SignNow',      feature: 'Contracts',   outer: { x: 725, y: 410 }, inner: { x: 562, y: 321 }, delay: 0.8  },
-  { tool: 'Calendly',     feature: 'Calendar',    outer: { x: 500, y: 446 }, inner: { x: 500, y: 335 }, delay: 1.0  },
-  { tool: 'Dropbox',      feature: 'Files',       outer: { x: 275, y: 410 }, inner: { x: 438, y: 321 }, delay: 0.8  },
-  { tool: 'Google Docs',  feature: 'Staff',       outer: { x: 137, y: 317 }, inner: { x: 400, y: 283 }, delay: 0.6  },
-  { tool: 'Excel',        feature: 'Reports',     outer: { x: 137, y: 203 }, inner: { x: 400, y: 237 }, delay: 0.4  },
-  { tool: 'Wix',          feature: 'Website',     outer: { x: 275, y: 110 }, inner: { x: 438, y: 199 }, delay: 0.2  },
+  { tool: 'Google Forms', feature: 'Enrollment',  outer: { x: 500, y: 100 }, inner: { x: 500, y: 235 }, delay: 0    },
+  { tool: 'Venmo',        feature: 'Payments',    outer: { x: 740, y: 168 }, inner: { x: 582, y: 255 }, delay: 0.2  },
+  { tool: 'PayPal',       feature: 'Billing',     outer: { x: 876, y: 253 }, inner: { x: 633, y: 308 }, delay: 0.4  },
+  { tool: 'Gmail',        feature: 'Messaging',   outer: { x: 876, y: 427 }, inner: { x: 633, y: 372 }, delay: 0.6  },
+  { tool: 'SignNow',      feature: 'Contracts',   outer: { x: 740, y: 512 }, inner: { x: 582, y: 425 }, delay: 0.8  },
+  { tool: 'Calendly',     feature: 'Calendar',    outer: { x: 500, y: 580 }, inner: { x: 500, y: 445 }, delay: 1.0  },
+  { tool: 'Dropbox',      feature: 'Files',       outer: { x: 260, y: 512 }, inner: { x: 418, y: 425 }, delay: 0.8  },
+  { tool: 'Google Docs',  feature: 'Staff',       outer: { x: 124, y: 427 }, inner: { x: 367, y: 372 }, delay: 0.6  },
+  { tool: 'Excel',        feature: 'Reports',     outer: { x: 124, y: 253 }, inner: { x: 367, y: 308 }, delay: 0.4  },
+  { tool: 'Wix',          feature: 'Website',     outer: { x: 260, y: 168 }, inner: { x: 418, y: 255 }, delay: 0.2  },
 ]
 
 export default function PainSection() {
@@ -60,17 +76,19 @@ export default function PainSection() {
               preserveAspectRatio="xMidYMid meet"
               aria-hidden="true"
             >
-              {PAIRS.map((p) => (
+              {PAIRS.map((p) => {
+                const edge = pillEdge(p.outer, p.inner)
+                return (
                 <g key={p.tool}>
-                  {/* Faint static line */}
+                  {/* Faint static line — starts at pill edge */}
                   <line
-                    x1={p.outer.x} y1={p.outer.y}
+                    x1={edge.x} y1={edge.y}
                     x2={p.inner.x} y2={p.inner.y}
                     stroke="#244b46" strokeOpacity={0.1} strokeWidth={1}
                   />
                   {/* Flowing animated dots: tool → feature */}
                   <motion.line
-                    x1={p.outer.x} y1={p.outer.y}
+                    x1={edge.x} y1={edge.y}
                     x2={p.inner.x} y2={p.inner.y}
                     stroke="#244b46"
                     strokeOpacity={0.45}
@@ -81,7 +99,8 @@ export default function PainSection() {
                     transition={{ duration: 1.4, repeat: Infinity, ease: 'linear', delay: p.delay }}
                   />
                 </g>
-              ))}
+                )
+              })}
             </svg>
 
             {/* Outer tool pills */}
@@ -145,7 +164,7 @@ export default function PainSection() {
                       }}
                     >
                       <motion.span
-                        className="block rounded-pill bg-accent-soft border border-accent/30 text-[8px] md:text-[10px] lg:text-[11px] text-accent font-medium px-1.5 md:px-2 lg:px-2.5 py-0.5 md:py-1 whitespace-nowrap"
+                        className="block rounded-pill bg-accent-soft border border-accent/30 text-[8px] md:text-[10px] lg:text-[11px] text-accent font-semibold px-1.5 md:px-2.5 lg:px-3 py-0.5 md:py-1 whitespace-nowrap shadow-sm"
                         animate={{ opacity: [0.7, 1, 0.7] }}
                         transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: p.delay + 0.7 }}
                       >
