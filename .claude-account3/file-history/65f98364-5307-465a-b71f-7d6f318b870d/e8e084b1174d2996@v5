@@ -1,0 +1,257 @@
+'use client'
+
+import { motion } from 'framer-motion'
+import { FadeInView } from '@/components/ui/FadeInView'
+
+// SVG coordinate space: 1000 × 520, center at (500, 260)
+// Outer ring: rx=380, ry=185  (external tools)
+// Inner ring: rx=200, ry=112  (School Stack features)
+const W = 1000
+const H = 520
+const CX = 500
+const CY = 260
+
+// 10 pairs — same angular position, different radii
+// angle order: top → clockwise
+const PAIRS = [
+  {
+    tool:    'Google Forms',
+    feature: 'Enrollment',
+    outer: { x: 500, y: 75  },
+    inner: { x: 500, y: 148 },
+    delay: 0,
+  },
+  {
+    tool:    'Venmo',
+    feature: 'Payments',
+    outer: { x: 724, y: 110 },
+    inner: { x: 630, y: 169 },
+    delay: 0.2,
+  },
+  {
+    tool:    'Stripe',
+    feature: 'Billing',
+    outer: { x: 862, y: 203 },
+    inner: { x: 700, y: 223 },
+    delay: 0.4,
+  },
+  {
+    tool:    'Gmail',
+    feature: 'Messaging',
+    outer: { x: 862, y: 317 },
+    inner: { x: 700, y: 297 },
+    delay: 0.6,
+  },
+  {
+    tool:    'SignNow',
+    feature: 'Contracts',
+    outer: { x: 724, y: 410 },
+    inner: { x: 630, y: 351 },
+    delay: 0.8,
+  },
+  {
+    tool:    'Calendly',
+    feature: 'Calendar',
+    outer: { x: 500, y: 445 },
+    inner: { x: 500, y: 372 },
+    delay: 1.0,
+  },
+  {
+    tool:    'Dropbox',
+    feature: 'Files',
+    outer: { x: 276, y: 410 },
+    inner: { x: 370, y: 351 },
+    delay: 0.8,
+  },
+  {
+    tool:    'Google Docs',
+    feature: 'Staff',
+    outer: { x: 138, y: 317 },
+    inner: { x: 300, y: 297 },
+    delay: 0.6,
+  },
+  {
+    tool:    'Excel',
+    feature: 'Reports',
+    outer: { x: 138, y: 203 },
+    inner: { x: 300, y: 223 },
+    delay: 0.4,
+  },
+  {
+    tool:    'Wix',
+    feature: 'Website',
+    outer: { x: 276, y: 110 },
+    inner: { x: 370, y: 169 },
+    delay: 0.2,
+  },
+]
+
+export default function PainSection() {
+  return (
+    <section className="bg-bg-alt py-24 overflow-hidden">
+      <div className="max-w-[920px] mx-auto px-6">
+
+        <div className="text-center">
+          <FadeInView>
+            <h2 className="font-display text-[clamp(2rem,4vw,3rem)] leading-[1.05] text-text">
+              Too big for spreadsheets.
+              <br />Too small for enterprise.
+            </h2>
+          </FadeInView>
+
+          <FadeInView delay={0.1}>
+            <p className="text-[17px] text-text-muted leading-relaxed mt-6 max-w-[58ch] mx-auto">
+              That&apos;s where founders end up stitching together Google Forms,
+              Venmo, Stripe, Gmail, PDFs, and notes just to keep the school moving.
+              You built something special. The infrastructure should not be the part
+              that holds it back.
+            </p>
+          </FadeInView>
+        </div>
+
+        {/* Hub visual */}
+        <FadeInView delay={0.15}>
+          <div
+            className="relative mt-12 w-full select-none"
+            style={{ paddingBottom: `${(H / W) * 100}%` }}
+          >
+
+            {/* SVG — lines only */}
+            <svg
+              className="absolute inset-0 w-full h-full"
+              viewBox={`0 0 ${W} ${H}`}
+              preserveAspectRatio="xMidYMid meet"
+              aria-hidden="true"
+            >
+              {PAIRS.map((p) => (
+                <g key={p.tool}>
+                  {/* Faint static line: outer tool → inner feature */}
+                  <line
+                    x1={p.outer.x} y1={p.outer.y}
+                    x2={p.inner.x} y2={p.inner.y}
+                    stroke="#244b46" strokeOpacity={0.1} strokeWidth={1}
+                  />
+                  {/* Animated flowing dots: outer → inner */}
+                  <motion.line
+                    x1={p.outer.x} y1={p.outer.y}
+                    x2={p.inner.x} y2={p.inner.y}
+                    stroke="#244b46"
+                    strokeOpacity={0.45}
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeDasharray="4 20"
+                    animate={{ strokeDashoffset: [0, -24] }}
+                    transition={{
+                      duration: 1.4,
+                      repeat: Infinity,
+                      ease: 'linear',
+                      delay: p.delay,
+                    }}
+                  />
+                  {/* Very faint static line: inner feature → center */}
+                  <line
+                    x1={p.inner.x} y1={p.inner.y}
+                    x2={CX} y2={CY}
+                    stroke="#244b46" strokeOpacity={0.06} strokeWidth={1}
+                  />
+                </g>
+              ))}
+            </svg>
+
+            {/* Pulse rings around center */}
+            {[0, 0.9, 1.8].map((delay, i) => (
+              <div
+                key={i}
+                className="absolute pointer-events-none"
+                style={{
+                  left: `${(CX / W) * 100}%`,
+                  top: `${(CY / H) * 100}%`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <motion.div
+                  className="w-24 h-24 rounded-full border border-accent/20"
+                  animate={{ scale: [1, 2.8], opacity: [0.45, 0] }}
+                  transition={{ duration: 2.7, repeat: Infinity, ease: 'easeOut', delay }}
+                />
+              </div>
+            ))}
+
+            {/* Outer tool pills */}
+            {PAIRS.map((p) => (
+              <div
+                key={p.tool}
+                className="absolute z-10"
+                style={{
+                  left: `${(p.outer.x / W) * 100}%`,
+                  top: `${(p.outer.y / H) * 100}%`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <motion.span
+                  className="block rounded-pill bg-surface border border-border text-[9px] md:text-[11px] text-text-faint px-2 md:px-3 py-1 md:py-1.5 whitespace-nowrap shadow-xs"
+                  animate={{ opacity: [0.55, 0.9, 0.55] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: p.delay }}
+                >
+                  {p.tool}
+                </motion.span>
+              </div>
+            ))}
+
+            {/* Inner feature nodes */}
+            {PAIRS.map((p) => (
+              <div
+                key={p.feature}
+                className="absolute z-20"
+                style={{
+                  left: `${(p.inner.x / W) * 100}%`,
+                  top: `${(p.inner.y / H) * 100}%`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <motion.span
+                  className="block rounded-pill bg-accent-soft border border-accent/30 text-[9px] md:text-[11px] text-accent font-medium px-2 md:px-2.5 py-0.5 md:py-1 whitespace-nowrap shadow-xs"
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: p.delay + 0.7 }}
+                >
+                  {p.feature}
+                </motion.span>
+              </div>
+            ))}
+
+            {/* Center — School Stack */}
+            <div
+              className="absolute z-30"
+              style={{
+                left: `${(CX / W) * 100}%`,
+                top: `${(CY / H) * 100}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <motion.div
+                className="rounded-xl bg-surface border-2 border-accent shadow-lg px-4 md:px-5 py-3 md:py-3.5 text-center"
+                animate={{
+                  boxShadow: [
+                    '0 0 0 0px rgba(36,75,70,0)',
+                    '0 0 0 10px rgba(36,75,70,0.07)',
+                    '0 0 0 0px rgba(36,75,70,0)',
+                  ],
+                }}
+                transition={{ duration: 2.7, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <div className="flex items-center justify-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                  <span className="font-display text-[11px] md:text-[13px] text-accent whitespace-nowrap">
+                    School Stack
+                  </span>
+                </div>
+              </motion.div>
+            </div>
+
+          </div>
+        </FadeInView>
+
+      </div>
+    </section>
+  )
+}

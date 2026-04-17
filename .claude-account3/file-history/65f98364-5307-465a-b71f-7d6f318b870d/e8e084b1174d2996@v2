@@ -1,0 +1,55 @@
+import { FadeInView } from '@/components/ui/FadeInView'
+
+const TOOLS = [
+  'Google Forms',
+  'Venmo',
+  'Gmail',
+  'Excel',
+  'Wix',
+  'Dropbox',
+  'SignNow',
+  'Google Docs',
+  'Stripe',
+  'Calendly',
+]
+
+export default function PainSection() {
+  return (
+    <section className="bg-bg-alt py-24">
+      <div className="max-w-[680px] mx-auto px-6 text-center">
+        <FadeInView>
+          <h2 className="font-display text-[clamp(2rem,4vw,3rem)] leading-[1.05] text-text">
+            Too big for spreadsheets.
+            <br />Too small for enterprise.
+          </h2>
+        </FadeInView>
+
+        <FadeInView delay={0.1}>
+          <p className="text-[17px] text-text-muted leading-relaxed mt-6 max-w-[58ch] mx-auto">
+            That&apos;s where founders end up stitching together Google Forms,
+            Venmo, Stripe, Gmail, PDFs, and notes just to keep the school moving.
+            You built something special. The infrastructure should not be the part
+            that holds it back.
+          </p>
+        </FadeInView>
+
+        <FadeInView delay={0.2}>
+          <div className="mt-10 -mx-6 px-6 overflow-x-auto">
+            <div
+              className="flex gap-2 pb-1 min-w-max md:min-w-0 md:flex-wrap md:justify-center mx-auto"
+            >
+              {TOOLS.map((tool) => (
+                <span
+                  key={tool}
+                  className="inline-flex items-center rounded-pill bg-surface-muted border border-border text-[12px] text-text-faint px-3 py-1.5 whitespace-nowrap"
+                >
+                  {tool}
+                </span>
+              ))}
+            </div>
+          </div>
+        </FadeInView>
+      </div>
+    </section>
+  )
+}

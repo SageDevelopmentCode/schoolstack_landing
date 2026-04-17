@@ -1,0 +1,230 @@
+'use client'
+
+import { motion } from 'framer-motion'
+import { fadeUp, scaleIn } from '@/lib/motion'
+
+const ease = [0.16, 1, 0.3, 1] as const
+
+function makeVariant(delay: number) {
+  return {
+    hidden: { opacity: 0, y: 18 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.55, ease, delay },
+    },
+  }
+}
+
+const heroFrameVariant = {
+  hidden: { opacity: 0, scale: 0.97 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.65, ease, delay: 0.32 },
+  },
+}
+
+export default function HeroSection() {
+  return (
+    <section className="pt-[140px] pb-[120px] md:pt-[140px] md:pb-[120px] bg-bg overflow-hidden">
+      <div className="max-w-[1280px] mx-auto px-6 lg:px-16">
+        <div className="grid grid-cols-1 lg:grid-cols-[45fr_55fr] gap-12 lg:gap-16 items-center">
+
+          {/* Left — text */}
+          <div>
+            <motion.div initial="hidden" animate="visible" variants={makeVariant(0)}>
+              <span className="inline-flex items-center gap-1.5 rounded-pill bg-accent-soft text-accent text-[11px] font-medium uppercase tracking-widest px-3 py-1.5">
+                Built inside a microschool
+              </span>
+            </motion.div>
+
+            <motion.h1
+              initial="hidden"
+              animate="visible"
+              variants={makeVariant(0.08)}
+              className="font-display text-[clamp(2.75rem,5.5vw,5.25rem)] leading-[0.96] tracking-tight text-text mt-6"
+            >
+              We built the software
+              <br />we couldn&apos;t find to run
+              <br /><span className="font-handwritten">our own</span> school.
+            </motion.h1>
+
+            <motion.p
+              initial="hidden"
+              animate="visible"
+              variants={makeVariant(0.18)}
+              className="text-[17px] md:text-[18px] text-text-muted leading-relaxed max-w-[52ch] mt-6"
+            >
+              School Stack started at Sage Field in Texas after trying to run
+              enrollment, billing, parent communication, contracts, and daily
+              operations across too many disconnected tools. Now it gives other
+              microschools one calm system to run the whole school.
+            </motion.p>
+
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={makeVariant(0.28)}
+              className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-8"
+            >
+              <a
+                href="#demo"
+                className="inline-flex items-center gap-2 bg-accent text-white text-sm font-medium rounded-pill px-6 h-11 hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-200 shadow-xs"
+              >
+                Book a Demo
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </a>
+              <a
+                href="#product"
+                className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-text transition-colors duration-200"
+              >
+                See the product
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M7 2.5V11.5M7 11.5L3 7.5M7 11.5L11 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </a>
+            </motion.div>
+          </div>
+
+          {/* Right — product visual */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={heroFrameVariant}
+            className="w-full h-[420px] md:h-[500px] lg:h-[540px] rounded-xl bg-surface border border-border shadow-lg overflow-hidden"
+          >
+            <HeroProductMockup />
+          </motion.div>
+
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function HeroProductMockup() {
+  return (
+    <div className="flex h-full text-[11px]">
+      {/* Sidebar */}
+      <div className="w-[160px] shrink-0 bg-surface-soft border-r border-border flex flex-col p-4 gap-0.5">
+        <div className="mb-4">
+          <span className="font-display text-[13px] text-text">Sage Field</span>
+          <span className="block text-text-faint text-[10px] mt-0.5">Admin Portal</span>
+        </div>
+        {[
+          { label: 'Dashboard', icon: '⊞' },
+          { label: 'Applications', icon: '◎', active: true },
+          { label: 'Students', icon: '◉' },
+          { label: 'Parents', icon: '○' },
+          { label: 'Teachers', icon: '▦' },
+          { label: 'Payments', icon: '◇' },
+          { label: 'Leads CRM', icon: '◈' },
+          { label: 'Calendar', icon: '▣' },
+          { label: 'Contracts', icon: '▤' },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className={`flex items-center gap-2 px-2.5 py-2 rounded-md text-[11px] transition-colors ${
+              item.active
+                ? 'bg-accent-soft text-accent font-medium'
+                : 'text-text-muted hover:bg-surface-muted'
+            }`}
+          >
+            <span className="text-[10px] opacity-60">{item.icon}</span>
+            {item.label}
+          </div>
+        ))}
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 bg-surface p-5 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-[13px] font-semibold text-text font-body">Applications</h3>
+            <p className="text-[10px] text-text-faint mt-0.5">12 total this enrollment period</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="bg-surface-muted border border-border rounded-md px-2.5 py-1.5 text-[10px] text-text-faint flex items-center gap-1">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="4.5" cy="4.5" r="3" stroke="currentColor" strokeWidth="1.2"/><path d="M7 7L8.5 8.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+              Search
+            </div>
+            <div className="bg-accent text-white rounded-md px-2.5 py-1.5 text-[10px] font-medium">+ New</div>
+          </div>
+        </div>
+
+        {/* Status tabs */}
+        <div className="flex gap-1 mb-4">
+          {['All (12)', 'New (4)', 'Reviewing (5)', 'Enrolled (3)'].map((tab, i) => (
+            <div
+              key={tab}
+              className={`px-2.5 py-1 rounded-md text-[10px] ${
+                i === 0 ? 'bg-surface-muted text-text font-medium' : 'text-text-faint'
+              }`}
+            >
+              {tab}
+            </div>
+          ))}
+        </div>
+
+        {/* Kanban */}
+        <div className="grid grid-cols-3 gap-3 h-[calc(100%-84px)]">
+          {[
+            {
+              title: 'New Inquiry',
+              count: 4,
+              color: 'bg-blue-50 text-blue-600',
+              cards: [
+                { name: 'Avery Chen', prog: 'Elementary', date: 'Apr 14' },
+                { name: 'Mateo Silva', prog: 'Pre-K', date: 'Apr 13' },
+                { name: 'Isla Thompson', prog: 'Elementary', date: 'Apr 11' },
+                { name: 'Finn Nakamura', prog: 'Middle', date: 'Apr 10' },
+              ],
+            },
+            {
+              title: 'Reviewing',
+              count: 5,
+              color: 'bg-yellow-50 text-yellow-700',
+              cards: [
+                { name: 'Luna Martinez', prog: 'Pre-K', date: 'Apr 9' },
+                { name: 'Jasper Kim', prog: 'Middle', date: 'Apr 8' },
+                { name: 'Cleo Osei', prog: 'Elementary', date: 'Apr 7' },
+              ],
+            },
+            {
+              title: 'Enrolled',
+              count: 3,
+              color: 'bg-green-50 text-green-700',
+              cards: [
+                { name: 'Rowan Park', prog: 'Elementary', date: 'Apr 6' },
+                { name: 'Sage Collins', prog: 'Pre-K', date: 'Apr 5' },
+                { name: 'River Patel', prog: 'Middle', date: 'Apr 3' },
+              ],
+            },
+          ].map((col) => (
+            <div key={col.title} className="bg-surface-soft rounded-lg p-2.5 overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-semibold text-text-faint uppercase tracking-wide font-body">{col.title}</span>
+                <span className={`text-[9px] font-medium rounded-pill px-1.5 py-0.5 ${col.color}`}>{col.count}</span>
+              </div>
+              <div className="flex flex-col gap-1.5 overflow-hidden">
+                {col.cards.map((card) => (
+                  <div key={card.name} className="bg-surface border border-border rounded-md p-2 shadow-xs">
+                    <div className="font-medium text-text text-[10px] font-body">{card.name}</div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="bg-accent-soft text-accent text-[9px] rounded-pill px-1.5 py-0.5">{card.prog}</span>
+                      <span className="text-text-faint text-[9px]">{card.date}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,71 @@
+import { FadeInView } from '@/components/ui/FadeInView'
+import { Badge } from '@/components/ui/Badge'
+
+const STEPS = [
+  {
+    number: '01',
+    title: 'Start with the stack that fits your school',
+    body: "Choose the setup that matches your school's size and current operational needs. Start simple, scale when you're ready.",
+  },
+  {
+    number: '02',
+    title: 'We configure it around how your school works',
+    body: "Programs, forms, billing setup, messaging flows, and your branded experience are configured for you. No dev work. No DIY.",
+  },
+  {
+    number: '03',
+    title: 'Run daily operations in one place',
+    body: "Manage leads, enrollment, communication, payments, documents, and staff workflows without switching tools.",
+  },
+]
+
+export default function WorkflowSection() {
+  return (
+    <section className="bg-bg-alt py-24">
+      <div className="max-w-[1100px] mx-auto px-6 lg:px-16">
+
+        {/* Heading */}
+        <div className="text-center max-w-[600px] mx-auto">
+          <FadeInView>
+            <Badge>How it works</Badge>
+          </FadeInView>
+          <FadeInView delay={0.08}>
+            <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.75rem)] leading-[1.05] text-text mt-5">
+              From founder chaos to a school
+              <br />that runs cleanly in three steps.
+            </h2>
+          </FadeInView>
+        </div>
+
+        {/* Steps grid */}
+        <div className="relative mt-16">
+          {/* Connecting line — desktop only */}
+          <div
+            className="hidden md:block absolute top-[52px] left-[calc(16.67%+32px)] right-[calc(16.67%+32px)] h-px bg-border pointer-events-none"
+            aria-hidden="true"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {STEPS.map((step, i) => (
+              <FadeInView key={step.number} delay={i * 0.1}>
+                <div className="bg-surface border border-border rounded-lg p-8 shadow-xs h-full">
+                  <div className="text-[11px] font-medium text-text-faint uppercase tracking-widest">Step</div>
+                  <div className="font-display text-[3.5rem] text-border-strong leading-none mt-1 select-none">
+                    {step.number}
+                  </div>
+                  <h3 className="font-body text-[16px] font-semibold text-text mt-4 leading-snug">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-text-muted mt-2.5 leading-relaxed">
+                    {step.body}
+                  </p>
+                </div>
+              </FadeInView>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </section>
+  )
+}

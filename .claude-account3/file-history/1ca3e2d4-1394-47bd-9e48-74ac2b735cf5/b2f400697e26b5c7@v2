@@ -1,0 +1,664 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Badge } from '@/components/ui/Badge'
+import { FadeInView } from '@/components/ui/FadeInView'
+
+type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'payments' | 'leads'
+
+interface Tab {
+  id: TabId
+  label: string
+  caption: string
+  description: string
+}
+
+const TABS: Tab[] = [
+  {
+    id: 'admin',
+    label: 'Admin',
+    caption: 'Admin Portal',
+    description: 'Track every applicant from first click to enrolled — with notes, approvals, and follow-up.',
+  },
+  {
+    id: 'website',
+    label: 'Website',
+    caption: 'School Website',
+    description: 'A full school website with programs, FAQs, team, and calls to action.',
+  },
+  {
+    id: 'enrollment',
+    label: 'Enrollment',
+    caption: 'Enrollment System',
+    description: 'Enrollment with health info, emergency contacts, uploads, and signatures.',
+  },
+  {
+    id: 'parents',
+    label: 'Parents',
+    caption: 'Parent Portal',
+    description: 'Parents manage forms, payments, documents, and communication in one place.',
+  },
+  {
+    id: 'teachers',
+    label: 'Teachers',
+    caption: 'Teacher Portal',
+    description: 'Teachers see students, log notes, track hours, and share updates.',
+  },
+  {
+    id: 'payments',
+    label: 'Payments',
+    caption: 'Payments',
+    description: 'Every payment tracked, categorized, and tied to the right student and program.',
+  },
+  {
+    id: 'leads',
+    label: 'Leads',
+    caption: 'Leads CRM',
+    description: 'Waitlist inquiries, tour bookings, and follow-up all live in one pipeline.',
+  },
+]
+
+export default function ProductPreviewSection() {
+  const [activeTab, setActiveTab] = useState<TabId>('admin')
+  const tabBarRef = useRef<HTMLDivElement>(null)
+  const tabRefs = useRef<Map<TabId, HTMLButtonElement>>(new Map())
+
+  const currentTab = TABS.find((t) => t.id === activeTab)!
+
+  function handleTabChange(id: TabId) {
+    setActiveTab(id)
+    const el = tabRefs.current.get(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent, index: number) {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      handleTabChange(TABS[(index + 1) % TABS.length].id)
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      handleTabChange(TABS[(index - 1 + TABS.length) % TABS.length].id)
+    }
+  }
+
+  return (
+    <section id="product" className="bg-bg py-24">
+      <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
+
+        {/* Top content */}
+        <div className="max-w-[680px] mx-auto text-center mb-12">
+          <FadeInView>
+            <Badge>Product Tour</Badge>
+          </FadeInView>
+          <FadeInView delay={0.08}>
+            <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.75rem)] leading-[1.05] text-text mt-5">
+              Built in a real microschool.
+              <br />Shaped by real school operations.
+            </h2>
+          </FadeInView>
+          <FadeInView delay={0.16}>
+            <p className="text-[16px] text-text-muted leading-relaxed mt-4 max-w-[600px] mx-auto">
+              Click through the modules to see how School Stack handles the work
+              founders actually deal with every week: leads, enrollment, contracts,
+              family communication, billing, and staff operations in one system.
+            </p>
+          </FadeInView>
+        </div>
+
+        <FadeInView delay={0.1}>
+          {/* Tab bar */}
+          <div
+            ref={tabBarRef}
+            className="flex items-center gap-1 bg-surface border border-border rounded-pill shadow-xs p-1.5 overflow-x-auto w-fit mx-auto max-w-full"
+            style={{ scrollbarWidth: 'none' }}
+            role="tablist"
+            aria-label="Product modules"
+          >
+            {TABS.map((tab, index) => (
+              <button
+                key={tab.id}
+                ref={(el) => { if (el) tabRefs.current.set(tab.id, el) }}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`tabpanel-${tab.id}`}
+                onClick={() => handleTabChange(tab.id)}
+                onKeyDown={(e) => handleKeyDown(e, index)}
+                className={`px-4 h-9 rounded-pill text-sm whitespace-nowrap transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent ${
+                  activeTab === tab.id
+                    ? 'bg-accent text-white shadow-xs font-medium'
+                    : 'text-text-muted hover:text-text hover:bg-surface-muted'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Product frame */}
+          <div className="mt-6 w-full h-[280px] md:h-[480px] lg:h-[560px] rounded-xl border border-border-strong shadow-lg overflow-hidden relative bg-surface-soft">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                id={`tabpanel-${activeTab}`}
+                role="tabpanel"
+                aria-label={currentTab.caption}
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <TabContent tabId={activeTab} />
+
+                {/* Caption bar */}
+                <div className="absolute bottom-0 left-0 right-0 px-5 py-3.5 bg-[rgba(15,14,12,0.75)] backdrop-blur-sm flex items-center gap-3">
+                  <span className="inline-flex items-center rounded-pill bg-white/10 text-white text-[11px] font-medium px-2.5 py-1 shrink-0">
+                    {currentTab.caption}
+                  </span>
+                  <p className="text-white/80 text-[12px] leading-snug truncate">
+                    {currentTab.description}
+                  </p>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </FadeInView>
+
+      </div>
+    </section>
+  )
+}
+
+function TabContent({ tabId }: { tabId: TabId }) {
+  switch (tabId) {
+    case 'admin':    return <AdminTab />
+    case 'website':  return <WebsiteTab />
+    case 'enrollment': return <EnrollmentTab />
+    case 'parents':  return <ParentsTab />
+    case 'teachers': return <TeachersTab />
+    case 'payments': return <PaymentsTab />
+    case 'leads':    return <LeadsTab />
+  }
+}
+
+/* ─── Tab mockups ────────────────────────────────────────────────────── */
+
+function AdminTab() {
+  return (
+    <div className="flex h-full text-[11px]">
+      {/* Sidebar */}
+      <div className="w-[150px] lg:w-[170px] shrink-0 bg-surface-soft border-r border-border flex flex-col p-3 gap-0.5">
+        <div className="mb-3 px-1">
+          <span className="font-display text-[12px] text-text">Sage Field</span>
+          <span className="block text-text-faint text-[10px]">Admin Portal</span>
+        </div>
+        {[
+          { label: 'Dashboard' },
+          { label: 'Applications', active: true },
+          { label: 'Students' },
+          { label: 'Parents' },
+          { label: 'Teachers' },
+          { label: 'Payments' },
+          { label: 'Leads CRM' },
+          { label: 'Calendar' },
+          { label: 'Contracts' },
+          { label: 'Budget' },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className={`px-2.5 py-1.5 rounded-md text-[11px] ${
+              item.active ? 'bg-accent-soft text-accent font-medium' : 'text-text-muted'
+            }`}
+          >
+            {item.label}
+          </div>
+        ))}
+      </div>
+
+      {/* Main */}
+      <div className="flex-1 p-4 lg:p-5 overflow-hidden">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-[13px] font-semibold text-text font-body">Applications</div>
+            <div className="text-[10px] text-text-faint">12 total this enrollment period</div>
+          </div>
+          <div className="flex gap-2">
+            <div className="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-faint">Filter</div>
+            <div className="bg-accent text-white rounded-md px-2 py-1 text-[10px] font-medium">+ New</div>
+          </div>
+        </div>
+        <div className="flex gap-1 mb-3">
+          {['All (12)', 'New (4)', 'Reviewing (5)', 'Enrolled (3)'].map((t, i) => (
+            <div key={t} className={`px-2 py-0.5 rounded text-[10px] ${i === 0 ? 'bg-surface-muted text-text font-medium' : 'text-text-faint'}`}>{t}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-2.5 h-[calc(100%-72px)]">
+          {[
+            { title: 'New Inquiry', color: 'bg-blue-50 text-blue-600', cards: ['Avery Chen', 'Mateo Silva', 'Isla Thompson', 'Finn Nakamura'] },
+            { title: 'Reviewing', color: 'bg-yellow-50 text-yellow-700', cards: ['Luna Martinez', 'Jasper Kim', 'Cleo Osei'] },
+            { title: 'Enrolled', color: 'bg-green-50 text-green-700', cards: ['Rowan Park', 'Sage Collins', 'River Patel'] },
+          ].map((col) => (
+            <div key={col.title} className="bg-surface-soft rounded-lg p-2 overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-semibold text-text-faint uppercase tracking-wide font-body">{col.title}</span>
+                <span className={`text-[9px] font-medium rounded-pill px-1.5 py-0.5 ${col.color}`}>{col.cards.length}</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {col.cards.map((name) => (
+                  <div key={name} className="bg-surface border border-border rounded-md p-2 shadow-xs">
+                    <div className="font-medium text-text text-[10px] font-body">{name}</div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="bg-accent-soft text-accent text-[9px] rounded-pill px-1.5 py-0.5">Elementary</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function WebsiteTab() {
+  return (
+    <div className="flex flex-col h-full bg-surface overflow-hidden">
+      {/* Nav */}
+      <div className="flex items-center px-5 h-11 border-b border-border gap-6 shrink-0">
+        <span className="font-display text-[13px] text-text">Sage Field</span>
+        <div className="hidden md:flex gap-5">
+          {['About', 'Programs', 'Admissions', 'Calendar', 'Contact'].map((l) => (
+            <span key={l} className="text-[11px] text-text-muted">{l}</span>
+          ))}
+        </div>
+        <div className="ml-auto">
+          <span className="bg-accent text-white text-[10px] rounded-pill px-2.5 py-1">Apply Now</span>
+        </div>
+      </div>
+
+      {/* Hero band */}
+      <div className="bg-bg-alt px-6 py-8 border-b border-border shrink-0">
+        <span className="text-[10px] text-accent uppercase tracking-widest font-medium">Microschool in Austin, Texas</span>
+        <h3 className="font-display text-[clamp(1.4rem,3vw,2rem)] text-text mt-2 leading-tight">
+          A different kind of school.<br />Built for curious minds.
+        </h3>
+        <p className="text-[12px] text-text-muted mt-2 max-w-xs">
+          Small classrooms. Deep learning. A community that knows your child by name.
+        </p>
+        <div className="flex gap-2 mt-4">
+          <span className="bg-accent text-white text-[10px] rounded-pill px-3 py-1.5">Enroll for Fall 2026</span>
+          <span className="border border-border text-text-muted text-[10px] rounded-pill px-3 py-1.5">Book a Tour</span>
+        </div>
+      </div>
+
+      {/* Programs */}
+      <div className="flex-1 p-4 overflow-hidden">
+        <div className="text-[11px] font-semibold text-text font-body mb-3">Our Programs</div>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { name: 'Explorers', ages: 'Ages 4–6', desc: 'Play-based early learning' },
+            { name: 'Builders', ages: 'Grades 1–4', desc: 'Project-based curriculum' },
+            { name: 'Pioneers', ages: 'Grades 5–8', desc: 'Socratic-led discussions' },
+          ].map((p) => (
+            <div key={p.name} className="bg-surface border border-border rounded-lg p-3">
+              <div className="text-[11px] font-medium text-text font-body">{p.name}</div>
+              <div className="text-[10px] text-accent mt-0.5">{p.ages}</div>
+              <div className="text-[10px] text-text-muted mt-1">{p.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EnrollmentTab() {
+  return (
+    <div className="flex h-full items-center justify-center bg-surface-soft p-4 md:p-8">
+      <div className="w-full max-w-[440px] bg-surface border border-border rounded-xl shadow-sm p-5 md:p-7">
+        {/* Progress */}
+        <div className="flex items-center gap-1.5 mb-5">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <div key={n} className="flex items-center gap-1.5">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  n < 3
+                    ? 'bg-accent text-white'
+                    : n === 3
+                    ? 'bg-accent-soft text-accent border border-accent'
+                    : 'bg-surface-muted text-text-faint border border-border'
+                }`}
+              >
+                {n < 3 ? '✓' : n}
+              </div>
+              {n < 5 && <div className={`h-px w-6 ${n < 3 ? 'bg-accent' : 'bg-border'}`} />}
+            </div>
+          ))}
+        </div>
+
+        <div className="text-[11px] text-text-faint mb-1">Step 3 of 5</div>
+        <div className="text-[14px] font-semibold text-text font-body mb-4">Health & Medical Information</div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[11px] text-text-muted mb-1">Pediatrician / Primary Care</label>
+            <div className="h-8 rounded-md border border-border bg-surface-soft text-[11px] text-text-muted flex items-center px-3">Dr. Sarah Kim, Austin Family Health</div>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-[11px] text-text-muted mb-1">Allergies</label>
+              <div className="h-8 rounded-md border border-border bg-surface-soft text-[11px] text-text-muted flex items-center px-3">None</div>
+            </div>
+            <div>
+              <label className="block text-[11px] text-text-muted mb-1">Blood Type</label>
+              <div className="h-8 rounded-md border border-border-strong bg-surface text-[11px] text-text flex items-center px-3">A+</div>
+            </div>
+          </div>
+          <div>
+            <label className="block text-[11px] text-text-muted mb-1">Current Medications</label>
+            <div className="h-8 rounded-md border border-border bg-surface-soft text-[11px] text-text-muted flex items-center px-3">None listed</div>
+          </div>
+          <div className="p-2.5 bg-accent-soft border border-accent/20 rounded-md flex items-start gap-2">
+            <span className="text-accent text-[12px] mt-0.5">↑</span>
+            <div>
+              <div className="text-[11px] font-medium text-accent">Upload Immunization Records</div>
+              <div className="text-[10px] text-accent/70 mt-0.5">PDF, JPG, PNG, or HEIC accepted</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between mt-5">
+          <button className="text-[11px] text-text-muted border border-border rounded-pill px-4 h-8">← Back</button>
+          <button className="bg-accent text-white text-[11px] font-medium rounded-pill px-5 h-8">Continue →</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ParentsTab() {
+  return (
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-[130px] lg:w-[150px] shrink-0 bg-surface border-r border-border flex flex-col p-3 gap-0.5">
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <div className="w-7 h-7 rounded-full bg-accent-soft flex items-center justify-center text-[11px] font-bold text-accent">E</div>
+          <div>
+            <div className="text-[11px] font-medium text-text">Emma J.</div>
+            <div className="text-[9px] text-text-faint">Parent</div>
+          </div>
+        </div>
+        {[
+          { label: 'Dashboard', active: true },
+          { label: 'Forms' },
+          { label: 'Billing' },
+          { label: 'Messages' },
+          { label: 'Calendar' },
+          { label: 'Profile' },
+        ].map((item) => (
+          <div key={item.label} className={`px-2 py-1.5 rounded-md text-[11px] ${item.active ? 'bg-accent-soft text-accent font-medium' : 'text-text-muted'}`}>
+            {item.label}
+          </div>
+        ))}
+      </div>
+
+      {/* Main */}
+      <div className="flex-1 p-4 lg:p-5 overflow-hidden">
+        <div className="font-display text-[15px] text-text mb-4">Hello, Emma.</div>
+
+        {/* Checklist card */}
+        <div className="bg-surface border border-border rounded-lg p-3.5 mb-3">
+          <div className="text-[11px] font-semibold text-text font-body mb-2.5">Enrollment Checklist</div>
+          <div className="space-y-2">
+            {[
+              { label: 'Application submitted', done: true },
+              { label: 'Health form completed', done: true },
+              { label: 'Emergency contacts added', done: true },
+              { label: 'Contract signed', done: false },
+              { label: 'Tuition payment', done: false },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-2.5">
+                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] ${item.done ? 'bg-accent text-white' : 'border border-border bg-surface'}`}>
+                  {item.done && '✓'}
+                </div>
+                <span className={`text-[11px] ${item.done ? 'text-text' : 'text-text-muted'}`}>{item.label}</span>
+                {!item.done && <span className="ml-auto bg-yellow-50 text-yellow-700 text-[9px] rounded-pill px-1.5 py-0.5">Action needed</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Billing card */}
+        <div className="bg-surface border border-border rounded-lg p-3.5">
+          <div className="text-[11px] font-semibold text-text font-body mb-2.5">Upcoming Payment</div>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[12px] font-medium text-text">Fall Tuition — Elementary</div>
+              <div className="text-[10px] text-text-faint mt-0.5">Due May 15, 2026</div>
+            </div>
+            <div className="text-right">
+              <div className="text-[15px] font-semibold text-accent font-body">$650</div>
+              <button className="text-[10px] bg-accent text-white rounded-pill px-2.5 py-1 mt-1">Pay Now</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TeachersTab() {
+  return (
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <div className="w-[130px] lg:w-[150px] shrink-0 bg-surface-soft border-r border-border flex flex-col p-3 gap-0.5">
+        <div className="mb-3 px-1">
+          <div className="text-[11px] font-medium text-text">Ms. Rivera</div>
+          <div className="text-[9px] text-text-faint">Teacher · Builders</div>
+        </div>
+        {[
+          { label: 'My Students', active: true },
+          { label: 'Notes' },
+          { label: 'Hours' },
+          { label: 'Staff Feed' },
+          { label: 'Messages' },
+          { label: 'Calendar' },
+        ].map((item) => (
+          <div key={item.label} className={`px-2 py-1.5 rounded-md text-[11px] ${item.active ? 'bg-accent-soft text-accent font-medium' : 'text-text-muted'}`}>
+            {item.label}
+          </div>
+        ))}
+      </div>
+
+      {/* Main */}
+      <div className="flex-1 p-4 lg:p-5 overflow-hidden">
+        <div className="text-[13px] font-semibold text-text font-body mb-3">My Students — Builders (Grades 1–4)</div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mb-4">
+          {['Avery Chen', 'Mateo Silva', 'Isla Thompson', 'Finn Nakamura', 'Cleo Osei', 'River Patel'].map((name) => (
+            <div key={name} className="bg-surface border border-border rounded-lg p-2.5">
+              <div className="w-7 h-7 rounded-full bg-surface-muted flex items-center justify-center text-[11px] font-bold text-text-muted mb-1.5">
+                {name[0]}
+              </div>
+              <div className="text-[11px] font-medium text-text font-body leading-tight">{name}</div>
+              <div className="text-[10px] text-accent mt-0.5">Grade 2</div>
+              <div className="text-[10px] text-text-faint mt-0.5">3 notes</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-[11px] font-semibold text-text font-body mb-2">Recent Notes</div>
+        <div className="space-y-2">
+          {[
+            { student: 'Avery Chen', cat: 'Academic', note: 'Excellent focus during math block. Mastered fraction concepts ahead of schedule.' },
+            { student: 'Mateo Silva', cat: 'Behavioral', note: 'Great improvement with group transitions today. Positive peer interactions all morning.' },
+          ].map((n) => (
+            <div key={n.student} className="bg-surface border border-border rounded-lg p-2.5">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-medium text-text font-body">{n.student}</span>
+                <span className="bg-accent-soft text-accent text-[9px] rounded-pill px-1.5 py-0.5">{n.cat}</span>
+              </div>
+              <p className="text-[10px] text-text-muted leading-relaxed">{n.note}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PaymentsTab() {
+  const transactions = [
+    { name: 'Emma Johnson', type: 'Fall Tuition', amount: '$650.00', date: 'Apr 14', status: 'Paid' },
+    { name: 'Liam Torres', type: 'Reg. Fee', amount: '$150.00', date: 'Apr 12', status: 'Paid' },
+    { name: 'Sofia Chen', type: 'Fall Tuition', amount: '$650.00', date: 'Apr 10', status: 'Paid' },
+    { name: 'Noah Park', type: 'Aftercare', amount: '$280.00', date: 'Apr 9', status: 'Paid' },
+    { name: 'Mia Osei', type: 'Fall Tuition', amount: '$650.00', date: 'Apr 7', status: 'Pending' },
+  ]
+
+  return (
+    <div className="flex h-full">
+      {/* Main table */}
+      <div className="flex-1 p-4 lg:p-5 overflow-hidden">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-[13px] font-semibold text-text font-body">Transactions</div>
+            <div className="text-[10px] text-text-faint">$5,840 collected this month</div>
+          </div>
+          <div className="flex gap-2">
+            <div className="bg-surface-muted border border-border rounded-md px-2.5 py-1.5 text-[10px] text-text-muted">Filter</div>
+            <div className="border border-border rounded-md px-2.5 py-1.5 text-[10px] text-text-muted">Export CSV</div>
+          </div>
+        </div>
+
+        <div className="bg-surface border border-border rounded-lg overflow-hidden">
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="border-b border-border bg-surface-soft">
+                <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Student</th>
+                <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden md:table-cell">Type</th>
+                <th className="text-right px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Amount</th>
+                <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden md:table-cell">Date</th>
+                <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((tx, i) => (
+                <tr key={i} className="border-b border-border last:border-0 hover:bg-surface-soft transition-colors">
+                  <td className="px-3 py-2.5 font-medium text-text">{tx.name}</td>
+                  <td className="px-3 py-2.5 text-text-muted hidden md:table-cell">{tx.type}</td>
+                  <td className="px-3 py-2.5 text-right font-medium text-text">{tx.amount}</td>
+                  <td className="px-3 py-2.5 text-text-faint hidden md:table-cell">{tx.date}</td>
+                  <td className="px-3 py-2.5">
+                    <span className={`inline-flex items-center gap-1 text-[10px] rounded-pill px-2 py-0.5 ${
+                      tx.status === 'Paid'
+                        ? 'bg-green-50 text-green-700'
+                        : 'bg-yellow-50 text-yellow-700'
+                    }`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      {tx.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Detail sidebar */}
+      <div className="hidden lg:flex w-[200px] shrink-0 bg-surface-soft border-l border-border flex-col p-4">
+        <div className="text-[10px] font-medium text-text-faint uppercase tracking-wide mb-3">Selected</div>
+        <div className="text-[12px] font-medium text-text font-body">Emma Johnson</div>
+        <div className="text-[11px] text-text-muted mt-0.5">Elementary · Builders</div>
+        <div className="text-[22px] font-semibold text-accent mt-3 font-body">$650.00</div>
+        <div className="text-[10px] text-text-faint">Fall Tuition 2026</div>
+        <div className="text-[10px] text-text-faint mt-0.5">Apr 14, 2026</div>
+        <div className="mt-3 inline-flex items-center gap-1 bg-green-50 text-green-700 text-[10px] rounded-pill px-2 py-1 w-fit">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+          Paid via Stripe
+        </div>
+        <a href="#" className="mt-4 text-[11px] text-accent hover:text-accent-hover flex items-center gap-1">
+          View Student →
+        </a>
+      </div>
+    </div>
+  )
+}
+
+function LeadsTab() {
+  const leads = [
+    { name: 'The Garza Family', child: 'Elementary', status: 'New', tags: ['waitlist', 'summer'], date: '2d ago' },
+    { name: 'Priya & Arjun Mehta', child: 'Pre-K', status: 'Contacted', tags: ['tour-booked'], date: '4d ago' },
+    { name: 'The Kim-Torres Family', child: 'Middle', status: 'Touring', tags: ['referral'], date: '6d ago' },
+    { name: 'Simone Okafor', child: 'Elementary', status: 'New', tags: ['waitlist'], date: '1w ago' },
+    { name: 'Marcus & Joy Webb', child: 'Grades 1–3', status: 'Enrolled', tags: ['fall-2026'], date: '2w ago' },
+  ]
+
+  const statusStyles: Record<string, string> = {
+    New: 'bg-blue-50 text-blue-600',
+    Contacted: 'bg-yellow-50 text-yellow-700',
+    Touring: 'bg-purple-50 text-purple-700',
+    Enrolled: 'bg-green-50 text-green-700',
+  }
+
+  return (
+    <div className="flex flex-col h-full p-4 lg:p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div className="text-[13px] font-semibold text-text font-body">Leads CRM</div>
+          <div className="text-[10px] text-text-faint">14 active leads</div>
+        </div>
+        <div className="flex gap-2">
+          <div className="bg-surface-muted border border-border rounded-md px-2.5 h-7 flex items-center text-[10px] text-text-faint">Search</div>
+          <div className="bg-accent text-white rounded-md px-2.5 h-7 flex items-center text-[10px] font-medium">+ New Lead</div>
+        </div>
+      </div>
+
+      <div className="flex gap-1 mb-3">
+        {[['All', '14'], ['New', '6'], ['Contacted', '4'], ['Touring', '2'], ['Enrolled', '2']].map(([label, count], i) => (
+          <div key={label} className={`px-2 py-0.5 rounded text-[10px] flex items-center gap-1 ${i === 0 ? 'bg-surface-muted text-text font-medium' : 'text-text-faint'}`}>
+            {label} <span className="opacity-60">{count}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-surface border border-border rounded-lg overflow-hidden flex-1">
+        <table className="w-full text-[11px]">
+          <thead>
+            <tr className="border-b border-border bg-surface-soft">
+              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Family</th>
+              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden md:table-cell">Interest</th>
+              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Status</th>
+              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden lg:table-cell">Tags</th>
+              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden md:table-cell">Added</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leads.map((lead, i) => (
+              <tr key={i} className="border-b border-border last:border-0 hover:bg-surface-soft transition-colors">
+                <td className="px-3 py-2.5 font-medium text-text">{lead.name}</td>
+                <td className="px-3 py-2.5 text-text-muted hidden md:table-cell">{lead.child}</td>
+                <td className="px-3 py-2.5">
+                  <span className={`text-[10px] rounded-pill px-2 py-0.5 ${statusStyles[lead.status]}`}>{lead.status}</span>
+                </td>
+                <td className="px-3 py-2.5 hidden lg:table-cell">
+                  <div className="flex gap-1 flex-wrap">
+                    {lead.tags.map((tag) => (
+                      <span key={tag} className="bg-accent-soft text-accent text-[9px] rounded-pill px-1.5 py-0.5">{tag}</span>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 text-text-faint hidden md:table-cell">{lead.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}

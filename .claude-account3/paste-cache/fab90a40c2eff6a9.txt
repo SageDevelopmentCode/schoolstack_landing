@@ -1,0 +1,63 @@
+Role    Likely font
+Main UI / body / navigation    Geist or Inter 
+Editorial / display moments    Feature Display Web or Lora 
+Mono / technical labels    Fragment Mono 
+Handwritten accent moments    Delicious Handrawn 
+A good working interpretation is that Eden mixes a clean modern sans for interface structure with a more editorial display face for big marketing moments, which matches the homepage’s emotional, narrative-led copy structure.
+
+Main colors
+From the live source, these hex colors appear directly and repeatedly on the homepage: #052415, #f4f2f0, #ffffff, #f1f1f1, #99b7ab, #253f31, #eceeed, #abffc0, #284a3d, #09321f, #6f6f6f, #ededed, and #a8a8a8.
+
+The most useful distilled palette looks like this:
+
+Usage    Color
+Primary dark background / dark text anchor    #052415 
+Warm off-white page background    #f4f2f0 
+Pure white card/surface    #ffffff 
+Soft neutral gray surface    #f1f1f1 
+Muted green secondary accent    #99b7ab 
+Deep forest surface / dark panel    #253f31 
+Very light cool neutral    #eceeed 
+Bright mint highlight    #abf0 
+Mid dark green    #284a3d 
+Darker green variation    #09321f 
+Muted gray text    #6f6f6f 
+Light border/background gray    #ededed 
+Medium gray UI text    #a8a8a8 
+Accent colors
+The source also exposes brighter accent values like #ff8000, #d500ff, and #ff8001. Those do appear in the CSS, but they do not look like the primary brand palette from the homepage’s overall visual tone; they are more likely tied to media/tool states, highlights, or embedded UI elements rather than the main marketing shell.
+
+So for a design-system translation, I would treat these as secondary utility accents, not Eden’s core brand colors:
+
+Orange: #ff8000 / #ff8001
+
+Magenta: #d500ff
+
+Mint highlight: #abffc0
+
+Best reconstructed design system
+If you want the closest usable “Eden-style” token set for your own build, I’d define it like this:
+
+css
+:root {
+  --eden-bg-dark: #052415;
+  --eden-bg: #f4f2f0;
+  --eden-surface: #ffffff;
+  --eden-surface-soft: #f1f1f1;
+  --eden-surface-cool: #eceeed;
+
+  --eden-text: #052415;
+  --eden-text-soft: #25eden-text-muted: #6f6f6f;
+  --eden-text-faint: #a8a8a8;
+
+  --eden-accent-muted: #99b7ab;
+  --eden-accent-strong: #284a3d;
+  --eden-accent-dark: #09321f;
+  --eden-accent-highlight: #abffc0;
+
+  --eden-border: #ededed;
+  --eden-white: #ffffff;
+
+  --eden-utility-orange: #ff8000;
+  --eden-utility-magenta: #d500ff;
+}

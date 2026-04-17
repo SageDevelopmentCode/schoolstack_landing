@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors — Eden palette */
+  --color-bg:               #f4f2f0;
+  --color-bg-alt:           #f1f1f1;
+  --color-surface:          #ffffff;
+  --color-surface-soft:     #eceeed;
+  --color-surface-muted:    #eceeed;
+  --color-border:           #ededed;
+  --color-border-strong:    #a8a8a8;
+  --color-text:             #052415;
+  --color-text-muted:       #6f6f6f;
+  --color-text-faint:       #a8a8a8;
+  --color-accent:           #284a3d;
+  --color-accent-hover:     #052415;
+  --color-accent-soft:      #99b7ab;
+  --color-accent-highlight: #abffc0;
+  --color-dark-panel:       #253f31;
+
+  /* Radius */
+  --radius-sm:   10px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-xl:   28px;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(5,36,21,0.04);
+  --shadow-sm: 0 6px 24px rgba(5,36,21,0.05);
+  --shadow-md: 0 14px 40px rgba(5,36,21,0.08);
+  --shadow-lg: 0 24px 60px rgba(5,36,21,0.10);
+
+  /* Fonts */
+  --font-display:     var(--font-lora), "Lora", serif;
+  --font-body:        var(--font-geist), "Geist", sans-serif;
+  --font-mono:        var(--font-fragment-mono), "Fragment Mono", monospace;
+  --font-handwritten: var(--font-delicious), "Delicious Handrawn", cursive;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

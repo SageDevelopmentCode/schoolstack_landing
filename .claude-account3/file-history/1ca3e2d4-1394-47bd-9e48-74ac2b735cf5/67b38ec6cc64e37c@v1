@@ -1,0 +1,874 @@
+# Eden-Inspired UI/UX Playbook for Next.js AI Agents
+
+This document defines a complete UI/UX system for AI agents building pages in a Next.js application. It is designed to capture the same broad design qualities seen in Eden’s public site: calm premium minimalism, editorial-product hybrid typography, soft neutral surfaces, product-led storytelling, and restrained motion.[cite:18][web:8]
+
+The user’s broader product context includes modern SaaS-style software and public-facing product marketing sites, so this system is written to support both a marketing website and authenticated product surfaces inside a single design language.[cite:18]
+
+## Core Design Intent
+
+The target aesthetic is not generic “AI startup” design. The direction should feel thoughtful, calm, premium, and creative; it should combine the trust and clarity of a well-structured SaaS product with the taste and emotional restraint of an editorial brand experience.[web:8]
+
+Agents should optimize for these traits on every page:
+
+- Calm, not loud.
+- Premium, not flashy.
+- Human and editorial, not overly corporate.
+- Product-led, not decoration-led.
+- Clean and confident, not crowded and over-explained.
+
+A page succeeds when a user can understand the primary action quickly, feel visual trust immediately, and sense that the product is polished before reading every detail.[web:8]
+
+## Brand Personality
+
+All pages should express a consistent personality:
+
+- Organized.
+- Intelligent.
+- Warmly minimal.
+- Creative but controlled.
+- Useful before impressive.
+- Premium without luxury gimmicks.
+
+Use visual taste to signal quality. Avoid trying to signal innovation through glowing gradients, floating abstract blobs, or exaggerated 3D visual effects; those cues conflict with the Eden-inspired reference direction.[web:8]
+
+## Experience Principles
+
+### Narrative first
+
+Marketing pages should explain the problem emotionally, then show the product, then prove the workflow, then invite action. Eden’s homepage copy structure follows this kind of progression with conceptual statements, product framing, capability sections, and call-to-action transitions.[web:8]
+
+Agents should build pages in this order when possible:
+
+1. State the core problem or aspiration.
+2. Show the product or interface quickly.
+3. Explain the workflow in practical terms.
+4. Reinforce trust with outcomes, examples, or use cases.
+5. Present one clear next action.
+
+### Product as artwork
+
+Screenshots, dashboards, workspace mockups, and realistic interfaces should do more visual work than decorative graphics. Eden’s visible product imagery centers app-shell structures, content cards, sidebars, and search-led workspace panels, which makes the product itself the hero asset.[web:8]
+
+When agents need a hero visual, prefer one of these in order:
+
+- Real product screenshot.
+- High-fidelity product mockup.
+- Cropped workflow sequence.
+- Only then, an abstract supporting visual.
+
+### One primary action
+
+Each section should have one dominant action and one supporting action at most. If an agent creates multiple equally emphasized buttons in the same viewport, the page will lose clarity and feel more generic.
+
+### Calm momentum
+
+Pages should feel alive through gentle reveal, layering, and microinteractions, but never through excessive animation. Motion should suggest polish and confidence, not attention-seeking behavior.
+
+## Visual Language
+
+### Overall look
+
+The UI should feel like a blend of:
+
+- Editorial software brand.
+- Creative operating system.
+- Minimalist productivity tool.
+- Premium but understated SaaS.
+
+The visual system should rely on neutral backgrounds, layered surfaces, careful typography, and believable product depth rather than bright brand saturation.[web:8]
+
+### Stylistic summary
+
+Agents should consistently produce these qualities:
+
+- Warm off-white or soft stone page backgrounds.
+- White or near-white card surfaces.
+- Low-contrast borders.
+- Spacious marketing sections.
+- Dense but tidy product mockups.
+- Rounded geometry with soft shadows.
+- Muted accent color used sparingly.
+- Serif or editorial display moments balanced with a modern sans-serif UI font.
+
+## Color System
+
+### Palette goals
+
+The palette should communicate calm sophistication. Most of the interface should be neutral. Accent color should guide action, not dominate the entire viewport.
+
+### Default palette
+
+Use this as the default Eden-inspired palette unless the product brand has its own established accent.
+
+```css
+:root {
+  --bg: #f6f5f2;
+  --bg-alt: #f1efe9;
+  --surface: #ffffff;
+  --surface-soft: #fbfaf7;
+  --surface-muted: #f3f1ec;
+  --border: #e7e3dc;
+  --border-strong: #d9d4cc;
+  --text: #1f1e1a;
+  --text-muted: #6f6b65;
+  --text-faint: #9a958d;
+  --accent: #244b46;
+  --accent-hover: #1d3d39;
+  --accent-soft: #dfe8e5;
+  --success: #3f6b3f;
+  --warning: #8a5a24;
+  --error: #8b3752;
+}
+```
+
+### Color rules
+
+Agents must follow these rules:
+
+- Keep 80–90% of the page neutral.
+- Use only one primary accent on any single page unless a chart or status system requires more.
+- Reserve strong accent fills for buttons, active states, selected tabs, badges, and tiny emphasis moments.
+- Use muted surfaces and subtle contrast steps to create depth.
+- Never use blue-purple gradient branding by default; it breaks the desired aesthetic.
+- Avoid pure black backgrounds and harsh white-on-black contrast unless a specific brand direction demands it.
+
+### Dark mode
+
+If dark mode is included, do not invert blindly. Use dark warm-charcoal surfaces, softened text contrast, and slightly lifted muted panels.
+
+Recommended dark variables:
+
+```css
+[data-theme="dark"] {
+  --bg: #171614;
+  --bg-alt: #1c1b18;
+  --surface: #201f1c;
+  --surface-soft: #25241f;
+  --surface-muted: #2b2925;
+  --border: #34312c;
+  --border-strong: #45413b;
+  --text: #ece7df;
+  --text-muted: #b4aea6;
+  --text-faint: #8f887f;
+  --accent: #7fa59e;
+  --accent-hover: #95b8b1;
+  --accent-soft: #273330;
+}
+```
+
+## Typography System
+
+### Font strategy
+
+The design language should use one clean sans-serif UI font and optionally one editorial display font for hero moments. The goal is “creative software with taste,” which is similar to the Eden-style breakdown previously established.[cite:18][web:8]
+
+Recommended combinations:
+
+- `Instrument Serif` + `Inter`.
+- `Boska` + `Satoshi`.
+- `Zodiak` + `General Sans`.
+- `Source Serif 4` + `Inter` for a slightly more restrained version.
+
+### Recommended default
+
+Use this default pairing if no brand direction exists:
+
+- Display: `Instrument Serif`, serif.
+- Body/UI: `Inter`, sans-serif.
+
+### Type scale
+
+```css
+:root {
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.5rem;
+  --text-xl: 2rem;
+  --text-2xl: 3rem;
+  --text-hero: clamp(3rem, 6vw, 5.5rem);
+}
+```
+
+### Type roles
+
+Agents should map typography like this:
+
+- Hero title: display font, `--text-2xl` or `--text-hero`, tight line-height, slight negative letter-spacing.
+- Page title: display font or semibold sans, `--text-xl`.
+- Section title: semibold sans or display font depending on tone, `--text-lg` to `--text-xl`.
+- Body copy: sans, `--text-base` or `--text-md`.
+- Small UI text: sans, `--text-sm`.
+- Metadata and chip labels: sans, `--text-xs` or `--text-sm`.
+
+### Typography rules
+
+- Use serif only for large editorial moments, not for form labels or dense UI.
+- Default all UI chrome to sans-serif.
+- Keep body text between 60ch and 72ch max width.
+- Use short paragraphs on marketing pages.
+- Use stronger hierarchy through size and spacing, not by introducing too many font weights.
+- Avoid more than five distinct text styles on a single page.
+
+### Heading style
+
+Hero and major section headings should feel concise, emotional, and precise. Avoid generic startup copy such as “Unlock the power of AI” or “Empower your workflow.” Eden’s homepage framing leans more reflective and benefit-oriented than hype-oriented, and that tone should guide future page copy patterns.[web:8]
+
+## Spacing and Layout
+
+### Base spacing scale
+
+Use a 4px-derived spacing system.
+
+```css
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+}
+```
+
+### Layout principles
+
+Agents should treat layout as a balance between roomy storytelling and compact product detail.
+
+Rules:
+
+- Marketing sections: generous vertical spacing.
+- Product sections: tighter internal density within larger page padding.
+- Text blocks: narrow enough to read comfortably.
+- Feature grids: avoid identical three-card rows by default.
+- Important sections: mix 1-column, 2-column, and asymmetrical compositions.
+
+### Container widths
+
+Recommended widths:
+
+- Narrow reading content: 680px max.
+- Standard content container: 1200px max.
+- Wide product showcase: 1280–1440px max.
+- Full-bleed sections: use sparingly for hero visuals or screenshots.
+
+### Section rhythm
+
+Agents should vary vertical rhythm intentionally:
+
+- Hero: 120–160px top/bottom desktop.
+- Standard sections: 88–120px desktop.
+- Compact sections: 56–72px.
+- Mobile: reduce proportionally but keep enough breathing room.
+
+Do not make every section use the exact same padding. That creates a templated feel.
+
+## Surface System
+
+### Surface philosophy
+
+Depth should come from layered neutrals, not heavy borders or dramatic shadows. Eden-like product visuals rely on calm container hierarchy and believable panel separation.[web:8]
+
+### Surface tiers
+
+Define at least four layers:
+
+- Page background.
+- Alternate page background or section tint.
+- Primary card surface.
+- Soft inset or nested panel surface.
+
+### Surface usage
+
+- Use `surface` for cards, modals, and major panels.
+- Use `surface-soft` for grouped UI blocks and inner nesting.
+- Use `surface-muted` for page bands or subtle contrast sections.
+- Pair with thin warm-gray borders.
+
+### Border and shadow rules
+
+- Use 1px borders by default.
+- Border color should be quiet and low-contrast.
+- Use soft, wide shadows with low opacity.
+- Avoid thick borders, harsh outlines, and bright glows.
+
+Recommended shadows:
+
+```css
+:root {
+  --shadow-xs: 0 1px 2px rgba(20, 20, 20, 0.04);
+  --shadow-sm: 0 6px 24px rgba(20, 20, 20, 0.05);
+  --shadow-md: 0 14px 40px rgba(20, 20, 20, 0.08);
+  --shadow-lg: 0 24px 60px rgba(20, 20, 20, 0.10);
+}
+```
+
+## Radius and Shape
+
+Rounded geometry is central to the desired look, but it should remain refined rather than bubbly.
+
+Recommended radius system:
+
+```css
+:root {
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+}
+```
+
+Rules:
+
+- Buttons: `--radius-pill` or `--radius-md` depending on brand tone.
+- Cards: `--radius-lg`.
+- Large product shells or modal surfaces: `--radius-xl`.
+- Small chips or tag pills: `--radius-pill`.
+- Avoid mixing too many radius values on one page.
+
+## Component Styling Guidance
+
+### Header
+
+The header should be minimal, quiet, and sticky or semi-sticky when appropriate.
+
+Guidelines:
+
+- Transparent or lightly frosted only if contrast remains excellent.
+- Logo left, navigation center or right, CTA on right.
+- Use small text sizing and enough horizontal breathing room.
+- Avoid giant nav bars or oversized buttons.
+- On scroll, slightly increase surface opacity and shadow to create depth.
+
+### Hero section
+
+A hero in this system should contain:
+
+- A concise emotional headline.
+- A short explanatory paragraph.
+- One primary CTA and optional secondary CTA.
+- A real product mockup or workspace visual.
+- Spacious layout with strong visual restraint.
+
+Hero rules:
+
+- Do not center everything by default.
+- Left-aligned heroes usually feel more premium and grounded.
+- Keep CTA count low.
+- Use the product visual as the main spectacle.
+
+### Buttons
+
+Button design should be soft, tactile, and clean.
+
+Variants:
+
+- Primary: accent background, light text.
+- Secondary: neutral surface, border, dark text.
+- Ghost: no heavy fill, darker text on hover-tinted background.
+- Text link: underlined or subtle arrow treatment.
+
+Button rules:
+
+- Height: 40–48px typical.
+- Padding: 14–20px horizontal.
+- Font: small sans, medium weight.
+- Motion: quick but smooth hover lift or shade shift.
+- Never use bright gradient fills by default.
+
+### Cards
+
+Cards should feel like product-quality containers, not generic CMS boxes.
+
+Card recipe:
+
+- White or slightly warm surface.
+- 1px low-contrast border.
+- Radius 16–24px.
+- Soft shadow or none, depending on density.
+- Comfortable padding.
+- Clear title, muted supporting text, optional action or visual.
+
+Card rules:
+
+- Prefer asymmetrical card grids over perfect repetition.
+- Make at least one featured card larger than the others when possible.
+- Avoid icon-in-colored-circle patterns unless they are truly necessary.
+
+### Inputs and forms
+
+Forms should feel calm and trustworthy.
+
+Input styling:
+
+- Height: 44–52px.
+- Radius: 12–14px.
+- Border: subtle neutral.
+- Background: white or slightly tinted surface.
+- Placeholder: muted but readable.
+- Focus: accent ring with soft halo, not neon.
+
+Form UX rules:
+
+- Use clear labels above fields.
+- Use grouped spacing and strong visual rhythm.
+- Break long forms into steps where possible.
+- Show inline validation, never only global error messages.
+
+### Sidebars and app shells
+
+Because Eden-like visuals use app-shell compositions, authenticated app surfaces should use a clean shell pattern.[web:8]
+
+App shell rules:
+
+- Left sidebar with clear grouping.
+- Search or command bar near top.
+- Main content area divided into cards or panels.
+- Quiet active state using tinted neutral or soft accent background.
+- Icons simple and monochrome.
+
+### Tables and data blocks
+
+Data should feel integrated into the product language, not pasted from an admin template.
+
+Rules:
+
+- Use larger row padding.
+- Alternate row tint only subtly.
+- Avoid dense black borders.
+- Use muted small caps or semibold labels for column headers.
+- Add filters/search above the table in a soft utility bar.
+
+### Empty states
+
+Empty states should feel designed, not forgotten.
+
+Include:
+
+- A human headline.
+- One explanatory sentence.
+- A clear next action.
+- Optional lightweight illustration or product-themed visual.
+
+## Motion System
+
+### Motion philosophy
+
+Animation should create calm momentum. The page should feel responsive and refined, but never energetic in a way that distracts from understanding.
+
+### Default timing
+
+```css
+:root {
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 180ms;
+  --dur-med: 280ms;
+  --dur-slow: 480ms;
+}
+```
+
+### Motion behaviors
+
+Use these by default:
+
+- Fade-in with 12–24px upward translation on entrance.
+- Stagger groups by 60–100ms.
+- Card hover lift by 2–6px.
+- Button hover darken/lighten with subtle translateY.
+- Sticky header background transition on scroll.
+- Screenshot parallax kept minimal.
+
+### Motion rules
+
+- Do not animate everything on load.
+- Do not use aggressive spring motion for business/product pages.
+- Use motion to support clarity, hierarchy, and responsiveness.
+- Respect `prefers-reduced-motion`.
+- Avoid infinite looping decorative animations except very subtle ambient effects.
+
+### Suggested Framer Motion patterns for Next.js
+
+- `whileInView` for section reveals.
+- `viewport={{ once: true, amount: 0.2 }}` for marketing content.
+- Shared layout transitions for tabs and shell state.
+- Motion values for tiny hover transforms only.
+
+## Grid and Composition Patterns
+
+### Approved patterns
+
+Agents should favor these patterns:
+
+- Editorial split hero: text left, product visual right.
+- Offset screenshot section: large image with supporting text block overlapping edge.
+- Two-up story blocks alternating image/text.
+- Uneven feature grid with one feature card spanning two columns.
+- Testimonial or proof strips with dense, low-noise formatting.
+- Persona/use-case cards in a restrained grid.
+
+### Patterns to avoid
+
+Avoid these defaults because they create the generic AI-template feeling:
+
+- Perfect three-column icon card row with identical card heights.
+- Large centered hero with random gradient blob behind it.
+- Overuse of floating glassmorphism panels.
+- Purple-blue neon gradient branding.
+- Over-decorated dashboards with colored icon bubbles.
+- Feature sections with all text centered.
+
+## Page-Level Guidance
+
+### Marketing homepage
+
+Recommended structure:
+
+1. Header.
+2. Hero with product visual.
+3. Problem or aspiration framing.
+4. Product workflow or capabilities section.
+5. Feature group with varied card sizes.
+6. Screenshots or use-case panels.
+7. Trust/proof section.
+8. CTA close.
+
+### Product feature page
+
+Recommended structure:
+
+1. Quiet hero.
+2. One workflow diagram or screenshot.
+3. Benefit explanation in plain language.
+4. Supporting features.
+5. Example use cases.
+6. CTA.
+
+### Dashboard page
+
+Recommended structure:
+
+- Persistent sidebar.
+- Top utility bar with search and contextual actions.
+- Overview metrics in restrained cards.
+- Main work area with one dominant panel and 1–2 supporting panels.
+- Surface nesting to show hierarchy.
+
+### Settings/billing/admin pages
+
+These should still feel designed.
+
+Rules:
+
+- Use section grouping and cards.
+- Use concise headings and helper text.
+- Keep actions local to each card when possible.
+- Make destructive actions visually separated but not theatrical.
+
+## UX Writing Rules for Agents
+
+Copy style should match the visual system.
+
+Rules:
+
+- Be specific.
+- Be calm.
+- Avoid exaggerated startup language.
+- Prefer concrete benefits over vague claims.
+- Keep headings short.
+- Keep supporting text readable and useful.
+
+Good examples:
+
+- “Keep enrollment, billing, and family communication in one place.”
+- “See every lead, form, and payment without switching tools.”
+- “Capture notes fast, then turn them into usable work.”
+
+Bad examples:
+
+- “Revolutionize your institution with next-gen AI synergy.”
+- “Unlock unparalleled growth and transformation.”
+- “The future of work starts here.”
+
+## Accessibility Rules
+
+All generated pages must be accessible.
+
+Agents must ensure:
+
+- Semantic HTML structure.
+- One clear `h1` per page.
+- Buttons and links have clear text.
+- Contrast meets WCAG AA.
+- Focus states are visible.
+- Forms have labels and inline help when needed.
+- Motion is reduced when user preference requests it.
+- Hit areas are mobile-safe.
+
+## Responsive Rules
+
+### Mobile principles
+
+The mobile experience should feel intentional, not compressed.
+
+Rules:
+
+- Stack content vertically earlier rather than forcing cramped desktop layouts.
+- Reduce hero text, but preserve hierarchy.
+- Keep buttons easy to tap.
+- Collapse nav cleanly.
+- Allow product mockups to crop elegantly rather than shrink into illegibility.
+
+### Breakpoint guidance
+
+Suggested breakpoints:
+
+- Mobile: 0–767px.
+- Tablet: 768–1023px.
+- Desktop: 1024px+.
+- Wide desktop: 1440px+.
+
+### Mobile-specific UX
+
+- Prioritize one CTA near the top.
+- Turn complex comparison grids into stacked cards.
+- Keep cards visually separated with spacing and layering.
+- Ensure sticky UI does not consume too much vertical space.
+
+## Next.js Implementation Guidance
+
+### Architecture
+
+Agents working in Next.js should separate design concerns into reusable primitives.
+
+Recommended layers:
+
+- `app/(marketing)/...` for public pages.
+- `app/(app)/...` for authenticated product pages.
+- `components/ui/` for primitives.
+- `components/marketing/` for storytelling sections.
+- `components/app-shell/` for dashboard/navigation patterns.
+- `lib/design-tokens.ts` or CSS variables in global styles.
+
+### Primitive components to define once
+
+Agents should create and reuse these primitives:
+
+- `Container`
+- `Section`
+- `Button`
+- `Badge`
+- `Card`
+- `Surface`
+- `Input`
+- `Textarea`
+- `Select`
+- `Modal`
+- `PageHeader`
+- `FeatureCard`
+- `ProductFrame`
+- `SidebarNav`
+- `EmptyState`
+
+### Styling strategy
+
+If using Tailwind, map all important values to theme tokens so agents do not improvise per page.
+
+Recommended token categories:
+
+- Colors.
+- Radius.
+- Shadow.
+- Font family.
+- Font size.
+- Spacing.
+- Max widths.
+- Animation durations and easing.
+
+### Example Tailwind token direction
+
+```ts
+export const theme = {
+  extend: {
+    colors: {
+      bg: '#f6f5f2',
+      surface: '#ffffff',
+      muted: '#f3f1ec',
+      border: '#e7e3dc',
+      text: '#1f1e1a',
+      'text-muted': '#6f6b65',
+      accent: '#244b46',
+    },
+    borderRadius: {
+      md: '14px',
+      lg: '20px',
+      xl: '28px',
+    },
+    boxShadow: {
+      soft: '0 6px 24px rgba(20,20,20,0.05)',
+      elevated: '0 14px 40px rgba(20,20,20,0.08)',
+    },
+  },
+}
+```
+
+## Agent Decision Rules
+
+When an AI agent creates a new page, it should evaluate decisions in this order:
+
+1. What is the single primary user goal on this page?
+2. Is this page primarily narrative, functional, or hybrid?
+3. What is the most important visual proof element?
+4. Which layout best supports clarity without becoming generic?
+5. Where should the accent color appear to guide attention?
+6. What can be removed to make the page calmer?
+7. Is the result more product-led than decoration-led?
+
+### If the page is marketing-heavy
+
+Prefer:
+
+- More whitespace.
+- Stronger heading hierarchy.
+- Bigger product visuals.
+- Fewer UI controls.
+- More emotional narrative.
+
+### If the page is product-heavy
+
+Prefer:
+
+- Denser but clean layout.
+- Strong surface hierarchy.
+- Subtle utility controls.
+- Faster interaction feedback.
+- Minimal decorative copy.
+
+## Anti-Patterns
+
+Agents must avoid the following:
+
+- Blue/purple startup gradients as the main brand language.
+- Generic AI hero copy.
+- Symmetrical three-card feature rows by default.
+- Overusing centered text.
+- Heavy glassmorphism.
+- Giant shadows and glow effects.
+- Decorative floating shapes unrelated to the product.
+- Random icon circles as filler decoration.
+- Too many CTA buttons competing in the same viewport.
+- Tiny text in dense UI.
+- Overly playful animation in trust-sensitive pages.
+
+## Quality Checklist for Every Page
+
+Before finishing a page, the agent should verify:
+
+- The page has one dominant goal.
+- The first viewport communicates purpose clearly.
+- The layout feels calm, premium, and intentional.
+- Typography hierarchy is obvious.
+- The accent color is restrained.
+- Product visuals carry real weight.
+- Cards and surfaces feel soft and refined.
+- There are no generic AI-template patterns.
+- Mobile layout still feels premium.
+- Accessibility basics are satisfied.
+- Motion supports clarity instead of competing with it.
+
+## Base CSS Starter
+
+```css
+:root {
+  --bg: #f6f5f2;
+  --bg-alt: #f1efe9;
+  --surface: #ffffff;
+  --surface-soft: #fbfaf7;
+  --surface-muted: #f3f1ec;
+  --border: #e7e3dc;
+  --text: #1f1e1a;
+  --text-muted: #6f6b65;
+  --text-faint: #9a958d;
+  --accent: #244b46;
+  --accent-hover: #1d3d39;
+  --accent-soft: #dfe8e5;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(20,20,20,0.04);
+  --shadow-sm: 0 6px 24px rgba(20,20,20,0.05);
+  --shadow-md: 0 14px 40px rgba(20,20,20,0.08);
+  --shadow-lg: 0 24px 60px rgba(20,20,20,0.10);
+
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 180ms;
+  --dur-med: 280ms;
+  --dur-slow: 480ms;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, .font-display {
+  font-family: 'Instrument Serif', serif;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+
+p {
+  color: var(--text-muted);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.button-primary {
+  background: var(--accent);
+  color: #f8f7f4;
+  border-radius: var(--radius-pill);
+  transition: transform var(--dur-med) var(--ease-standard),
+              background var(--dur-med) var(--ease-standard);
+}
+
+.button-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+```
+
+## Agent Prompt Snippet
+
+Use this snippet inside any internal AI builder instructions when generating new pages:
+
+```md
+Design this page using a calm premium editorial-product aesthetic inspired by refined creative software websites. Use warm neutral backgrounds, soft white card surfaces, low-contrast borders, restrained accent color, and product-led visuals. Favor left-aligned layouts, concise headings, believable UI depth, and subtle motion. Avoid generic AI startup patterns such as purple gradients, glowing blobs, symmetrical three-card feature rows, and hype-heavy copy. Typography should combine a tasteful display serif for hero/section moments with a clean sans-serif for UI and body copy. The page should feel premium, calm, intelligent, and highly usable.
+```
+
+## Final Standard
+
+If a page looks like a generic venture-backed AI landing page, it fails. If it looks like a calm, beautifully structured creative software experience where the product itself is the visual centerpiece, it is aligned with the intended Eden-inspired direction.[web:8][cite:18]
