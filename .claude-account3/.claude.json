@@ -9,7 +9,7 @@
     "prompt-queue": 2,
     "enter-to-steer-in-relatime": 2,
     "todo-list": 2,
-    "vscode-command-install": 2,
+    "vscode-command-install": 3,
     "install-github-app": 2,
     "install-slack-app": 2,
     "drag-and-drop-images": 2,
@@ -24,7 +24,7 @@
     "mobile-app": 3,
     "voice-mode": 3
   },
-  "promptQueueUseCount": 2,
+  "promptQueueUseCount": 3,
   "cachedGrowthBookFeatures": {
     "tengu_cobalt_ridge": false,
     "tengu_quiet_basalt_echo": false,
