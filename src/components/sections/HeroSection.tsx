@@ -31,10 +31,10 @@ export default function HeroSection() {
       <div className="max-w-[1280px] mx-auto px-6 lg:px-16">
 
         {/* Centered text block */}
-        <div className="max-w-[680px] mx-auto text-center">
+        <div className="max-w-[860px] mx-auto text-center">
           <motion.div initial="hidden" animate="visible" variants={makeVariant(0)}>
             <span className="inline-flex items-center gap-1.5 rounded-pill border border-white/20 text-white/70 text-[11px] font-medium uppercase tracking-widest px-3 py-1.5">
-              Built inside a microschool
+              For Microschools
             </span>
           </motion.div>
 

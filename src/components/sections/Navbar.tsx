@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const NAV_LINKS = [
@@ -12,9 +12,16 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const lastScrollY = useRef(0)
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 40)
+    const handleScroll = () => {
+      const current = window.scrollY
+      // Hysteresis: enter pill at 60px, leave only when near top (< 15px)
+      if (current > 60) setScrolled(true)
+      else if (current < 15) setScrolled(false)
+      lastScrollY.current = current
+    }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -30,14 +37,20 @@ export default function Navbar() {
 
   return (
     <>
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? 'bg-surface shadow-xs backdrop-blur-sm'
-            : 'bg-transparent'
-        }`}
-      >
-        <div className="max-w-[1280px] mx-auto px-6 lg:px-16 h-16 flex items-center justify-between">
+      <header className={`fixed left-0 right-0 z-50 flex justify-center transition-[padding] duration-300 ${scrolled ? 'pt-[10px]' : 'pt-0'}`}>
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={scrolled ? 'pill' : 'full'}
+          className={`flex items-center justify-between w-full gap-8 ${
+            scrolled
+              ? 'max-w-[860px] h-14 px-7 rounded-[18px] bg-white shadow-[0_4px_28px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.07)]'
+              : 'max-w-[1280px] h-16 px-6 lg:px-16'
+          }`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: 'easeInOut' }}
+        >
           {/* Logo */}
           <a href="/" className="font-display text-[18px] text-text shrink-0">
             School Stack
@@ -60,7 +73,7 @@ export default function Navbar() {
           <div className="hidden md:flex">
             <a
               href="#demo"
-              className="inline-flex items-center gap-1.5 bg-accent text-white text-sm font-medium rounded-pill px-[18px] h-10 hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-200"
+              className="inline-flex items-center gap-1.5 bg-accent text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-200"
             >
               Book a Demo
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -79,7 +92,8 @@ export default function Navbar() {
             <span className="w-5 h-[1.5px] bg-text-muted block" />
             <span className="w-3.5 h-[1.5px] bg-text-muted block self-start" />
           </button>
-        </div>
+        </motion.div>
+        </AnimatePresence>
       </header>
 
       {/* Mobile drawer */}

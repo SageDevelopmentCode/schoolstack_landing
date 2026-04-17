@@ -1,5 +1,6 @@
 {
   "numStartups": 3,
+  "installMethod": "global",
   "tipsHistory": {
     "new-user-warmup": 1,
     "default-permission-mode-config": 1,
@@ -24,7 +25,7 @@
     "mobile-app": 3,
     "voice-mode": 3
   },
-  "promptQueueUseCount": 3,
+  "promptQueueUseCount": 5,
   "cachedGrowthBookFeatures": {
     "tengu_cobalt_ridge": false,
     "tengu_quiet_basalt_echo": false,
@@ -597,7 +598,7 @@
     }
   },
   "cachedExtraUsageDisabledReason": "org_level_disabled",
-  "lastPlanModeUse": 1776452973490,
+  "lastPlanModeUse": 1776456633133,
   "subscriptionNoticeCount": 0,
   "hasAvailableSubscription": false,
   "hasUsedBackslashReturn": true,
