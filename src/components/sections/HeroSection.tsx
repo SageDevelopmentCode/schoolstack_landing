@@ -88,12 +88,28 @@ export default function HeroSection() {
           </motion.div>
         </div>
 
+        {/* Interactive demo label */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={makeVariant(0.36)}
+          className="flex justify-center mt-14"
+        >
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-sm px-4 py-1.5 text-[11px] text-white/50 tracking-wide">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            </span>
+            Interactive demo — click anything to explore
+          </div>
+        </motion.div>
+
         {/* Interactive parent dashboard demo */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={heroFrameVariant}
-          className="relative max-w-[1100px] mx-auto mt-14"
+          className="relative max-w-[1100px] mx-auto mt-4"
         >
           <div className="w-full h-[680px] rounded-t-xl border border-white/10 border-b-0 shadow-2xl overflow-hidden">
             <ParentDashboardDemo />

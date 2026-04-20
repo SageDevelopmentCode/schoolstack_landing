@@ -766,17 +766,20 @@ function ModalShell({
   title,
   onClose,
   children,
-  wide,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-  wide?: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div
-        className={`bg-white rounded-2xl shadow-2xl w-full flex flex-col max-h-[90vh] ${wide ? "max-w-2xl" : "max-w-lg"}`}
+    <div className="absolute inset-0 z-50 flex">
+      <div className="flex-1 bg-black/20" onClick={onClose} />
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 28, stiffness: 260 }}
+        className="w-[420px] bg-white shadow-2xl flex flex-col h-full"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <h2 className="font-semibold text-gray-800 text-base">{title}</h2>
@@ -788,7 +791,7 @@ function ModalShell({
           </button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-5">{children}</div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -812,7 +815,7 @@ function ContractModal({
 }) {
   const signed = sections.filter((s) => sigs[s.id]).length;
   return (
-    <ModalShell title={title} onClose={onClose} wide>
+    <ModalShell title={title} onClose={onClose}>
       <p className="text-xs text-gray-400 mb-4">
         {signed} of {sections.length} sections signed
       </p>
@@ -867,7 +870,6 @@ function HealthFormModal({
     <ModalShell
       title="Emergency Contact, Health & Immunization Form"
       onClose={onClose}
-      wide
     >
       <div className="space-y-5">
         <div className="bg-sage-50 rounded-xl p-4">
@@ -980,7 +982,6 @@ function MedicationPlanModal({
     <ModalShell
       title="Emergency Medication Plan (Optional)"
       onClose={onClose}
-      wide
     >
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
@@ -1161,7 +1162,7 @@ function PhotoReleaseModal({
   ];
   const allSigned = C5_SECTIONS.every((s) => sigs[s.id]);
   return (
-    <ModalShell title="Photo Release Form" onClose={onClose} wide>
+    <ModalShell title="Photo Release Form" onClose={onClose}>
       <div className="space-y-5">
         {C5_SECTIONS.slice(0, 2).map((s) => (
           <div key={s.id} className="border border-gray-100 rounded-xl p-4">
@@ -1252,7 +1253,7 @@ function AssumptionOfRiskModal({
   onClose: () => void;
 }) {
   return (
-    <ModalShell title="Assumption of Risk" onClose={onClose} wide>
+    <ModalShell title="Assumption of Risk" onClose={onClose}>
       <div className="space-y-4">
         <div className="text-center text-xs text-gray-400 pb-2 border-b border-gray-100">
           <p className="font-semibold text-gray-600 text-sm">
@@ -1327,7 +1328,6 @@ function AuthorizedPickupModal({
     <ModalShell
       title="Additional Authorized Pickup (Optional)"
       onClose={onClose}
-      wide
     >
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
@@ -1438,7 +1438,7 @@ function HealthStatementModal({
   const [selected, setSelected] = useState<"A" | "B" | null>(option);
   const [optionSaved, setOptionSaved] = useState(!!option);
   return (
-    <ModalShell title="Health Information Form" onClose={onClose} wide>
+    <ModalShell title="Health Information Form" onClose={onClose}>
       <div className="space-y-4">
         <p className="text-sm text-gray-600">
           California law requires a health assessment or approved exemption for
@@ -2527,8 +2527,9 @@ function DemoHeader({
   }, [moreOpen]);
 
   return (
-    <header className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between flex-shrink-0">
-      <div className="flex items-center gap-2">
+    <header className="bg-white border-b border-gray-100 px-6 py-3 flex items-center flex-shrink-0">
+      {/* Logo — left */}
+      <div className="flex items-center gap-2 flex-1">
         <img
           src="/images/SchoolLayerLogo.png"
           alt="SchoolLayer"
@@ -2536,6 +2537,8 @@ function DemoHeader({
         />
         <span className="text-sm font-semibold text-gray-700">SchoolLayer</span>
       </div>
+
+      {/* Nav — center */}
       <nav className="flex items-center gap-1">
         {PRIMARY_NAV.map(({ id, label, icon: Icon }) => (
           <button
@@ -2575,10 +2578,12 @@ function DemoHeader({
             </div>
           )}
         </div>
-        <div className="ml-2 flex items-center gap-2">
-          <Avatar initials="SM" color="#f29a8f" size="sm" />
-        </div>
       </nav>
+
+      {/* Avatar — right */}
+      <div className="flex-1 flex justify-end">
+        <Avatar initials="SM" color="#f29a8f" size="sm" />
+      </div>
     </header>
   );
 }
@@ -2766,7 +2771,7 @@ export default function ParentDashboardDemo() {
 
   return (
     <div
-      className="demo-shell flex flex-col bg-white"
+      className="demo-shell relative flex flex-col bg-white"
       style={{
         minHeight: "700px",
         fontFamily: "var(--font-body, system-ui, sans-serif)",
@@ -2872,115 +2877,127 @@ export default function ParentDashboardDemo() {
       </main>
 
       {/* Modals */}
-      {openModal === "contract-1" && (
-        <ContractModal
-          contractId="1"
-          sections={C1_SECTIONS}
-          title="Program Description & Key Policies"
-          sigs={activeSigs}
-          onSign={handleSign}
-          onClose={() => setOpenModal(null)}
-        />
-      )}
-      {openModal === "contract-2" && (
-        <ContractModal
-          contractId="2"
-          sections={C2_SECTIONS}
-          title="Community Agreement"
-          sigs={activeSigs}
-          onSign={handleSign}
-          onClose={() => setOpenModal(null)}
-        />
-      )}
-      {openModal === "health-form" && (
-        <HealthFormModal
-          sigs={activeSigs}
-          onSign={handleSign}
-          onClose={() => setOpenModal(null)}
-          saved={healthFormSaved[activeChildId]}
-          onSave={() =>
-            setHealthFormSaved((p) => ({ ...p, [activeChildId]: true }))
-          }
-        />
-      )}
-      {openModal === "medication-plan" && (
-        <MedicationPlanModal
-          sigs={activeSigs}
-          onSign={handleSign}
-          onClose={() => setOpenModal(null)}
-          meds={medications[activeChildId]}
-          setMeds={(m) => setMedications((p) => ({ ...p, [activeChildId]: m }))}
-          saved={medicationSaved[activeChildId]}
-          onSave={() =>
-            setMedicationSaved((p) => ({ ...p, [activeChildId]: true }))
-          }
-        />
-      )}
-      {openModal === "immunization" && (
-        <ImmunizationModal
-          count={immunizationCount[activeChildId]}
-          onUpload={() =>
-            setImmunizationCount((p) => ({
-              ...p,
-              [activeChildId]: p[activeChildId] + 1,
-            }))
-          }
-          onClose={() => setOpenModal(null)}
-        />
-      )}
-      {openModal === "photo-release" && (
-        <PhotoReleaseModal
-          sigs={activeSigs}
-          onSign={handleSign}
-          onClose={() => setOpenModal(null)}
-          consent={photoConsent[activeChildId]}
-          onConsentSave={(c) =>
-            setPhotoConsent((p) => ({ ...p, [activeChildId]: c }))
-          }
-        />
-      )}
-      {openModal === "assumption-of-risk" && (
-        <AssumptionOfRiskModal
-          sigs={activeSigs}
-          onSign={handleSign}
-          onClose={() => setOpenModal(null)}
-        />
-      )}
-      {openModal === "authorized-pickup" && (
-        <AuthorizedPickupModal
-          sigs={activeSigs}
-          onSign={handleSign}
-          onClose={() => setOpenModal(null)}
-          persons={pickupPersons[activeChildId]}
-          setPersons={(p) =>
-            setPickupPersons((prev) => ({ ...prev, [activeChildId]: p }))
-          }
-          saved={pickupSaved[activeChildId]}
-          onSave={() =>
-            setPickupSaved((p) => ({ ...p, [activeChildId]: true }))
-          }
-        />
-      )}
-      {openModal === "health-statement" && (
-        <HealthStatementModal
-          sigs={activeSigs}
-          onSign={handleSign}
-          onClose={() => setOpenModal(null)}
-          option={healthStatement[activeChildId]}
-          onOptionSave={(o) =>
-            setHealthStatement((p) => ({ ...p, [activeChildId]: o }))
-          }
-        />
-      )}
-      {openModal === "registration-fee" && (
-        <RegistrationFeeModal
-          onPay={() => {
-            setFeePaid((p) => ({ ...p, [activeChildId]: true }));
-            setOpenModal(null);
-          }}
-          onClose={() => setOpenModal(null)}
-        />
-      )}
+      <AnimatePresence>
+        {openModal === "contract-1" && (
+          <ContractModal
+            key="contract-1"
+            contractId="1"
+            sections={C1_SECTIONS}
+            title="Program Description & Key Policies"
+            sigs={activeSigs}
+            onSign={handleSign}
+            onClose={() => setOpenModal(null)}
+          />
+        )}
+        {openModal === "contract-2" && (
+          <ContractModal
+            key="contract-2"
+            contractId="2"
+            sections={C2_SECTIONS}
+            title="Community Agreement"
+            sigs={activeSigs}
+            onSign={handleSign}
+            onClose={() => setOpenModal(null)}
+          />
+        )}
+        {openModal === "health-form" && (
+          <HealthFormModal
+            key="health-form"
+            sigs={activeSigs}
+            onSign={handleSign}
+            onClose={() => setOpenModal(null)}
+            saved={healthFormSaved[activeChildId]}
+            onSave={() =>
+              setHealthFormSaved((p) => ({ ...p, [activeChildId]: true }))
+            }
+          />
+        )}
+        {openModal === "medication-plan" && (
+          <MedicationPlanModal
+            key="medication-plan"
+            sigs={activeSigs}
+            onSign={handleSign}
+            onClose={() => setOpenModal(null)}
+            meds={medications[activeChildId]}
+            setMeds={(m) => setMedications((p) => ({ ...p, [activeChildId]: m }))}
+            saved={medicationSaved[activeChildId]}
+            onSave={() =>
+              setMedicationSaved((p) => ({ ...p, [activeChildId]: true }))
+            }
+          />
+        )}
+        {openModal === "immunization" && (
+          <ImmunizationModal
+            key="immunization"
+            count={immunizationCount[activeChildId]}
+            onUpload={() =>
+              setImmunizationCount((p) => ({
+                ...p,
+                [activeChildId]: p[activeChildId] + 1,
+              }))
+            }
+            onClose={() => setOpenModal(null)}
+          />
+        )}
+        {openModal === "photo-release" && (
+          <PhotoReleaseModal
+            key="photo-release"
+            sigs={activeSigs}
+            onSign={handleSign}
+            onClose={() => setOpenModal(null)}
+            consent={photoConsent[activeChildId]}
+            onConsentSave={(c) =>
+              setPhotoConsent((p) => ({ ...p, [activeChildId]: c }))
+            }
+          />
+        )}
+        {openModal === "assumption-of-risk" && (
+          <AssumptionOfRiskModal
+            key="assumption-of-risk"
+            sigs={activeSigs}
+            onSign={handleSign}
+            onClose={() => setOpenModal(null)}
+          />
+        )}
+        {openModal === "authorized-pickup" && (
+          <AuthorizedPickupModal
+            key="authorized-pickup"
+            sigs={activeSigs}
+            onSign={handleSign}
+            onClose={() => setOpenModal(null)}
+            persons={pickupPersons[activeChildId]}
+            setPersons={(p) =>
+              setPickupPersons((prev) => ({ ...prev, [activeChildId]: p }))
+            }
+            saved={pickupSaved[activeChildId]}
+            onSave={() =>
+              setPickupSaved((p) => ({ ...p, [activeChildId]: true }))
+            }
+          />
+        )}
+        {openModal === "health-statement" && (
+          <HealthStatementModal
+            key="health-statement"
+            sigs={activeSigs}
+            onSign={handleSign}
+            onClose={() => setOpenModal(null)}
+            option={healthStatement[activeChildId]}
+            onOptionSave={(o) =>
+              setHealthStatement((p) => ({ ...p, [activeChildId]: o }))
+            }
+          />
+        )}
+        {openModal === "registration-fee" && (
+          <RegistrationFeeModal
+            key="registration-fee"
+            onPay={() => {
+              setFeePaid((p) => ({ ...p, [activeChildId]: true }));
+              setOpenModal(null);
+            }}
+            onClose={() => setOpenModal(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
