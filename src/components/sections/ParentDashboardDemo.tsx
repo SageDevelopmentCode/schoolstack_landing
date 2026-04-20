@@ -1979,7 +1979,7 @@ function MessagesPage({
 }) {
   const [activeConv, setActiveConv] = useState<string>("c1");
   const [input, setInput] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const conv = DEMO_CONVERSATIONS.find((c) => c.id === activeConv)!;
   const messages = threads[activeConv] || [];
 
@@ -1996,8 +1996,10 @@ function MessagesPage({
   };
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  }, [messages, activeConv]);
 
   return (
     <div
@@ -2059,7 +2061,7 @@ function MessagesPage({
             <p className="text-xs text-gray-400">{conv.role}</p>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.map((m) => (
             <div
               key={m.id}
@@ -2077,7 +2079,6 @@ function MessagesPage({
               </div>
             </div>
           ))}
-          <div ref={bottomRef} />
         </div>
         <div className="border-t border-gray-100 p-3 flex gap-2">
           <input
@@ -2534,7 +2535,6 @@ function DemoHeader({
           className="h-7 w-auto object-contain"
         />
         <span className="text-sm font-semibold text-gray-700">SchoolLayer</span>
-        <span className="text-xs text-gray-300 ml-1">Parent Portal</span>
       </div>
       <nav className="flex items-center gap-1">
         {PRIMARY_NAV.map(({ id, label, icon: Icon }) => (
