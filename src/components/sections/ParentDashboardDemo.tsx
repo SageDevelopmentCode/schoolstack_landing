@@ -43,7 +43,7 @@ import {
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
-type ChildId = "emma" | "jake";
+type ChildId = "emma" | "jake" | "liam";
 type NavTab =
   | "enrollment"
   | "children"
@@ -179,6 +179,23 @@ const DEMO_CHILDREN = {
         name: "Ms. Paige Sun",
         role: "Lead Teacher",
         email: "paige@sagefield.co",
+      },
+    ],
+  },
+  liam: {
+    id: "liam" as ChildId,
+    name: "Liam Mitchell",
+    grade: "Kindergarten",
+    dob: "November 3, 2019",
+    allergies: "None known",
+    notes: "Curious and creative. Enjoys puzzles and building activities.",
+    initials: "LM",
+    color: "#a78bfa",
+    teachers: [
+      {
+        name: "Ms. Taylor Reyes",
+        role: "Lead Teacher",
+        email: "taylor@sagefield.co",
       },
     ],
   },
@@ -517,6 +534,36 @@ const SUMMER_WEEKS = [
 ];
 
 const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
+  liam: [
+    {
+      label: "School Contact",
+      name: "Sage Field Office",
+      relationship: "School",
+      phone: "(555) 200-1234",
+      email: "hello@sagefield.co",
+    },
+    {
+      label: "Parent — Mom",
+      name: "Sarah Mitchell",
+      relationship: "Mother",
+      phone: "(555) 301-4567",
+      email: "sarah.mitchell@email.com",
+    },
+    {
+      label: "Parent — Dad",
+      name: "Daniel Mitchell",
+      relationship: "Father",
+      phone: "(555) 301-7890",
+      email: "daniel.mitchell@email.com",
+    },
+    {
+      label: "Emergency Contact 1",
+      name: "Linda Torres",
+      relationship: "Grandmother",
+      phone: "(555) 412-3344",
+      email: "linda.torres@email.com",
+    },
+  ],
   emma: [
     {
       label: "School Contact",
@@ -2639,40 +2686,59 @@ export default function ParentDashboardDemo() {
   const [signaturesJake, setSignaturesJake] = useState<Record<string, string>>(
     {},
   );
+  const [signaturesLiam, setSignaturesLiam] = useState<Record<string, string>>(
+    {
+      "1-1": "Sarah Mitchell",
+      "1-2": "Sarah Mitchell",
+      "1-3": "Sarah Mitchell",
+      "1-4": "Sarah Mitchell",
+      "2-1": "Sarah Mitchell",
+      "2-2": "Sarah Mitchell",
+      "2-3": "Sarah Mitchell",
+      "3-1": "Sarah Mitchell",
+      "3-2": "Sarah Mitchell",
+      "5-3": "Sarah Mitchell",
+      "6-1": "Sarah Mitchell",
+      "8-1": "Sarah Mitchell",
+    },
+  );
 
   // Per-child form completion
   const [healthFormSaved, setHealthFormSaved] = useState<
     Record<ChildId, boolean>
-  >({ emma: false, jake: false });
+  >({ emma: false, jake: false, liam: true });
   const [medicationSaved, setMedicationSaved] = useState<
     Record<ChildId, boolean>
-  >({ emma: false, jake: false });
+  >({ emma: false, jake: false, liam: false });
   const [pickupSaved, setPickupSaved] = useState<Record<ChildId, boolean>>({
     emma: false,
     jake: false,
+    liam: false,
   });
   const [photoConsent, setPhotoConsent] = useState<
     Record<ChildId, "FULL" | "LIMITED" | "NO" | null>
-  >({ emma: null, jake: null });
+  >({ emma: null, jake: null, liam: "FULL" });
   const [healthStatement, setHealthStatement] = useState<
     Record<ChildId, "A" | "B" | null>
-  >({ emma: null, jake: null });
+  >({ emma: null, jake: null, liam: "A" });
   const [immunizationCount, setImmunizationCount] = useState<
     Record<ChildId, number>
-  >({ emma: 1, jake: 0 });
+  >({ emma: 1, jake: 0, liam: 1 });
   const [feePaid, setFeePaid] = useState<Record<ChildId, boolean>>({
     emma: false,
     jake: false,
+    liam: true,
   });
   const [medications, setMedications] = useState<
     Record<ChildId, DemoMedication[]>
-  >({ emma: [], jake: [] });
+  >({ emma: [], jake: [], liam: [] });
   const [pickupPersons, setPickupPersons] = useState<
     Record<ChildId, DemoAuthorizedPerson[]>
-  >({ emma: [], jake: [] });
+  >({ emma: [], jake: [], liam: [] });
   const [confettiFired, setConfettiFired] = useState<Record<ChildId, boolean>>({
     emma: false,
     jake: false,
+    liam: false,
   });
 
   // Billing
@@ -2683,9 +2749,18 @@ export default function ParentDashboardDemo() {
     useState<Record<string, DemoMessage[]>>(DEMO_THREADS);
 
   // Derived active signatures
-  const activeSigs = activeChildId === "emma" ? signaturesEmma : signaturesJake;
+  const activeSigs =
+    activeChildId === "emma"
+      ? signaturesEmma
+      : activeChildId === "liam"
+        ? signaturesLiam
+        : signaturesJake;
   const setActiveSigs =
-    activeChildId === "emma" ? setSignaturesEmma : setSignaturesJake;
+    activeChildId === "emma"
+      ? setSignaturesEmma
+      : activeChildId === "liam"
+        ? setSignaturesLiam
+        : setSignaturesJake;
 
   const handleSign = useCallback(
     (key: string, name: string) => {

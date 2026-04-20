@@ -52,8 +52,9 @@ export default function Navbar() {
           transition={{ duration: 0.18, ease: 'easeInOut' }}
         >
           {/* Logo */}
-          <a href="/" className="font-display text-[18px] text-text shrink-0">
-            SchoolLayer
+          <a href="/" className="flex items-center gap-2 shrink-0">
+            <img src="/images/SchoolLayerLogo.png" alt="SchoolLayer" className="h-8 w-auto object-contain" />
+            <span className={`font-display text-[18px] ${scrolled ? 'text-accent' : 'text-white'}`}>SchoolStack</span>
           </a>
 
           {/* Desktop nav */}
@@ -115,7 +116,7 @@ export default function Navbar() {
               transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.38 }}
             >
               <div className="flex items-center justify-between mb-10">
-                <span className="font-display text-[17px] text-text">SchoolLayer</span>
+                <img src="/images/SchoolLayerLogo.png" alt="SchoolLayer" className="h-7 w-auto object-contain" />
                 <button
                   onClick={() => setDrawerOpen(false)}
                   className="w-8 h-8 flex items-center justify-center text-text-faint hover:text-text transition-colors"
