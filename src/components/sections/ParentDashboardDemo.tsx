@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText,
@@ -1769,6 +1769,7 @@ function ChecklistView({
           return (
             <button
               key={item.id}
+              data-tour-id={idx === 0 ? "checklist-item-0" : undefined}
               onClick={() => onOpen(item.modal)}
               className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left cursor-pointer"
             >
@@ -1943,9 +1944,10 @@ function BillingPage({
             Pending Invoices
           </h3>
           <div className="space-y-2">
-            {pending.map((t) => (
+            {pending.map((t, tIdx) => (
               <div
                 key={t.id}
+                data-tour-id={tIdx === 0 ? "billing-pending-invoice" : undefined}
                 className="flex items-center justify-between border border-amber-100 bg-amber-50 rounded-xl px-4 py-3"
               >
                 <div>
@@ -2075,6 +2077,7 @@ function MessagesPage({
           {DEMO_CONVERSATIONS.map((c) => (
             <button
               key={c.id}
+              data-tour-id={`messages-conv-${c.id}`}
               onClick={() => setActiveConv(c.id)}
               className={`w-full flex items-start gap-3 p-3 text-left transition-colors cursor-pointer ${activeConv === c.id ? "bg-sage-50" : "hover:bg-gray-50"}`}
             >
@@ -2216,6 +2219,7 @@ function CalendarPage() {
               {monthName}
             </span>
             <button
+              data-tour-id="calendar-next-month"
               onClick={() => setMonth(new Date(year, mon + 1, 1))}
               className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
             >
@@ -2604,6 +2608,7 @@ function DemoHeader({
         {PRIMARY_NAV.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
+            data-tour-id={`nav-${id}`}
             onClick={() => onTabChange(id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap ${activeTab === id ? "text-[#4a7c59] bg-[#4a7c59]/8 font-semibold" : "text-gray-500 hover:text-[#4a7c59] hover:bg-gray-50"}`}
           >
@@ -2662,6 +2667,7 @@ function ChildTabStrip({
         (child) => (
           <button
             key={child.id}
+            data-tour-id={`child-tab-${child.id}`}
             onClick={() => onSwitch(child.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer border ${activeChildId === child.id ? "bg-white border-gray-200 text-gray-800 shadow-sm" : "border-transparent text-gray-400 hover:text-gray-600"}`}
           >
@@ -2676,6 +2682,11 @@ function ChildTabStrip({
     </div>
   );
 }
+
+// ─── TOUR CONSTANTS ───────────────────────────────────────────────────────────
+
+const TOUR_MOVE_MS = 950
+const TOUR_RESUME_MS = 1500
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 
@@ -2761,6 +2772,155 @@ export default function ParentDashboardDemo() {
   // Messages
   const [messageThreads, setMessageThreads] =
     useState<Record<string, DemoMessage[]>>(DEMO_THREADS);
+
+  // ── Tour state ──────────────────────────────────────────────────────────────
+  const [isTouring, setIsTouring] = useState(true)
+  const [tourStep, setTourStep] = useState(0)
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 })
+  const [cursorVisible, setCursorVisible] = useState(false)
+  const [cursorClicking, setCursorClicking] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const tourTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const getTargetCenter = useCallback((targetId: string): { x: number; y: number } | null => {
+    if (!containerRef.current) return null
+    const el = containerRef.current.querySelector(`[data-tour-id="${targetId}"]`)
+    if (!el) return null
+    const containerRect = containerRef.current.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+    return {
+      x: elRect.left - containerRect.left + elRect.width / 2,
+      y: elRect.top - containerRect.top + elRect.height / 2,
+    }
+  }, [])
+
+  const tourSteps = useMemo(() => [
+    {
+      action: () => { setActiveNavTab("enrollment"); setActiveChildId("emma") },
+      targetId: "nav-enrollment",
+      holdMs: 1800,
+      clickAnimation: true,
+    },
+    {
+      action: () => {},
+      targetId: "checklist-item-0",
+      holdMs: 1400,
+      clickAnimation: false,
+    },
+    {
+      action: () => setActiveNavTab("billing"),
+      targetId: "nav-billing",
+      holdMs: 1600,
+      clickAnimation: true,
+    },
+    {
+      action: () => {},
+      targetId: "billing-pending-invoice",
+      holdMs: 1400,
+      clickAnimation: false,
+    },
+    {
+      action: () => setActiveNavTab("messages"),
+      targetId: "nav-messages",
+      holdMs: 1400,
+      clickAnimation: true,
+    },
+    {
+      action: () => {
+        const el = containerRef.current?.querySelector('[data-tour-id="messages-conv-c2"]')
+        ;(el as HTMLElement)?.click()
+      },
+      targetId: "messages-conv-c2",
+      holdMs: 1600,
+      clickAnimation: true,
+    },
+    {
+      action: () => setActiveNavTab("calendar"),
+      targetId: "nav-calendar",
+      holdMs: 1400,
+      clickAnimation: true,
+    },
+    {
+      action: () => {
+        const el = containerRef.current?.querySelector('[data-tour-id="calendar-next-month"]')
+        ;(el as HTMLElement)?.click()
+      },
+      targetId: "calendar-next-month",
+      holdMs: 1600,
+      clickAnimation: true,
+    },
+    {
+      action: () => setActiveNavTab("children"),
+      targetId: "nav-children",
+      holdMs: 1200,
+      clickAnimation: true,
+    },
+    {
+      action: () => setActiveChildId("jake"),
+      targetId: "child-tab-jake",
+      holdMs: 1800,
+      clickAnimation: true,
+    },
+  ], [])
+
+  useEffect(() => {
+    if (!isTouring) return
+    const step = tourSteps[tourStep]
+    let cancelled = false
+
+    // 1. Resolve target and start cursor glide (target visible from previous step's action)
+    const t1 = setTimeout(() => {
+      if (cancelled) return
+      const pos = getTargetCenter(step.targetId)
+      if (pos) { setCursorPos(pos); setCursorVisible(true) }
+
+      // 2. After cursor arrives, fire action + click pulse
+      const t2 = setTimeout(() => {
+        if (cancelled) return
+        step.action()
+
+        if (step.clickAnimation) {
+          setCursorClicking(true)
+          setTimeout(() => { if (!cancelled) setCursorClicking(false) }, 350)
+        }
+
+        // 3. Hold, then advance
+        const t3 = setTimeout(() => {
+          if (!cancelled) setTourStep((prev) => (prev + 1) % tourSteps.length)
+        }, step.holdMs)
+        tourTimerRef.current = t3
+      }, TOUR_MOVE_MS)
+      tourTimerRef.current = t2
+    }, 60)
+    tourTimerRef.current = t1
+
+    return () => {
+      cancelled = true
+      clearTimeout(t1)
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current)
+    }
+  }, [tourStep, isTouring])
+
+  useEffect(() => {
+    return () => {
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current)
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    }
+  }, [])
+
+  const handleTourMouseEnter = useCallback(() => {
+    if (resumeTimerRef.current) { clearTimeout(resumeTimerRef.current); resumeTimerRef.current = null }
+    setIsTouring(false)
+    setCursorVisible(false)
+  }, [])
+
+  const handleTourMouseLeave = useCallback(() => {
+    resumeTimerRef.current = setTimeout(() => {
+      setTourStep(0)
+      setIsTouring(true)
+    }, TOUR_RESUME_MS)
+  }, [])
 
   // Derived active signatures
   const activeSigs =
@@ -2860,11 +3020,14 @@ export default function ParentDashboardDemo() {
 
   return (
     <div
+      ref={containerRef}
       className="demo-shell relative flex flex-col bg-white"
       style={{
         minHeight: "700px",
         fontFamily: "var(--font-body, system-ui, sans-serif)",
       }}
+      onMouseEnter={handleTourMouseEnter}
+      onMouseLeave={handleTourMouseLeave}
     >
       <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />
 
@@ -3087,6 +3250,32 @@ export default function ParentDashboardDemo() {
           />
         )}
       </AnimatePresence>
+
+      {/* Autoplay tour cursor */}
+      {cursorVisible && (
+        <motion.div
+          className="pointer-events-none absolute z-[100] rounded-full"
+          style={{
+            width: 18,
+            height: 18,
+            top: 0,
+            left: 0,
+            backgroundColor: "rgba(74,124,89,0.85)",
+            boxShadow: "0 0 0 4px rgba(74,124,89,0.2)",
+          }}
+          animate={{
+            x: cursorPos.x - 9,
+            y: cursorPos.y - 9,
+            scale: cursorClicking ? [1, 1.6, 1] : 1,
+          }}
+          transition={{
+            x: { duration: TOUR_MOVE_MS / 1000, ease: [0.4, 0, 0.2, 1] },
+            y: { duration: TOUR_MOVE_MS / 1000, ease: [0.4, 0, 0.2, 1] },
+            scale: { duration: 0.35 },
+          }}
+          initial={false}
+        />
+      )}
     </div>
   );
 }
