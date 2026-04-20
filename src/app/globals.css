@@ -18,6 +18,12 @@
   --color-accent-highlight: #abffc0;
   --color-dark-panel:       #253f31;
 
+  /* Sage palette (used by ParentDashboardDemo) */
+  --color-sage-50:  #f0f5f2;
+  --color-sage-100: #ddeee4;
+  --color-sage-200: #b8d9c4;
+  --color-sage-300: #8ebfa5;
+
   /* Radius */
   --radius-sm:   10px;
   --radius-md:   14px;
