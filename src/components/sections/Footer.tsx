@@ -29,7 +29,7 @@ export default function Footer() {
 
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <a href="/" className="font-display text-[17px] text-text">School Stack</a>
+            <a href="/" className="font-display text-[17px] text-text">SchoolLayer</a>
             <p className="text-sm text-text-muted mt-2 max-w-[200px] leading-relaxed">
               Software built to run a real microschool.
             </p>
@@ -81,7 +81,7 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-border mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-text-faint">© 2026 School Stack. All rights reserved.</p>
+          <p className="text-xs text-text-faint">© 2026 SchoolLayer. All rights reserved.</p>
           <p className="text-xs text-text-faint">
             Built by the team at{' '}
             <a href="#" className="text-accent hover:text-accent-hover transition-colors">Sage Field</a>

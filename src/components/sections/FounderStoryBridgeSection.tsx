@@ -32,7 +32,7 @@ export default function FounderStoryBridgeSection() {
                 Sage Field had a real school to run, but no single system that fit the
                 way a microschool actually operates. Enrollment, contracts, parent
                 communication, payments, and internal workflows were all spread across
-                disconnected tools. School Stack started as the internal solution to
+                disconnected tools. SchoolLayer started as the internal solution to
                 that problem, then became the product other founders needed too.
               </p>
             </FadeInView>

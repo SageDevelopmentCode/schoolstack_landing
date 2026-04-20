@@ -55,7 +55,7 @@ export default function HeroSection() {
             variants={makeVariant(0.18)}
             className="text-[17px] md:text-[18px] text-white/65 leading-relaxed mt-6"
           >
-            School Stack started at Sage Field in Texas after trying to run enrollment, billing,
+            SchoolLayer started at Sage Field in Texas after trying to run enrollment, billing,
             parent communication, contracts, and daily operations across too many disconnected tools.
             Now it gives other microschools one calm system to run the whole school.
           </motion.p>

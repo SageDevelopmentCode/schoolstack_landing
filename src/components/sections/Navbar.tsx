@@ -53,7 +53,7 @@ export default function Navbar() {
         >
           {/* Logo */}
           <a href="/" className="font-display text-[18px] text-text shrink-0">
-            School Stack
+            SchoolLayer
           </a>
 
           {/* Desktop nav */}
@@ -115,7 +115,7 @@ export default function Navbar() {
               transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.38 }}
             >
               <div className="flex items-center justify-between mb-10">
-                <span className="font-display text-[17px] text-text">School Stack</span>
+                <span className="font-display text-[17px] text-text">SchoolLayer</span>
                 <button
                   onClick={() => setDrawerOpen(false)}
                   className="w-8 h-8 flex items-center justify-center text-text-faint hover:text-text transition-colors"

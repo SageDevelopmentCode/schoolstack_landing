@@ -100,7 +100,7 @@ export default function ProductPreviewSection() {
           </FadeInView>
           <FadeInView delay={0.16}>
             <p className="text-[16px] text-text-muted leading-relaxed mt-4 max-w-[600px] mx-auto">
-              Click through the modules to see how School Stack handles the work
+              Click through the modules to see how SchoolLayer handles the work
               founders actually deal with every week: leads, enrollment, contracts,
               family communication, billing, and staff operations in one system.
             </p>

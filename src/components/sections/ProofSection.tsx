@@ -22,7 +22,7 @@ export default function ProofSection() {
 
             <FadeInView delay={0.16}>
               <p className="text-[16px] text-text-muted leading-relaxed mt-5">
-                School Stack was not imagined in a coworking space or assembled from
+                SchoolLayer was not imagined in a coworking space or assembled from
                 generic SaaS ideas. It was built to run Sage Field, a real microschool
                 in Texas, because the existing software options did not fit the way a
                 microschool actually operates. Every major module exists because it
@@ -40,7 +40,7 @@ export default function ProofSection() {
                   it became obvious other founders needed it too.&rdquo;
                 </p>
                 <footer className="text-sm text-text-faint mt-4">
-                  — Julius Cecilia, Founder, School Stack &amp; Sage Field
+                  — Julius Cecilia, Founder, SchoolLayer &amp; Sage Field
                 </footer>
               </blockquote>
             </FadeInView>

@@ -21,7 +21,7 @@ export default function FinalCTASection() {
             style={{ color: 'rgba(248,247,244,0.72)' }}
           >
             Book a free 30-minute demo and walk through your school with the
-            founder who built School Stack to run a real microschool first.
+            founder who built SchoolLayer to run a real microschool first.
           </p>
         </FadeInView>
 

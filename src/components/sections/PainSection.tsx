@@ -26,7 +26,7 @@ function pillEdge(from: { x: number; y: number }, to: { x: number; y: number }) 
   return { x: from.x + nx * scale, y: from.y + ny * scale }
 }
 
-// 10 pairs — outer = third-party tool, inner = School Stack feature at same angle
+// 10 pairs — outer = third-party tool, inner = SchoolLayer feature at same angle
 // Outer ring: rx=390, ry=240 | Inner ring: rx=140, ry=105
 const PAIRS = [
   { tool: 'Google Forms', feature: 'Enrollment',  outer: { x: 500, y: 100 }, inner: { x: 500, y: 235 }, delay: 0    },
@@ -124,7 +124,7 @@ export default function PainSection() {
               </div>
             ))}
 
-            {/* Center card: School Stack + surrounding feature labels */}
+            {/* Center card: SchoolLayer + surrounding feature labels */}
             <div
               className="absolute z-20"
               style={{
@@ -139,17 +139,17 @@ export default function PainSection() {
                 className="relative w-full h-full"
                 style={{ overflow: 'visible' }}
               >
-                {/* "School Stack" — absolute center of card */}
+                {/* "SchoolLayer" — absolute center of card */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                     <span className="font-display text-[clamp(9px,1.3vw,16px)] text-accent whitespace-nowrap tracking-tight">
-                      School Stack
+                      SchoolLayer
                     </span>
                   </div>
                 </div>
 
-                {/* Feature labels arranged around "School Stack" inside the card */}
+                {/* Feature labels arranged around "SchoolLayer" inside the card */}
                 {PAIRS.map((p) => {
                   const relX = ((p.inner.x - CARD.l) / CARD.w) * 100
                   const relY = ((p.inner.y - CARD.t) / CARD.h) * 100
