@@ -2809,7 +2809,19 @@ export default function ParentDashboardDemo() {
       clickAnimation: false,
     },
     {
-      action: () => setActiveNavTab("billing"),
+      action: () => setActiveChildId("jake"),
+      targetId: "child-tab-jake",
+      holdMs: 1800,
+      clickAnimation: true,
+    },
+    {
+      action: () => setActiveChildId("liam"),
+      targetId: "child-tab-liam",
+      holdMs: 1800,
+      clickAnimation: true,
+    },
+    {
+      action: () => { setActiveNavTab("billing"); setActiveChildId("emma"); },
       targetId: "nav-billing",
       holdMs: 1600,
       clickAnimation: true,
