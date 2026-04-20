@@ -845,6 +845,7 @@ function ModalShell({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <h2 className="font-semibold text-gray-800 text-base">{title}</h2>
           <button
+            data-tour-id="modal-close"
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
           >
@@ -2803,10 +2804,16 @@ export default function ParentDashboardDemo() {
       clickAnimation: true,
     },
     {
-      action: () => {},
+      action: () => setOpenModal("contract-1"),
       targetId: "checklist-item-0",
-      holdMs: 1400,
-      clickAnimation: false,
+      holdMs: 2200,
+      clickAnimation: true,
+    },
+    {
+      action: () => setOpenModal(null),
+      targetId: "modal-close",
+      holdMs: 600,
+      clickAnimation: true,
     },
     {
       action: () => setActiveChildId("jake"),

@@ -26,7 +26,8 @@
     "voice-mode": 3,
     "shift-enter": 4,
     "frontend-design-plugin": 5,
-    "custom-agents": 6
+    "custom-agents": 6,
+    "agent-flag": 6
   },
   "promptQueueUseCount": 5,
   "cachedGrowthBookFeatures": {
@@ -614,7 +615,7 @@
     }
   },
   "cachedExtraUsageDisabledReason": "org_level_disabled",
-  "lastPlanModeUse": 1776713738806,
+  "lastPlanModeUse": 1776714180995,
   "subscriptionNoticeCount": 0,
   "hasAvailableSubscription": false,
   "hasUsedBackslashReturn": true,
