@@ -151,6 +151,7 @@ const DEMO_CHILDREN = {
       "Loves art and outdoor activities. Thrives with visual learning approaches.",
     initials: "EM",
     color: "#7FA888",
+    image: "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",
     teachers: [
       {
         name: "Ms. Taylor Reyes",
@@ -174,6 +175,7 @@ const DEMO_CHILDREN = {
       "Very social and energetic. Enjoys music and movement-based activities.",
     initials: "JM",
     color: "#f29a8f",
+    image: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg",
     teachers: [
       {
         name: "Ms. Paige Sun",
@@ -191,6 +193,7 @@ const DEMO_CHILDREN = {
     notes: "Curious and creative. Enjoys puzzles and building activities.",
     initials: "LM",
     color: "#a78bfa",
+    image: "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",
     teachers: [
       {
         name: "Ms. Taylor Reyes",
@@ -715,10 +718,12 @@ function Avatar({
   initials,
   color,
   size = "md",
+  src,
 }: {
   initials: string;
   color: string;
   size?: "sm" | "md" | "lg";
+  src?: string;
 }) {
   const sz =
     size === "sm"
@@ -726,6 +731,15 @@ function Avatar({
       : size === "lg"
         ? "w-12 h-12 text-base"
         : "w-9 h-9 text-sm";
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={initials}
+        className={`${sz} rounded-full object-cover flex-shrink-0`}
+      />
+    );
+  }
   return (
     <div
       className={`${sz} rounded-full flex items-center justify-center font-semibold text-white flex-shrink-0`}
@@ -1881,7 +1895,7 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
         {detailTab === "profile" && (
           <div className="space-y-4">
             <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-              <Avatar initials={child.initials} color={child.color} size="lg" />
+              <Avatar initials={child.initials} color={child.color} size="lg" src={child.image} />
               <div>
                 <p className="font-semibold text-gray-800">{child.name}</p>
                 <p className="text-sm text-gray-400">{child.grade}</p>
@@ -2651,7 +2665,7 @@ function ChildTabStrip({
             onClick={() => onSwitch(child.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer border ${activeChildId === child.id ? "bg-white border-gray-200 text-gray-800 shadow-sm" : "border-transparent text-gray-400 hover:text-gray-600"}`}
           >
-            <Avatar initials={child.initials} color={child.color} size="sm" />
+            <Avatar initials={child.initials} color={child.color} size="sm" src={child.image} />
             {child.name}
           </button>
         ),
