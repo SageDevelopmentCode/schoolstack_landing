@@ -100,7 +100,7 @@ export default function HeroSection() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
             </span>
-            Interactive demo — click anything to explore
+            Click to explore · move cursor away to watch
           </div>
         </motion.div>
 

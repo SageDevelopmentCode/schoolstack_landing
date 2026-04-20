@@ -10,7 +10,7 @@
     "prompt-queue": 2,
     "enter-to-steer-in-relatime": 2,
     "todo-list": 2,
-    "vscode-command-install": 5,
+    "vscode-command-install": 6,
     "install-github-app": 2,
     "install-slack-app": 2,
     "drag-and-drop-images": 2,
@@ -27,7 +27,8 @@
     "shift-enter": 4,
     "frontend-design-plugin": 5,
     "custom-agents": 6,
-    "agent-flag": 6
+    "agent-flag": 6,
+    "feedback-command": 6
   },
   "promptQueueUseCount": 5,
   "cachedGrowthBookFeatures": {
