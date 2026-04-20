@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText,
   Users,
@@ -2617,9 +2618,18 @@ export default function ParentDashboardDemo() {
   const [activeChildId, setActiveChildId] = useState<ChildId>("emma");
   const [openModal, setOpenModal] = useState<ModalId>(null);
 
-  // Per-child signatures
+  // Per-child signatures — Emma pre-seeded with contracts 1 & 2 + assumption of risk
   const [signaturesEmma, setSignaturesEmma] = useState<Record<string, string>>(
-    {},
+    {
+      "1-1": "Sarah Mitchell",
+      "1-2": "Sarah Mitchell",
+      "1-3": "Sarah Mitchell",
+      "1-4": "Sarah Mitchell",
+      "2-1": "Sarah Mitchell",
+      "2-2": "Sarah Mitchell",
+      "2-3": "Sarah Mitchell",
+      "6-1": "Sarah Mitchell",
+    },
   );
   const [signaturesJake, setSignaturesJake] = useState<Record<string, string>>(
     {},
@@ -2644,7 +2654,7 @@ export default function ParentDashboardDemo() {
   >({ emma: null, jake: null });
   const [immunizationCount, setImmunizationCount] = useState<
     Record<ChildId, number>
-  >({ emma: 0, jake: 0 });
+  >({ emma: 1, jake: 0 });
   const [feePaid, setFeePaid] = useState<Record<ChildId, boolean>>({
     emma: false,
     jake: false,
@@ -2756,7 +2766,7 @@ export default function ParentDashboardDemo() {
 
   return (
     <div
-      className="flex flex-col bg-welcome-bg"
+      className="demo-shell flex flex-col bg-white"
       style={{
         minHeight: "700px",
         fontFamily: "var(--font-body, system-ui, sans-serif)",
@@ -2764,13 +2774,13 @@ export default function ParentDashboardDemo() {
     >
       <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-gray-50">
         <div className="max-w-4xl mx-auto px-6 py-6">
           {/* Page heading */}
           <div className="mb-5">
-            <h1 className="text-xl font-semibold text-gray-800">
+            <p className="text-xl font-semibold text-gray-800">
               {pageTitle[activeNavTab]}
-            </h1>
+            </p>
             {activeNavTab === "enrollment" && (
               <p className="text-sm text-gray-400 mt-0.5">
                 Welcome back, Sarah — here's your enrollment progress.
@@ -2789,65 +2799,75 @@ export default function ParentDashboardDemo() {
               />
             )}
 
-          {/* Page content */}
-          {activeNavTab === "enrollment" &&
-            (isJakePending ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
-                <Clock className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-amber-800">
-                    Application Under Review
-                  </p>
-                  <p className="text-sm text-amber-600 mt-1">
-                    Jake's application has been received and is currently being
-                    reviewed by the admissions team. You'll be notified by email
-                    once a decision has been made.
-                  </p>
-                  <p className="text-xs text-amber-500 mt-3">
-                    Submitted: April 10, 2026
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <ChecklistView
-                completions={completions}
-                onOpen={setOpenModal}
-                enrolled={isEnrolled}
-              />
-            ))}
+          {/* Animated page content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeNavTab + activeChildId}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {activeNavTab === "enrollment" &&
+                (isJakePending ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
+                    <Clock className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-amber-800">
+                        Application Under Review
+                      </p>
+                      <p className="text-sm text-amber-600 mt-1">
+                        Jake's application has been received and is currently being
+                        reviewed by the admissions team. You'll be notified by email
+                        once a decision has been made.
+                      </p>
+                      <p className="text-xs text-amber-500 mt-3">
+                        Submitted: April 10, 2026
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <ChecklistView
+                    completions={completions}
+                    onOpen={setOpenModal}
+                    enrolled={isEnrolled}
+                  />
+                ))}
 
-          {activeNavTab === "children" && (
-            <ChildrenPage activeChildId={activeChildId} />
-          )}
+              {activeNavTab === "children" && (
+                <ChildrenPage activeChildId={activeChildId} />
+              )}
 
-          {activeNavTab === "billing" && (
-            <BillingPage
-              activeChildId={activeChildId}
-              paidInvoices={paidInvoices}
-              onPay={(id) => setPaidInvoices((prev) => new Set([...prev, id]))}
-            />
-          )}
+              {activeNavTab === "billing" && (
+                <BillingPage
+                  activeChildId={activeChildId}
+                  paidInvoices={paidInvoices}
+                  onPay={(id) => setPaidInvoices((prev) => new Set([...prev, id]))}
+                />
+              )}
 
-          {activeNavTab === "messages" && (
-            <MessagesPage
-              threads={messageThreads}
-              setThreads={setMessageThreads}
-            />
-          )}
+              {activeNavTab === "messages" && (
+                <MessagesPage
+                  threads={messageThreads}
+                  setThreads={setMessageThreads}
+                />
+              )}
 
-          {activeNavTab === "calendar" && <CalendarPage />}
+              {activeNavTab === "calendar" && <CalendarPage />}
 
-          {activeNavTab === "feed" && <FeedPage />}
+              {activeNavTab === "feed" && <FeedPage />}
 
-          {activeNavTab === "forms" && (
-            <FormsPage completions={completions} onOpen={setOpenModal} />
-          )}
+              {activeNavTab === "forms" && (
+                <FormsPage completions={completions} onOpen={setOpenModal} />
+              )}
 
-          {activeNavTab === "volunteer" && <VolunteerPage />}
+              {activeNavTab === "volunteer" && <VolunteerPage />}
 
-          {activeNavTab === "emergency-contacts" && (
-            <EmergencyContactsPage activeChildId={activeChildId} />
-          )}
+              {activeNavTab === "emergency-contacts" && (
+                <EmergencyContactsPage activeChildId={activeChildId} />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
 

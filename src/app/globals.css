@@ -62,6 +62,15 @@ h1, h2, h3 {
   line-height: 0.98;
 }
 
+/* Reset heading styles inside the parent dashboard demo shell */
+.demo-shell h1,
+.demo-shell h2,
+.demo-shell h3 {
+  font-family: var(--font-body);
+  letter-spacing: normal;
+  line-height: normal;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
