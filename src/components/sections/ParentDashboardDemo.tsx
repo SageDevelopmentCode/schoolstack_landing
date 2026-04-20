@@ -773,7 +773,7 @@ function ModalShell({
 }) {
   return (
     <div className="absolute inset-0 z-50 flex">
-      <div className="flex-1 bg-black/20" onClick={onClose} />
+      <div className="flex-1" onClick={onClose} />
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
