@@ -2304,7 +2304,7 @@ function CalendarPage() {
                   {dayEvents.slice(0, 3).map((ev) => (
                     <button
                       key={ev.id}
-                      data-tour-id={ev.id === "e3" ? "calendar-event-e3" : undefined}
+                      data-tour-id={ev.id === "e4" ? "calendar-event-e4" : undefined}
                       onClick={() => setSelectedEvent(ev)}
                       className="w-full text-left text-[10px] font-semibold font-body px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity"
                       style={{
@@ -2412,6 +2412,7 @@ function CalendarPage() {
                   </h2>
                 </div>
                 <button
+                  data-tour-id="calendar-sidebar-close"
                   onClick={() => setSelectedEvent(null)}
                   className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
@@ -4421,12 +4422,23 @@ export default function TeacherDashboardDemo() {
       {
         action: () => {
           const el = containerRef.current?.querySelector(
-            '[data-tour-id="calendar-event-e3"]',
+            '[data-tour-id="calendar-event-e4"]',
           );
           (el as HTMLElement)?.click();
         },
-        targetId: "calendar-event-e3",
+        targetId: "calendar-event-e4",
         holdMs: 2400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="calendar-sidebar-close"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "calendar-sidebar-close",
+        holdMs: 600,
         clickAnimation: true,
       },
       {
