@@ -241,9 +241,15 @@ export default function PainSection() {
               >
                 {/* "SchoolLayer" — absolute center of card */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
-                    <span className="font-display text-[clamp(9px,1.3vw,16px)] text-accent whitespace-nowrap tracking-tight">
+                  <div className="flex flex-col items-center gap-1">
+                    <Image
+                      src="/images/SchoolLayerLogo.png"
+                      alt="SchoolLayer"
+                      width={60}
+                      height={60}
+                      className="object-contain"
+                    />
+                    <span className="font-display text-[clamp(9px,1.2vw,15px)] text-text-muted whitespace-nowrap tracking-tight">
                       SchoolLayer
                     </span>
                   </div>
@@ -264,7 +270,7 @@ export default function PainSection() {
                       }}
                     >
                       <motion.span
-                        className="block rounded-pill bg-accent-soft border border-accent/30 text-[8px] md:text-[10px] lg:text-[11px] text-accent font-semibold px-1.5 md:px-2.5 lg:px-3 py-0.5 md:py-1 whitespace-nowrap shadow-sm"
+                        className="block rounded-pill bg-text text-[8px] md:text-[10px] lg:text-[11px] text-white font-medium px-1.5 md:px-2.5 lg:px-3 py-0.5 md:py-1 whitespace-nowrap shadow-sm"
                         animate={{ opacity: [0.7, 1, 0.7] }}
                         transition={{
                           duration: 2.8,

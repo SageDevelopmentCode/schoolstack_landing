@@ -40,7 +40,7 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`fixed left-0 right-0 z-50 flex justify-center transition-[padding] duration-300 ${scrolled ? "pt-[10px]" : "pt-0"}`}
+        className={`fixed left-0 right-0 z-[200] flex justify-center transition-[padding] duration-300 ${scrolled ? "pt-[10px]" : "pt-0"}`}
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
