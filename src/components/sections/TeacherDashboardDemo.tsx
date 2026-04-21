@@ -4189,6 +4189,7 @@ function TeacherNav({
       <div ref={moreRef}>
         <button
           ref={btnRef}
+          data-tour-id="nav-more"
           onClick={openMore}
           className="flex items-center gap-1 px-3 py-1.5 text-sm font-body text-gray-600 hover:text-[#4a7c59] hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
         >
@@ -4207,6 +4208,7 @@ function TeacherNav({
             {MORE_NAV.map(({ label, icon: Icon, tab }) => (
               <button
                 key={tab}
+                data-tour-id={`nav-${tab}`}
                 onClick={() => {
                   onTabChange(tab);
                   setMoreOpen(false);
@@ -4290,9 +4292,10 @@ export default function TeacherDashboardDemo() {
   const getTargetCenter = useCallback(
     (targetId: string): { x: number; y: number } | null => {
       if (!containerRef.current) return null;
-      const el = containerRef.current.querySelector(
-        `[data-tour-id="${targetId}"]`,
-      );
+      // Try inside container first; fall back to document for fixed-positioned elements (e.g. dropdown)
+      const el =
+        containerRef.current.querySelector(`[data-tour-id="${targetId}"]`) ??
+        document.querySelector(`[data-tour-id="${targetId}"]`);
       if (!el) return null;
       const cr = containerRef.current.getBoundingClientRect();
       const er = el.getBoundingClientRect();
@@ -4430,6 +4433,46 @@ export default function TeacherDashboardDemo() {
         action: () => setActiveTab("feed"),
         targetId: "nav-feed",
         holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-more"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-more",
+        holdMs: 600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = document.querySelector('[data-tour-id="nav-payroll"]');
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-payroll",
+        holdMs: 2200,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-more"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-more",
+        holdMs: 600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = document.querySelector('[data-tour-id="nav-forms"]');
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-forms",
+        holdMs: 2000,
         clickAnimation: true,
       },
       {
