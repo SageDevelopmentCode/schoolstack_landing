@@ -30,15 +30,20 @@ const heroFrameVariant = {
 
 export default function HeroSection() {
   const [demoTab, setDemoTab] = useState<'parent' | 'teacher'>('parent')
+  const t = demoTab === 'teacher'
 
   return (
-    <section className="pt-[140px] pb-0 bg-[#052415] overflow-hidden">
+    <motion.section
+      className="pt-[140px] pb-0 overflow-hidden"
+      animate={{ backgroundColor: t ? '#f2f8f3' : '#052415' }}
+      transition={{ duration: 0.6, ease }}
+    >
       <div className="max-w-[1280px] mx-auto px-6 lg:px-16">
 
         {/* Centered text block */}
         <div className="max-w-[860px] mx-auto text-center">
           <motion.div initial="hidden" animate="visible" variants={makeVariant(0)}>
-            <span className="inline-flex items-center gap-1.5 rounded-pill border border-white/20 text-white/70 text-[11px] font-medium uppercase tracking-widest px-3 py-1.5">
+            <span className={`inline-flex items-center gap-1.5 rounded-pill border text-[11px] font-medium uppercase tracking-widest px-3 py-1.5 transition-colors duration-500 ${t ? 'border-[#052415]/20 text-[#052415]/70' : 'border-white/20 text-white/70'}`}>
               For Microschools
             </span>
           </motion.div>
@@ -47,18 +52,18 @@ export default function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={makeVariant(0.08)}
-            className="font-display text-[clamp(2.6rem,5.2vw,4.75rem)] leading-[1.04] tracking-tight text-white mt-6"
+            className={`font-display text-[clamp(2.6rem,5.2vw,4.75rem)] leading-[1.04] tracking-tight mt-6 transition-colors duration-500 ${t ? 'text-[#052415]' : 'text-white'}`}
           >
             We built the software
             <br />we couldn&apos;t find.
-            <span className="inline-block w-[3px] h-[0.85em] bg-white ml-1 align-middle animate-pulse" />
+            <span className={`inline-block w-[3px] h-[0.85em] ml-1 align-middle animate-pulse transition-colors duration-500 ${t ? 'bg-[#052415]' : 'bg-white'}`} />
           </motion.h1>
 
           <motion.p
             initial="hidden"
             animate="visible"
             variants={makeVariant(0.18)}
-            className="text-[17px] md:text-[18px] text-white/65 leading-relaxed mt-6"
+            className={`text-[17px] md:text-[18px] leading-relaxed mt-6 transition-colors duration-500 ${t ? 'text-[#052415]/65' : 'text-white/65'}`}
           >
             SchoolLayer started at Sage Field in Texas after trying to run enrollment, billing,
             parent communication, contracts, and daily operations across too many disconnected tools.
@@ -73,7 +78,7 @@ export default function HeroSection() {
           >
             <a
               href="#demo"
-              className="inline-flex items-center gap-2 border border-white/40 text-white text-sm font-medium rounded-pill px-7 h-11 hover:bg-white/10 transition-all duration-200"
+              className={`inline-flex items-center gap-2 border text-sm font-medium rounded-pill px-7 h-11 transition-all duration-500 ${t ? 'border-[#052415]/40 text-[#052415] hover:bg-[#052415]/8' : 'border-white/40 text-white hover:bg-white/10'}`}
             >
               Book a Demo
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -82,7 +87,7 @@ export default function HeroSection() {
             </a>
             <a
               href="#product"
-              className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors duration-200"
+              className={`inline-flex items-center gap-1.5 text-sm transition-colors duration-500 ${t ? 'text-[#052415]/50 hover:text-[#052415]/80' : 'text-white/50 hover:text-white/80'}`}
             >
               See the product
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -99,7 +104,7 @@ export default function HeroSection() {
           variants={makeVariant(0.36)}
           className="flex justify-between items-center mt-14 px-1"
         >
-          <div className="flex items-center gap-1 bg-white/8 rounded-full p-1 border border-white/10">
+          <div className={`flex items-center gap-1 rounded-full p-1 border transition-colors duration-500 ${t ? 'bg-[#052415]/8 border-[#052415]/10' : 'bg-white/8 border-white/10'}`}>
             {([
               { id: 'parent', label: 'Parent View' },
               { id: 'teacher', label: 'Teacher View' },
@@ -109,8 +114,8 @@ export default function HeroSection() {
                 onClick={() => setDemoTab(id)}
                 className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
                   demoTab === id
-                    ? 'bg-white text-[#052415] shadow-sm'
-                    : 'text-white/50 hover:text-white/80'
+                    ? t ? 'bg-[#052415] text-white shadow-sm' : 'bg-white text-[#052415] shadow-sm'
+                    : t ? 'text-[#052415]/50 hover:text-[#052415]/80' : 'text-white/50 hover:text-white/80'
                 }`}
               >
                 {label}
@@ -118,10 +123,18 @@ export default function HeroSection() {
             ))}
           </div>
 
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-sm px-4 py-1.5 text-[11px] text-white/50 tracking-wide">
+          <div className={`inline-flex items-center gap-2 rounded-full border backdrop-blur-sm px-4 py-1.5 text-[11px] tracking-wide transition-colors duration-500 ${t ? 'border-[#052415]/15 bg-[#052415]/5 text-[#052415]/50' : 'border-white/15 bg-white/5 text-white/50'}`}>
             <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <motion.span
+                className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60"
+                animate={{ backgroundColor: t ? '#34d399' : '#34d399' }}
+                transition={{ duration: 0.5, ease }}
+              />
+              <motion.span
+                className="relative inline-flex h-1.5 w-1.5 rounded-full"
+                animate={{ backgroundColor: t ? '#4a7c59' : '#34d399' }}
+                transition={{ duration: 0.5, ease }}
+              />
             </span>
             Click to explore · move cursor away to watch
           </div>
@@ -134,7 +147,15 @@ export default function HeroSection() {
           variants={heroFrameVariant}
           className="relative max-w-[1100px] mx-auto mt-4"
         >
-          <div className="w-full h-[680px] rounded-t-xl border border-white/10 border-b-0 shadow-2xl overflow-hidden">
+          <motion.div
+            className={`w-full h-[680px] rounded-t-xl border border-b-0 overflow-hidden transition-colors duration-500 ${t ? 'border-[#052415]/10' : 'border-white/10'}`}
+            animate={{
+              boxShadow: t
+                ? '0 0 0 1px rgba(74,124,89,0.15), 0 32px 80px rgba(74,124,89,0.12)'
+                : '0 0 0 1px rgba(74,124,89,0.25), 0 32px 80px rgba(5,36,21,0.45)',
+            }}
+            transition={{ duration: 0.6, ease }}
+          >
             <AnimatePresence mode="wait">
               {demoTab === 'parent' ? (
                 <motion.div
@@ -160,10 +181,10 @@ export default function HeroSection() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </motion.div>
         </motion.div>
 
       </div>
-    </section>
+    </motion.section>
   )
 }
