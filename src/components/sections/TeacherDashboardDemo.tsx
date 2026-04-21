@@ -1919,6 +1919,7 @@ function MessagesPage() {
   const [convos, setConvos] = useState<DemoConvo[]>(DEMO_CONVOS);
   const [mobileView, setMobileView] = useState<"list" | "chat">("chat");
   const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const active = convos.find((c) => c.id === activeId) ?? null;
   const messages = threads[activeId] ?? [];
@@ -1927,7 +1928,9 @@ function MessagesPage() {
   );
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   }, [activeId, messages.length]);
 
   function sendMsg() {
@@ -1966,8 +1969,7 @@ function MessagesPage() {
 
   return (
     <div
-      className="flex bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
-      style={{ height: "600px" }}
+      className="flex bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-[510px]"
     >
       {/* Conversation list */}
       <div
@@ -2057,7 +2059,7 @@ function MessagesPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -2075,7 +2077,6 @@ function MessagesPage() {
                   </div>
                 </div>
               ))}
-              <div ref={endRef} />
             </div>
 
             <div className="border-t border-gray-100 px-4 py-3 flex items-center gap-2 shrink-0">
@@ -4239,7 +4240,7 @@ export default function TeacherDashboardDemo() {
           </div>
 
           {/* Nav */}
-          <div className="flex-1 overflow-x-auto scrollbar-hide">
+          <div className="flex-1 overflow-x-auto scrollbar-hide flex justify-center">
             <TeacherNav activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
 
@@ -4253,7 +4254,7 @@ export default function TeacherDashboardDemo() {
       </header>
 
       {/* Page content */}
-      <main className="flex-1 overflow-y-auto max-w-6xl w-full mx-auto px-6 py-8">
+      <main className="flex-1 min-h-0 overflow-y-auto max-w-6xl w-full mx-auto px-6 py-8">
         {activeTab === "dashboard" && (
           <div className="flex flex-col gap-6">
             {/* Banner slideshow */}
