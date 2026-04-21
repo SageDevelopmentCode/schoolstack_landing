@@ -1,7 +1,9 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import ParentDashboardDemo from './ParentDashboardDemo'
+import TeacherDashboardDemo from './TeacherDashboardDemo'
 
 const ease = [0.16, 1, 0.3, 1] as const
 
@@ -27,6 +29,8 @@ const heroFrameVariant = {
 }
 
 export default function HeroSection() {
+  const [demoTab, setDemoTab] = useState<'parent' | 'teacher'>('parent')
+
   return (
     <section className="pt-[140px] pb-0 bg-[#052415] overflow-hidden">
       <div className="max-w-[1280px] mx-auto px-6 lg:px-16">
@@ -88,13 +92,32 @@ export default function HeroSection() {
           </motion.div>
         </div>
 
-        {/* Interactive demo label */}
+        {/* Tab switcher + live indicator */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={makeVariant(0.36)}
-          className="flex justify-center mt-14"
+          className="flex justify-between items-center mt-14 px-1"
         >
+          <div className="flex items-center gap-1 bg-white/8 rounded-full p-1 border border-white/10">
+            {([
+              { id: 'parent', label: 'Parent View' },
+              { id: 'teacher', label: 'Teacher View' },
+            ] as const).map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => setDemoTab(id)}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
+                  demoTab === id
+                    ? 'bg-white text-[#052415] shadow-sm'
+                    : 'text-white/50 hover:text-white/80'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-sm px-4 py-1.5 text-[11px] text-white/50 tracking-wide">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
@@ -112,7 +135,31 @@ export default function HeroSection() {
           className="relative max-w-[1100px] mx-auto mt-4"
         >
           <div className="w-full h-[680px] rounded-t-xl border border-white/10 border-b-0 shadow-2xl overflow-hidden">
-            <ParentDashboardDemo />
+            <AnimatePresence mode="wait">
+              {demoTab === 'parent' ? (
+                <motion.div
+                  key="parent"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full h-full"
+                >
+                  <ParentDashboardDemo />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="teacher"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full h-full"
+                >
+                  <TeacherDashboardDemo />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
 

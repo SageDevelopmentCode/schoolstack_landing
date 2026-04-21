@@ -39,6 +39,7 @@ import {
   Download,
   Smile,
   MessageSquare,
+  MapPin,
 } from "lucide-react";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -100,10 +101,16 @@ interface DemoEvent {
   title: string;
   date: string;
   time?: string;
+  endTime?: string;
   category: string;
   color: string;
   description: string;
   program: "summer" | "school-year";
+  location?: string;
+  instructor?: string;
+  whatToBring?: string[];
+  attendees?: string[];
+  rsvpRequired?: boolean;
 }
 interface DemoPost {
   id: string;
@@ -384,22 +391,41 @@ const DEMO_EVENTS: DemoEvent[] = [
     title: "Parent-Teacher Connections",
     date: "2026-07-09",
     time: "3:30 PM",
+    endTime: "5:30 PM",
     category: "Meeting",
     color: "#4A6354",
     description:
       "Optional 15-minute check-ins with lead teachers. Sign up in advance.",
     program: "summer",
+    location: "Main Classroom — Room 1",
+    instructor: "Ms. Paige Sun",
+    whatToBring: ["Questions for teacher", "Child's portfolio (optional)"],
+    attendees: ["Emma Mitchell", "Liam Mitchell"],
+    rsvpRequired: true,
   },
   {
     id: "e6",
     title: "Water Play Day",
     date: "2026-07-14",
     time: "10:00 AM",
+    endTime: "12:00 PM",
     category: "Activity",
     color: "#BAE1FF",
     description:
-      "Please send your child in a swimsuit with a change of clothes and towel.",
+      "Kids rotate through four water stations: sprinkler run, water table, splash pad, and water balloon toss. One of the most anticipated days of summer!",
     program: "summer",
+    location: "Outdoor Play Area & Courtyard",
+    instructor: "Ms. Paige Sun & Ms. Taylor Reyes",
+    whatToBring: [
+      "Swimsuit (worn under clothes)",
+      "Change of clothes",
+      "Towel",
+      "Sunscreen (SPF 30+, applied before arrival)",
+      "Labeled water bottle",
+      "Bag for wet clothes",
+    ],
+    attendees: ["Emma Mitchell", "Liam Mitchell"],
+    rsvpRequired: false,
   },
   {
     id: "e7",
@@ -1924,14 +1950,127 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
   );
 }
 
+function InvoiceSidebar({ onClose }: { onClose: () => void }) {
+  return (
+    <>
+      <motion.div
+        key="invoice-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/20 z-40"
+        onClick={onClose}
+      />
+      <motion.div
+        key="invoice-panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 280 }}
+        className="absolute inset-y-0 right-0 w-[300px] bg-white shadow-2xl z-50 flex flex-col overflow-y-auto"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Invoice</p>
+            <p className="text-sm font-semibold text-gray-800 mt-0.5">INV-2026-042</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Status + amount */}
+        <div className="px-5 py-4 border-b border-gray-100 bg-amber-50">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">
+              Pending
+            </span>
+            <p className="text-2xl font-bold text-gray-900">$375.00</p>
+          </div>
+          <p className="text-xs text-amber-700 mt-2">Due Jun 1, 2026</p>
+        </div>
+
+        {/* Details */}
+        <div className="px-5 py-4 space-y-4 flex-1">
+          <div>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">For</p>
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-[#f29a8f] flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                EM
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Emma Mitchell</p>
+                <p className="text-xs text-gray-400">Kindergarten</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">Program</p>
+            <p className="text-sm text-gray-700 font-medium">Summer 2026 — Week 1</p>
+            <p className="text-xs text-gray-400 mt-0.5">June 15–19, 2026</p>
+          </div>
+
+          <div>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">Line Items</p>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Weekly Tuition</span>
+                <span className="font-medium text-gray-800">$350.00</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Materials Fee</span>
+                <span className="font-medium text-gray-800">$25.00</span>
+              </div>
+              <div className="border-t border-gray-100 pt-2 flex justify-between text-sm font-semibold">
+                <span className="text-gray-800">Total</span>
+                <span className="text-gray-900">$375.00</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">Billing Contact</p>
+            <p className="text-sm text-gray-700">Sarah Mitchell</p>
+            <p className="text-xs text-gray-400 mt-0.5">sarah@mitchell.co</p>
+          </div>
+        </div>
+
+        {/* Footer CTA */}
+        <div className="px-5 py-4 border-t border-gray-100">
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium hover:bg-[#3d6b4f] transition-colors cursor-pointer"
+          >
+            Pay Now — $375.00
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full mt-2 py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
 function BillingPage({
   activeChildId,
   paidInvoices,
   onPay,
+  onOpenInvoice,
 }: {
   activeChildId: ChildId;
   paidInvoices: Set<string>;
   onPay: (id: string) => void;
+  onOpenInvoice: () => void;
 }) {
   const childTx = DEMO_TRANSACTIONS.filter((t) => t.childId === activeChildId);
   const pending = childTx.filter(
@@ -1954,7 +2093,8 @@ function BillingPage({
                 data-tour-id={
                   tIdx === 0 ? "billing-pending-invoice" : undefined
                 }
-                className="flex items-center justify-between border border-amber-100 bg-amber-50 rounded-xl px-4 py-3"
+                onClick={tIdx === 0 ? onOpenInvoice : undefined}
+                className="flex items-center justify-between border border-amber-100 bg-amber-50 rounded-xl px-4 py-3 cursor-pointer hover:bg-amber-100 transition-colors"
               >
                 <div>
                   <p className="text-sm font-medium text-gray-700">{t.desc}</p>
@@ -2182,10 +2322,174 @@ function MessagesPage({
   );
 }
 
-function CalendarPage() {
+function EventSidebar({
+  event,
+  onClose,
+}: {
+  event: DemoEvent;
+  onClose: () => void;
+}) {
+  const dateStr = new Date(event.date).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return (
+    <>
+      <motion.div
+        key="event-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/20 z-40"
+        onClick={onClose}
+      />
+      <motion.div
+        key="event-panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 280 }}
+        className="absolute inset-y-0 right-0 w-[300px] bg-white shadow-2xl z-50 flex flex-col overflow-y-auto"
+      >
+        {/* Colour header */}
+        <div
+          className="px-5 pt-5 pb-4"
+          style={{ backgroundColor: event.color + "18", borderBottom: `2px solid ${event.color}30` }}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <span
+                className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full mb-2"
+                style={{ backgroundColor: event.color + "30", color: event.color }}
+              >
+                {event.category}
+              </span>
+              <h3 className="text-base font-bold text-gray-900 leading-snug">
+                {event.title}
+              </h3>
+            </div>
+            <button
+              onClick={onClose}
+              className="mt-0.5 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white/60 transition-colors cursor-pointer flex-shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Meta rows */}
+        <div className="px-5 py-4 space-y-3 border-b border-gray-100">
+          <div className="flex gap-3">
+            <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs text-gray-400">Date</p>
+              <p className="text-sm text-gray-700 font-medium">{dateStr}</p>
+            </div>
+          </div>
+          {event.time && (
+            <div className="flex gap-3">
+              <Clock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-gray-400">Time</p>
+                <p className="text-sm text-gray-700 font-medium">
+                  {event.time}{event.endTime ? ` – ${event.endTime}` : ""}
+                </p>
+              </div>
+            </div>
+          )}
+          {event.location && (
+            <div className="flex gap-3">
+              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-gray-400">Location</p>
+                <p className="text-sm text-gray-700 font-medium">{event.location}</p>
+              </div>
+            </div>
+          )}
+          {event.instructor && (
+            <div className="flex gap-3">
+              <Users className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-gray-400">Led by</p>
+                <p className="text-sm text-gray-700 font-medium">{event.instructor}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Description */}
+        <div className="px-5 py-4 border-b border-gray-100">
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1.5">About</p>
+          <p className="text-sm text-gray-600 leading-relaxed">{event.description}</p>
+        </div>
+
+        {/* What to bring */}
+        {event.whatToBring && event.whatToBring.length > 0 && (
+          <div className="px-5 py-4 border-b border-gray-100">
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">What to Bring</p>
+            <ul className="space-y-1.5">
+              {event.whatToBring.map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm text-gray-600">
+                  <span
+                    className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: event.color }}
+                  />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Attending children */}
+        {event.attendees && event.attendees.length > 0 && (
+          <div className="px-5 py-4 border-b border-gray-100">
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">Your Children Attending</p>
+            <div className="space-y-2">
+              {event.attendees.map((name) => {
+                const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+                return (
+                  <div key={name} className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-full bg-[#7FA888] flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
+                      {initials}
+                    </div>
+                    <p className="text-sm text-gray-700">{name}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* RSVP / program badge */}
+        <div className="px-5 py-4 flex-1 flex flex-col justify-end">
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <span className="capitalize">{event.program === "summer" ? "Summer 2026" : "School Year 26–27"}</span>
+            {event.rsvpRequired !== undefined && (
+              <span
+                className={`px-2 py-0.5 rounded-full font-medium ${event.rsvpRequired ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}
+              >
+                {event.rsvpRequired ? "RSVP required" : "No RSVP needed"}
+              </span>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+function CalendarPage({
+  onEventClick,
+}: {
+  onEventClick: (e: DemoEvent) => void;
+}) {
   const [month, setMonth] = useState(new Date(2026, 5, 1));
   const [program, setProgram] = useState<"summer" | "school-year">("summer");
-  const [selectedEvent, setSelectedEvent] = useState<DemoEvent | null>(null);
 
   const year = month.getFullYear();
   const mon = month.getMonth();
@@ -2269,7 +2573,8 @@ function CalendarPage() {
                 {evs.slice(0, 2).map((e) => (
                   <button
                     key={e.id}
-                    onClick={() => setSelectedEvent(e)}
+                    data-tour-id={e.id === "e6" ? "calendar-event-e6" : undefined}
+                    onClick={() => onEventClick(e)}
                     className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium mb-0.5 truncate cursor-pointer"
                     style={{ backgroundColor: e.color + "20", color: e.color }}
                   >
@@ -2281,43 +2586,6 @@ function CalendarPage() {
           })}
         </div>
       </div>
-      {selectedEvent && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: selectedEvent.color }}
-                />
-                <span className="text-xs text-gray-400">
-                  {selectedEvent.category}
-                </span>
-              </div>
-              <h3 className="font-semibold text-gray-800">
-                {selectedEvent.title}
-              </h3>
-              <p className="text-sm text-gray-400 mt-1">
-                {new Date(selectedEvent.date).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
-                {selectedEvent.time ? ` · ${selectedEvent.time}` : ""}
-              </p>
-            </div>
-            <button
-              onClick={() => setSelectedEvent(null)}
-              className="p-1 rounded-lg hover:bg-gray-100 cursor-pointer"
-            >
-              <X className="w-4 h-4 text-gray-400" />
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mt-3 leading-relaxed">
-            {selectedEvent.description}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -2787,6 +3055,10 @@ export default function ParentDashboardDemo() {
 
   // Billing
   const [paidInvoices, setPaidInvoices] = useState<Set<string>>(new Set());
+  const [billingInvoiceSidebarOpen, setBillingInvoiceSidebarOpen] = useState(false);
+
+  // Calendar event sidebar
+  const [calendarSidebarEvent, setCalendarSidebarEvent] = useState<DemoEvent | null>(null);
 
   // Messages
   const [messageThreads, setMessageThreads] =
@@ -2903,13 +3175,13 @@ export default function ParentDashboardDemo() {
         clickAnimation: true,
       },
       {
-        action: () => {},
+        action: () => setBillingInvoiceSidebarOpen(true),
         targetId: "billing-pending-invoice",
-        holdMs: 1400,
-        clickAnimation: false,
+        holdMs: 2200,
+        clickAnimation: true,
       },
       {
-        action: () => setActiveNavTab("messages"),
+        action: () => { setActiveNavTab("messages"); setBillingInvoiceSidebarOpen(false); },
         targetId: "nav-messages",
         holdMs: 1400,
         clickAnimation: true,
@@ -2955,7 +3227,18 @@ export default function ParentDashboardDemo() {
         clickAnimation: true,
       },
       {
-        action: () => setActiveNavTab("children"),
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="calendar-event-e6"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "calendar-event-e6",
+        holdMs: 2400,
+        clickAnimation: true,
+      },
+      {
+        action: () => { setActiveNavTab("children"); setCalendarSidebarEvent(null); },
         targetId: "nav-children",
         holdMs: 1200,
         clickAnimation: true,
@@ -3216,6 +3499,7 @@ export default function ParentDashboardDemo() {
                   onPay={(id) =>
                     setPaidInvoices((prev) => new Set([...prev, id]))
                   }
+                  onOpenInvoice={() => setBillingInvoiceSidebarOpen(true)}
                 />
               )}
 
@@ -3230,7 +3514,9 @@ export default function ParentDashboardDemo() {
                 />
               )}
 
-              {activeNavTab === "calendar" && <CalendarPage />}
+              {activeNavTab === "calendar" && (
+                <CalendarPage onEventClick={(e) => setCalendarSidebarEvent(e)} />
+              )}
 
               {activeNavTab === "feed" && <FeedPage />}
 
@@ -3369,6 +3655,19 @@ export default function ParentDashboardDemo() {
               setOpenModal(null);
             }}
             onClose={() => setOpenModal(null)}
+          />
+        )}
+        {billingInvoiceSidebarOpen && (
+          <InvoiceSidebar
+            key="invoice-sidebar"
+            onClose={() => setBillingInvoiceSidebarOpen(false)}
+          />
+        )}
+        {calendarSidebarEvent && (
+          <EventSidebar
+            key="event-sidebar"
+            event={calendarSidebarEvent}
+            onClose={() => setCalendarSidebarEvent(null)}
           />
         )}
       </AnimatePresence>
