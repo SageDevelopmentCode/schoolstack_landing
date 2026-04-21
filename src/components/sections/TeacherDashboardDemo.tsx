@@ -43,11 +43,23 @@ const DEMO_TEACHER = {
 };
 
 const BANNER_IMAGES = [
-  "/assets/ImageTwo.jpg",
-  "/assets/ImageThree.jpg",
-  "/assets/ImageFive.jpg",
-  "/assets/ImageNine.jpg",
-  "/assets/ImageTen.jpg",
+  "/images/stock/ImageOne.jpg",
+  "/images/stock/ImageTwo.jpg",
+  "/images/stock/ImageThree.jpg",
+  "/images/stock/ImageFour.jpg",
+  "/images/stock/ImageFive.jpg",
+  "/images/stock/ImageSix.jpg",
+  "/images/stock/ImageSeven.jpg",
+  "/images/stock/ImageEight.jpg",
+  "/images/stock/ImageNine.jpg",
+  "/images/stock/ImageTen.jpg",
+  "/images/stock/ImageEleven.jpg",
+  "/images/stock/ImageTwelve.jpg",
+  "/images/stock/ImageThirteen.jpg",
+  "/images/stock/ImageFourteen.jpg",
+  "/images/stock/Homeschool.jpg",
+  "/images/stock/Homeschool2.jpg",
+  "/images/stock/Homeschool3.jpg",
 ];
 
 type DemoCalendarEvent = {
@@ -4110,7 +4122,9 @@ function TeacherNav({
   onTabChange: (tab: NavTab) => void;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const moreRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -4121,6 +4135,14 @@ function TeacherNav({
     if (moreOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [moreOpen]);
+
+  function openMore() {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setDropdownPos({ top: r.bottom + 6, left: r.left + r.width / 2 });
+    }
+    setMoreOpen((v) => !v);
+  }
 
   return (
     <nav className="flex items-center gap-2">
@@ -4142,9 +4164,10 @@ function TeacherNav({
         );
       })}
 
-      <div className="relative" ref={moreRef}>
+      <div ref={moreRef}>
         <button
-          onClick={() => setMoreOpen((v) => !v)}
+          ref={btnRef}
+          onClick={openMore}
           className="flex items-center gap-1 px-3 py-1.5 text-sm font-body text-gray-600 hover:text-[#4a7c59] hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
         >
           More
@@ -4155,7 +4178,10 @@ function TeacherNav({
         </button>
 
         {moreOpen && (
-          <div className="absolute left-1/2 -translate-x-1/2 mt-1.5 w-52 bg-white border border-gray-100 rounded-xl shadow-sm z-50 py-1.5">
+          <div
+            className="fixed w-52 bg-white border border-gray-100 rounded-xl shadow-lg z-[9999] py-1.5 -translate-x-1/2"
+            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+          >
             {MORE_NAV.map(({ label, icon: Icon, tab }) => (
               <button
                 key={tab}
@@ -4240,7 +4266,7 @@ export default function TeacherDashboardDemo() {
           </div>
 
           {/* Nav */}
-          <div className="flex-1 overflow-x-auto scrollbar-hide flex justify-center">
+          <div className="flex-1 flex justify-center">
             <TeacherNav activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
 
