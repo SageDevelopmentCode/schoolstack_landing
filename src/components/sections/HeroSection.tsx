@@ -33,10 +33,12 @@ export default function HeroSection() {
   const t = demoTab === 'teacher'
 
   return (
-    <motion.section
+    <section
       className="pt-[140px] pb-0 overflow-hidden"
-      animate={{ backgroundColor: t ? '#f2f8f3' : '#052415' }}
-      transition={{ duration: 0.6, ease }}
+      style={{
+        backgroundColor: t ? '#f2f8f3' : '#052415',
+        transition: 'background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+      }}
     >
       <div className="max-w-[1280px] mx-auto px-6 lg:px-16">
 
@@ -60,14 +62,16 @@ export default function HeroSection() {
           </motion.h1>
 
           <motion.p
+            key={demoTab}
             initial="hidden"
             animate="visible"
             variants={makeVariant(0.18)}
             className={`text-[17px] md:text-[18px] leading-relaxed mt-6 transition-colors duration-500 ${t ? 'text-[#052415]/65' : 'text-white/65'}`}
           >
-            SchoolLayer started at Sage Field in Texas after trying to run enrollment, billing,
-            parent communication, contracts, and daily operations across too many disconnected tools.
-            Now it gives other microschools one calm system to run the whole school.
+            {demoTab === 'parent'
+              ? "Keep every family on track — enrollment contracts, health forms, tuition billing, and parent messaging in one place. Parents get a clear portal; you get fewer follow-up emails and nothing that slips through."
+              : "Give your teachers one place to clock in, track hours, manage their roster, and stay connected. Less admin overhead, accurate payroll, and a staff that always knows what's next."
+            }
           </motion.p>
 
           <motion.div
@@ -125,15 +129,19 @@ export default function HeroSection() {
 
           <div className={`inline-flex items-center gap-2 rounded-full border backdrop-blur-sm px-4 py-1.5 text-[11px] tracking-wide transition-colors duration-500 ${t ? 'border-[#052415]/15 bg-[#052415]/5 text-[#052415]/50' : 'border-white/15 bg-white/5 text-white/50'}`}>
             <span className="relative flex h-1.5 w-1.5">
-              <motion.span
+              <span
                 className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60"
-                animate={{ backgroundColor: t ? '#34d399' : '#34d399' }}
-                transition={{ duration: 0.5, ease }}
+                style={{
+                  backgroundColor: t ? '#4a7c59' : '#34d399',
+                  transition: 'background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
               />
-              <motion.span
+              <span
                 className="relative inline-flex h-1.5 w-1.5 rounded-full"
-                animate={{ backgroundColor: t ? '#4a7c59' : '#34d399' }}
-                transition={{ duration: 0.5, ease }}
+                style={{
+                  backgroundColor: t ? '#4a7c59' : '#34d399',
+                  transition: 'background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}
               />
             </span>
             Click to explore · move cursor away to watch
@@ -185,6 +193,6 @@ export default function HeroSection() {
         </motion.div>
 
       </div>
-    </motion.section>
+    </section>
   )
 }
