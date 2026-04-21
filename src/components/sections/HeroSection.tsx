@@ -106,8 +106,10 @@ export default function HeroSection() {
           initial="hidden"
           animate="visible"
           variants={makeVariant(0.36)}
-          className="flex justify-between items-center mt-14 px-1"
+          className="grid grid-cols-3 items-center mt-14 px-1"
         >
+          <div />
+          <div className="flex justify-center">
           <div className={`flex items-center gap-1 rounded-full p-1 border transition-colors duration-500 ${t ? 'bg-[#052415]/8 border-[#052415]/10' : 'bg-white/8 border-white/10'}`}>
             {([
               { id: 'parent', label: 'Parent View' },
@@ -126,26 +128,9 @@ export default function HeroSection() {
               </button>
             ))}
           </div>
-
-          <div className={`inline-flex items-center gap-2 rounded-full border backdrop-blur-sm px-4 py-1.5 text-[11px] tracking-wide transition-colors duration-500 ${t ? 'border-[#052415]/15 bg-[#052415]/5 text-[#052415]/50' : 'border-white/15 bg-white/5 text-white/50'}`}>
-            <span className="relative flex h-1.5 w-1.5">
-              <span
-                className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60"
-                style={{
-                  backgroundColor: t ? '#4a7c59' : '#34d399',
-                  transition: 'background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                }}
-              />
-              <span
-                className="relative inline-flex h-1.5 w-1.5 rounded-full"
-                style={{
-                  backgroundColor: t ? '#4a7c59' : '#34d399',
-                  transition: 'background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                }}
-              />
-            </span>
-            Click to explore · move cursor away to watch
           </div>
+
+          <div />
         </motion.div>
 
         {/* Interactive parent dashboard demo */}

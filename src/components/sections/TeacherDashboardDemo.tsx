@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -577,6 +577,7 @@ function StudentDetailSidebar({
                 </div>
               </div>
               <button
+                data-tour-id="student-sidebar-close"
                 onClick={onClose}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
               >
@@ -701,9 +702,10 @@ function MyStudentsSection() {
       </div>
 
       <div className="flex flex-col gap-2">
-        {filtered.map((s) => (
+        {filtered.map((s, idx) => (
           <div
             key={s.id}
+            data-tour-id={idx === 0 ? "student-row-0" : undefined}
             onClick={() => setSelectedStudent(s)}
             className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-gray-100 hover:border-gray-200 cursor-pointer transition-all"
           >
@@ -1922,12 +1924,20 @@ function initialsFrom(name: string) {
     .join("");
 }
 
-function MessagesPage() {
+function MessagesPage({
+  externalDraft,
+  setExternalDraft,
+}: {
+  externalDraft?: string;
+  setExternalDraft?: (v: string) => void;
+}) {
   const [activeId, setActiveId] = useState<string>("c1");
   const [threads, setThreads] =
     useState<Record<string, DemoMsg[]>>(DEMO_THREADS);
   const [search, setSearch] = useState("");
-  const [draft, setDraft] = useState("");
+  const [internalDraft, setInternalDraft] = useState("");
+  const draft = externalDraft !== undefined ? externalDraft : internalDraft;
+  const setDraft = setExternalDraft ?? setInternalDraft;
   const [convos, setConvos] = useState<DemoConvo[]>(DEMO_CONVOS);
   const [mobileView, setMobileView] = useState<"list" | "chat">("chat");
   const endRef = useRef<HTMLDivElement>(null);
@@ -2007,6 +2017,7 @@ function MessagesPage() {
           {filtered.map((c) => (
             <button
               key={c.id}
+              data-tour-id={`messages-conv-${c.id}`}
               onClick={() => openConvo(c.id)}
               className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors cursor-pointer ${c.id === activeId ? "bg-[#4a7c59]/5 border-r-2 border-[#4a7c59]" : "hover:bg-gray-50"}`}
             >
@@ -2093,6 +2104,7 @@ function MessagesPage() {
 
             <div className="border-t border-gray-100 px-4 py-3 flex items-center gap-2 shrink-0">
               <input
+                data-tour-id="messages-input"
                 type="text"
                 placeholder="Type a message..."
                 value={draft}
@@ -2106,6 +2118,7 @@ function MessagesPage() {
                 className="flex-1 px-4 py-2.5 text-sm font-body bg-gray-50 border border-gray-100 rounded-xl focus:outline-none text-gray-800 placeholder:text-gray-400"
               />
               <button
+                data-tour-id="messages-send"
                 onClick={sendMsg}
                 disabled={!draft.trim()}
                 className="w-10 h-10 rounded-xl bg-[#4a7c59] hover:bg-[#3d6b4a] disabled:opacity-40 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
@@ -2238,6 +2251,7 @@ function CalendarPage() {
               {monthLabel}
             </h2>
             <button
+              data-tour-id="calendar-next-month"
               onClick={nextPeriod}
               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
             >
@@ -2290,6 +2304,7 @@ function CalendarPage() {
                   {dayEvents.slice(0, 3).map((ev) => (
                     <button
                       key={ev.id}
+                      data-tour-id={ev.id === "e3" ? "calendar-event-e3" : undefined}
                       onClick={() => setSelectedEvent(ev)}
                       className="w-full text-left text-[10px] font-semibold font-body px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity"
                       style={{
@@ -3672,6 +3687,11 @@ function FormsPage() {
   );
 }
 
+// ─── Tour Constants ───────────────────────────────────────────────────────────
+
+const TOUR_MOVE_MS = 950;
+const TOUR_RESUME_MS = 1500;
+
 // ─── Nav Types ────────────────────────────────────────────────────────────────
 
 type NavTab =
@@ -3870,12 +3890,13 @@ function UpcomingEventsCard({
       </div>
 
       <div className="flex flex-col gap-2">
-        {events.map((event) => {
+        {events.map((event, idx) => {
           const accent = event.color ?? "#4a7c59";
           const isExpanded = expandedId === event.id;
           return (
             <div
               key={event.id}
+              data-tour-id={idx === 0 ? "event-card-e1" : undefined}
               className="relative rounded-xl border border-gray-100 overflow-hidden cursor-pointer hover:border-gray-200 transition-colors"
               onClick={() => onToggle(event.id)}
             >
@@ -4151,6 +4172,7 @@ function TeacherNav({
         return (
           <button
             key={tab}
+            data-tour-id={`nav-${tab}`}
             onClick={() => onTabChange(tab)}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-body rounded-md transition-colors whitespace-nowrap cursor-pointer ${
               isActive
@@ -4211,6 +4233,20 @@ export default function TeacherDashboardDemo() {
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
 
+  // ── Lifted state for tour control ──────────────────────────────────────────
+  const [msgDraft, setMsgDraft] = useState("");
+
+  // ── Tour state ──────────────────────────────────────────────────────────────
+  const [isTouring, setIsTouring] = useState(true);
+  const [tourStep, setTourStep] = useState(0);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [cursorVisible, setCursorVisible] = useState(false);
+  const [cursorClicking, setCursorClicking] = useState(false);
+  const [typingTarget, setTypingTarget] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tourTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     setBannerIndex(Math.floor(Math.random() * BANNER_IMAGES.length));
     const timer = setInterval(() => {
@@ -4249,8 +4285,266 @@ export default function TeacherDashboardDemo() {
     }));
   }
 
+  // ── Tour helpers ────────────────────────────────────────────────────────────
+
+  const getTargetCenter = useCallback(
+    (targetId: string): { x: number; y: number } | null => {
+      if (!containerRef.current) return null;
+      const el = containerRef.current.querySelector(
+        `[data-tour-id="${targetId}"]`,
+      );
+      if (!el) return null;
+      const cr = containerRef.current.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      return {
+        x: er.left - cr.left + er.width / 2,
+        y: er.top - cr.top + er.height / 2,
+      };
+    },
+    [],
+  );
+
+  // Typing animation
+  useEffect(() => {
+    if (!typingTarget) return;
+    setMsgDraft("");
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setMsgDraft(typingTarget.slice(0, i));
+      if (i >= typingTarget.length) {
+        clearInterval(id);
+        setTypingTarget(null);
+      }
+    }, 55);
+    return () => clearInterval(id);
+  }, [typingTarget]);
+
+  const msgDraftRef = useRef(msgDraft);
+  useEffect(() => {
+    msgDraftRef.current = msgDraft;
+  }, [msgDraft]);
+
+  const sendMsgFromTour = useCallback(() => {
+    if (!msgDraftRef.current.trim()) return;
+    const el = containerRef.current?.querySelector(
+      '[data-tour-id="messages-send"]',
+    );
+    (el as HTMLElement)?.click();
+  }, []);
+
+  const tourSteps = useMemo(
+    () => [
+      {
+        action: () => setActiveTab("students"),
+        targetId: "nav-students",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="student-row-0"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "student-row-0",
+        holdMs: 2200,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="student-sidebar-close"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "student-sidebar-close",
+        holdMs: 800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("hours"),
+        targetId: "nav-hours",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("messages"),
+        targetId: "nav-messages",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="messages-conv-c2"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "messages-conv-c2",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => setTypingTarget("Sure, let's reschedule for Thursday!"),
+        targetId: "messages-input",
+        holdMs: 2800,
+        clickAnimation: true,
+      },
+      {
+        action: () => sendMsgFromTour(),
+        targetId: "messages-send",
+        holdMs: 1000,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("calendar"),
+        targetId: "nav-calendar",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="calendar-next-month"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "calendar-next-month",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="calendar-event-e3"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "calendar-event-e3",
+        holdMs: 2400,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("feed"),
+        targetId: "nav-feed",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("dashboard"),
+        targetId: "nav-dashboard",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="event-card-e1"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "event-card-e1",
+        holdMs: 2000,
+        clickAnimation: true,
+      },
+    ],
+    [sendMsgFromTour],
+  );
+
+  // Main tour effect
+  useEffect(() => {
+    if (!isTouring) return;
+    const step = tourSteps[tourStep];
+    let cancelled = false;
+
+    const t1 = setTimeout(() => {
+      if (cancelled) return;
+      const pos = getTargetCenter(step.targetId);
+      if (pos) {
+        setCursorPos(pos);
+        setCursorVisible(true);
+      }
+
+      const t2 = setTimeout(() => {
+        if (cancelled) return;
+        step.action();
+
+        if (step.clickAnimation) {
+          setCursorClicking(true);
+          setTimeout(() => {
+            if (!cancelled) setCursorClicking(false);
+          }, 350);
+        }
+
+        const t3 = setTimeout(() => {
+          if (!cancelled) setTourStep((prev) => (prev + 1) % tourSteps.length);
+        }, step.holdMs);
+        tourTimerRef.current = t3;
+      }, TOUR_MOVE_MS);
+      tourTimerRef.current = t2;
+    }, 60);
+    tourTimerRef.current = t1;
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t1);
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current);
+    };
+  }, [tourStep, isTouring]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current);
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, []);
+
+  const handleTourMouseEnter = useCallback(() => {
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    setIsTouring(false);
+    setCursorVisible(false);
+  }, []);
+
+  const handleTourMouseLeave = useCallback(() => {
+    resumeTimerRef.current = setTimeout(() => {
+      setTourStep(0);
+      setIsTouring(true);
+    }, TOUR_RESUME_MS);
+  }, []);
+
   return (
-    <div className="h-full relative flex flex-col bg-[#fafaf9] font-body">
+    <div
+      ref={containerRef}
+      onMouseEnter={handleTourMouseEnter}
+      onMouseLeave={handleTourMouseLeave}
+      className="h-full relative flex flex-col bg-[#fafaf9] font-body"
+    >
+      {/* Tour cursor */}
+      {cursorVisible && (
+        <motion.div
+          className="pointer-events-none absolute z-[100]"
+          animate={{ x: cursorPos.x - 10, y: cursorPos.y - 10 }}
+          transition={{ duration: TOUR_MOVE_MS / 1000, ease: [0.25, 1, 0.5, 1] }}
+          style={{ top: 0, left: 0 }}
+        >
+          <motion.div
+            animate={cursorClicking ? { scale: 0.7 } : { scale: 1 }}
+            transition={{ duration: 0.15 }}
+            className="w-5 h-5 rounded-full bg-[#4a7c59]"
+            style={{
+              boxShadow:
+                "0 0 0 3px rgba(74,124,89,0.25), 0 2px 8px rgba(74,124,89,0.4)",
+            }}
+          />
+        </motion.div>
+      )}
+
       {/* Header */}
       <header className="shrink-0 z-40 bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
@@ -4371,7 +4665,12 @@ export default function TeacherDashboardDemo() {
 
         {activeTab === "hours" && <HoursPage />}
 
-        {activeTab === "messages" && <MessagesPage />}
+        {activeTab === "messages" && (
+          <MessagesPage
+            externalDraft={msgDraft}
+            setExternalDraft={setMsgDraft}
+          />
+        )}
 
         {activeTab === "calendar" && <CalendarPage />}
 
