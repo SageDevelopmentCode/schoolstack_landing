@@ -2042,12 +2042,18 @@ function BillingPage({
 function MessagesPage({
   threads,
   setThreads,
+  input,
+  setInput,
+  activeConv,
+  setActiveConv,
 }: {
   threads: Record<string, DemoMessage[]>;
   setThreads: (t: Record<string, DemoMessage[]>) => void;
+  input: string;
+  setInput: (v: string) => void;
+  activeConv: string;
+  setActiveConv: (id: string) => void;
 }) {
-  const [activeConv, setActiveConv] = useState<string>("c1");
-  const [input, setInput] = useState("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const conv = DEMO_CONVERSATIONS.find((c) => c.id === activeConv)!;
   const messages = threads[activeConv] || [];
@@ -2156,6 +2162,7 @@ function MessagesPage({
         </div>
         <div className="border-t border-gray-100 p-3 flex gap-2">
           <input
+            data-tour-id="messages-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMsg()}
@@ -2163,6 +2170,7 @@ function MessagesPage({
             className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#4a7c59]"
           />
           <button
+            data-tour-id="messages-send"
             onClick={sendMsg}
             className="p-2 rounded-xl bg-[#4a7c59] text-white cursor-pointer hover:bg-[#3d6b4f] transition-colors"
           >
@@ -2783,6 +2791,9 @@ export default function ParentDashboardDemo() {
   // Messages
   const [messageThreads, setMessageThreads] =
     useState<Record<string, DemoMessage[]>>(DEMO_THREADS);
+  const [msgInput, setMsgInput] = useState("");
+  const [msgActiveConv, setMsgActiveConv] = useState("c1");
+  const [typingTarget, setTypingTarget] = useState<string | null>(null);
 
   // ── Tour state ──────────────────────────────────────────────────────────────
   const [isTouring, setIsTouring] = useState(true);
@@ -2810,6 +2821,42 @@ export default function ParentDashboardDemo() {
     },
     [],
   );
+
+  useEffect(() => {
+    if (!typingTarget) return;
+    setMsgInput("");
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setMsgInput(typingTarget.slice(0, i));
+      if (i >= typingTarget.length) {
+        clearInterval(id);
+        setTypingTarget(null);
+      }
+    }, 55);
+    return () => clearInterval(id);
+  }, [typingTarget]);
+
+  const msgInputRef = useRef(msgInput);
+  useEffect(() => {
+    msgInputRef.current = msgInput;
+  }, [msgInput]);
+
+  const sendMsgFromTour = useCallback(() => {
+    const text = msgInputRef.current.trim();
+    if (!text) return;
+    const newMsg: DemoMessage = {
+      id: Date.now().toString(),
+      senderId: "parent",
+      text,
+      time: "Just now",
+    };
+    setMessageThreads((prev) => ({
+      ...prev,
+      [msgActiveConv]: [...(prev[msgActiveConv] || []), newMsg],
+    }));
+    setMsgInput("");
+  }, [msgActiveConv]);
 
   const tourSteps = useMemo(
     () => [
@@ -2879,6 +2926,18 @@ export default function ParentDashboardDemo() {
         clickAnimation: true,
       },
       {
+        action: () => setTypingTarget("Sounds good, see you Thursday!"),
+        targetId: "messages-input",
+        holdMs: 2800,
+        clickAnimation: true,
+      },
+      {
+        action: () => sendMsgFromTour(),
+        targetId: "messages-send",
+        holdMs: 1000,
+        clickAnimation: true,
+      },
+      {
         action: () => setActiveNavTab("calendar"),
         targetId: "nav-calendar",
         holdMs: 1400,
@@ -2908,7 +2967,7 @@ export default function ParentDashboardDemo() {
         clickAnimation: true,
       },
     ],
-    [],
+    [sendMsgFromTour],
   );
 
   useEffect(() => {
@@ -3164,6 +3223,10 @@ export default function ParentDashboardDemo() {
                 <MessagesPage
                   threads={messageThreads}
                   setThreads={setMessageThreads}
+                  input={msgInput}
+                  setInput={setMsgInput}
+                  activeConv={msgActiveConv}
+                  setActiveConv={setMsgActiveConv}
                 />
               )}
 
