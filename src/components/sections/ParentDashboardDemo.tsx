@@ -151,7 +151,8 @@ const DEMO_CHILDREN = {
       "Loves art and outdoor activities. Thrives with visual learning approaches.",
     initials: "EM",
     color: "#7FA888",
-    image: "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",
+    image:
+      "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",
     teachers: [
       {
         name: "Ms. Taylor Reyes",
@@ -1041,10 +1042,7 @@ function MedicationPlanModal({
   const updateMed = (id: string, field: keyof DemoMedication, val: string) =>
     setMeds(meds.map((m) => (m.id === id ? { ...m, [field]: val } : m)));
   return (
-    <ModalShell
-      title="Emergency Medication Plan (Optional)"
-      onClose={onClose}
-    >
+    <ModalShell title="Emergency Medication Plan (Optional)" onClose={onClose}>
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
           List any medications your child may need during the school day or in
@@ -1897,7 +1895,12 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
         {detailTab === "profile" && (
           <div className="space-y-4">
             <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-              <Avatar initials={child.initials} color={child.color} size="lg" src={child.image} />
+              <Avatar
+                initials={child.initials}
+                color={child.color}
+                size="lg"
+                src={child.image}
+              />
               <div>
                 <p className="font-semibold text-gray-800">{child.name}</p>
                 <p className="text-sm text-gray-400">{child.grade}</p>
@@ -1948,7 +1951,9 @@ function BillingPage({
             {pending.map((t, tIdx) => (
               <div
                 key={t.id}
-                data-tour-id={tIdx === 0 ? "billing-pending-invoice" : undefined}
+                data-tour-id={
+                  tIdx === 0 ? "billing-pending-invoice" : undefined
+                }
                 className="flex items-center justify-between border border-amber-100 bg-amber-50 rounded-xl px-4 py-3"
               >
                 <div>
@@ -2061,7 +2066,8 @@ function MessagesPage({
 
   useEffect(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      scrollContainerRef.current.scrollTop =
+        scrollContainerRef.current.scrollHeight;
     }
   }, [messages, activeConv]);
 
@@ -2126,7 +2132,10 @@ function MessagesPage({
             <p className="text-xs text-gray-400">{conv.role}</p>
           </div>
         </div>
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto p-4 space-y-3"
+        >
           {messages.map((m) => (
             <div
               key={m.id}
@@ -2601,7 +2610,7 @@ function DemoHeader({
           alt="SchoolLayer"
           className="h-7 w-auto object-contain"
         />
-        <span className="text-sm font-semibold text-gray-700">SchoolLayer</span>
+        {/* <span className="text-sm font-semibold text-gray-700">SchoolLayer</span> */}
       </div>
 
       {/* Nav — center */}
@@ -2672,7 +2681,12 @@ function ChildTabStrip({
             onClick={() => onSwitch(child.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer border ${activeChildId === child.id ? "bg-white border-gray-200 text-gray-800 shadow-sm" : "border-transparent text-gray-400 hover:text-gray-600"}`}
           >
-            <Avatar initials={child.initials} color={child.color} size="sm" src={child.image} />
+            <Avatar
+              initials={child.initials}
+              color={child.color}
+              size="sm"
+              src={child.image}
+            />
             {child.name}
           </button>
         ),
@@ -2686,8 +2700,8 @@ function ChildTabStrip({
 
 // ─── TOUR CONSTANTS ───────────────────────────────────────────────────────────
 
-const TOUR_MOVE_MS = 950
-const TOUR_RESUME_MS = 1500
+const TOUR_MOVE_MS = 950;
+const TOUR_RESUME_MS = 1500;
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 
@@ -2697,37 +2711,33 @@ export default function ParentDashboardDemo() {
   const [openModal, setOpenModal] = useState<ModalId>(null);
 
   // Per-child signatures — Emma pre-seeded with contracts 1 & 2 + assumption of risk
-  const [signaturesEmma, setSignaturesEmma] = useState<Record<string, string>>(
-    {
-      "1-1": "Sarah Mitchell",
-      "1-2": "Sarah Mitchell",
-      "1-3": "Sarah Mitchell",
-      "1-4": "Sarah Mitchell",
-      "2-1": "Sarah Mitchell",
-      "2-2": "Sarah Mitchell",
-      "2-3": "Sarah Mitchell",
-      "6-1": "Sarah Mitchell",
-    },
-  );
+  const [signaturesEmma, setSignaturesEmma] = useState<Record<string, string>>({
+    "1-1": "Sarah Mitchell",
+    "1-2": "Sarah Mitchell",
+    "1-3": "Sarah Mitchell",
+    "1-4": "Sarah Mitchell",
+    "2-1": "Sarah Mitchell",
+    "2-2": "Sarah Mitchell",
+    "2-3": "Sarah Mitchell",
+    "6-1": "Sarah Mitchell",
+  });
   const [signaturesJake, setSignaturesJake] = useState<Record<string, string>>(
     {},
   );
-  const [signaturesLiam, setSignaturesLiam] = useState<Record<string, string>>(
-    {
-      "1-1": "Sarah Mitchell",
-      "1-2": "Sarah Mitchell",
-      "1-3": "Sarah Mitchell",
-      "1-4": "Sarah Mitchell",
-      "2-1": "Sarah Mitchell",
-      "2-2": "Sarah Mitchell",
-      "2-3": "Sarah Mitchell",
-      "3-1": "Sarah Mitchell",
-      "3-2": "Sarah Mitchell",
-      "5-3": "Sarah Mitchell",
-      "6-1": "Sarah Mitchell",
-      "8-1": "Sarah Mitchell",
-    },
-  );
+  const [signaturesLiam, setSignaturesLiam] = useState<Record<string, string>>({
+    "1-1": "Sarah Mitchell",
+    "1-2": "Sarah Mitchell",
+    "1-3": "Sarah Mitchell",
+    "1-4": "Sarah Mitchell",
+    "2-1": "Sarah Mitchell",
+    "2-2": "Sarah Mitchell",
+    "2-3": "Sarah Mitchell",
+    "3-1": "Sarah Mitchell",
+    "3-2": "Sarah Mitchell",
+    "5-3": "Sarah Mitchell",
+    "6-1": "Sarah Mitchell",
+    "8-1": "Sarah Mitchell",
+  });
 
   // Per-child form completion
   const [healthFormSaved, setHealthFormSaved] = useState<
@@ -2775,171 +2785,197 @@ export default function ParentDashboardDemo() {
     useState<Record<string, DemoMessage[]>>(DEMO_THREADS);
 
   // ── Tour state ──────────────────────────────────────────────────────────────
-  const [isTouring, setIsTouring] = useState(true)
-  const [tourStep, setTourStep] = useState(0)
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 })
-  const [cursorVisible, setCursorVisible] = useState(false)
-  const [cursorClicking, setCursorClicking] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const tourTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isTouring, setIsTouring] = useState(true);
+  const [tourStep, setTourStep] = useState(0);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [cursorVisible, setCursorVisible] = useState(false);
+  const [cursorClicking, setCursorClicking] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tourTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getTargetCenter = useCallback((targetId: string): { x: number; y: number } | null => {
-    if (!containerRef.current) return null
-    const el = containerRef.current.querySelector(`[data-tour-id="${targetId}"]`)
-    if (!el) return null
-    const containerRect = containerRef.current.getBoundingClientRect()
-    const elRect = el.getBoundingClientRect()
-    return {
-      x: elRect.left - containerRect.left + elRect.width / 2,
-      y: elRect.top - containerRect.top + elRect.height / 2,
-    }
-  }, [])
+  const getTargetCenter = useCallback(
+    (targetId: string): { x: number; y: number } | null => {
+      if (!containerRef.current) return null;
+      const el = containerRef.current.querySelector(
+        `[data-tour-id="${targetId}"]`,
+      );
+      if (!el) return null;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      return {
+        x: elRect.left - containerRect.left + elRect.width / 2,
+        y: elRect.top - containerRect.top + elRect.height / 2,
+      };
+    },
+    [],
+  );
 
-  const tourSteps = useMemo(() => [
-    {
-      action: () => { setActiveNavTab("enrollment"); setActiveChildId("emma") },
-      targetId: "nav-enrollment",
-      holdMs: 1800,
-      clickAnimation: true,
-    },
-    {
-      action: () => setOpenModal("contract-1"),
-      targetId: "checklist-item-0",
-      holdMs: 2200,
-      clickAnimation: true,
-    },
-    {
-      action: () => setOpenModal(null),
-      targetId: "modal-close",
-      holdMs: 600,
-      clickAnimation: true,
-    },
-    {
-      action: () => setActiveChildId("jake"),
-      targetId: "child-tab-jake",
-      holdMs: 1800,
-      clickAnimation: true,
-    },
-    {
-      action: () => setActiveChildId("liam"),
-      targetId: "child-tab-liam",
-      holdMs: 1800,
-      clickAnimation: true,
-    },
-    {
-      action: () => { setActiveNavTab("billing"); setActiveChildId("emma"); },
-      targetId: "nav-billing",
-      holdMs: 1600,
-      clickAnimation: true,
-    },
-    {
-      action: () => {},
-      targetId: "billing-pending-invoice",
-      holdMs: 1400,
-      clickAnimation: false,
-    },
-    {
-      action: () => setActiveNavTab("messages"),
-      targetId: "nav-messages",
-      holdMs: 1400,
-      clickAnimation: true,
-    },
-    {
-      action: () => {
-        const el = containerRef.current?.querySelector('[data-tour-id="messages-conv-c2"]')
-        ;(el as HTMLElement)?.click()
+  const tourSteps = useMemo(
+    () => [
+      {
+        action: () => {
+          setActiveNavTab("enrollment");
+          setActiveChildId("emma");
+        },
+        targetId: "nav-enrollment",
+        holdMs: 1800,
+        clickAnimation: true,
       },
-      targetId: "messages-conv-c2",
-      holdMs: 1600,
-      clickAnimation: true,
-    },
-    {
-      action: () => setActiveNavTab("calendar"),
-      targetId: "nav-calendar",
-      holdMs: 1400,
-      clickAnimation: true,
-    },
-    {
-      action: () => {
-        const el = containerRef.current?.querySelector('[data-tour-id="calendar-next-month"]')
-        ;(el as HTMLElement)?.click()
+      {
+        action: () => setOpenModal("contract-1"),
+        targetId: "checklist-item-0",
+        holdMs: 2200,
+        clickAnimation: true,
       },
-      targetId: "calendar-next-month",
-      holdMs: 1600,
-      clickAnimation: true,
-    },
-    {
-      action: () => setActiveNavTab("children"),
-      targetId: "nav-children",
-      holdMs: 1200,
-      clickAnimation: true,
-    },
-    {
-      action: () => setActiveChildId("jake"),
-      targetId: "child-tab-jake",
-      holdMs: 1800,
-      clickAnimation: true,
-    },
-  ], [])
+      {
+        action: () => setOpenModal(null),
+        targetId: "modal-close",
+        holdMs: 600,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveChildId("jake"),
+        targetId: "child-tab-jake",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveChildId("liam"),
+        targetId: "child-tab-liam",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          setActiveNavTab("billing");
+          setActiveChildId("emma");
+        },
+        targetId: "nav-billing",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {},
+        targetId: "billing-pending-invoice",
+        holdMs: 1400,
+        clickAnimation: false,
+      },
+      {
+        action: () => setActiveNavTab("messages"),
+        targetId: "nav-messages",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="messages-conv-c2"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "messages-conv-c2",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveNavTab("calendar"),
+        targetId: "nav-calendar",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="calendar-next-month"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "calendar-next-month",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveNavTab("children"),
+        targetId: "nav-children",
+        holdMs: 1200,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveChildId("liam"),
+        targetId: "child-tab-liam",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+    ],
+    [],
+  );
 
   useEffect(() => {
-    if (!isTouring) return
-    const step = tourSteps[tourStep]
-    let cancelled = false
+    if (!isTouring) return;
+    const step = tourSteps[tourStep];
+    let cancelled = false;
 
     // 1. Resolve target and start cursor glide (target visible from previous step's action)
     const t1 = setTimeout(() => {
-      if (cancelled) return
-      const pos = getTargetCenter(step.targetId)
-      if (pos) { setCursorPos(pos); setCursorVisible(true) }
+      if (cancelled) return;
+      const pos = getTargetCenter(step.targetId);
+      if (pos) {
+        setCursorPos(pos);
+        setCursorVisible(true);
+      }
 
       // 2. After cursor arrives, fire action + click pulse
       const t2 = setTimeout(() => {
-        if (cancelled) return
-        step.action()
+        if (cancelled) return;
+        step.action();
 
         if (step.clickAnimation) {
-          setCursorClicking(true)
-          setTimeout(() => { if (!cancelled) setCursorClicking(false) }, 350)
+          setCursorClicking(true);
+          setTimeout(() => {
+            if (!cancelled) setCursorClicking(false);
+          }, 350);
         }
 
         // 3. Hold, then advance
         const t3 = setTimeout(() => {
-          if (!cancelled) setTourStep((prev) => (prev + 1) % tourSteps.length)
-        }, step.holdMs)
-        tourTimerRef.current = t3
-      }, TOUR_MOVE_MS)
-      tourTimerRef.current = t2
-    }, 60)
-    tourTimerRef.current = t1
+          if (!cancelled) setTourStep((prev) => (prev + 1) % tourSteps.length);
+        }, step.holdMs);
+        tourTimerRef.current = t3;
+      }, TOUR_MOVE_MS);
+      tourTimerRef.current = t2;
+    }, 60);
+    tourTimerRef.current = t1;
 
     return () => {
-      cancelled = true
-      clearTimeout(t1)
-      if (tourTimerRef.current) clearTimeout(tourTimerRef.current)
-    }
-  }, [tourStep, isTouring])
+      cancelled = true;
+      clearTimeout(t1);
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current);
+    };
+  }, [tourStep, isTouring]);
 
   useEffect(() => {
     return () => {
-      if (tourTimerRef.current) clearTimeout(tourTimerRef.current)
-      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
-    }
-  }, [])
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current);
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, []);
 
   const handleTourMouseEnter = useCallback(() => {
-    if (resumeTimerRef.current) { clearTimeout(resumeTimerRef.current); resumeTimerRef.current = null }
-    setIsTouring(false)
-    setCursorVisible(false)
-  }, [])
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    setIsTouring(false);
+    setCursorVisible(false);
+  }, []);
 
   const handleTourMouseLeave = useCallback(() => {
     resumeTimerRef.current = setTimeout(() => {
-      setTourStep(0)
-      setIsTouring(true)
-    }, TOUR_RESUME_MS)
-  }, [])
+      setTourStep(0);
+      setIsTouring(true);
+    }, TOUR_RESUME_MS);
+  }, []);
 
   // Derived active signatures
   const activeSigs =
@@ -3093,9 +3129,9 @@ export default function ParentDashboardDemo() {
                         Application Under Review
                       </p>
                       <p className="text-sm text-amber-600 mt-1">
-                        Jake's application has been received and is currently being
-                        reviewed by the admissions team. You'll be notified by email
-                        once a decision has been made.
+                        Jake's application has been received and is currently
+                        being reviewed by the admissions team. You'll be
+                        notified by email once a decision has been made.
                       </p>
                       <p className="text-xs text-amber-500 mt-3">
                         Submitted: April 10, 2026
@@ -3118,7 +3154,9 @@ export default function ParentDashboardDemo() {
                 <BillingPage
                   activeChildId={activeChildId}
                   paidInvoices={paidInvoices}
-                  onPay={(id) => setPaidInvoices((prev) => new Set([...prev, id]))}
+                  onPay={(id) =>
+                    setPaidInvoices((prev) => new Set([...prev, id]))
+                  }
                 />
               )}
 
@@ -3190,7 +3228,9 @@ export default function ParentDashboardDemo() {
             onSign={handleSign}
             onClose={() => setOpenModal(null)}
             meds={medications[activeChildId]}
-            setMeds={(m) => setMedications((p) => ({ ...p, [activeChildId]: m }))}
+            setMeds={(m) =>
+              setMedications((p) => ({ ...p, [activeChildId]: m }))
+            }
             saved={medicationSaved[activeChildId]}
             onSave={() =>
               setMedicationSaved((p) => ({ ...p, [activeChildId]: true }))

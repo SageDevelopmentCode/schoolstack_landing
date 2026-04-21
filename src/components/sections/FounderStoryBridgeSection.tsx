@@ -67,7 +67,7 @@ export default function FounderStoryBridgeSection() {
                   &ldquo;Built because we needed it every single day.&rdquo;
                 </p>
                 <p className="font-handwritten text-[13px] text-text-faint mt-2">
-                  — Julius Cecilia, Founder
+                  — Sabrina Obnamia, Co-Founder of Sage Field
                 </p>
               </div>
 
