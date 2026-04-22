@@ -9,6 +9,7 @@ import ProofSection from '@/components/sections/ProofSection'
 import CustomSection from '@/components/sections/CustomSection'
 import FinalCTASection from '@/components/sections/FinalCTASection'
 import Footer from '@/components/sections/Footer'
+import FloatingQuestionButton from '@/components/sections/FloatingQuestionButton'
 
 export default function Home() {
   return (
@@ -26,6 +27,7 @@ export default function Home() {
         <FinalCTASection />
       </main>
       <Footer />
+      <FloatingQuestionButton />
     </>
   )
 }

@@ -1,5 +1,6 @@
 import { FadeInView } from '@/components/ui/FadeInView'
 import { Badge } from '@/components/ui/Badge'
+import { FileText, Users, Heart, Camera, AlertTriangle, CreditCard, Check, ChevronRight, ShieldCheck, Pill } from 'lucide-react'
 
 const BULLETS = [
   'Built inside Sage Field microschool in Texas',
@@ -55,29 +56,43 @@ export default function FounderStoryBridgeSection() {
 
               {/* Product frame (background) */}
               <div className="absolute inset-0 right-10 bottom-20 rounded-xl bg-surface border border-border shadow-md overflow-hidden">
-                <CollageProductSnippet />
+                <EnrollmentProgressSnippet />
               </div>
 
-              {/* Founder note card */}
-              <div className="absolute bottom-14 right-0 w-[200px] bg-surface border border-border rounded-lg p-4 shadow-md">
-                <div className="w-5 h-5 rounded-full bg-accent-soft flex items-center justify-center mb-3">
-                  <div className="w-2 h-2 rounded-full bg-accent" />
-                </div>
-                <p className="font-display text-[14px] text-text italic leading-snug">
+              {/* Founder quote card */}
+              <div className="absolute bottom-14 right-0 w-[212px] bg-white rounded-2xl p-5 shadow-[0_8px_32px_rgba(5,36,21,0.11)] border border-black/[0.05]">
+                <p className="font-display text-[13.5px] text-[#0f1f18] leading-[1.45] mb-4">
                   &ldquo;Built because we needed it every single day.&rdquo;
                 </p>
-                <p className="font-handwritten text-[13px] text-text-faint mt-2">
-                  — Sabrina Obnamia, Co-Founder of Sage Field
-                </p>
+                <div className="flex items-center gap-2.5 pt-3.5 border-t border-gray-100">
+                  <div className="w-7 h-7 rounded-full bg-[#284a3d] flex items-center justify-center text-white text-[10px] font-semibold shrink-0 tracking-tight">
+                    SO
+                  </div>
+                  <div>
+                    <p className="text-[11.5px] font-semibold text-gray-800 leading-tight">Sabrina Obnamia</p>
+                    <p className="text-[10px] text-gray-400 leading-tight mt-0.5">Co-Founder, Sage Field</p>
+                  </div>
+                </div>
               </div>
 
-              {/* School facts card */}
-              <div className="absolute bottom-0 left-3 w-[186px] bg-accent-soft border border-accent/20 rounded-lg p-4">
-                <p className="text-[11px] font-medium text-accent uppercase tracking-widest mb-2">Sage Field</p>
-                <div className="space-y-1">
+              {/* School identity card */}
+              <div className="absolute bottom-0 left-3 w-[186px] bg-[#1c3829] rounded-2xl p-4 overflow-hidden">
+                <div className="flex items-center gap-2 mb-3.5">
+                  <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="text-white/80 text-[9px] font-bold tracking-tight">SF</span>
+                  </div>
+                  <span className="text-white/90 text-[12px] font-semibold tracking-tight">Sage Field</span>
+                </div>
+                <div className="space-y-2">
                   {['Real school.', 'Real families.', 'Real operations.'].map((fact) => (
-                    <p key={fact} className="text-[12px] text-accent/80">{fact}</p>
+                    <div key={fact} className="flex items-center gap-2">
+                      <div className="w-1 h-1 rounded-full bg-white/30 shrink-0" />
+                      <p className="text-white/70 text-[12px] leading-tight">{fact}</p>
+                    </div>
                   ))}
+                </div>
+                <div className="mt-3.5 pt-3 border-t border-white/10">
+                  <p className="text-white/35 text-[10px]">Austin, Texas · Est. 2022</p>
                 </div>
               </div>
             </div>
@@ -89,43 +104,57 @@ export default function FounderStoryBridgeSection() {
   )
 }
 
-function CollageProductSnippet() {
+const SNIPPET_ITEMS = [
+  { label: 'Program Description & Key Policies', Icon: FileText, done: true, optional: false },
+  { label: 'Community Agreement', Icon: Users, done: true, optional: false },
+  { label: 'Emergency Contact, Health & Immunization Form', Icon: Heart, done: false, optional: false },
+  { label: 'Emergency Medication Plan', Icon: Pill, done: false, optional: true },
+  { label: 'Proof of Immunizations', Icon: ShieldCheck, done: true, optional: false },
+  { label: 'Photo Release Form', Icon: Camera, done: false, optional: false },
+  { label: 'Assumption of Risk', Icon: AlertTriangle, done: true, optional: false },
+  { label: 'Pay Registration Fee', Icon: CreditCard, done: false, optional: false },
+]
+
+function EnrollmentProgressSnippet() {
+  const required = SNIPPET_ITEMS.filter((i) => !i.optional)
+  const doneCount = required.filter((i) => i.done).length
+  const pct = Math.round((doneCount / required.length) * 100)
+
   return (
-    <div className="p-5 h-full text-[10px]">
-      <div className="text-[11px] font-semibold text-text font-body mb-3">Enrollment Pipeline</div>
-      <div className="space-y-2">
-        {[
-          { step: '1', label: 'Child Information', status: 'done' },
-          { step: '2', label: 'Parent / Guardian', status: 'done' },
-          { step: '3', label: 'Health & Medical', status: 'active' },
-          { step: '4', label: 'Emergency Contacts', status: 'pending' },
-          { step: '5', label: 'Signatures & Agreements', status: 'pending' },
-        ].map((s) => (
-          <div key={s.step} className="flex items-center gap-2.5">
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold ${
-                s.status === 'done'
-                  ? 'bg-accent text-white'
-                  : s.status === 'active'
-                  ? 'bg-accent-soft text-accent border border-accent'
-                  : 'bg-surface-muted text-text-faint border border-border'
-              }`}
-            >
-              {s.status === 'done' ? '✓' : s.step}
+    <div className="p-3 h-full flex flex-col gap-2.5 overflow-hidden">
+      {/* Progress card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[13px] font-semibold text-gray-700">Enrollment Progress</p>
+          <span className="text-[12px] text-gray-400">{doneCount} / {required.length} required</span>
+        </div>
+        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-full bg-[#4a7c59] rounded-full" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+
+      {/* Checklist card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex-1">
+        {SNIPPET_ITEMS.map(({ label, Icon, done, optional }, idx) => (
+          <div
+            key={label}
+            className={`flex items-center gap-3.5 px-5 py-3.5 ${idx < SNIPPET_ITEMS.length - 1 ? 'border-b border-gray-50' : ''}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+              {done
+                ? <Check className="w-4 h-4 text-emerald-600" strokeWidth={2.5} />
+                : <Icon className="w-4 h-4 text-gray-400" strokeWidth={2} />
+              }
             </div>
-            <span className={`text-[11px] ${s.status === 'pending' ? 'text-text-faint' : 'text-text'}`}>
-              {s.label}
-            </span>
+            <div className="flex-1 min-w-0">
+              <p className={`text-[12px] font-medium truncate ${done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                {label}
+              </p>
+              {optional && <span className="text-[10.5px] text-gray-400">Optional</span>}
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
           </div>
         ))}
-      </div>
-      <div className="mt-5 p-3 bg-surface-muted rounded-lg border border-border">
-        <div className="text-[10px] text-text-faint mb-2">Current step: Health Information</div>
-        <div className="space-y-2">
-          <div className="h-7 bg-surface border border-border rounded-md" />
-          <div className="h-7 bg-surface border border-border rounded-md" />
-          <div className="h-7 bg-surface border border-border rounded-md w-2/3" />
-        </div>
       </div>
     </div>
   )
