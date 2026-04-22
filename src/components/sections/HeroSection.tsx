@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ParentDashboardDemo from './ParentDashboardDemo'
 import TeacherDashboardDemo from './TeacherDashboardDemo'
+import AdminDashboardDemo from './AdminDashboardDemo'
 
 const ease = [0.16, 1, 0.3, 1] as const
 
@@ -29,14 +30,14 @@ const heroFrameVariant = {
 }
 
 export default function HeroSection() {
-  const [demoTab, setDemoTab] = useState<'parent' | 'teacher'>('parent')
+  const [demoTab, setDemoTab] = useState<'parent' | 'teacher' | 'admin'>('parent')
   const t = demoTab === 'teacher'
 
   return (
     <section
       className="pt-[140px] pb-0 overflow-hidden"
       style={{
-        backgroundColor: t ? '#f2f8f3' : '#052415',
+        backgroundColor: t ? '#f2f8f3' : demoTab === 'admin' ? '#0D0D0D' : '#052415',
         transition: 'background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
@@ -70,7 +71,9 @@ export default function HeroSection() {
           >
             {demoTab === 'parent'
               ? "Keep every family on track — enrollment contracts, health forms, tuition billing, and parent messaging in one place. Parents get a clear portal; you get fewer follow-up emails and nothing that slips through."
-              : "Give your teachers one place to clock in, track hours, manage their roster, and stay connected. Less admin overhead, accurate payroll, and a staff that always knows what's next."
+              : demoTab === 'teacher'
+                ? "Give your teachers one place to clock in, track hours, manage their roster, and stay connected. Less admin overhead, accurate payroll, and a staff that always knows what's next."
+                : "Full operational control — leads, applications, billing, staff, and marketing all in one admin workspace. One dashboard to run every part of your microschool."
             }
           </motion.p>
 
@@ -114,6 +117,7 @@ export default function HeroSection() {
             {([
               { id: 'parent', label: 'Parent View' },
               { id: 'teacher', label: 'Teacher View' },
+              { id: 'admin', label: 'Admin View' },
             ] as const).map(({ id, label }) => (
               <button
                 key={id}
@@ -161,7 +165,7 @@ export default function HeroSection() {
                 >
                   <ParentDashboardDemo />
                 </motion.div>
-              ) : (
+              ) : demoTab === 'teacher' ? (
                 <motion.div
                   key="teacher"
                   initial={{ opacity: 0 }}
@@ -171,6 +175,17 @@ export default function HeroSection() {
                   className="w-full h-full"
                 >
                   <TeacherDashboardDemo />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="admin"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full h-full"
+                >
+                  <AdminDashboardDemo />
                 </motion.div>
               )}
             </AnimatePresence>
