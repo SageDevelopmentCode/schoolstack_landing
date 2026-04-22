@@ -31,15 +31,17 @@ import {
   Clock,
   AlertCircle,
   Eye,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 // ─── Design tokens (hardcoded — no CSS vars, works outside ThemeProvider) ─────
-const C = {
-  bg: "#0D0D0D",
-  surface: "#141414",
-  elevated: "#1A1A1A",
-  border: "#262626",
-  borderStrong: "#333333",
+const C_DARK = {
+  bg: "#1C1C1C",
+  surface: "#242424",
+  elevated: "#2C2C2C",
+  border: "#383838",
+  borderStrong: "#464646",
   accent: "#5E7C68",
   accentBright: "#6E9478",
   accentLight: "rgba(94, 124, 104, 0.15)",
@@ -69,6 +71,45 @@ const C = {
   shadowMedium: "0 4px 16px rgba(0,0,0,0.5)",
   r: { sm: "6px", md: "8px", lg: "12px", xl: "16px", full: "9999px" },
 };
+
+const C_LIGHT = {
+  bg: "#F5F7F6",
+  surface: "#FFFFFF",
+  elevated: "#EEF1EF",
+  border: "#DDE5E1",
+  borderStrong: "#C4D0CB",
+  accent: "#5E7C68",
+  accentBright: "#4A6354",
+  accentLight: "rgba(94, 124, 104, 0.10)",
+  accentGlow: "rgba(94, 124, 104, 0.10)",
+  accentMid: "#4A6354",
+  accentDark: "#3A5244",
+  textPrimary: "#111C16",
+  textSecondary: "#3D5448",
+  textTertiary: "#6B8478",
+  textQuaternary: "#94ADA4",
+  success: "#16A34A",
+  successBg: "rgba(22, 163, 74, 0.08)",
+  successBorder: "rgba(22, 163, 74, 0.25)",
+  warning: "#D97706",
+  warningBg: "rgba(217, 119, 6, 0.08)",
+  warningBorder: "rgba(217, 119, 6, 0.25)",
+  error: "#DC2626",
+  errorBg: "rgba(220, 38, 38, 0.08)",
+  errorBorder: "rgba(220, 38, 38, 0.25)",
+  info: "#0284C7",
+  infoBg: "rgba(2, 132, 199, 0.08)",
+  infoBorder: "rgba(2, 132, 199, 0.25)",
+  purple: "#7C3AED",
+  purpleBg: "rgba(124, 58, 237, 0.08)",
+  purpleBorder: "rgba(124, 58, 237, 0.25)",
+  shadowCard: "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
+  shadowMedium: "0 4px 16px rgba(0,0,0,0.08)",
+  r: { sm: "6px", md: "8px", lg: "12px", xl: "16px", full: "9999px" },
+};
+
+// mutable — set by AdminDashboardDemo before each render so all sub-components pick it up
+let C = C_DARK;
 
 // ─── Demo data ─────────────────────────────────────────────────────────────────
 
@@ -8288,16 +8329,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       },
     ],
   },
-  {
-    label: "External",
-    items: [
-      {
-        key: "teacher",
-        name: "Teacher View",
-        icon: <School className="w-4 h-4" />,
-      },
-    ],
-  },
 ];
 
 function Sidebar({
@@ -8305,50 +8336,68 @@ function Sidebar({
   onNavigate,
   isExpanded,
   onToggleExpand,
+  onToggleTheme,
+  isDark,
 }: {
   activePage: string;
   onNavigate: (page: ActivePage) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onToggleTheme: () => void;
+  isDark: boolean;
 }) {
   return (
     <motion.aside
       animate={{ width: isExpanded ? 224 : 52 }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
       className="flex flex-col h-full flex-shrink-0 overflow-hidden"
-      style={{ backgroundColor: "#141414", borderRight: `1px solid #262626` }}
+      style={{ backgroundColor: C.surface, borderRight: `1px solid ${C.border}` }}
     >
       {/* Logo */}
       <div
         className="flex items-center overflow-hidden"
         style={{
-          borderBottom: `1px solid #262626`,
-          padding: isExpanded ? "20px 16px" : "20px 0",
+          padding: isExpanded ? "14px 16px" : "14px 0",
           justifyContent: isExpanded ? "flex-start" : "center",
-          gap: isExpanded ? "12px" : 0,
         }}
       >
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: C.accentLight }}
+        <Image
+          src="/images/SchoolLayerLogo.png"
+          alt="SchoolLayer"
+          width={isExpanded ? 120 : 28}
+          height={28}
+          className="flex-shrink-0 object-contain"
+          style={{ maxHeight: 28 }}
+        />
+      </div>
+
+      {/* Theme toggle */}
+      <div
+        style={{
+          borderBottom: `1px solid ${C.border}`,
+          padding: isExpanded ? "0 10px 10px" : "0 6px 10px",
+        }}
+      >
+        <button
+          onClick={onToggleTheme}
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          className="w-full flex items-center transition-colors duration-150"
+          style={{
+            justifyContent: isExpanded ? "flex-start" : "center",
+            gap: isExpanded ? "8px" : 0,
+            padding: "6px 8px",
+            borderRadius: C.r.md,
+            border: `1px solid ${C.border}`,
+            backgroundColor: C.elevated,
+            color: C.textSecondary,
+            cursor: "pointer",
+          }}
         >
-          <span style={{ color: C.accent, fontSize: 14, fontWeight: 700 }}>
-            S
-          </span>
-        </div>
-        {isExpanded && (
-          <div>
-            <div
-              className="text-sm font-semibold"
-              style={{ color: C.textPrimary }}
-            >
-              Sagefield
-            </div>
-            <div className="text-xs" style={{ color: C.textTertiary }}>
-              Admin Portal
-            </div>
-          </div>
-        )}
+          {isDark ? <Sun className="w-3.5 h-3.5 flex-shrink-0" /> : <Moon className="w-3.5 h-3.5 flex-shrink-0" />}
+          {isExpanded && (
+            <span className="text-xs font-medium">{isDark ? "Light mode" : "Dark mode"}</span>
+          )}
+        </button>
       </div>
 
       {/* Nav */}
@@ -8443,7 +8492,7 @@ function Sidebar({
       {/* Footer */}
       <div
         style={{
-          borderTop: `1px solid #262626`,
+          borderTop: `1px solid ${C.border}`,
           padding: isExpanded ? "16px" : "12px 6px",
         }}
       >
@@ -8512,6 +8561,8 @@ function Sidebar({
 export default function AdminDashboardDemo() {
   const [activePage, setActivePage] = useState<ActivePage>("dashboard");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  C = isDark ? C_DARK : C_LIGHT;
 
   const PAGE_NAMES: Record<string, string> = {
     transactions: "Transactions",
@@ -8568,6 +8619,8 @@ export default function AdminDashboardDemo() {
         onNavigate={(page) => setActivePage(page)}
         isExpanded={isExpanded}
         onToggleExpand={() => setIsExpanded((v) => !v)}
+        onToggleTheme={() => setIsDark((v) => !v)}
+        isDark={isDark}
       />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-screen-xl mx-auto p-6 h-full">
