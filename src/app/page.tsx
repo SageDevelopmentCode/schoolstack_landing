@@ -5,6 +5,7 @@ import FounderStoryBridgeSection from '@/components/sections/FounderStoryBridgeS
 import ProductPreviewSection from '@/components/sections/ProductPreviewSection'
 import WorkflowSection from '@/components/sections/WorkflowSection'
 import StacksSection from '@/components/sections/StacksSection'
+import MicroschoolsSection from '@/components/sections/MicroschoolsSection'
 import ProofSection from '@/components/sections/ProofSection'
 import CustomSection from '@/components/sections/CustomSection'
 import FinalCTASection from '@/components/sections/FinalCTASection'
@@ -22,6 +23,7 @@ export default function Home() {
         <ProductPreviewSection />
         <WorkflowSection />
         <StacksSection />
+        <MicroschoolsSection />
         <ProofSection />
         <CustomSection />
         <FinalCTASection />
