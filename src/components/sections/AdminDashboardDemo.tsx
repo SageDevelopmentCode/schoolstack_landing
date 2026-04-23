@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -34,6 +34,12 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
+
+// ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
+const BackdropContext = createContext<{
+  openBackdrop: (onClose: () => void) => void;
+  closeBackdrop: () => void;
+}>({ openBackdrop: () => {}, closeBackdrop: () => {} });
 
 // ─── Design tokens (hardcoded — no CSS vars, works outside ThemeProvider) ─────
 const C_DARK = {
@@ -721,6 +727,81 @@ const DEMO_PARENTS: DemoParent[] = [
       },
     ],
   },
+  {
+    id: "p7",
+    name: "David Webb",
+    initials: "DW",
+    color: "#F97316",
+    g1Phone: "(512) 555-0721",
+    g1WorkPhone: "(512) 555-0722",
+    g1Preferred: "Cell",
+    g1LivesWith: true,
+    g1Custody: true,
+    g2Name: "Monica Webb",
+    g2Relationship: "Mother",
+    g2Email: "monica.w@email.com",
+    g2Phone: "(512) 555-0723",
+    children: [{ name: "Marcus Webb", dob: "Jul 18, 2014" }],
+    applications: [
+      {
+        childName: "Marcus Webb",
+        program: "school_year_26_27",
+        status: "enrolled",
+        approved: true,
+        submitted: "Feb 8, 2026",
+      },
+    ],
+  },
+  {
+    id: "p8",
+    name: "Yuki Nakamura",
+    initials: "YN",
+    color: "#06B6D4",
+    g1Phone: "(737) 555-0831",
+    g1WorkPhone: "(737) 555-0832",
+    g1Preferred: "Email",
+    g1LivesWith: true,
+    g1Custody: true,
+    g2Name: "Kenji Nakamura",
+    g2Relationship: "Father",
+    g2Email: "kenji.n@email.com",
+    g2Phone: "(737) 555-0833",
+    children: [{ name: "Lily Nakamura", dob: "Oct 3, 2017" }],
+    applications: [
+      {
+        childName: "Lily Nakamura",
+        program: "both",
+        status: "enrolled",
+        approved: true,
+        submitted: "Jan 27, 2026",
+      },
+    ],
+  },
+  {
+    id: "p9",
+    name: "Carmen Rivera",
+    initials: "CR",
+    color: "#D946EF",
+    g1Phone: "(512) 555-0914",
+    g1WorkPhone: "",
+    g1Preferred: "Cell",
+    g1LivesWith: true,
+    g1Custody: true,
+    g2Name: null,
+    g2Relationship: null,
+    g2Email: null,
+    g2Phone: null,
+    children: [{ name: "Jordan Rivera", dob: "Mar 5, 2020" }],
+    applications: [
+      {
+        childName: "Jordan Rivera",
+        program: "summer_26",
+        status: "in_progress",
+        approved: false,
+        submitted: "Apr 10, 2026",
+      },
+    ],
+  },
 ];
 
 type DemoStudent = {
@@ -1036,6 +1117,160 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
         phone: "(737) 555-0611",
       },
       { name: "Uncle Emeka", relationship: "Uncle", phone: "(737) 555-0612" },
+    ],
+  },
+  {
+    id: "st9",
+    name: "Marcus Webb",
+    initials: "MW",
+    color: "#F97316",
+    grade: "5th",
+    dob: "Jul 18, 2014",
+    parent: "David Webb",
+    program: "school_year_26_27",
+    hasAllergies: false,
+    hasMedical: true,
+    hasEmergencyMeds: false,
+    needsAide: false,
+    allergies: "",
+    medicalConditions:
+      "ADHD (combined type) — managed with daily medication and OT support. Participates in occupational therapy twice weekly.",
+    emergencyMeds: "",
+    aideDetails: "",
+    learningStyle:
+      "Kinesthetic and project-based — thrives with hands-on tasks, movement, and clear deadlines.",
+    strengths: "Engineering challenges, logical problem-solving, robotics.",
+    challenges:
+      "Sustained attention on writing tasks; benefits from chunked assignments and frequent check-ins.",
+    regulationStrategies:
+      "Movement breaks every 30 minutes, fidget tools available, task checklist on desk.",
+    specialInterests: "Lego Technic, coding, video game design.",
+    medications: [
+      {
+        name: "Methylphenidate (Ritalin)",
+        type: "daily",
+        dosage: "10mg at 8 AM",
+        physician: "Dr. Samuel Green",
+      },
+    ],
+    authorizedPickup: [
+      { name: "Monica Webb", relationship: "Mother", phone: "(512) 555-0723" },
+      {
+        name: "Grandma Ruth",
+        relationship: "Grandmother",
+        phone: "(512) 555-0799",
+      },
+    ],
+  },
+  {
+    id: "st10",
+    name: "Lily Nakamura",
+    initials: "LN",
+    color: "#06B6D4",
+    grade: "2nd",
+    dob: "Oct 3, 2017",
+    parent: "Yuki Nakamura",
+    program: "both",
+    hasAllergies: true,
+    hasMedical: false,
+    hasEmergencyMeds: true,
+    needsAide: false,
+    allergies:
+      "Severe bee/wasp sting allergy (anaphylaxis risk). EpiPen stored in the nurse's office and classroom emergency kit. Wear medical alert bracelet.",
+    medicalConditions: "",
+    emergencyMeds:
+      "EpiPen Jr. — administer immediately if stung and showing systemic symptoms. Call 911, then parents.",
+    aideDetails: "",
+    learningStyle:
+      "Visual and auditory — responds well to illustrated instructions and group discussion.",
+    strengths:
+      "Languages (fluent Japanese/English), creative writing, peer mediation.",
+    challenges:
+      "Occasional social anxiety in large groups; prefers structured group roles.",
+    regulationStrategies: "Defined roles in group work, quiet break corner.",
+    specialInterests: "Origami, marine biology, drawing manga.",
+    medications: [
+      {
+        name: "EpiPen Jr.",
+        type: "emergency",
+        dosage: "0.15mg IM auto-injector",
+        physician: "Dr. Ami Tanaka",
+      },
+    ],
+    authorizedPickup: [
+      {
+        name: "Kenji Nakamura",
+        relationship: "Father",
+        phone: "(737) 555-0833",
+      },
+      { name: "Aunt Hana", relationship: "Aunt", phone: "(737) 555-0899" },
+    ],
+  },
+  {
+    id: "st11",
+    name: "Jordan Rivera",
+    initials: "JR",
+    color: "#D946EF",
+    grade: "K",
+    dob: "Mar 5, 2020",
+    parent: "Carmen Rivera",
+    program: "summer_26",
+    hasAllergies: false,
+    hasMedical: false,
+    hasEmergencyMeds: false,
+    needsAide: false,
+    allergies: "",
+    medicalConditions: "",
+    emergencyMeds: "",
+    aideDetails: "",
+    learningStyle:
+      "Play-based and social — learns through structured imaginative play and peer interaction.",
+    strengths: "Empathy, music, following classroom routines.",
+    challenges:
+      "Expressive language delays; currently enrolled in weekly speech therapy sessions.",
+    regulationStrategies:
+      "Visual schedule cards, picture-based communication supports.",
+    specialInterests: "Trains, animals, singing.",
+    medications: [],
+    authorizedPickup: [
+      {
+        name: "Grandpa Luis",
+        relationship: "Grandfather",
+        phone: "(512) 555-0944",
+      },
+    ],
+  },
+  {
+    id: "st12",
+    name: "Priya Mehta",
+    initials: "PM",
+    color: "#84CC16",
+    grade: "3rd",
+    dob: "Jun 22, 2016",
+    parent: "Anita Mehta",
+    program: "school_year_26_27",
+    hasAllergies: false,
+    hasMedical: true,
+    hasEmergencyMeds: false,
+    needsAide: true,
+    allergies: "",
+    medicalConditions:
+      "Low vision (visual acuity 20/200 in both eyes). Uses large-print materials, high-contrast displays, and magnification tools.",
+    emergencyMeds: "",
+    aideDetails:
+      "Reading aide provides support during independent reading and standardized assessments. Seats at front of classroom, preferably nearest natural light.",
+    learningStyle:
+      "Auditory and tactile — benefits from verbal explanations, audiobooks, and hands-on manipulatives.",
+    strengths: "Exceptional listening comprehension, mathematics, memory.",
+    challenges:
+      "Visual fatigue after extended screen time; scheduled screen breaks every 20 minutes.",
+    regulationStrategies:
+      "20-minute screen break rule, audiobook alternatives, tactile manipulatives.",
+    specialInterests: "Podcasts, chess, spoken word poetry.",
+    medications: [],
+    authorizedPickup: [
+      { name: "Anita Mehta", relationship: "Mother", phone: "(737) 555-1201" },
+      { name: "Ravi Mehta", relationship: "Father", phone: "(737) 555-1202" },
     ],
   },
 ];
@@ -2088,6 +2323,11 @@ function LeadsPage() {
   const [selectedLead, setSelectedLead] = useState<
     (typeof DEMO_LEADS)[0] | null
   >(null);
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+  useEffect(() => {
+    if (selectedLead) openBackdrop(() => setSelectedLead(null));
+    else closeBackdrop();
+  }, [selectedLead]);
 
   const filtered = DEMO_LEADS.filter((l) => {
     const statusMatch = activeFilter === "all" || l.status === activeFilter;
@@ -2270,21 +2510,10 @@ function LeadsPage() {
 
       <AnimatePresence>
         {selectedLead && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0"
-              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
-              onClick={() => setSelectedLead(null)}
-            />
-            <LeadDetailPanel
-              lead={selectedLead}
-              onClose={() => setSelectedLead(null)}
-            />
-          </>
+          <LeadDetailPanel
+            lead={selectedLead}
+            onClose={() => setSelectedLead(null)}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -2487,6 +2716,11 @@ function ApplicationsPage() {
   const [selectedApp, setSelectedApp] = useState<
     (typeof DEMO_APPLICATIONS)[0] | null
   >(null);
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+  useEffect(() => {
+    if (selectedApp) openBackdrop(() => setSelectedApp(null));
+    else closeBackdrop();
+  }, [selectedApp]);
 
   const viewButtons: { key: AppView; icon: React.ReactNode; label: string }[] =
     [
@@ -2879,21 +3113,10 @@ function ApplicationsPage() {
 
       <AnimatePresence>
         {selectedApp && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0"
-              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
-              onClick={() => setSelectedApp(null)}
-            />
-            <AppDetailPanel
-              app={selectedApp}
-              onClose={() => setSelectedApp(null)}
-            />
-          </>
+          <AppDetailPanel
+            app={selectedApp}
+            onClose={() => setSelectedApp(null)}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -3374,6 +3597,11 @@ function ParentDetailPanel({
 
 function ParentsPage() {
   const [selected, setSelected] = useState<DemoParent | null>(null);
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+  useEffect(() => {
+    if (selected) openBackdrop(() => setSelected(null));
+    else closeBackdrop();
+  }, [selected]);
   return (
     <div className="h-full flex flex-col">
       <div className="mb-5">
@@ -3505,21 +3733,10 @@ function ParentsPage() {
       </Card>
       <AnimatePresence>
         {selected && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0"
-              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
-              onClick={() => setSelected(null)}
-            />
-            <ParentDetailPanel
-              parent={selected}
-              onClose={() => setSelected(null)}
-            />
-          </>
+          <ParentDetailPanel
+            parent={selected}
+            onClose={() => setSelected(null)}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -3872,6 +4089,11 @@ function StudentDetailPanel({
 
 function StudentsPage() {
   const [selected, setSelected] = useState<DemoStudent | null>(null);
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+  useEffect(() => {
+    if (selected) openBackdrop(() => setSelected(null));
+    else closeBackdrop();
+  }, [selected]);
   return (
     <div className="h-full flex flex-col">
       <div className="mb-5">
@@ -3997,21 +4219,10 @@ function StudentsPage() {
       </Card>
       <AnimatePresence>
         {selected && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0"
-              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
-              onClick={() => setSelected(null)}
-            />
-            <StudentDetailPanel
-              student={selected}
-              onClose={() => setSelected(null)}
-            />
-          </>
+          <StudentDetailPanel
+            student={selected}
+            onClose={() => setSelected(null)}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -4953,6 +5164,355 @@ const DEMO_CAL_EVENTS: CalEvent[] = [
     endTime: "12:00",
     program: "school_year_26_27",
   },
+  {
+    id: "ce19",
+    title: "Spring Semester Review",
+    date: "2026-04-01",
+    color: "#5E7C68",
+    category: "Staff Meeting",
+    isAllDay: false,
+    startTime: "09:00",
+    endTime: "10:30",
+    program: "both",
+  },
+  {
+    id: "ce20",
+    title: "Enrollment Webinar",
+    date: "2026-04-03",
+    color: "#38BDF8",
+    category: "Parent Event",
+    isAllDay: false,
+    startTime: "18:30",
+    endTime: "19:30",
+    program: "both",
+  },
+  {
+    id: "ce21",
+    title: "Emergency Drill",
+    date: "2026-04-23",
+    color: "#525252",
+    category: "Internal",
+    isAllDay: false,
+    startTime: "10:00",
+    endTime: "10:30",
+    program: "both",
+  },
+  {
+    id: "ce22",
+    title: "Curriculum Night",
+    date: "2026-04-24",
+    color: "#F59E0B",
+    category: "Parent Event",
+    isAllDay: false,
+    startTime: "18:00",
+    endTime: "20:00",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce23",
+    title: "Budget Review",
+    date: "2026-04-28",
+    color: "#525252",
+    category: "Internal",
+    isAllDay: false,
+    startTime: "14:00",
+    endTime: "15:30",
+    program: "both",
+  },
+  {
+    id: "ce24",
+    title: "Student Art Show",
+    date: "2026-04-29",
+    color: "#EC4899",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "16:00",
+    endTime: "18:00",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce25",
+    title: "Teacher Planning Day",
+    date: "2026-05-05",
+    color: "#8B5CF6",
+    category: "Staff Meeting",
+    isAllDay: true,
+    program: "both",
+  },
+  {
+    id: "ce26",
+    title: "Spring Concert",
+    date: "2026-05-12",
+    color: "#F97316",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "18:00",
+    endTime: "20:00",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce27",
+    title: "Parent Q&A Lunch",
+    date: "2026-05-19",
+    color: "#38BDF8",
+    category: "Parent Event",
+    isAllDay: false,
+    startTime: "12:00",
+    endTime: "13:30",
+    program: "both",
+  },
+  {
+    id: "ce28",
+    title: "Field Day",
+    date: "2026-05-22",
+    color: "#22C55E",
+    category: "Field Trip",
+    isAllDay: false,
+    startTime: "09:00",
+    endTime: "15:00",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce29",
+    title: "Staff End-of-Year Breakfast",
+    date: "2026-05-27",
+    color: "#5E7C68",
+    category: "Staff Meeting",
+    isAllDay: false,
+    startTime: "08:00",
+    endTime: "09:30",
+    program: "both",
+  },
+  {
+    id: "ce30",
+    title: "Report Cards Sent",
+    date: "2026-05-29",
+    color: "#EF4444",
+    category: "Deadline",
+    isAllDay: true,
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce31",
+    title: "Summer Kickoff Party",
+    date: "2026-06-03",
+    color: "#F59E0B",
+    category: "Parent Event",
+    isAllDay: false,
+    startTime: "10:00",
+    endTime: "13:00",
+    program: "summer_26",
+  },
+  {
+    id: "ce32",
+    title: "Summer Staff Training",
+    date: "2026-06-10",
+    color: "#8B5CF6",
+    category: "Staff Meeting",
+    isAllDay: false,
+    startTime: "09:00",
+    endTime: "12:00",
+    program: "both",
+  },
+  // ── Dense events for Apr 20–26 week (default week view) ──
+  {
+    id: "ce33",
+    title: "Morning Circle",
+    date: "2026-04-20",
+    color: "#5E7C68",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "08:00",
+    endTime: "08:45",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce34",
+    title: "Parent Orientation Call",
+    date: "2026-04-20",
+    color: "#38BDF8",
+    category: "Parent Event",
+    isAllDay: false,
+    startTime: "10:00",
+    endTime: "11:00",
+    program: "both",
+  },
+  {
+    id: "ce35",
+    title: "Curriculum Planning",
+    date: "2026-04-20",
+    color: "#8B5CF6",
+    category: "Staff Meeting",
+    isAllDay: false,
+    startTime: "13:30",
+    endTime: "15:00",
+    program: "both",
+  },
+  {
+    id: "ce36",
+    title: "Reading Groups",
+    date: "2026-04-21",
+    color: "#22C55E",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "09:00",
+    endTime: "10:30",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce37",
+    title: "Summer Intake Review",
+    date: "2026-04-21",
+    color: "#F59E0B",
+    category: "Internal",
+    isAllDay: false,
+    startTime: "11:00",
+    endTime: "12:00",
+    program: "summer_26",
+  },
+  {
+    id: "ce38",
+    title: "1:1 Family Check-In — Rivera",
+    date: "2026-04-21",
+    color: "#EC4899",
+    category: "Parent Event",
+    isAllDay: false,
+    startTime: "14:00",
+    endTime: "14:30",
+    program: "summer_26",
+  },
+  {
+    id: "ce39",
+    title: "Math Workshop",
+    date: "2026-04-22",
+    color: "#5E7C68",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "08:30",
+    endTime: "09:30",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce40",
+    title: "Staff Check-In",
+    date: "2026-04-22",
+    color: "#525252",
+    category: "Staff Meeting",
+    isAllDay: false,
+    startTime: "11:30",
+    endTime: "12:00",
+    program: "both",
+  },
+  {
+    id: "ce41",
+    title: "After-School Enrichment",
+    date: "2026-04-22",
+    color: "#F97316",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "15:00",
+    endTime: "17:00",
+    program: "both",
+  },
+  {
+    id: "ce42",
+    title: "OT Session — Marcus",
+    date: "2026-04-23",
+    color: "#8B5CF6",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "09:00",
+    endTime: "09:30",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce43",
+    title: "Science Lab",
+    date: "2026-04-23",
+    color: "#22C55E",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "10:00",
+    endTime: "11:30",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce44",
+    title: "Finance Call",
+    date: "2026-04-23",
+    color: "#525252",
+    category: "Internal",
+    isAllDay: false,
+    startTime: "14:30",
+    endTime: "15:30",
+    program: "both",
+  },
+  {
+    id: "ce45",
+    title: "Art & Music Block",
+    date: "2026-04-24",
+    color: "#EC4899",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "08:30",
+    endTime: "10:00",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce46",
+    title: "Enrollment Q&A",
+    date: "2026-04-24",
+    color: "#38BDF8",
+    category: "Parent Event",
+    isAllDay: false,
+    startTime: "12:00",
+    endTime: "13:00",
+    program: "both",
+  },
+  {
+    id: "ce47",
+    title: "Speech Therapy — Jordan",
+    date: "2026-04-24",
+    color: "#F59E0B",
+    category: "Academic",
+    isAllDay: false,
+    startTime: "15:00",
+    endTime: "15:45",
+    program: "summer_26",
+  },
+  {
+    id: "ce48",
+    title: "Community Garden Day",
+    date: "2026-04-25",
+    color: "#22C55E",
+    category: "Field Trip",
+    isAllDay: false,
+    startTime: "09:00",
+    endTime: "12:00",
+    program: "school_year_26_27",
+  },
+  {
+    id: "ce49",
+    title: "Staff Development",
+    date: "2026-04-25",
+    color: "#8B5CF6",
+    category: "Staff Meeting",
+    isAllDay: false,
+    startTime: "13:00",
+    endTime: "15:00",
+    program: "both",
+  },
+  {
+    id: "ce50",
+    title: "Parent-Teacher Prep",
+    date: "2026-04-26",
+    color: "#5E7C68",
+    category: "Internal",
+    isAllDay: false,
+    startTime: "10:00",
+    endTime: "11:30",
+    program: "school_year_26_27",
+  },
 ];
 
 const DEMO_EMAILS = [
@@ -5289,6 +5849,11 @@ function TransactionsPage() {
   const [selectedTx, setSelectedTx] = useState<
     (typeof DEMO_TRANSACTIONS)[0] | null
   >(null);
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+  useEffect(() => {
+    if (selectedTx) openBackdrop(() => setSelectedTx(null));
+    else closeBackdrop();
+  }, [selectedTx]);
   const [selectedParent, setSelectedParent] = useState<ChecklistParent>(
     DEMO_CHECKLIST[0],
   );
@@ -5470,15 +6035,6 @@ function TransactionsPage() {
             <AnimatePresence>
               {selectedTx && (
                 <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute inset-0"
-                    style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
-                    onClick={() => setSelectedTx(null)}
-                  />
                   <motion.div
                     initial={{ x: "100%", opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -6521,10 +7077,22 @@ const CAL_COLORS: Record<string, string> = {
 
 function CalendarPage() {
   const today = new Date(2026, 3, 22); // Apr 22, 2026
+  const [calView, setCalView] = useState<"month" | "week">("week");
   const [currentMonth, setCurrentMonth] = useState(new Date(2026, 3, 1));
+  const [weekStart, setWeekStart] = useState(() => {
+    // Sunday of today's week
+    const d = new Date(2026, 3, 22);
+    d.setDate(d.getDate() - d.getDay());
+    return d;
+  });
   const [showEventPanel, setShowEventPanel] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
   const [programFilter, setProgramFilter] = useState<string>("all");
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+  useEffect(() => {
+    if (showEventPanel) openBackdrop(() => setShowEventPanel(false));
+    else closeBackdrop();
+  }, [showEventPanel]);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -6577,6 +7145,69 @@ function CalendarPage() {
     year: "numeric",
   });
 
+  // Week view helpers
+  const WEEK_START_HOUR = 7;
+  const WEEK_END_HOUR = 20;
+  const HOUR_HEIGHT = 56;
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+  const weekRangeLabel = (() => {
+    const s = weekDays[0];
+    const e = weekDays[6];
+    const sMonth = s.toLocaleString("default", { month: "short" });
+    const eMonth = e.toLocaleString("default", { month: "short" });
+    if (sMonth === eMonth)
+      return `${sMonth} ${s.getDate()} – ${e.getDate()}, ${e.getFullYear()}`;
+    return `${sMonth} ${s.getDate()} – ${eMonth} ${e.getDate()}, ${e.getFullYear()}`;
+  })();
+  const timeToTop = (time: string) => {
+    const [h, m] = time.split(":").map(Number);
+    return ((h + m / 60 - WEEK_START_HOUR) / (WEEK_END_HOUR - WEEK_START_HOUR)) * (HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR));
+  };
+  const timeToHeight = (start: string, end: string) => {
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    const mins = (eh * 60 + em) - (sh * 60 + sm);
+    return (mins / 60) * HOUR_HEIGHT;
+  };
+  // Current time line position (minutes past WEEK_START_HOUR)
+  const nowTop = (() => {
+    const nowH = 10; // simulate 10:15 AM for the demo
+    const nowM = 15;
+    return ((nowH + nowM / 60 - WEEK_START_HOUR) / (WEEK_END_HOUR - WEEK_START_HOUR)) * (HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR));
+  })();
+
+  const navPrev = () => {
+    if (calView === "month") {
+      setCurrentMonth(new Date(year, month - 1, 1));
+    } else {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() - 7);
+      setWeekStart(d);
+    }
+  };
+  const navNext = () => {
+    if (calView === "month") {
+      setCurrentMonth(new Date(year, month + 1, 1));
+    } else {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + 7);
+      setWeekStart(d);
+    }
+  };
+  const navToday = () => {
+    if (calView === "month") {
+      setCurrentMonth(new Date(2026, 3, 1));
+    } else {
+      const d = new Date(2026, 3, 22);
+      d.setDate(d.getDate() - d.getDay());
+      setWeekStart(d);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -6592,23 +7223,44 @@ function CalendarPage() {
             School events and scheduling
           </p>
         </div>
-        <button
-          onClick={() => {
-            setSelectedEvent(null);
-            setShowEventPanel(true);
-          }}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg"
-          style={{ backgroundColor: C.accent, color: "#fff" }}
-        >
-          + Add Event
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Month / Week toggle */}
+          <div
+            className="flex items-center gap-0.5 p-0.5 rounded-lg"
+            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          >
+            {(["month", "week"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setCalView(v)}
+                className="px-3 py-1.5 text-xs font-semibold rounded-md capitalize transition-all"
+                style={{
+                  backgroundColor: calView === v ? C.accent : "transparent",
+                  color: calView === v ? "#fff" : C.textTertiary,
+                }}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              setSelectedEvent(null);
+              setShowEventPanel(true);
+            }}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg"
+            style={{ backgroundColor: C.accent, color: "#fff" }}
+          >
+            + Add Event
+          </button>
+        </div>
       </div>
 
       {/* Controls */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
+            onClick={navPrev}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
             style={{
               backgroundColor: C.elevated,
@@ -6620,12 +7272,12 @@ function CalendarPage() {
           </button>
           <span
             className="px-3 text-sm font-semibold"
-            style={{ color: C.textPrimary, minWidth: 140, textAlign: "center" }}
+            style={{ color: C.textPrimary, minWidth: 160, textAlign: "center" }}
           >
-            {monthName}
+            {calView === "month" ? monthName : weekRangeLabel}
           </span>
           <button
-            onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
+            onClick={navNext}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
             style={{
               backgroundColor: C.elevated,
@@ -6637,7 +7289,7 @@ function CalendarPage() {
           </button>
         </div>
         <button
-          onClick={() => setCurrentMonth(new Date(2026, 3, 1))}
+          onClick={navToday}
           className="px-3 py-1.5 text-xs font-medium rounded-lg"
           style={{
             backgroundColor: C.elevated,
@@ -6675,116 +7327,338 @@ function CalendarPage() {
         </div>
       </div>
 
-      {/* Calendar grid */}
-      <Card className="flex-1 overflow-hidden flex flex-col">
-        {/* Day headers */}
-        <div
-          className="grid grid-cols-7"
-          style={{ borderBottom: `1px solid ${C.border}` }}
-        >
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-            <div
-              key={d}
-              className="py-2 text-center text-[10px] font-semibold uppercase tracking-widest"
-              style={{ color: C.textTertiary }}
-            >
-              {d}
-            </div>
-          ))}
-        </div>
-        {/* Day cells */}
-        <div
-          className="flex-1 overflow-y-auto grid grid-cols-7"
-          style={{ gridAutoRows: "minmax(80px, 1fr)" }}
-        >
-          {days.map((cell, i) => {
-            const dateStr = cell.date ? fmtDate(cell.date) : "";
-            const dayEvents = cell.date ? eventsForDate(dateStr) : [];
-            const todayCell = cell.date ? isToday(cell.date) : false;
-            return (
+      {calView === "month" ? (
+        /* ── Month View ── */
+        <Card className="flex-1 overflow-hidden flex flex-col">
+          {/* Day headers */}
+          <div
+            className="grid grid-cols-7"
+            style={{ borderBottom: `1px solid ${C.border}` }}
+          >
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
               <div
-                key={i}
-                className="relative p-1.5 flex flex-col gap-0.5 transition-colors"
-                style={{
-                  borderRight:
-                    (i + 1) % 7 !== 0 ? `1px solid ${C.border}` : "none",
-                  borderBottom:
-                    i < days.length - 7 ? `1px solid ${C.border}` : "none",
-                  backgroundColor: !cell.isCurrentMonth ? C.bg : "transparent",
-                }}
-                onMouseEnter={(e) => {
-                  if (cell.isCurrentMonth)
-                    e.currentTarget.style.backgroundColor = C.elevated;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = !cell.isCurrentMonth
-                    ? C.bg
-                    : "transparent";
-                }}
+                key={d}
+                className="py-2 text-center text-[10px] font-semibold uppercase tracking-widest"
+                style={{ color: C.textTertiary }}
               >
-                <div className="flex items-center justify-end mb-0.5">
-                  <span
-                    className={`w-6 h-6 flex items-center justify-center text-xs font-medium rounded-full`}
-                    style={{
-                      color: todayCell
-                        ? "#fff"
-                        : cell.isCurrentMonth
-                          ? C.textSecondary
-                          : C.textTertiary,
-                      backgroundColor: todayCell ? C.accent : "transparent",
-                      fontWeight: todayCell ? 700 : undefined,
-                    }}
-                  >
-                    {cell.day}
-                  </span>
+                {d}
+              </div>
+            ))}
+          </div>
+          {/* Day cells */}
+          <div
+            className="flex-1 overflow-y-auto grid grid-cols-7"
+            style={{ gridAutoRows: "minmax(80px, 1fr)" }}
+          >
+            {days.map((cell, i) => {
+              const dateStr = cell.date ? fmtDate(cell.date) : "";
+              const dayEvents = cell.date ? eventsForDate(dateStr) : [];
+              const todayCell = cell.date ? isToday(cell.date) : false;
+              return (
+                <div
+                  key={i}
+                  className="relative p-1.5 flex flex-col gap-0.5 transition-colors"
+                  style={{
+                    borderRight:
+                      (i + 1) % 7 !== 0 ? `1px solid ${C.border}` : "none",
+                    borderBottom:
+                      i < days.length - 7 ? `1px solid ${C.border}` : "none",
+                    backgroundColor: !cell.isCurrentMonth ? C.bg : "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (cell.isCurrentMonth)
+                      e.currentTarget.style.backgroundColor = C.elevated;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = !cell.isCurrentMonth
+                      ? C.bg
+                      : "transparent";
+                  }}
+                >
+                  <div className="flex items-center justify-end mb-0.5">
+                    <span
+                      className={`w-6 h-6 flex items-center justify-center text-xs font-medium rounded-full`}
+                      style={{
+                        color: todayCell
+                          ? "#fff"
+                          : cell.isCurrentMonth
+                            ? C.textSecondary
+                            : C.textTertiary,
+                        backgroundColor: todayCell ? C.accent : "transparent",
+                        fontWeight: todayCell ? 700 : undefined,
+                      }}
+                    >
+                      {cell.day}
+                    </span>
+                  </div>
+                  {dayEvents.slice(0, 2).map((ev) => (
+                    <button
+                      key={ev.id}
+                      onClick={() => {
+                        setSelectedEvent(ev);
+                        setShowEventPanel(true);
+                      }}
+                      className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate transition-opacity hover:opacity-80"
+                      style={{
+                        backgroundColor: ev.color + "30",
+                        color: ev.color,
+                      }}
+                    >
+                      {ev.isAllDay
+                        ? ""
+                        : ev.startTime
+                          ? ev.startTime.replace(":", "") + " "
+                          : ""}
+                      {ev.title}
+                    </button>
+                  ))}
+                  {dayEvents.length > 2 && (
+                    <span
+                      className="text-[9px] px-1"
+                      style={{ color: C.textTertiary }}
+                    >
+                      +{dayEvents.length - 2} more
+                    </span>
+                  )}
                 </div>
-                {dayEvents.slice(0, 2).map((ev) => (
-                  <button
-                    key={ev.id}
-                    onClick={() => {
-                      setSelectedEvent(ev);
-                      setShowEventPanel(true);
-                    }}
-                    className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate transition-opacity hover:opacity-80"
-                    style={{
-                      backgroundColor: ev.color + "30",
-                      color: ev.color,
-                    }}
-                  >
-                    {ev.isAllDay
-                      ? ""
-                      : ev.startTime
-                        ? ev.startTime.replace(":", "") + " "
-                        : ""}
-                    {ev.title}
-                  </button>
-                ))}
-                {dayEvents.length > 2 && (
-                  <span
-                    className="text-[9px] px-1"
+              );
+            })}
+          </div>
+        </Card>
+      ) : (
+        /* ── Week View ── */
+        <Card className="flex-1 overflow-hidden flex flex-col">
+          {/* Day header row */}
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: "52px repeat(7, 1fr)",
+              borderBottom: `1px solid ${C.border}`,
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ borderRight: `1px solid ${C.border}` }} />
+            {weekDays.map((d, i) => {
+              const todayCol = isToday(d);
+              return (
+                <div
+                  key={i}
+                  className="py-2 text-center"
+                  style={{
+                    borderRight: i < 6 ? `1px solid ${C.border}` : "none",
+                    backgroundColor: todayCol ? C.accent + "18" : "transparent",
+                  }}
+                >
+                  <div
+                    className="text-[9px] font-semibold uppercase tracking-widest"
                     style={{ color: C.textTertiary }}
                   >
-                    +{dayEvents.length - 2} more
-                  </span>
-                )}
+                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]}
+                  </div>
+                  <div
+                    className="text-sm font-bold mt-0.5 w-7 h-7 mx-auto flex items-center justify-center rounded-full"
+                    style={{
+                      color: todayCol ? "#fff" : C.textPrimary,
+                      backgroundColor: todayCol ? C.accent : "transparent",
+                    }}
+                  >
+                    {d.getDate()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* All-day strip */}
+          {weekDays.some((d) => eventsForDate(fmtDate(d)).some((e) => e.isAllDay)) && (
+            <div
+              className="grid"
+              style={{
+                gridTemplateColumns: "52px repeat(7, 1fr)",
+                borderBottom: `1px solid ${C.border}`,
+                flexShrink: 0,
+              }}
+            >
+              <div
+                className="flex items-center justify-end pr-2"
+                style={{
+                  borderRight: `1px solid ${C.border}`,
+                  minHeight: 28,
+                }}
+              >
+                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
+                  all‑day
+                </span>
               </div>
-            );
-          })}
-        </div>
-      </Card>
+              {weekDays.map((d, i) => {
+                const allDayEvs = eventsForDate(fmtDate(d)).filter((e) => e.isAllDay);
+                return (
+                  <div
+                    key={i}
+                    className="px-0.5 py-0.5 flex flex-col gap-0.5"
+                    style={{
+                      borderRight: i < 6 ? `1px solid ${C.border}` : "none",
+                      backgroundColor: isToday(d) ? C.accent + "18" : "transparent",
+                    }}
+                  >
+                    {allDayEvs.map((ev) => (
+                      <button
+                        key={ev.id}
+                        onClick={() => { setSelectedEvent(ev); setShowEventPanel(true); }}
+                        className="w-full text-left px-1 py-0.5 rounded text-[9px] font-semibold truncate hover:opacity-80"
+                        style={{ backgroundColor: ev.color + "30", color: ev.color }}
+                      >
+                        {ev.title}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Scrollable time grid */}
+          <div className="flex-1 overflow-y-auto">
+            <div
+              className="grid relative"
+              style={{
+                gridTemplateColumns: "52px repeat(7, 1fr)",
+                height: HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR),
+              }}
+            >
+              {/* Time labels column */}
+              <div style={{ borderRight: `1px solid ${C.border}` }}>
+                {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => {
+                  const h = WEEK_START_HOUR + i;
+                  return (
+                    <div
+                      key={h}
+                      className="flex items-start justify-end pr-2 pt-0.5"
+                      style={{ height: HOUR_HEIGHT }}
+                    >
+                      <span className="text-[9px] font-medium" style={{ color: C.textTertiary }}>
+                        {h === 12 ? "12 PM" : h < 12 ? `${h} AM` : `${h - 12} PM`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Day columns */}
+              {weekDays.map((d, colIdx) => {
+                const dateStr = fmtDate(d);
+                const timedEvs = eventsForDate(dateStr).filter((e) => !e.isAllDay && e.startTime && e.endTime);
+                const todayCol = isToday(d);
+                return (
+                  <div
+                    key={colIdx}
+                    className="relative"
+                    style={{
+                      borderRight: colIdx < 6 ? `1px solid ${C.border}` : "none",
+                      backgroundColor: todayCol ? C.accent + "0a" : "transparent",
+                    }}
+                  >
+                    {/* Hour grid lines */}
+                    {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          position: "absolute",
+                          top: i * HOUR_HEIGHT,
+                          left: 0,
+                          right: 0,
+                          borderTop: `1px solid ${C.border}`,
+                          pointerEvents: "none",
+                        }}
+                      />
+                    ))}
+
+                    {/* Half-hour lines */}
+                    {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => (
+                      <div
+                        key={`h${i}`}
+                        style={{
+                          position: "absolute",
+                          top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2,
+                          left: 0,
+                          right: 0,
+                          borderTop: `1px dashed ${C.border}`,
+                          opacity: 0.5,
+                          pointerEvents: "none",
+                        }}
+                      />
+                    ))}
+
+                    {/* Current time indicator */}
+                    {todayCol && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: nowTop,
+                          left: 0,
+                          right: 0,
+                          height: 2,
+                          backgroundColor: "#EF4444",
+                          zIndex: 10,
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: -4,
+                            top: -4,
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            backgroundColor: "#EF4444",
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Timed events */}
+                    {timedEvs.map((ev) => {
+                      const top = timeToTop(ev.startTime!);
+                      const height = Math.max(timeToHeight(ev.startTime!, ev.endTime!), 20);
+                      return (
+                        <button
+                          key={ev.id}
+                          onClick={() => { setSelectedEvent(ev); setShowEventPanel(true); }}
+                          className="absolute left-0.5 right-0.5 rounded overflow-hidden text-left hover:opacity-90 transition-opacity"
+                          style={{
+                            top,
+                            height,
+                            backgroundColor: ev.color + "28",
+                            borderLeft: `3px solid ${ev.color}`,
+                            zIndex: 5,
+                          }}
+                        >
+                          <div className="px-1 pt-0.5">
+                            <div className="text-[9px] font-bold truncate" style={{ color: ev.color }}>
+                              {ev.title}
+                            </div>
+                            {height > 28 && (
+                              <div className="text-[8px]" style={{ color: ev.color + "cc" }}>
+                                {ev.startTime} – {ev.endTime}
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Event panel */}
       <AnimatePresence>
         {showEventPanel && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-40"
-              style={{ backgroundColor: "rgba(0,0,0,0.3)" }}
-              onClick={() => setShowEventPanel(false)}
-            />
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -6967,6 +7841,11 @@ function EmailsPage() {
   const [selected, setSelected] = useState<(typeof DEMO_EMAILS)[0] | null>(
     null,
   );
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+  useEffect(() => {
+    if (selected) openBackdrop(() => setSelected(null));
+    else closeBackdrop();
+  }, [selected]);
   return (
     <div className="h-full flex flex-col">
       <div className="mb-5">
@@ -7052,15 +7931,6 @@ function EmailsPage() {
       <AnimatePresence>
         {selected && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0"
-              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
-              onClick={() => setSelected(null)}
-            />
             <motion.div
               initial={{ x: "100%", opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -8423,7 +9293,7 @@ function Sidebar({
       animate={{ width: isExpanded ? 185 : 52 }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
       className="flex flex-col h-full flex-shrink-0 overflow-hidden"
-      style={{ backgroundColor: C.surface, borderRight: `1px solid ${C.border}` }}
+      style={{ backgroundColor: C.surface, borderRight: `1px solid ${C.border}`, zIndex: 1, position: "relative" }}
     >
       {/* Logo */}
       <div
@@ -8637,6 +9507,12 @@ export default function AdminDashboardDemo() {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isDark, setIsDark] = useState(false);
   C = isDark ? C_DARK : C_LIGHT;
+
+  const [backdropClose, setBackdropClose] = useState<(() => void) | null>(null);
+  const backdropCtx = useMemo(() => ({
+    openBackdrop: (onClose: () => void) => setBackdropClose(() => onClose),
+    closeBackdrop: () => setBackdropClose(null),
+  }), []);
 
   // ── Tour state ──────────────────────────────────────────────────────────────
   const [isTouring, setIsTouring] = useState(true);
@@ -8909,6 +9785,7 @@ export default function AdminDashboardDemo() {
     : "0 0 0 4px rgba(74,124,89,0.2)";
 
   return (
+    <BackdropContext.Provider value={backdropCtx}>
     <div
       ref={containerRef}
       onMouseEnter={handleTourMouseEnter}
@@ -8919,6 +9796,20 @@ export default function AdminDashboardDemo() {
         fontFamily: "Inter, system-ui, sans-serif",
       }}
     >
+      <AnimatePresence>
+        {backdropClose && (
+          <motion.div
+            key="root-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0"
+            style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 2 }}
+            onClick={() => { backdropClose(); setBackdropClose(null); }}
+          />
+        )}
+      </AnimatePresence>
       <Sidebar
         activePage={activePage}
         onNavigate={(page) => setActivePage(page)}
@@ -8927,20 +9818,25 @@ export default function AdminDashboardDemo() {
         onToggleTheme={() => setIsDark((v) => !v)}
         isDark={isDark}
       />
-      <main className="flex-1 overflow-hidden relative">
-        <div className="max-w-screen-xl mx-auto p-6 h-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activePage}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="h-full"
-            >
-              {renderPage()}
-            </motion.div>
-          </AnimatePresence>
+      <main className="flex-1 overflow-hidden">
+        {/* This wrapper is the containing block for all page overlays and panels.
+            It is inside <main> (right of sidebar), so absolute children cannot
+            extend over the sidebar regardless of z-index. */}
+        <div className="relative h-full">
+          <div className="max-w-screen-xl mx-auto p-6 h-full">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePage}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="h-full"
+              >
+                {renderPage()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </main>
 
@@ -8970,5 +9866,6 @@ export default function AdminDashboardDemo() {
         />
       )}
     </div>
+    </BackdropContext.Provider>
   );
 }
