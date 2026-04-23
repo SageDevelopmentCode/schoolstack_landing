@@ -1393,34 +1393,34 @@ function StatCard({
         backgroundColor: C.surface,
         border: `1px solid ${C.border}`,
         borderRadius: C.r.lg,
-        padding: "20px",
+        padding: "14px",
         boxShadow: C.shadowCard,
       }}
     >
       {icon && (
         <div
-          className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center"
+          className="absolute top-3 right-3 w-6 h-6 rounded-md flex items-center justify-center"
           style={{ backgroundColor: C.accentGlow }}
         >
           <span style={{ color: C.accent }}>{icon}</span>
         </div>
       )}
       <p
-        className="text-xs font-semibold uppercase tracking-widest mb-3"
+        className="text-[10px] font-semibold uppercase tracking-wider mb-2"
         style={{ color: C.textTertiary }}
       >
         {title}
       </p>
       <p
-        className="text-3xl font-bold tabular-nums tracking-tight"
+        className="text-2xl font-bold tabular-nums tracking-tight"
         style={{ color: C.textPrimary }}
       >
         {value}
       </p>
       {delta && (
-        <div className="flex items-center gap-1 mt-2">
+        <div className="flex items-center gap-1 mt-1.5">
           <span
-            className="text-xs font-semibold"
+            className="text-[11px] font-semibold"
             style={{ color: deltaPositive ? C.success : C.error }}
           >
             {deltaPositive ? "▲" : "▼"} {delta}
@@ -8420,7 +8420,7 @@ function Sidebar({
 }) {
   return (
     <motion.aside
-      animate={{ width: isExpanded ? 224 : 52 }}
+      animate={{ width: isExpanded ? 185 : 52 }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
       className="flex flex-col h-full flex-shrink-0 overflow-hidden"
       style={{ backgroundColor: C.surface, borderRight: `1px solid ${C.border}` }}
@@ -8506,7 +8506,7 @@ function Sidebar({
                     data-tour-id={`nav-${item.key}`}
                     onClick={() => onNavigate(item.key as ActivePage)}
                     title={!isExpanded ? item.name : undefined}
-                    className="w-full flex items-center gap-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative"
+                    className="w-full flex items-center gap-2.5 rounded-sm text-sm font-medium transition-all duration-150 relative"
                     style={{
                       padding: isExpanded ? "8px 12px" : "8px",
                       justifyContent: isExpanded ? "flex-start" : "center",
@@ -8538,7 +8538,7 @@ function Sidebar({
                     </span>
                     {isExpanded && (
                       <>
-                        <span className="flex-1 truncate">{item.name}</span>
+                        <span className="flex-1 truncate text-left">{item.name}</span>
                         {!item.phase1 && item.key !== "teacher" && (
                           <span
                             className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
@@ -8634,7 +8634,7 @@ function Sidebar({
 
 export default function AdminDashboardDemo() {
   const [activePage, setActivePage] = useState<ActivePage>("dashboard");
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [isDark, setIsDark] = useState(false);
   C = isDark ? C_DARK : C_LIGHT;
 
@@ -8800,18 +8800,7 @@ export default function AdminDashboardDemo() {
         holdMs: 1800,
         clickAnimation: true,
       },
-      {
-        action: () => setIsDark(true),
-        targetId: "theme-toggle",
-        holdMs: 2200,
-        clickAnimation: true,
-      },
-      {
-        action: () => setIsDark(false),
-        targetId: "theme-toggle",
-        holdMs: 1600,
-        clickAnimation: true,
-      },
+
       {
         action: () => setActivePage("transactions"),
         targetId: "nav-transactions",
