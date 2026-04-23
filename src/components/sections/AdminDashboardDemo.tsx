@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -110,6 +110,9 @@ const C_LIGHT = {
 
 // mutable — set by AdminDashboardDemo before each render so all sub-components pick it up
 let C = C_DARK;
+
+const TOUR_MOVE_MS = 950;
+const TOUR_RESUME_MS = 1500;
 
 // ─── Demo data ─────────────────────────────────────────────────────────────────
 
@@ -2093,7 +2096,7 @@ function LeadsPage() {
   });
 
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-col">
       <div className="mb-5">
         <h1
           className="text-xl font-semibold tracking-tight"
@@ -2267,10 +2270,21 @@ function LeadsPage() {
 
       <AnimatePresence>
         {selectedLead && (
-          <LeadDetailPanel
-            lead={selectedLead}
-            onClose={() => setSelectedLead(null)}
-          />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0"
+              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
+              onClick={() => setSelectedLead(null)}
+            />
+            <LeadDetailPanel
+              lead={selectedLead}
+              onClose={() => setSelectedLead(null)}
+            />
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -2490,7 +2504,7 @@ function ApplicationsPage() {
     ];
 
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-col">
       <div className="flex items-start justify-between mb-5">
         <div>
           <h1
@@ -2513,6 +2527,7 @@ function ApplicationsPage() {
           {viewButtons.map((b) => (
             <button
               key={b.key}
+              data-tour-id={`app-view-${b.key}`}
               onClick={() => setView(b.key)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all"
               style={{
@@ -2864,10 +2879,21 @@ function ApplicationsPage() {
 
       <AnimatePresence>
         {selectedApp && (
-          <AppDetailPanel
-            app={selectedApp}
-            onClose={() => setSelectedApp(null)}
-          />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0"
+              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
+              onClick={() => setSelectedApp(null)}
+            />
+            <AppDetailPanel
+              app={selectedApp}
+              onClose={() => setSelectedApp(null)}
+            />
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -3349,7 +3375,7 @@ function ParentDetailPanel({
 function ParentsPage() {
   const [selected, setSelected] = useState<DemoParent | null>(null);
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-col">
       <div className="mb-5">
         <h1
           className="text-xl font-semibold tracking-tight"
@@ -3479,10 +3505,21 @@ function ParentsPage() {
       </Card>
       <AnimatePresence>
         {selected && (
-          <ParentDetailPanel
-            parent={selected}
-            onClose={() => setSelected(null)}
-          />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0"
+              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
+              onClick={() => setSelected(null)}
+            />
+            <ParentDetailPanel
+              parent={selected}
+              onClose={() => setSelected(null)}
+            />
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -3836,7 +3873,7 @@ function StudentDetailPanel({
 function StudentsPage() {
   const [selected, setSelected] = useState<DemoStudent | null>(null);
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-col">
       <div className="mb-5">
         <h1
           className="text-xl font-semibold tracking-tight"
@@ -3960,10 +3997,21 @@ function StudentsPage() {
       </Card>
       <AnimatePresence>
         {selected && (
-          <StudentDetailPanel
-            student={selected}
-            onClose={() => setSelected(null)}
-          />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0"
+              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
+              onClick={() => setSelected(null)}
+            />
+            <StudentDetailPanel
+              student={selected}
+              onClose={() => setSelected(null)}
+            />
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -5251,7 +5299,7 @@ function TransactionsPage() {
   const fmt = (cents: number) => `$${cents.toLocaleString()}`;
 
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-col">
       <div className="flex items-start justify-between mb-5">
         <div>
           <h1
@@ -5277,6 +5325,7 @@ function TransactionsPage() {
           ].map((t) => (
             <button
               key={t.key}
+              data-tour-id={`tx-tab-${t.key}`}
               onClick={() => setTab(t.key as "all" | "checklist")}
               className="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
               style={{
@@ -5420,19 +5469,29 @@ function TransactionsPage() {
             {/* Transaction detail panel */}
             <AnimatePresence>
               {selectedTx && (
-                <motion.div
-                  initial={{ x: "100%", opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: "100%", opacity: 0 }}
-                  transition={{ type: "spring", damping: 28, stiffness: 300 }}
-                  className="absolute top-0 right-0 bottom-0 flex flex-col overflow-hidden"
-                  style={{
-                    width: 320,
-                    backgroundColor: C.surface,
-                    borderLeft: `1px solid ${C.border}`,
-                    zIndex: 10,
-                  }}
-                >
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0"
+                    style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
+                    onClick={() => setSelectedTx(null)}
+                  />
+                  <motion.div
+                    initial={{ x: "100%", opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: "100%", opacity: 0 }}
+                    transition={{ type: "spring", damping: 28, stiffness: 300 }}
+                    className="absolute top-0 right-0 bottom-0 flex flex-col overflow-hidden"
+                    style={{
+                      width: 320,
+                      backgroundColor: C.surface,
+                      borderLeft: `1px solid ${C.border}`,
+                      zIndex: 10,
+                    }}
+                  >
                   <div
                     className="flex items-center justify-between px-5 py-4"
                     style={{ borderBottom: `1px solid ${C.border}` }}
@@ -5525,7 +5584,8 @@ function TransactionsPage() {
                       </p>
                     </div>
                   </div>
-                </motion.div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
           </motion.div>
@@ -5872,6 +5932,7 @@ function BudgetPage() {
           {tabs.map((t) => (
             <button
               key={t.key}
+              data-tour-id={`budget-tab-${t.key}`}
               onClick={() => setTab(t.key)}
               className="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
               style={{
@@ -6720,7 +6781,7 @@ function CalendarPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40"
+              className="absolute inset-0 z-40"
               style={{ backgroundColor: "rgba(0,0,0,0.3)" }}
               onClick={() => setShowEventPanel(false)}
             />
@@ -6729,7 +6790,7 @@ function CalendarPage() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 z-50 flex flex-col"
+              className="absolute top-0 right-0 bottom-0 z-50 flex flex-col"
               style={{
                 width: 360,
                 backgroundColor: C.surface,
@@ -6907,7 +6968,7 @@ function EmailsPage() {
     null,
   );
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-col">
       <div className="mb-5">
         <h1
           className="text-xl font-semibold tracking-tight"
@@ -6990,19 +7051,29 @@ function EmailsPage() {
       </Card>
       <AnimatePresence>
         {selected && (
-          <motion.div
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="absolute top-0 right-0 bottom-0 flex flex-col"
-            style={{
-              width: 400,
-              backgroundColor: C.surface,
-              borderLeft: `1px solid ${C.border}`,
-              zIndex: 10,
-            }}
-          >
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0"
+              style={{ backgroundColor: "rgba(0,0,0,0.15)", zIndex: 9 }}
+              onClick={() => setSelected(null)}
+            />
+            <motion.div
+              initial={{ x: "100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="absolute top-0 right-0 bottom-0 flex flex-col"
+              style={{
+                width: 400,
+                backgroundColor: C.surface,
+                borderLeft: `1px solid ${C.border}`,
+                zIndex: 10,
+              }}
+            >
             <div
               className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: `1px solid ${C.border}` }}
@@ -7066,7 +7137,8 @@ function EmailsPage() {
                 )}
               </div>
             </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -8379,6 +8451,7 @@ function Sidebar({
         }}
       >
         <button
+          data-tour-id="theme-toggle"
           onClick={onToggleTheme}
           title={isDark ? "Switch to light mode" : "Switch to dark mode"}
           className="w-full flex items-center transition-colors duration-150"
@@ -8430,6 +8503,7 @@ function Sidebar({
                 return (
                   <button
                     key={item.key}
+                    data-tour-id={`nav-${item.key}`}
                     onClick={() => onNavigate(item.key as ActivePage)}
                     title={!isExpanded ? item.name : undefined}
                     className="w-full flex items-center gap-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative"
@@ -8564,6 +8638,16 @@ export default function AdminDashboardDemo() {
   const [isDark, setIsDark] = useState(false);
   C = isDark ? C_DARK : C_LIGHT;
 
+  // ── Tour state ──────────────────────────────────────────────────────────────
+  const [isTouring, setIsTouring] = useState(true);
+  const [tourStep, setTourStep] = useState(0);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [cursorVisible, setCursorVisible] = useState(false);
+  const [cursorClicking, setCursorClicking] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tourTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const PAGE_NAMES: Record<string, string> = {
     transactions: "Transactions",
     budget: "Budget",
@@ -8606,9 +8690,241 @@ export default function AdminDashboardDemo() {
     }
   };
 
+  const getTargetCenter = useCallback(
+    (targetId: string): { x: number; y: number } | null => {
+      if (!containerRef.current) return null;
+      const el = containerRef.current.querySelector(
+        `[data-tour-id="${targetId}"]`,
+      );
+      if (!el) return null;
+      const cr = containerRef.current.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      return {
+        x: er.left - cr.left + er.width / 2,
+        y: er.top - cr.top + er.height / 2,
+      };
+    },
+    [],
+  );
+
+  const tourSteps = useMemo(
+    () => [
+      {
+        action: () => setActivePage("dashboard"),
+        targetId: "nav-dashboard",
+        holdMs: 2000,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActivePage("leads"),
+        targetId: "nav-leads",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActivePage("applications"),
+        targetId: "nav-applications",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="app-view-kanban"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "app-view-kanban",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="app-view-pipeline"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "app-view-pipeline",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActivePage("students"),
+        targetId: "nav-students",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActivePage("messages"),
+        targetId: "nav-messages",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActivePage("budget"),
+        targetId: "nav-budget",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="budget-tab-expenses"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "budget-tab-expenses",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="budget-tab-revenue"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "budget-tab-revenue",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="budget-tab-analysis"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "budget-tab-analysis",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setIsDark(true),
+        targetId: "theme-toggle",
+        holdMs: 2200,
+        clickAnimation: true,
+      },
+      {
+        action: () => setIsDark(false),
+        targetId: "theme-toggle",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActivePage("transactions"),
+        targetId: "nav-transactions",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="tx-tab-checklist"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "tx-tab-checklist",
+        holdMs: 2000,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActivePage("programs"),
+        targetId: "nav-programs",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActivePage("calendar"),
+        targetId: "nav-calendar",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActivePage("dashboard"),
+        targetId: "nav-dashboard",
+        holdMs: 2000,
+        clickAnimation: true,
+      },
+    ],
+    [],
+  );
+
+  useEffect(() => {
+    if (!isTouring) return;
+    const step = tourSteps[tourStep];
+    let cancelled = false;
+
+    const t1 = setTimeout(() => {
+      if (cancelled) return;
+      const pos = getTargetCenter(step.targetId);
+      if (pos) {
+        setCursorPos(pos);
+        setCursorVisible(true);
+      }
+
+      const t2 = setTimeout(() => {
+        if (cancelled) return;
+        step.action();
+
+        if (step.clickAnimation) {
+          setCursorClicking(true);
+          setTimeout(() => {
+            if (!cancelled) setCursorClicking(false);
+          }, 350);
+        }
+
+        const t3 = setTimeout(() => {
+          if (!cancelled) setTourStep((prev) => (prev + 1) % tourSteps.length);
+        }, step.holdMs);
+        tourTimerRef.current = t3;
+      }, TOUR_MOVE_MS);
+      tourTimerRef.current = t2;
+    }, 60);
+    tourTimerRef.current = t1;
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t1);
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current);
+    };
+  }, [tourStep, isTouring]);
+
+  useEffect(() => {
+    return () => {
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current);
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, []);
+
+  const handleTourMouseEnter = useCallback(() => {
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    setIsTouring(false);
+    setCursorVisible(false);
+  }, []);
+
+  const handleTourMouseLeave = useCallback(() => {
+    resumeTimerRef.current = setTimeout(() => {
+      setTourStep(0);
+      setIsTouring(true);
+    }, TOUR_RESUME_MS);
+  }, []);
+
+  const cursorColor = isDark ? "rgba(110,148,120,0.9)" : "rgba(74,124,89,0.85)";
+  const cursorGlow = isDark
+    ? "0 0 0 4px rgba(110,148,120,0.2)"
+    : "0 0 0 4px rgba(74,124,89,0.2)";
+
   return (
     <div
-      className="flex h-screen overflow-hidden"
+      ref={containerRef}
+      onMouseEnter={handleTourMouseEnter}
+      onMouseLeave={handleTourMouseLeave}
+      className="flex h-screen overflow-hidden relative"
       style={{
         backgroundColor: C.bg,
         fontFamily: "Inter, system-ui, sans-serif",
@@ -8622,7 +8938,7 @@ export default function AdminDashboardDemo() {
         onToggleTheme={() => setIsDark((v) => !v)}
         isDark={isDark}
       />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-hidden relative">
         <div className="max-w-screen-xl mx-auto p-6 h-full">
           <AnimatePresence mode="wait">
             <motion.div
@@ -8638,6 +8954,32 @@ export default function AdminDashboardDemo() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Autoplay tour cursor */}
+      {cursorVisible && (
+        <motion.div
+          className="pointer-events-none absolute z-[100] rounded-full"
+          style={{
+            width: 18,
+            height: 18,
+            top: 0,
+            left: 0,
+            backgroundColor: cursorColor,
+            boxShadow: cursorGlow,
+          }}
+          animate={{
+            x: cursorPos.x - 9,
+            y: cursorPos.y - 9,
+            scale: cursorClicking ? [1, 1.6, 1] : 1,
+          }}
+          transition={{
+            x: { duration: TOUR_MOVE_MS / 1000, ease: [0.4, 0, 0.2, 1] },
+            y: { duration: TOUR_MOVE_MS / 1000, ease: [0.4, 0, 0.2, 1] },
+            scale: { duration: 0.35 },
+          }}
+          initial={false}
+        />
+      )}
     </div>
   );
 }
