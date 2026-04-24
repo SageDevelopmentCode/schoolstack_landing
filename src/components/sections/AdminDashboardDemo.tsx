@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import ParentDashboardDemo from "./ParentDashboardDemo";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -2337,7 +2338,7 @@ function LeadsPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-5">
+      <div className="px-6 pt-6 mb-5">
         <h1
           className="text-xl font-semibold tracking-tight"
           style={{ color: C.textPrimary }}
@@ -2350,7 +2351,7 @@ function LeadsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
+      <div className="flex items-center gap-2 mb-3 flex-wrap px-6">
         {LEAD_FILTERS.map((f) => (
           <button
             key={f.key}
@@ -2367,7 +2368,7 @@ function LeadsPage() {
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <div className="flex items-center gap-2 mb-4 flex-wrap px-6">
         {LEAD_TAGS.map((tag) => (
           <button
             key={tag}
@@ -2386,7 +2387,7 @@ function LeadsPage() {
       </div>
 
       {/* Table */}
-      <Card className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -2506,7 +2507,7 @@ function LeadsPage() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       <AnimatePresence>
         {selectedLead && (
@@ -2739,7 +2740,7 @@ function ApplicationsPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex items-start justify-between px-6 pt-6 mb-5">
         <div>
           <h1
             className="text-xl font-semibold tracking-tight"
@@ -2785,8 +2786,9 @@ function ApplicationsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="flex-1 overflow-hidden"
+            style={{ borderTop: `1px solid ${C.border}` }}
           >
-            <Card className="h-full overflow-hidden">
+            <div className="h-full overflow-hidden">
               <div className="overflow-x-auto h-full">
                 <table className="w-full text-sm">
                   <thead>
@@ -2905,7 +2907,7 @@ function ApplicationsPage() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </div>
           </motion.div>
         )}
 
@@ -3593,7 +3595,7 @@ function ParentsPage() {
   }, [selected]);
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-5">
+      <div className="px-6 pt-6 mb-5">
         <h1
           className="text-xl font-semibold tracking-tight"
           style={{ color: C.textPrimary }}
@@ -3604,7 +3606,7 @@ function ParentsPage() {
           {DEMO_PARENTS.length} parent accounts
         </p>
       </div>
-      <Card className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -3719,7 +3721,7 @@ function ParentsPage() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
       <AnimatePresence>
         {selected && (
           <ParentDetailPanel
@@ -4085,7 +4087,7 @@ function StudentsPage() {
   }, [selected]);
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-5">
+      <div className="px-6 pt-6 mb-5">
         <h1
           className="text-xl font-semibold tracking-tight"
           style={{ color: C.textPrimary }}
@@ -4096,7 +4098,7 @@ function StudentsPage() {
           {DEMO_STUDENTS_P2.length} enrolled students
         </p>
       </div>
-      <Card className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -4205,7 +4207,7 @@ function StudentsPage() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
       <AnimatePresence>
         {selected && (
           <StudentDetailPanel
@@ -5854,7 +5856,7 @@ function TransactionsPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex items-start justify-between px-6 pt-6 mb-5">
         <div>
           <h1
             className="text-xl font-semibold tracking-tight"
@@ -5902,8 +5904,9 @@ function TransactionsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="flex-1 overflow-hidden"
+            style={{ borderTop: `1px solid ${C.border}` }}
           >
-            <Card className="h-full overflow-hidden">
+            <div className="h-full overflow-hidden">
               <div className="overflow-x-auto h-full">
                 <table className="w-full text-sm">
                   <thead>
@@ -6019,7 +6022,7 @@ function TransactionsPage() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </div>
             {/* Transaction detail panel */}
             <AnimatePresence>
               {selectedTx && (
@@ -7824,7 +7827,7 @@ function EmailsPage() {
   }, [selected]);
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-5">
+      <div className="px-6 pt-6 mb-5">
         <h1
           className="text-xl font-semibold tracking-tight"
           style={{ color: C.textPrimary }}
@@ -7835,7 +7838,7 @@ function EmailsPage() {
           Sent emails via Sagefield admin
         </p>
       </div>
-      <Card className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="overflow-x-auto h-full">
           <table className="w-full text-sm">
             <thead>
@@ -7903,7 +7906,7 @@ function EmailsPage() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
       <AnimatePresence>
         {selected && (
           <>
@@ -8107,26 +8110,33 @@ function MarketingPage() {
   const blockedDates = ["2026-04-10", "2026-04-14", "2026-04-22"];
 
   return (
-    <div className="h-full flex gap-4">
+    <div className="h-full flex gap-0">
       {/* Left sub-nav */}
-      <div className="w-44 flex-shrink-0 flex flex-col gap-1 pt-1">
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest px-3 mb-2"
-          style={{ color: C.textTertiary }}
-        >
-          Marketing
-        </p>
+      <div
+        className="w-32 flex-shrink-0 flex flex-col overflow-hidden"
+        style={{ borderRight: `1px solid ${C.border}` }}
+      >
+        <div className="px-3 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
+          <p
+            className="text-[10px] font-semibold uppercase tracking-widest"
+            style={{ color: C.textTertiary }}
+          >
+            Marketing
+          </p>
+        </div>
         {subNav.map((item) => {
           const active = tab === item.key;
           return (
             <button
               key={item.key}
               onClick={() => setTab(item.key)}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium transition-all"
+              className="w-full text-left text-xs font-medium transition-colors duration-150"
               style={{
+                padding: "10px 12px",
                 backgroundColor: active ? C.accentLight : "transparent",
                 color: active ? C.accent : C.textSecondary,
                 borderLeft: `2px solid ${active ? C.accent : "transparent"}`,
+                borderBottom: `1px solid ${C.border}`,
               }}
             >
               <span className="block">{item.label}</span>
@@ -8142,7 +8152,7 @@ function MarketingPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 overflow-y-auto">
+      <div className="flex-1 min-w-0 overflow-y-auto pl-6 pr-6 pt-6">
         <AnimatePresence mode="wait">
           {tab === "openhouse" && (
             <motion.div
@@ -8786,33 +8796,36 @@ function ImpersonatePage() {
       {/* Left panel — parent list */}
       <div
         className="flex-shrink-0 overflow-y-auto"
-        style={{ width: 280, borderRight: `1px solid ${C.border}` }}
+        style={{ width: 170, borderRight: `1px solid ${C.border}` }}
       >
-        <div className="px-4 py-3 border-b" style={{ borderColor: C.border }}>
+        <div className="px-3 py-3 border-b" style={{ borderColor: C.border }}>
           <p
             className="text-xs font-semibold uppercase tracking-wider"
             style={{ color: C.textQuaternary }}
           >
-            Enrolled Families
+            Families
           </p>
         </div>
         {DEMO_IMPERSONATE_PARENTS.map((parent) => {
           const isActive = selected?.id === parent.id;
+          const words = parent.name.split(" ");
+          const lastInitial = words[words.length - 1][0] + ".";
+          const shortName = words.slice(0, -1).join(" ") + " " + lastInitial;
           return (
             <button
               key={parent.id}
               onClick={() => setSelected(isActive ? null : parent)}
               className="w-full text-left transition-colors duration-150"
               style={{
-                padding: "12px 16px",
+                padding: "10px 12px",
                 backgroundColor: isActive ? C.accentLight : "transparent",
                 borderLeft: `2px solid ${isActive ? C.accent : "transparent"}`,
                 borderBottom: `1px solid ${C.border}`,
               }}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                   style={{
                     backgroundColor: parent.color + "22",
                     color: parent.color,
@@ -8822,16 +8835,10 @@ function ImpersonatePage() {
                 </div>
                 <div className="min-w-0">
                   <p
-                    className="text-sm font-medium truncate"
+                    className="text-xs font-medium truncate"
                     style={{ color: isActive ? C.accent : C.textPrimary }}
                   >
-                    {parent.name}
-                  </p>
-                  <p
-                    className="text-xs truncate"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {parent.email}
+                    {shortName}
                   </p>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {parent.children.map((c) => (
@@ -8904,196 +8911,9 @@ function ImpersonatePage() {
               </button>
             </div>
 
-            {/* Portal preview */}
-            <div
-              className="flex-1 overflow-y-auto p-5 space-y-4"
-              style={{ backgroundColor: C.bg }}
-            >
-              <p
-                className="text-xs font-semibold uppercase tracking-wider"
-                style={{ color: C.textQuaternary }}
-              >
-                Parent Portal Preview
-              </p>
-
-              {/* Enrollment status card */}
-              <div
-                className="rounded-xl p-4 space-y-3"
-                style={{
-                  backgroundColor: C.surface,
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <p
-                    className="text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: C.textQuaternary }}
-                  >
-                    Enrollment
-                  </p>
-                  <span
-                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: C.successBg,
-                      color: C.success,
-                      border: `1px solid ${C.successBorder}`,
-                    }}
-                  >
-                    {selected.status}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs" style={{ color: C.textQuaternary }}>
-                      Program
-                    </p>
-                    <p
-                      className="text-sm font-medium mt-0.5"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {selected.programLabel}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs" style={{ color: C.textQuaternary }}>
-                      Start Date
-                    </p>
-                    <p
-                      className="text-sm font-medium mt-0.5"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {selected.startDate}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-xs" style={{ color: C.textQuaternary }}>
-                      Lead Teacher
-                    </p>
-                    <p
-                      className="text-sm font-medium mt-0.5"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {selected.teacher}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Children */}
-              <div
-                className="rounded-xl p-4 space-y-3"
-                style={{
-                  backgroundColor: C.surface,
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                <p
-                  className="text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: C.textQuaternary }}
-                >
-                  Children
-                </p>
-                <div className="space-y-2">
-                  {selected.children.map((child) => (
-                    <div
-                      key={child.name}
-                      className="flex items-center justify-between p-3 rounded-lg"
-                      style={{
-                        backgroundColor: C.elevated,
-                        border: `1px solid ${C.border}`,
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-                          style={{
-                            backgroundColor: child.color + "22",
-                            color: child.color,
-                          }}
-                        >
-                          {child.initials}
-                        </div>
-                        <div>
-                          <p
-                            className="text-sm font-medium"
-                            style={{ color: C.textPrimary }}
-                          >
-                            {child.name}
-                          </p>
-                          <p
-                            className="text-xs"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {child.grade}
-                          </p>
-                        </div>
-                      </div>
-                      <span
-                        className="text-xs px-2.5 py-1 rounded-lg font-medium"
-                        style={{
-                          backgroundColor: C.accentLight,
-                          color: C.accent,
-                        }}
-                      >
-                        View Profile
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Billing */}
-              <div
-                className="rounded-xl p-4 space-y-3"
-                style={{
-                  backgroundColor: C.surface,
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                <p
-                  className="text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: C.textQuaternary }}
-                >
-                  Billing
-                </p>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs" style={{ color: C.textQuaternary }}>
-                      Next Payment
-                    </p>
-                    <p
-                      className="text-xl font-bold mt-0.5"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {selected.nextPayment.amount}
-                    </p>
-                    <p
-                      className="text-xs mt-0.5"
-                      style={{ color: C.textTertiary }}
-                    >
-                      Due {selected.nextPayment.dueDate}
-                    </p>
-                  </div>
-                  <button
-                    className="px-4 py-2 rounded-lg text-sm font-semibold"
-                    style={{ backgroundColor: C.accent, color: "#fff" }}
-                  >
-                    Pay Now
-                  </button>
-                </div>
-                <div
-                  className="pt-2"
-                  style={{ borderTop: `1px solid ${C.border}` }}
-                >
-                  <p className="text-xs" style={{ color: C.textTertiary }}>
-                    Last payment:{" "}
-                    <span style={{ color: C.textSecondary }}>
-                      {selected.lastPayment.amount}
-                    </span>{" "}
-                    on {selected.lastPayment.date}
-                  </p>
-                </div>
-              </div>
+            {/* Full parent portal */}
+            <div className="flex-1 overflow-hidden">
+              <ParentDashboardDemo />
             </div>
           </>
         )}
@@ -9801,7 +9621,14 @@ export default function AdminDashboardDemo() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className={`h-full ${activePage === "messages" || activePage === "calendar" || activePage === "impersonate" ? "" : "max-w-screen-xl mx-auto p-6"}`}
+              className={`h-full ${
+                activePage === "messages" || activePage === "calendar" || activePage === "impersonate" ||
+                activePage === "leads" || activePage === "applications" || activePage === "parents" ||
+                activePage === "students" || activePage === "transactions" || activePage === "emails" ||
+                activePage === "marketing"
+                  ? ""
+                  : "max-w-screen-xl mx-auto p-6"
+              }`}
             >
               {renderPage()}
             </motion.div>
