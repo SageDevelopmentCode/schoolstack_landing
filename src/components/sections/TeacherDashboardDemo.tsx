@@ -470,6 +470,217 @@ const DEMO_STUDENTS: DemoStudent[] = [
     special_interests: "Astronomy, coding, baking.",
     history_flags: null,
   },
+  // ── Summer 2026 additions ──────────────────────────────────────────────────
+  {
+    id: "s8",
+    student_id: "sid8",
+    name: "Chloe Nguyen",
+    grade: "5th Grade",
+    program: "summer_26",
+    classroom: "Room 3B",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#c07ab8",
+    dob: "January 5, 2015",
+    allergies: null,
+    learning_style:
+      "Reading/writing learner — thrives with journaling, written instructions, and independent research projects.",
+    strengths:
+      "Strong written communication, self-motivated, excellent at synthesizing information.",
+    challenges:
+      "Can be hesitant to participate verbally in group discussions.",
+    dysregulation_response:
+      "Withdraws into reading or writing; a quiet check-in works best.",
+    regulation_strategies:
+      "Journaling breaks, written reflection prompts, optional verbal sharing.",
+    medical_notes: null,
+    special_interests: "Writing stories, origami, learning languages.",
+    history_flags: null,
+  },
+  {
+    id: "s9",
+    student_id: "sid9",
+    name: "Jayden Brooks",
+    grade: "3rd Grade",
+    program: "summer_26",
+    classroom: "Room 2A",
+    profile_image_url: null,
+    attendance_status: "absent",
+    color: "#7b96c9",
+    dob: "June 14, 2017",
+    allergies: "Peanuts (severe — EpiPen in nurse's office)",
+    learning_style:
+      "Auditory and social — learns best through discussion, storytelling, and peer collaboration.",
+    strengths:
+      "Natural communicator, empathetic listener, quick to build rapport with new classmates.",
+    challenges:
+      "Written work can be a struggle; benefits from verbal response alternatives.",
+    dysregulation_response:
+      "Becomes chatty and seeks attention; a calm redirect and movement break help.",
+    regulation_strategies:
+      "Frequent check-ins, partner work options, verbal assessment alternatives.",
+    medical_notes: "Severe peanut allergy — EpiPen required on site at all times.",
+    special_interests: "Basketball, music production, stand-up comedy.",
+    history_flags: null,
+  },
+  {
+    id: "s10",
+    student_id: "sid10",
+    name: "Sofia Patel",
+    grade: "4th Grade",
+    program: "summer_26",
+    classroom: "Room 3B",
+    profile_image_url: null,
+    attendance_status: "checked_out",
+    color: "#e0895c",
+    dob: "October 28, 2016",
+    allergies: null,
+    learning_style:
+      "Visual and logical — responds well to diagrams, timelines, and structured problem-solving.",
+    strengths:
+      "Analytical thinker, strong in math and science, organized and detail-oriented.",
+    challenges:
+      "Open-ended creative tasks can feel uncomfortable without a clear framework.",
+    dysregulation_response:
+      "Becomes rigid and seeks reassurance; a clear checklist or rubric helps ground her.",
+    regulation_strategies:
+      "Structured task outlines, step-by-step instructions, defined success criteria.",
+    medical_notes: null,
+    special_interests: "Robotics, chess, drawing technical diagrams.",
+    history_flags: null,
+  },
+  // ── School Year 2026–2027 additions ──────────────────────────────────────
+  {
+    id: "s11",
+    student_id: "sid11",
+    name: "Liam Torres",
+    grade: "2nd Grade",
+    program: "school_year_26_27",
+    classroom: "Room 1C",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#4db89a",
+    dob: "March 22, 2018",
+    allergies: null,
+    learning_style:
+      "Kinesthetic and visual — hands-on activities and visual anchors make concepts click.",
+    strengths:
+      "Enthusiastic learner, strong spatial reasoning, loves collaborative building projects.",
+    challenges:
+      "Sitting still for extended reading blocks; benefits from movement integration.",
+    dysregulation_response:
+      "Fidgets and loses focus; a brief physical reset helps him re-engage.",
+    regulation_strategies:
+      "Flexible seating, movement breaks every 20 minutes, hands-on activity options.",
+    medical_notes: null,
+    special_interests: "Lego building, soccer, cooking with family.",
+    history_flags: null,
+  },
+  {
+    id: "s12",
+    student_id: "sid12",
+    name: "Nadia Kim",
+    grade: "1st Grade",
+    program: "school_year_26_27",
+    classroom: "Room K1",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#c97eb0",
+    dob: "July 9, 2019",
+    allergies: "Gluten (celiac disease — strict dietary accommodation required)",
+    learning_style:
+      "Social and musical — thrives in group settings with rhythm, song, and movement built in.",
+    strengths:
+      "Joyful presence, strong memory for songs and patterns, natural performer.",
+    challenges:
+      "Can become overstimulated in loud or chaotic environments.",
+    dysregulation_response:
+      "Covers ears or becomes tearful; moving to a quieter space with a trusted adult helps.",
+    regulation_strategies:
+      "Noise-reducing headphones available, calm-down corner, predictable noise levels.",
+    medical_notes: "Celiac disease — no gluten at snack or lunch. See nurse for full dietary plan.",
+    special_interests: "Dancing, singing, playing with stuffed animals.",
+    history_flags: null,
+  },
+  {
+    id: "s13",
+    student_id: "sid13",
+    name: "Owen Fletcher",
+    grade: "Kindergarten",
+    program: "school_year_26_27",
+    classroom: "Room K1",
+    profile_image_url: null,
+    attendance_status: "absent",
+    color: "#6e9fd6",
+    dob: "December 1, 2020",
+    allergies: null,
+    learning_style:
+      "Play-based — imaginative play and open-ended exploration are his primary entry points for learning.",
+    strengths:
+      "Creative, curious, inventive storyteller; brings unique perspectives to group play.",
+    challenges:
+      "Transitions can be abrupt; needs clear advance warnings and routines.",
+    dysregulation_response:
+      "Refuses to transition and may cry; a 5-minute countdown and visual timer help significantly.",
+    regulation_strategies:
+      "Visual timers, transition warnings, consistent daily schedule posted at his level.",
+    medical_notes: null,
+    special_interests: "Superheroes, trains, drawing maps of imaginary worlds.",
+    history_flags: null,
+  },
+  // ── Homeschool Drop-In additions ─────────────────────────────────────────
+  {
+    id: "s14",
+    student_id: "sid14",
+    name: "Priya Sharma",
+    grade: "Mixed Ages",
+    program: "homeschool_drop_in",
+    classroom: "Open Lab",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#c9a840",
+    dob: "February 14, 2015",
+    allergies: null,
+    learning_style:
+      "Inquiry-based — thrives when she can ask her own questions and pursue answers independently.",
+    strengths:
+      "Deep focus on topics of interest, strong research skills, thoughtful written reflections.",
+    challenges:
+      "Can struggle to shift topics once deeply engaged in a subject.",
+    dysregulation_response:
+      "Politely but firmly resists redirection; offering an extension activity helps bridge.",
+    regulation_strategies:
+      "Interest-led extensions, co-created session plan at start of each visit.",
+    medical_notes: null,
+    special_interests: "Marine biology, photography, reading historical fiction.",
+    history_flags: null,
+  },
+  {
+    id: "s15",
+    student_id: "sid15",
+    name: "Felix Grant",
+    grade: "Mixed Ages",
+    program: "homeschool_drop_in",
+    classroom: "Open Lab",
+    profile_image_url: null,
+    attendance_status: "checked_out",
+    color: "#5bb5b0",
+    dob: "May 3, 2016",
+    allergies: null,
+    learning_style:
+      "Collaborative and project-based — engages best when working alongside peers toward a shared goal.",
+    strengths:
+      "Natural team leader, strong verbal reasoning, diplomatic with peers.",
+    challenges:
+      "Independent seat work can feel isolating; benefits from partner or group structure.",
+    dysregulation_response:
+      "Becomes distracted and seeks social interaction; pairing him helps redirect focus.",
+    regulation_strategies:
+      "Partner work, peer tutoring opportunities, group project formats.",
+    medical_notes: null,
+    special_interests: "Theater, debate, building electronics.",
+    history_flags: null,
+  },
 ];
 
 const PROGRAM_LABELS: Record<string, string> = {
@@ -751,6 +962,188 @@ function MyStudentsSection() {
   );
 }
 
+// ─── Students Page ────────────────────────────────────────────────────────────
+
+function StudentsPage() {
+  const programs = PROGRAM_ORDER.filter((p) =>
+    DEMO_STUDENTS.some((s) => s.program === p),
+  );
+  const [activeProgram, setActiveProgram] = useState(programs[0] ?? "");
+  const [selectedStudent, setSelectedStudent] = useState<DemoStudent | null>(null);
+  const [search, setSearch] = useState("");
+
+  const filtered = DEMO_STUDENTS.filter(
+    (s) =>
+      s.program === activeProgram &&
+      s.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const programStudents = DEMO_STUDENTS.filter((s) => s.program === activeProgram);
+  const checkedInCount = programStudents.filter(
+    (s) => s.attendance_status === "checked_in",
+  ).length;
+  const absentCount = programStudents.filter(
+    (s) => s.attendance_status === "absent",
+  ).length;
+
+  return (
+    <div className="flex flex-1 h-full border-t border-gray-100 overflow-hidden bg-white">
+      {/* Left sidebar */}
+      <div className="w-64 shrink-0 border-r border-gray-100 flex flex-col">
+        <div className="p-4 border-b border-gray-100">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body pb-3">
+            Programs
+          </p>
+          <div className="flex flex-col gap-1">
+            {programs.map((p) => {
+              const count = DEMO_STUDENTS.filter((s) => s.program === p).length;
+              const isActive = activeProgram === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => {
+                    setActiveProgram(p);
+                    setSearch("");
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
+                    isActive
+                      ? "bg-[#4a7c59]/8 text-gray-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <span className="text-sm font-body font-medium truncate">
+                    {PROGRAM_LABELS[p] ?? p}
+                  </span>
+                  <span
+                    className={`text-xs font-semibold font-body px-2 py-0.5 rounded-full ${
+                      isActive
+                        ? "bg-[#4a7c59]/15 text-[#4a7c59]"
+                        : "bg-gray-100 text-gray-400"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="p-4 mt-auto">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-3">
+            Attendance Today
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#4a7c59]" />
+                <span className="text-xs text-gray-600 font-body">Checked In</span>
+              </div>
+              <span className="text-xs font-semibold text-[#4a7c59] font-body">
+                {checkedInCount}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="text-xs text-gray-600 font-body">Not Checked In</span>
+              </div>
+              <span className="text-xs font-semibold text-amber-500 font-body">
+                {absentCount}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-gray-300" />
+                <span className="text-xs text-gray-600 font-body">Total</span>
+              </div>
+              <span className="text-xs font-semibold text-gray-500 font-body">
+                {programStudents.length}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Search header */}
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 shrink-0">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search students..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm font-body bg-gray-50 border border-gray-100 rounded-lg focus:outline-none text-gray-800 placeholder:text-gray-400"
+            />
+          </div>
+          <span className="text-xs text-gray-400 font-body ml-auto">
+            {filtered.length} student{filtered.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        {/* Student list */}
+        <div className="flex-1 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="flex items-center justify-center py-16">
+              <p className="text-sm text-gray-400 font-body">No students found.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col divide-y divide-gray-50">
+              {filtered.map((s, idx) => (
+                <button
+                  key={s.id}
+                  data-tour-id={idx === 0 ? "student-row-0" : undefined}
+                  onClick={() => setSelectedStudent(s)}
+                  className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-gray-50 transition-colors cursor-pointer group"
+                >
+                  <StudentAvatar name={s.name} color={s.color} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 font-body">
+                      {s.name}
+                    </p>
+                    <p className="text-xs text-gray-400 font-body mt-0.5">
+                      {s.grade}
+                    </p>
+                  </div>
+                  <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full shrink-0 font-body">
+                    {s.classroom}
+                  </span>
+                  {s.attendance_status === "checked_in" && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#4a7c59]/10 text-[#4a7c59] shrink-0 font-body">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#4a7c59] animate-pulse" />
+                      Checked In
+                    </span>
+                  )}
+                  {s.attendance_status === "checked_out" && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-400 shrink-0 font-body">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                      Checked Out
+                    </span>
+                  )}
+                  {s.attendance_status === "absent" && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-500 shrink-0 font-body">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                      Not Checked In
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <StudentDetailSidebar
+        student={selectedStudent}
+        onClose={() => setSelectedStudent(null)}
+      />
+    </div>
+  );
+}
+
 // ─── Hours Helpers ────────────────────────────────────────────────────────────
 
 function sessionDurationHours(s: DemoSession): number {
@@ -835,6 +1228,12 @@ function buildHoursInitialSessions(): Record<string, DemoSession[]> {
 
 const WEEKLY_GOAL = 40;
 type ViewMode = "day" | "week" | "month";
+
+const HOURS_VIEW_OPTIONS: { id: ViewMode; label: string }[] = [
+  { id: "day", label: "Day" },
+  { id: "week", label: "Week" },
+  { id: "month", label: "Month" },
+];
 
 // ─── Session Row ──────────────────────────────────────────────────────────────
 
@@ -1545,229 +1944,6 @@ function SummaryPanel({
   );
 }
 
-// ─── Hours Page ───────────────────────────────────────────────────────────────
-
-function HoursPage() {
-  const [view, setView] = useState<ViewMode>("day");
-  const [sessionsByDay, setSessionsByDay] = useState<
-    Record<string, DemoSession[]>
-  >(buildHoursInitialSessions);
-  const [selectedDate, setSelectedDate] = useState<Date>(() => {
-    const today = new Date();
-    const day = today.getDay();
-    if (day === 6) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - 1);
-      return d;
-    }
-    if (day === 0) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - 2);
-      return d;
-    }
-    return today;
-  });
-
-  const activeSession =
-    Object.values(sessionsByDay)
-      .flat()
-      .find((s) => !s.clockOutAt) ?? null;
-
-  function handleClockIn() {
-    const now = new Date();
-    const key = todayKey(now);
-    setSessionsByDay((prev) => ({
-      ...prev,
-      [key]: [
-        ...(prev[key] ?? []),
-        { id: `h-${Date.now()}`, clockInAt: now, clockOutAt: null, note: "" },
-      ],
-    }));
-  }
-
-  function handleClockOut() {
-    if (!activeSession) return;
-    const key = todayKey(activeSession.clockInAt);
-    const clockOutAt = new Date();
-    setSessionsByDay((prev) => ({
-      ...prev,
-      [key]: (prev[key] ?? []).map((s) =>
-        s.id === activeSession.id ? { ...s, clockOutAt } : s,
-      ),
-    }));
-  }
-
-  function handleDeleteSession(id: string) {
-    setSessionsByDay((prev) => {
-      const next = { ...prev };
-      for (const key of Object.keys(next)) {
-        next[key] = next[key].filter((s) => s.id !== id);
-        if (next[key].length === 0) delete next[key];
-      }
-      return next;
-    });
-  }
-
-  function handleNoteChange(id: string, note: string) {
-    setSessionsByDay((prev) => {
-      const next = { ...prev };
-      for (const key of Object.keys(next)) {
-        next[key] = next[key].map((s) => (s.id === id ? { ...s, note } : s));
-      }
-      return next;
-    });
-  }
-
-  function handleDayClick(date: Date, switchToDay: boolean) {
-    setSelectedDate(date);
-    if (switchToDay) setView("day");
-  }
-
-  function goDay(delta: number) {
-    const next = new Date(selectedDate);
-    next.setDate(next.getDate() + delta);
-    if (next.getDay() === 0)
-      next.setDate(next.getDate() + (delta > 0 ? 1 : -2));
-    if (next.getDay() === 6)
-      next.setDate(next.getDate() + (delta > 0 ? 2 : -1));
-    setSelectedDate(next);
-  }
-
-  const views: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
-    { id: "day", label: "Day", icon: <Clock className="w-3.5 h-3.5" /> },
-    {
-      id: "week",
-      label: "Week",
-      icon: <CalendarDays className="w-3.5 h-3.5" />,
-    },
-    {
-      id: "month",
-      label: "Month",
-      icon: <LayoutGrid className="w-3.5 h-3.5" />,
-    },
-  ];
-
-  return (
-    <div className="flex gap-6">
-      {/* Main content */}
-      <div className="flex-1 min-w-0">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="flex items-end justify-between mb-7"
-        >
-          <div>
-            <h1 className="text-3xl font-bold font-heading text-gray-800">
-              My Hours
-            </h1>
-            <p className="text-sm text-gray-400 font-body mt-1">
-              Clock in and out to track your daily work time.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {view === "day" && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => goDay(-1)}
-                  className="p-1.5 rounded-lg hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="text-sm font-medium text-gray-600 font-body tabular-nums min-w-[110px] text-center">
-                  {selectedDate.toLocaleDateString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </span>
-                <button
-                  onClick={() => goDay(1)}
-                  className="p-1.5 rounded-lg hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-            <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
-              {views.map(({ id, label, icon }) => (
-                <button
-                  key={id}
-                  onClick={() => setView(id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-body transition-all cursor-pointer
-                    ${view === id ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-                >
-                  {icon}
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        <AnimatePresence mode="wait">
-          {view === "day" && (
-            <motion.div
-              key="day"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <DayView
-                selectedDate={selectedDate}
-                sessionsByDay={sessionsByDay}
-                activeSession={activeSession}
-                onClockIn={handleClockIn}
-                onClockOut={handleClockOut}
-                onDeleteSession={handleDeleteSession}
-                onNoteChange={handleNoteChange}
-              />
-            </motion.div>
-          )}
-          {view === "week" && (
-            <motion.div
-              key="week"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <WeekView
-                sessionsByDay={sessionsByDay}
-                activeSession={activeSession}
-                onDayClick={handleDayClick}
-              />
-            </motion.div>
-          )}
-          {view === "month" && (
-            <motion.div
-              key="month"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <MonthView
-                sessionsByDay={sessionsByDay}
-                onDayClick={handleDayClick}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Summary sidebar */}
-      <div className="w-64 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <SummaryPanel
-          sessionsByDay={sessionsByDay}
-          activeSession={activeSession}
-        />
-      </div>
-    </div>
-  );
-}
-
 // ─── Messages Demo Data ───────────────────────────────────────────────────────
 
 type DemoConvo = {
@@ -2234,8 +2410,8 @@ function CalendarPage() {
   }, []);
 
   return (
-    <div className="flex gap-6 flex-1 px-6 py-8 border-t border-gray-100">
-      <div className="flex-1 min-w-0">
+    <div className="flex flex-1 overflow-hidden border-t border-gray-100">
+      <div className="flex-1 min-w-0 overflow-y-auto px-6 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -2280,7 +2456,7 @@ function CalendarPage() {
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-px bg-gray-100 rounded-xl overflow-hidden border border-gray-100">
+        <div className="grid grid-cols-7 gap-px bg-gray-100 overflow-hidden border border-gray-100">
           {cells.map((d, i) => {
             if (!d)
               return <div key={`e-${i}`} className="bg-white min-h-[80px]" />;
@@ -2346,35 +2522,33 @@ function CalendarPage() {
       </div>
 
       {/* Upcoming events sidebar */}
-      <div className="w-64 shrink-0 flex flex-col gap-3">
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body">
-            Upcoming
-          </p>
-          {CALENDAR_EVENTS.filter((e) => e.event_date >= currentTodayKey)
-            .sort((a, b) => a.event_date.localeCompare(b.event_date))
-            .slice(0, 6)
-            .map((ev) => (
-              <button
-                key={ev.id}
-                onClick={() => setSelectedEvent(ev)}
-                className="w-full text-left relative rounded-xl border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors cursor-pointer"
-              >
-                <div
-                  className="absolute left-0 top-0 bottom-0 w-1"
-                  style={{ backgroundColor: ev.color ?? "#4a7c59" }}
-                />
-                <div className="pl-4 pr-3 py-2.5">
-                  <p className="text-[11px] text-gray-400 font-body">
-                    {formatEventDate(ev)}
-                  </p>
-                  <p className="text-xs font-semibold text-gray-800 font-body leading-snug">
-                    {ev.title}
-                  </p>
-                </div>
-              </button>
-            ))}
-        </div>
+      <div className="w-64 shrink-0 border-l border-gray-100 overflow-y-auto px-4 py-6 flex flex-col gap-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body">
+          Upcoming
+        </p>
+        {CALENDAR_EVENTS.filter((e) => e.event_date >= currentTodayKey)
+          .sort((a, b) => a.event_date.localeCompare(b.event_date))
+          .slice(0, 6)
+          .map((ev) => (
+            <button
+              key={ev.id}
+              onClick={() => setSelectedEvent(ev)}
+              className="w-full text-left relative rounded-md border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors cursor-pointer"
+            >
+              <div
+                className="absolute left-0 top-0 bottom-0 w-1"
+                style={{ backgroundColor: ev.color ?? "#4a7c59" }}
+              />
+              <div className="pl-4 pr-3 py-2.5">
+                <p className="text-[11px] text-gray-400 font-body">
+                  {formatEventDate(ev)}
+                </p>
+                <p className="text-xs font-semibold text-gray-800 font-body leading-snug">
+                  {ev.title}
+                </p>
+              </div>
+            </button>
+          ))}
       </div>
 
       {/* Event detail sidebar */}
@@ -2611,410 +2785,6 @@ function timeAgo(iso: string): string {
 }
 
 const DEFAULT_EMOJIS = ["❤️", "👏", "😊", "👍"];
-
-function FeedPage() {
-  const [posts, setPosts] = useState<DemoFeedPost[]>(INITIAL_POSTS);
-  const [filterTeacher, setFilterTeacher] = useState<string | null>(null);
-  const [selectedPost, setSelectedPost] = useState<DemoFeedPost | null>(null);
-  const [composing, setComposing] = useState(false);
-  const [draftBody, setDraftBody] = useState("");
-  const [commentDraft, setCommentDraft] = useState("");
-  const livePost = selectedPost
-    ? (posts.find((p) => p.id === selectedPost.id) ?? selectedPost)
-    : null;
-
-  const displayed = filterTeacher
-    ? posts.filter((p) => p.authorId === filterTeacher)
-    : posts;
-
-  function toggleReaction(postId: string, emoji: string) {
-    setPosts((prev) =>
-      prev.map((p) => {
-        if (p.id !== postId) return p;
-        const existing = p.reactions.find((r) => r.emoji === emoji);
-        let reactions: DemoReaction[];
-        if (existing) {
-          reactions = p.reactions
-            .map((r) =>
-              r.emoji === emoji
-                ? {
-                    ...r,
-                    count: r.mine ? r.count - 1 : r.count + 1,
-                    mine: !r.mine,
-                  }
-                : r,
-            )
-            .filter((r) => r.count > 0);
-        } else {
-          reactions = [...p.reactions, { emoji, count: 1, mine: true }];
-        }
-        return { ...p, reactions };
-      }),
-    );
-  }
-
-  function addComment(postId: string, body: string) {
-    const newComment: DemoComment = {
-      id: `c-${Date.now()}`,
-      authorName: DEMO_TEACHER.name,
-      authorColor: "#4a7c59",
-      body,
-      time: "Just now",
-    };
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p,
-      ),
-    );
-  }
-
-  function submitPost() {
-    const body = draftBody.trim();
-    if (!body) return;
-    const newPost: DemoFeedPost = {
-      id: `p-${Date.now()}`,
-      authorName: DEMO_TEACHER.name,
-      authorId: "t1",
-      authorColor: "#4a7c59",
-      body,
-      createdAt: new Date().toISOString(),
-      reactions: [],
-      comments: [],
-    };
-    setPosts((prev) => [newPost, ...prev]);
-    setDraftBody("");
-    setComposing(false);
-  }
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setSelectedPost(null);
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
-
-  return (
-    <div className="flex gap-6">
-      {/* Teacher filter sidebar */}
-      <aside className="w-44 shrink-0 flex flex-col gap-1 pt-1">
-        <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wider px-2 pb-2">
-          Teachers
-        </p>
-        <button
-          onClick={() => setFilterTeacher(null)}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${filterTeacher === null ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
-        >
-          <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-            <span className="text-[10px] text-gray-500 font-bold">All</span>
-          </div>
-          <span className="text-sm font-body font-medium truncate">
-            All Teachers
-          </span>
-        </button>
-        {DEMO_TEACHERS_FEED.map((t) => (
-          <button
-            key={t.id}
-            onClick={() =>
-              setFilterTeacher(filterTeacher === t.id ? null : t.id)
-            }
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${filterTeacher === t.id ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
-          >
-            <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
-              style={{ backgroundColor: t.color }}
-            >
-              {initialsFrom(t.name)}
-            </div>
-            <span className="text-xs font-body font-medium truncate">
-              {t.name.split(" ")[0]}
-            </span>
-          </button>
-        ))}
-      </aside>
-
-      {/* Feed */}
-      <div className="flex-1 min-w-0 max-w-2xl">
-        {/* Compose bar */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#4a7c59] flex items-center justify-center text-white text-xs font-semibold font-body shrink-0 mt-0.5">
-              {initialsFrom(DEMO_TEACHER.name)}
-            </div>
-            <div className="flex-1">
-              {!composing ? (
-                <button
-                  onClick={() => setComposing(true)}
-                  className="w-full text-left bg-gray-50 rounded-full px-4 py-2.5 border border-gray-100 text-sm font-body text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer"
-                >
-                  Share something with parents...
-                </button>
-              ) : (
-                <div>
-                  <textarea
-                    autoFocus
-                    value={draftBody}
-                    onChange={(e) => setDraftBody(e.target.value)}
-                    placeholder="What's happening in the classroom today?"
-                    rows={3}
-                    className="w-full bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200 text-sm font-body text-gray-700 placeholder-gray-400 outline-none resize-none focus:border-[#4a7c59]/40 transition-colors"
-                  />
-                  <div className="flex items-center justify-end gap-2 pt-2">
-                    <button
-                      onClick={() => {
-                        setComposing(false);
-                        setDraftBody("");
-                      }}
-                      className="px-3 py-1.5 text-sm font-body text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={submitPost}
-                      disabled={!draftBody.trim()}
-                      className="px-4 py-1.5 bg-[#4a7c59] text-white text-sm font-semibold font-body rounded-full hover:bg-[#3d6b4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      Post
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Posts */}
-        <div className="flex flex-col gap-4">
-          {displayed.length === 0 ? (
-            <p className="text-sm text-gray-400 font-body text-center py-12">
-              No posts yet.
-            </p>
-          ) : (
-            displayed.map((post) => (
-              <motion.div
-                key={post.id}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                onClick={() => setSelectedPost(post)}
-                className="bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:border-gray-200 transition-colors group"
-              >
-                <div className="flex items-start justify-between pt-5 px-5 mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold font-body"
-                      style={{ backgroundColor: post.authorColor }}
-                    >
-                      {initialsFrom(post.authorName)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold font-body text-gray-800 leading-tight">
-                        {post.authorName}
-                      </p>
-                      <p className="text-xs text-gray-400 font-body">
-                        Teacher · {timeAgo(post.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-sm font-body text-gray-700 leading-relaxed px-5 pb-4">
-                  {post.body}
-                </p>
-
-                <div className="px-5 pb-4 border-t border-gray-50 pt-3.5 flex items-center justify-between">
-                  <div className="flex flex-wrap gap-2">
-                    {DEFAULT_EMOJIS.map((emoji) => {
-                      const r = post.reactions.find((rx) => rx.emoji === emoji);
-                      return (
-                        <button
-                          key={emoji}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleReaction(post.id, emoji);
-                          }}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#4a7c59]/10 border-[#4a7c59]/30 text-[#4a7c59]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
-                        >
-                          <span>{emoji}</span>
-                          {r && r.count > 0 && (
-                            <span className="text-xs font-semibold">
-                              {r.count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedPost(post);
-                    }}
-                    className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#4a7c59] transition-colors font-body ml-3 shrink-0 cursor-pointer"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    {post.comments.length}
-                  </button>
-                </div>
-              </motion.div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Post detail sidebar */}
-      <AnimatePresence>
-        {livePost && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0 z-40 backdrop-blur-sm"
-              style={{ background: "rgba(0,0,0,0.15)" }}
-              onClick={() => setSelectedPost(null)}
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 280 }}
-              className="absolute top-0 right-0 bottom-0 w-[480px] z-50 flex flex-col overflow-hidden bg-white border-l border-gray-100 shadow-xl"
-            >
-              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
-                {/* Post header */}
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-white text-sm font-semibold font-body"
-                    style={{ backgroundColor: livePost.authorColor }}
-                  >
-                    {initialsFrom(livePost.authorName)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold font-body text-gray-800">
-                      {livePost.authorName}
-                    </p>
-                    <p className="text-xs text-gray-400 font-body">
-                      Teacher · {timeAgo(livePost.createdAt)}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedPost(null)}
-                    className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <p className="text-sm font-body text-gray-700 leading-relaxed">
-                  {livePost.body}
-                </p>
-
-                {/* Reactions */}
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-3">
-                    Reactions
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {DEFAULT_EMOJIS.map((emoji) => {
-                      const r = livePost.reactions.find(
-                        (rx) => rx.emoji === emoji,
-                      );
-                      return (
-                        <button
-                          key={emoji}
-                          onClick={() => toggleReaction(livePost.id, emoji)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#4a7c59]/10 border-[#4a7c59]/30 text-[#4a7c59]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
-                        >
-                          <span>{emoji}</span>
-                          {r && r.count > 0 && (
-                            <span className="text-xs font-semibold">
-                              {r.count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Comments */}
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-4">
-                    Comments · {livePost.comments.length}
-                  </p>
-                  <div className="flex flex-col gap-4">
-                    {livePost.comments.map((c) => (
-                      <div key={c.id} className="flex gap-2.5">
-                        <div
-                          className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-[9px] font-bold font-body"
-                          style={{ backgroundColor: c.authorColor }}
-                        >
-                          {initialsFrom(c.authorName)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="bg-[#eef4ef] rounded-2xl rounded-tl-sm px-3.5 py-2.5">
-                            <p className="text-xs font-semibold font-body text-gray-700 mb-0.5">
-                              {c.authorName}
-                            </p>
-                            <p className="text-sm font-body text-gray-600 leading-relaxed">
-                              {c.body}
-                            </p>
-                          </div>
-                          <p className="text-xs text-gray-400 font-body mt-1 ml-1">
-                            {c.time}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    {livePost.comments.length === 0 && (
-                      <p className="text-sm text-gray-400 font-body">
-                        No comments yet.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Comment input */}
-                <div className="border-t border-gray-100 pt-4 flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-[#4a7c59] flex items-center justify-center text-white text-[9px] font-bold font-body shrink-0">
-                    {initialsFrom(DEMO_TEACHER.name)}
-                  </div>
-                  <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3.5 py-2">
-                    <input
-                      type="text"
-                      value={commentDraft}
-                      onChange={(e) => setCommentDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          addComment(livePost.id, commentDraft.trim());
-                          setCommentDraft("");
-                        }
-                      }}
-                      placeholder="Add a comment..."
-                      className="flex-1 bg-transparent text-sm font-body text-gray-700 placeholder-gray-400 outline-none"
-                    />
-                    <button
-                      onClick={() => {
-                        addComment(livePost.id, commentDraft.trim());
-                        setCommentDraft("");
-                      }}
-                      disabled={!commentDraft.trim()}
-                      className="text-[#4a7c59] hover:text-[#3d6b4a] transition-colors shrink-0 disabled:opacity-40 cursor-pointer"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 // ─── Payroll Demo Data ────────────────────────────────────────────────────────
 
@@ -3760,12 +3530,7 @@ function ClockWidget({
   const weekTotal = getWeekTotalHours(monday, sessionsByDay);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5"
-    >
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 font-body">
           Clock
@@ -3859,7 +3624,7 @@ function ClockWidget({
           </p>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -3875,12 +3640,7 @@ function UpcomingEventsCard({
   onToggle: (id: string) => void;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: 0.05 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4"
-    >
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <CalendarDays className="w-4 h-4 text-gray-400" />
         <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 font-body">
@@ -3973,7 +3733,7 @@ function UpcomingEventsCard({
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -4002,12 +3762,7 @@ function WeeklyHoursChart({
   const weekLabel = `${monday.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${fri.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: 0.1 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
-    >
+    <div>
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-gray-400" />
@@ -4060,7 +3815,7 @@ function WeeklyHoursChart({
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -4068,12 +3823,7 @@ function WeeklyHoursChart({
 
 function PayrollCard() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: 0.15 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5"
-    >
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Banknote className="w-4 h-4 text-gray-400" />
@@ -4112,7 +3862,7 @@ function PayrollCard() {
       <p className="text-xs text-gray-300 font-body">
         Full payroll details and history will be available here soon.
       </p>
-    </motion.div>
+    </div>
   );
 }
 
@@ -4237,6 +3987,25 @@ export default function TeacherDashboardDemo() {
   // ── Lifted state for tour control ──────────────────────────────────────────
   const [msgDraft, setMsgDraft] = useState("");
 
+  // ── Hours tab state ──────────────────────────────────────────────────────────
+  const [hoursView, setHoursView] = useState<ViewMode>("day");
+  const [hoursSessionsByDay, setHoursSessionsByDay] = useState<Record<string, DemoSession[]>>(buildHoursInitialSessions);
+  const [hoursSelectedDate, setHoursSelectedDate] = useState<Date>(() => {
+    const today = new Date();
+    const day = today.getDay();
+    if (day === 6) { const d = new Date(today); d.setDate(today.getDate() - 1); return d; }
+    if (day === 0) { const d = new Date(today); d.setDate(today.getDate() - 2); return d; }
+    return today;
+  });
+
+  // ── Feed tab state ───────────────────────────────────────────────────────────
+  const [feedPosts, setFeedPosts] = useState<DemoFeedPost[]>(INITIAL_POSTS);
+  const [feedFilterTeacher, setFeedFilterTeacher] = useState<string | null>(null);
+  const [feedSelectedPost, setFeedSelectedPost] = useState<DemoFeedPost | null>(null);
+  const [feedComposing, setFeedComposing] = useState(false);
+  const [feedDraftBody, setFeedDraftBody] = useState("");
+  const [feedCommentDraft, setFeedCommentDraft] = useState("");
+
   // ── Tour state ──────────────────────────────────────────────────────────────
   const [isTouring, setIsTouring] = useState(true);
   const [tourStep, setTourStep] = useState(0);
@@ -4254,6 +4023,14 @@ export default function TeacherDashboardDemo() {
       setBannerIndex((i) => (i + 1) % BANNER_IMAGES.length);
     }, 4000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    function onFeedKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setFeedSelectedPost(null);
+    }
+    document.addEventListener("keydown", onFeedKey);
+    return () => document.removeEventListener("keydown", onFeedKey);
   }, []);
 
   function handleClockIn() {
@@ -4284,6 +4061,137 @@ export default function TeacherDashboardDemo() {
         s.id === activeSession.id ? { ...s, clockOutAt } : s,
       ),
     }));
+  }
+
+  // ── Hours tab handlers ────────────────────────────────────────────────────────
+
+  const hoursActiveSession =
+    Object.values(hoursSessionsByDay)
+      .flat()
+      .find((s) => !s.clockOutAt) ?? null;
+
+  function handleHoursClockIn() {
+    const now = new Date();
+    const key = todayKey(now);
+    setHoursSessionsByDay((prev) => ({
+      ...prev,
+      [key]: [
+        ...(prev[key] ?? []),
+        { id: `h-${Date.now()}`, clockInAt: now, clockOutAt: null, note: "" },
+      ],
+    }));
+  }
+
+  function handleHoursClockOut() {
+    if (!hoursActiveSession) return;
+    const key = todayKey(hoursActiveSession.clockInAt);
+    const clockOutAt = new Date();
+    setHoursSessionsByDay((prev) => ({
+      ...prev,
+      [key]: (prev[key] ?? []).map((s) =>
+        s.id === hoursActiveSession.id ? { ...s, clockOutAt } : s,
+      ),
+    }));
+  }
+
+  function handleDeleteHoursSession(id: string) {
+    setHoursSessionsByDay((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        next[key] = next[key].filter((s) => s.id !== id);
+        if (next[key].length === 0) delete next[key];
+      }
+      return next;
+    });
+  }
+
+  function handleHoursNoteChange(id: string, note: string) {
+    setHoursSessionsByDay((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        next[key] = next[key].map((s) => (s.id === id ? { ...s, note } : s));
+      }
+      return next;
+    });
+  }
+
+  function handleHoursDayClick(date: Date, switchToDay: boolean) {
+    setHoursSelectedDate(date);
+    if (switchToDay) setHoursView("day");
+  }
+
+  function goHoursDay(delta: number) {
+    const next = new Date(hoursSelectedDate);
+    next.setDate(next.getDate() + delta);
+    if (next.getDay() === 0)
+      next.setDate(next.getDate() + (delta > 0 ? 1 : -2));
+    if (next.getDay() === 6)
+      next.setDate(next.getDate() + (delta > 0 ? 2 : -1));
+    setHoursSelectedDate(next);
+  }
+
+  // ── Feed tab handlers ─────────────────────────────────────────────────────────
+
+  const feedLivePost = feedSelectedPost
+    ? (feedPosts.find((p) => p.id === feedSelectedPost.id) ?? feedSelectedPost)
+    : null;
+  const feedDisplayed = feedFilterTeacher
+    ? feedPosts.filter((p) => p.authorId === feedFilterTeacher)
+    : feedPosts;
+
+  function toggleFeedReaction(postId: string, emoji: string) {
+    setFeedPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const existing = p.reactions.find((r) => r.emoji === emoji);
+        let reactions: DemoReaction[];
+        if (existing) {
+          reactions = p.reactions
+            .map((r) =>
+              r.emoji === emoji
+                ? { ...r, count: r.mine ? r.count - 1 : r.count + 1, mine: !r.mine }
+                : r,
+            )
+            .filter((r) => r.count > 0);
+        } else {
+          reactions = [...p.reactions, { emoji, count: 1, mine: true }];
+        }
+        return { ...p, reactions };
+      }),
+    );
+  }
+
+  function addFeedComment(postId: string, body: string) {
+    const newComment: DemoComment = {
+      id: `c-${Date.now()}`,
+      authorName: DEMO_TEACHER.name,
+      authorColor: "#4a7c59",
+      body,
+      time: "Just now",
+    };
+    setFeedPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p,
+      ),
+    );
+  }
+
+  function submitFeedPost() {
+    const body = feedDraftBody.trim();
+    if (!body) return;
+    const newPost: DemoFeedPost = {
+      id: `p-${Date.now()}`,
+      authorName: DEMO_TEACHER.name,
+      authorId: "t1",
+      authorColor: "#4a7c59",
+      body,
+      createdAt: new Date().toISOString(),
+      reactions: [],
+      comments: [],
+    };
+    setFeedPosts((prev) => [newPost, ...prev]);
+    setFeedDraftBody("");
+    setFeedComposing(false);
   }
 
   // ── Tour helpers ────────────────────────────────────────────────────────────
@@ -4627,7 +4535,7 @@ export default function TeacherDashboardDemo() {
       </header>
 
       {/* Page content */}
-      <main className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${activeTab === "messages" || activeTab === "calendar" ? "bg-white" : ""}`}>
+      <main className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${activeTab === "messages" || activeTab === "calendar" || activeTab === "students" || activeTab === "dashboard" || activeTab === "hours" || activeTab === "feed" ? "bg-white" : ""}`}>
         {activeTab === "messages" && (
           <MessagesPage
             externalDraft={msgDraft}
@@ -4637,11 +4545,12 @@ export default function TeacherDashboardDemo() {
 
         {activeTab === "calendar" && <CalendarPage />}
 
-        {(activeTab !== "messages" && activeTab !== "calendar") && (
-        <div className="max-w-6xl w-full mx-auto px-6 py-8 flex flex-col flex-1">
+        {activeTab === "students" && <StudentsPage />}
+
         {activeTab === "dashboard" && (
-          <div className="flex flex-col gap-6">
-            {/* Banner slideshow */}
+          <div className="flex flex-col flex-1">
+            {/* Banner */}
+            <div className="px-6 pt-6 shrink-0">
             <motion.div
               initial={{ opacity: 0, scale: 1.01 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -4704,52 +4613,503 @@ export default function TeacherDashboardDemo() {
                 </motion.h1>
               </div>
             </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ClockWidget
-                sessionsByDay={sessionsByDay}
-                onClockIn={handleClockIn}
-                onClockOut={handleClockOut}
-              />
-              <UpcomingEventsCard
-                events={DEMO_EVENTS}
-                expandedId={expandedEventId}
-                onToggle={(id) =>
-                  setExpandedEventId((prev) => (prev === id ? null : id))
-                }
-              />
             </div>
 
-            <WeeklyHoursChart sessionsByDay={sessionsByDay} />
-            <PayrollCard />
+            {/* Two-column content */}
+            <div className="flex flex-1 border-t border-gray-100 mt-6">
+              {/* Left: Clock + Payroll */}
+              <div className="w-72 shrink-0 border-r border-gray-100 flex flex-col divide-y divide-gray-100">
+                <div className="p-6">
+                  <ClockWidget
+                    sessionsByDay={sessionsByDay}
+                    onClockIn={handleClockIn}
+                    onClockOut={handleClockOut}
+                  />
+                </div>
+                <div className="p-6">
+                  <PayrollCard />
+                </div>
+              </div>
+
+              {/* Right: Upcoming Events + Weekly Hours */}
+              <div className="flex-1 flex flex-col divide-y divide-gray-100">
+                <div className="p-6">
+                  <UpcomingEventsCard
+                    events={DEMO_EVENTS}
+                    expandedId={expandedEventId}
+                    onToggle={(id) =>
+                      setExpandedEventId((prev) => (prev === id ? null : id))
+                    }
+                  />
+                </div>
+                <div className="p-6">
+                  <WeeklyHoursChart sessionsByDay={sessionsByDay} />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {activeTab === "students" && <MyStudentsSection />}
+        {activeTab === "hours" && (
+          <div className="flex gap-6 px-6 py-8">
+            {/* Main content */}
+            <div className="flex-1 min-w-0">
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="flex items-end justify-between mb-7"
+              >
+                <div>
+                  <h1 className="text-3xl font-bold font-heading text-gray-800">
+                    My Hours
+                  </h1>
+                  <p className="text-sm text-gray-400 font-body mt-1">
+                    Clock in and out to track your daily work time.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  {hoursView === "day" && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => goHoursDay(-1)}
+                        className="p-1.5 rounded-lg hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <span className="text-sm font-medium text-gray-600 font-body tabular-nums min-w-[110px] text-center">
+                        {hoursSelectedDate.toLocaleDateString("en-US", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                      <button
+                        onClick={() => goHoursDay(1)}
+                        className="p-1.5 rounded-lg hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                    {HOURS_VIEW_OPTIONS.map(({ id, label }) => (
+                      <button
+                        key={id}
+                        onClick={() => setHoursView(id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-body transition-all cursor-pointer
+                          ${hoursView === id ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                      >
+                        {id === "day" && <Clock className="w-3.5 h-3.5" />}
+                        {id === "week" && <CalendarDays className="w-3.5 h-3.5" />}
+                        {id === "month" && <LayoutGrid className="w-3.5 h-3.5" />}
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
 
-        {activeTab === "hours" && <HoursPage />}
+              <AnimatePresence mode="wait">
+                {hoursView === "day" && (
+                  <motion.div
+                    key="day"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <DayView
+                      selectedDate={hoursSelectedDate}
+                      sessionsByDay={hoursSessionsByDay}
+                      activeSession={hoursActiveSession}
+                      onClockIn={handleHoursClockIn}
+                      onClockOut={handleHoursClockOut}
+                      onDeleteSession={handleDeleteHoursSession}
+                      onNoteChange={handleHoursNoteChange}
+                    />
+                  </motion.div>
+                )}
+                {hoursView === "week" && (
+                  <motion.div
+                    key="week"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <WeekView
+                      sessionsByDay={hoursSessionsByDay}
+                      activeSession={hoursActiveSession}
+                      onDayClick={handleHoursDayClick}
+                    />
+                  </motion.div>
+                )}
+                {hoursView === "month" && (
+                  <motion.div
+                    key="month"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <MonthView
+                      sessionsByDay={hoursSessionsByDay}
+                      onDayClick={handleHoursDayClick}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
-        {activeTab === "feed" && <FeedPage />}
+            {/* Summary sidebar */}
+            <div className="w-64 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <SummaryPanel
+                sessionsByDay={hoursSessionsByDay}
+                activeSession={hoursActiveSession}
+              />
+            </div>
+          </div>
+        )}
 
-        {activeTab === "payroll" && <PayrollPage />}
+        {activeTab === "feed" && (
+          <div className="flex gap-6 px-6 py-8">
+            {/* Teacher filter sidebar */}
+            <aside className="w-44 shrink-0 flex flex-col gap-1 pt-1">
+              <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wider px-2 pb-2">
+                Teachers
+              </p>
+              <button
+                onClick={() => setFeedFilterTeacher(null)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterTeacher === null ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+              >
+                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                  <span className="text-[10px] text-gray-500 font-bold">All</span>
+                </div>
+                <span className="text-sm font-body font-medium truncate">
+                  All Teachers
+                </span>
+              </button>
+              {DEMO_TEACHERS_FEED.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() =>
+                    setFeedFilterTeacher(feedFilterTeacher === t.id ? null : t.id)
+                  }
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterTeacher === t.id ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                >
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
+                    style={{ backgroundColor: t.color }}
+                  >
+                    {initialsFrom(t.name)}
+                  </div>
+                  <span className="text-xs font-body font-medium truncate">
+                    {t.name.split(" ")[0]}
+                  </span>
+                </button>
+              ))}
+            </aside>
 
-        {activeTab === "forms" && <FormsPage />}
+            {/* Feed */}
+            <div className="flex-1 min-w-0 max-w-2xl">
+              {/* Compose bar */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#4a7c59] flex items-center justify-center text-white text-xs font-semibold font-body shrink-0 mt-0.5">
+                    {initialsFrom(DEMO_TEACHER.name)}
+                  </div>
+                  <div className="flex-1">
+                    {!feedComposing ? (
+                      <button
+                        onClick={() => setFeedComposing(true)}
+                        className="w-full text-left bg-gray-50 rounded-full px-4 py-2.5 border border-gray-100 text-sm font-body text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer"
+                      >
+                        Share something with parents...
+                      </button>
+                    ) : (
+                      <div>
+                        <textarea
+                          autoFocus
+                          value={feedDraftBody}
+                          onChange={(e) => setFeedDraftBody(e.target.value)}
+                          placeholder="What's happening in the classroom today?"
+                          rows={3}
+                          className="w-full bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200 text-sm font-body text-gray-700 placeholder-gray-400 outline-none resize-none focus:border-[#4a7c59]/40 transition-colors"
+                        />
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                          <button
+                            onClick={() => {
+                              setFeedComposing(false);
+                              setFeedDraftBody("");
+                            }}
+                            className="px-3 py-1.5 text-sm font-body text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={submitFeedPost}
+                            disabled={!feedDraftBody.trim()}
+                            className="px-4 py-1.5 bg-[#4a7c59] text-white text-sm font-semibold font-body rounded-full hover:bg-[#3d6b4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            Post
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-        {activeTab !== "dashboard" &&
-          activeTab !== "students" &&
-          activeTab !== "hours" &&
-          activeTab !== "feed" &&
-          activeTab !== "payroll" &&
-          activeTab !== "forms" && (
-            <ComingSoonPage
-              label={
-                PRIMARY_NAV.find((n) => n.tab === activeTab)?.label ??
-                MORE_NAV.find((n) => n.tab === activeTab)?.label ??
-                activeTab
-              }
-            />
-          )}
-        </div>
+              {/* Posts */}
+              <div className="flex flex-col gap-4">
+                {feedDisplayed.length === 0 ? (
+                  <p className="text-sm text-gray-400 font-body text-center py-12">
+                    No posts yet.
+                  </p>
+                ) : (
+                  feedDisplayed.map((post) => (
+                    <motion.div
+                      key={post.id}
+                      layout
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25 }}
+                      onClick={() => setFeedSelectedPost(post)}
+                      className="bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:border-gray-200 transition-colors group"
+                    >
+                      <div className="flex items-start justify-between pt-5 px-5 mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold font-body"
+                            style={{ backgroundColor: post.authorColor }}
+                          >
+                            {initialsFrom(post.authorName)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold font-body text-gray-800 leading-tight">
+                              {post.authorName}
+                            </p>
+                            <p className="text-xs text-gray-400 font-body">
+                              Teacher · {timeAgo(post.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-sm font-body text-gray-700 leading-relaxed px-5 pb-4">
+                        {post.body}
+                      </p>
+
+                      <div className="px-5 pb-4 border-t border-gray-50 pt-3.5 flex items-center justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          {DEFAULT_EMOJIS.map((emoji) => {
+                            const r = post.reactions.find((rx) => rx.emoji === emoji);
+                            return (
+                              <button
+                                key={emoji}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFeedReaction(post.id, emoji);
+                                }}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#4a7c59]/10 border-[#4a7c59]/30 text-[#4a7c59]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                              >
+                                <span>{emoji}</span>
+                                {r && r.count > 0 && (
+                                  <span className="text-xs font-semibold">
+                                    {r.count}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFeedSelectedPost(post);
+                          }}
+                          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#4a7c59] transition-colors font-body ml-3 shrink-0 cursor-pointer"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          {post.comments.length}
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Post detail sidebar */}
+            <AnimatePresence>
+              {feedLivePost && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0 z-40 backdrop-blur-sm"
+                    style={{ background: "rgba(0,0,0,0.15)" }}
+                    onClick={() => setFeedSelectedPost(null)}
+                  />
+                  <motion.div
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ type: "spring", damping: 28, stiffness: 280 }}
+                    className="absolute top-0 right-0 bottom-0 w-[480px] z-50 flex flex-col overflow-hidden bg-white border-l border-gray-100 shadow-xl"
+                  >
+                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+                      {/* Post header */}
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-white text-sm font-semibold font-body"
+                          style={{ backgroundColor: feedLivePost.authorColor }}
+                        >
+                          {initialsFrom(feedLivePost.authorName)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold font-body text-gray-800">
+                            {feedLivePost.authorName}
+                          </p>
+                          <p className="text-xs text-gray-400 font-body">
+                            Teacher · {timeAgo(feedLivePost.createdAt)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setFeedSelectedPost(null)}
+                          className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-sm font-body text-gray-700 leading-relaxed">
+                        {feedLivePost.body}
+                      </p>
+
+                      {/* Reactions */}
+                      <div className="border-t border-gray-100 pt-4">
+                        <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-3">
+                          Reactions
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {DEFAULT_EMOJIS.map((emoji) => {
+                            const r = feedLivePost.reactions.find(
+                              (rx) => rx.emoji === emoji,
+                            );
+                            return (
+                              <button
+                                key={emoji}
+                                onClick={() => toggleFeedReaction(feedLivePost.id, emoji)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#4a7c59]/10 border-[#4a7c59]/30 text-[#4a7c59]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                              >
+                                <span>{emoji}</span>
+                                {r && r.count > 0 && (
+                                  <span className="text-xs font-semibold">
+                                    {r.count}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Comments */}
+                      <div className="border-t border-gray-100 pt-4">
+                        <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-4">
+                          Comments · {feedLivePost.comments.length}
+                        </p>
+                        <div className="flex flex-col gap-4">
+                          {feedLivePost.comments.map((c) => (
+                            <div key={c.id} className="flex gap-2.5">
+                              <div
+                                className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-[9px] font-bold font-body"
+                                style={{ backgroundColor: c.authorColor }}
+                              >
+                                {initialsFrom(c.authorName)}
+                              </div>
+                              <div className="flex-1">
+                                <div className="bg-[#eef4ef] rounded-2xl rounded-tl-sm px-3.5 py-2.5">
+                                  <p className="text-xs font-semibold font-body text-gray-700 mb-0.5">
+                                    {c.authorName}
+                                  </p>
+                                  <p className="text-sm font-body text-gray-600 leading-relaxed">
+                                    {c.body}
+                                  </p>
+                                </div>
+                                <p className="text-xs text-gray-400 font-body mt-1 ml-1">
+                                  {c.time}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          {feedLivePost.comments.length === 0 && (
+                            <p className="text-sm text-gray-400 font-body">
+                              No comments yet.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Comment input */}
+                      <div className="border-t border-gray-100 pt-4 flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-[#4a7c59] flex items-center justify-center text-white text-[9px] font-bold font-body shrink-0">
+                          {initialsFrom(DEMO_TEACHER.name)}
+                        </div>
+                        <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3.5 py-2">
+                          <input
+                            type="text"
+                            value={feedCommentDraft}
+                            onChange={(e) => setFeedCommentDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                addFeedComment(feedLivePost.id, feedCommentDraft.trim());
+                                setFeedCommentDraft("");
+                              }
+                            }}
+                            placeholder="Add a comment..."
+                            className="flex-1 bg-transparent text-sm font-body text-gray-700 placeholder-gray-400 outline-none"
+                          />
+                          <button
+                            onClick={() => {
+                              addFeedComment(feedLivePost.id, feedCommentDraft.trim());
+                              setFeedCommentDraft("");
+                            }}
+                            disabled={!feedCommentDraft.trim()}
+                            className="text-[#4a7c59] hover:text-[#3d6b4a] transition-colors shrink-0 disabled:opacity-40 cursor-pointer"
+                          >
+                            <Send className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {(activeTab !== "messages" && activeTab !== "calendar" && activeTab !== "students" &&
+          activeTab !== "dashboard" && activeTab !== "hours" && activeTab !== "feed") && (
+          <div className="max-w-6xl w-full mx-auto px-6 py-8 flex flex-col flex-1">
+            {activeTab === "payroll" && <PayrollPage />}
+
+            {activeTab === "forms" && <FormsPage />}
+
+            {activeTab !== "payroll" && activeTab !== "forms" && (
+              <ComingSoonPage
+                label={
+                  PRIMARY_NAV.find((n) => n.tab === activeTab)?.label ??
+                  MORE_NAV.find((n) => n.tab === activeTab)?.label ??
+                  activeTab
+                }
+              />
+            )}
+          </div>
         )}
       </main>
     </div>
