@@ -1347,7 +1347,7 @@ function DayView({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 flex flex-col gap-6"
+        className="flex flex-col gap-6"
       >
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -1478,12 +1478,7 @@ function WeekView({
   const weekLabel = `${monday.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${fri.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8"
-    >
+    <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-700 font-body">
@@ -1611,7 +1606,7 @@ function WeekView({
           </span>
         </span>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -1658,12 +1653,7 @@ function MonthView({
   );
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8"
-    >
+    <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-700 font-body">
@@ -1757,7 +1747,7 @@ function MonthView({
           <span className="text-xs text-gray-400 font-body">Not logged</span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -2679,6 +2669,7 @@ type DemoFeedPost = {
   createdAt: string;
   reactions: DemoReaction[];
   comments: DemoComment[];
+  attachments?: { type: "image" | "file"; src: string; name?: string }[];
 };
 
 const DEMO_TEACHERS_FEED = [
@@ -2695,6 +2686,7 @@ const INITIAL_POSTS: DemoFeedPost[] = [
     authorColor: "#4a7c59",
     body: "What a wonderful morning in Room 3B! The students dove headfirst into our new watercolor unit today. Emma and Marcus were especially focused — watching them mix colors and experiment was such a joy. 🎨",
     createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    attachments: [{ type: "image", src: "/images/stock/ImageThree.jpg" }],
     reactions: [
       { emoji: "❤️", count: 4, mine: false },
       { emoji: "👏", count: 2, mine: false },
@@ -2723,6 +2715,7 @@ const INITIAL_POSTS: DemoFeedPost[] = [
     authorColor: "#c9a96e",
     body: "Aisha counted to 20 entirely on her own today during morning circle — completely unprompted. The whole class cheered for her. These little moments are everything. 🌟",
     createdAt: new Date(Date.now() - 26 * 3600 * 1000).toISOString(),
+    attachments: [{ type: "image", src: "/images/stock/Homeschool2.jpg" }],
     reactions: [
       { emoji: "❤️", count: 7, mine: false },
       { emoji: "😊", count: 3, mine: false },
@@ -4651,20 +4644,16 @@ export default function TeacherDashboardDemo() {
         )}
 
         {activeTab === "hours" && (
-          <div className="flex gap-6 px-6 py-8">
+          <div className="flex flex-1 border-t border-gray-100">
             {/* Main content */}
-            <div className="flex-1 min-w-0">
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className="flex items-end justify-between mb-7"
-              >
+            <div className="flex-1 min-w-0 flex flex-col">
+              {/* Header bar */}
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 shrink-0">
                 <div>
-                  <h1 className="text-3xl font-bold font-heading text-gray-800">
+                  <h1 className="text-xl font-bold font-heading text-gray-800">
                     My Hours
                   </h1>
-                  <p className="text-sm text-gray-400 font-body mt-1">
+                  <p className="text-sm text-gray-400 font-body mt-0.5">
                     Clock in and out to track your daily work time.
                   </p>
                 </div>
@@ -4708,8 +4697,9 @@ export default function TeacherDashboardDemo() {
                     ))}
                   </div>
                 </div>
-              </motion.div>
+              </div>
 
+              <div className="flex-1 p-6">
               <AnimatePresence mode="wait">
                 {hoursView === "day" && (
                   <motion.div
@@ -4760,10 +4750,11 @@ export default function TeacherDashboardDemo() {
                   </motion.div>
                 )}
               </AnimatePresence>
+              </div>
             </div>
 
             {/* Summary sidebar */}
-            <div className="w-64 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="w-64 shrink-0 border-l border-gray-100">
               <SummaryPanel
                 sessionsByDay={hoursSessionsByDay}
                 activeSession={hoursActiveSession}
@@ -4773,9 +4764,9 @@ export default function TeacherDashboardDemo() {
         )}
 
         {activeTab === "feed" && (
-          <div className="flex gap-6 px-6 py-8">
+          <div className="flex flex-1 border-t border-gray-100">
             {/* Teacher filter sidebar */}
-            <aside className="w-44 shrink-0 flex flex-col gap-1 pt-1">
+            <aside className="w-48 shrink-0 border-r border-gray-100 flex flex-col p-4 gap-1">
               <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wider px-2 pb-2">
                 Teachers
               </p>
@@ -4812,10 +4803,9 @@ export default function TeacherDashboardDemo() {
             </aside>
 
             {/* Feed */}
-            <div className="flex-1 min-w-0 max-w-2xl">
+            <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">
               {/* Compose bar */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
-                <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 px-6 py-4 border-b border-gray-100 shrink-0">
                   <div className="w-9 h-9 rounded-full bg-[#4a7c59] flex items-center justify-center text-white text-xs font-semibold font-body shrink-0 mt-0.5">
                     {initialsFrom(DEMO_TEACHER.name)}
                   </div>
@@ -4858,50 +4848,59 @@ export default function TeacherDashboardDemo() {
                       </div>
                     )}
                   </div>
-                </div>
               </div>
 
               {/* Posts */}
-              <div className="flex flex-col gap-4">
-                {feedDisplayed.length === 0 ? (
-                  <p className="text-sm text-gray-400 font-body text-center py-12">
-                    No posts yet.
-                  </p>
-                ) : (
-                  feedDisplayed.map((post) => (
+              {feedDisplayed.length === 0 ? (
+                <p className="text-sm text-gray-400 font-body text-center py-12">
+                  No posts yet.
+                </p>
+              ) : (
+                <div className="flex flex-col divide-y divide-gray-100">
+                  {feedDisplayed.map((post) => (
                     <motion.div
                       key={post.id}
                       layout
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.25 }}
+                      transition={{ duration: 0.2 }}
                       onClick={() => setFeedSelectedPost(post)}
-                      className="bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:border-gray-200 transition-colors group"
+                      className="px-6 py-5 cursor-pointer hover:bg-gray-50/60 transition-colors"
                     >
-                      <div className="flex items-start justify-between pt-5 px-5 mb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold font-body"
-                            style={{ backgroundColor: post.authorColor }}
-                          >
-                            {initialsFrom(post.authorName)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold font-body text-gray-800 leading-tight">
-                              {post.authorName}
-                            </p>
-                            <p className="text-xs text-gray-400 font-body">
-                              Teacher · {timeAgo(post.createdAt)}
-                            </p>
-                          </div>
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div
+                          className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold font-body"
+                          style={{ backgroundColor: post.authorColor }}
+                        >
+                          {initialsFrom(post.authorName)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold font-body text-gray-800 leading-tight">
+                            {post.authorName}
+                          </p>
+                          <p className="text-xs text-gray-400 font-body">
+                            Teacher · {timeAgo(post.createdAt)}
+                          </p>
                         </div>
                       </div>
 
-                      <p className="text-sm font-body text-gray-700 leading-relaxed px-5 pb-4">
+                      <p className="text-sm font-body text-gray-700 leading-relaxed mb-4">
                         {post.body}
                       </p>
 
-                      <div className="px-5 pb-4 border-t border-gray-50 pt-3.5 flex items-center justify-between">
+                      {post.attachments?.map((att, i) =>
+                        att.type === "image" ? (
+                          <img
+                            key={i}
+                            src={att.src}
+                            alt={att.name || ""}
+                            className="w-40 h-40 object-cover rounded-xl mb-4 shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : null
+                      )}
+
+                      <div className="flex items-center justify-between">
                         <div className="flex flex-wrap gap-2">
                           {DEFAULT_EMOJIS.map((emoji) => {
                             const r = post.reactions.find((rx) => rx.emoji === emoji);
@@ -4936,160 +4935,157 @@ export default function TeacherDashboardDemo() {
                         </button>
                       </div>
                     </motion.div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Post detail sidebar */}
-            <AnimatePresence>
-              {feedLivePost && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute inset-0 z-40 backdrop-blur-sm"
-                    style={{ background: "rgba(0,0,0,0.15)" }}
-                    onClick={() => setFeedSelectedPost(null)}
-                  />
-                  <motion.div
-                    initial={{ x: "100%" }}
-                    animate={{ x: 0 }}
-                    exit={{ x: "100%" }}
-                    transition={{ type: "spring", damping: 28, stiffness: 280 }}
-                    className="absolute top-0 right-0 bottom-0 w-[480px] z-50 flex flex-col overflow-hidden bg-white border-l border-gray-100 shadow-xl"
-                  >
-                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
-                      {/* Post header */}
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-white text-sm font-semibold font-body"
-                          style={{ backgroundColor: feedLivePost.authorColor }}
-                        >
-                          {initialsFrom(feedLivePost.authorName)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold font-body text-gray-800">
-                            {feedLivePost.authorName}
-                          </p>
-                          <p className="text-xs text-gray-400 font-body">
-                            Teacher · {timeAgo(feedLivePost.createdAt)}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setFeedSelectedPost(null)}
-                          className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <p className="text-sm font-body text-gray-700 leading-relaxed">
-                        {feedLivePost.body}
-                      </p>
-
-                      {/* Reactions */}
-                      <div className="border-t border-gray-100 pt-4">
-                        <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-3">
-                          Reactions
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {DEFAULT_EMOJIS.map((emoji) => {
-                            const r = feedLivePost.reactions.find(
-                              (rx) => rx.emoji === emoji,
-                            );
-                            return (
-                              <button
-                                key={emoji}
-                                onClick={() => toggleFeedReaction(feedLivePost.id, emoji)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#4a7c59]/10 border-[#4a7c59]/30 text-[#4a7c59]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
-                              >
-                                <span>{emoji}</span>
-                                {r && r.count > 0 && (
-                                  <span className="text-xs font-semibold">
-                                    {r.count}
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Comments */}
-                      <div className="border-t border-gray-100 pt-4">
-                        <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-4">
-                          Comments · {feedLivePost.comments.length}
-                        </p>
-                        <div className="flex flex-col gap-4">
-                          {feedLivePost.comments.map((c) => (
-                            <div key={c.id} className="flex gap-2.5">
-                              <div
-                                className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-[9px] font-bold font-body"
-                                style={{ backgroundColor: c.authorColor }}
-                              >
-                                {initialsFrom(c.authorName)}
-                              </div>
-                              <div className="flex-1">
-                                <div className="bg-[#eef4ef] rounded-2xl rounded-tl-sm px-3.5 py-2.5">
-                                  <p className="text-xs font-semibold font-body text-gray-700 mb-0.5">
-                                    {c.authorName}
-                                  </p>
-                                  <p className="text-sm font-body text-gray-600 leading-relaxed">
-                                    {c.body}
-                                  </p>
-                                </div>
-                                <p className="text-xs text-gray-400 font-body mt-1 ml-1">
-                                  {c.time}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                          {feedLivePost.comments.length === 0 && (
-                            <p className="text-sm text-gray-400 font-body">
-                              No comments yet.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Comment input */}
-                      <div className="border-t border-gray-100 pt-4 flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-[#4a7c59] flex items-center justify-center text-white text-[9px] font-bold font-body shrink-0">
-                          {initialsFrom(DEMO_TEACHER.name)}
-                        </div>
-                        <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3.5 py-2">
-                          <input
-                            type="text"
-                            value={feedCommentDraft}
-                            onChange={(e) => setFeedCommentDraft(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                addFeedComment(feedLivePost.id, feedCommentDraft.trim());
-                                setFeedCommentDraft("");
-                              }
-                            }}
-                            placeholder="Add a comment..."
-                            className="flex-1 bg-transparent text-sm font-body text-gray-700 placeholder-gray-400 outline-none"
-                          />
-                          <button
-                            onClick={() => {
-                              addFeedComment(feedLivePost.id, feedCommentDraft.trim());
-                              setFeedCommentDraft("");
-                            }}
-                            disabled={!feedCommentDraft.trim()}
-                            className="text-[#4a7c59] hover:text-[#3d6b4a] transition-colors shrink-0 disabled:opacity-40 cursor-pointer"
-                          >
-                            <Send className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
+            {/* Post detail panel */}
+            <div className="w-80 shrink-0 border-l border-gray-100 flex flex-col overflow-hidden">
+              {feedLivePost ? (
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+                  {/* Post header */}
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-white text-sm font-semibold font-body"
+                      style={{ backgroundColor: feedLivePost.authorColor }}
+                    >
+                      {initialsFrom(feedLivePost.authorName)}
                     </div>
-                  </motion.div>
-                </>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold font-body text-gray-800">
+                        {feedLivePost.authorName}
+                      </p>
+                      <p className="text-xs text-gray-400 font-body">
+                        Teacher · {timeAgo(feedLivePost.createdAt)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setFeedSelectedPost(null)}
+                      className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-sm font-body text-gray-700 leading-relaxed">
+                    {feedLivePost.body}
+                  </p>
+
+                  {feedLivePost.attachments?.map((att, i) =>
+                    att.type === "image" ? (
+                      <img
+                        key={i}
+                        src={att.src}
+                        alt={att.name || ""}
+                        className="w-full max-h-44 object-cover rounded-xl"
+                      />
+                    ) : null
+                  )}
+
+                  {/* Reactions */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-3">
+                      Reactions
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {DEFAULT_EMOJIS.map((emoji) => {
+                        const r = feedLivePost.reactions.find(
+                          (rx) => rx.emoji === emoji,
+                        );
+                        return (
+                          <button
+                            key={emoji}
+                            onClick={() => toggleFeedReaction(feedLivePost.id, emoji)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#4a7c59]/10 border-[#4a7c59]/30 text-[#4a7c59]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                          >
+                            <span>{emoji}</span>
+                            {r && r.count > 0 && (
+                              <span className="text-xs font-semibold">
+                                {r.count}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Comments */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-4">
+                      Comments · {feedLivePost.comments.length}
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      {feedLivePost.comments.map((c) => (
+                        <div key={c.id} className="flex gap-2.5">
+                          <div
+                            className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-[9px] font-bold font-body"
+                            style={{ backgroundColor: c.authorColor }}
+                          >
+                            {initialsFrom(c.authorName)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="bg-[#eef4ef] rounded-2xl rounded-tl-sm px-3.5 py-2.5">
+                              <p className="text-xs font-semibold font-body text-gray-700 mb-0.5">
+                                {c.authorName}
+                              </p>
+                              <p className="text-sm font-body text-gray-600 leading-relaxed">
+                                {c.body}
+                              </p>
+                            </div>
+                            <p className="text-xs text-gray-400 font-body mt-1 ml-1">
+                              {c.time}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {feedLivePost.comments.length === 0 && (
+                        <p className="text-sm text-gray-400 font-body">
+                          No comments yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Comment input */}
+                  <div className="border-t border-gray-100 pt-4 flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-[#4a7c59] flex items-center justify-center text-white text-[9px] font-bold font-body shrink-0">
+                      {initialsFrom(DEMO_TEACHER.name)}
+                    </div>
+                    <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3.5 py-2">
+                      <input
+                        type="text"
+                        value={feedCommentDraft}
+                        onChange={(e) => setFeedCommentDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            addFeedComment(feedLivePost.id, feedCommentDraft.trim());
+                            setFeedCommentDraft("");
+                          }
+                        }}
+                        placeholder="Add a comment..."
+                        className="flex-1 bg-transparent text-sm font-body text-gray-700 placeholder-gray-400 outline-none"
+                      />
+                      <button
+                        onClick={() => {
+                          addFeedComment(feedLivePost.id, feedCommentDraft.trim());
+                          setFeedCommentDraft("");
+                        }}
+                        disabled={!feedCommentDraft.trim()}
+                        className="text-[#4a7c59] hover:text-[#3d6b4a] transition-colors shrink-0 disabled:opacity-40 cursor-pointer"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+                  <MessageCircle className="w-8 h-8 text-gray-200" />
+                  <p className="text-sm text-gray-400 font-body">Select a post to view details</p>
+                </div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
         )}
 

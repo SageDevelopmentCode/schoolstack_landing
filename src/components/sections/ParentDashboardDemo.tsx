@@ -119,6 +119,7 @@ interface DemoPost {
   time: string;
   text: string;
   color: string;
+  attachments?: { type: "image"; src: string; name?: string }[];
 }
 interface DemoTransaction {
   id: string;
@@ -467,6 +468,7 @@ const DEMO_POSTS: DemoPost[] = [
     time: "2 hours ago",
     color: "#7FA888",
     text: "What an incredible morning! The students dove into our new plant life cycle unit with so much curiosity. We planted bean seeds and each child made a prediction about what would happen first — roots or a sprout. Can't wait to watch these grow! 🌱",
+    attachments: [{ type: "image", src: "/images/stock/ImageOne.jpg" }],
   },
   {
     id: "p2",
@@ -491,6 +493,7 @@ const DEMO_POSTS: DemoPost[] = [
     time: "Apr 15",
     color: "#7FA888",
     text: "We wrapped up our community helpers theme with a visit from a local librarian! Students got to ask questions and even check out a book to bring home. Thank you to everyone who donated books to our classroom library this month.",
+    attachments: [{ type: "image", src: "/images/stock/ImageFour.jpg" }],
   },
 ];
 
@@ -510,6 +513,34 @@ const DEMO_SEED_REACTIONS: Record<string, string[]> = {
   p3: [],
   p4: ["❤️", "👏"],
 };
+
+const PARENT_FEED_CLASSES = [
+  {
+    id: "elementary",
+    label: "Elementary",
+    color: "#7FA888",
+    teachers: [
+      { name: "Ms. Taylor Reyes", color: "#7FA888" },
+      { name: "Ms. Nicole Park", color: "#97C09B" },
+    ],
+  },
+  {
+    id: "prek",
+    label: "Pre-K",
+    color: "#f29a8f",
+    teachers: [
+      { name: "Ms. Paige Sun", color: "#f29a8f" },
+    ],
+  },
+  {
+    id: "kindergarten",
+    label: "Kindergarten",
+    color: "#a78bfa",
+    teachers: [
+      { name: "Ms. Taylor Reyes", color: "#7FA888" },
+    ],
+  },
+];
 
 const DEMO_TRANSACTIONS: DemoTransaction[] = [
   {
@@ -2585,124 +2616,6 @@ function CalendarPage({
   );
 }
 
-function FeedPage() {
-  const [reactions, setReactions] =
-    useState<Record<string, string[]>>(DEMO_SEED_REACTIONS);
-  const [comments, setComments] =
-    useState<Record<string, string[]>>(DEMO_SEED_COMMENTS);
-  const [commentInputs, setCommentInputs] = useState<Record<string, string>>(
-    {},
-  );
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(["p1"]));
-
-  const toggleReaction = (postId: string, emoji: string) => {
-    const cur = reactions[postId] || [];
-    setReactions({
-      ...reactions,
-      [postId]: cur.includes(emoji)
-        ? cur.filter((e) => e !== emoji)
-        : [...cur, emoji],
-    });
-  };
-  const addComment = (postId: string) => {
-    const text = (commentInputs[postId] || "").trim();
-    if (!text) return;
-    setComments({ ...comments, [postId]: [...(comments[postId] || []), text] });
-    setCommentInputs({ ...commentInputs, [postId]: "" });
-  };
-  const toggleExpanded = (postId: string) => {
-    const next = new Set(expanded);
-    next.has(postId) ? next.delete(postId) : next.add(postId);
-    setExpanded(next);
-  };
-  const EMOJIS = ["❤️", "👏", "😊", "🌱", "✨"];
-
-  return (
-    <div className="space-y-4">
-      {DEMO_POSTS.map((post) => (
-        <div
-          key={post.id}
-          className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm"
-        >
-          <div className="flex items-start gap-3 mb-3">
-            <Avatar
-              initials={post.author
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .slice(0, 2)}
-              color={post.color}
-            />
-            <div>
-              <p className="text-sm font-semibold text-gray-800">
-                {post.author}
-              </p>
-              <p className="text-xs text-gray-400">
-                {post.role} · {post.time}
-              </p>
-            </div>
-          </div>
-          <p className="text-sm text-gray-700 leading-relaxed mb-4">
-            {post.text}
-          </p>
-          <div className="flex items-center gap-2 pt-3 border-t border-gray-50">
-            {EMOJIS.map((emoji) => {
-              const active = (reactions[post.id] || []).includes(emoji);
-              return (
-                <button
-                  key={emoji}
-                  onClick={() => toggleReaction(post.id, emoji)}
-                  className={`px-2.5 py-1 rounded-full text-sm cursor-pointer transition-colors border ${active ? "bg-sage-50 border-sage-200" : "border-gray-100 hover:bg-gray-50"}`}
-                >
-                  {emoji}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => toggleExpanded(post.id)}
-              className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              {(comments[post.id] || []).length} comment
-              {(comments[post.id] || []).length !== 1 ? "s" : ""}
-            </button>
-          </div>
-          {expanded.has(post.id) && (
-            <div className="mt-3 space-y-2">
-              {(comments[post.id] || []).map((c, i) => (
-                <div key={i} className="flex gap-2 text-sm">
-                  <Avatar initials="SM" color="#f29a8f" size="sm" />
-                  <div className="bg-gray-50 rounded-xl px-3 py-2 flex-1">
-                    <p className="text-xs font-medium text-gray-600 mb-0.5">
-                      Sarah Mitchell
-                    </p>
-                    <p className="text-xs text-gray-600">{c}</p>
-                  </div>
-                </div>
-              ))}
-              <div className="flex gap-2 mt-2">
-                <Avatar initials="SM" color="#f29a8f" size="sm" />
-                <input
-                  value={commentInputs[post.id] || ""}
-                  onChange={(e) =>
-                    setCommentInputs({
-                      ...commentInputs,
-                      [post.id]: e.target.value,
-                    })
-                  }
-                  onKeyDown={(e) => e.key === "Enter" && addComment(post.id)}
-                  placeholder="Add a comment..."
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#4a7c59]"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function FormsPage({
   completions,
   onOpen,
@@ -3055,6 +2968,14 @@ export default function ParentDashboardDemo() {
   // Calendar event sidebar
   const [calendarSidebarEvent, setCalendarSidebarEvent] = useState<DemoEvent | null>(null);
 
+  // Feed tab state
+  const [feedReactions, setFeedReactions] = useState<Record<string, string[]>>(DEMO_SEED_REACTIONS);
+  const [feedComments, setFeedComments] = useState<Record<string, string[]>>(DEMO_SEED_COMMENTS);
+  const [feedCommentInputs, setFeedCommentInputs] = useState<Record<string, string>>({});
+  const [feedSelectedPost, setFeedSelectedPost] = useState<DemoPost | null>(null);
+  const [feedFilterClassId, setFeedFilterClassId] = useState<string | null>(null);
+  const [feedFilterTeacherName, setFeedFilterTeacherName] = useState<string | null>(null);
+
   // Messages
   const [messageThreads, setMessageThreads] =
     useState<Record<string, DemoMessage[]>>(DEMO_THREADS);
@@ -3335,6 +3256,21 @@ export default function ParentDashboardDemo() {
     [activeChildId],
   );
 
+  const FEED_EMOJIS = ["❤️", "👏", "😊", "🌱", "✨"];
+
+  const toggleFeedReaction = (postId: string, emoji: string) => {
+    const cur = feedReactions[postId] || [];
+    setFeedReactions({
+      ...feedReactions,
+      [postId]: cur.includes(emoji) ? cur.filter((e) => e !== emoji) : [...cur, emoji],
+    });
+  };
+  const addFeedComment = (postId: string) => {
+    const text = (feedCommentInputs[postId] || "").trim();
+    if (!text) return;
+    setFeedComments({ ...feedComments, [postId]: [...(feedComments[postId] || []), text] });
+    setFeedCommentInputs({ ...feedCommentInputs, [postId]: "" });
+  };
   // Completion logic
   const sigs = activeSigs;
   const completions = [
@@ -3423,8 +3359,8 @@ export default function ParentDashboardDemo() {
     >
       <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />
 
-      <main className={`flex-1 overflow-y-auto flex flex-col ${activeNavTab === "messages" || activeNavTab === "calendar" ? "bg-white" : "bg-gray-50"}`}>
-        {activeNavTab === "messages" || activeNavTab === "calendar" ? (
+      <main className={`flex-1 overflow-y-auto flex flex-col ${activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" ? "bg-white" : "bg-gray-50"}`}>
+        {activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" ? (
           <AnimatePresence mode="wait">
             <motion.div
               key={activeNavTab}
@@ -3447,6 +3383,235 @@ export default function ParentDashboardDemo() {
               {activeNavTab === "calendar" && (
                 <CalendarPage onEventClick={(e) => setCalendarSidebarEvent(e)} />
               )}
+              {activeNavTab === "feed" && (() => {
+                const feedDisplayed = feedFilterTeacherName
+                  ? DEMO_POSTS.filter((p) => p.author === feedFilterTeacherName)
+                  : feedFilterClassId === "admin"
+                    ? DEMO_POSTS.filter((p) => p.role === "Admin")
+                    : feedFilterClassId
+                      ? (() => {
+                          const cls = PARENT_FEED_CLASSES.find((c) => c.id === feedFilterClassId);
+                          if (!cls) return DEMO_POSTS;
+                          return DEMO_POSTS.filter((p) => cls.teachers.some((t) => t.name === p.author));
+                        })()
+                      : DEMO_POSTS;
+                return (
+                  <div className="flex flex-1 border-t border-gray-100 overflow-hidden">
+                    {/* Class / teacher filter sidebar */}
+                    <aside className="w-52 shrink-0 border-r border-gray-100 flex flex-col p-4 gap-0.5 overflow-y-auto">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 pb-2">
+                        Classes
+                      </p>
+                      {/* All Posts */}
+                      <button
+                        onClick={() => { setFeedFilterClassId(null); setFeedFilterTeacherName(null); }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${!feedFilterClassId && !feedFilterTeacherName ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                          <span className="text-[10px] text-gray-500 font-bold">All</span>
+                        </div>
+                        <span className="text-sm font-medium truncate">All Posts</span>
+                      </button>
+
+                      {/* Class rows with teacher subitems */}
+                      {PARENT_FEED_CLASSES.map((cls) => {
+                        const isClassActive = feedFilterClassId === cls.id && !feedFilterTeacherName;
+                        return (
+                          <div key={cls.id}>
+                            <button
+                              onClick={() => { setFeedFilterClassId(cls.id); setFeedFilterTeacherName(null); }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${isClassActive ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                            >
+                              <div
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
+                                style={{ backgroundColor: cls.color }}
+                              >
+                                {cls.label[0]}
+                              </div>
+                              <span className="text-sm font-medium truncate">{cls.label}</span>
+                            </button>
+                            {/* Teacher subitems */}
+                            <div className="ml-3 flex flex-col gap-0.5 mt-0.5">
+                              {cls.teachers.map((t) => {
+                                const isTeacherActive = feedFilterTeacherName === t.name && feedFilterClassId === cls.id;
+                                return (
+                                  <button
+                                    key={t.name}
+                                    onClick={() => { setFeedFilterClassId(cls.id); setFeedFilterTeacherName(t.name); }}
+                                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors cursor-pointer ${isTeacherActive ? "bg-[#4a7c59]/8 text-gray-700" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                                  >
+                                    <div
+                                      className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold shrink-0"
+                                      style={{ backgroundColor: t.color }}
+                                    >
+                                      {t.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                    </div>
+                                    <span className="text-xs truncate">{t.name.replace(/^Ms\. /, "")}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Admin separator */}
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <button
+                          onClick={() => { setFeedFilterClassId("admin"); setFeedFilterTeacherName(null); }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterClassId === "admin" ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                        >
+                          <div className="w-6 h-6 rounded-full bg-[#4A6354] flex items-center justify-center shrink-0">
+                            <span className="text-[9px] text-white font-bold">SF</span>
+                          </div>
+                          <span className="text-sm font-medium truncate">Admin</span>
+                        </button>
+                      </div>
+                    </aside>
+
+                    {/* Posts column */}
+                    <div className="flex-1 min-w-0 flex flex-col divide-y divide-gray-100 overflow-y-auto">
+                      {feedDisplayed.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-12">No posts yet.</p>
+                      ) : feedDisplayed.map((post) => (
+                        <motion.div
+                          key={post.id}
+                          className="px-6 py-5 cursor-pointer hover:bg-gray-50/60 transition-colors"
+                          onClick={() => setFeedSelectedPost(post)}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <div className="flex items-center gap-2.5 mb-3">
+                            <Avatar
+                              initials={post.author.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                              color={post.color}
+                            />
+                            <div>
+                              <p className="text-sm font-semibold text-gray-800">{post.author}</p>
+                              <p className="text-xs text-gray-400">{post.role} · {post.time}</p>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-700 leading-relaxed mb-3">{post.text}</p>
+                          {post.attachments?.map((att, i) =>
+                            att.type === "image" ? (
+                              <img
+                                key={i}
+                                src={att.src}
+                                alt={att.name || ""}
+                                className="w-40 h-40 object-cover rounded-xl mb-3 shrink-0"
+                              />
+                            ) : null
+                          )}
+                          <div className="flex items-center gap-2 pt-3 border-t border-gray-50">
+                            {FEED_EMOJIS.map((emoji) => {
+                              const active = (feedReactions[post.id] || []).includes(emoji);
+                              return (
+                                <button
+                                  key={emoji}
+                                  onClick={(e) => { e.stopPropagation(); toggleFeedReaction(post.id, emoji); }}
+                                  className={`px-2.5 py-1 rounded-full text-sm cursor-pointer transition-colors border ${active ? "bg-sage-50 border-sage-200" : "border-gray-100 hover:bg-gray-50"}`}
+                                >
+                                  {emoji}
+                                </button>
+                              );
+                            })}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setFeedSelectedPost(post); }}
+                              className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              {(feedComments[post.id] || []).length} comment
+                              {(feedComments[post.id] || []).length !== 1 ? "s" : ""}
+                            </button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Post detail panel */}
+                    <div className="w-80 shrink-0 border-l border-gray-100 flex flex-col overflow-hidden">
+                      {feedSelectedPost ? (
+                        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar
+                              initials={feedSelectedPost.author.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                              color={feedSelectedPost.color}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-800">{feedSelectedPost.author}</p>
+                              <p className="text-xs text-gray-400">{feedSelectedPost.role} · {feedSelectedPost.time}</p>
+                            </div>
+                            <button
+                              onClick={() => setFeedSelectedPost(null)}
+                              className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <p className="text-sm text-gray-700 leading-relaxed">{feedSelectedPost.text}</p>
+                          {feedSelectedPost.attachments?.map((att, i) =>
+                            att.type === "image" ? (
+                              <img key={i} src={att.src} alt={att.name || ""} className="w-full max-h-44 object-cover rounded-xl" />
+                            ) : null
+                          )}
+                          <div className="border-t border-gray-100 pt-3">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Reactions</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {FEED_EMOJIS.map((emoji) => {
+                                const active = (feedReactions[feedSelectedPost.id] || []).includes(emoji);
+                                return (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => toggleFeedReaction(feedSelectedPost.id, emoji)}
+                                    className={`px-2.5 py-1 rounded-full text-sm cursor-pointer transition-colors border ${active ? "bg-[#eef4ef] border-[#b2d4bb]" : "border-gray-100 hover:bg-gray-50"}`}
+                                  >
+                                    {emoji}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div className="border-t border-gray-100 pt-3">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                              Comments · {(feedComments[feedSelectedPost.id] || []).length}
+                            </p>
+                            <div className="space-y-3">
+                              {(feedComments[feedSelectedPost.id] || []).map((c, i) => (
+                                <div key={i} className="flex gap-2">
+                                  <Avatar initials="SM" color="#f29a8f" size="sm" />
+                                  <div className="bg-[#eef4ef] rounded-2xl rounded-tl-sm px-3 py-2 flex-1">
+                                    <p className="text-xs font-medium text-gray-700 mb-0.5">Sarah Mitchell</p>
+                                    <p className="text-xs text-gray-600">{c}</p>
+                                  </div>
+                                </div>
+                              ))}
+                              {(feedComments[feedSelectedPost.id] || []).length === 0 && (
+                                <p className="text-xs text-gray-400">No comments yet.</p>
+                              )}
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Avatar initials="SM" color="#f29a8f" size="sm" />
+                              <input
+                                value={feedCommentInputs[feedSelectedPost.id] || ""}
+                                onChange={(e) => setFeedCommentInputs({ ...feedCommentInputs, [feedSelectedPost.id]: e.target.value })}
+                                onKeyDown={(e) => e.key === "Enter" && addFeedComment(feedSelectedPost.id)}
+                                placeholder="Add a comment..."
+                                className="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#4a7c59]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+                          <MessageSquare className="w-8 h-8 text-gray-200" />
+                          <p className="text-sm text-gray-400">Select a post to view details</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           </AnimatePresence>
         ) : (
@@ -3464,13 +3629,12 @@ export default function ParentDashboardDemo() {
             </div>
 
             {/* Child tab strip (shown on most pages) */}
-            {activeNavTab !== "feed" &&
-              activeNavTab !== "volunteer" && (
-                <ChildTabStrip
-                  activeChildId={activeChildId}
-                  onSwitch={setActiveChildId}
-                />
-              )}
+            {activeNavTab !== "volunteer" && (
+              <ChildTabStrip
+                activeChildId={activeChildId}
+                onSwitch={setActiveChildId}
+              />
+            )}
 
             {/* Animated page content */}
             <AnimatePresence mode="wait">
@@ -3521,8 +3685,6 @@ export default function ParentDashboardDemo() {
                     onOpenInvoice={() => setBillingInvoiceSidebarOpen(true)}
                   />
                 )}
-
-                {activeNavTab === "feed" && <FeedPage />}
 
                 {activeNavTab === "forms" && (
                   <FormsPage completions={completions} onOpen={setOpenModal} />
