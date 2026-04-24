@@ -1990,9 +1990,7 @@ function MessagesPage({
   }
 
   return (
-    <div
-      className="flex bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-[510px]"
-    >
+    <div className="flex flex-1 h-full border-t border-gray-100 overflow-hidden bg-white">
       {/* Conversation list */}
       <div
         className={`w-72 shrink-0 border-r border-gray-100 flex flex-col ${mobileView === "chat" ? "hidden sm:flex" : "flex"}`}
@@ -2236,8 +2234,8 @@ function CalendarPage() {
   }, []);
 
   return (
-    <div className="flex gap-6">
-      <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div className="flex gap-6 flex-1 px-6 py-8 border-t border-gray-100">
+      <div className="flex-1 min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -2349,7 +2347,7 @@ function CalendarPage() {
 
       {/* Upcoming events sidebar */}
       <div className="w-64 shrink-0 flex flex-col gap-3">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body">
             Upcoming
           </p>
@@ -4629,7 +4627,18 @@ export default function TeacherDashboardDemo() {
       </header>
 
       {/* Page content */}
-      <main className="flex-1 min-h-0 overflow-y-auto max-w-6xl w-full mx-auto px-6 py-8">
+      <main className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${activeTab === "messages" || activeTab === "calendar" ? "bg-white" : ""}`}>
+        {activeTab === "messages" && (
+          <MessagesPage
+            externalDraft={msgDraft}
+            setExternalDraft={setMsgDraft}
+          />
+        )}
+
+        {activeTab === "calendar" && <CalendarPage />}
+
+        {(activeTab !== "messages" && activeTab !== "calendar") && (
+        <div className="max-w-6xl w-full mx-auto px-6 py-8 flex flex-col flex-1">
         {activeTab === "dashboard" && (
           <div className="flex flex-col gap-6">
             {/* Banner slideshow */}
@@ -4720,15 +4729,6 @@ export default function TeacherDashboardDemo() {
 
         {activeTab === "hours" && <HoursPage />}
 
-        {activeTab === "messages" && (
-          <MessagesPage
-            externalDraft={msgDraft}
-            setExternalDraft={setMsgDraft}
-          />
-        )}
-
-        {activeTab === "calendar" && <CalendarPage />}
-
         {activeTab === "feed" && <FeedPage />}
 
         {activeTab === "payroll" && <PayrollPage />}
@@ -4738,8 +4738,6 @@ export default function TeacherDashboardDemo() {
         {activeTab !== "dashboard" &&
           activeTab !== "students" &&
           activeTab !== "hours" &&
-          activeTab !== "messages" &&
-          activeTab !== "calendar" &&
           activeTab !== "feed" &&
           activeTab !== "payroll" &&
           activeTab !== "forms" && (
@@ -4751,6 +4749,8 @@ export default function TeacherDashboardDemo() {
               }
             />
           )}
+        </div>
+        )}
       </main>
     </div>
   );
