@@ -3139,20 +3139,9 @@ function MessagesPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-5">
-        <h1
-          className="text-xl font-semibold tracking-tight"
-          style={{ color: C.textPrimary }}
-        >
-          Messages
-        </h1>
-        <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-          Parent conversations
-        </p>
-      </div>
       <div
-        className="flex-1 overflow-hidden rounded-xl flex"
-        style={{ border: `1px solid ${C.border}` }}
+        className="flex-1 overflow-hidden flex"
+        style={{ borderTop: `1px solid ${C.border}` }}
       >
         {/* Conversation list */}
         <div
@@ -7209,21 +7198,9 @@ function CalendarPage() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1
-            className="text-xl font-semibold tracking-tight"
-            style={{ color: C.textPrimary }}
-          >
-            Calendar
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-            School events and scheduling
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 justify-end mb-4">
           {/* Month / Week toggle */}
           <div
             className="flex items-center gap-0.5 p-0.5 rounded-lg"
@@ -7253,7 +7230,6 @@ function CalendarPage() {
           >
             + Add Event
           </button>
-        </div>
       </div>
 
       {/* Controls */}
@@ -8804,13 +8780,8 @@ function ImpersonatePage() {
 
   return (
     <div
-      className="flex h-full min-h-[560px] gap-0"
-      style={{
-        border: `1px solid ${C.border}`,
-        borderRadius: C.r.lg,
-        overflow: "hidden",
-        backgroundColor: C.surface,
-      }}
+      className="flex h-full gap-0 overflow-hidden"
+      style={{ borderTop: `1px solid ${C.border}`, backgroundColor: C.surface }}
     >
       {/* Left panel — parent list */}
       <div
@@ -9823,20 +9794,18 @@ export default function AdminDashboardDemo() {
             It is inside <main> (right of sidebar), so absolute children cannot
             extend over the sidebar regardless of z-index. */}
         <div className="relative h-full">
-          <div className="max-w-screen-xl mx-auto p-6 h-full">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activePage}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                className="h-full"
-              >
-                {renderPage()}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activePage}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className={`h-full ${activePage === "messages" || activePage === "calendar" || activePage === "impersonate" ? "" : "max-w-screen-xl mx-auto p-6"}`}
+            >
+              {renderPage()}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
 
