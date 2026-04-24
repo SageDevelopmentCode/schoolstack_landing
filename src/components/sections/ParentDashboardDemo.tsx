@@ -2218,10 +2218,7 @@ function MessagesPage({
   }, [messages, activeConv]);
 
   return (
-    <div
-      className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex"
-      style={{ height: "520px" }}
-    >
+    <div className="flex flex-1 h-full border-t border-gray-100 overflow-hidden">
       <div className="w-64 border-r border-gray-100 flex flex-col flex-shrink-0">
         <div className="p-3 border-b border-gray-100">
           <p className="text-sm font-semibold text-gray-700">Messages</p>
@@ -2513,8 +2510,7 @@ function CalendarPage({
     eventsThisMonth.filter((e) => new Date(e.date).getDate() === day);
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+    <div className="flex-1 p-6 border-t border-gray-100">
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-2">
             {[
@@ -2585,7 +2581,6 @@ function CalendarPage({
             );
           })}
         </div>
-      </div>
     </div>
   );
 }
@@ -3428,81 +3423,17 @@ export default function ParentDashboardDemo() {
     >
       <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />
 
-      <main className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="max-w-4xl mx-auto px-6 py-6">
-          {/* Page heading */}
-          <div className="mb-5">
-            <p className="text-xl font-semibold text-gray-800">
-              {pageTitle[activeNavTab]}
-            </p>
-            {activeNavTab === "enrollment" && (
-              <p className="text-sm text-gray-400 mt-0.5">
-                Welcome back, Sarah — here's your enrollment progress.
-              </p>
-            )}
-          </div>
-
-          {/* Child tab strip (shown on most pages) */}
-          {activeNavTab !== "messages" &&
-            activeNavTab !== "calendar" &&
-            activeNavTab !== "feed" &&
-            activeNavTab !== "volunteer" && (
-              <ChildTabStrip
-                activeChildId={activeChildId}
-                onSwitch={setActiveChildId}
-              />
-            )}
-
-          {/* Animated page content */}
+      <main className={`flex-1 overflow-y-auto flex flex-col ${activeNavTab === "messages" || activeNavTab === "calendar" ? "bg-white" : "bg-gray-50"}`}>
+        {activeNavTab === "messages" || activeNavTab === "calendar" ? (
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeNavTab + activeChildId}
+              key={activeNavTab}
+              className="flex flex-col flex-1"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             >
-              {activeNavTab === "enrollment" &&
-                (isJakePending ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
-                    <Clock className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-amber-800">
-                        Application Under Review
-                      </p>
-                      <p className="text-sm text-amber-600 mt-1">
-                        Jake's application has been received and is currently
-                        being reviewed by the admissions team. You'll be
-                        notified by email once a decision has been made.
-                      </p>
-                      <p className="text-xs text-amber-500 mt-3">
-                        Submitted: April 10, 2026
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <ChecklistView
-                    completions={completions}
-                    onOpen={setOpenModal}
-                    enrolled={isEnrolled}
-                  />
-                ))}
-
-              {activeNavTab === "children" && (
-                <ChildrenPage activeChildId={activeChildId} />
-              )}
-
-              {activeNavTab === "billing" && (
-                <BillingPage
-                  activeChildId={activeChildId}
-                  paidInvoices={paidInvoices}
-                  onPay={(id) =>
-                    setPaidInvoices((prev) => new Set([...prev, id]))
-                  }
-                  onOpenInvoice={() => setBillingInvoiceSidebarOpen(true)}
-                />
-              )}
-
               {activeNavTab === "messages" && (
                 <MessagesPage
                   threads={messageThreads}
@@ -3513,25 +3444,99 @@ export default function ParentDashboardDemo() {
                   setActiveConv={setMsgActiveConv}
                 />
               )}
-
               {activeNavTab === "calendar" && (
                 <CalendarPage onEventClick={(e) => setCalendarSidebarEvent(e)} />
               )}
-
-              {activeNavTab === "feed" && <FeedPage />}
-
-              {activeNavTab === "forms" && (
-                <FormsPage completions={completions} onOpen={setOpenModal} />
-              )}
-
-              {activeNavTab === "volunteer" && <VolunteerPage />}
-
-              {activeNavTab === "emergency-contacts" && (
-                <EmergencyContactsPage activeChildId={activeChildId} />
-              )}
             </motion.div>
           </AnimatePresence>
-        </div>
+        ) : (
+          <div className="max-w-4xl mx-auto px-6 py-6 w-full">
+            {/* Page heading */}
+            <div className="mb-5">
+              <p className="text-xl font-semibold text-gray-800">
+                {pageTitle[activeNavTab]}
+              </p>
+              {activeNavTab === "enrollment" && (
+                <p className="text-sm text-gray-400 mt-0.5">
+                  Welcome back, Sarah — here's your enrollment progress.
+                </p>
+              )}
+            </div>
+
+            {/* Child tab strip (shown on most pages) */}
+            {activeNavTab !== "feed" &&
+              activeNavTab !== "volunteer" && (
+                <ChildTabStrip
+                  activeChildId={activeChildId}
+                  onSwitch={setActiveChildId}
+                />
+              )}
+
+            {/* Animated page content */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeNavTab + activeChildId}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {activeNavTab === "enrollment" &&
+                  (isJakePending ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
+                      <Clock className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-amber-800">
+                          Application Under Review
+                        </p>
+                        <p className="text-sm text-amber-600 mt-1">
+                          Jake's application has been received and is currently
+                          being reviewed by the admissions team. You'll be
+                          notified by email once a decision has been made.
+                        </p>
+                        <p className="text-xs text-amber-500 mt-3">
+                          Submitted: April 10, 2026
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <ChecklistView
+                      completions={completions}
+                      onOpen={setOpenModal}
+                      enrolled={isEnrolled}
+                    />
+                  ))}
+
+                {activeNavTab === "children" && (
+                  <ChildrenPage activeChildId={activeChildId} />
+                )}
+
+                {activeNavTab === "billing" && (
+                  <BillingPage
+                    activeChildId={activeChildId}
+                    paidInvoices={paidInvoices}
+                    onPay={(id) =>
+                      setPaidInvoices((prev) => new Set([...prev, id]))
+                    }
+                    onOpenInvoice={() => setBillingInvoiceSidebarOpen(true)}
+                  />
+                )}
+
+                {activeNavTab === "feed" && <FeedPage />}
+
+                {activeNavTab === "forms" && (
+                  <FormsPage completions={completions} onOpen={setOpenModal} />
+                )}
+
+                {activeNavTab === "volunteer" && <VolunteerPage />}
+
+                {activeNavTab === "emergency-contacts" && (
+                  <EmergencyContactsPage activeChildId={activeChildId} />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
       </main>
 
       {/* Modals */}
