@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Badge } from '@/components/ui/Badge'
 import { FadeInView } from '@/components/ui/FadeInView'
+import AdminDashboardDemo from './AdminDashboardDemo'
 
 type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'payments' | 'leads'
 
@@ -137,7 +138,7 @@ export default function ProductPreviewSection() {
           </div>
 
           {/* Product frame */}
-          <div className="mt-6 w-full h-[280px] md:h-[480px] lg:h-[560px] rounded-xl border border-border-strong shadow-lg overflow-hidden relative bg-surface-soft">
+          <div className="mt-6 w-full h-[420px] md:h-[600px] lg:h-[700px] rounded-xl shadow-lg overflow-hidden relative bg-surface-soft">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
@@ -151,16 +152,6 @@ export default function ProductPreviewSection() {
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
               >
                 <TabContent tabId={activeTab} />
-
-                {/* Caption bar */}
-                <div className="absolute bottom-0 left-0 right-0 px-5 py-3.5 bg-[rgba(15,14,12,0.75)] backdrop-blur-sm flex items-center gap-3">
-                  <span className="inline-flex items-center rounded-pill bg-white/10 text-white text-[11px] font-medium px-2.5 py-1 shrink-0">
-                    {currentTab.caption}
-                  </span>
-                  <p className="text-white/80 text-[12px] leading-snug truncate">
-                    {currentTab.description}
-                  </p>
-                </div>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -186,81 +177,7 @@ function TabContent({ tabId }: { tabId: TabId }) {
 /* ─── Tab mockups ────────────────────────────────────────────────────── */
 
 function AdminTab() {
-  return (
-    <div className="flex h-full text-[11px]">
-      {/* Sidebar */}
-      <div className="w-[150px] lg:w-[170px] shrink-0 bg-surface-soft border-r border-border flex flex-col p-3 gap-0.5">
-        <div className="mb-3 px-1">
-          <span className="font-display text-[12px] text-text">Sage Field</span>
-          <span className="block text-text-faint text-[10px]">Admin Portal</span>
-        </div>
-        {[
-          { label: 'Dashboard' },
-          { label: 'Applications', active: true },
-          { label: 'Students' },
-          { label: 'Parents' },
-          { label: 'Teachers' },
-          { label: 'Payments' },
-          { label: 'Leads CRM' },
-          { label: 'Calendar' },
-          { label: 'Contracts' },
-          { label: 'Budget' },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className={`px-2.5 py-1.5 rounded-md text-[11px] ${
-              item.active ? 'bg-accent-soft text-accent font-medium' : 'text-text-muted'
-            }`}
-          >
-            {item.label}
-          </div>
-        ))}
-      </div>
-
-      {/* Main */}
-      <div className="flex-1 p-4 lg:p-5 overflow-hidden">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="text-[13px] font-semibold text-text font-body">Applications</div>
-            <div className="text-[10px] text-text-faint">12 total this enrollment period</div>
-          </div>
-          <div className="flex gap-2">
-            <div className="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-faint">Filter</div>
-            <div className="bg-accent text-white rounded-md px-2 py-1 text-[10px] font-medium">+ New</div>
-          </div>
-        </div>
-        <div className="flex gap-1 mb-3">
-          {['All (12)', 'New (4)', 'Reviewing (5)', 'Enrolled (3)'].map((t, i) => (
-            <div key={t} className={`px-2 py-0.5 rounded text-[10px] ${i === 0 ? 'bg-surface-muted text-text font-medium' : 'text-text-faint'}`}>{t}</div>
-          ))}
-        </div>
-        <div className="grid grid-cols-3 gap-2.5 h-[calc(100%-72px)]">
-          {[
-            { title: 'New Inquiry', color: 'bg-blue-50 text-blue-600', cards: ['Avery Chen', 'Mateo Silva', 'Isla Thompson', 'Finn Nakamura'] },
-            { title: 'Reviewing', color: 'bg-yellow-50 text-yellow-700', cards: ['Luna Martinez', 'Jasper Kim', 'Cleo Osei'] },
-            { title: 'Enrolled', color: 'bg-green-50 text-green-700', cards: ['Rowan Park', 'Sage Collins', 'River Patel'] },
-          ].map((col) => (
-            <div key={col.title} className="bg-surface-soft rounded-lg p-2 overflow-hidden">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-semibold text-text-faint uppercase tracking-wide font-body">{col.title}</span>
-                <span className={`text-[9px] font-medium rounded-pill px-1.5 py-0.5 ${col.color}`}>{col.cards.length}</span>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                {col.cards.map((name) => (
-                  <div key={name} className="bg-surface border border-border rounded-md p-2 shadow-xs">
-                    <div className="font-medium text-text text-[10px] font-body">{name}</div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="bg-accent-soft text-accent text-[9px] rounded-pill px-1.5 py-0.5">Elementary</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  return <AdminDashboardDemo disableTour />
 }
 
 function WebsiteTab() {

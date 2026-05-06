@@ -3586,7 +3586,7 @@ function ParentDetailPanel({
   );
 }
 
-function ParentsPage() {
+function ParentsPageInner() {
   const [selected, setSelected] = useState<DemoParent | null>(null);
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
   useEffect(() => {
@@ -3595,17 +3595,6 @@ function ParentsPage() {
   }, [selected]);
   return (
     <div className="h-full flex flex-col">
-      <div className="px-6 pt-6 mb-5">
-        <h1
-          className="text-xl font-semibold tracking-tight"
-          style={{ color: C.textPrimary }}
-        >
-          Parents
-        </h1>
-        <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-          {DEMO_PARENTS.length} parent accounts
-        </p>
-      </div>
       <div className="flex-1 overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -4078,7 +4067,7 @@ function StudentDetailPanel({
   );
 }
 
-function StudentsPage() {
+function StudentsPageInner() {
   const [selected, setSelected] = useState<DemoStudent | null>(null);
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
   useEffect(() => {
@@ -4087,17 +4076,6 @@ function StudentsPage() {
   }, [selected]);
   return (
     <div className="h-full flex flex-col">
-      <div className="px-6 pt-6 mb-5">
-        <h1
-          className="text-xl font-semibold tracking-tight"
-          style={{ color: C.textPrimary }}
-        >
-          Students
-        </h1>
-        <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-          {DEMO_STUDENTS_P2.length} enrolled students
-        </p>
-      </div>
       <div className="flex-1 overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -4215,6 +4193,75 @@ function StudentsPage() {
             onClose={() => setSelected(null)}
           />
         )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── People page (Parents + Students combined) ─────────────────────────────────
+
+type PeopleView = "parents" | "students";
+
+function PeoplePage() {
+  const [view, setView] = useState<PeopleView>("parents");
+
+  const viewButtons: { key: PeopleView; icon: React.ReactNode; label: string }[] = [
+    { key: "parents", icon: <Users className="w-3.5 h-3.5" />, label: "Parents" },
+    { key: "students", icon: <GraduationCap className="w-3.5 h-3.5" />, label: "Students" },
+  ];
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="flex items-start justify-between px-6 pt-6 mb-5">
+        <div>
+          <h1
+            className="text-xl font-semibold tracking-tight"
+            style={{ color: C.textPrimary }}
+          >
+            People
+          </h1>
+          <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
+            {view === "parents"
+              ? `${DEMO_PARENTS.length} parent accounts`
+              : `${DEMO_STUDENTS_P2.length} enrolled students`}
+          </p>
+        </div>
+        <div
+          className="flex items-center gap-1 p-1 rounded-lg"
+          style={{
+            backgroundColor: C.elevated,
+            border: `1px solid ${C.border}`,
+          }}
+        >
+          {viewButtons.map((b) => (
+            <button
+              key={b.key}
+              data-tour-id={`people-view-${b.key}`}
+              onClick={() => setView(b.key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+              style={{
+                backgroundColor: view === b.key ? C.surface : "transparent",
+                color: view === b.key ? C.textPrimary : C.textTertiary,
+                boxShadow: view === b.key ? C.shadowCard : "none",
+              }}
+            >
+              {b.icon}
+              {b.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={view}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="flex-1 overflow-hidden flex flex-col"
+        >
+          {view === "parents" ? <ParentsPageInner /> : <StudentsPageInner />}
+        </motion.div>
       </AnimatePresence>
     </div>
   );
@@ -8956,8 +9003,7 @@ type ActivePage =
   | "leads"
   | "applications"
   | "messages"
-  | "parents"
-  | "students"
+  | "people"
   | "programs"
   | "transactions"
   | "budget"
@@ -8990,15 +9036,9 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         phase1: true,
       },
       {
-        key: "parents",
-        name: "Parents",
+        key: "people",
+        name: "People",
         icon: <Users className="w-4 h-4" />,
-        phase1: true,
-      },
-      {
-        key: "students",
-        name: "Students",
-        icon: <GraduationCap className="w-4 h-4" />,
         phase1: true,
       },
       {
@@ -9293,9 +9333,9 @@ function Sidebar({
 
 // ─── Root component ────────────────────────────────────────────────────────────
 
-export default function AdminDashboardDemo() {
+export default function AdminDashboardDemo({ disableTour = false }: { disableTour?: boolean }) {
   const [activePage, setActivePage] = useState<ActivePage>("dashboard");
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(!disableTour);
   const [isDark, setIsDark] = useState(false);
   C = isDark ? C_DARK : C_LIGHT;
 
@@ -9306,7 +9346,7 @@ export default function AdminDashboardDemo() {
   }), []);
 
   // ── Tour state ──────────────────────────────────────────────────────────────
-  const [isTouring, setIsTouring] = useState(true);
+  const [isTouring, setIsTouring] = useState(!disableTour);
   const [tourStep, setTourStep] = useState(0);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [cursorVisible, setCursorVisible] = useState(false);
@@ -9334,10 +9374,8 @@ export default function AdminDashboardDemo() {
         return <ApplicationsPage />;
       case "messages":
         return <MessagesPage />;
-      case "parents":
-        return <ParentsPage />;
-      case "students":
-        return <StudentsPage />;
+      case "people":
+        return <PeoplePage />;
       case "programs":
         return <ProgramsPage />;
       case "transactions":
@@ -9417,8 +9455,8 @@ export default function AdminDashboardDemo() {
         clickAnimation: true,
       },
       {
-        action: () => setActivePage("students"),
-        targetId: "nav-students",
+        action: () => setActivePage("people"),
+        targetId: "nav-people",
         holdMs: 1800,
         clickAnimation: true,
       },
@@ -9564,11 +9602,12 @@ export default function AdminDashboardDemo() {
   }, []);
 
   const handleTourMouseLeave = useCallback(() => {
+    if (disableTour) return;
     resumeTimerRef.current = setTimeout(() => {
       setTourStep(0);
       setIsTouring(true);
     }, TOUR_RESUME_MS);
-  }, []);
+  }, [disableTour]);
 
   const cursorColor = isDark ? "rgba(110,148,120,0.9)" : "rgba(74,124,89,0.85)";
   const cursorGlow = isDark
@@ -9581,7 +9620,7 @@ export default function AdminDashboardDemo() {
       ref={containerRef}
       onMouseEnter={handleTourMouseEnter}
       onMouseLeave={handleTourMouseLeave}
-      className="flex h-screen overflow-hidden relative"
+      className="flex h-full overflow-hidden relative"
       style={{
         backgroundColor: C.bg,
         fontFamily: "Inter, system-ui, sans-serif",
@@ -9623,8 +9662,8 @@ export default function AdminDashboardDemo() {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className={`h-full ${
                 activePage === "messages" || activePage === "calendar" || activePage === "impersonate" ||
-                activePage === "leads" || activePage === "applications" || activePage === "parents" ||
-                activePage === "students" || activePage === "transactions" || activePage === "emails" ||
+                activePage === "leads" || activePage === "applications" || activePage === "people" ||
+                activePage === "transactions" || activePage === "emails" ||
                 activePage === "marketing"
                   ? ""
                   : "max-w-screen-xl mx-auto p-6"
