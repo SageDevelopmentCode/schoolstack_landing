@@ -8217,7 +8217,7 @@ function MarketingPage() {
             {KPI_STATS.map((s) => (
               <div
                 key={s.label}
-                className="rounded-xl p-3"
+                className="rounded-md p-3"
                 style={{
                   backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
@@ -8364,7 +8364,7 @@ function MarketingPage() {
                 ].map((s) => (
                   <div
                     key={s.label}
-                    className="rounded-xl p-3"
+                    className="rounded-md p-3"
                     style={{
                       backgroundColor: C.surface,
                       border: `1px solid ${C.border}`,
@@ -8387,7 +8387,15 @@ function MarketingPage() {
               </div>
 
               {/* Step sequence — node flow */}
-              <div>
+              <div
+                className="rounded-lg p-4"
+                style={{
+                  backgroundImage: `radial-gradient(circle, ${C.border} 1px, transparent 1px)`,
+                  backgroundSize: "20px 20px",
+                  backgroundColor: C.elevated,
+                  border: `1px solid ${C.border}`,
+                }}
+              >
                 {/* Section label */}
                 <div className="flex items-center justify-between mb-3">
                   <p
@@ -8431,7 +8439,7 @@ function MarketingPage() {
                           {/* ── Wait node ── */}
                           {isWait && (
                             <div
-                              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg mx-1"
+                              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded mx-1"
                               style={{
                                 backgroundColor: C.elevated,
                                 border: `1px dashed ${C.border}`,
@@ -8462,7 +8470,7 @@ function MarketingPage() {
                           {/* ── Action node ── */}
                           {isAction && (
                             <div
-                              className="flex flex-col rounded-xl overflow-hidden flex-shrink-0"
+                              className="flex flex-col rounded-md overflow-hidden flex-shrink-0"
                               style={{
                                 width: 148,
                                 backgroundColor: C.surface,
@@ -8479,7 +8487,7 @@ function MarketingPage() {
                                 {/* Type badge + icon */}
                                 <div className="flex items-center gap-1.5">
                                   <div
-                                    className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+                                    className="w-5 h-5 rounded-sm flex items-center justify-center flex-shrink-0"
                                     style={{
                                       backgroundColor: sc.bg,
                                       color: sc.fg,

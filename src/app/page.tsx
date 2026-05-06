@@ -21,7 +21,7 @@ export default function Home() {
         <ProductPreviewSection />
         <WorkflowSection />
         <StacksSection />
-        <MicroschoolsSection />
+        {/* <MicroschoolsSection /> */}
         <FounderStorySection />
         <CustomSection />
         <FinalCTASection />
