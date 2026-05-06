@@ -5644,239 +5644,306 @@ const DEMO_EMAILS = [
   },
 ];
 
-const DEMO_OPEN_HOUSE_RSVPS = [
-  {
-    id: "oh1",
-    name: "Brian Thornton",
-    email: "bthornton@email.com",
-    phone: "(737) 555-0225",
-    adults: 2,
-    children: 2,
-    notes: "Referred by Emma Richardson family.",
-  },
-  {
-    id: "oh2",
-    name: "Sandra Cho",
-    email: "sandcho@email.com",
-    phone: "(512) 555-0735",
-    adults: 1,
-    children: 1,
-    notes: "",
-  },
-  {
-    id: "oh3",
-    name: "Henry Walsh",
-    email: "hwalsh@email.com",
-    phone: "(737) 555-0265",
-    adults: 2,
-    children: 3,
-    notes: "Interested in financial aid options.",
-  },
-  {
-    id: "oh4",
-    name: "Alicia Hammond",
-    email: "ahammond@email.com",
-    phone: "(512) 555-0523",
-    adults: 1,
-    children: 1,
-    notes: "",
-  },
-  {
-    id: "oh5",
-    name: "Kevin Okonkwo",
-    email: "kokonkwo@email.com",
-    phone: "(737) 555-0609",
-    adults: 2,
-    children: 2,
-    notes: "Application already submitted.",
-  },
-  {
-    id: "oh6",
-    name: "Jessica Huang",
-    email: "jhuang@email.com",
-    phone: "(512) 555-0695",
-    adults: 2,
-    children: 1,
-    notes: "Very interested after campus tour.",
-  },
-  {
-    id: "oh7",
-    name: "Marcus Webb",
-    email: "mwebb@email.com",
-    phone: "(737) 555-0781",
-    adults: 1,
-    children: 2,
-    notes: "",
-  },
-  {
-    id: "oh8",
-    name: "Stephanie Cole",
-    email: "scole@email.com",
-    phone: "(512) 555-0867",
-    adults: 2,
-    children: 1,
-    notes: "Met us at the school fair.",
-  },
-];
+// ─── Marketing automation pipeline data ──────────────────────────────────────────────
 
-const DEMO_TOUR_BOOKINGS = [
-  {
-    id: "tb1",
-    date: "Apr 8, 2026",
-    time: "10:00 AM",
-    firstName: "Linda",
-    lastName: "Nakamura",
-    email: "lnakamura@email.com",
-    childName: "Yuki Nakamura",
-    grade: "2nd",
-    status: "completed",
-  },
-  {
-    id: "tb2",
-    date: "Apr 10, 2026",
-    time: "11:00 AM",
-    firstName: "Gregory",
-    lastName: "Moss",
-    email: "gmoss@email.com",
-    childName: "Theo Moss",
-    grade: "K",
-    status: "completed",
-  },
-  {
-    id: "tb3",
-    date: "Apr 15, 2026",
-    time: "9:30 AM",
-    firstName: "Natalie",
-    lastName: "Cruz",
-    email: "ncruz@email.com",
-    childName: "Marco Cruz",
-    grade: "1st",
-    status: "confirmed",
-  },
-  {
-    id: "tb4",
-    date: "Apr 18, 2026",
-    time: "10:00 AM",
-    firstName: "David",
-    lastName: "Park",
-    email: "dpark@email.com",
-    childName: "Ella Park",
-    grade: "3rd",
-    status: "confirmed",
-  },
-  {
-    id: "tb5",
-    date: "Apr 22, 2026",
-    time: "2:00 PM",
-    firstName: "Carmen",
-    lastName: "Vega",
-    email: "cvega@email.com",
-    childName: "Leo Vega",
-    grade: "1st",
-    status: "pending",
-  },
-  {
-    id: "tb6",
-    date: "Apr 25, 2026",
-    time: "11:00 AM",
-    firstName: "Thomas",
-    lastName: "Reed",
-    email: "treed@email.com",
-    childName: "Finn Reed",
-    grade: "K",
-    status: "pending",
-  },
-];
+type AutomationStep = {
+  type: "email" | "sms" | "wait" | "condition";
+  label: string;
+  delay?: string;
+  subject?: string;
+  body?: string;
+  sent?: number;
+  opened?: number;
+  clicked?: number;
+};
 
-const DEMO_INFO_RSVPS = [
+type AutomationPipeline = {
+  id: string;
+  name: string;
+  description: string;
+  audience: string;
+  trigger: string;
+  status: "active" | "paused" | "draft";
+  steps: AutomationStep[];
+  stats: {
+    enrolled: number;
+    sent: number;
+    openRate: number;
+    clickRate: number;
+    conversions: number;
+  };
+  audienceColor: string;
+};
+
+const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
   {
-    id: "ir1",
-    firstName: "Brian",
-    lastName: "Thornton",
-    email: "bthornton@email.com",
-    phone: "(737) 555-0225",
-    programs: ["Summer 2026", "School Year"],
-    children: [{ name: "Oliver", age: 6 }],
-    hearAboutUs: "Friend referral",
-  },
-  {
-    id: "ir2",
-    firstName: "Sandra",
-    lastName: "Cho",
-    email: "sandcho@email.com",
-    phone: "(512) 555-0735",
-    programs: ["School Year"],
-    children: [{ name: "Mina", age: 8 }],
-    hearAboutUs: "Google search",
-  },
-  {
-    id: "ir3",
-    firstName: "Henry",
-    lastName: "Walsh",
-    email: "hwalsh@email.com",
-    phone: "(737) 555-0265",
-    programs: ["Summer 2026"],
-    children: [
-      { name: "Jack", age: 5 },
-      { name: "Sam", age: 7 },
+    id: "ap1",
+    name: "New Lead Welcome Sequence",
+    description: "Automatically nurtures families from first inquiry to booking a tour.",
+    audience: "New Leads",
+    trigger: "Inquiry form submitted",
+    status: "active",
+    audienceColor: "#5E7C68",
+    stats: { enrolled: 234, sent: 234, openRate: 42, clickRate: 18, conversions: 31 },
+    steps: [
+      {
+        type: "email",
+        label: "Welcome Email",
+        delay: "Day 0",
+        subject: "Welcome to Sagefield — we’re so glad you reached out!",
+        body: "Thanks for your interest in Sagefield Academy. Here’s everything you need to know about our programs and next steps.",
+        sent: 234,
+        opened: 98,
+        clicked: 42,
+      },
+      { type: "wait", label: "Wait 2 days", delay: "Day 0" },
+      {
+        type: "email",
+        label: "Campus Tour Invite",
+        delay: "Day 2",
+        subject: "Come see Sagefield in person — book your tour today",
+        body: "We’d love to show you around. Campus tours are available weekday mornings and Saturday afternoons.",
+        sent: 234,
+        opened: 112,
+        clicked: 67,
+      },
+      { type: "wait", label: "Wait 3 days", delay: "Day 2" },
+      {
+        type: "sms",
+        label: "SMS Follow-Up",
+        delay: "Day 5",
+        subject: "Text: Haven’t heard back?",
+        body: "Hi [First Name]! Just checking in — have you had a chance to book your campus tour? Reply STOP to opt out.",
+        sent: 187,
+        opened: 161,
+        clicked: 54,
+      },
+      { type: "wait", label: "Wait 4 days", delay: "Day 5" },
+      {
+        type: "email",
+        label: "Program Overview",
+        delay: "Day 9",
+        subject: "A look inside Sagefield’s curriculum & community",
+        body: "From Montessori-inspired learning to after-school enrichment, here’s what makes our school different.",
+        sent: 187,
+        opened: 74,
+        clicked: 29,
+      },
     ],
-    hearAboutUs: "School fair",
   },
   {
-    id: "ir4",
-    firstName: "David",
-    lastName: "Park",
-    email: "dpark@email.com",
-    phone: "(737) 555-0093",
-    programs: ["Homeschool Drop-In"],
-    children: [{ name: "Ella", age: 9 }],
-    hearAboutUs: "Instagram",
-  },
-  {
-    id: "ir5",
-    firstName: "Jessica",
-    lastName: "Huang",
-    email: "jhuang@email.com",
-    phone: "(512) 555-0695",
-    programs: ["School Year", "Homeschool Drop-In"],
-    children: [{ name: "Mia", age: 7 }],
-    hearAboutUs: "Campus tour",
-  },
-  {
-    id: "ir6",
-    firstName: "Marcus",
-    lastName: "Webb",
-    email: "mwebb@email.com",
-    phone: "(737) 555-0781",
-    programs: ["Summer 2026"],
-    children: [
-      { name: "Aiden", age: 5 },
-      { name: "Zoe", age: 8 },
+    id: "ap2",
+    name: "Tour Follow-Up",
+    description: "Sent after a campus tour to keep the family warm and move them toward applying.",
+    audience: "Tour Completed",
+    trigger: "Campus tour marked complete",
+    status: "active",
+    audienceColor: "#38BDF8",
+    stats: { enrolled: 89, sent: 89, openRate: 58, clickRate: 31, conversions: 24 },
+    steps: [
+      {
+        type: "email",
+        label: "Thank You Email",
+        delay: "Day 0",
+        subject: "Thanks for visiting Sagefield!",
+        body: "It was wonderful meeting your family. Here’s a recap of everything we covered and how to apply.",
+        sent: 89,
+        opened: 52,
+        clicked: 28,
+      },
+      { type: "wait", label: "Wait 3 days", delay: "Day 0" },
+      {
+        type: "email",
+        label: "Application Nudge",
+        delay: "Day 3",
+        subject: "Ready to take the next step? Your application is waiting.",
+        body: "Spots for the upcoming school year are filling up. Submit your application today to reserve your child’s place.",
+        sent: 89,
+        opened: 44,
+        clicked: 31,
+      },
+      { type: "wait", label: "Wait 5 days", delay: "Day 3" },
+      {
+        type: "sms",
+        label: "SMS Reminder",
+        delay: "Day 8",
+        subject: "Text: Application reminder",
+        body: "Hi [First Name], just a friendly reminder — your Sagefield application is only a few minutes away. Need help? Reply here.",
+        sent: 63,
+        opened: 58,
+        clicked: 19,
+      },
     ],
-    hearAboutUs: "Word of mouth",
-  },
-];
-
-const DEMO_FAQ = [
-  {
-    q: "What ages do you serve?",
-    a: "We serve children from Pre-K (age 4) through 6th grade (age 12). Our mixed-age classrooms are intentionally designed to foster peer mentorship and collaboration.",
   },
   {
-    q: "What is your teacher-to-student ratio?",
-    a: "We maintain a 1:6 ratio in our primary classrooms (Pre-K – 2nd) and a 1:8 ratio in our elementary classrooms (3rd – 6th). Aides are assigned based on individual student needs.",
+    id: "ap3",
+    name: "Open House Blast",
+    description: "One-time campaign sent to all prospective families to drive Open House attendance.",
+    audience: "All Prospects",
+    trigger: "Manual — sent to prospect list",
+    status: "active",
+    audienceColor: "#F59E0B",
+    stats: { enrolled: 312, sent: 312, openRate: 51, clickRate: 22, conversions: 18 },
+    steps: [
+      {
+        type: "email",
+        label: "Save the Date",
+        delay: "Day 0",
+        subject: "You’re invited: Sagefield Open House — April 25th",
+        body: "Join us for a morning of campus tours, program demos, and Q&A with our teachers. Light refreshments provided.",
+        sent: 312,
+        opened: 159,
+        clicked: 68,
+      },
+      { type: "wait", label: "Wait 5 days", delay: "Day 0" },
+      {
+        type: "email",
+        label: "RSVP Reminder",
+        delay: "Day 5",
+        subject: "Don’t forget — RSVP for Open House closes soon",
+        body: "We have limited spots available. RSVP by April 22nd to guarantee your family’s place.",
+        sent: 312,
+        opened: 141,
+        clicked: 58,
+      },
+      { type: "wait", label: "Wait 4 days", delay: "Day 5" },
+      {
+        type: "sms",
+        label: "Day-Before Reminder",
+        delay: "Day 9",
+        subject: "Text: Tomorrow — Open House at Sagefield!",
+        body: "Hi [First Name]! Excited to see you tomorrow at our Open House. Doors open at 11 AM. Questions? Reply here.",
+        sent: 87,
+        opened: 82,
+        clicked: 14,
+      },
+    ],
   },
   {
-    q: "Do you offer financial aid or scholarships?",
-    a: "Yes. Sagefield offers need-based financial assistance for up to 20% of our enrollment. Applications are reviewed on a rolling basis. Contact us to receive the financial aid form.",
+    id: "ap4",
+    name: "Enrollment Nudge",
+    description: "Follows up with accepted families who haven’t yet paid their enrollment deposit.",
+    audience: "Accepted — No Deposit",
+    trigger: "Application accepted, deposit unpaid after 5 days",
+    status: "active",
+    audienceColor: "#8B5CF6",
+    stats: { enrolled: 47, sent: 47, openRate: 66, clickRate: 44, conversions: 38 },
+    steps: [
+      {
+        type: "email",
+        label: "Deposit Reminder",
+        delay: "Day 0",
+        subject: "Your child’s spot is reserved — complete enrollment today",
+        body: "Congratulations again on your acceptance to Sagefield! To secure your child’s place, please submit the enrollment deposit.",
+        sent: 47,
+        opened: 31,
+        clicked: 21,
+      },
+      { type: "wait", label: "Wait 3 days", delay: "Day 0" },
+      {
+        type: "sms",
+        label: "Urgent SMS",
+        delay: "Day 3",
+        subject: "Text: Spot may be released soon",
+        body: "Hi [First Name] — your Sagefield enrollment spot expires in 48 hours. Submit your deposit to hold it. Need help? Reply here.",
+        sent: 32,
+        opened: 30,
+        clicked: 18,
+      },
+      { type: "wait", label: "Wait 2 days", delay: "Day 3" },
+      {
+        type: "email",
+        label: "Final Notice",
+        delay: "Day 5",
+        subject: "Last chance — your enrollment expires tomorrow",
+        body: "We’d hate to lose you. If you need help with the deposit or have questions, please reach out to our admissions team directly.",
+        sent: 19,
+        opened: 13,
+        clicked: 9,
+      },
+    ],
   },
   {
-    q: "What curriculum approach does Sagefield use?",
-    a: "We blend Montessori principles with project-based learning. Students develop academic skills through hands-on inquiry, meaningful projects, and self-directed exploration guided by experienced educators.",
+    id: "ap5",
+    name: "Re-Engagement Campaign",
+    description: "Attempts to re-engage cold leads who haven’t opened an email in 30+ days.",
+    audience: "Cold Leads",
+    trigger: "No email open in 30 days",
+    status: "paused",
+    audienceColor: "#EF4444",
+    stats: { enrolled: 156, sent: 156, openRate: 19, clickRate: 7, conversions: 6 },
+    steps: [
+      {
+        type: "email",
+        label: "We Miss You",
+        delay: "Day 0",
+        subject: "Still interested in Sagefield? We saved your spot.",
+        body: "We noticed you haven’t been active in a while. We’d love to reconnect — here’s what’s new at Sagefield this year.",
+        sent: 156,
+        opened: 30,
+        clicked: 11,
+      },
+      { type: "wait", label: "Wait 5 days", delay: "Day 0" },
+      {
+        type: "email",
+        label: "Last Chance",
+        delay: "Day 5",
+        subject: "One last thing before we stop reaching out...",
+        body: "We don’t want to fill your inbox if this isn’t the right time. Let us know if you’d like to stay connected — or we’ll pause for now.",
+        sent: 156,
+        opened: 19,
+        clicked: 8,
+      },
+      {
+        type: "condition",
+        label: "If no open → unsubscribe from sequence",
+        delay: "Day 5",
+      },
+    ],
   },
   {
-    q: "How does the enrollment process work?",
-    a: "Families submit an application through our portal. Our admissions team reviews each application and reaches out within 5–7 business days. Accepted families are invited to complete enrollment and pay the registration fee to secure their spot.",
+    id: "ap6",
+    name: "Summer Program Promo",
+    description: "Promotional campaign to drive summer program registrations from current and prospective families.",
+    audience: "All Contacts",
+    trigger: "Manual — scheduled for May 1",
+    status: "draft",
+    audienceColor: "#F59E0B",
+    stats: { enrolled: 0, sent: 0, openRate: 0, clickRate: 0, conversions: 0 },
+    steps: [
+      {
+        type: "email",
+        label: "Summer Announcement",
+        delay: "Day 0",
+        subject: "Summer 2026 at Sagefield — Registration is now open!",
+        body: "Our summer program is back with new themes, field trips, and enrichment activities for ages 4–12.",
+        sent: 0,
+        opened: 0,
+        clicked: 0,
+      },
+      { type: "wait", label: "Wait 7 days", delay: "Day 0" },
+      {
+        type: "email",
+        label: "Early Bird Reminder",
+        delay: "Day 7",
+        subject: "Early bird pricing ends soon — register your child today",
+        body: "Save $100 per child when you register before May 15th. Spots are limited — don’t miss out.",
+        sent: 0,
+        opened: 0,
+        clicked: 0,
+      },
+      { type: "wait", label: "Wait 7 days", delay: "Day 7" },
+      {
+        type: "sms",
+        label: "Last Chance SMS",
+        delay: "Day 14",
+        subject: "Text: Summer registration closing soon",
+        body: "Hi [First Name]! Summer 2026 spots at Sagefield are almost gone. Register before May 22nd to secure your spot.",
+        sent: 0,
+        opened: 0,
+        clicked: 0,
+      },
+    ],
   },
 ];
 
@@ -8041,534 +8108,276 @@ function EmailsPage() {
   );
 }
 
-// ─── Marketing page ────────────────────────────────────────────────────────────
+// \u2500\u2500\u2500 Marketing page \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-type MarketingTab = "openhouse" | "tours" | "infosession" | "faq";
+type AutomationFilter = "all" | "active" | "paused" | "draft";
 
-function MiniCalendar({ blockedDates }: { blockedDates: string[] }) {
-  const [month, setMonth] = useState(new Date(2026, 3, 1));
-  const year = month.getFullYear(),
-    m = month.getMonth();
-  const firstDay = new Date(year, m, 1).getDay();
-  const daysInMonth = new Date(year, m + 1, 0).getDate();
-  const cells = Array.from({ length: firstDay + daysInMonth }, (_, i) =>
-    i < firstDay ? null : i - firstDay + 1,
-  );
-  const fmtD = (d: number) =>
-    `${year}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-
-  return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-    >
-      <div
-        className="flex items-center justify-between px-4 py-3"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <button
-          onClick={() => setMonth(new Date(year, m - 1, 1))}
-          style={{ color: C.textTertiary }}
-        >
-          ‹
-        </button>
-        <span
-          className="text-xs font-semibold"
-          style={{ color: C.textPrimary }}
-        >
-          {month.toLocaleString("default", { month: "long", year: "numeric" })}
-        </span>
-        <button
-          onClick={() => setMonth(new Date(year, m + 1, 1))}
-          style={{ color: C.textTertiary }}
-        >
-          ›
-        </button>
-      </div>
-      <div className="grid grid-cols-7 px-2 py-1">
-        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-          <div
-            key={i}
-            className="text-center text-[9px] py-1 font-semibold"
-            style={{ color: C.textTertiary }}
-          >
-            {d}
-          </div>
-        ))}
-        {cells.map((day, i) => {
-          const blocked = day ? blockedDates.includes(fmtD(day)) : false;
-          return (
-            <div
-              key={i}
-              className="flex items-center justify-center w-full aspect-square"
-            >
-              {day && (
-                <span
-                  className="w-7 h-7 flex items-center justify-center rounded-full text-xs"
-                  style={{
-                    backgroundColor: blocked ? C.errorBg : "transparent",
-                    color: blocked ? C.error : C.textSecondary,
-                    fontWeight: blocked ? 700 : undefined,
-                    border: blocked ? `1px solid ${C.errorBorder}` : "none",
-                  }}
-                >
-                  {day}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+function AutomationStepIcon({ type }: { type: AutomationStep["type"] }) {
+  if (type === "email") return <Mail className="w-3.5 h-3.5" />;
+  if (type === "sms") return <MessageSquare className="w-3.5 h-3.5" />;
+  if (type === "wait") return <Clock className="w-3.5 h-3.5" />;
+  return <GitBranch className="w-3.5 h-3.5" />;
 }
 
-const TOUR_STATUS_MAP: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
-  confirmed: { bg: C.successBg, text: C.success, label: "Confirmed" },
-  completed: { bg: C.accentLight, text: C.accent, label: "Completed" },
-  pending: { bg: C.warningBg, text: C.warning, label: "Pending" },
-  cancelled: { bg: C.errorBg, text: C.error, label: "Cancelled" },
-};
+function stepColor(type: AutomationStep["type"]) {
+  if (type === "email") return { bg: C.accentLight, fg: C.accent };
+  if (type === "sms") return { bg: C.infoBg, fg: C.info };
+  if (type === "wait") return { bg: C.elevated, fg: C.textTertiary };
+  return { bg: C.purpleBg, fg: C.purple };
+}
+
+function statusBadge(status: AutomationPipeline["status"]) {
+  if (status === "active")
+    return { bg: C.successBg, fg: C.success, label: "Active" };
+  if (status === "paused")
+    return { bg: C.warningBg, fg: C.warning, label: "Paused" };
+  return { bg: C.elevated, fg: C.textTertiary, label: "Draft" };
+}
 
 function MarketingPage() {
-  const [tab, setTab] = useState<MarketingTab>("openhouse");
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [filter, setFilter] = useState<AutomationFilter>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const subNav: { key: MarketingTab; label: string; sub: string }[] = [
-    { key: "openhouse", label: "Open House", sub: "Apr 25" },
-    { key: "tours", label: "Campus Tours", sub: "Manage" },
-    { key: "infosession", label: "Info Session", sub: "Apr 18 RSVPs" },
-    { key: "faq", label: "Session FAQ", sub: "Apr 18 prep" },
+  const filtered =
+    filter === "all"
+      ? DEMO_AUTOMATION_PIPELINES
+      : DEMO_AUTOMATION_PIPELINES.filter((p) => p.status === filter);
+
+  const selected = selectedId
+    ? DEMO_AUTOMATION_PIPELINES.find((p) => p.id === selectedId) ?? null
+    : null;
+
+  const totalActive = DEMO_AUTOMATION_PIPELINES.filter(
+    (p) => p.status === "active",
+  ).length;
+  const totalSent = DEMO_AUTOMATION_PIPELINES.reduce(
+    (s, p) => s + p.stats.sent,
+    0,
+  );
+  const avgOpenRate = Math.round(
+    DEMO_AUTOMATION_PIPELINES.filter((p) => p.stats.sent > 0).reduce(
+      (s, p) => s + p.stats.openRate,
+      0,
+    ) /
+      DEMO_AUTOMATION_PIPELINES.filter((p) => p.stats.sent > 0).length,
+  );
+  const totalConversions = DEMO_AUTOMATION_PIPELINES.reduce(
+    (s, p) => s + p.stats.conversions,
+    0,
+  );
+
+  const FILTER_OPTIONS: { key: AutomationFilter; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "active", label: "Active" },
+    { key: "paused", label: "Paused" },
+    { key: "draft", label: "Draft" },
   ];
 
-  const totalAdults = DEMO_OPEN_HOUSE_RSVPS.reduce((s, r) => s + r.adults, 0);
-  const totalChildren = DEMO_OPEN_HOUSE_RSVPS.reduce(
-    (s, r) => s + r.children,
-    0,
-  );
-  const infoChildren = DEMO_INFO_RSVPS.reduce(
-    (s, r) => s + r.children.length,
-    0,
-  );
-
-  const blockedDates = ["2026-04-10", "2026-04-14", "2026-04-22"];
+  const KPI_STATS = [
+    { label: "Active Pipelines", value: totalActive, color: C.success },
+    { label: "Total Sent", value: totalSent.toLocaleString(), color: C.info },
+    { label: "Avg Open Rate", value: `${avgOpenRate}%`, color: C.accent },
+    {
+      label: "Conversions",
+      value: totalConversions,
+      color: C.purple,
+    },
+  ];
 
   return (
-    <div className="h-full flex gap-0">
-      {/* Left sub-nav */}
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header */}
       <div
-        className="w-32 flex-shrink-0 flex flex-col overflow-hidden"
-        style={{ borderRight: `1px solid ${C.border}` }}
+        className="flex items-start justify-between px-6 pt-5 pb-4 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        <div className="px-3 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: C.textTertiary }}
+        <div>
+          <h1
+            className="text-lg font-semibold tracking-tight"
+            style={{ color: C.textPrimary }}
           >
-            Marketing
+            Automation Pipelines
+          </h1>
+          <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+            Automated email & SMS sequences for leads and families
           </p>
         </div>
-        {subNav.map((item) => {
-          const active = tab === item.key;
-          return (
-            <button
-              key={item.key}
-              onClick={() => setTab(item.key)}
-              className="w-full text-left text-xs font-medium transition-colors duration-150"
-              style={{
-                padding: "10px 12px",
-                backgroundColor: active ? C.accentLight : "transparent",
-                color: active ? C.accent : C.textSecondary,
-                borderLeft: `2px solid ${active ? C.accent : "transparent"}`,
-                borderBottom: `1px solid ${C.border}`,
-              }}
-            >
-              <span className="block">{item.label}</span>
-              <span
-                className="text-[10px]"
-                style={{ color: active ? C.accentDark : C.textTertiary }}
-              >
-                {item.sub}
-              </span>
-            </button>
-          );
-        })}
+        <button
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg flex-shrink-0"
+          style={{ backgroundColor: C.accent, color: "#fff" }}
+        >
+          <span className="text-sm leading-none">+</span> New Automation
+        </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0 overflow-y-auto pl-6 pr-6 pt-6">
-        <AnimatePresence mode="wait">
-          {tab === "openhouse" && (
-            <motion.div
-              key="oh"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-4"
-            >
-              <div>
-                <h1
-                  className="text-xl font-semibold"
-                  style={{ color: C.textPrimary }}
-                >
-                  Open House
-                </h1>
-                <p className="text-sm" style={{ color: C.textTertiary }}>
-                  Saturday, April 25 · 11 AM – 2 PM
-                </p>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  {
-                    label: "RSVPs",
-                    value: DEMO_OPEN_HOUSE_RSVPS.length,
-                    color: C.accent,
-                  },
-                  { label: "Adults", value: totalAdults, color: C.info },
-                  { label: "Children", value: totalChildren, color: C.warning },
-                  {
-                    label: "Total Attendees",
-                    value: totalAdults + totalChildren,
-                    color: C.success,
-                  },
-                ].map((s) => (
-                  <div
-                    key={s.label}
-                    className="rounded-xl p-4"
-                    style={{
-                      backgroundColor: C.surface,
-                      border: `1px solid ${C.border}`,
-                    }}
-                  >
-                    <p
-                      className="text-xs uppercase tracking-widest font-semibold mb-2"
-                      style={{ color: C.textTertiary }}
-                    >
-                      {s.label}
-                    </p>
-                    <p
-                      className="text-3xl font-bold tabular-nums"
-                      style={{ color: s.color }}
-                    >
-                      {s.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <Card>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                      {[
-                        "Name",
-                        "Email",
-                        "Phone",
-                        "Adults",
-                        "Children",
-                        "Notes",
-                        "",
-                      ].map((col) => (
-                        <th
-                          key={col}
-                          className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {DEMO_OPEN_HOUSE_RSVPS.map((r, i) => (
-                      <motion.tr
-                        key={r.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.03 }}
-                        style={{ borderBottom: `1px solid ${C.border}` }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = C.elevated)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            "transparent")
-                        }
-                      >
-                        <td
-                          className="px-4 py-3 font-medium text-xs"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {r.name}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs"
-                          style={{ color: C.textSecondary }}
-                        >
-                          {r.email}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs"
-                          style={{ color: C.textSecondary }}
-                        >
-                          {r.phone}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs text-center font-bold"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {r.adults}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs text-center font-bold"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {r.children}
-                        </td>
-                        <td className="px-4 py-3 text-xs max-w-[140px]">
-                          <p
-                            className="truncate"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {r.notes || "—"}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className="text-[10px] font-semibold px-2 py-1 rounded-lg cursor-pointer transition-colors"
-                            style={{
-                              backgroundColor: C.accentLight,
-                              color: C.accent,
-                            }}
-                          >
-                            Send Reminder
-                          </span>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Card>
-            </motion.div>
-          )}
-
-          {tab === "tours" && (
-            <motion.div
-              key="tours"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-4"
-            >
-              <div>
-                <h1
-                  className="text-xl font-semibold"
-                  style={{ color: C.textPrimary }}
-                >
-                  Campus Tours
-                </h1>
-                <p className="text-sm" style={{ color: C.textTertiary }}>
-                  Manage tour availability and bookings
-                </p>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div>
-                  <p
-                    className="text-xs font-semibold uppercase tracking-widest mb-2"
-                    style={{ color: C.textTertiary }}
-                  >
-                    Blocked Dates
-                  </p>
-                  <MiniCalendar blockedDates={blockedDates} />
-                </div>
-                <Card style={{ padding: "16px" }}>
-                  <p
-                    className="text-xs font-semibold uppercase tracking-widest mb-3"
-                    style={{ color: C.textTertiary }}
-                  >
-                    Block a Date
-                  </p>
-                  {["Date", "Time Slot", "Reason"].map((f) => (
-                    <div key={f} className="mb-3">
-                      <p
-                        className="text-xs mb-1"
-                        style={{ color: C.textTertiary }}
-                      >
-                        {f}
-                      </p>
-                      <div
-                        className="px-3 py-2 rounded-lg text-xs"
-                        style={{
-                          backgroundColor: C.elevated,
-                          border: `1px solid ${C.border}`,
-                          color: C.textTertiary,
-                        }}
-                      >
-                        {f === "Time Slot"
-                          ? "Select time..."
-                          : f === "Date"
-                            ? "YYYY-MM-DD"
-                            : "e.g. Staff meeting"}
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    className="w-full py-2 text-xs font-semibold rounded-lg mt-1"
-                    style={{ backgroundColor: C.accent, color: "#fff" }}
-                  >
-                    Add Block
-                  </button>
-                </Card>
-              </div>
-              <div>
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        {/* KPI row — grid view only */}
+        {!selected && (
+          <div className="grid grid-cols-4 gap-3">
+            {KPI_STATS.map((s) => (
+              <div
+                key={s.label}
+                className="rounded-xl p-3"
+                style={{
+                  backgroundColor: C.surface,
+                  border: `1px solid ${C.border}`,
+                }}
+              >
                 <p
-                  className="text-xs font-semibold uppercase tracking-widest mb-3"
+                  className="text-[10px] uppercase tracking-widest font-semibold mb-1.5"
                   style={{ color: C.textTertiary }}
                 >
-                  Tour Bookings
+                  {s.label}
                 </p>
-                <Card>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                        {[
-                          "Date",
-                          "Time",
-                          "Name",
-                          "Email",
-                          "Child",
-                          "Grade",
-                          "Status",
-                        ].map((col) => (
-                          <th
-                            key={col}
-                            className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {DEMO_TOUR_BOOKINGS.map((t, i) => {
-                        const s = TOUR_STATUS_MAP[t.status];
-                        return (
-                          <motion.tr
-                            key={t.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: i * 0.04 }}
-                            style={{ borderBottom: `1px solid ${C.border}` }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.backgroundColor =
-                                C.elevated)
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.backgroundColor =
-                                "transparent")
-                            }
-                          >
-                            <td
-                              className="px-4 py-3 text-xs"
-                              style={{ color: C.textSecondary }}
-                            >
-                              {t.date}
-                            </td>
-                            <td
-                              className="px-4 py-3 text-xs"
-                              style={{ color: C.textSecondary }}
-                            >
-                              {t.time}
-                            </td>
-                            <td
-                              className="px-4 py-3 text-xs font-medium"
-                              style={{ color: C.textPrimary }}
-                            >
-                              {t.firstName} {t.lastName}
-                            </td>
-                            <td
-                              className="px-4 py-3 text-xs"
-                              style={{ color: C.textTertiary }}
-                            >
-                              {t.email}
-                            </td>
-                            <td
-                              className="px-4 py-3 text-xs"
-                              style={{ color: C.textSecondary }}
-                            >
-                              {t.childName}
-                            </td>
-                            <td
-                              className="px-4 py-3 text-xs"
-                              style={{ color: C.textTertiary }}
-                            >
-                              {t.grade}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span
-                                className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
-                                style={{ backgroundColor: s.bg, color: s.text }}
-                              >
-                                {s.label}
-                              </span>
-                            </td>
-                          </motion.tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </Card>
+                <p
+                  className="text-2xl font-bold tabular-nums"
+                  style={{ color: s.color }}
+                >
+                  {s.value}
+                </p>
               </div>
-            </motion.div>
-          )}
+            ))}
+          </div>
+        )}
 
-          {tab === "infosession" && (
+        {/* Filter chips — grid view only */}
+        {!selected && (
+          <div className="flex items-center gap-2">
+            {FILTER_OPTIONS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => { setFilter(f.key); setSelectedId(null); }}
+                className="px-3 py-1 text-xs font-medium rounded-full transition-all"
+                style={{
+                  backgroundColor:
+                    filter === f.key ? C.accent : C.elevated,
+                  color: filter === f.key ? "#fff" : C.textSecondary,
+                  border: `1px solid ${filter === f.key ? C.accent : C.border}`,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+            <span
+              className="ml-auto text-xs"
+              style={{ color: C.textTertiary }}
+            >
+              {filtered.length} pipeline{filtered.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+
+        {/* Grid / Detail */}
+        <AnimatePresence mode="wait">
+          {selected ? (
+            /* ── Detail view ───────────────────────────────── */
             <motion.div
-              key="info"
-              initial={{ opacity: 0, y: 6 }}
+              key={`detail-${selected.id}`}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
               className="space-y-4"
             >
-              <div>
-                <h1
-                  className="text-xl font-semibold"
-                  style={{ color: C.textPrimary }}
+              {/* Back + title bar */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg"
+                  style={{
+                    color: C.textSecondary,
+                    backgroundColor: C.elevated,
+                    border: `1px solid ${C.border}`,
+                  }}
                 >
-                  Info Session RSVPs
-                </h1>
-                <p className="text-sm" style={{ color: C.textTertiary }}>
-                  April 18, 2026 · 6:00 – 7:30 PM
-                </p>
+                  <ChevronRight
+                    className="w-3 h-3"
+                    style={{ transform: "rotate(180deg)" }}
+                  />
+                  Back
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-sm font-semibold truncate"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {selected.name}
+                    </span>
+                    <span
+                      className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor: statusBadge(selected.status).bg,
+                        color: statusBadge(selected.status).fg,
+                      }}
+                    >
+                      {statusBadge(selected.status).label}
+                    </span>
+                    <span
+                      className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor: selected.audienceColor + "18",
+                        color: selected.audienceColor,
+                      }}
+                    >
+                      {selected.audience}
+                    </span>
+                  </div>
+                  <p
+                    className="text-xs mt-0.5 truncate"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Trigger: {selected.trigger}
+                  </p>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              {/* Detail KPIs */}
+              <div className="grid grid-cols-4 gap-3">
                 {[
                   {
-                    label: "RSVPs",
-                    value: DEMO_INFO_RSVPS.length,
+                    label: "Enrolled",
+                    value: selected.stats.enrolled,
                     color: C.accent,
                   },
-                  { label: "Children", value: infoChildren, color: C.info },
+                  {
+                    label: "Emails Sent",
+                    value: selected.stats.sent.toLocaleString(),
+                    color: C.info,
+                  },
+                  {
+                    label: "Open Rate",
+                    value:
+                      selected.stats.openRate > 0
+                        ? `${selected.stats.openRate}%`
+                        : "—",
+                    color: C.warning,
+                  },
+                  {
+                    label: "Conversions",
+                    value:
+                      selected.stats.conversions > 0
+                        ? selected.stats.conversions
+                        : "—",
+                    color: C.purple,
+                  },
                 ].map((s) => (
                   <div
                     key={s.label}
-                    className="rounded-xl p-4"
+                    className="rounded-xl p-3"
                     style={{
                       backgroundColor: C.surface,
                       border: `1px solid ${C.border}`,
                     }}
                   >
                     <p
-                      className="text-xs uppercase tracking-widest font-semibold mb-2"
+                      className="text-[10px] uppercase tracking-widest font-semibold mb-1.5"
                       style={{ color: C.textTertiary }}
                     >
                       {s.label}
                     </p>
                     <p
-                      className="text-3xl font-bold tabular-nums"
+                      className="text-2xl font-bold tabular-nums"
                       style={{ color: s.color }}
                     >
                       {s.value}
@@ -8576,163 +8385,453 @@ function MarketingPage() {
                   </div>
                 ))}
               </div>
-              <Card>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                      {[
-                        "Name",
-                        "Email",
-                        "Phone",
-                        "Programs",
-                        "Children",
-                        "Hear About Us",
-                      ].map((col) => (
-                        <th
-                          key={col}
-                          className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {DEMO_INFO_RSVPS.map((r, i) => (
-                      <motion.tr
-                        key={r.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.04 }}
-                        style={{ borderBottom: `1px solid ${C.border}` }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = C.elevated)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            "transparent")
-                        }
-                      >
-                        <td
-                          className="px-4 py-3 text-xs font-medium"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {r.firstName} {r.lastName}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs"
-                          style={{ color: C.textSecondary }}
-                        >
-                          {r.email}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs"
-                          style={{ color: C.textSecondary }}
-                        >
-                          {r.phone}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-wrap gap-1">
-                            {r.programs.map((p) => (
-                              <span
-                                key={p}
-                                className="px-1.5 py-0.5 text-[9px] font-semibold rounded-full"
-                                style={{
-                                  backgroundColor: C.accentLight,
-                                  color: C.accent,
-                                }}
-                              >
-                                {p}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs text-center font-bold"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {r.children.length}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {r.hearAboutUs}
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Card>
-            </motion.div>
-          )}
 
-          {tab === "faq" && (
-            <motion.div
-              key="faq"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="space-y-3"
-            >
-              <div className="mb-4">
-                <h1
-                  className="text-xl font-semibold"
-                  style={{ color: C.textPrimary }}
-                >
-                  Session FAQ
-                </h1>
-                <p className="text-sm" style={{ color: C.textTertiary }}>
-                  Common questions for the April 18th info session
-                </p>
-              </div>
-              {DEMO_FAQ.map((item, i) => (
-                <Card key={i} style={{ overflow: "hidden" }}>
-                  <button
-                    className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors"
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.backgroundColor = C.elevated)
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.backgroundColor = "transparent")
-                    }
+              {/* Step sequence — node flow */}
+              <div>
+                {/* Section label */}
+                <div className="flex items-center justify-between mb-3">
+                  <p
+                    className="text-xs font-semibold uppercase tracking-widest"
+                    style={{ color: C.textTertiary }}
                   >
-                    <span
-                      className="text-sm font-semibold"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {item.q}
-                    </span>
-                    <ChevronRight
-                      className="w-4 h-4 flex-shrink-0 ml-3 transition-transform"
-                      style={{
-                        color: C.textTertiary,
-                        transform: openFaq === i ? "rotate(90deg)" : "none",
-                      }}
-                    />
-                  </button>
-                  <AnimatePresence>
-                    {openFaq === i && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        style={{ overflow: "hidden" }}
-                      >
-                        <p
-                          className="px-5 pb-5 text-sm leading-relaxed"
-                          style={{ color: C.textSecondary }}
+                    Automation Flow
+                  </p>
+                  <span className="text-xs" style={{ color: C.textTertiary }}>
+                    {selected.steps.length} steps
+                  </span>
+                </div>
+
+                {/* Wrapping node row */}
+                <div
+                  className="flex flex-wrap items-center"
+                  style={{ gap: "12px 0" }}
+                >
+                    {selected.steps.map((step, i) => {
+                      const sc = stepColor(step.type);
+                      const isWait = step.type === "wait";
+                      const isAction = !isWait;
+                      const hasSentData =
+                        isAction &&
+                        step.sent !== undefined &&
+                        step.sent > 0;
+                      const isDraft =
+                        isAction &&
+                        step.sent !== undefined &&
+                        step.sent === 0;
+
+                      return (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.92 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.05, duration: 0.2 }}
+                          className="flex items-center"
+                          style={{ gap: 0 }}
                         >
-                          {item.a}
+                          {/* ── Wait node ── */}
+                          {isWait && (
+                            <div
+                              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg mx-1"
+                              style={{
+                                backgroundColor: C.elevated,
+                                border: `1px dashed ${C.border}`,
+                                minWidth: 72,
+                              }}
+                            >
+                              <Clock
+                                className="w-3.5 h-3.5"
+                                style={{ color: C.textTertiary }}
+                              />
+                              <span
+                                className="text-[10px] font-semibold text-center leading-tight"
+                                style={{ color: C.textSecondary }}
+                              >
+                                {step.label}
+                              </span>
+                              {step.delay && (
+                                <span
+                                  className="text-[9px]"
+                                  style={{ color: C.textTertiary }}
+                                >
+                                  {step.delay}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* ── Action node ── */}
+                          {isAction && (
+                            <div
+                              className="flex flex-col rounded-xl overflow-hidden flex-shrink-0"
+                              style={{
+                                width: 148,
+                                backgroundColor: C.surface,
+                                border: `1px solid ${C.border}`,
+                                boxShadow: C.shadowCard,
+                              }}
+                            >
+                              {/* Colored top strip */}
+                              <div
+                                className="h-1 w-full flex-shrink-0"
+                                style={{ backgroundColor: sc.fg }}
+                              />
+                              <div className="p-3 flex flex-col gap-1.5">
+                                {/* Type badge + icon */}
+                                <div className="flex items-center gap-1.5">
+                                  <div
+                                    className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+                                    style={{
+                                      backgroundColor: sc.bg,
+                                      color: sc.fg,
+                                    }}
+                                  >
+                                    <AutomationStepIcon type={step.type} />
+                                  </div>
+                                  <span
+                                    className="text-[10px] font-semibold uppercase tracking-wide"
+                                    style={{ color: sc.fg }}
+                                  >
+                                    {step.type === "condition"
+                                      ? "Branch"
+                                      : step.type.toUpperCase()}
+                                  </span>
+                                  {step.delay && (
+                                    <span
+                                      className="ml-auto text-[9px] px-1 py-0.5 rounded"
+                                      style={{
+                                        backgroundColor: C.elevated,
+                                        color: C.textTertiary,
+                                      }}
+                                    >
+                                      {step.delay}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Step name */}
+                                <p
+                                  className="text-[11px] font-semibold leading-tight"
+                                  style={{ color: C.textPrimary }}
+                                >
+                                  {step.label}
+                                </p>
+
+                                {/* Subject line */}
+                                {step.subject && (
+                                  <p
+                                    className="text-[10px] italic leading-tight line-clamp-2"
+                                    style={{ color: C.textSecondary }}
+                                  >
+                                    &ldquo;{step.subject}&rdquo;
+                                  </p>
+                                )}
+
+                                {/* Branch label */}
+                                {step.type === "condition" && step.body && (
+                                  <p
+                                    className="text-[10px] leading-tight"
+                                    style={{ color: C.textTertiary }}
+                                  >
+                                    {step.body}
+                                  </p>
+                                )}
+
+                                {/* Metrics */}
+                                {hasSentData && (
+                                  <div
+                                    className="mt-1 pt-2 flex flex-col gap-1"
+                                    style={{
+                                      borderTop: `1px solid ${C.border}`,
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span
+                                        className="text-[9px]"
+                                        style={{ color: C.textTertiary }}
+                                      >
+                                        Sent
+                                      </span>
+                                      <span
+                                        className="text-[10px] font-semibold tabular-nums"
+                                        style={{ color: C.textPrimary }}
+                                      >
+                                        {step.sent!.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    {step.opened !== undefined &&
+                                      step.sent! > 0 && (
+                                        <div className="flex items-center justify-between">
+                                          <span
+                                            className="text-[9px]"
+                                            style={{ color: C.textTertiary }}
+                                          >
+                                            Opened
+                                          </span>
+                                          <span
+                                            className="text-[10px] font-semibold tabular-nums"
+                                            style={{ color: C.success }}
+                                          >
+                                            {Math.round(
+                                              (step.opened / step.sent!) * 100,
+                                            )}
+                                            %
+                                          </span>
+                                        </div>
+                                      )}
+                                    {step.clicked !== undefined &&
+                                      step.sent! > 0 && (
+                                        <div className="flex items-center justify-between">
+                                          <span
+                                            className="text-[9px]"
+                                            style={{ color: C.textTertiary }}
+                                          >
+                                            Clicked
+                                          </span>
+                                          <span
+                                            className="text-[10px] font-semibold tabular-nums"
+                                            style={{ color: C.accent }}
+                                          >
+                                            {Math.round(
+                                              (step.clicked / step.sent!) * 100,
+                                            )}
+                                            %
+                                          </span>
+                                        </div>
+                                      )}
+                                  </div>
+                                )}
+                                {isDraft && (
+                                  <p
+                                    className="text-[9px] italic mt-1 pt-1"
+                                    style={{
+                                      color: C.textQuaternary,
+                                      borderTop: `1px solid ${C.border}`,
+                                    }}
+                                  >
+                                    Not yet sent
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* ── Arrow connector ── */}
+                          {i < selected.steps.length - 1 && (
+                            <div
+                              className="flex items-center flex-shrink-0"
+                              style={{ width: 28 }}
+                            >
+                              <div
+                                className="flex-1 h-px"
+                                style={{ backgroundColor: C.border }}
+                              />
+                              <svg
+                                width="6"
+                                height="8"
+                                viewBox="0 0 6 8"
+                                fill="none"
+                                style={{ flexShrink: 0 }}
+                              >
+                                <path
+                                  d="M0 0L6 4L0 8"
+                                  fill={C.border}
+                                />
+                              </svg>
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            /* ── Grid view ─────────────────────────────────── */
+            <motion.div
+              key="grid"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="grid grid-cols-2 gap-3"
+            >
+              {filtered.map((pipeline, idx) => {
+                const sb = statusBadge(pipeline.status);
+                const actionSteps = pipeline.steps.filter(
+                  (s) => s.type !== "wait",
+                );
+                return (
+                  <motion.button
+                    key={pipeline.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.04 }}
+                    onClick={() => setSelectedId(pipeline.id)}
+                    className="text-left rounded-xl p-4 transition-all duration-150"
+                    style={{
+                      backgroundColor: C.surface,
+                      border: `1px solid ${C.border}`,
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.borderColor =
+                        C.borderStrong;
+                      (e.currentTarget as HTMLElement).style.backgroundColor =
+                        C.elevated;
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.borderColor =
+                        C.border;
+                      (e.currentTarget as HTMLElement).style.backgroundColor =
+                        C.surface;
+                    }}
+                  >
+                    {/* Card header */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-sm font-semibold leading-tight"
+                          style={{ color: C.textPrimary }}
+                        >
+                          {pipeline.name}
                         </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Card>
-              ))}
+                        <p
+                          className="text-[11px] mt-0.5 line-clamp-2 leading-relaxed"
+                          style={{ color: C.textTertiary }}
+                        >
+                          {pipeline.description}
+                        </p>
+                      </div>
+                      <span
+                        className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor: sb.bg,
+                          color: sb.fg,
+                        }}
+                      >
+                        {sb.label}
+                      </span>
+                    </div>
+
+                    {/* Audience + trigger */}
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <span
+                        className="px-1.5 py-0.5 text-[10px] font-semibold rounded"
+                        style={{
+                          backgroundColor: pipeline.audienceColor + "18",
+                          color: pipeline.audienceColor,
+                        }}
+                      >
+                        {pipeline.audience}
+                      </span>
+                      <span
+                        className="text-[10px] truncate"
+                        style={{ color: C.textQuaternary }}
+                      >
+                        {pipeline.trigger}
+                      </span>
+                    </div>
+
+                    {/* Step flow pills */}
+                    <div className="flex items-center gap-1 mb-3 flex-wrap">
+                      {pipeline.steps.map((step, si) => {
+                        const sc = stepColor(step.type);
+                        return (
+                          <div key={si} className="flex items-center gap-1">
+                            <div
+                              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{
+                                backgroundColor: sc.bg,
+                                color: sc.fg,
+                              }}
+                            >
+                              <AutomationStepIcon type={step.type} />
+                            </div>
+                            {si < pipeline.steps.length - 1 && (
+                              <div
+                                className="w-3 h-px"
+                                style={{ backgroundColor: C.border }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                      <span
+                        className="ml-1 text-[10px]"
+                        style={{ color: C.textTertiary }}
+                      >
+                        {actionSteps.length} action
+                        {actionSteps.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+
+                    {/* Metrics row */}
+                    <div
+                      className="flex items-center gap-4 pt-2.5"
+                      style={{ borderTop: `1px solid ${C.border}` }}
+                    >
+                      {pipeline.stats.sent > 0 ? (
+                        <>
+                          <div>
+                            <p
+                              className="text-[10px]"
+                              style={{ color: C.textTertiary }}
+                            >
+                              Sent
+                            </p>
+                            <p
+                              className="text-xs font-semibold tabular-nums"
+                              style={{ color: C.textPrimary }}
+                            >
+                              {pipeline.stats.sent.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p
+                              className="text-[10px]"
+                              style={{ color: C.textTertiary }}
+                            >
+                              Open rate
+                            </p>
+                            <p
+                              className="text-xs font-semibold tabular-nums"
+                              style={{ color: C.success }}
+                            >
+                              {pipeline.stats.openRate}%
+                            </p>
+                          </div>
+                          <div>
+                            <p
+                              className="text-[10px]"
+                              style={{ color: C.textTertiary }}
+                            >
+                              Conversions
+                            </p>
+                            <p
+                              className="text-xs font-semibold tabular-nums"
+                              style={{ color: C.accent }}
+                            >
+                              {pipeline.stats.conversions}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <span
+                          className="text-[10px] italic"
+                          style={{ color: C.textQuaternary }}
+                        >
+                          Draft — not yet sent
+                        </span>
+                      )}
+                      <div className="ml-auto">
+                        <ChevronRight
+                          className="w-3.5 h-3.5"
+                          style={{ color: C.textTertiary }}
+                        />
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>
