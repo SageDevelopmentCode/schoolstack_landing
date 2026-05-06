@@ -31,6 +31,8 @@ import {
   MoreHorizontal,
   Plus,
   Heart,
+  ClipboardList,
+  Home,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -3226,6 +3228,60 @@ const DEMO_DOCUMENTS: DemoDocument[] = [
   },
 ];
 
+// ─── Attendance Demo Data ─────────────────────────────────────────────────────
+
+type AttendanceStudent = {
+  id: string;
+  name: string;
+  initials: string;
+  avatar: string;
+  homeschoolDropIn: boolean;
+};
+
+type AttendanceRecord = {
+  studentId: string;
+  date: string;
+  paid: boolean;
+  present: boolean;
+};
+
+const ATTENDANCE_STUDENTS: AttendanceStudent[] = [
+  { id: "as1", name: "Maya Chen",    initials: "MC", avatar: "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg",        homeschoolDropIn: false },
+  { id: "as2", name: "Liam Torres",  initials: "LT", avatar: "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",           homeschoolDropIn: false },
+  { id: "as3", name: "Sofia Patel",  initials: "SP", avatar: "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",homeschoolDropIn: true  },
+  { id: "as4", name: "Noah Adkins",  initials: "NA", avatar: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg",        homeschoolDropIn: false },
+  { id: "as5", name: "Zoe Kim",      initials: "ZK", avatar: "/images/people/students/izzy-park-8hBY-30cEqI-unsplash.jpg",             homeschoolDropIn: true  },
+  { id: "as6", name: "Ethan Brooks", initials: "EB", avatar: "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg",         homeschoolDropIn: false },
+  { id: "as7", name: "Isla Nguyen",  initials: "IN", avatar: "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash.jpg",           homeschoolDropIn: true  },
+  { id: "as8", name: "Oliver Hayes", initials: "OH", avatar: "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",         homeschoolDropIn: false },
+];
+
+// Base week dates (Week 1: May 25–29 2026)
+const ATTENDANCE_BASE_DATES = [
+  "2026-05-25",
+  "2026-05-26",
+  "2026-05-27",
+  "2026-05-28",
+  "2026-05-29",
+];
+
+function buildInitialAttendance(): AttendanceRecord[] {
+  const records: AttendanceRecord[] = [];
+  const paidIds = new Set(["as1", "as2"]);
+  const presentOnMonday = new Set(["as1", "as2"]);
+  for (const student of ATTENDANCE_STUDENTS) {
+    for (const date of ATTENDANCE_BASE_DATES) {
+      records.push({
+        studentId: student.id,
+        date,
+        paid: paidIds.has(student.id),
+        present: presentOnMonday.has(student.id) && date === "2026-05-25",
+      });
+    }
+  }
+  return records;
+}
+
 function FormsPage() {
   const [forms, setForms] = useState<DemoForm[]>(INITIAL_FORMS);
   const [signingId, setSigningId] = useState<string | null>(null);
@@ -3449,6 +3505,276 @@ function FormsPage() {
   );
 }
 
+// ─── Attendance Tab ───────────────────────────────────────────────────────────
+
+const ATTENDANCE_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const ATTENDANCE_MONTH_ABBRS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const ATTENDANCE_TOTAL_WEEKS = 12;
+
+function AttendanceTab() {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [records, setRecords] = useState<AttendanceRecord[]>(buildInitialAttendance);
+  const [search, setSearch] = useState("");
+
+  const currentWeek = weekOffset + 1;
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const weekDates = useMemo(() => {
+    return ATTENDANCE_BASE_DATES.map((d) => {
+      const date = new Date(d + "T00:00:00");
+      date.setDate(date.getDate() + weekOffset * 7);
+      return date.toISOString().slice(0, 10);
+    });
+  }, [weekOffset]);
+
+  const filteredStudents = useMemo(
+    () =>
+      ATTENDANCE_STUDENTS.filter((s) =>
+        s.name.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [search],
+  );
+
+  function getRecord(studentId: string, date: string) {
+    return records.find((r) => r.studentId === studentId && r.date === date);
+  }
+
+  function togglePresent(studentId: string, date: string) {
+    setRecords((prev) =>
+      prev.map((r) =>
+        r.studentId === studentId && r.date === date
+          ? { ...r, present: !r.present }
+          : r,
+      ),
+    );
+  }
+
+  function presentCount(date: string) {
+    return records.filter(
+      (r) =>
+        r.date === date &&
+        r.present &&
+        filteredStudents.some((s) => s.id === r.studentId),
+    ).length;
+  }
+
+  function formatDateLabel(dateStr: string) {
+    const d = new Date(dateStr + "T00:00:00");
+    return `${ATTENDANCE_MONTH_ABBRS[d.getMonth()]} ${d.getDate()}`;
+  }
+
+  function weekRangeLabel() {
+    const s = new Date(weekDates[0] + "T00:00:00");
+    const e = new Date(weekDates[4] + "T00:00:00");
+    const sm = ATTENDANCE_MONTH_ABBRS[s.getMonth()];
+    const em = ATTENDANCE_MONTH_ABBRS[e.getMonth()];
+    if (sm === em) return `${sm} ${s.getDate()} – ${e.getDate()}`;
+    return `${sm} ${s.getDate()} – ${em} ${e.getDate()}`;
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden bg-white">
+      {/* Header */}
+      <div className="px-6 pt-5 pb-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold font-heading text-gray-800">
+              Attendance
+            </h1>
+            <p className="text-sm text-gray-400 font-body mt-0.5">
+              Week {currentWeek} of {ATTENDANCE_TOTAL_WEEKS} &middot;{" "}
+              {filteredStudents.length} students
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Drop-in legend */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#4a7c59]/8 border border-[#4a7c59]/15">
+              <Home className="w-3 h-3 text-[#4a7c59]" />
+              <span className="text-[11px] font-semibold font-body text-[#4a7c59]">
+                Homeschool drop-in
+              </span>
+            </div>
+
+            {/* Search */}
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 w-44 shrink-0">
+              <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search students..."
+                className="flex-1 bg-transparent text-sm font-body text-gray-700 placeholder-gray-400 outline-none min-w-0"
+              />
+            </div>
+
+            {/* Week navigation */}
+            <div className="flex items-center gap-1 border border-gray-200 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setWeekOffset((o) => Math.max(0, o - 1))}
+                className="p-2 hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-semibold font-body text-gray-600 px-2 min-w-[150px] text-center border-x border-gray-200">
+                Week {currentWeek} &mdash; {weekRangeLabel()}
+              </span>
+              <button
+                data-tour-id="attendance-week-next"
+                onClick={() =>
+                  setWeekOffset((o) => Math.min(ATTENDANCE_TOTAL_WEEKS - 1, o + 1))
+                }
+                className="p-2 hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5-column day grid */}
+      <div className="flex-1 overflow-auto">
+        <div className="grid grid-cols-5 divide-x divide-gray-100 min-h-full">
+          {weekDates.map((date, di) => {
+            const present = presentCount(date);
+            const expected = filteredStudents.length;
+            const isToday = date === todayStr;
+            return (
+              <div
+                key={date}
+                className={`flex flex-col min-w-0 ${isToday ? "bg-[#4a7c59]/[0.03]" : ""}`}
+              >
+                {/* Day column header */}
+                <div
+                  className={`px-3 py-3 border-b shrink-0 ${
+                    isToday
+                      ? "border-[#4a7c59]/20 bg-[#f7faf8]"
+                      : "border-gray-100 bg-[#fafaf9]"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <p
+                      className={`text-sm font-bold font-body ${
+                        isToday ? "text-[#4a7c59]" : "text-gray-800"
+                      }`}
+                    >
+                      {ATTENDANCE_DAY_LABELS[di]}
+                    </p>
+                    {isToday && (
+                      <span className="text-[9px] font-bold font-body text-white bg-[#4a7c59] px-1.5 py-0.5 rounded-full leading-none">
+                        Today
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-400 font-body">
+                    {formatDateLabel(date)}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] font-body text-gray-400">
+                      {expected} expected
+                    </span>
+                    <span className="text-gray-200">&middot;</span>
+                    <span
+                      className={`text-[10px] font-semibold font-body ${
+                        present > 0 ? "text-[#4a7c59]" : "text-gray-400"
+                      }`}
+                    >
+                      {present} present
+                    </span>
+                  </div>
+                </div>
+
+                {/* Student rows */}
+                <div className="flex flex-col divide-y divide-gray-50">
+                  {filteredStudents.map((student, si) => {
+                    const rec = getRecord(student.id, date);
+                    const isPresent = rec?.present ?? false;
+                    const isPaid = rec?.paid ?? false;
+                    return (
+                      <div
+                        key={student.id}
+                        className={`flex items-center gap-2 px-2.5 py-2 transition-colors ${
+                          isPresent ? "bg-[#4a7c59]/[0.04]" : "hover:bg-gray-50/80"
+                        }`}
+                      >
+                        {/* Avatar */}
+                        <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-gray-100">
+                          <Image
+                            src={student.avatar}
+                            alt={student.name}
+                            width={28}
+                            height={28}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {/* Name + drop-in icon */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="text-[11px] font-body text-gray-700 truncate">
+                              {student.name}
+                            </span>
+                            {student.homeschoolDropIn && (
+                              <Home
+                                className="w-3 h-3 text-[#4a7c59] shrink-0"
+                                title="Homeschool drop-in"
+                              />
+                            )}
+                          </div>
+                          {/* Paid badge inline under name */}
+                          <span
+                            className={`text-[9px] font-semibold font-body ${
+                              isPaid ? "text-[#4a7c59]" : "text-gray-400"
+                            }`}
+                          >
+                            {isPaid ? "Paid" : "Unpaid"}
+                          </span>
+                        </div>
+
+                        {/* Attendance checkbox */}
+                        <button
+                          data-tour-id={
+                            si === 0 && di === 0
+                              ? "attendance-checkbox-row-0"
+                              : undefined
+                          }
+                          onClick={() => togglePresent(student.id, date)}
+                          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                            isPresent
+                              ? "bg-[#4a7c59] border-[#4a7c59] shadow-sm"
+                              : "border-gray-300 hover:border-[#4a7c59]/60 bg-white"
+                          }`}
+                        >
+                          {isPresent && (
+                            <svg
+                              className="w-3 h-3 text-white"
+                              fill="none"
+                              viewBox="0 0 12 12"
+                            >
+                              <path
+                                d="M2 6l3 3 5-5"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Tour Constants ───────────────────────────────────────────────────────────
 
 const TOUR_MOVE_MS = 950;
@@ -3463,6 +3789,7 @@ type NavTab =
   | "messages"
   | "calendar"
   | "feed"
+  | "attendance"
   | "payroll"
   | "forms";
 
@@ -3472,10 +3799,11 @@ const PRIMARY_NAV: { label: string; icon: LucideIcon; tab: NavTab }[] = [
   { label: "My Hours", icon: Clock, tab: "hours" },
   { label: "Messages", icon: MessageCircle, tab: "messages" },
   { label: "Calendar", icon: Calendar, tab: "calendar" },
-  { label: "Feed", icon: Rss, tab: "feed" },
+  { label: "Attendance", icon: ClipboardList, tab: "attendance" },
 ];
 
 const MORE_NAV: { label: string; icon: LucideIcon; tab: NavTab }[] = [
+  { label: "Feed", icon: Rss, tab: "feed" },
   { label: "Payroll", icon: CreditCard, tab: "payroll" },
   { label: "Forms and Documents", icon: FileText, tab: "forms" },
 ];
@@ -4341,7 +4669,21 @@ export default function TeacherDashboardDemo() {
         clickAnimation: true,
       },
       {
-        action: () => setActiveTab("feed"),
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-more"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-more",
+        holdMs: 600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = document.querySelector('[data-tour-id="nav-feed"]');
+          (el as HTMLElement)?.click();
+        },
         targetId: "nav-feed",
         holdMs: 1600,
         clickAnimation: true,
@@ -4384,6 +4726,34 @@ export default function TeacherDashboardDemo() {
         },
         targetId: "nav-forms",
         holdMs: 2000,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("attendance"),
+        targetId: "nav-attendance",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="attendance-week-next"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "attendance-week-next",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="attendance-checkbox-row-0"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "attendance-checkbox-row-0",
+        holdMs: 1400,
         clickAnimation: true,
       },
       {
@@ -4528,7 +4898,7 @@ export default function TeacherDashboardDemo() {
       </header>
 
       {/* Page content */}
-      <main className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${activeTab === "messages" || activeTab === "calendar" || activeTab === "students" || activeTab === "dashboard" || activeTab === "hours" || activeTab === "feed" ? "bg-white" : ""}`}>
+      <main className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${activeTab === "messages" || activeTab === "calendar" || activeTab === "students" || activeTab === "dashboard" || activeTab === "hours" || activeTab === "feed" || activeTab === "attendance" ? "bg-white" : ""}`}>
         {activeTab === "messages" && (
           <MessagesPage
             externalDraft={msgDraft}
@@ -5089,8 +5459,15 @@ export default function TeacherDashboardDemo() {
           </div>
         )}
 
+        {activeTab === "attendance" && (
+          <div className="flex flex-col flex-1 min-h-0">
+            <AttendanceTab />
+          </div>
+        )}
+
         {(activeTab !== "messages" && activeTab !== "calendar" && activeTab !== "students" &&
-          activeTab !== "dashboard" && activeTab !== "hours" && activeTab !== "feed") && (
+          activeTab !== "dashboard" && activeTab !== "hours" && activeTab !== "feed" &&
+          activeTab !== "attendance") && (
           <div className="max-w-6xl w-full mx-auto px-6 py-8 flex flex-col flex-1">
             {activeTab === "payroll" && <PayrollPage />}
 
