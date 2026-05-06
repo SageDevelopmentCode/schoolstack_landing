@@ -40,12 +40,20 @@ import {
   Smile,
   MessageSquare,
   MapPin,
+  Home,
+  Gift,
+  Car,
+  CalendarDays,
+  CalendarClock,
+  ArrowRight,
+  Smartphone,
 } from "lucide-react";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
 type ChildId = "emma" | "jake" | "liam";
 type NavTab =
+  | "home"
   | "enrollment"
   | "children"
   | "billing"
@@ -2745,6 +2753,593 @@ function EmergencyContactsPage({ activeChildId }: { activeChildId: ChildId }) {
   );
 }
 
+// ─── HOME SIDEBARS ────────────────────────────────────────────────────────────
+
+function HomeAttendanceSidebar({
+  child,
+  onClose,
+}: {
+  child: (typeof DEMO_CHILDREN)[ChildId];
+  onClose: () => void;
+}) {
+  const firstName = child.name.split(" ")[0];
+  return (
+    <>
+      <motion.div
+        key="home-attendance-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/20 z-40"
+        onClick={onClose}
+      />
+      <motion.div
+        key="home-attendance-panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 280 }}
+        className="absolute inset-y-0 right-0 w-[300px] bg-white shadow-2xl z-50 flex flex-col overflow-y-auto"
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+          <img
+            src={child.image}
+            alt={firstName}
+            className="w-9 h-9 rounded-xl object-cover flex-shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-800">{firstName}</p>
+            <p className="text-xs text-gray-400">{child.grade}</p>
+          </div>
+          <button
+            data-tour-id="home-attendance-sidebar-close"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer flex-shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Section label */}
+        <div className="px-5 pt-4 pb-2">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            Recent Attendance
+          </p>
+        </div>
+
+        {/* Attendance rows */}
+        <div className="flex flex-col divide-y divide-gray-50 flex-1">
+          {ATTENDANCE_DATA.map((row) => (
+            <div key={row.date} className="px-5 py-3.5">
+              <p className="text-xs font-medium text-gray-500 mb-2">{row.date}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                  <span className="text-xs text-gray-500">Drop-off</span>
+                  <span className="text-xs font-semibold text-gray-800">{row.checkIn}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0" />
+                  <span className="text-xs text-gray-500">Pickup</span>
+                  <span className="text-xs font-semibold text-gray-800">{row.checkOut}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer note */}
+        <div className="px-5 py-4 border-t border-gray-100">
+          <div className="flex items-center gap-2">
+            <Smartphone className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" strokeWidth={1.5} />
+            <p className="text-xs text-gray-400">
+              Real-time check-in on the SchoolLayer mobile app (Coming Soon).
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+function HomeOnboardingSidebar({ onClose }: { onClose: () => void }) {
+  // Pre-seeded completions matching Emma's state: contracts 1 & 2 + assumption of risk done
+  const completedIds = new Set([1, 2, 3, 5, 6, 7, 8, 10]);
+  const reqTotal = CHECKLIST_ITEMS.filter((i) => !i.optional).length;
+  const reqCompleted = CHECKLIST_ITEMS.filter(
+    (i) => !i.optional && completedIds.has(i.id),
+  ).length;
+
+  return (
+    <>
+      <motion.div
+        key="home-onboarding-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/20 z-40"
+        onClick={onClose}
+      />
+      <motion.div
+        key="home-onboarding-panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 280 }}
+        className="absolute inset-y-0 right-0 w-[300px] bg-white shadow-2xl z-50 flex flex-col overflow-y-auto"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#4a7c59]/10 flex items-center justify-center flex-shrink-0">
+              <ClipboardCheck className="w-4 h-4 text-[#4a7c59]" />
+            </div>
+            <p className="text-sm font-semibold text-gray-800">Onboarding Checklist</p>
+          </div>
+          <button
+            data-tour-id="home-onboarding-sidebar-close"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Progress */}
+        <div className="px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-gray-500">Enrollment Progress</p>
+            <span className="text-xs text-gray-400">
+              {reqCompleted} / {reqTotal} required
+            </span>
+          </div>
+          <ProgressBar value={reqCompleted} max={reqTotal} />
+        </div>
+
+        {/* Checklist items — read-only */}
+        <div className="flex flex-col divide-y divide-gray-50 flex-1">
+          {CHECKLIST_ITEMS.map((item) => {
+            const done = completedIds.has(item.id);
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 px-5 py-3.5"
+              >
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${done ? "bg-emerald-100" : "bg-gray-100"}`}
+                >
+                  {done ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <Icon className="w-3.5 h-3.5 text-gray-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-medium truncate ${done ? "text-gray-400 line-through" : "text-gray-700"}`}>
+                    {item.label}
+                  </p>
+                  {item.optional && (
+                    <span className="text-[10px] text-gray-400">Optional</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer CTA */}
+        <div className="px-5 py-4 border-t border-gray-100">
+          <p className="text-xs text-gray-400 text-center">
+            Go to{" "}
+            <span className="text-[#4a7c59] font-medium">Enrollment</span>{" "}
+            to complete remaining steps.
+          </p>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+// ─── HOME DASHBOARD ───────────────────────────────────────────────────────────
+
+function HomeDashboard({
+  onTabChange,
+  attendanceChildId,
+  setAttendanceChildId,
+  onboardingOpen,
+  setOnboardingOpen,
+  isEnrolledByChild,
+}: {
+  onTabChange: (t: NavTab) => void;
+  attendanceChildId: ChildId | null;
+  setAttendanceChildId: (id: ChildId | null) => void;
+  onboardingOpen: boolean;
+  setOnboardingOpen: (v: boolean) => void;
+  isEnrolledByChild: Record<ChildId, boolean>;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const referralLink = "schoollayer.app/refer/sarah-m";
+
+  function copyReferralLink() {
+    navigator.clipboard.writeText(referralLink).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const upcomingEvents = DEMO_EVENTS.slice(0, 3);
+
+  function getEventDayMonth(dateStr: string) {
+    const d = new Date(dateStr + "T00:00:00");
+    return {
+      day: d.getDate(),
+      month: d.toLocaleString("en-US", { month: "short" }).toUpperCase(),
+    };
+  }
+
+  const QUICK_ACTIONS: {
+    label: string;
+    icon: React.ElementType;
+    iconBg: string;
+    iconColor: string;
+    tab: NavTab;
+  }[] = [
+    { label: "Pay Tuition", icon: CreditCard, iconBg: "bg-emerald-100", iconColor: "text-emerald-600", tab: "billing" },
+    { label: "Messages", icon: MessageCircle, iconBg: "bg-blue-100", iconColor: "text-blue-600", tab: "messages" },
+    { label: "Events", icon: CalendarDays, iconBg: "bg-violet-100", iconColor: "text-violet-600", tab: "calendar" },
+    { label: "Attendance", icon: ClipboardList, iconBg: "bg-amber-100", iconColor: "text-amber-600", tab: "children" },
+    { label: "School Feed", icon: Rss, iconBg: "bg-sky-100", iconColor: "text-sky-600", tab: "feed" },
+    { label: "My Children", icon: Users, iconBg: "bg-rose-100", iconColor: "text-rose-600", tab: "children" },
+    { label: "Volunteer", icon: Heart, iconBg: "bg-pink-100", iconColor: "text-pink-600", tab: "volunteer" },
+    { label: "Help", icon: HelpCircle, iconBg: "bg-teal-100", iconColor: "text-teal-600", tab: "enrollment" },
+  ];
+
+  return (
+    <div className="px-6 py-8 flex flex-col gap-8 max-w-6xl mx-auto w-full">
+      {/* Banner */}
+      <div className="relative h-48 rounded-2xl overflow-hidden shadow-sm">
+        <img
+          src="/images/stock/ImageOne.jpg"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+        <div className="absolute bottom-5 left-6">
+          <p className="text-white/75 text-sm font-body">Good morning,</p>
+          <p className="text-white text-3xl font-heading font-bold leading-tight">
+            Sarah.
+          </p>
+        </div>
+      </div>
+
+      {/* Two-column grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start lg:items-stretch">
+        {/* Left column */}
+        <div className="flex flex-col gap-8">
+          {/* My Children */}
+          <section>
+            <h2 className="text-base font-heading font-semibold text-gray-800 mb-4">
+              My Children
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {(Object.values(DEMO_CHILDREN) as (typeof DEMO_CHILDREN)[ChildId][]).map((child) => {
+                const firstName = child.name.split(" ")[0];
+                return (
+                  <div
+                    key={child.id}
+                    data-tour-id={child.id === "emma" ? "home-child-emma" : undefined}
+                    className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <img
+                      src={child.image}
+                      alt={firstName}
+                      className="w-16 h-16 rounded-2xl object-cover"
+                    />
+                    <div className="text-center min-w-0 w-full">
+                      <p className="text-sm font-semibold font-heading text-gray-800 truncate">
+                        {firstName}
+                      </p>
+                      <p className="text-xs font-body text-gray-400 mt-0.5">
+                        {child.grade}
+                      </p>
+                      {isEnrolledByChild[child.id] ? (
+                        <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+                          <CheckCircle className="w-2.5 h-2.5" />
+                          Enrolled
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
+                          <Clock className="w-2.5 h-2.5" />
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      data-tour-id={child.id === "emma" ? "home-attendance-emma" : undefined}
+                      onClick={() => setAttendanceChildId(child.id)}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold font-body text-[#4a7c59] bg-[#EEF5EF] rounded-xl hover:bg-[#ddeede] transition-colors cursor-pointer"
+                    >
+                      <ClipboardList className="w-3.5 h-3.5" />
+                      Attendance
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <Smartphone className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" strokeWidth={1.5} />
+              <p className="text-xs text-gray-400">
+                Check-in and pickup available on the SchoolLayer mobile app (Coming Soon).
+              </p>
+            </div>
+          </section>
+
+          {/* Referral Section */}
+          <section
+            className="rounded-2xl p-6 shadow-sm border border-[#c2ddc8]"
+            style={{ background: "linear-gradient(135deg, #eef5ef 0%, #ddeede 100%)" }}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-full bg-[#4a7c59]/15 flex items-center justify-center">
+                    <Gift className="w-3.5 h-3.5 text-[#4a7c59]" strokeWidth={1.5} />
+                  </div>
+                  <h2 className="text-base font-heading font-semibold text-gray-800">
+                    Refer a Family
+                  </h2>
+                  <span className="bg-[#4a7c59] text-white text-xs font-body px-2 py-0.5 rounded-full font-medium">
+                    $150 gift card
+                  </span>
+                </div>
+                <p className="text-sm font-body text-gray-600 leading-relaxed max-w-lg">
+                  Know a family who&apos;d be a great fit for SchoolLayer? Share
+                  your link and when they enroll and pay their registration fee,
+                  you&apos;ll receive a $150 gift card of your choice.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:min-w-[260px]">
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: "3", label: "Referred" },
+                    { value: "1", label: "Enrolled" },
+                    { value: "$150", label: "Earned" },
+                  ].map(({ value, label }) => (
+                    <div
+                      key={label}
+                      className="text-center bg-white/70 rounded-xl py-2.5 px-2 border border-[#c2ddc8]"
+                    >
+                      <p className="text-base font-semibold font-heading text-gray-800">{value}</p>
+                      <p className="text-xs font-body text-gray-500">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0 bg-white/70 border border-[#c2ddc8] rounded-xl px-3 py-2">
+                    <p className="text-xs font-body text-gray-600 truncate">{referralLink}</p>
+                  </div>
+                  <button
+                    onClick={copyReferralLink}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold font-body transition-colors whitespace-nowrap cursor-pointer ${
+                      copied ? "bg-green-600 text-white" : "bg-[#4a7c59] text-white hover:bg-[#3d6b4a]"
+                    }`}
+                  >
+                    {copied ? (
+                      <><Check className="w-3.5 h-3.5" />Copied!</>
+                    ) : (
+                      <><Copy className="w-3.5 h-3.5" />Copy link</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Quick Actions */}
+          <section>
+            <h2 className="text-base font-heading font-semibold text-gray-800 mb-3">
+              Quick Actions
+            </h2>
+            <div className="grid grid-cols-4 gap-2">
+              {QUICK_ACTIONS.map(({ label, icon: Icon, iconBg, iconColor, tab }) => (
+                <button
+                  key={label}
+                  onClick={() => onTabChange(tab)}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors text-center cursor-pointer"
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
+                    <Icon className={`w-5 h-5 ${iconColor}`} strokeWidth={1.5} />
+                  </div>
+                  <span className="text-xs font-semibold font-body text-gray-700 leading-tight">
+                    {label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Right column */}
+        <div className="flex flex-col gap-8 lg:sticky lg:top-[65px] lg:self-start">
+          {/* Onboarding checklist prompt */}
+          <section>
+            <h2 className="text-base font-heading font-semibold text-gray-800 mb-4">
+              Get started
+            </h2>
+            <button
+              data-tour-id="home-checklist-prompt"
+              onClick={() => setOnboardingOpen(true)}
+              className="w-full flex items-center gap-3 bg-[#4a7c59]/10 hover:bg-[#4a7c59]/15 border border-[#4a7c59]/20 rounded-2xl px-4 py-3 transition-colors text-left cursor-pointer"
+            >
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#4a7c59]/15 flex items-center justify-center">
+                <ClipboardCheck className="w-4 h-4 text-[#4a7c59]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold font-body text-[#4a7c59] leading-snug">
+                  Complete your onboarding
+                </p>
+                <p className="text-xs font-body text-[#4a7c59]/70 mt-0.5">
+                  Finish setting up your account
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#4a7c59]/60 flex-shrink-0" />
+            </button>
+          </section>
+
+          {/* Upcoming Events */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-heading font-semibold text-gray-800">
+                Upcoming events
+              </h2>
+              <button
+                onClick={() => onTabChange("calendar")}
+                className="flex items-center gap-1 text-xs font-body text-[#4a7c59] hover:underline cursor-pointer"
+              >
+                View all <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {upcomingEvents.map((evt) => {
+                const { day, month } = getEventDayMonth(evt.date);
+                return (
+                  <div
+                    key={evt.id}
+                    className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 px-4 py-3 shadow-sm"
+                  >
+                    <div
+                      className="flex-shrink-0 w-11 h-11 rounded-xl flex flex-col items-center justify-center"
+                      style={{ backgroundColor: evt.color + "22" }}
+                    >
+                      <span className="text-xs font-semibold uppercase leading-none" style={{ color: evt.color }}>
+                        {month}
+                      </span>
+                      <span className="text-base font-bold font-heading leading-tight" style={{ color: evt.color }}>
+                        {day}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold font-heading text-gray-800 truncate">
+                        {evt.title}
+                      </p>
+                      {evt.time && (
+                        <p className="text-xs font-body text-gray-500 mt-0.5">{evt.time}</p>
+                      )}
+                      {evt.category && (
+                        <span
+                          className="inline-block mt-1 text-xs font-body font-medium px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: evt.color + "22", color: evt.color }}
+                        >
+                          {evt.category}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Tuition & Billing */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-heading font-semibold text-gray-800">
+                Tuition &amp; billing
+              </h2>
+              <button
+                onClick={() => onTabChange("billing")}
+                className="flex items-center gap-1 text-xs font-body text-[#4a7c59] hover:underline cursor-pointer"
+              >
+                View all <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-3">
+              {/* Summer Tuition card */}
+              <button
+                onClick={() => onTabChange("billing")}
+                className="rounded-2xl overflow-hidden bg-white border border-gray-100 flex flex-col group text-left cursor-pointer"
+              >
+                <div className="relative h-28 overflow-hidden">
+                  <img
+                    src="/images/stock/ImageFive.jpg"
+                    alt=""
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/10" />
+                </div>
+                <div className="p-3.5 flex flex-col gap-2">
+                  <div>
+                    <p className="text-xs font-medium text-gray-400 mb-0.5">Emma, Jake, Liam</p>
+                    <p className="text-sm font-semibold text-gray-800 leading-snug">Summer Tuition</p>
+                  </div>
+                  <span
+                    className="inline-flex items-center gap-1 self-start px-3 py-1.5 rounded-full text-xs font-semibold text-white"
+                    style={{ backgroundColor: "#e07a3a" }}
+                  >
+                    Select plan <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </button>
+
+              {/* Extended Learning card */}
+              <button
+                onClick={() => onTabChange("billing")}
+                className="rounded-2xl overflow-hidden bg-white border border-gray-100 flex flex-col group text-left cursor-pointer"
+              >
+                <div className="relative h-28 overflow-hidden">
+                  <img
+                    src="/images/stock/ImageNine.jpg"
+                    alt=""
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/10" />
+                  <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/80 text-gray-600 shadow-sm backdrop-blur-sm">
+                    Optional
+                  </span>
+                </div>
+                <div className="p-3.5 flex flex-col gap-2">
+                  <div>
+                    <p className="text-xs font-medium text-gray-400 mb-0.5">Emma, Jake, Liam</p>
+                    <p className="text-sm font-semibold text-gray-800 leading-snug">Extended Learning (3:00 – 5pm)</p>
+                  </div>
+                  <span
+                    className="inline-flex items-center gap-1 self-start px-3 py-1.5 rounded-full text-xs font-semibold text-white"
+                    style={{ backgroundColor: "#e07a3a" }}
+                  >
+                    Select plan <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {/* Home sidebars */}
+      <AnimatePresence>
+        {attendanceChildId && (
+          <HomeAttendanceSidebar
+            key="home-attendance-sidebar"
+            child={DEMO_CHILDREN[attendanceChildId]}
+            onClose={() => setAttendanceChildId(null)}
+          />
+        )}
+        {onboardingOpen && (
+          <HomeOnboardingSidebar
+            key="home-onboarding-sidebar"
+            onClose={() => setOnboardingOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ─── HEADER & NAV ─────────────────────────────────────────────────────────────
 
 const PRIMARY_NAV: {
@@ -2752,6 +3347,7 @@ const PRIMARY_NAV: {
   label: string;
   icon: typeof ClipboardCheck;
 }[] = [
+  { id: "home", label: "Home", icon: Home },
   { id: "enrollment", label: "Enrollment", icon: ClipboardCheck },
   { id: "children", label: "My Children", icon: Users },
   { id: "billing", label: "Tuition & Billing", icon: CreditCard },
@@ -2890,7 +3486,7 @@ const TOUR_RESUME_MS = 1500;
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 
 export default function ParentDashboardDemo() {
-  const [activeNavTab, setActiveNavTab] = useState<NavTab>("enrollment");
+  const [activeNavTab, setActiveNavTab] = useState<NavTab>("home");
   const [activeChildId, setActiveChildId] = useState<ChildId>("emma");
   const [openModal, setOpenModal] = useState<ModalId>(null);
 
@@ -2903,7 +3499,11 @@ export default function ParentDashboardDemo() {
     "2-1": "Sarah Mitchell",
     "2-2": "Sarah Mitchell",
     "2-3": "Sarah Mitchell",
+    "3-1": "Sarah Mitchell",
+    "3-2": "Sarah Mitchell",
+    "5-3": "Sarah Mitchell",
     "6-1": "Sarah Mitchell",
+    "8-1": "Sarah Mitchell",
   });
   const [signaturesJake, setSignaturesJake] = useState<Record<string, string>>(
     {},
@@ -2926,7 +3526,7 @@ export default function ParentDashboardDemo() {
   // Per-child form completion
   const [healthFormSaved, setHealthFormSaved] = useState<
     Record<ChildId, boolean>
-  >({ emma: false, jake: false, liam: true });
+  >({ emma: true, jake: false, liam: true });
   const [medicationSaved, setMedicationSaved] = useState<
     Record<ChildId, boolean>
   >({ emma: false, jake: false, liam: false });
@@ -2937,15 +3537,15 @@ export default function ParentDashboardDemo() {
   });
   const [photoConsent, setPhotoConsent] = useState<
     Record<ChildId, "FULL" | "LIMITED" | "NO" | null>
-  >({ emma: null, jake: null, liam: "FULL" });
+  >({ emma: "FULL", jake: null, liam: "FULL" });
   const [healthStatement, setHealthStatement] = useState<
     Record<ChildId, "A" | "B" | null>
-  >({ emma: null, jake: null, liam: "A" });
+  >({ emma: "A", jake: null, liam: "A" });
   const [immunizationCount, setImmunizationCount] = useState<
     Record<ChildId, number>
   >({ emma: 1, jake: 0, liam: 1 });
   const [feePaid, setFeePaid] = useState<Record<ChildId, boolean>>({
-    emma: false,
+    emma: true,
     jake: false,
     liam: true,
   });
@@ -2955,11 +3555,6 @@ export default function ParentDashboardDemo() {
   const [pickupPersons, setPickupPersons] = useState<
     Record<ChildId, DemoAuthorizedPerson[]>
   >({ emma: [], jake: [], liam: [] });
-  const [confettiFired, setConfettiFired] = useState<Record<ChildId, boolean>>({
-    emma: false,
-    jake: false,
-    liam: false,
-  });
 
   // Billing
   const [paidInvoices, setPaidInvoices] = useState<Set<string>>(new Set());
@@ -2982,6 +3577,10 @@ export default function ParentDashboardDemo() {
   const [msgInput, setMsgInput] = useState("");
   const [msgActiveConv, setMsgActiveConv] = useState("c1");
   const [typingTarget, setTypingTarget] = useState<string | null>(null);
+
+  // ── Home tab sidebar state ───────────────────────────────────────────────────
+  const [homeAttendanceChildId, setHomeAttendanceChildId] = useState<ChildId | null>(null);
+  const [homeOnboardingOpen, setHomeOnboardingOpen] = useState(false);
 
   // ── Tour state ──────────────────────────────────────────────────────────────
   const [isTouring, setIsTouring] = useState(true);
@@ -3048,6 +3647,46 @@ export default function ParentDashboardDemo() {
 
   const tourSteps = useMemo(
     () => [
+      {
+        action: () => {
+          setActiveNavTab("home");
+          setHomeAttendanceChildId(null);
+          setHomeOnboardingOpen(false);
+        },
+        targetId: "nav-home",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {},
+        targetId: "home-child-emma",
+        holdMs: 1000,
+        clickAnimation: false,
+      },
+      {
+        action: () => setHomeAttendanceChildId("emma"),
+        targetId: "home-attendance-emma",
+        holdMs: 2200,
+        clickAnimation: true,
+      },
+      {
+        action: () => setHomeAttendanceChildId(null),
+        targetId: "home-attendance-sidebar-close",
+        holdMs: 700,
+        clickAnimation: true,
+      },
+      {
+        action: () => setHomeOnboardingOpen(true),
+        targetId: "home-checklist-prompt",
+        holdMs: 2000,
+        clickAnimation: true,
+      },
+      {
+        action: () => setHomeOnboardingOpen(false),
+        targetId: "home-onboarding-sidebar-close",
+        holdMs: 700,
+        clickAnimation: true,
+      },
       {
         action: () => {
           setActiveNavTab("enrollment");
@@ -3289,50 +3928,33 @@ export default function ParentDashboardDemo() {
   const requiredItems = [0, 1, 2, 4, 5, 6, 7, 9]; // 0-indexed positions that are required
   const isEnrolled = requiredItems.every((i) => completions[i]);
 
-  useEffect(() => {
-    if (!isEnrolled || confettiFired[activeChildId]) return;
-    setConfettiFired((prev) => ({ ...prev, [activeChildId]: true }));
-    const fire = async () => {
-      const confetti = (await import("canvas-confetti")).default;
-      const colors = [
-        "#7FA888",
-        "#f29a8f",
-        "#4A6354",
-        "#97C09B",
-        "#BFD8C0",
-        "#ffffff",
+  const isEnrolledByChild = useMemo((): Record<ChildId, boolean> => {
+    const check = (childId: ChildId, childSigs: Record<string, string>): boolean => {
+      const c = [
+        C1_SECTIONS.every((s) => !!childSigs[s.id]),
+        C2_SECTIONS.every((s) => !!childSigs[s.id]),
+        healthFormSaved[childId] && !!childSigs["3-1"] && !!childSigs["3-2"],
+        !!childSigs["4-1"],
+        immunizationCount[childId] > 0,
+        !!healthStatement[childId] && !!childSigs["8-1"],
+        !!photoConsent[childId] && !!childSigs["5-3"],
+        !!childSigs["6-1"],
+        pickupSaved[childId] && !!childSigs["7-1"],
+        feePaid[childId],
       ];
-      confetti({
-        particleCount: 60,
-        spread: 70,
-        colors,
-        origin: { x: 0.3, y: 0.55 },
-      });
-      setTimeout(
-        () =>
-          confetti({
-            particleCount: 60,
-            spread: 70,
-            colors,
-            origin: { x: 0.7, y: 0.55 },
-          }),
-        200,
-      );
-      setTimeout(
-        () =>
-          confetti({
-            particleCount: 80,
-            spread: 90,
-            colors,
-            origin: { x: 0.5, y: 0.4 },
-          }),
-        400,
-      );
+      return requiredItems.every((i) => c[i]);
     };
-    fire();
-  }, [isEnrolled, activeChildId]);
+    return {
+      emma: check("emma", signaturesEmma),
+      jake: false,
+      liam: check("liam", signaturesLiam),
+    };
+  }, [signaturesEmma, signaturesLiam, healthFormSaved, immunizationCount,
+      healthStatement, photoConsent, feePaid, pickupSaved]);
+
 
   const pageTitle: Record<NavTab, string> = {
+    home: "Home",
     enrollment: "Enrollment",
     children: "My Children",
     billing: "Tuition & Billing",
@@ -3359,8 +3981,8 @@ export default function ParentDashboardDemo() {
     >
       <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />
 
-      <main className={`flex-1 overflow-y-auto flex flex-col ${activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" ? "bg-white" : "bg-gray-50"}`}>
-        {activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" ? (
+      <main className={`flex-1 overflow-y-auto flex flex-col ${activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" || activeNavTab === "home" ? "bg-gray-50" : "bg-gray-50"}`}>
+        {activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" || activeNavTab === "home" ? (
           <AnimatePresence mode="wait">
             <motion.div
               key={activeNavTab}
@@ -3370,6 +3992,16 @@ export default function ParentDashboardDemo() {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             >
+              {activeNavTab === "home" && (
+                <HomeDashboard
+                  onTabChange={setActiveNavTab}
+                  attendanceChildId={homeAttendanceChildId}
+                  setAttendanceChildId={setHomeAttendanceChildId}
+                  onboardingOpen={homeOnboardingOpen}
+                  setOnboardingOpen={setHomeOnboardingOpen}
+                  isEnrolledByChild={isEnrolledByChild}
+                />
+              )}
               {activeNavTab === "messages" && (
                 <MessagesPage
                   threads={messageThreads}
