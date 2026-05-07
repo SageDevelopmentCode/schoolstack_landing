@@ -1,28 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colors — Eden palette */
-  --color-bg:               #f4f2f0;
-  --color-bg-alt:           #f1f1f1;
-  --color-surface:          #ffffff;
-  --color-surface-soft:     #eceeed;
-  --color-surface-muted:    #eceeed;
-  --color-border:           #ededed;
-  --color-border-strong:    #a8a8a8;
-  --color-text:             #052415;
-  --color-text-muted:       #6f6f6f;
-  --color-text-faint:       #a8a8a8;
-  --color-accent:           #284a3d;
-  --color-accent-hover:     #052415;
-  --color-accent-soft:      #99b7ab;
-  --color-accent-highlight: #abffc0;
-  --color-dark-panel:       #253f31;
+  /* Colors — MudKitchen palette */
+  --color-bg:               #F7F1E7;
+  --color-bg-alt:           #F0E6D8;
+  --color-surface:          #FFFAF4;
+  --color-surface-soft:     #EDE0CE;
+  --color-surface-muted:    #EDE0CE;
+  --color-border:           #DDD0BE;
+  --color-border-strong:    #B8A898;
+  --color-text:             #2B241D;
+  --color-text-muted:       #6D6257;
+  --color-text-faint:       #B8A898;
+  --color-accent:           #2E4A3C;
+  --color-accent-hover:     #233B2F;
+  --color-accent-soft:      #A6B89A;
+  --color-accent-highlight: #C5D5B8;
+  --color-dark-panel:       #2E4A3C;
 
-  /* Sage palette (used by ParentDashboardDemo) */
-  --color-sage-50:  #f0f5f2;
-  --color-sage-100: #ddeee4;
-  --color-sage-200: #b8d9c4;
-  --color-sage-300: #8ebfa5;
+  /* Clay accent */
+  --color-clay:             #A05C45;
+  --color-clay-soft:        #E8D5C8;
+
+  /* Sage palette (used by demos) */
+  --color-sage-50:  #F4F7F2;
+  --color-sage-100: #E2EDD9;
+  --color-sage-200: #C0D5B2;
+  --color-sage-300: #9CC08E;
 
   /* Radius */
   --radius-sm:   10px;
@@ -32,10 +36,10 @@
   --radius-pill: 9999px;
 
   /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(5,36,21,0.04);
-  --shadow-sm: 0 6px 24px rgba(5,36,21,0.05);
-  --shadow-md: 0 14px 40px rgba(5,36,21,0.08);
-  --shadow-lg: 0 24px 60px rgba(5,36,21,0.10);
+  --shadow-xs: 0 1px 2px rgba(43,36,29,0.04);
+  --shadow-sm: 0 6px 24px rgba(43,36,29,0.05);
+  --shadow-md: 0 14px 40px rgba(43,36,29,0.08);
+  --shadow-lg: 0 24px 60px rgba(43,36,29,0.10);
 
   /* Fonts */
   --font-display:     var(--font-lora), "Lora", serif;

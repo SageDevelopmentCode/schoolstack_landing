@@ -72,7 +72,7 @@ export default function StacksSection() {
           <FadeInView>
             <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.75rem)] leading-[1.05] text-text">
               Start lean.
-              <br />Grow as your school grows.
+              <br /><em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>Grow as your school grows.</em>
             </h2>
           </FadeInView>
           <FadeInView delay={0.08}>
@@ -139,7 +139,7 @@ export default function StacksSection() {
                     href="#demo"
                     className={`flex items-center justify-center gap-2 rounded-pill h-11 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
                       stack.featured
-                        ? 'bg-accent text-white hover:bg-accent-hover shadow-xs'
+                        ? 'bg-clay text-white hover:opacity-90 shadow-xs'
                         : 'border border-border text-text hover:bg-surface-muted hover:border-border-strong'
                     }`}
                   >

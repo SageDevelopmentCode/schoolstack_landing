@@ -125,7 +125,7 @@ export default function PainSection() {
           <h2 className="font-display text-[clamp(2rem,4vw,3rem)] leading-[1.05] text-text">
             Too big for spreadsheets.
             <br />
-            Too small for enterprise.
+            <em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>Too small for enterprise.</em>
           </h2>
         </FadeInView>
 
@@ -163,7 +163,7 @@ export default function PainSection() {
                       y1={edge.y}
                       x2={p.inner.x}
                       y2={p.inner.y}
-                      stroke="#244b46"
+                      stroke="#2E4A3C"
                       strokeOpacity={0.1}
                       strokeWidth={1}
                     />
@@ -173,7 +173,7 @@ export default function PainSection() {
                       y1={edge.y}
                       x2={p.inner.x}
                       y2={p.inner.y}
-                      stroke="#244b46"
+                      stroke="#2E4A3C"
                       strokeOpacity={0.45}
                       strokeWidth={1.5}
                       strokeLinecap="round"
@@ -244,13 +244,13 @@ export default function PainSection() {
                   <div className="flex flex-col items-center gap-1">
                     <Image
                       src="/images/SchoolLayerLogo.png"
-                      alt="SchoolLayer"
+                      alt="MudKitchen"
                       width={60}
                       height={60}
                       className="object-contain"
                     />
                     <span className="font-display text-[clamp(9px,1.2vw,15px)] text-text-muted whitespace-nowrap tracking-tight">
-                      SchoolLayer
+                      MudKitchen
                     </span>
                   </div>
                 </div>

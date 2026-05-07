@@ -59,13 +59,13 @@ export default function Navbar() {
             <a href="/" className="flex items-center gap-2 shrink-0">
               <img
                 src="/images/SchoolLayerLogo.png"
-                alt="SchoolLayer"
+                alt="MudKitchen"
                 className="h-8 w-auto object-contain"
               />
               <span
                 className={`font-display text-[18px] ${scrolled ? "text-accent" : "text-white"}`}
               >
-                SchoolLayer
+                MudKitchen
               </span>
             </a>
 
@@ -89,7 +89,7 @@ export default function Navbar() {
             <div className="hidden md:flex">
               <a
                 href="#demo"
-                className="inline-flex items-center gap-1.5 bg-accent text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-200"
+                className="inline-flex items-center gap-1.5 bg-clay text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
               >
                 Book a Demo
                 <svg
@@ -145,7 +145,7 @@ export default function Navbar() {
               <div className="flex items-center justify-between mb-10">
                 <img
                   src="/images/SchoolLayerLogo.png"
-                  alt="SchoolLayer"
+                  alt="MudKitchen"
                   className="h-7 w-auto object-contain"
                 />
                 <button
@@ -185,7 +185,7 @@ export default function Navbar() {
                 <a
                   href="#demo"
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center justify-center gap-2 bg-accent text-white text-sm font-medium rounded-pill h-12 w-full hover:bg-accent-hover transition-colors"
+                  className="flex items-center justify-center gap-2 bg-clay text-white text-sm font-medium rounded-pill h-12 w-full hover:opacity-90 transition-all duration-200"
                 >
                   Book a Demo →
                 </a>

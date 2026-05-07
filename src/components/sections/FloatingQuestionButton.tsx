@@ -18,25 +18,25 @@ export default function FloatingQuestionButton() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-3 w-[320px] rounded-2xl bg-[#f4f2f0] shadow-[0_8px_40px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.07)] overflow-hidden"
+            className="mb-3 w-[320px] rounded-2xl bg-[#F7F1E7] shadow-[0_8px_40px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.07)] overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-black/[0.07]">
               <div className="flex items-center gap-2">
                 <Image
                   src="/images/SchoolLayerLogo.png"
-                  alt="SchoolLayer"
+                  alt="MudKitchen"
                   width={22}
                   height={22}
                   className="object-contain"
                 />
-                <span className="text-[#052415] font-semibold text-sm font-body">
+                <span className="text-[#2E4A3C] font-semibold text-sm font-body">
                   Ask a Question
                 </span>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="w-6 h-6 flex items-center justify-center rounded-full text-[#052415]/50 hover:text-[#052415] hover:bg-black/[0.06] transition-colors"
+                className="w-6 h-6 flex items-center justify-center rounded-full text-[#2E4A3C]/50 hover:text-[#2E4A3C] hover:bg-black/[0.06] transition-colors"
                 aria-label="Close"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -55,21 +55,21 @@ export default function FloatingQuestionButton() {
               <textarea
                 rows={3}
                 placeholder="What's your question?"
-                className="w-full resize-none rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#052415] placeholder-[#052415]/40 font-body outline-none focus:ring-2 focus:ring-[#284a3d]/30 focus:border-[#284a3d] transition"
+                className="w-full resize-none rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition"
               />
               <input
                 type="text"
                 placeholder="Your name"
-                className="w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#052415] placeholder-[#052415]/40 font-body outline-none focus:ring-2 focus:ring-[#284a3d]/30 focus:border-[#284a3d] transition"
+                className="w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition"
               />
               <input
                 type="email"
                 placeholder="Your email"
-                className="w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#052415] placeholder-[#052415]/40 font-body outline-none focus:ring-2 focus:ring-[#284a3d]/30 focus:border-[#284a3d] transition"
+                className="w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition"
               />
               <button
                 type="button"
-                className="w-full rounded-xl bg-[#284a3d] hover:bg-[#052415] text-white text-sm font-semibold font-body py-2.5 transition-colors"
+                className="w-full rounded-xl bg-[#2E4A3C] hover:bg-[#233B2F] text-white text-sm font-semibold font-body py-2.5 transition-colors"
               >
                 Send Question
               </button>
@@ -83,7 +83,7 @@ export default function FloatingQuestionButton() {
         onClick={() => setOpen((v) => !v)}
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.97 }}
-        className="flex items-center gap-2 rounded-full bg-[#284a3d] hover:bg-[#052415] text-white px-4 py-2.5 shadow-lg transition-colors"
+        className="flex items-center gap-2 rounded-full bg-[#2E4A3C] hover:bg-[#233B2F] text-white px-4 py-2.5 shadow-lg transition-colors"
         aria-label="Questions?"
       >
         <Image

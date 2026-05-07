@@ -32,7 +32,7 @@ export default function WorkflowSection() {
           <FadeInView delay={0.08}>
             <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.75rem)] leading-[1.05] text-text mt-5">
               From chaos to a school
-              <br />that runs cleanly.
+              <br /><em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>that runs cleanly.</em>
             </h2>
           </FadeInView>
         </div>

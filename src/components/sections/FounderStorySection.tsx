@@ -22,13 +22,13 @@ export default function FounderStorySection() {
               <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.5rem)] leading-[1.05] text-text mt-3">
                 The founder story
                 <br />
-                is the product story.
+                <em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>is the product story.</em>
               </h2>
             </FadeInView>
 
             <FadeInView delay={0.18}>
               <p className="text-[16px] text-text-muted leading-relaxed mt-5">
-                SchoolLayer was not imagined in a coworking space or assembled
+                MudKitchen was not imagined in a coworking space or assembled
                 from generic SaaS ideas. It was built to run Sage Field, a real
                 microschool in Texas, because the existing software options did
                 not fit the way a microschool actually operates. Every major
@@ -47,7 +47,7 @@ export default function FounderStorySection() {
                   &ldquo;We were running a real school through too many
                   disconnected tools, so we built the system we wished existed.
                   Once it worked for us, it became obvious other founders needed
-                  it too.&rdquo;
+                  it too. That&apos;s MudKitchen.&rdquo;
                 </p>
                 <footer className="text-sm text-text-faint mt-4">
                   — Sabrina Obnamia, Co-Founder of Sage Field

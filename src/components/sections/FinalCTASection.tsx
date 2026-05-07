@@ -8,20 +8,20 @@ export default function FinalCTASection() {
         <FadeInView>
           <h2
             className="font-display text-[clamp(2.2rem,4.5vw,3.5rem)] leading-[1.02]"
-            style={{ color: '#f8f7f4' }}
+            style={{ color: '#F7F1E7' }}
           >
             Software built by someone
-            <br />who gets it.
+            <br /><em style={{ color: '#E8D5C8', fontStyle: 'italic' }}>who gets it.</em>
           </h2>
         </FadeInView>
 
         <FadeInView delay={0.1}>
           <p
             className="text-[17px] leading-relaxed mt-6 max-w-[50ch] mx-auto"
-            style={{ color: 'rgba(248,247,244,0.72)' }}
+            style={{ color: 'rgba(247,241,231,0.72)' }}
           >
             Book a free 30-minute demo and walk through your school with the
-            founder who built SchoolLayer to run a real microschool first.
+            founder who built MudKitchen to run a real microschool first.
           </p>
         </FadeInView>
 
@@ -31,8 +31,8 @@ export default function FinalCTASection() {
               href="#"
               className="inline-flex items-center gap-2 rounded-pill px-8 h-12 text-sm font-medium hover:-translate-y-0.5 transition-all duration-200"
               style={{
-                backgroundColor: '#f8f7f4',
-                color: '#244b46',
+                backgroundColor: '#A05C45',
+                color: '#FFFFFF',
               }}
             >
               Book a Demo
@@ -44,7 +44,7 @@ export default function FinalCTASection() {
 
           <p
             className="text-sm mt-5"
-            style={{ color: 'rgba(248,247,244,0.45)' }}
+            style={{ color: 'rgba(247,241,231,0.45)' }}
           >
             No commitment. No sales pressure. Just a conversation.
           </p>

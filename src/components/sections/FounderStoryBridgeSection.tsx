@@ -24,7 +24,7 @@ export default function FounderStoryBridgeSection() {
             <FadeInView delay={0.08}>
               <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.6rem)] leading-[1.05] text-text mt-5">
                 Running a microschool exposed
-                <br />everything regular software misses.
+                <br /><em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>everything regular software misses.</em>
               </h2>
             </FadeInView>
 
@@ -33,7 +33,7 @@ export default function FounderStoryBridgeSection() {
                 Sage Field had a real school to run, but no single system that fit the
                 way a microschool actually operates. Enrollment, contracts, parent
                 communication, payments, and internal workflows were all spread across
-                disconnected tools. SchoolLayer started as the internal solution to
+                disconnected tools. MudKitchen started as the internal solution to
                 that problem, then became the product other founders needed too.
               </p>
             </FadeInView>
@@ -60,12 +60,12 @@ export default function FounderStoryBridgeSection() {
               </div>
 
               {/* Founder quote card */}
-              <div className="absolute bottom-14 right-0 w-[212px] bg-white rounded-2xl p-5 shadow-[0_8px_32px_rgba(5,36,21,0.11)] border border-black/[0.05]">
-                <p className="font-display text-[13.5px] text-[#0f1f18] leading-[1.45] mb-4">
+              <div className="absolute bottom-14 right-0 w-[212px] bg-white rounded-2xl p-5 shadow-[0_8px_32px_rgba(43,36,29,0.11)] border border-black/[0.05]">
+                <p className="font-display text-[13.5px] text-[#2B241D] leading-[1.45] mb-4">
                   &ldquo;Built because we needed it every single day.&rdquo;
                 </p>
                 <div className="flex items-center gap-2.5 pt-3.5 border-t border-gray-100">
-                  <div className="w-7 h-7 rounded-full bg-[#284a3d] flex items-center justify-center text-white text-[10px] font-semibold shrink-0 tracking-tight">
+                  <div className="w-7 h-7 rounded-full bg-[#2E4A3C] flex items-center justify-center text-white text-[10px] font-semibold shrink-0 tracking-tight">
                     SO
                   </div>
                   <div>
@@ -76,7 +76,7 @@ export default function FounderStoryBridgeSection() {
               </div>
 
               {/* School identity card */}
-              <div className="absolute bottom-0 left-3 w-[186px] bg-[#1c3829] rounded-2xl p-4 overflow-hidden">
+              <div className="absolute bottom-0 left-3 w-[186px] bg-[#2E4A3C] rounded-2xl p-4 overflow-hidden">
                 <div className="flex items-center gap-2 mb-3.5">
                   <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                     <span className="text-white/80 text-[9px] font-bold tracking-tight">SF</span>
@@ -128,8 +128,8 @@ function EnrollmentProgressSnippet() {
           <p className="text-[13px] font-semibold text-gray-700">Enrollment Progress</p>
           <span className="text-[12px] text-gray-400">{doneCount} / {required.length} required</span>
         </div>
-        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-[#4a7c59] rounded-full" style={{ width: `${pct}%` }} />
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-full bg-[#2E4A3C] rounded-full" style={{ width: `${pct}%` }} />
         </div>
       </div>
 

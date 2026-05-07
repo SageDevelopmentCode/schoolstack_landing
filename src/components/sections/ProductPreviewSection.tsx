@@ -96,12 +96,13 @@ export default function ProductPreviewSection() {
           </FadeInView>
           <FadeInView delay={0.08}>
             <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.75rem)] leading-[1.05] text-text mt-5">
-              Built inside a real microschool.
+              Built inside a{' '}
+              <em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>real microschool.</em>
             </h2>
           </FadeInView>
           <FadeInView delay={0.16}>
             <p className="text-[16px] text-text-muted leading-relaxed mt-4 max-w-[600px] mx-auto">
-              Click through the modules to see how SchoolLayer handles the work
+              Click through the modules to see how MudKitchen handles the work
               founders actually deal with every week: leads, enrollment, contracts,
               family communication, billing, and staff operations in one system.
             </p>

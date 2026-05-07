@@ -23,7 +23,7 @@ export default function CustomSection() {
         <FadeInView>
           <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.5rem)] leading-[1.05] text-text">
             Need something specific?
-            <br />We build custom, too.
+            <br /><em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>We build custom, too.</em>
           </h2>
         </FadeInView>
 

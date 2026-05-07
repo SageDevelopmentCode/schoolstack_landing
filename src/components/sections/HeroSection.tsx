@@ -31,13 +31,13 @@ const heroFrameVariant = {
 
 export default function HeroSection() {
   const [demoTab, setDemoTab] = useState<'parent' | 'teacher' | 'admin'>('parent')
-  const t = demoTab === 'teacher'
+  const t = demoTab === 'parent'
 
   return (
     <section
       className="pt-[140px] pb-0 overflow-hidden"
       style={{
-        backgroundColor: t ? '#f2f8f3' : demoTab === 'admin' ? '#1E2420' : '#052415',
+        backgroundColor: t ? '#F7F1E7' : demoTab === 'admin' ? '#2E4A3C' : '#2E4A3C',
         transition: 'background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
@@ -46,8 +46,8 @@ export default function HeroSection() {
         {/* Centered text block */}
         <div className="max-w-[860px] mx-auto text-center">
           <motion.div initial="hidden" animate="visible" variants={makeVariant(0)}>
-            <span className={`inline-flex items-center gap-1.5 rounded-pill border text-[11px] font-medium uppercase tracking-widest px-3 py-1.5 transition-colors duration-500 ${t ? 'border-[#052415]/20 text-[#052415]/70' : 'border-white/20 text-white/70'}`}>
-              For Microschools
+            <span className={`inline-flex items-center gap-1.5 rounded-pill text-[11px] font-medium uppercase tracking-widest px-3.5 py-1.5 transition-colors duration-500 ${t ? 'bg-[#E2EDD9] text-[#4A6B52]' : 'bg-white/10 text-white/75'}`}>
+              🌿 Built for Microschools
             </span>
           </motion.div>
 
@@ -55,11 +55,11 @@ export default function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={makeVariant(0.08)}
-            className={`font-display text-[clamp(2.6rem,5.2vw,4.75rem)] leading-[1.04] tracking-tight mt-6 transition-colors duration-500 ${t ? 'text-[#052415]' : 'text-white'}`}
+            className={`font-display text-[clamp(2.6rem,5.2vw,4.75rem)] leading-[1.04] tracking-tight mt-6 transition-colors duration-500 ${t ? 'text-[#2E4A3C]' : 'text-white'}`}
           >
             We built the software
-            <br />we couldn&apos;t find.
-            <span className={`inline-block w-[3px] h-[0.85em] ml-1 align-middle animate-pulse transition-colors duration-500 ${t ? 'bg-[#052415]' : 'bg-white'}`} />
+            <br /><em style={{ color: t ? 'var(--color-clay)' : '#E8D5C8', fontStyle: 'italic' }}>we couldn&apos;t find.</em>
+            <span className={`inline-block w-[3px] h-[0.85em] ml-1 align-middle animate-pulse transition-colors duration-500 ${t ? 'bg-[#2E4A3C]' : 'bg-white'}`} />
           </motion.h1>
 
           <motion.p
@@ -67,7 +67,7 @@ export default function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={makeVariant(0.18)}
-            className={`text-[17px] md:text-[18px] leading-relaxed mt-6 transition-colors duration-500 ${t ? 'text-[#052415]/65' : 'text-white/65'}`}
+            className={`text-[17px] md:text-[18px] leading-relaxed mt-6 transition-colors duration-500 ${t ? 'text-[#2E4A3C]/65' : 'text-white/65'}`}
           >
             {demoTab === 'parent'
               ? "Keep every family on track — enrollment contracts, health forms, tuition billing, and parent messaging in one place. Parents get a clear portal; you get fewer follow-up emails and nothing that slips through."
@@ -85,7 +85,7 @@ export default function HeroSection() {
           >
             <a
               href="#demo"
-              className={`inline-flex items-center gap-2 border text-sm font-medium rounded-pill px-7 h-11 transition-all duration-500 ${t ? 'border-[#052415]/40 text-[#052415] hover:bg-[#052415]/8' : 'border-white/40 text-white hover:bg-white/10'}`}
+              className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
             >
               Book a Demo
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -94,7 +94,7 @@ export default function HeroSection() {
             </a>
             <a
               href="#product"
-              className={`inline-flex items-center gap-1.5 text-sm transition-colors duration-500 ${t ? 'text-[#052415]/50 hover:text-[#052415]/80' : 'text-white/50 hover:text-white/80'}`}
+              className={`inline-flex items-center gap-1.5 text-sm transition-colors duration-500 ${t ? 'text-[#2E4A3C]/50 hover:text-[#2E4A3C]/80' : 'text-white/50 hover:text-white/80'}`}
             >
               See the product
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -113,7 +113,7 @@ export default function HeroSection() {
         >
           <div />
           <div className="flex justify-center">
-          <div className={`flex items-center gap-1 rounded-full p-1 border transition-colors duration-500 ${t ? 'bg-[#052415]/8 border-[#052415]/10' : 'bg-white/8 border-white/10'}`}>
+          <div className={`flex items-center gap-1 rounded-full p-1 border transition-colors duration-500 ${t ? 'bg-[#2E4A3C]/8 border-[#2E4A3C]/10' : 'bg-white/8 border-white/10'}`}>
             {([
               { id: 'parent', label: 'Parent View' },
               { id: 'teacher', label: 'Teacher View' },
@@ -124,8 +124,8 @@ export default function HeroSection() {
                 onClick={() => setDemoTab(id)}
                 className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
                   demoTab === id
-                    ? t ? 'bg-[#052415] text-white shadow-sm' : 'bg-white text-[#052415] shadow-sm'
-                    : t ? 'text-[#052415]/50 hover:text-[#052415]/80' : 'text-white/50 hover:text-white/80'
+                    ? t ? 'bg-[#2E4A3C] text-white shadow-sm' : 'bg-white text-[#2E4A3C] shadow-sm'
+                    : t ? 'text-[#2E4A3C]/50 hover:text-[#2E4A3C]/80' : 'text-white/50 hover:text-white/80'
                 }`}
               >
                 {label}
@@ -145,11 +145,11 @@ export default function HeroSection() {
           className="relative max-w-[1100px] mx-auto mt-4"
         >
           <motion.div
-            className={`w-full h-[680px] rounded-t-xl border border-b-0 overflow-hidden transition-colors duration-500 ${t ? 'border-[#052415]/10' : 'border-white/10'}`}
+            className={`w-full h-[680px] rounded-t-xl border border-b-0 overflow-hidden transition-colors duration-500 ${t ? 'border-[#2E4A3C]/10' : 'border-white/10'}`}
             animate={{
               boxShadow: t
-                ? '0 0 0 1px rgba(74,124,89,0.15), 0 32px 80px rgba(74,124,89,0.12)'
-                : '0 0 0 1px rgba(74,124,89,0.25), 0 32px 80px rgba(5,36,21,0.45)',
+                ? '0 0 0 1px rgba(30,59,42,0.15), 0 32px 80px rgba(30,59,42,0.12)'
+                : '0 0 0 1px rgba(30,59,42,0.25), 0 32px 80px rgba(30,59,42,0.45)',
             }}
             transition={{ duration: 0.6, ease }}
           >
