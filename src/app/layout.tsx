@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Lora, Fragment_Mono, Delicious_Handrawn } from "next/font/google";
+import { Geist, Lora, Fragment_Mono, Delicious_Handrawn, Poppins } from "next/font/google";
 import "./globals.css";
 
 const geist = Geist({
@@ -30,6 +30,13 @@ const deliciousHandrawn = Delicious_Handrawn({
   variable: "--font-delicious",
 });
 
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  display: "swap",
+  variable: "--font-poppins",
+});
+
 export const metadata: Metadata = {
   title: "SchoolLayer — The complete operating system for microschools",
   description:
@@ -42,7 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geist.variable} ${lora.variable} ${fragmentMono.variable} ${deliciousHandrawn.variable}`}>
+      <html lang="en" className={`${geist.variable} ${lora.variable} ${fragmentMono.variable} ${deliciousHandrawn.variable} ${poppins.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );

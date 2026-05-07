@@ -44,6 +44,7 @@
   /* Fonts */
   --font-display:     var(--font-lora), "Lora", serif;
   --font-body:        var(--font-geist), "Geist", sans-serif;
+  --font-secondary:   var(--font-poppins), "Poppins", sans-serif;
   --font-mono:        var(--font-fragment-mono), "Fragment Mono", monospace;
   --font-handwritten: var(--font-delicious), "Delicious Handrawn", cursive;
 }
@@ -66,10 +67,15 @@ h1, h2, h3 {
   line-height: 0.98;
 }
 
+p {
+  font-family: var(--font-secondary);
+}
+
 /* Reset heading styles inside the parent dashboard demo shell */
 .demo-shell h1,
 .demo-shell h2,
-.demo-shell h3 {
+.demo-shell h3,
+.demo-shell p {
   font-family: var(--font-body);
   letter-spacing: normal;
   line-height: normal;
