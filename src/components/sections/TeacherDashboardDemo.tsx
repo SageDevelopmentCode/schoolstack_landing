@@ -892,7 +892,7 @@ function MyStudentsSection() {
   const filtered = DEMO_STUDENTS.filter((s) => s.program === activeProgram);
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-lg font-semibold text-gray-700 font-body">
           My Students
@@ -1377,7 +1377,7 @@ function DayView({
 
         {isToday && (
           <div
-            className={`flex items-center justify-between px-6 py-5 rounded-2xl border ${
+            className={`flex items-center justify-between px-6 py-5 rounded-xl border ${
               isActiveDay
                 ? "bg-[#4a7c59]/5 border-[#4a7c59]/20"
                 : "bg-gray-50 border-gray-100"
@@ -1430,7 +1430,7 @@ function DayView({
         )}
 
         {!isToday && !isFuture && daySessions.length === 0 && (
-          <div className="px-6 py-5 rounded-2xl bg-gray-50 border border-gray-100">
+          <div className="px-6 py-5 rounded-xl bg-gray-50 border border-gray-100">
             <p className="text-sm text-gray-400 font-body">
               No sessions logged for this day.
             </p>
@@ -3001,7 +3001,7 @@ function PayrollPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
-            className={`rounded-2xl border p-5 ${accent ? "bg-[#4a7c59]/5 border-[#4a7c59]/15" : "bg-white border-gray-100 shadow-sm"}`}
+            className={`rounded-xl border p-5 ${accent ? "bg-[#4a7c59]/5 border-[#4a7c59]/15" : "bg-white border-gray-100 shadow-sm"}`}
           >
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-2">
               {label}
@@ -3020,7 +3020,7 @@ function PayrollPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.05 }}
-          className="w-72 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+          className="w-72 shrink-0 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
         >
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 font-body">
@@ -3074,7 +3074,7 @@ function PayrollPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
-          className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5"
+          className="flex-1 bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5"
         >
           <div className="flex items-start justify-between">
             <div>
@@ -3266,16 +3266,36 @@ const ATTENDANCE_BASE_DATES = [
 ];
 
 function buildInitialAttendance(): AttendanceRecord[] {
+  // keyed as "studentId:date"
+  const paidOn = new Set([
+    "as1:2026-05-25", "as1:2026-05-26", "as1:2026-05-27", "as1:2026-05-28", "as1:2026-05-29",
+    "as2:2026-05-25", "as2:2026-05-26", "as2:2026-05-27", "as2:2026-05-28", "as2:2026-05-29",
+    "as3:2026-05-27",
+    "as4:2026-05-25", "as4:2026-05-26", "as4:2026-05-27",
+    "as5:2026-05-29",
+    "as6:2026-05-25", "as6:2026-05-26", "as6:2026-05-27", "as6:2026-05-28", "as6:2026-05-29",
+    "as8:2026-05-25", "as8:2026-05-26",
+  ]);
+
+  const presentOn = new Set([
+    "as1:2026-05-25", "as1:2026-05-26",
+    "as2:2026-05-25", "as2:2026-05-27",
+    "as3:2026-05-27",
+    "as4:2026-05-25",
+    "as5:2026-05-29",
+    "as6:2026-05-26", "as6:2026-05-28",
+    "as8:2026-05-25",
+  ]);
+
   const records: AttendanceRecord[] = [];
-  const paidIds = new Set(["as1", "as2"]);
-  const presentOnMonday = new Set(["as1", "as2"]);
   for (const student of ATTENDANCE_STUDENTS) {
     for (const date of ATTENDANCE_BASE_DATES) {
+      const key = `${student.id}:${date}`;
       records.push({
         studentId: student.id,
         date,
-        paid: paidIds.has(student.id),
-        present: presentOnMonday.has(student.id) && date === "2026-05-25",
+        paid: paidOn.has(key),
+        present: presentOn.has(key),
       });
     }
   }
@@ -3318,7 +3338,7 @@ function FormsPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
-        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
+        className="bg-white rounded-xl border border-gray-100 shadow-sm p-6"
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-700 font-body">
@@ -3390,7 +3410,7 @@ function FormsPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, delay: 0.08 }}
-        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
+        className="bg-white rounded-xl border border-gray-100 shadow-sm p-6"
       >
         <h2 className="text-lg font-semibold text-gray-700 font-body mb-5">
           Documents
@@ -3440,7 +3460,7 @@ function FormsPage() {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
             >
-              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md mx-4 p-6 pointer-events-auto">
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 w-full max-w-md mx-4 p-6 pointer-events-auto">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-semibold text-gray-800 font-body">
                     Sign Form

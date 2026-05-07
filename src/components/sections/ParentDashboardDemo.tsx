@@ -893,11 +893,23 @@ function ModalShell({
   title,
   onClose,
   children,
+  inline = false,
 }: {
   title: string;
-  onClose: () => void;
+  onClose?: () => void;
   children: React.ReactNode;
+  inline?: boolean;
 }) {
+  if (inline) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="px-6 py-4 border-b border-gray-100 shrink-0">
+          <h2 className="font-semibold text-gray-800 text-base">{title}</h2>
+        </div>
+        <div className="overflow-y-auto flex-1 px-6 py-5">{children}</div>
+      </div>
+    );
+  }
   return (
     <div className="absolute inset-0 z-50 flex">
       <div className="flex-1" onClick={onClose} />
@@ -933,17 +945,19 @@ function ContractModal({
   sigs,
   onSign,
   onClose,
+  inline,
 }: {
   contractId: string;
   sections: { id: string; title: string; body: string }[];
   title: string;
   sigs: Record<string, string>;
   onSign: (k: string, n: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  inline?: boolean;
 }) {
   const signed = sections.filter((s) => sigs[s.id]).length;
   return (
-    <ModalShell title={title} onClose={onClose}>
+    <ModalShell title={title} onClose={onClose} inline={inline}>
       <p className="text-xs text-gray-400 mb-4">
         {signed} of {sections.length} sections signed
       </p>
@@ -973,12 +987,14 @@ function HealthFormModal({
   onClose,
   saved,
   onSave,
+  inline,
 }: {
   sigs: Record<string, string>;
   onSign: (k: string, n: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
   saved: boolean;
   onSave: () => void;
+  inline?: boolean;
 }) {
   const [form, setForm] = useState({
     ec1Name: "Linda Torres",
@@ -998,6 +1014,7 @@ function HealthFormModal({
     <ModalShell
       title="Emergency Contact, Health & Immunization Form"
       onClose={onClose}
+      inline={inline}
     >
       <div className="space-y-5">
         <div className="bg-sage-50 rounded-xl p-4">
@@ -1089,14 +1106,16 @@ function MedicationPlanModal({
   setMeds,
   saved,
   onSave,
+  inline,
 }: {
   sigs: Record<string, string>;
   onSign: (k: string, n: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
   meds: DemoMedication[];
   setMeds: (m: DemoMedication[]) => void;
   saved: boolean;
   onSave: () => void;
+  inline?: boolean;
 }) {
   const addMed = () =>
     setMeds([
@@ -1107,7 +1126,7 @@ function MedicationPlanModal({
   const updateMed = (id: string, field: keyof DemoMedication, val: string) =>
     setMeds(meds.map((m) => (m.id === id ? { ...m, [field]: val } : m)));
   return (
-    <ModalShell title="Emergency Medication Plan (Optional)" onClose={onClose}>
+    <ModalShell title="Emergency Medication Plan (Optional)" onClose={onClose} inline={inline}>
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
           List any medications your child may need during the school day or in
@@ -1195,17 +1214,19 @@ function ImmunizationModal({
   count,
   onUpload,
   onClose,
+  inline,
 }: {
   count: number;
   onUpload: () => void;
-  onClose: () => void;
+  onClose?: () => void;
+  inline?: boolean;
 }) {
   const fakeFiles = Array.from(
     { length: count },
     (_, i) => `immunization_record_${i + 1}.pdf`,
   );
   return (
-    <ModalShell title="Proof of Immunizations" onClose={onClose}>
+    <ModalShell title="Proof of Immunizations" onClose={onClose} inline={inline}>
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
           Upload your child's immunization records or approved exemption
@@ -1253,12 +1274,14 @@ function PhotoReleaseModal({
   onClose,
   consent,
   onConsentSave,
+  inline,
 }: {
   sigs: Record<string, string>;
   onSign: (k: string, n: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
   consent: "FULL" | "LIMITED" | "NO" | null;
   onConsentSave: (c: "FULL" | "LIMITED" | "NO") => void;
+  inline?: boolean;
 }) {
   const [selected, setSelected] = useState<"FULL" | "LIMITED" | "NO" | null>(
     consent,
@@ -1287,7 +1310,7 @@ function PhotoReleaseModal({
   ];
   const allSigned = C5_SECTIONS.every((s) => sigs[s.id]);
   return (
-    <ModalShell title="Photo Release Form" onClose={onClose}>
+    <ModalShell title="Photo Release Form" onClose={onClose} inline={inline}>
       <div className="space-y-5">
         {C5_SECTIONS.slice(0, 2).map((s) => (
           <div key={s.id} className="border border-gray-100 rounded-xl p-4">
@@ -1372,13 +1395,15 @@ function AssumptionOfRiskModal({
   sigs,
   onSign,
   onClose,
+  inline,
 }: {
   sigs: Record<string, string>;
   onSign: (k: string, n: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  inline?: boolean;
 }) {
   return (
-    <ModalShell title="Assumption of Risk" onClose={onClose}>
+    <ModalShell title="Assumption of Risk" onClose={onClose} inline={inline}>
       <div className="space-y-4">
         <div className="text-center text-xs text-gray-400 pb-2 border-b border-gray-100">
           <p className="font-semibold text-gray-600 text-sm">
@@ -1427,14 +1452,16 @@ function AuthorizedPickupModal({
   setPersons,
   saved,
   onSave,
+  inline,
 }: {
   sigs: Record<string, string>;
   onSign: (k: string, n: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
   persons: DemoAuthorizedPerson[];
   setPersons: (p: DemoAuthorizedPerson[]) => void;
   saved: boolean;
   onSave: () => void;
+  inline?: boolean;
 }) {
   const addPerson = () =>
     setPersons([
@@ -1453,6 +1480,7 @@ function AuthorizedPickupModal({
     <ModalShell
       title="Additional Authorized Pickup (Optional)"
       onClose={onClose}
+      inline={inline}
     >
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
@@ -1553,17 +1581,19 @@ function HealthStatementModal({
   onClose,
   option,
   onOptionSave,
+  inline,
 }: {
   sigs: Record<string, string>;
   onSign: (k: string, n: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
   option: "A" | "B" | null;
   onOptionSave: (o: "A" | "B") => void;
+  inline?: boolean;
 }) {
   const [selected, setSelected] = useState<"A" | "B" | null>(option);
   const [optionSaved, setOptionSaved] = useState(!!option);
   return (
-    <ModalShell title="Health Information Form" onClose={onClose}>
+    <ModalShell title="Health Information Form" onClose={onClose} inline={inline}>
       <div className="space-y-4">
         <p className="text-sm text-gray-600">
           California law requires a health assessment or approved exemption for
@@ -1647,13 +1677,15 @@ function HealthStatementModal({
 function RegistrationFeeModal({
   onPay,
   onClose,
+  inline,
 }: {
   onPay: () => void;
-  onClose: () => void;
+  onClose?: () => void;
+  inline?: boolean;
 }) {
   const [paid, setPaid] = useState(false);
   return (
-    <ModalShell title="Registration Fee" onClose={onClose}>
+    <ModalShell title="Registration Fee" onClose={onClose} inline={inline}>
       <div className="space-y-4 text-center">
         <div className="w-16 h-16 rounded-full bg-sage-50 flex items-center justify-center mx-auto">
           <CreditCard className="w-7 h-7 text-[#4a7c59]" />
@@ -1779,6 +1811,287 @@ const CHECKLIST_ITEMS = [
   },
 ];
 
+// ─── ENROLLMENT PAGE (split-panel) ───────────────────────────────────────────
+
+function EnrollmentPage({
+  activeChildId,
+  setActiveChildId,
+  completions,
+  enrolled,
+  isJakePending,
+  sigs,
+  onSign,
+  healthFormSaved,
+  onHealthFormSave,
+  medications,
+  setMedications,
+  medicationSaved,
+  onMedicationSave,
+  immunizationCount,
+  onImmunizationUpload,
+  photoConsent,
+  onPhotoConsentSave,
+  healthStatement,
+  onHealthStatementSave,
+  pickupPersons,
+  setPickupPersons,
+  pickupSaved,
+  onPickupSave,
+  feePaid,
+  onFeePay,
+}: {
+  activeChildId: ChildId;
+  setActiveChildId: (id: ChildId) => void;
+  completions: boolean[];
+  enrolled: boolean;
+  isJakePending: boolean;
+  sigs: Record<string, string>;
+  onSign: (k: string, n: string) => void;
+  healthFormSaved: boolean;
+  onHealthFormSave: () => void;
+  medications: DemoMedication[];
+  setMedications: (m: DemoMedication[]) => void;
+  medicationSaved: boolean;
+  onMedicationSave: () => void;
+  immunizationCount: number;
+  onImmunizationUpload: () => void;
+  photoConsent: "FULL" | "LIMITED" | "NO" | null;
+  onPhotoConsentSave: (c: "FULL" | "LIMITED" | "NO") => void;
+  healthStatement: "A" | "B" | null;
+  onHealthStatementSave: (o: "A" | "B") => void;
+  pickupPersons: DemoAuthorizedPerson[];
+  setPickupPersons: (p: DemoAuthorizedPerson[]) => void;
+  pickupSaved: boolean;
+  onPickupSave: () => void;
+  feePaid: boolean;
+  onFeePay: () => void;
+}) {
+  const [activeItem, setActiveItem] = useState<ModalId>(
+    CHECKLIST_ITEMS[0].modal,
+  );
+
+  const reqCompleted = CHECKLIST_ITEMS.filter(
+    (i) => i.required && completions[i.id - 1],
+  ).length;
+  const reqTotal = CHECKLIST_ITEMS.filter((i) => i.required).length;
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Header */}
+      <div className="px-6 pt-5 pb-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold font-heading text-gray-800">
+              Enrollment
+            </h1>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Welcome back, Sarah — here&apos;s your enrollment progress.
+            </p>
+          </div>
+          <ChildTabStrip
+            activeChildId={activeChildId}
+            onSwitch={setActiveChildId}
+          />
+        </div>
+      </div>
+
+      {isJakePending ? (
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
+            <Clock className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-amber-800">
+                Application Under Review
+              </p>
+              <p className="text-sm text-amber-600 mt-1">
+                Jake&apos;s application has been received and is currently
+                being reviewed by the admissions team. You&apos;ll be
+                notified by email once a decision has been made.
+              </p>
+              <p className="text-xs text-amber-500 mt-3">
+                Submitted: April 10, 2026
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Left sidebar */}
+          <aside className="w-[30%] shrink-0 border-r border-gray-100 flex flex-col overflow-hidden">
+            {/* Progress */}
+            <div className="px-4 py-4 border-b border-gray-100 shrink-0">
+              {enrolled && (
+                <div className="flex items-center gap-1.5 mb-3 text-emerald-600">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span className="text-xs font-semibold">Enrollment Confirmed!</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-gray-600">Progress</p>
+                <span className="text-xs text-gray-400">
+                  {reqCompleted}/{reqTotal}
+                </span>
+              </div>
+              <ProgressBar value={reqCompleted} max={reqTotal} />
+            </div>
+            {/* Form list */}
+            <div className="overflow-y-auto flex-1 divide-y divide-gray-100">
+              {CHECKLIST_ITEMS.map((item) => {
+                const done = completions[item.id - 1];
+                const Icon = item.icon;
+                const isActive = activeItem === item.modal;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveItem(item.modal)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${
+                      isActive
+                        ? "bg-[#4a7c59]/8 text-[#4a7c59]"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        done
+                          ? "bg-emerald-100"
+                          : isActive
+                            ? "bg-[#4a7c59]/15"
+                            : "bg-gray-100"
+                      }`}
+                    >
+                      {done ? (
+                        <Check className="w-3 h-3 text-emerald-600" />
+                      ) : (
+                        <Icon
+                          className={`w-3 h-3 ${isActive ? "text-[#4a7c59]" : "text-gray-400"}`}
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium leading-tight truncate">
+                        {item.label}
+                      </p>
+                      {item.optional && (
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          Optional
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* Right panel */}
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeItem}
+                className="h-full"
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {activeItem === "contract-1" && (
+                  <ContractModal
+                    inline
+                    contractId="1"
+                    sections={C1_SECTIONS}
+                    title="Program Description & Key Policies"
+                    sigs={sigs}
+                    onSign={onSign}
+                  />
+                )}
+                {activeItem === "contract-2" && (
+                  <ContractModal
+                    inline
+                    contractId="2"
+                    sections={C2_SECTIONS}
+                    title="Community Agreement"
+                    sigs={sigs}
+                    onSign={onSign}
+                  />
+                )}
+                {activeItem === "health-form" && (
+                  <HealthFormModal
+                    inline
+                    sigs={sigs}
+                    onSign={onSign}
+                    saved={healthFormSaved}
+                    onSave={onHealthFormSave}
+                  />
+                )}
+                {activeItem === "medication-plan" && (
+                  <MedicationPlanModal
+                    inline
+                    sigs={sigs}
+                    onSign={onSign}
+                    meds={medications}
+                    setMeds={setMedications}
+                    saved={medicationSaved}
+                    onSave={onMedicationSave}
+                  />
+                )}
+                {activeItem === "immunization" && (
+                  <ImmunizationModal
+                    inline
+                    count={immunizationCount}
+                    onUpload={onImmunizationUpload}
+                  />
+                )}
+                {activeItem === "photo-release" && (
+                  <PhotoReleaseModal
+                    inline
+                    sigs={sigs}
+                    onSign={onSign}
+                    consent={photoConsent}
+                    onConsentSave={onPhotoConsentSave}
+                  />
+                )}
+                {activeItem === "assumption-of-risk" && (
+                  <AssumptionOfRiskModal
+                    inline
+                    sigs={sigs}
+                    onSign={onSign}
+                  />
+                )}
+                {activeItem === "authorized-pickup" && (
+                  <AuthorizedPickupModal
+                    inline
+                    sigs={sigs}
+                    onSign={onSign}
+                    persons={pickupPersons}
+                    setPersons={setPickupPersons}
+                    saved={pickupSaved}
+                    onSave={onPickupSave}
+                  />
+                )}
+                {activeItem === "health-statement" && (
+                  <HealthStatementModal
+                    inline
+                    sigs={sigs}
+                    onSign={onSign}
+                    option={healthStatement}
+                    onOptionSave={onHealthStatementSave}
+                  />
+                )}
+                {activeItem === "registration-fee" && (
+                  <RegistrationFeeModal
+                    inline
+                    onPay={onFeePay}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ChecklistView({
   completions,
   onOpen,
@@ -1801,9 +2114,9 @@ function ChecklistView({
   const reqTotal = CHECKLIST_ITEMS.filter((i) => i.required).length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-0">
       {enrolled && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-center gap-3">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-center gap-3 mb-4">
           <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <div>
             <p className="font-semibold text-emerald-800">
@@ -1815,7 +2128,7 @@ function ChecklistView({
           </div>
         </div>
       )}
-      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div className="pb-4 border-b border-gray-100">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-gray-700">
             Enrollment Progress
@@ -1826,7 +2139,7 @@ function ChecklistView({
         </div>
         <ProgressBar value={reqCompleted} max={reqTotal} />
       </div>
-      <div className="bg-white border border-gray-100 rounded-2xl divide-y divide-gray-50 shadow-sm overflow-hidden">
+      <div className="divide-y divide-gray-100">
         {CHECKLIST_ITEMS.map((item, idx) => {
           const done = completions[item.id - 1];
           const Icon = item.icon;
@@ -1835,7 +2148,7 @@ function ChecklistView({
               key={item.id}
               data-tour-id={idx === 0 ? "checklist-item-0" : undefined}
               onClick={() => onOpen(item.modal)}
-              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left cursor-pointer"
+              className="w-full flex items-center gap-4 py-4 hover:bg-gray-50 transition-colors text-left cursor-pointer"
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${done ? "bg-emerald-100" : "bg-gray-100"}`}
@@ -1877,7 +2190,7 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
     { id: "profile", label: "Profile" },
   ];
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <div>
       <div className="flex border-b border-gray-100">
         {tabs.map((t) => (
           <button
@@ -1889,7 +2202,7 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
           </button>
         ))}
       </div>
-      <div className="p-5">
+      <div className="pt-5">
         {detailTab === "teacher" && (
           <div className="space-y-3">
             {child.teachers.map((t) => (
@@ -2101,31 +2414,167 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
 }
 
 function BillingPage({
-  activeChildId,
   paidInvoices,
   onPay,
+  onPayAll,
   onOpenInvoice,
 }: {
   activeChildId: ChildId;
   paidInvoices: Set<string>;
   onPay: (id: string) => void;
+  onPayAll: (ids: string[]) => void;
   onOpenInvoice: () => void;
 }) {
-  const childTx = DEMO_TRANSACTIONS.filter((t) => t.childId === activeChildId);
-  const pending = childTx.filter(
+  const [childFilter, setChildFilter] = useState<ChildId | "all">("all");
+  const [autopay, setAutopay] = useState(false);
+
+  const CHILD_IDS: ChildId[] = ["emma", "jake", "liam"];
+  const childMeta: Record<ChildId, { name: string; initials: string; color: string }> = {
+    emma: { name: "Emma", initials: "EM", color: DEMO_CHILDREN.emma.color },
+    jake: { name: "Jake", initials: "JM", color: DEMO_CHILDREN.jake.color },
+    liam: { name: "Liam", initials: "LM", color: DEMO_CHILDREN.liam.color },
+  };
+
+  const filteredTx =
+    childFilter === "all"
+      ? DEMO_TRANSACTIONS
+      : DEMO_TRANSACTIONS.filter((t) => t.childId === childFilter);
+
+  const pending = filteredTx.filter(
     (t) => t.status === "pending" && !paidInvoices.has(t.id),
   );
-  const paid = childTx.filter(
+  const paid = filteredTx.filter(
     (t) => t.status === "paid" || paidInvoices.has(t.id),
   );
+
+  const allPending = DEMO_TRANSACTIONS.filter(
+    (t) => t.status === "pending" && !paidInvoices.has(t.id),
+  );
+  const totalDue = allPending.reduce((sum, t) => {
+    return sum + parseFloat(t.amount.replace("$", "").replace(",", ""));
+  }, 0);
+  const nextDue = allPending.length > 0 ? allPending[0].date : null;
+
+  const weeksPayable = SUMMER_WEEKS.length;
+  const weeksPaid = 0;
+
   return (
-    <div className="space-y-4">
-      {pending.length > 0 && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-700 text-sm mb-3">
-            Pending Invoices
+    <div className="space-y-5 pb-4">
+
+      {/* ── Balance summary ──────────────────────────────────────────── */}
+      <div className="flex items-start justify-between pt-1 pb-4 border-b border-gray-100">
+        <div>
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
+            Total Balance Due
+          </p>
+          <p className="text-3xl font-bold text-gray-900 leading-none">
+            ${totalDue.toFixed(2)}
+          </p>
+          {nextDue && (
+            <span className="inline-flex items-center gap-1 mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full font-medium">
+              <Clock className="w-3 h-3" />
+              Next due {nextDue}
+            </span>
+          )}
+          {totalDue === 0 && (
+            <span className="inline-flex items-center gap-1 mt-2 text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+              <CheckCircle className="w-3 h-3" />
+              All paid
+            </span>
+          )}
+        </div>
+        {allPending.length > 0 ? (
+          <button
+            onClick={() => onPayAll(allPending.map((t) => t.id))}
+            className="px-4 py-2 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4f] transition-colors cursor-pointer shadow-sm"
+          >
+            Pay All
+          </button>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl">
+            <CheckCircle className="w-3.5 h-3.5" />
+            All clear
+          </span>
+        )}
+      </div>
+
+      {/* ── Child filter tabs ────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => setChildFilter("all")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+            childFilter === "all"
+              ? "bg-gray-800 text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          All children
+        </button>
+        {CHILD_IDS.map((cid) => {
+          const meta = childMeta[cid];
+          const childPendingCount = DEMO_TRANSACTIONS.filter(
+            (t) =>
+              t.childId === cid &&
+              t.status === "pending" &&
+              !paidInvoices.has(t.id),
+          ).length;
+          const active = childFilter === cid;
+          return (
+            <button
+              key={cid}
+              onClick={() => setChildFilter(cid)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                active
+                  ? "bg-gray-800 text-white"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              <span
+                className="w-4 h-4 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+                style={{ fontSize: 8, backgroundColor: meta.color }}
+              >
+                {meta.initials[0]}
+              </span>
+              {meta.name}
+              {childPendingCount > 0 && (
+                <span
+                  className={`text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    active ? "bg-white text-gray-800" : "bg-amber-400 text-white"
+                  }`}
+                >
+                  {childPendingCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Pending invoices ─────────────────────────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            Pending
           </h3>
-          <div className="space-y-2">
+          {pending.length > 0 && (
+            <span className="text-xs text-amber-600 font-medium">
+              {pending.length} invoice{pending.length > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        {pending.length === 0 ? (
+          <div className="flex items-center gap-2 py-3 text-sm text-emerald-600">
+            <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>
+              No pending invoices
+              {childFilter !== "all" && (
+                <span className="text-gray-400"> for {childMeta[childFilter].name}</span>
+              )}
+            </span>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
             {pending.map((t, tIdx) => (
               <div
                 key={t.id}
@@ -2133,18 +2582,26 @@ function BillingPage({
                   tIdx === 0 ? "billing-pending-invoice" : undefined
                 }
                 onClick={tIdx === 0 ? onOpenInvoice : undefined}
-                className="flex items-center justify-between border border-amber-100 bg-amber-50 rounded-xl px-4 py-3 cursor-pointer hover:bg-amber-100 transition-colors"
+                className="flex items-center gap-4 py-3 cursor-pointer group"
               >
-                <div>
-                  <p className="text-sm font-medium text-gray-700">{t.desc}</p>
-                  <p className="text-xs text-gray-400">{t.date}</p>
+                <div className="w-1 h-10 rounded-full bg-amber-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors truncate">
+                    {t.desc}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Due {t.date} · {childMeta[t.childId].name}
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <span className="font-semibold text-gray-800 text-sm">
                     {t.amount}
                   </span>
                   <button
-                    onClick={() => onPay(t.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPay(t.id);
+                    }}
                     className="px-3 py-1.5 rounded-lg bg-[#4a7c59] text-white text-xs font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors"
                   >
                     Pay
@@ -2153,66 +2610,122 @@ function BillingPage({
               </div>
             ))}
           </div>
+        )}
+      </section>
+
+      {/* ── Autopay + payment method ─────────────────────────────────── */}
+      <div className="flex items-center justify-between py-3.5 border-t border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setAutopay((a) => !a)}
+            style={{ backgroundColor: autopay ? "#4a7c59" : "#d1d5db" }}
+            className="relative w-9 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 focus:outline-none"
+            aria-label="Toggle autopay"
+          >
+            <span
+              style={{ transform: autopay ? "translateX(18px)" : "translateX(2px)" }}
+              className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform"
+            />
+          </button>
+          <div>
+            <p className="text-sm font-medium text-gray-700">Autopay</p>
+            <p className="text-xs text-gray-400">
+              {autopay ? "On — charged on due date" : "Off — pay manually each invoice"}
+            </p>
+          </div>
         </div>
-      )}
-      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-        <h3 className="font-semibold text-gray-700 text-sm mb-3">
-          Summer 2026 — Tuition Schedule
-        </h3>
-        <div className="grid grid-cols-2 gap-2">
-          {SUMMER_WEEKS.map((w, i) => {
-            const isPaid = i < 0;
+        <div className="text-right">
+          <p className="text-xs text-gray-400 mb-0.5">Card on file</p>
+          <div className="flex items-center gap-1.5 justify-end">
+            <CreditCard className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-sm text-gray-700 font-medium">Visa ····4242</span>
+            <button className="text-xs text-[#4a7c59] hover:underline cursor-pointer">
+              Update
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Summer 2026 schedule ─────────────────────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            Summer 2026 — Schedule
+          </h3>
+          <span className="text-xs text-gray-400">
+            {weeksPaid} of {weeksPayable} weeks paid
+          </span>
+        </div>
+        <div className="h-1.5 bg-gray-100 rounded-full mb-4 overflow-hidden">
+          <div
+            className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+            style={{ width: `${(weeksPaid / weeksPayable) * 100}%` }}
+          />
+        </div>
+        <div className="divide-y divide-gray-50">
+          {SUMMER_WEEKS.map((w) => {
+            const isPaid = false;
             return (
-              <div
-                key={w.week}
-                className={`border rounded-xl px-3 py-2.5 ${isPaid ? "border-emerald-100 bg-emerald-50" : "border-gray-100 bg-gray-50"}`}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600">
-                      Week {w.week}
-                    </p>
-                    <p className="text-xs text-gray-400">{w.dates}</p>
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${isPaid ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-500"}`}
-                  >
-                    {isPaid ? "Paid" : "Due"}
-                  </span>
+              <div key={w.week} className="flex items-center gap-3 py-2.5">
+                <span className="text-xs font-semibold text-gray-400 w-10 flex-shrink-0">
+                  Wk {w.week}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-600 truncate">
+                    {w.theme}
+                  </p>
+                  <p className="text-xs text-gray-400">{w.dates}</p>
                 </div>
-                <p className="text-xs text-gray-400 mt-1 truncate">{w.theme}</p>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                    isPaid
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-gray-100 text-gray-400"
+                  }`}
+                >
+                  {isPaid ? "Paid" : "Upcoming"}
+                </span>
               </div>
             );
           })}
         </div>
-      </div>
+      </section>
+
+      {/* ── Payment history ───────────────────────────────────────────── */}
       {paid.length > 0 && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-700 text-sm mb-3">
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
             Payment History
           </h3>
-          <div className="space-y-2">
+          <div className="divide-y divide-gray-50">
             {paid.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center justify-between border border-gray-100 rounded-xl px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-700">{t.desc}</p>
-                  <p className="text-xs text-gray-400">{t.date}</p>
+              <div key={t.id} className="flex items-center gap-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-700 truncate">
+                    {t.desc}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {t.date} · {childMeta[t.childId].name}
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <span className="font-semibold text-gray-800 text-sm">
                     {t.amount}
                   </span>
                   <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
                     Paid
                   </span>
+                  <button
+                    className="text-gray-300 hover:text-gray-500 transition-colors cursor-pointer"
+                    title="Download receipt"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
@@ -3032,7 +3545,7 @@ function HomeDashboard({
                   <div
                     key={child.id}
                     data-tour-id={child.id === "emma" ? "home-child-emma" : undefined}
-                    className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col items-center gap-3 shadow-sm hover:shadow-md transition-shadow"
+                    className="p-4 flex flex-col items-center gap-3"
                   >
                     <img
                       src={child.image}
@@ -3204,13 +3717,13 @@ function HomeDashboard({
                 View all <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="divide-y divide-gray-100">
               {upcomingEvents.map((evt) => {
                 const { day, month } = getEventDayMonth(evt.date);
                 return (
                   <div
                     key={evt.id}
-                    className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 px-4 py-3 shadow-sm"
+                    className="flex items-center gap-3 py-3"
                   >
                     <div
                       className="flex-shrink-0 w-11 h-11 rounded-xl flex flex-col items-center justify-center"
@@ -3981,8 +4494,8 @@ export default function ParentDashboardDemo() {
     >
       <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />
 
-      <main className={`flex-1 overflow-y-auto flex flex-col ${activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" || activeNavTab === "home" ? "bg-gray-50" : "bg-gray-50"}`}>
-        {activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" || activeNavTab === "home" ? (
+      <main className="flex-1 overflow-y-auto flex flex-col bg-white">
+        {activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" || activeNavTab === "home" || activeNavTab === "enrollment" ? (
           <AnimatePresence mode="wait">
             <motion.div
               key={activeNavTab}
@@ -4000,6 +4513,57 @@ export default function ParentDashboardDemo() {
                   onboardingOpen={homeOnboardingOpen}
                   setOnboardingOpen={setHomeOnboardingOpen}
                   isEnrolledByChild={isEnrolledByChild}
+                />
+              )}
+              {activeNavTab === "enrollment" && (
+                <EnrollmentPage
+                  key={activeChildId}
+                  activeChildId={activeChildId}
+                  setActiveChildId={setActiveChildId}
+                  completions={completions}
+                  enrolled={isEnrolled}
+                  isJakePending={activeChildId === "jake"}
+                  sigs={activeSigs}
+                  onSign={handleSign}
+                  healthFormSaved={healthFormSaved[activeChildId]}
+                  onHealthFormSave={() =>
+                    setHealthFormSaved((p) => ({ ...p, [activeChildId]: true }))
+                  }
+                  medications={medications[activeChildId]}
+                  setMedications={(m) =>
+                    setMedications((p) => ({ ...p, [activeChildId]: m }))
+                  }
+                  medicationSaved={medicationSaved[activeChildId]}
+                  onMedicationSave={() =>
+                    setMedicationSaved((p) => ({ ...p, [activeChildId]: true }))
+                  }
+                  immunizationCount={immunizationCount[activeChildId]}
+                  onImmunizationUpload={() =>
+                    setImmunizationCount((p) => ({
+                      ...p,
+                      [activeChildId]: p[activeChildId] + 1,
+                    }))
+                  }
+                  photoConsent={photoConsent[activeChildId]}
+                  onPhotoConsentSave={(c) =>
+                    setPhotoConsent((p) => ({ ...p, [activeChildId]: c }))
+                  }
+                  healthStatement={healthStatement[activeChildId]}
+                  onHealthStatementSave={(o) =>
+                    setHealthStatement((p) => ({ ...p, [activeChildId]: o }))
+                  }
+                  pickupPersons={pickupPersons[activeChildId]}
+                  setPickupPersons={(p) =>
+                    setPickupPersons((prev) => ({ ...prev, [activeChildId]: p }))
+                  }
+                  pickupSaved={pickupSaved[activeChildId]}
+                  onPickupSave={() =>
+                    setPickupSaved((p) => ({ ...p, [activeChildId]: true }))
+                  }
+                  feePaid={feePaid[activeChildId]}
+                  onFeePay={() =>
+                    setFeePaid((p) => ({ ...p, [activeChildId]: true }))
+                  }
                 />
               )}
               {activeNavTab === "messages" && (
@@ -4247,88 +4811,67 @@ export default function ParentDashboardDemo() {
             </motion.div>
           </AnimatePresence>
         ) : (
-          <div className="max-w-4xl mx-auto px-6 py-6 w-full">
-            {/* Page heading */}
-            <div className="mb-5">
-              <p className="text-xl font-semibold text-gray-800">
-                {pageTitle[activeNavTab]}
-              </p>
-              {activeNavTab === "enrollment" && (
-                <p className="text-sm text-gray-400 mt-0.5">
-                  Welcome back, Sarah — here's your enrollment progress.
-                </p>
-              )}
-            </div>
-
-            {/* Child tab strip (shown on most pages) */}
-            {activeNavTab !== "volunteer" && (
-              <ChildTabStrip
-                activeChildId={activeChildId}
-                onSwitch={setActiveChildId}
-              />
-            )}
-
-            {/* Animated page content */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeNavTab + activeChildId}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              >
-                {activeNavTab === "enrollment" &&
-                  (isJakePending ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4">
-                      <Clock className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold text-amber-800">
-                          Application Under Review
-                        </p>
-                        <p className="text-sm text-amber-600 mt-1">
-                          Jake's application has been received and is currently
-                          being reviewed by the admissions team. You'll be
-                          notified by email once a decision has been made.
-                        </p>
-                        <p className="text-xs text-amber-500 mt-3">
-                          Submitted: April 10, 2026
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <ChecklistView
-                      completions={completions}
-                      onOpen={setOpenModal}
-                      enrolled={isEnrolled}
-                    />
-                  ))}
-
-                {activeNavTab === "children" && (
-                  <ChildrenPage activeChildId={activeChildId} />
-                )}
-
-                {activeNavTab === "billing" && (
-                  <BillingPage
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* Header */}
+            <div className="px-6 pt-5 pb-4 border-b border-gray-100 shrink-0">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-xl font-bold font-heading text-gray-800">
+                    {pageTitle[activeNavTab]}
+                  </h1>
+                </div>
+                {activeNavTab !== "volunteer" && (
+                  <ChildTabStrip
                     activeChildId={activeChildId}
-                    paidInvoices={paidInvoices}
-                    onPay={(id) =>
-                      setPaidInvoices((prev) => new Set([...prev, id]))
-                    }
-                    onOpenInvoice={() => setBillingInvoiceSidebarOpen(true)}
+                    onSwitch={setActiveChildId}
                   />
                 )}
+              </div>
+            </div>
 
-                {activeNavTab === "forms" && (
-                  <FormsPage completions={completions} onOpen={setOpenModal} />
-                )}
+            {/* Animated page content */}
+            <div className="flex-1 overflow-y-auto">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeNavTab + activeChildId}
+                  className="px-6 py-5"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  {activeNavTab === "children" && (
+                    <ChildrenPage activeChildId={activeChildId} />
+                  )}
 
-                {activeNavTab === "volunteer" && <VolunteerPage />}
+                  {activeNavTab === "billing" && (
+                    <BillingPage
+                      activeChildId={activeChildId}
+                      paidInvoices={paidInvoices}
+                      onPay={(id) =>
+                        setPaidInvoices((prev) => new Set([...prev, id]))
+                      }
+                      onPayAll={(ids) =>
+                        setPaidInvoices(
+                          (prev) => new Set([...prev, ...ids]),
+                        )
+                      }
+                      onOpenInvoice={() => setBillingInvoiceSidebarOpen(true)}
+                    />
+                  )}
 
-                {activeNavTab === "emergency-contacts" && (
-                  <EmergencyContactsPage activeChildId={activeChildId} />
-                )}
-              </motion.div>
-            </AnimatePresence>
+                  {activeNavTab === "forms" && (
+                    <FormsPage completions={completions} onOpen={setOpenModal} />
+                  )}
+
+                  {activeNavTab === "volunteer" && <VolunteerPage />}
+
+                  {activeNavTab === "emergency-contacts" && (
+                    <EmergencyContactsPage activeChildId={activeChildId} />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         )}
       </main>
