@@ -137,7 +137,7 @@ export default function StacksSection() {
                 <div className="mt-7">
                   <a
                     href="#demo"
-                    className={`flex items-center justify-center gap-2 rounded-pill h-11 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
+                    className={`flex items-center justify-center gap-2 rounded-pill h-11 text-sm font-medium font-secondary transition-all duration-200 hover:-translate-y-0.5 ${
                       stack.featured
                         ? 'bg-clay text-white hover:opacity-90 shadow-xs'
                         : 'border border-border text-text hover:bg-surface-muted hover:border-border-strong'

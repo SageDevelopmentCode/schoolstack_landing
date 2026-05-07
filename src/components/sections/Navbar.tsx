@@ -58,12 +58,12 @@ export default function Navbar() {
             {/* Logo */}
             <a href="/" className="flex items-center gap-2 shrink-0">
               <img
-                src="/images/SchoolLayerLogo.png"
+                src="/images/Logo.png"
                 alt="MudKitchen"
                 className="h-8 w-auto object-contain"
               />
               <span
-                className={`font-display text-[18px] ${scrolled ? "text-accent" : "text-white"}`}
+                className="font-display font-semibold text-[18px] text-clay"
               >
                 MudKitchen
               </span>
@@ -78,7 +78,7 @@ export default function Navbar() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm text-text-muted hover:text-text transition-colors duration-150"
+                  className="text-sm font-medium text-text-muted hover:text-text transition-colors duration-150"
                 >
                   {link.label}
                 </a>
@@ -144,9 +144,9 @@ export default function Navbar() {
             >
               <div className="flex items-center justify-between mb-10">
                 <img
-                  src="/images/SchoolLayerLogo.png"
-                  alt="MudKitchen"
-                  className="h-7 w-auto object-contain"
+                src="/images/Logo.png"
+                alt="MudKitchen"
+                className="h-7 w-auto object-contain"
                 />
                 <button
                   onClick={() => setDrawerOpen(false)}
@@ -175,7 +175,7 @@ export default function Navbar() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setDrawerOpen(false)}
-                    className="text-[17px] text-text-muted hover:text-text py-3 border-b border-border transition-colors duration-150"
+                    className="text-[17px] font-medium text-text-muted hover:text-text py-3 border-b border-border transition-colors duration-150"
                   >
                     {link.label}
                   </a>

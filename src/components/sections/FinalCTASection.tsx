@@ -29,7 +29,7 @@ export default function FinalCTASection() {
           <div className="mt-10">
             <a
               href="#"
-              className="inline-flex items-center gap-2 rounded-pill px-8 h-12 text-sm font-medium hover:-translate-y-0.5 transition-all duration-200"
+              className="inline-flex items-center gap-2 rounded-pill px-8 h-12 text-sm font-medium font-secondary hover:-translate-y-0.5 transition-all duration-200"
               style={{
                 backgroundColor: '#A05C45',
                 color: '#FFFFFF',

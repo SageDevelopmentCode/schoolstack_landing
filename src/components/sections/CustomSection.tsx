@@ -53,7 +53,7 @@ export default function CustomSection() {
           <div className="mt-10">
             <a
               href="#demo"
-              className="inline-flex items-center gap-2 bg-accent text-white rounded-pill px-7 h-12 text-sm font-medium hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-200 shadow-xs"
+              className="inline-flex items-center gap-2 bg-accent text-white rounded-pill px-7 h-12 text-sm font-medium font-secondary hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-200 shadow-xs"
             >
               Tell us what you need
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">

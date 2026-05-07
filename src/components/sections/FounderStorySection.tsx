@@ -58,7 +58,7 @@ export default function FounderStorySection() {
             <FadeInView delay={0.30}>
               <a
                 href="#"
-                className="inline-flex items-center gap-1.5 text-sm text-accent hover:text-accent-hover transition-colors mt-6"
+                className="inline-flex items-center gap-1.5 text-sm font-secondary text-accent hover:text-accent-hover transition-colors mt-6"
               >
                 See the school
                 <svg

@@ -55,26 +55,19 @@ export default function HeroSection() {
             initial="hidden"
             animate="visible"
             variants={makeVariant(0.08)}
-            className={`font-display text-[clamp(2.6rem,5.2vw,4.75rem)] leading-[1.04] tracking-tight mt-6 transition-colors duration-500 ${t ? 'text-[#2E4A3C]' : 'text-white'}`}
+            className={`font-display font-medium text-[clamp(2.6rem,5.2vw,4.75rem)] leading-[1.04] tracking-tight mt-6 transition-colors duration-500 ${t ? 'text-[#2E4A3C]' : 'text-white'}`}
           >
-            We built the software
-            <br /><em style={{ color: t ? 'var(--color-clay)' : '#E8D5C8', fontStyle: 'italic' }}>we couldn&apos;t find.</em>
-            <span className={`inline-block w-[3px] h-[0.85em] ml-1 align-middle animate-pulse transition-colors duration-500 ${t ? 'bg-[#2E4A3C]' : 'bg-white'}`} />
+            Everything your microschool needs,
+            <br /><em style={{ color: t ? 'var(--color-clay)' : '#E8D5C8', fontStyle: 'italic' }}>all in one place.</em>
           </motion.h1>
 
           <motion.p
-            key={demoTab}
             initial="hidden"
             animate="visible"
             variants={makeVariant(0.18)}
             className={`text-[17px] md:text-[18px] leading-relaxed mt-6 transition-colors duration-500 ${t ? 'text-[#2E4A3C]/65' : 'text-white/65'}`}
           >
-            {demoTab === 'parent'
-              ? "Keep every family on track — enrollment contracts, health forms, tuition billing, and parent messaging in one place. Parents get a clear portal; you get fewer follow-up emails and nothing that slips through."
-              : demoTab === 'teacher'
-                ? "Give your teachers one place to clock in, track hours, manage their roster, and stay connected. Less admin overhead, accurate payroll, and a staff that always knows what's next."
-                : "Full operational control — leads, applications, billing, staff, and marketing all in one admin workspace. One dashboard to run every part of your microschool."
-            }
+            MudKitchen keeps parents, teachers, and administrators aligned with enrollment, communication, billing, and more&mdash;so you can focus on what matters most: your students.
           </motion.p>
 
           <motion.div
@@ -85,7 +78,7 @@ export default function HeroSection() {
           >
             <a
               href="#demo"
-              className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
+              className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
             >
               Book a Demo
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -94,7 +87,7 @@ export default function HeroSection() {
             </a>
             <a
               href="#product"
-              className={`inline-flex items-center gap-1.5 text-sm transition-colors duration-500 ${t ? 'text-[#2E4A3C]/50 hover:text-[#2E4A3C]/80' : 'text-white/50 hover:text-white/80'}`}
+              className={`inline-flex items-center gap-1.5 text-sm font-secondary transition-colors duration-500 ${t ? 'text-[#2E4A3C]/50 hover:text-[#2E4A3C]/80' : 'text-white/50 hover:text-white/80'}`}
             >
               See the product
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
