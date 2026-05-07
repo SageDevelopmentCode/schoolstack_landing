@@ -60,10 +60,10 @@ export default function Navbar() {
               <img
                 src="/images/Logo.png"
                 alt="MudKitchen"
-                className="h-8 w-auto object-contain"
+                className="h-14 w-auto object-contain"
               />
               <span
-                className="font-display font-semibold text-[18px] text-clay"
+                className="font-display font-semibold text-[22px] text-clay"
               >
                 MudKitchen
               </span>

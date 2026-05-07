@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import ParentDashboardDemo from './ParentDashboardDemo'
 import TeacherDashboardDemo from './TeacherDashboardDemo'
@@ -41,12 +42,32 @@ export default function HeroSection() {
         transition: 'background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
-      <div className="max-w-[1280px] mx-auto px-6 lg:px-16">
+      <div className="relative max-w-[1280px] mx-auto px-6 lg:px-16">
+
+        {/* Decorative illustration — upper-right of hero */}
+        <Image
+          src="/images/illustrations/HeroRight.png"
+          alt=""
+          aria-hidden="true"
+          width={480}
+          height={580}
+          className="absolute top-[-20px] right-[-200px] z-0 pointer-events-none select-none"
+        />
+
+        {/* Decorative illustration — upper-left of hero */}
+        <Image
+          src="/images/illustrations/HeroLeft.png"
+          alt=""
+          aria-hidden="true"
+          width={480}
+          height={580}
+          className="absolute top-[-20px] left-[-200px] z-0 pointer-events-none select-none"
+        />
 
         {/* Centered text block */}
-        <div className="max-w-[860px] mx-auto text-center">
+        <div className="max-w-[680px] mx-auto text-center">
           <motion.div initial="hidden" animate="visible" variants={makeVariant(0)}>
-            <span className={`inline-flex items-center gap-1.5 rounded-pill text-[11px] font-medium uppercase tracking-widest px-3.5 py-1.5 transition-colors duration-500 ${t ? 'bg-[#E2EDD9] text-[#4A6B52]' : 'bg-white/10 text-white/75'}`}>
+            <span className={`inline-flex items-center gap-1.5 rounded-pill text-[11px] font-bold uppercase tracking-widest px-3.5 py-1.5 transition-colors duration-500 ${t ? 'bg-[#E2EDD9] text-[#4A6B52]' : 'bg-white/10 text-white/75'}`}>
               🌿 Built for Microschools
             </span>
           </motion.div>
