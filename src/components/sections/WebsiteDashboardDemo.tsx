@@ -220,30 +220,30 @@ function TimelineStep({
       className="flex gap-6 relative cursor-pointer group"
     >
       {index < TIMELINE.length - 1 && (
-        <div className="absolute left-5 top-10 w-px h-full bg-gray-200 z-0" />
+        <div className="absolute left-5 top-10 w-px h-full bg-white/15 z-0" />
       )}
       <div
         className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold font-secondary text-sm flex-shrink-0 shadow-sm transition-all duration-300 ${
           isActive
-            ? "bg-sage-800 text-white scale-110"
-            : "bg-white border-2 border-gray-200 text-gray-400 group-hover:border-sage-400 group-hover:text-sage-600"
+            ? "bg-white/20 border-2 border-white/50 text-white scale-110"
+            : "bg-white/10 border-2 border-white/25 text-white/40 group-hover:border-white/50 group-hover:text-white/70"
         }`}
       >
         {index + 1}
       </div>
       <div className="pb-10">
         <p
-          className={`text-xs font-secondary font-semibold uppercase tracking-widest mb-1 transition-colors duration-300 ${isActive ? "text-primary" : "text-gray-400"}`}
+          className={`text-xs font-secondary font-semibold uppercase tracking-widest mb-1 transition-colors duration-300 ${isActive ? "text-primary" : "text-white/35"}`}
         >
           {step.time}
         </p>
         <h4
-          className={`text-lg font-bold font-heading mb-1.5 transition-colors duration-300 ${isActive ? "text-sage-900" : "text-gray-500"}`}
+          className={`text-lg font-bold font-heading mb-1.5 transition-colors duration-300 ${isActive ? "text-white" : "text-white/40"}`}
         >
           {step.activity}
         </h4>
         <p
-          className={`text-sm font-secondary leading-relaxed transition-all duration-300 ${isActive ? "text-gray-600 max-h-24 opacity-100" : "text-transparent max-h-0 opacity-0 overflow-hidden"}`}
+          className={`text-sm font-secondary leading-relaxed transition-all duration-300 ${isActive ? "text-white/70 max-h-24 opacity-100" : "text-transparent max-h-0 opacity-0 overflow-hidden"}`}
         >
           {step.desc}
         </p>
@@ -437,7 +437,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       </section>
 
       {/* ─── 3. WELCOME ───────────────────────────────────────────────────── */}
-      <section className="bg-white py-24 px-8 sm:px-12 lg:px-16">
+      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: '#1a3327' }}>
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
           <motion.div
             className="w-full lg:w-5/12"
@@ -449,18 +449,18 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider">
               Our Mission
             </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-5 leading-tight">
+            <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-5 leading-tight">
               Learning that
               <br />
               <em className="text-primary not-italic">feels like living.</em>
             </h2>
-            <p className="text-base text-gray-600 leading-relaxed font-secondary mb-5">
+            <p className="text-base text-white/70 leading-relaxed font-secondary mb-5">
               We believe children thrive when they're trusted, known, and given
               room to wonder. Greenbrook Academy is built on the idea that the
               best education doesn't separate curiosity from content — it weaves
               them together.
             </p>
-            <p className="text-base text-gray-600 leading-relaxed font-secondary mb-8">
+            <p className="text-base text-white/70 leading-relaxed font-secondary mb-8">
               Every child here is more than a grade level. They're a whole
               person with a unique rhythm — and our role is to meet them exactly
               where they are.
@@ -775,7 +775,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       </section>
 
       {/* ─── 9. DAY IN LIFE ───────────────────────────────────────────────── */}
-      <section className="bg-white py-24 px-8 sm:px-12 lg:px-16">
+      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: '#1a3327' }}>
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 items-start">
           <div className="w-full lg:w-7/12">
             <motion.span
@@ -789,7 +789,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             </motion.span>
 
             <motion.h2
-              className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-10 leading-tight"
+              className="text-4xl md:text-5xl font-bold text-white font-heading mb-10 leading-tight"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -797,7 +797,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             >
               Calm. Structured.
               <br />
-              <span className="text-sage-500">Alive with curiosity.</span>
+              <span className="text-white/60">Alive with curiosity.</span>
             </motion.h2>
 
             <div className="relative">
@@ -848,8 +848,8 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                   onClick={() => setActiveStep(i)}
                   className={`rounded-full transition-all duration-300 cursor-pointer ${
                     activeStep === i
-                      ? "w-6 h-2 bg-sage-800"
-                      : "w-2 h-2 bg-gray-200 hover:bg-gray-300"
+                      ? "w-6 h-2 bg-white"
+                      : "w-2 h-2 bg-white/30 hover:bg-white/50"
                   }`}
                 />
               ))}
@@ -1099,7 +1099,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       </section>
 
       {/* ─── 14. ENROLLMENT FORM ──────────────────────────────────────────── */}
-      <section className="bg-sage-900 py-0 overflow-hidden">
+      <section className="py-0 overflow-hidden" style={{ backgroundColor: '#1a3327' }}>
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row">
           <motion.div
             className="hidden lg:block lg:w-1/2 relative min-h-[640px]"
@@ -1320,7 +1320,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             Classes fill quickly each semester. Submit your interest form and we&apos;ll respond within 48 hours to schedule a private tour — no commitment required.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            <button className="px-8 py-3.5 bg-sage-900 hover:bg-sage-800 text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer">
+            <button className="px-8 py-3.5 text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer" style={{ backgroundColor: '#1a3327' }}>
               Apply for a Spot
               <ArrowRight className="w-4 h-4" />
             </button>
