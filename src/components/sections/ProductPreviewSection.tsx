@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { LucideIcon, Globe, ClipboardList, CreditCard, CalendarCheck, Clock, Megaphone, LayoutDashboard } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { FadeInView } from '@/components/ui/FadeInView'
 import AdminDashboardDemo from './AdminDashboardDemo'
@@ -11,11 +12,22 @@ import WebsiteDashboardDemo from './WebsiteDashboardDemo'
 
 type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'marketing' | 'timeclock'
 
+type TabGroup = 'website' | 'parent' | 'teacher' | 'admin'
+
 interface Tab {
   id: TabId
   label: string
   caption: string
   description: string
+  icon: LucideIcon
+  group: TabGroup
+}
+
+const GROUP_COLORS: Record<TabGroup, string> = {
+  website: 'var(--color-accent)',
+  parent:  '#3b82f6',
+  teacher: '#10b981',
+  admin:   '#f97316',
 }
 
 const TABS: Tab[] = [
@@ -24,44 +36,70 @@ const TABS: Tab[] = [
     label: 'Website',
     caption: 'School Website',
     description: 'A full school website with programs, FAQs, team, and calls to action.',
+    icon: Globe,
+    group: 'website',
   },
   {
     id: 'enrollment',
     label: 'Enrollment',
     caption: 'Enrollment System',
     description: 'Enrollment with health info, emergency contacts, uploads, and signatures.',
+    icon: ClipboardList,
+    group: 'parent',
   },
   {
     id: 'parents',
     label: 'Tuition',
     caption: 'Tuition & Billing',
     description: 'Families view invoices, make payments, and track tuition history in one place.',
+    icon: CreditCard,
+    group: 'parent',
   },
   {
     id: 'teachers',
     label: 'Attendance',
     caption: 'Attendance',
     description: 'Log daily attendance for every student, track who showed up, and navigate week by week.',
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing',
-    caption: 'Marketing',
-    description: 'Automated email campaigns and lead nurture sequences, all tied to your pipeline.',
+    icon: CalendarCheck,
+    group: 'teacher',
   },
   {
     id: 'timeclock',
     label: 'Timeclock',
     caption: 'Timeclock',
     description: 'Log hours, track sessions, and view weekly and monthly totals in one place.',
+    icon: Clock,
+    group: 'teacher',
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing',
+    caption: 'Marketing',
+    description: 'Automated email campaigns and lead nurture sequences, all tied to your pipeline.',
+    icon: Megaphone,
+    group: 'admin',
   },
   {
     id: 'admin',
     label: 'Admin',
     caption: 'Admin Portal',
     description: 'Track every applicant from first click to enrolled — with notes, approvals, and follow-up.',
+    icon: LayoutDashboard,
+    group: 'admin',
   },
 ]
+
+const GROUP_META: { id: TabGroup; label: string }[] = [
+  { id: 'website', label: 'Web' },
+  { id: 'parent',  label: 'Parent' },
+  { id: 'teacher', label: 'Teacher' },
+  { id: 'admin',   label: 'Admin' },
+]
+
+const GROUPS = GROUP_META.map((g) => ({
+  ...g,
+  tabs: TABS.filter((t) => t.group === g.id),
+}))
 
 export default function ProductPreviewSection() {
   const [activeTab, setActiveTab] = useState<TabId>('website')
@@ -116,28 +154,51 @@ export default function ProductPreviewSection() {
           {/* Tab bar */}
           <div
             ref={tabBarRef}
-            className="flex items-center gap-1 bg-surface border border-border rounded-pill shadow-xs p-1.5 overflow-x-auto w-fit mx-auto max-w-full"
+            className="flex items-start gap-2 bg-surface border border-border rounded-xl shadow-xs p-2 overflow-x-auto w-fit mx-auto max-w-full"
             style={{ scrollbarWidth: 'none' }}
             role="tablist"
             aria-label="Product modules"
           >
-            {TABS.map((tab, index) => (
-              <button
-                key={tab.id}
-                ref={(el) => { if (el) tabRefs.current.set(tab.id, el) }}
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                aria-controls={`tabpanel-${tab.id}`}
-                onClick={() => handleTabChange(tab.id)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-                className={`px-4 h-9 rounded-pill text-sm whitespace-nowrap transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent ${
-                  activeTab === tab.id
-                    ? 'bg-accent text-white shadow-xs font-medium'
-                    : 'text-text-muted hover:text-text hover:bg-surface-muted'
-                }`}
-              >
-                {tab.label}
-              </button>
+            {GROUPS.map((group, gi) => (
+              <Fragment key={group.id}>
+                {gi > 0 && <div className="w-px self-stretch bg-border mx-1" aria-hidden />}
+                <div className="flex flex-col gap-1.5">
+                  <span
+                    className="text-[10px] font-semibold uppercase tracking-wider text-center px-1"
+                    style={{ color: GROUP_COLORS[group.id] }}
+                  >
+                    {group.label}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {group.tabs.map((tab) => {
+                      const flatIndex = TABS.findIndex((t) => t.id === tab.id)
+                      return (
+                        <button
+                          key={tab.id}
+                          ref={(el) => { if (el) tabRefs.current.set(tab.id, el) }}
+                          role="tab"
+                          aria-selected={activeTab === tab.id}
+                          aria-controls={`tabpanel-${tab.id}`}
+                          onClick={() => handleTabChange(tab.id)}
+                          onKeyDown={(e) => handleKeyDown(e, flatIndex)}
+                          className={`flex items-center gap-1.5 px-4 h-9 rounded-pill text-sm whitespace-nowrap transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent ${
+                            activeTab === tab.id
+                              ? 'text-white shadow-xs font-medium'
+                              : 'text-text-muted hover:text-text hover:bg-surface-muted'
+                          }`}
+                          style={activeTab === tab.id ? { backgroundColor: GROUP_COLORS[tab.group] } : undefined}
+                        >
+                          <tab.icon
+                            size={14}
+                            style={{ color: activeTab === tab.id ? '#fff' : GROUP_COLORS[tab.group] }}
+                          />
+                          {tab.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </Fragment>
             ))}
           </div>
 
