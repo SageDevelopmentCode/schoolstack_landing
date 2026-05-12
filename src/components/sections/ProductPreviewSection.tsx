@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { FadeInView } from '@/components/ui/FadeInView'
 import AdminDashboardDemo from './AdminDashboardDemo'
 import ParentDashboardDemo from './ParentDashboardDemo'
+import TeacherDashboardDemo from './TeacherDashboardDemo'
 
 type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'payments' | 'leads'
 
@@ -43,9 +44,9 @@ const TABS: Tab[] = [
   },
   {
     id: 'teachers',
-    label: 'Teachers',
-    caption: 'Teacher Portal',
-    description: 'Teachers see students, log notes, track hours, and share updates.',
+    label: 'Attendance',
+    caption: 'Attendance',
+    description: 'Log daily attendance for every student, track who showed up, and navigate week by week.',
   },
   {
     id: 'payments',
@@ -243,63 +244,7 @@ function ParentsTab() {
 }
 
 function TeachersTab() {
-  return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <div className="w-[130px] lg:w-[150px] shrink-0 bg-surface-soft border-r border-border flex flex-col p-3 gap-0.5">
-        <div className="mb-3 px-1">
-          <div className="text-[11px] font-medium text-text">Ms. Rivera</div>
-          <div className="text-[9px] text-text-faint">Teacher · Builders</div>
-        </div>
-        {[
-          { label: 'My Students', active: true },
-          { label: 'Notes' },
-          { label: 'Hours' },
-          { label: 'Staff Feed' },
-          { label: 'Messages' },
-          { label: 'Calendar' },
-        ].map((item) => (
-          <div key={item.label} className={`px-2 py-1.5 rounded-md text-[11px] ${item.active ? 'bg-accent-soft text-accent font-medium' : 'text-text-muted'}`}>
-            {item.label}
-          </div>
-        ))}
-      </div>
-
-      {/* Main */}
-      <div className="flex-1 p-4 lg:p-5 overflow-hidden">
-        <div className="text-[13px] font-semibold text-text font-body mb-3">My Students — Builders (Grades 1–4)</div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mb-4">
-          {['Avery Chen', 'Mateo Silva', 'Isla Thompson', 'Finn Nakamura', 'Cleo Osei', 'River Patel'].map((name) => (
-            <div key={name} className="bg-surface border border-border rounded-lg p-2.5">
-              <div className="w-7 h-7 rounded-full bg-surface-muted flex items-center justify-center text-[11px] font-bold text-text-muted mb-1.5">
-                {name[0]}
-              </div>
-              <div className="text-[11px] font-medium text-text font-body leading-tight">{name}</div>
-              <div className="text-[10px] text-accent mt-0.5">Grade 2</div>
-              <div className="text-[10px] text-text-faint mt-0.5">3 notes</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="text-[11px] font-semibold text-text font-body mb-2">Recent Notes</div>
-        <div className="space-y-2">
-          {[
-            { student: 'Avery Chen', cat: 'Academic', note: 'Excellent focus during math block. Mastered fraction concepts ahead of schedule.' },
-            { student: 'Mateo Silva', cat: 'Behavioral', note: 'Great improvement with group transitions today. Positive peer interactions all morning.' },
-          ].map((n) => (
-            <div key={n.student} className="bg-surface border border-border rounded-lg p-2.5">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-medium text-text font-body">{n.student}</span>
-                <span className="bg-accent-soft text-accent text-[9px] rounded-pill px-1.5 py-0.5">{n.cat}</span>
-              </div>
-              <p className="text-[10px] text-text-muted leading-relaxed">{n.note}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  return <TeacherDashboardDemo initialTab="attendance" disableTour hideNav />
 }
 
 function PaymentsTab() {

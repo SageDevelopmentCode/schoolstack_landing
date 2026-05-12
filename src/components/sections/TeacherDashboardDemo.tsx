@@ -4318,8 +4318,16 @@ function TeacherNav({
 
 // ─── Main Demo Component ──────────────────────────────────────────────────────
 
-export default function TeacherDashboardDemo() {
-  const [activeTab, setActiveTab] = useState<NavTab>("dashboard");
+export default function TeacherDashboardDemo({
+  initialTab = "dashboard",
+  disableTour = false,
+  hideNav = false,
+}: {
+  initialTab?: NavTab;
+  disableTour?: boolean;
+  hideNav?: boolean;
+}) {
+  const [activeTab, setActiveTab] = useState<NavTab>(initialTab);
   const [sessionsByDay, setSessionsByDay] =
     useState<Record<string, DemoSession[]>>(buildInitialSessions);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
@@ -4348,7 +4356,7 @@ export default function TeacherDashboardDemo() {
   const [feedCommentDraft, setFeedCommentDraft] = useState("");
 
   // ── Tour state ──────────────────────────────────────────────────────────────
-  const [isTouring, setIsTouring] = useState(true);
+  const [isTouring, setIsTouring] = useState(!disableTour);
   const [tourStep, setTourStep] = useState(0);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [cursorVisible, setCursorVisible] = useState(false);
@@ -4890,32 +4898,34 @@ export default function TeacherDashboardDemo() {
       )}
 
       {/* Header */}
-      <header className="shrink-0 z-40 bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
-          {/* Logo */}
-          <div className="shrink-0">
-            <Image
-              src="/images/SchoolLayerLogo.png"
-              alt="SchoolLayer"
-              width={96}
-              height={32}
-              className="h-7 w-auto object-contain"
-            />
-          </div>
+      {!hideNav && (
+        <header className="shrink-0 z-40 bg-white border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
+            {/* Logo */}
+            <div className="shrink-0">
+              <Image
+                src="/images/SchoolLayerLogo.png"
+                alt="SchoolLayer"
+                width={96}
+                height={32}
+                className="h-7 w-auto object-contain"
+              />
+            </div>
 
-          {/* Nav */}
-          <div className="flex-1 flex justify-center">
-            <TeacherNav activeTab={activeTab} onTabChange={setActiveTab} />
-          </div>
+            {/* Nav */}
+            <div className="flex-1 flex justify-center">
+              <TeacherNav activeTab={activeTab} onTabChange={setActiveTab} />
+            </div>
 
-          {/* Profile avatar */}
-          <div className="shrink-0 w-8 h-8 rounded-full bg-[#4a7c59] flex items-center justify-center cursor-pointer">
-            <span className="text-white text-xs font-semibold font-body">
-              {DEMO_TEACHER.initials}
-            </span>
+            {/* Profile avatar */}
+            <div className="shrink-0 w-8 h-8 rounded-full bg-[#4a7c59] flex items-center justify-center cursor-pointer">
+              <span className="text-white text-xs font-semibold font-body">
+                {DEMO_TEACHER.initials}
+              </span>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Page content */}
       <main className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${activeTab === "messages" || activeTab === "calendar" || activeTab === "students" || activeTab === "dashboard" || activeTab === "hours" || activeTab === "feed" || activeTab === "attendance" ? "bg-white" : ""}`}>
