@@ -330,10 +330,13 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
         {/* Navbar */}
         <div className="relative z-20 flex items-center justify-between px-8 sm:px-12 pt-7">
           <div className="flex items-center gap-2">
-            <Leaf className="w-5 h-5 text-primary" />
-            <span className="text-white font-heading font-bold text-lg tracking-tight">
-              Greenbrook Academy
-            </span>
+            <Image
+              src="/images/Logo.png"
+              alt="MudKitchen"
+              width={120}
+              height={32}
+              className="h-8 w-auto object-contain"
+            />
           </div>
           <nav className="hidden md:flex items-center gap-8">
             {["Programs", "Philosophy", "Team", "FAQ"].map((item) => (
@@ -446,7 +449,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider">
+            <span className="inline-block px-5 py-2 bg-white/15 text-white text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider">
               Our Mission
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-5 leading-tight">
@@ -456,7 +459,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             </h2>
             <p className="text-base text-white/70 leading-relaxed font-secondary mb-5">
               We believe children thrive when they're trusted, known, and given
-              room to wonder. Greenbrook Academy is built on the idea that the
+              room to wonder. MudKitchen Microschool is built on the idea that the
               best education doesn't separate curiosity from content — it weaves
               them together.
             </p>
@@ -779,13 +782,13 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 items-start">
           <div className="w-full lg:w-7/12">
             <motion.span
-              className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider"
+              className="inline-block px-5 py-2 bg-white/15 text-white text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider"
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, ease: "easeOut" as const }}
             >
-              A Day at Greenbrook
+              A Day at MudKitchen
             </motion.span>
 
             <motion.h2
@@ -970,7 +973,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             </h2>
             <p className="text-base text-gray-600 leading-relaxed font-secondary">
               Sarah holds an AMI Montessori certification and has spent 11 years
-              in mixed-age classrooms. She founded Greenbrook after watching
+              in mixed-age classrooms. She founded MudKitchen after watching
               bright children wilt under the pressure of traditional schooling.
             </p>
             <p className="text-base text-gray-600 leading-relaxed font-secondary">
@@ -1336,10 +1339,13 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <Leaf className="w-5 h-5 text-primary" />
-              <span className="font-heading font-bold text-xl tracking-tight">
-                Greenbrook Academy
-              </span>
+              <Image
+                src="/images/Logo.png"
+                alt="MudKitchen"
+                width={140}
+                height={36}
+                className="h-9 w-auto object-contain"
+              />
             </div>
             <p className="text-white/35 font-secondary text-sm">
               A microschool for curious, growing minds.
@@ -1371,7 +1377,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           </div>
 
           <p className="text-center text-white/20 font-secondary text-xs">
-            © 2026 Greenbrook Academy Demo &nbsp;·&nbsp; Powered by SchoolStack
+            © 2026 MudKitchen Microschool Demo &nbsp;·&nbsp; Powered by MudKitchen
           </p>
         </div>
       </footer>
