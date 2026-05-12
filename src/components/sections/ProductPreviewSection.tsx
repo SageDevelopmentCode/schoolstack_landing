@@ -8,7 +8,7 @@ import AdminDashboardDemo from './AdminDashboardDemo'
 import ParentDashboardDemo from './ParentDashboardDemo'
 import TeacherDashboardDemo from './TeacherDashboardDemo'
 
-type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'payments' | 'leads'
+type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'marketing' | 'leads'
 
 interface Tab {
   id: TabId
@@ -49,10 +49,10 @@ const TABS: Tab[] = [
     description: 'Log daily attendance for every student, track who showed up, and navigate week by week.',
   },
   {
-    id: 'payments',
-    label: 'Payments',
-    caption: 'Payments',
-    description: 'Every payment tracked, categorized, and tied to the right student and program.',
+    id: 'marketing',
+    label: 'Marketing',
+    caption: 'Marketing',
+    description: 'Automated email campaigns and lead nurture sequences, all tied to your pipeline.',
   },
   {
     id: 'leads',
@@ -172,7 +172,7 @@ function TabContent({ tabId }: { tabId: TabId }) {
     case 'enrollment': return <EnrollmentTab />
     case 'parents':  return <ParentsTab />
     case 'teachers': return <TeachersTab />
-    case 'payments': return <PaymentsTab />
+    case 'marketing': return <MarketingTab />
     case 'leads':    return <LeadsTab />
   }
 }
@@ -247,83 +247,8 @@ function TeachersTab() {
   return <TeacherDashboardDemo initialTab="attendance" disableTour hideNav />
 }
 
-function PaymentsTab() {
-  const transactions = [
-    { name: 'Emma Johnson', type: 'Fall Tuition', amount: '$650.00', date: 'Apr 14', status: 'Paid' },
-    { name: 'Liam Torres', type: 'Reg. Fee', amount: '$150.00', date: 'Apr 12', status: 'Paid' },
-    { name: 'Sofia Chen', type: 'Fall Tuition', amount: '$650.00', date: 'Apr 10', status: 'Paid' },
-    { name: 'Noah Park', type: 'Aftercare', amount: '$280.00', date: 'Apr 9', status: 'Paid' },
-    { name: 'Mia Osei', type: 'Fall Tuition', amount: '$650.00', date: 'Apr 7', status: 'Pending' },
-  ]
-
-  return (
-    <div className="flex h-full">
-      {/* Main table */}
-      <div className="flex-1 p-4 lg:p-5 overflow-hidden">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="text-[13px] font-semibold text-text font-body">Transactions</div>
-            <div className="text-[10px] text-text-faint">$5,840 collected this month</div>
-          </div>
-          <div className="flex gap-2">
-            <div className="bg-surface-muted border border-border rounded-md px-2.5 py-1.5 text-[10px] text-text-muted">Filter</div>
-            <div className="border border-border rounded-md px-2.5 py-1.5 text-[10px] text-text-muted">Export CSV</div>
-          </div>
-        </div>
-
-        <div className="bg-surface border border-border rounded-lg overflow-hidden">
-          <table className="w-full text-[11px]">
-            <thead>
-              <tr className="border-b border-border bg-surface-soft">
-                <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Student</th>
-                <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden md:table-cell">Type</th>
-                <th className="text-right px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Amount</th>
-                <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden md:table-cell">Date</th>
-                <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((tx, i) => (
-                <tr key={i} className="border-b border-border last:border-0 hover:bg-surface-soft transition-colors">
-                  <td className="px-3 py-2.5 font-medium text-text">{tx.name}</td>
-                  <td className="px-3 py-2.5 text-text-muted hidden md:table-cell">{tx.type}</td>
-                  <td className="px-3 py-2.5 text-right font-medium text-text">{tx.amount}</td>
-                  <td className="px-3 py-2.5 text-text-faint hidden md:table-cell">{tx.date}</td>
-                  <td className="px-3 py-2.5">
-                    <span className={`inline-flex items-center gap-1 text-[10px] rounded-pill px-2 py-0.5 ${
-                      tx.status === 'Paid'
-                        ? 'bg-green-50 text-green-700'
-                        : 'bg-yellow-50 text-yellow-700'
-                    }`}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      {tx.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Detail sidebar */}
-      <div className="hidden lg:flex w-[200px] shrink-0 bg-surface-soft border-l border-border flex-col p-4">
-        <div className="text-[10px] font-medium text-text-faint uppercase tracking-wide mb-3">Selected</div>
-        <div className="text-[12px] font-medium text-text font-body">Emma Johnson</div>
-        <div className="text-[11px] text-text-muted mt-0.5">Elementary · Builders</div>
-        <div className="text-[22px] font-semibold text-accent mt-3 font-body">$650.00</div>
-        <div className="text-[10px] text-text-faint">Fall Tuition 2026</div>
-        <div className="text-[10px] text-text-faint mt-0.5">Apr 14, 2026</div>
-        <div className="mt-3 inline-flex items-center gap-1 bg-green-50 text-green-700 text-[10px] rounded-pill px-2 py-1 w-fit">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          Paid via Stripe
-        </div>
-        <a href="#" className="mt-4 text-[11px] text-accent hover:text-accent-hover flex items-center gap-1">
-          View Student →
-        </a>
-      </div>
-    </div>
-  )
+function MarketingTab() {
+  return <AdminDashboardDemo initialPage="marketing" disableTour hideNav />
 }
 
 function LeadsTab() {

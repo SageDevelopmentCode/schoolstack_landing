@@ -9440,8 +9440,16 @@ function Sidebar({
 
 // ─── Root component ────────────────────────────────────────────────────────────
 
-export default function AdminDashboardDemo({ disableTour = false }: { disableTour?: boolean }) {
-  const [activePage, setActivePage] = useState<ActivePage>("dashboard");
+export default function AdminDashboardDemo({
+  disableTour = false,
+  initialPage = "dashboard",
+  hideNav = false,
+}: {
+  disableTour?: boolean
+  initialPage?: ActivePage
+  hideNav?: boolean
+}) {
+  const [activePage, setActivePage] = useState<ActivePage>(initialPage);
   const [isExpanded, setIsExpanded] = useState(!disableTour);
   const [isDark, setIsDark] = useState(false);
   C = isDark ? C_DARK : C_LIGHT;
@@ -9747,14 +9755,16 @@ export default function AdminDashboardDemo({ disableTour = false }: { disableTou
           />
         )}
       </AnimatePresence>
-      <Sidebar
-        activePage={activePage}
-        onNavigate={(page) => setActivePage(page)}
-        isExpanded={isExpanded}
-        onToggleExpand={() => setIsExpanded((v) => !v)}
-        onToggleTheme={() => setIsDark((v) => !v)}
-        isDark={isDark}
-      />
+      {!hideNav && (
+        <Sidebar
+          activePage={activePage}
+          onNavigate={(page) => setActivePage(page)}
+          isExpanded={isExpanded}
+          onToggleExpand={() => setIsExpanded((v) => !v)}
+          onToggleTheme={() => setIsDark((v) => !v)}
+          isDark={isDark}
+        />
+      )}
       <main className="flex-1 overflow-hidden">
         {/* This wrapper is the containing block for all page overlays and panels.
             It is inside <main> (right of sidebar), so absolute children cannot
