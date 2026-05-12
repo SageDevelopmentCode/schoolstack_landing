@@ -1299,8 +1299,40 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
         </div>
       </section>
 
+      {/* ─── 15.5. CLOSING CTA ────────────────────────────────────────────── */}
+      <section className="bg-sage-50 py-20 px-8 sm:px-12 lg:px-16 border-t border-sage-100">
+        <motion.div
+          className="max-w-2xl mx-auto text-center"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease: "easeOut" as const }}
+        >
+          <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-6 uppercase tracking-wider">
+            Limited Spots Available
+          </span>
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-5 leading-tight">
+            Ready to find your
+            <br />
+            <em className="text-primary not-italic">family&apos;s fit?</em>
+          </h2>
+          <p className="text-base text-gray-500 font-secondary leading-relaxed mb-10 max-w-lg mx-auto">
+            Classes fill quickly each semester. Submit your interest form and we&apos;ll respond within 48 hours to schedule a private tour — no commitment required.
+          </p>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <button className="px-8 py-3.5 bg-sage-900 hover:bg-sage-800 text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer">
+              Apply for a Spot
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button className="px-8 py-3.5 border border-sage-300 text-sage-700 hover:bg-sage-100 font-semibold rounded-lg font-secondary transition-all duration-200 cursor-pointer">
+              Schedule a Tour
+            </button>
+          </div>
+        </motion.div>
+      </section>
+
       {/* ─── 16. FOOTER ───────────────────────────────────────────────────── */}
-      <footer className="bg-sage-900 text-white py-16 px-8">
+      <footer className="py-16 px-8" style={{ backgroundColor: '#1a3327', color: 'white' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-3">
