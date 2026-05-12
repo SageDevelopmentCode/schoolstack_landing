@@ -53,11 +53,11 @@ const BackdropContext = createContext<{
 
 // ─── Design tokens (hardcoded — no CSS vars, works outside ThemeProvider) ─────
 const C_DARK = {
-  bg: "#1C1C1C",
-  surface: "#242424",
-  elevated: "#2C2C2C",
-  border: "#383838",
-  borderStrong: "#464646",
+  bg: "#0A0E1A",
+  surface: "#111827",
+  elevated: "#1F2937",
+  border: "#2D3748",
+  borderStrong: "#4B5563",
   accent: "#5E7C68",
   accentBright: "#6E9478",
   accentLight: "rgba(94, 124, 104, 0.15)",
@@ -83,17 +83,17 @@ const C_DARK = {
   purple: "#8B5CF6",
   purpleBg: "rgba(139, 92, 246, 0.08)",
   purpleBorder: "rgba(139, 92, 246, 0.25)",
-  shadowCard: "0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.6)",
+  shadowCard: "0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.4)",
   shadowMedium: "0 4px 16px rgba(0,0,0,0.5)",
   r: { sm: "6px", md: "8px", lg: "12px", xl: "16px", full: "9999px" },
 };
 
 const C_LIGHT = {
-  bg: "#F5F7F6",
+  bg: "#F8FAFC",
   surface: "#FFFFFF",
-  elevated: "#EEF1EF",
-  border: "#DDE5E1",
-  borderStrong: "#C4D0CB",
+  elevated: "#F1F5F9",
+  border: "#E2E8F0",
+  borderStrong: "#CBD5E1",
   accent: "#5E7C68",
   accentBright: "#4A6354",
   accentLight: "rgba(94, 124, 104, 0.10)",
