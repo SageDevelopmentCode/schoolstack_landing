@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Badge } from '@/components/ui/Badge'
 import { FadeInView } from '@/components/ui/FadeInView'
 import AdminDashboardDemo from './AdminDashboardDemo'
+import ParentDashboardDemo from './ParentDashboardDemo'
 
 type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'payments' | 'leads'
 
@@ -36,9 +37,9 @@ const TABS: Tab[] = [
   },
   {
     id: 'parents',
-    label: 'Parents',
-    caption: 'Parent Portal',
-    description: 'Parents manage forms, payments, documents, and communication in one place.',
+    label: 'Tuition',
+    caption: 'Tuition & Billing',
+    description: 'Families view invoices, make payments, and track tuition history in one place.',
   },
   {
     id: 'teachers',
@@ -234,138 +235,11 @@ function WebsiteTab() {
 }
 
 function EnrollmentTab() {
-  return (
-    <div className="flex h-full items-center justify-center bg-surface-soft p-4 md:p-8">
-      <div className="w-full max-w-[440px] bg-surface border border-border rounded-xl shadow-sm p-5 md:p-7">
-        {/* Progress */}
-        <div className="flex items-center gap-1.5 mb-5">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <div key={n} className="flex items-center gap-1.5">
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                  n < 3
-                    ? 'bg-accent text-white'
-                    : n === 3
-                    ? 'bg-accent-soft text-accent border border-accent'
-                    : 'bg-surface-muted text-text-faint border border-border'
-                }`}
-              >
-                {n < 3 ? '✓' : n}
-              </div>
-              {n < 5 && <div className={`h-px w-6 ${n < 3 ? 'bg-accent' : 'bg-border'}`} />}
-            </div>
-          ))}
-        </div>
-
-        <div className="text-[11px] text-text-faint mb-1">Step 3 of 5</div>
-        <div className="text-[14px] font-semibold text-text font-body mb-4">Health & Medical Information</div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="block text-[11px] text-text-muted mb-1">Pediatrician / Primary Care</label>
-            <div className="h-8 rounded-md border border-border bg-surface-soft text-[11px] text-text-muted flex items-center px-3">Dr. Sarah Kim, Austin Family Health</div>
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="block text-[11px] text-text-muted mb-1">Allergies</label>
-              <div className="h-8 rounded-md border border-border bg-surface-soft text-[11px] text-text-muted flex items-center px-3">None</div>
-            </div>
-            <div>
-              <label className="block text-[11px] text-text-muted mb-1">Blood Type</label>
-              <div className="h-8 rounded-md border border-border-strong bg-surface text-[11px] text-text flex items-center px-3">A+</div>
-            </div>
-          </div>
-          <div>
-            <label className="block text-[11px] text-text-muted mb-1">Current Medications</label>
-            <div className="h-8 rounded-md border border-border bg-surface-soft text-[11px] text-text-muted flex items-center px-3">None listed</div>
-          </div>
-          <div className="p-2.5 bg-accent-soft border border-accent/20 rounded-md flex items-start gap-2">
-            <span className="text-accent text-[12px] mt-0.5">↑</span>
-            <div>
-              <div className="text-[11px] font-medium text-accent">Upload Immunization Records</div>
-              <div className="text-[10px] text-accent/70 mt-0.5">PDF, JPG, PNG, or HEIC accepted</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between mt-5">
-          <button className="text-[11px] text-text-muted border border-border rounded-pill px-4 h-8">← Back</button>
-          <button className="bg-accent text-white text-[11px] font-medium rounded-pill px-5 h-8">Continue →</button>
-        </div>
-      </div>
-    </div>
-  )
+  return <ParentDashboardDemo initialTab="enrollment" hideNav />
 }
 
 function ParentsTab() {
-  return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <div className="w-[130px] lg:w-[150px] shrink-0 bg-surface border-r border-border flex flex-col p-3 gap-0.5">
-        <div className="flex items-center gap-2 mb-4 px-1">
-          <div className="w-7 h-7 rounded-full bg-accent-soft flex items-center justify-center text-[11px] font-bold text-accent">E</div>
-          <div>
-            <div className="text-[11px] font-medium text-text">Emma J.</div>
-            <div className="text-[9px] text-text-faint">Parent</div>
-          </div>
-        </div>
-        {[
-          { label: 'Dashboard', active: true },
-          { label: 'Forms' },
-          { label: 'Billing' },
-          { label: 'Messages' },
-          { label: 'Calendar' },
-          { label: 'Profile' },
-        ].map((item) => (
-          <div key={item.label} className={`px-2 py-1.5 rounded-md text-[11px] ${item.active ? 'bg-accent-soft text-accent font-medium' : 'text-text-muted'}`}>
-            {item.label}
-          </div>
-        ))}
-      </div>
-
-      {/* Main */}
-      <div className="flex-1 p-4 lg:p-5 overflow-hidden">
-        <div className="font-display text-[15px] text-text mb-4">Hello, Emma.</div>
-
-        {/* Checklist card */}
-        <div className="bg-surface border border-border rounded-lg p-3.5 mb-3">
-          <div className="text-[11px] font-semibold text-text font-body mb-2.5">Enrollment Checklist</div>
-          <div className="space-y-2">
-            {[
-              { label: 'Application submitted', done: true },
-              { label: 'Health form completed', done: true },
-              { label: 'Emergency contacts added', done: true },
-              { label: 'Contract signed', done: false },
-              { label: 'Tuition payment', done: false },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2.5">
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] ${item.done ? 'bg-accent text-white' : 'border border-border bg-surface'}`}>
-                  {item.done && '✓'}
-                </div>
-                <span className={`text-[11px] ${item.done ? 'text-text' : 'text-text-muted'}`}>{item.label}</span>
-                {!item.done && <span className="ml-auto bg-yellow-50 text-yellow-700 text-[9px] rounded-pill px-1.5 py-0.5">Action needed</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Billing card */}
-        <div className="bg-surface border border-border rounded-lg p-3.5">
-          <div className="text-[11px] font-semibold text-text font-body mb-2.5">Upcoming Payment</div>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[12px] font-medium text-text">Fall Tuition — Elementary</div>
-              <div className="text-[10px] text-text-faint mt-0.5">Due May 15, 2026</div>
-            </div>
-            <div className="text-right">
-              <div className="text-[15px] font-semibold text-accent font-body">$650</div>
-              <button className="text-[10px] bg-accent text-white rounded-pill px-2.5 py-1 mt-1">Pay Now</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+  return <ParentDashboardDemo initialTab="billing" disableTour hideNav />
 }
 
 function TeachersTab() {

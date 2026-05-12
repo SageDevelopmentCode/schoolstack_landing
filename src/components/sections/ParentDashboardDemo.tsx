@@ -3998,8 +3998,8 @@ const TOUR_RESUME_MS = 1500;
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 
-export default function ParentDashboardDemo() {
-  const [activeNavTab, setActiveNavTab] = useState<NavTab>("home");
+export default function ParentDashboardDemo({ initialTab = "home", disableTour = false, hideNav = false }: { initialTab?: NavTab; disableTour?: boolean; hideNav?: boolean }) {
+  const [activeNavTab, setActiveNavTab] = useState<NavTab>(initialTab);
   const [activeChildId, setActiveChildId] = useState<ChildId>("emma");
   const [openModal, setOpenModal] = useState<ModalId>(null);
 
@@ -4096,7 +4096,7 @@ export default function ParentDashboardDemo() {
   const [homeOnboardingOpen, setHomeOnboardingOpen] = useState(false);
 
   // ── Tour state ──────────────────────────────────────────────────────────────
-  const [isTouring, setIsTouring] = useState(true);
+  const [isTouring, setIsTouring] = useState(!disableTour);
   const [tourStep, setTourStep] = useState(0);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [cursorVisible, setCursorVisible] = useState(false);
@@ -4381,11 +4381,12 @@ export default function ParentDashboardDemo() {
   }, []);
 
   const handleTourMouseLeave = useCallback(() => {
+    if (disableTour) return;
     resumeTimerRef.current = setTimeout(() => {
       setTourStep(0);
       setIsTouring(true);
     }, TOUR_RESUME_MS);
-  }, []);
+  }, [disableTour]);
 
   // Derived active signatures
   const activeSigs =
@@ -4492,7 +4493,7 @@ export default function ParentDashboardDemo() {
       onMouseEnter={handleTourMouseEnter}
       onMouseLeave={handleTourMouseLeave}
     >
-      <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />
+      {!hideNav && <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />}
 
       <main className="flex-1 overflow-y-auto flex flex-col bg-white">
         {activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" || activeNavTab === "home" || activeNavTab === "enrollment" ? (
@@ -4820,7 +4821,7 @@ export default function ParentDashboardDemo() {
                     {pageTitle[activeNavTab]}
                   </h1>
                 </div>
-                {activeNavTab !== "volunteer" && (
+                {activeNavTab !== "volunteer" && activeNavTab !== "billing" && (
                   <ChildTabStrip
                     activeChildId={activeChildId}
                     onSwitch={setActiveChildId}
