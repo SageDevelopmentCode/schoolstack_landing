@@ -544,9 +544,9 @@
       ],
       "exampleFilesGeneratedAt": 1778614789833,
       "lastVersionBase": "2.1.139",
-      "lastHintSessionId": "dcbf78d9-fdc2-4ad0-816c-39fc364e2479",
-      "lastSessionFirstPrompt": "in our @src/components/sections/ProductPreviewSection.tsx for each of the tabs, can we have an icon that represents the category; so for website, we can just have like a globe or public icon; for enro",
-      "lastSessionModified": 1778627058021
+      "lastHintSessionId": "b9d499d5-baed-41d5-a1cc-211e04492e45",
+      "lastSessionFirstPrompt": "in our @src/components/sections/ProductPreviewSection.tsx for the parent enrollment tab content, which shows the enrollment tab from the @src/components/sections/ParentDashboardDemo.tsx can we turn of",
+      "lastSessionModified": 1778628749979
     }
   },
   "hasCompletedOnboarding": true,
@@ -610,7 +610,7 @@
     }
   },
   "cachedExtraUsageDisabledReason": "org_level_disabled",
-  "lastPlanModeUse": 1778628323344,
+  "lastPlanModeUse": 1778628706479,
   "subscriptionNoticeCount": 0,
   "hasAvailableSubscription": false,
   "hasUsedBackslashReturn": true,

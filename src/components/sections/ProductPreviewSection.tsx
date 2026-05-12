@@ -276,7 +276,7 @@ function WebsiteTab() {
 }
 
 function EnrollmentTab() {
-  return <ParentDashboardDemo initialTab="enrollment" hideNav />
+  return <ParentDashboardDemo initialTab="enrollment" disableTour hideNav />
 }
 
 function ParentsTab() {
