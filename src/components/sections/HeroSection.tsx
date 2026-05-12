@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Users, BookOpen, LayoutDashboard } from 'lucide-react'
 import ParentDashboardDemo from './ParentDashboardDemo'
 import TeacherDashboardDemo from './TeacherDashboardDemo'
 import AdminDashboardDemo from './AdminDashboardDemo'
@@ -30,6 +31,12 @@ function illustrationVariant(dir: 1 | -1) {
     },
   }
 }
+
+const DEMO_TABS = [
+  { id: 'parent',  label: 'Parent View',  icon: Users },
+  { id: 'teacher', label: 'Teacher View', icon: BookOpen },
+  { id: 'admin',   label: 'Admin View',   icon: LayoutDashboard },
+] as const
 
 const heroFrameVariant = {
   hidden: { opacity: 0, y: 32, scale: 0.97 },
@@ -151,21 +158,18 @@ export default function HeroSection() {
           <div />
           <div className="flex justify-center">
           <div className={`flex items-center gap-1 rounded-full p-1 border transition-colors duration-500 ${t ? 'bg-[#2E4A3C]/8 border-[#2E4A3C]/10' : 'bg-white/8 border-white/10'}`}>
-            {([
-              { id: 'parent', label: 'Parent View' },
-              { id: 'teacher', label: 'Teacher View' },
-              { id: 'admin', label: 'Admin View' },
-            ] as const).map(({ id, label }) => (
+            {DEMO_TABS.map((tab) => (
               <button
-                key={id}
-                onClick={() => setDemoTab(id)}
-                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer ${
-                  demoTab === id
+                key={tab.id}
+                onClick={() => setDemoTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                  demoTab === tab.id
                     ? t ? 'bg-[#2E4A3C] text-white shadow-sm' : 'bg-white text-[#2E4A3C] shadow-sm'
                     : t ? 'text-[#2E4A3C]/50 hover:text-[#2E4A3C]/80' : 'text-white/50 hover:text-white/80'
                 }`}
               >
-                {label}
+                <tab.icon size={13} />
+                {tab.label}
               </button>
             ))}
           </div>
