@@ -20,6 +20,17 @@ function makeVariant(delay: number) {
   }
 }
 
+function illustrationVariant(dir: 1 | -1) {
+  return {
+    hidden: { opacity: 0, x: dir * 40 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.8, ease, delay: 0.3 },
+    },
+  }
+}
+
 const heroFrameVariant = {
   hidden: { opacity: 0, y: 32, scale: 0.97 },
   visible: {
@@ -45,24 +56,36 @@ export default function HeroSection() {
       <div className="relative max-w-[1280px] mx-auto px-6 lg:px-16">
 
         {/* Decorative illustration — upper-right of hero */}
-        <Image
-          src="/images/illustrations/HeroRight.png"
-          alt=""
-          aria-hidden="true"
-          width={480}
-          height={580}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={illustrationVariant(1)}
           className="absolute top-[-20px] right-[-200px] z-0 pointer-events-none select-none"
-        />
+        >
+          <Image
+            src="/images/illustrations/HeroRight.png"
+            alt=""
+            aria-hidden="true"
+            width={480}
+            height={580}
+          />
+        </motion.div>
 
         {/* Decorative illustration — upper-left of hero */}
-        <Image
-          src="/images/illustrations/HeroLeft.png"
-          alt=""
-          aria-hidden="true"
-          width={480}
-          height={580}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={illustrationVariant(-1)}
           className="absolute top-[-20px] left-[-200px] z-0 pointer-events-none select-none"
-        />
+        >
+          <Image
+            src="/images/illustrations/HeroLeft.png"
+            alt=""
+            aria-hidden="true"
+            width={480}
+            height={580}
+          />
+        </motion.div>
 
         {/* Centered text block */}
         <div className="max-w-[680px] mx-auto text-center">

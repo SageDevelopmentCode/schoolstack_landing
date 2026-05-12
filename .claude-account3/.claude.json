@@ -544,9 +544,9 @@
       ],
       "exampleFilesGeneratedAt": 1778614789833,
       "lastVersionBase": "2.1.139",
-      "lastHintSessionId": "b9d499d5-baed-41d5-a1cc-211e04492e45",
-      "lastSessionFirstPrompt": "in our @src/components/sections/ProductPreviewSection.tsx for the parent enrollment tab content, which shows the enrollment tab from the @src/components/sections/ParentDashboardDemo.tsx can we turn of",
-      "lastSessionModified": 1778628749979
+      "lastHintSessionId": "5d800d2a-3238-4d80-84e6-08c2fa274a9f",
+      "lastSessionFirstPrompt": "in our @src/components/sections/HeroSection.tsx for the illustrations we have, can they also have a framer simple sleek animation on page load when they appear?",
+      "lastSessionModified": 1778629180077
     }
   },
   "hasCompletedOnboarding": true,
@@ -610,7 +610,7 @@
     }
   },
   "cachedExtraUsageDisabledReason": "org_level_disabled",
-  "lastPlanModeUse": 1778628706479,
+  "lastPlanModeUse": 1778629159523,
   "subscriptionNoticeCount": 0,
   "hasAvailableSubscription": false,
   "hasUsedBackslashReturn": true,
