@@ -34,6 +34,15 @@ import {
   Eye,
   Sun,
   Moon,
+  Zap,
+  UserCheck,
+  Plus,
+  Layers,
+  Loader2,
+  ArrowRight,
+  PhoneCall,
+  Star,
+  Timer,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -5675,6 +5684,178 @@ type AutomationPipeline = {
   audienceColor: string;
 };
 
+type WizardState = {
+  step: 1 | 2 | 3 | 4 | 5;
+  templateId: string | null;
+  triggerKey: string | null;
+  audienceKey: string | null;
+  programFilters: string[];
+  ageFilters: string[];
+  flowSteps: AutomationStep[];
+  automationName: string;
+  launchMode: "live" | "draft";
+  launching: boolean;
+  launched: boolean;
+};
+
+const WIZARD_TEMPLATES = [
+  {
+    id: "enroll-drip",
+    name: "Fall Enrollment Drip",
+    description: "Warm leads who haven't converted yet. A 6-touch sequence to drive enrollment.",
+    color: "#F59E0B",
+    steps: 6,
+    openRate: 38,
+    resultLabel: "34% conversion",
+    recommended: false,
+    defaultTriggerKey: "inquiry",
+    defaultAudienceKey: "warm_leads",
+    defaultAutomationName: "Fall Enrollment Drip – 2026",
+    defaultSteps: [
+      { type: "email" as const, label: "Welcome Email", delay: "Immediately", subject: "You're one step closer to Sagefield", body: "Hi [First Name], thanks for reaching out! Here's everything you need to know about our programs." },
+      { type: "wait" as const, label: "Wait 2 days", delay: "Day 2" },
+      { type: "email" as const, label: "Program Guide", delay: "Day 2", subject: "Our programs, explained — which fits your child?", body: "We offer three learning tracks depending on age and learning style. Let's find the right fit." },
+      { type: "wait" as const, label: "Wait 3 days", delay: "Day 5" },
+      { type: "email" as const, label: "Tour Invite", delay: "Day 5", subject: "Come see Sagefield in person", body: "Nothing beats seeing it for yourself. Book a campus tour at your convenience." },
+      { type: "sms" as const, label: "SMS Nudge", delay: "Day 8", subject: "SMS: Final reminder", body: "Hi [First Name]! Just a quick note — enrollment spots are filling up. Reply to this message or book your tour online." },
+    ],
+  },
+  {
+    id: "tour-followup",
+    name: "Tour Follow-Up",
+    description: "Families who visited but haven't enrolled. A 3-touch sequence to close.",
+    color: "#38BDF8",
+    steps: 3,
+    openRate: 52,
+    resultLabel: "41% response",
+    recommended: true,
+    defaultTriggerKey: "tour_booked",
+    defaultAudienceKey: "tour_visitors",
+    defaultAutomationName: "Post-Tour Follow-Up",
+    defaultSteps: [
+      { type: "email" as const, label: "Thank You Email", delay: "Immediately", subject: "It was great meeting you!", body: "Hi [First Name], thank you for visiting our campus today! We hope you loved what you saw." },
+      { type: "wait" as const, label: "Wait 3 days", delay: "Day 3" },
+      { type: "email" as const, label: "Enrollment Nudge", delay: "Day 3", subject: "Ready to secure your spot?", body: "Enrollment for Fall 2026 is now open. Spots are limited — let us know if you have any questions!" },
+    ],
+  },
+  {
+    id: "welcome-series",
+    name: "Welcome Series",
+    description: "Onboard newly enrolled families with everything they need before day one.",
+    color: "#22C55E",
+    steps: 4,
+    openRate: 89,
+    resultLabel: "97% satisfaction",
+    recommended: false,
+    defaultTriggerKey: "enrolled",
+    defaultAudienceKey: "enrolled",
+    defaultAutomationName: "New Family Welcome Series",
+    defaultSteps: [
+      { type: "email" as const, label: "Welcome to the Family", delay: "Immediately", subject: "Welcome to Sagefield! 🎉", body: "We're so excited to have you with us. Here's everything you need to know before your first day." },
+      { type: "wait" as const, label: "Wait 3 days", delay: "Day 3" },
+      { type: "email" as const, label: "Supply List & Schedule", delay: "Day 3", subject: "Your first-week checklist", body: "Here's what to bring, where to go, and who to contact. We want day one to be seamless." },
+      { type: "email" as const, label: "Meet the Team", delay: "Day 7", subject: "Meet your teachers and staff", body: "Get to know the people who will be shaping your child's experience this year." },
+    ],
+  },
+  {
+    id: "re-engagement",
+    name: "Re-engagement",
+    description: "Cold leads who haven't interacted in 7+ days. A gentle reactivation sequence.",
+    color: "#EF4444",
+    steps: 3,
+    openRate: 22,
+    resultLabel: "18% reactivation",
+    recommended: false,
+    defaultTriggerKey: "cold_lead",
+    defaultAudienceKey: "all_leads",
+    defaultAutomationName: "Lead Re-engagement",
+    defaultSteps: [
+      { type: "email" as const, label: "Check-In Email", delay: "Immediately", subject: "Still thinking about Sagefield?", body: "Hi [First Name], we noticed it's been a while. We'd love to answer any questions you might have." },
+      { type: "wait" as const, label: "Wait 5 days", delay: "Day 5" },
+      { type: "sms" as const, label: "SMS Reactivation", delay: "Day 5", subject: "SMS: Last chance to connect", body: "Hi [First Name], enrollment for Fall 2026 closes soon. If you're still interested, we'd love to chat!" },
+    ],
+  },
+  {
+    id: "waitlist-nurture",
+    name: "Waitlist Nurture",
+    description: "Keep waitlisted families warm and engaged until a spot opens.",
+    color: "#8B5CF6",
+    steps: 5,
+    openRate: 61,
+    resultLabel: "28% conversion",
+    recommended: false,
+    defaultTriggerKey: "manual",
+    defaultAudienceKey: "waitlisted",
+    defaultAutomationName: "Waitlist Stay-Warm Campaign",
+    defaultSteps: [
+      { type: "email" as const, label: "Waitlist Confirmation", delay: "Immediately", subject: "You're on the waitlist — here's what's next", body: "We've added you to our waitlist. As soon as a spot opens, you'll be the first to know." },
+      { type: "wait" as const, label: "Wait 2 weeks", delay: "Week 2" },
+      { type: "email" as const, label: "Community Update", delay: "Week 2", subject: "What's happening at Sagefield this month", body: "Even while you wait, we want to keep you connected. Here's a peek at life inside our school." },
+      { type: "wait" as const, label: "Wait 2 weeks", delay: "Week 4" },
+      { type: "email" as const, label: "Spot Opening Alert", delay: "Week 4", subject: "A spot may be opening soon — are you still interested?", body: "We're expecting a spot to become available shortly. Can you confirm you're still interested in enrolling?" },
+    ],
+  },
+  {
+    id: "payment-reminder",
+    name: "Payment Reminder",
+    description: "Automated tuition reminders that reduce overdue balances and late collections.",
+    color: "#F97316",
+    steps: 2,
+    openRate: 78,
+    resultLabel: "94% collection",
+    recommended: false,
+    defaultTriggerKey: "payment_overdue",
+    defaultAudienceKey: "enrolled",
+    defaultAutomationName: "Tuition Payment Reminder",
+    defaultSteps: [
+      { type: "email" as const, label: "Payment Due Reminder", delay: "Immediately", subject: "Friendly reminder — tuition payment due", body: "Hi [First Name], just a quick reminder that your tuition payment is due. You can pay online in your parent portal." },
+      { type: "sms" as const, label: "SMS Reminder", delay: "Day 3", subject: "SMS: Payment still outstanding", body: "Hi [First Name], your tuition payment is still outstanding. Please log in to your parent portal to pay now. Reply STOP to opt out." },
+    ],
+  },
+];
+
+const WIZARD_TRIGGERS = [
+  { id: "inquiry", icon: "mail", title: "Family submits inquiry form", subtitle: "Triggers when a new lead fills out your inquiry or interest form." },
+  { id: "tour_booked", icon: "phone", title: "Family books a tour", subtitle: "Triggers when a family schedules a campus visit." },
+  { id: "enrolled", icon: "check", title: "Student is enrolled", subtitle: "Triggers the moment a student's enrollment is confirmed." },
+  { id: "payment_overdue", icon: "credit", title: "Payment becomes overdue", subtitle: "Triggers when a tuition payment passes its due date." },
+  { id: "cold_lead", icon: "clock", title: "Lead goes cold (7+ days no activity)", subtitle: "Triggers when a lead has not opened any emails or visited in 7+ days." },
+  { id: "manual", icon: "zap", title: "Manually — I'll trigger it myself", subtitle: "You control when this sequence starts. Great for campaigns and events." },
+];
+
+const WIZARD_SEGMENTS = [
+  { id: "all_leads", label: "All Leads", count: 47, description: "Every lead currently in your CRM" },
+  { id: "warm_leads", label: "Warm Leads", count: 23, description: "Inquired within the last 30 days" },
+  { id: "tour_visitors", label: "Tour Visitors", count: 12, description: "Visited campus but not yet enrolled" },
+  { id: "waitlisted", label: "Waitlisted Families", count: 8, description: "On the waitlist pending availability" },
+  { id: "enrolled", label: "Enrolled Families", count: 31, description: "Currently enrolled students & guardians" },
+];
+
+const WIZARD_PROGRAMS = ["Explorers", "Builders", "Pioneers"];
+const WIZARD_AGE_GROUPS = ["Pre-K", "Elementary", "Middle"];
+
+const WIZARD_STEP_TYPES: { type: AutomationStep["type"]; label: string; color: string }[] = [
+  { type: "email", label: "Email", color: "#5E7C68" },
+  { type: "sms", label: "SMS", color: "#38BDF8" },
+  { type: "wait", label: "Wait", color: "#94a3b8" },
+  { type: "condition", label: "Branch", color: "#8B5CF6" },
+];
+
+const CONFETTI_DOTS: { x: number; y: number; color: string }[] = [
+  { x: -60, y: -55, color: "#5E7C68" },
+  { x: 45, y: -70, color: "#38BDF8" },
+  { x: 80, y: -40, color: "#F59E0B" },
+  { x: -40, y: -80, color: "#8B5CF6" },
+  { x: 20, y: -90, color: "#22C55E" },
+  { x: -80, y: -30, color: "#F97316" },
+  { x: 60, y: -65, color: "#EF4444" },
+  { x: -20, y: -60, color: "#5E7C68" },
+  { x: 100, y: -20, color: "#38BDF8" },
+  { x: -100, y: -45, color: "#F59E0B" },
+  { x: 30, y: -85, color: "#8B5CF6" },
+  { x: -55, y: -75, color: "#22C55E" },
+];
+
 const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
   {
     id: "ap1",
@@ -8134,34 +8315,881 @@ function statusBadge(status: AutomationPipeline["status"]) {
   return { bg: C.elevated, fg: C.textTertiary, label: "Draft" };
 }
 
+function buildNewPipeline(state: WizardState): AutomationPipeline {
+  const seg = WIZARD_SEGMENTS.find((s) => s.id === state.audienceKey);
+  const trig = WIZARD_TRIGGERS.find((t) => t.id === state.triggerKey);
+  const audienceColors: Record<string, string> = {
+    all_leads: "#5E7C68",
+    warm_leads: "#38BDF8",
+    tour_visitors: "#F59E0B",
+    waitlisted: "#8B5CF6",
+    enrolled: "#22C55E",
+  };
+  return {
+    id: "wizard-" + Date.now(),
+    name: state.automationName || "New Automation",
+    description: "",
+    audience: seg?.label ?? "All Leads",
+    trigger: trig?.title ?? "Manual",
+    status: state.launchMode === "live" ? "active" : "draft",
+    steps: state.flowSteps,
+    stats: { enrolled: 0, sent: 0, openRate: 0, clickRate: 0, conversions: 0 },
+    audienceColor: audienceColors[state.audienceKey ?? "all_leads"] ?? "#5E7C68",
+  };
+}
+
+function computeAudienceCount(
+  audienceKey: string | null,
+  programFilters: string[],
+  ageFilters: string[],
+): number {
+  const seg = WIZARD_SEGMENTS.find((s) => s.id === audienceKey);
+  let count = seg?.count ?? 0;
+  programFilters.forEach(() => { count = Math.max(1, Math.round(count * 0.8)); });
+  ageFilters.forEach(() => { count = Math.max(1, Math.round(count * 0.85)); });
+  return count;
+}
+
+function TriggerIcon({ id }: { id: string }) {
+  const s = "w-4 h-4";
+  if (id === "inquiry") return <Mail className={s} />;
+  if (id === "tour_booked") return <PhoneCall className={s} />;
+  if (id === "enrolled") return <CheckCircle className={s} />;
+  if (id === "payment_overdue") return <CreditCard className={s} />;
+  if (id === "cold_lead") return <Clock className={s} />;
+  return <Zap className={s} />;
+}
+
+function StepTypeIcon({ type }: { type: AutomationStep["type"] }) {
+  const s = "w-4 h-4";
+  if (type === "email") return <Mail className={s} />;
+  if (type === "sms") return <MessageSquare className={s} />;
+  if (type === "wait") return <Timer className={s} />;
+  return <GitBranch className={s} />;
+}
+
+function NewAutomationWizard({
+  state,
+  onChange,
+  onClose,
+  onCreatePipeline,
+}: {
+  state: WizardState;
+  onChange: (patch: Partial<WizardState>) => void;
+  onClose: () => void;
+  onCreatePipeline: (p: AutomationPipeline) => void;
+}) {
+  const [addPickerIndex, setAddPickerIndex] = useState<number | null>(null);
+  const [hoveredStepIndex, setHoveredStepIndex] = useState<number | null>(null);
+
+  const STEP_LABELS = ["Template", "Trigger", "Audience", "Build Flow", "Launch"];
+
+  const audienceCount = computeAudienceCount(
+    state.audienceKey,
+    state.programFilters,
+    state.ageFilters,
+  );
+  const audiencePct = Math.min(100, Math.round((audienceCount / 47) * 100));
+
+  function handleNext() {
+    if (state.step >= 5) return;
+    const next = (state.step + 1) as WizardState["step"];
+    if (state.step === 1 && state.templateId && state.templateId !== "scratch") {
+      const tmpl = WIZARD_TEMPLATES.find((t) => t.id === state.templateId);
+      if (tmpl) {
+        onChange({
+          step: next,
+          triggerKey: state.triggerKey ?? tmpl.defaultTriggerKey,
+          audienceKey: state.audienceKey ?? tmpl.defaultAudienceKey,
+          flowSteps: state.flowSteps.length > 0 ? state.flowSteps : tmpl.defaultSteps,
+          automationName: state.automationName || tmpl.defaultAutomationName,
+        });
+        return;
+      }
+    }
+    onChange({ step: next });
+  }
+
+  function handleBack() {
+    if (state.step <= 1) return;
+    onChange({ step: (state.step - 1) as WizardState["step"] });
+  }
+
+  function handleLaunch() {
+    onChange({ launching: true });
+    setTimeout(() => {
+      onChange({ launching: false, launched: true });
+    }, 1200);
+    setTimeout(() => {
+      onCreatePipeline(buildNewPipeline(state));
+      onClose();
+    }, 3000);
+  }
+
+  function addStep(type: AutomationStep["type"], atIndex: number) {
+    const newStep: AutomationStep = {
+      type,
+      label: type === "email" ? "New Email" : type === "sms" ? "New SMS" : type === "wait" ? "Wait 2 days" : "If/Then Branch",
+      delay: "Next",
+    };
+    const steps = [...state.flowSteps];
+    steps.splice(atIndex, 0, newStep);
+    onChange({ flowSteps: steps });
+    setAddPickerIndex(null);
+  }
+
+  function removeStep(i: number) {
+    const steps = [...state.flowSteps];
+    steps.splice(i, 1);
+    onChange({ flowSteps: steps });
+  }
+
+  const canContinue =
+    state.step === 1 ? state.templateId !== null :
+    state.step === 2 ? state.triggerKey !== null :
+    state.step === 3 ? state.audienceKey !== null :
+    true;
+
+  // Estimate duration from flow steps
+  const estDays = state.flowSteps.reduce((acc, s) => {
+    if (s.type === "wait" && s.delay) {
+      const m = s.delay.match(/\d+/);
+      if (m) return acc + parseInt(m[0]);
+    }
+    return acc;
+  }, 0);
+
+  const templateColors: Record<string, string> = {
+    "enroll-drip": "#F59E0B",
+    "tour-followup": "#38BDF8",
+    "welcome-series": "#22C55E",
+    "re-engagement": "#EF4444",
+    "waitlist-nurture": "#8B5CF6",
+    "payment-reminder": "#F97316",
+  };
+
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="absolute top-0 right-0 bottom-0 flex flex-col overflow-hidden"
+      style={{
+        width: 480,
+        backgroundColor: C.surface,
+        borderLeft: `1px solid ${C.border}`,
+        zIndex: 20,
+        boxShadow: "-4px 0 24px rgba(0,0,0,0.08)",
+      }}
+    >
+      {/* ── Header ── */}
+      <div
+        className="flex-shrink-0 px-5 pt-4 pb-3"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+              New Automation
+            </div>
+            <div className="text-[11px]" style={{ color: C.textTertiary }}>
+              {state.launched ? "Done!" : `Step ${Math.min(state.step, 4)} of 4 — ${STEP_LABELS[state.step - 1]}`}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center rounded-md w-7 h-7"
+            style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Progress strip — only show steps 1-4 */}
+        {!state.launched && (
+          <div className="flex items-center gap-0">
+            {[1, 2, 3, 4].map((n, i) => {
+              const isDone = state.step > n;
+              const isActive = state.step === n;
+              return (
+                <div key={n} className="flex items-center" style={{ flex: i < 3 ? 1 : "none" }}>
+                  <motion.div
+                    animate={{ scale: isActive ? 1.12 : 1 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center justify-center rounded-full flex-shrink-0"
+                    style={{
+                      width: 26,
+                      height: 26,
+                      backgroundColor: isDone ? C.accentLight : isActive ? C.accent : C.elevated,
+                      border: `2px solid ${isDone ? C.accent : isActive ? C.accent : C.border}`,
+                      color: isDone ? C.accent : isActive ? "#fff" : C.textTertiary,
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isDone ? <CheckCircle className="w-3 h-3" /> : n}
+                  </motion.div>
+                  {i < 3 && (
+                    <div
+                      className="flex-1 h-px mx-1"
+                      style={{ backgroundColor: state.step > n + 1 ? C.accent : C.border }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Body ── */}
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={state.step}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.18 }}
+            className="p-5 space-y-4"
+          >
+
+            {/* ── Step 1: Template ── */}
+            {state.step === 1 && (
+              <div>
+                <div className="text-xs font-semibold mb-1" style={{ color: C.textSecondary }}>
+                  Choose a starting point
+                </div>
+                <div className="text-[11px] mb-4" style={{ color: C.textTertiary }}>
+                  Pick a pre-built template or start from scratch.
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {WIZARD_TEMPLATES.map((tmpl) => {
+                    const sel = state.templateId === tmpl.id;
+                    const color = templateColors[tmpl.id] ?? C.accent;
+                    return (
+                      <button
+                        key={tmpl.id}
+                        onClick={() => onChange({ templateId: tmpl.id })}
+                        className="text-left rounded-xl p-3 transition-all duration-150"
+                        style={{
+                          border: `2px solid ${sel ? C.accent : C.border}`,
+                          backgroundColor: sel ? C.accentLight : C.surface,
+                          boxShadow: sel ? `0 0 0 2px ${C.accentGlow ?? C.accentLight}` : "none",
+                        }}
+                      >
+                        <div className="flex items-start gap-2 mb-1.5">
+                          <div
+                            className="flex items-center justify-center rounded-lg flex-shrink-0"
+                            style={{ width: 30, height: 30, backgroundColor: color + "22", color }}
+                          >
+                            <Megaphone className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="text-[11px] font-semibold leading-tight" style={{ color: C.textPrimary }}>
+                                {tmpl.name}
+                              </span>
+                              {tmpl.recommended && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 text-[9px] font-medium rounded-full px-1.5 py-0.5 flex-shrink-0"
+                                  style={{ backgroundColor: C.warningBg, color: C.warning }}
+                                >
+                                  <Star className="w-2 h-2" /> Recommended
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-[10px] leading-relaxed mb-2" style={{ color: C.textTertiary }}>
+                          {tmpl.description}
+                        </div>
+                        <div className="flex gap-1 flex-wrap">
+                          <span className="text-[9px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: C.elevated, color: C.textSecondary }}>
+                            {tmpl.steps} steps
+                          </span>
+                          <span className="text-[9px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: C.successBg, color: C.success }}>
+                            {tmpl.openRate}% open
+                          </span>
+                          <span className="text-[9px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: C.accentLight, color: C.accent }}>
+                            {tmpl.resultLabel}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => onChange({ templateId: "scratch", flowSteps: [], automationName: "" })}
+                  className="mt-2.5 w-full rounded-xl py-3 text-[11px] font-medium transition-all duration-150"
+                  style={{
+                    border: `1.5px dashed ${state.templateId === "scratch" ? C.accent : C.border}`,
+                    color: state.templateId === "scratch" ? C.accent : C.textTertiary,
+                    backgroundColor: state.templateId === "scratch" ? C.accentLight : "transparent",
+                  }}
+                >
+                  <Layers className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5" />
+                  Start from scratch
+                </button>
+              </div>
+            )}
+
+            {/* ── Step 2: Trigger ── */}
+            {state.step === 2 && (
+              <div>
+                <div className="text-xs font-semibold mb-1" style={{ color: C.textSecondary }}>
+                  What kicks off this automation?
+                </div>
+                <div className="text-[11px] mb-4" style={{ color: C.textTertiary }}>
+                  Choose the event that starts this sequence.
+                </div>
+                <div className="space-y-2">
+                  {WIZARD_TRIGGERS.map((trig) => {
+                    const sel = state.triggerKey === trig.id;
+                    return (
+                      <button
+                        key={trig.id}
+                        onClick={() => onChange({ triggerKey: trig.id })}
+                        className="w-full text-left flex items-center gap-3 rounded-xl p-3 transition-all duration-150"
+                        style={{
+                          border: `2px solid ${sel ? C.accent : C.border}`,
+                          backgroundColor: sel ? C.accentLight : C.surface,
+                        }}
+                      >
+                        <div
+                          className="flex items-center justify-center rounded-lg flex-shrink-0"
+                          style={{ width: 36, height: 36, backgroundColor: C.elevated, color: sel ? C.accent : C.textSecondary }}
+                        >
+                          <TriggerIcon id={trig.id} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-semibold" style={{ color: C.textPrimary }}>{trig.title}</div>
+                          <div className="text-[10px] mt-0.5" style={{ color: C.textTertiary }}>{trig.subtitle}</div>
+                        </div>
+                        <div
+                          className="rounded-full flex-shrink-0"
+                          style={{
+                            width: 16, height: 16,
+                            border: `2px solid ${sel ? C.accent : C.border}`,
+                            backgroundColor: sel ? C.accent : "transparent",
+                          }}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── Step 3: Audience ── */}
+            {state.step === 3 && (
+              <div>
+                <div className="text-xs font-semibold mb-1" style={{ color: C.textSecondary }}>
+                  Who receives this?
+                </div>
+                <div className="text-[11px] mb-4" style={{ color: C.textTertiary }}>
+                  Select the segment, then refine with optional filters.
+                </div>
+                <div className="space-y-2 mb-4">
+                  {WIZARD_SEGMENTS.map((seg) => {
+                    const sel = state.audienceKey === seg.id;
+                    return (
+                      <button
+                        key={seg.id}
+                        onClick={() => onChange({ audienceKey: seg.id })}
+                        className="w-full text-left flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-150"
+                        style={{
+                          border: `2px solid ${sel ? C.accent : C.border}`,
+                          backgroundColor: sel ? C.accentLight : C.surface,
+                        }}
+                      >
+                        <div
+                          className="rounded-full flex-shrink-0"
+                          style={{
+                            width: 16, height: 16,
+                            border: `2px solid ${sel ? C.accent : C.border}`,
+                            backgroundColor: sel ? C.accent : "transparent",
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-semibold" style={{ color: C.textPrimary }}>{seg.label}</div>
+                          <div className="text-[10px]" style={{ color: C.textTertiary }}>{seg.description}</div>
+                        </div>
+                        <div
+                          className="text-[11px] font-bold rounded-full px-2 py-0.5"
+                          style={{ backgroundColor: C.elevated, color: C.textSecondary }}
+                        >
+                          {seg.count}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: C.textTertiary }}>
+                  Refine by program
+                </div>
+                <div className="flex gap-1.5 flex-wrap mb-3">
+                  {WIZARD_PROGRAMS.map((p) => {
+                    const sel = state.programFilters.includes(p);
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => {
+                          const next = sel
+                            ? state.programFilters.filter((x) => x !== p)
+                            : [...state.programFilters, p];
+                          onChange({ programFilters: next });
+                        }}
+                        className="text-[11px] rounded-full px-3 py-1 transition-all duration-150"
+                        style={{
+                          border: `1.5px solid ${sel ? C.accent : C.border}`,
+                          backgroundColor: sel ? C.accentLight : "transparent",
+                          color: sel ? C.accent : C.textTertiary,
+                        }}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: C.textTertiary }}>
+                  Refine by age group
+                </div>
+                <div className="flex gap-1.5 flex-wrap mb-4">
+                  {WIZARD_AGE_GROUPS.map((a) => {
+                    const sel = state.ageFilters.includes(a);
+                    return (
+                      <button
+                        key={a}
+                        onClick={() => {
+                          const next = sel
+                            ? state.ageFilters.filter((x) => x !== a)
+                            : [...state.ageFilters, a];
+                          onChange({ ageFilters: next });
+                        }}
+                        className="text-[11px] rounded-full px-3 py-1 transition-all duration-150"
+                        style={{
+                          border: `1.5px solid ${sel ? C.accent : C.border}`,
+                          backgroundColor: sel ? C.accentLight : "transparent",
+                          color: sel ? C.accent : C.textTertiary,
+                        }}
+                      >
+                        {a}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div
+                  className="rounded-xl p-3"
+                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                >
+                  <div className="text-[11px] mb-1.5" style={{ color: C.textSecondary }}>
+                    <span className="font-bold" style={{ color: C.accent }}>{audienceCount}</span>{" "}
+                    families will receive this automation
+                  </div>
+                  <div
+                    className="rounded-full overflow-hidden"
+                    style={{ height: 5, backgroundColor: C.border }}
+                  >
+                    <motion.div
+                      animate={{ width: `${audiencePct}%` }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: C.accent }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Step 4: Flow Builder ── */}
+            {state.step === 4 && (
+              <div>
+                <div className="text-xs font-semibold mb-1" style={{ color: C.textSecondary }}>
+                  Build your automation flow
+                </div>
+                <div className="text-[11px] mb-4" style={{ color: C.textTertiary }}>
+                  Click + to add steps. Hover a step to remove it.
+                </div>
+
+                {state.flowSteps.length === 0 ? (
+                  <div
+                    className="flex flex-col items-center justify-center rounded-xl py-10"
+                    style={{ border: `2px dashed ${C.border}`, color: C.textTertiary }}
+                  >
+                    <Layers className="w-6 h-6 mb-2 opacity-40" />
+                    <div className="text-[11px] mb-3">Your flow is empty.</div>
+                    <button
+                      onClick={() => setAddPickerIndex(0)}
+                      className="flex items-center gap-1 text-[11px] font-medium rounded-lg px-3 py-1.5"
+                      style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
+                    >
+                      <Plus className="w-3 h-3" /> Add first step
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-0">
+                    {/* Add picker at index 0 */}
+                    <AnimatePresence>
+                      {addPickerIndex === 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden mb-2"
+                        >
+                          <div
+                            className="flex gap-1.5 p-2 rounded-xl"
+                            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                          >
+                            {WIZARD_STEP_TYPES.map((st) => (
+                              <button
+                                key={st.type}
+                                onClick={() => addStep(st.type, 0)}
+                                className="flex-1 flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium transition-all"
+                                style={{ backgroundColor: st.color + "22", color: st.color }}
+                              >
+                                <StepTypeIcon type={st.type} />
+                                {st.label}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {state.flowSteps.map((step, i) => {
+                      const sc = stepColor(step.type);
+                      const hovered = hoveredStepIndex === i;
+                      return (
+                        <div key={i}>
+                          <motion.div
+                            layout
+                            onMouseEnter={() => setHoveredStepIndex(i)}
+                            onMouseLeave={() => setHoveredStepIndex(null)}
+                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 relative"
+                            style={{
+                              backgroundColor: C.surface,
+                              border: `1px solid ${C.border}`,
+                              boxShadow: C.shadowCard,
+                              marginBottom: 2,
+                            }}
+                          >
+                            <div
+                              className="flex items-center justify-center rounded-lg flex-shrink-0"
+                              style={{ width: 32, height: 32, backgroundColor: sc.bg, color: sc.fg }}
+                            >
+                              <StepTypeIcon type={step.type} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[11px] font-semibold" style={{ color: C.textPrimary }}>{step.label}</div>
+                              {step.delay && (
+                                <span
+                                  className="text-[9px] rounded-full px-1.5 py-0.5"
+                                  style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+                                >
+                                  {step.delay}
+                                </span>
+                              )}
+                            </div>
+                            {hovered && (
+                              <button
+                                onClick={() => removeStep(i)}
+                                className="flex items-center justify-center rounded-full"
+                                style={{ width: 20, height: 20, backgroundColor: C.errorBg, color: C.error }}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </motion.div>
+
+                          {/* Add button after each step */}
+                          <div className="flex items-center justify-center py-1">
+                            <button
+                              onClick={() => setAddPickerIndex(addPickerIndex === i + 1 ? null : i + 1)}
+                              className="flex items-center justify-center rounded-full transition-all"
+                              style={{
+                                width: 22, height: 22,
+                                backgroundColor: C.elevated,
+                                border: `1px solid ${C.border}`,
+                                color: C.textTertiary,
+                              }}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+
+                          <AnimatePresence>
+                            {addPickerIndex === i + 1 && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden mb-2"
+                              >
+                                <div
+                                  className="flex gap-1.5 p-2 rounded-xl"
+                                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                                >
+                                  {WIZARD_STEP_TYPES.map((st) => (
+                                    <button
+                                      key={st.type}
+                                      onClick={() => addStep(st.type, i + 1)}
+                                      className="flex-1 flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium transition-all"
+                                      style={{ backgroundColor: st.color + "22", color: st.color }}
+                                    >
+                                      <StepTypeIcon type={st.type} />
+                                      {st.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Step 5: Launch ── */}
+            {state.step === 5 && (
+              <div>
+                {state.launching && (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      style={{ color: C.accent }}
+                    >
+                      <Loader2 className="w-8 h-8" />
+                    </motion.div>
+                    <div className="text-sm mt-3" style={{ color: C.textTertiary }}>
+                      Setting up your automation…
+                    </div>
+                  </div>
+                )}
+
+                {state.launched && (
+                  <div className="flex flex-col items-center justify-center py-12 relative">
+                    <div className="relative flex items-center justify-center" style={{ width: 80, height: 80 }}>
+                      {CONFETTI_DOTS.map((dot, i) => (
+                        <motion.div
+                          key={i}
+                          className="absolute rounded-full"
+                          style={{ width: 7, height: 7, backgroundColor: dot.color, top: 36, left: 36 }}
+                          initial={{ x: 0, y: 0, opacity: 1 }}
+                          animate={{ x: dot.x, y: dot.y, opacity: 0 }}
+                          transition={{ duration: 1.5, delay: i * 0.07, ease: "easeOut" }}
+                        />
+                      ))}
+                      <div
+                        className="flex items-center justify-center rounded-full"
+                        style={{ width: 72, height: 72, backgroundColor: C.successBg, border: `2px solid ${C.successBorder}` }}
+                      >
+                        <CheckCircle className="w-8 h-8" style={{ color: C.success }} />
+                      </div>
+                    </div>
+                    <div className="text-base font-bold mt-4" style={{ color: C.success }}>
+                      Automation is live!
+                    </div>
+                    <div className="text-[11px] mt-1 text-center" style={{ color: C.textTertiary }}>
+                      <span className="font-medium" style={{ color: C.textSecondary }}>
+                        {state.automationName || "Your automation"}
+                      </span>{" "}
+                      has been activated.
+                    </div>
+                  </div>
+                )}
+
+                {!state.launching && !state.launched && (
+                  <>
+                    <div className="text-xs font-semibold mb-1" style={{ color: C.textSecondary }}>
+                      Almost there — name your automation
+                    </div>
+                    <div className="text-[11px] mb-4" style={{ color: C.textTertiary }}>
+                      Review the summary, then launch when ready.
+                    </div>
+
+                    <input
+                      type="text"
+                      value={state.automationName}
+                      onChange={(e) => onChange({ automationName: e.target.value })}
+                      className="w-full text-sm font-semibold rounded-xl px-3.5 py-2.5 mb-4 outline-none"
+                      style={{
+                        backgroundColor: C.elevated,
+                        border: `1px solid ${C.border}`,
+                        borderLeft: `3px solid ${C.accent}`,
+                        color: C.textPrimary,
+                        fontSize: 15,
+                      }}
+                      placeholder="Automation name…"
+                    />
+
+                    {/* Launch mode toggle */}
+                    <div
+                      className="flex p-1 rounded-xl mb-4"
+                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                    >
+                      {(["live", "draft"] as const).map((mode) => {
+                        const active = state.launchMode === mode;
+                        return (
+                          <button
+                            key={mode}
+                            onClick={() => onChange({ launchMode: mode })}
+                            className="flex-1 text-xs font-medium rounded-lg py-2 transition-all duration-150"
+                            style={{
+                              backgroundColor: active ? C.surface : "transparent",
+                              color: active ? C.textPrimary : C.textTertiary,
+                              boxShadow: active ? C.shadowCard : "none",
+                            }}
+                          >
+                            {mode === "live" ? "Go Live Now" : "Save as Draft"}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Summary card */}
+                    <div
+                      className="rounded-xl p-4"
+                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                    >
+                      <div className="text-[10px] font-semibold uppercase tracking-wide mb-3" style={{ color: C.textTertiary }}>
+                        Summary
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-[10px]" style={{ color: C.textTertiary }}>Audience</div>
+                          <div className="text-sm font-bold" style={{ color: C.accent }}>{audienceCount} families</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px]" style={{ color: C.textTertiary }}>Steps</div>
+                          <div className="text-sm font-bold" style={{ color: C.info }}>{state.flowSteps.length} steps</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px]" style={{ color: C.textTertiary }}>First send</div>
+                          <div className="text-sm font-bold" style={{ color: C.textPrimary }}>On trigger</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px]" style={{ color: C.textTertiary }}>Est. duration</div>
+                          <div className="text-sm font-bold" style={{ color: C.textSecondary }}>
+                            {estDays > 0 ? `~${estDays} days` : "Immediate"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* ── Footer ── */}
+      {!state.launching && !state.launched && (
+        <div
+          className="flex-shrink-0 flex items-center px-5 py-3.5"
+          style={{ borderTop: `1px solid ${C.border}`, gap: 10 }}
+        >
+          {state.step > 1 && (
+            <button
+              onClick={handleBack}
+              className="text-xs font-medium rounded-lg px-4 py-2"
+              style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}`, color: C.textSecondary }}
+            >
+              Back
+            </button>
+          )}
+          {state.step < 5 ? (
+            <button
+              onClick={handleNext}
+              disabled={!canContinue}
+              className="ml-auto flex items-center gap-1.5 text-xs font-semibold rounded-lg px-4 py-2 transition-opacity"
+              style={{
+                backgroundColor: C.accent,
+                color: "#fff",
+                opacity: canContinue ? 1 : 0.45,
+                pointerEvents: canContinue ? "auto" : "none",
+              }}
+            >
+              {state.step === 3 ? "Build Flow" : "Continue"} <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button
+              onClick={handleLaunch}
+              className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold rounded-xl py-2.5"
+              style={{ backgroundColor: C.accent, color: "#fff" }}
+            >
+              Launch Automation <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+const WIZARD_INITIAL_STATE: WizardState = {
+  step: 1,
+  templateId: null,
+  triggerKey: null,
+  audienceKey: null,
+  programFilters: [],
+  ageFilters: [],
+  flowSteps: [],
+  automationName: "",
+  launchMode: "live",
+  launching: false,
+  launched: false,
+};
+
 function MarketingPage() {
   const [filter, setFilter] = useState<AutomationFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pipelines, setPipelines] = useState<AutomationPipeline[]>(DEMO_AUTOMATION_PIPELINES);
+  const [isCreating, setIsCreating] = useState(false);
+  const [wizardState, setWizardState] = useState<WizardState>(WIZARD_INITIAL_STATE);
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+
+  useEffect(() => {
+    if (isCreating) openBackdrop(() => setIsCreating(false));
+    else closeBackdrop();
+  }, [isCreating, openBackdrop, closeBackdrop]);
+
+  const handleCreatePipeline = (p: AutomationPipeline) => {
+    setPipelines((prev) => [p, ...prev]);
+  };
 
   const filtered =
     filter === "all"
-      ? DEMO_AUTOMATION_PIPELINES
-      : DEMO_AUTOMATION_PIPELINES.filter((p) => p.status === filter);
+      ? pipelines
+      : pipelines.filter((p) => p.status === filter);
 
   const selected = selectedId
-    ? DEMO_AUTOMATION_PIPELINES.find((p) => p.id === selectedId) ?? null
+    ? pipelines.find((p) => p.id === selectedId) ?? null
     : null;
 
-  const totalActive = DEMO_AUTOMATION_PIPELINES.filter(
+  const totalActive = pipelines.filter(
     (p) => p.status === "active",
   ).length;
-  const totalSent = DEMO_AUTOMATION_PIPELINES.reduce(
+  const totalSent = pipelines.reduce(
     (s, p) => s + p.stats.sent,
     0,
   );
-  const avgOpenRate = Math.round(
-    DEMO_AUTOMATION_PIPELINES.filter((p) => p.stats.sent > 0).reduce(
-      (s, p) => s + p.stats.openRate,
-      0,
-    ) /
-      DEMO_AUTOMATION_PIPELINES.filter((p) => p.stats.sent > 0).length,
-  );
-  const totalConversions = DEMO_AUTOMATION_PIPELINES.reduce(
+  const activePipelinesWithSent = pipelines.filter((p) => p.stats.sent > 0);
+  const avgOpenRate = activePipelinesWithSent.length > 0
+    ? Math.round(activePipelinesWithSent.reduce((s, p) => s + p.stats.openRate, 0) / activePipelinesWithSent.length)
+    : 0;
+  const totalConversions = pipelines.reduce(
     (s, p) => s + p.stats.conversions,
     0,
   );
@@ -8203,6 +9231,7 @@ function MarketingPage() {
           </p>
         </div>
         <button
+          onClick={() => { setWizardState(WIZARD_INITIAL_STATE); setIsCreating(true); }}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg flex-shrink-0"
           style={{ backgroundColor: C.accent, color: "#fff" }}
         >
@@ -8844,6 +9873,17 @@ function MarketingPage() {
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {isCreating && (
+          <NewAutomationWizard
+            state={wizardState}
+            onChange={(patch) => setWizardState((prev) => ({ ...prev, ...patch }))}
+            onClose={() => setIsCreating(false)}
+            onCreatePipeline={handleCreatePipeline}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
