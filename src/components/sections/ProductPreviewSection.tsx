@@ -9,7 +9,7 @@ import ParentDashboardDemo from './ParentDashboardDemo'
 import TeacherDashboardDemo from './TeacherDashboardDemo'
 import WebsiteDashboardDemo from './WebsiteDashboardDemo'
 
-type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'marketing' | 'leads'
+type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'marketing' | 'timeclock'
 
 interface Tab {
   id: TabId
@@ -19,12 +19,6 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  {
-    id: 'admin',
-    label: 'Admin',
-    caption: 'Admin Portal',
-    description: 'Track every applicant from first click to enrolled — with notes, approvals, and follow-up.',
-  },
   {
     id: 'website',
     label: 'Website',
@@ -56,15 +50,21 @@ const TABS: Tab[] = [
     description: 'Automated email campaigns and lead nurture sequences, all tied to your pipeline.',
   },
   {
-    id: 'leads',
-    label: 'Leads',
-    caption: 'Leads CRM',
-    description: 'Waitlist inquiries, tour bookings, and follow-up all live in one pipeline.',
+    id: 'timeclock',
+    label: 'Timeclock',
+    caption: 'Timeclock',
+    description: 'Log hours, track sessions, and view weekly and monthly totals in one place.',
+  },
+  {
+    id: 'admin',
+    label: 'Admin',
+    caption: 'Admin Portal',
+    description: 'Track every applicant from first click to enrolled — with notes, approvals, and follow-up.',
   },
 ]
 
 export default function ProductPreviewSection() {
-  const [activeTab, setActiveTab] = useState<TabId>('admin')
+  const [activeTab, setActiveTab] = useState<TabId>('website')
   const tabBarRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef<Map<TabId, HTMLButtonElement>>(new Map())
 
@@ -174,7 +174,7 @@ function TabContent({ tabId }: { tabId: TabId }) {
     case 'parents':  return <ParentsTab />
     case 'teachers': return <TeachersTab />
     case 'marketing': return <MarketingTab />
-    case 'leads':    return <LeadsTab />
+    case 'timeclock': return <TimeclockTab />
   }
 }
 
@@ -230,75 +230,6 @@ function MarketingTab() {
   return <AdminDashboardDemo initialPage="marketing" disableTour hideNav />
 }
 
-function LeadsTab() {
-  const leads = [
-    { name: 'The Garza Family', child: 'Elementary', status: 'New', tags: ['waitlist', 'summer'], date: '2d ago' },
-    { name: 'Priya & Arjun Mehta', child: 'Pre-K', status: 'Contacted', tags: ['tour-booked'], date: '4d ago' },
-    { name: 'The Kim-Torres Family', child: 'Middle', status: 'Touring', tags: ['referral'], date: '6d ago' },
-    { name: 'Simone Okafor', child: 'Elementary', status: 'New', tags: ['waitlist'], date: '1w ago' },
-    { name: 'Marcus & Joy Webb', child: 'Grades 1–3', status: 'Enrolled', tags: ['fall-2026'], date: '2w ago' },
-  ]
-
-  const statusStyles: Record<string, string> = {
-    New: 'bg-blue-50 text-blue-600',
-    Contacted: 'bg-yellow-50 text-yellow-700',
-    Touring: 'bg-purple-50 text-purple-700',
-    Enrolled: 'bg-green-50 text-green-700',
-  }
-
-  return (
-    <div className="flex flex-col h-full p-4 lg:p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-[13px] font-semibold text-text font-body">Leads CRM</div>
-          <div className="text-[10px] text-text-faint">14 active leads</div>
-        </div>
-        <div className="flex gap-2">
-          <div className="bg-surface-muted border border-border rounded-md px-2.5 h-7 flex items-center text-[10px] text-text-faint">Search</div>
-          <div className="bg-accent text-white rounded-md px-2.5 h-7 flex items-center text-[10px] font-medium">+ New Lead</div>
-        </div>
-      </div>
-
-      <div className="flex gap-1 mb-3">
-        {[['All', '14'], ['New', '6'], ['Contacted', '4'], ['Touring', '2'], ['Enrolled', '2']].map(([label, count], i) => (
-          <div key={label} className={`px-2 py-0.5 rounded text-[10px] flex items-center gap-1 ${i === 0 ? 'bg-surface-muted text-text font-medium' : 'text-text-faint'}`}>
-            {label} <span className="opacity-60">{count}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-surface border border-border rounded-lg overflow-hidden flex-1">
-        <table className="w-full text-[11px]">
-          <thead>
-            <tr className="border-b border-border bg-surface-soft">
-              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Family</th>
-              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden md:table-cell">Interest</th>
-              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono">Status</th>
-              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden lg:table-cell">Tags</th>
-              <th className="text-left px-3 py-2 text-text-faint font-medium uppercase tracking-wide text-[9px] font-mono hidden md:table-cell">Added</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leads.map((lead, i) => (
-              <tr key={i} className="border-b border-border last:border-0 hover:bg-surface-soft transition-colors">
-                <td className="px-3 py-2.5 font-medium text-text">{lead.name}</td>
-                <td className="px-3 py-2.5 text-text-muted hidden md:table-cell">{lead.child}</td>
-                <td className="px-3 py-2.5">
-                  <span className={`text-[10px] rounded-pill px-2 py-0.5 ${statusStyles[lead.status]}`}>{lead.status}</span>
-                </td>
-                <td className="px-3 py-2.5 hidden lg:table-cell">
-                  <div className="flex gap-1 flex-wrap">
-                    {lead.tags.map((tag) => (
-                      <span key={tag} className="bg-accent-soft text-accent text-[9px] rounded-pill px-1.5 py-0.5">{tag}</span>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-3 py-2.5 text-text-faint hidden md:table-cell">{lead.date}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
+function TimeclockTab() {
+  return <TeacherDashboardDemo initialTab="hours" disableTour hideNav />
 }
