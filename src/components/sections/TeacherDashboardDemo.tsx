@@ -3736,10 +3736,9 @@ function AttendanceTab() {
                               {student.name}
                             </span>
                             {student.homeschoolDropIn && (
-                              <Home
-                                className="w-3 h-3 text-[#4a7c59] shrink-0"
-                                title="Homeschool drop-in"
-                              />
+                              <span title="Homeschool drop-in">
+                                <Home className="w-3 h-3 text-[#4a7c59] shrink-0" />
+                              </span>
                             )}
                           </div>
                           {/* Paid badge inline under name */}

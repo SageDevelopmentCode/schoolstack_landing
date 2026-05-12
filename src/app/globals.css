@@ -27,6 +27,20 @@
   --color-sage-100: #E2EDD9;
   --color-sage-200: #C0D5B2;
   --color-sage-300: #9CC08E;
+  --color-sage-400: #7FA888;
+  --color-sage-500: #5E8F6E;
+  --color-sage-600: #4d8a6b;
+  --color-sage-700: #4a7c59;
+  --color-sage-800: #2d4f3e;
+  --color-sage-900: #1a3327;
+
+  /* Website demo tokens */
+  --color-primary:       #4a7c59;
+  --color-primary-hover: #3d6b4f;
+  --color-badge-bg:      #EDF4EA;
+
+  /* Font alias for website demo */
+  --font-heading: var(--font-lora), "Lora", serif;
 
   /* Radius */
   --radius-sm:   10px;

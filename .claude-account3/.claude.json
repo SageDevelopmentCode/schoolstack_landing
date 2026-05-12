@@ -25,7 +25,7 @@
     "mobile-app": 3,
     "voice-mode": 3,
     "shift-enter": 4,
-    "frontend-design-plugin": 5,
+    "frontend-design-plugin": 10,
     "custom-agents": 6,
     "agent-flag": 6,
     "feedback-command": 6,
@@ -544,9 +544,9 @@
       ],
       "exampleFilesGeneratedAt": 1778614789833,
       "lastVersionBase": "2.1.139",
-      "lastHintSessionId": "1f64b2bd-cd0c-4527-a22e-59ea53b49189",
-      "lastSessionFirstPrompt": "for our @src/components/sections/AdminDashboardDemo.tsx can we change the backing color scheme, i dont like that grayish backing, it makes the dashboard look kind of outadted and not sleek or modern; ",
-      "lastSessionModified": 1778617213226
+      "lastHintSessionId": "fe59bcb6-3136-4f58-9530-3589a4e4a23f",
+      "lastSessionFirstPrompt": "in our @src/components/sections/ProductPreviewSection.tsx for the \"Website\" tab, can we replace that placeholder content by embedding the content we have for @specs/website_demo.tsx and we can create ",
+      "lastSessionModified": 1778620774079
     }
   },
   "hasCompletedOnboarding": true,
@@ -610,7 +610,7 @@
     }
   },
   "cachedExtraUsageDisabledReason": "org_level_disabled",
-  "lastPlanModeUse": 1778617120101,
+  "lastPlanModeUse": 1778621766795,
   "subscriptionNoticeCount": 0,
   "hasAvailableSubscription": false,
   "hasUsedBackslashReturn": true,

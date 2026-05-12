@@ -7,6 +7,7 @@ import { FadeInView } from '@/components/ui/FadeInView'
 import AdminDashboardDemo from './AdminDashboardDemo'
 import ParentDashboardDemo from './ParentDashboardDemo'
 import TeacherDashboardDemo from './TeacherDashboardDemo'
+import WebsiteDashboardDemo from './WebsiteDashboardDemo'
 
 type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'marketing' | 'leads'
 
@@ -184,52 +185,30 @@ function AdminTab() {
 }
 
 function WebsiteTab() {
+  const outerRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0.81)
+
+  useEffect(() => {
+    const el = outerRef.current
+    if (!el) return
+    const update = () => setScale(el.offsetWidth / 1440)
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   return (
-    <div className="flex flex-col h-full bg-surface overflow-hidden">
-      {/* Nav */}
-      <div className="flex items-center px-5 h-11 border-b border-border gap-6 shrink-0">
-        <span className="font-display text-[13px] text-text">Sage Field</span>
-        <div className="hidden md:flex gap-5">
-          {['About', 'Programs', 'Admissions', 'Calendar', 'Contact'].map((l) => (
-            <span key={l} className="text-[11px] text-text-muted">{l}</span>
-          ))}
-        </div>
-        <div className="ml-auto">
-          <span className="bg-accent text-white text-[10px] rounded-pill px-2.5 py-1">Apply Now</span>
-        </div>
-      </div>
-
-      {/* Hero band */}
-      <div className="bg-bg-alt px-6 py-8 border-b border-border shrink-0">
-        <span className="text-[10px] text-accent uppercase tracking-widest font-medium">Microschool in Austin, Texas</span>
-        <h3 className="font-display text-[clamp(1.4rem,3vw,2rem)] text-text mt-2 leading-tight">
-          A different kind of school.<br />Built for curious minds.
-        </h3>
-        <p className="text-[12px] text-text-muted mt-2 max-w-xs">
-          Small classrooms. Deep learning. A community that knows your child by name.
-        </p>
-        <div className="flex gap-2 mt-4">
-          <span className="bg-accent text-white text-[10px] rounded-pill px-3 py-1.5">Enroll for Fall 2026</span>
-          <span className="border border-border text-text-muted text-[10px] rounded-pill px-3 py-1.5">Book a Tour</span>
-        </div>
-      </div>
-
-      {/* Programs */}
-      <div className="flex-1 p-4 overflow-hidden">
-        <div className="text-[11px] font-semibold text-text font-body mb-3">Our Programs</div>
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { name: 'Explorers', ages: 'Ages 4–6', desc: 'Play-based early learning' },
-            { name: 'Builders', ages: 'Grades 1–4', desc: 'Project-based curriculum' },
-            { name: 'Pioneers', ages: 'Grades 5–8', desc: 'Socratic-led discussions' },
-          ].map((p) => (
-            <div key={p.name} className="bg-surface border border-border rounded-lg p-3">
-              <div className="text-[11px] font-medium text-text font-body">{p.name}</div>
-              <div className="text-[10px] text-accent mt-0.5">{p.ages}</div>
-              <div className="text-[10px] text-text-muted mt-1">{p.desc}</div>
-            </div>
-          ))}
-        </div>
+    <div ref={outerRef} className="absolute inset-0 overflow-hidden">
+      <div
+        style={{
+          width: 1440,
+          height: scale > 0 ? `${100 / scale}%` : '100%',
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      >
+        <WebsiteDashboardDemo disableTour />
       </div>
     </div>
   )
