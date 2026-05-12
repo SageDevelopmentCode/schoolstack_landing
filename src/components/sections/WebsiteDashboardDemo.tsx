@@ -223,7 +223,7 @@ function TimelineStep({
         <div className="absolute left-5 top-10 w-px h-full bg-gray-200 z-0" />
       )}
       <div
-        className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold font-body text-sm flex-shrink-0 shadow-sm transition-all duration-300 ${
+        className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold font-secondary text-sm flex-shrink-0 shadow-sm transition-all duration-300 ${
           isActive
             ? "bg-sage-800 text-white scale-110"
             : "bg-white border-2 border-gray-200 text-gray-400 group-hover:border-sage-400 group-hover:text-sage-600"
@@ -233,7 +233,7 @@ function TimelineStep({
       </div>
       <div className="pb-10">
         <p
-          className={`text-xs font-body font-semibold uppercase tracking-widest mb-1 transition-colors duration-300 ${isActive ? "text-primary" : "text-gray-400"}`}
+          className={`text-xs font-secondary font-semibold uppercase tracking-widest mb-1 transition-colors duration-300 ${isActive ? "text-primary" : "text-gray-400"}`}
         >
           {step.time}
         </p>
@@ -243,7 +243,7 @@ function TimelineStep({
           {step.activity}
         </h4>
         <p
-          className={`text-sm font-body leading-relaxed transition-all duration-300 ${isActive ? "text-gray-600 max-h-24 opacity-100" : "text-transparent max-h-0 opacity-0 overflow-hidden"}`}
+          className={`text-sm font-secondary leading-relaxed transition-all duration-300 ${isActive ? "text-gray-600 max-h-24 opacity-100" : "text-transparent max-h-0 opacity-0 overflow-hidden"}`}
         >
           {step.desc}
         </p>
@@ -281,7 +281,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
   return (
     <div className="h-full overflow-y-auto bg-white">
       {/* ─── 1. HERO ───────────────────────────────────────────────────────── */}
-      <section className="relative h-[460px] overflow-hidden">
+      <section className="relative h-[600px] overflow-hidden">
         {/* Background image (no parallax in embedded demo) */}
         <div className="absolute inset-0 scale-[1.05]">
           <Image
@@ -339,13 +339,13 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             {["Programs", "Philosophy", "Team", "FAQ"].map((item) => (
               <button
                 key={item}
-                className="text-white/65 hover:text-white font-body text-sm font-semibold transition-colors duration-200 cursor-pointer"
+                className="text-white/65 hover:text-white font-secondary text-sm font-semibold transition-colors duration-200 cursor-pointer"
               >
                 {item}
               </button>
             ))}
           </nav>
-          <button className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg font-body transition-all duration-200 shadow-lg cursor-pointer">
+          <button className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg cursor-pointer">
             Enroll Now
           </button>
         </div>
@@ -353,7 +353,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
         {/* Hero text */}
         <div className="absolute bottom-0 left-0 z-10 px-8 sm:px-14 pb-14 max-w-2xl">
           <motion.span
-            className="inline-block px-5 py-2 bg-white/15 backdrop-blur-sm text-white text-sm font-semibold rounded-full font-body mb-6 border border-white/25"
+            className="inline-block px-5 py-2 bg-white/15 backdrop-blur-sm text-white text-sm font-semibold rounded-full font-secondary mb-6 border border-white/25"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" as const }}
@@ -373,7 +373,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           </motion.h1>
 
           <motion.p
-            className="text-base md:text-lg text-white/70 font-body leading-relaxed mb-9 max-w-lg"
+            className="text-base md:text-lg text-white/70 font-secondary leading-relaxed mb-9 max-w-lg"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.75, duration: 0.7, ease: "easeOut" as const }}
@@ -388,11 +388,11 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, duration: 0.7, ease: "easeOut" as const }}
           >
-            <button className="px-7 py-3.5 bg-primary hover:bg-primary-hover text-white font-semibold rounded-lg font-body transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
+            <button className="px-7 py-3.5 bg-primary hover:bg-primary-hover text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
               Apply for a Spot
               <ArrowRight className="w-4 h-4" />
             </button>
-            <button className="px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg font-body transition-all duration-200 border border-white/25 backdrop-blur-sm cursor-pointer">
+            <button className="px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg font-secondary transition-all duration-200 border border-white/25 backdrop-blur-sm cursor-pointer">
               See Our Programs
             </button>
           </motion.div>
@@ -404,7 +404,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           animate={{ y: [0, 7, 0] }}
           transition={{ repeat: Infinity, duration: 1.7 }}
         >
-          <span className="text-white/40 font-body text-xs uppercase tracking-widest">
+          <span className="text-white/40 font-secondary text-xs uppercase tracking-widest">
             scroll
           </span>
           <ChevronDown className="w-5 h-5 text-white/40" />
@@ -428,7 +428,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               <p className="text-2xl md:text-3xl font-bold text-sage-900 font-heading mb-1.5">
                 {stat.value}
               </p>
-              <p className="text-xs font-semibold text-sage-500 font-body uppercase tracking-wider">
+              <p className="text-xs font-semibold text-sage-500 font-secondary uppercase tracking-wider">
                 {stat.label}
               </p>
             </motion.div>
@@ -446,7 +446,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-body mb-7 uppercase tracking-wider">
+            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider">
               Our Mission
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-5 leading-tight">
@@ -454,23 +454,23 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               <br />
               <em className="text-primary not-italic">feels like living.</em>
             </h2>
-            <p className="text-base text-gray-600 leading-relaxed font-body mb-5">
+            <p className="text-base text-gray-600 leading-relaxed font-secondary mb-5">
               We believe children thrive when they're trusted, known, and given
               room to wonder. Greenbrook Academy is built on the idea that the
               best education doesn't separate curiosity from content — it weaves
               them together.
             </p>
-            <p className="text-base text-gray-600 leading-relaxed font-body mb-8">
+            <p className="text-base text-gray-600 leading-relaxed font-secondary mb-8">
               Every child here is more than a grade level. They're a whole
               person with a unique rhythm — and our role is to meet them exactly
               where they are.
             </p>
             <div className="p-6 bg-sage-50 rounded-2xl border-l-4 border-sage-400">
-              <p className="text-sm font-medium text-sage-800 font-body leading-relaxed">
+              <p className="text-sm font-medium text-sage-800 font-secondary leading-relaxed">
                 &ldquo;Wisdom is knowledge transformed by experience — and that
                 transformation is what we're here to nurture.&rdquo;
               </p>
-              <p className="text-xs text-sage-400 font-body mt-3 uppercase tracking-wider">
+              <p className="text-xs text-sage-400 font-secondary mt-3 uppercase tracking-wider">
                 — School Founder
               </p>
             </div>
@@ -512,7 +512,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               <p className="text-2xl font-bold text-sage-900 font-heading leading-none">
                 98%
               </p>
-              <p className="text-xs text-sage-500 font-body font-semibold uppercase tracking-wider mt-1">
+              <p className="text-xs text-sage-500 font-secondary font-semibold uppercase tracking-wider mt-1">
                 Parent Satisfaction
               </p>
             </div>
@@ -525,7 +525,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                 <p className="text-sm font-bold text-sage-900 font-heading leading-none">
                   12 students max
                 </p>
-                <p className="text-xs text-sage-400 font-body mt-0.5">
+                <p className="text-xs text-sage-400 font-secondary mt-0.5">
                   Always. No exceptions.
                 </p>
               </div>
@@ -554,7 +554,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
             <span
               key={i}
-              className="inline-flex items-center gap-5 mx-7 text-sage-700 font-semibold font-body text-sm uppercase tracking-wider"
+              className="inline-flex items-center gap-5 mx-7 text-sage-700 font-semibold font-secondary text-sm uppercase tracking-wider"
             >
               {item}
               <span className="w-1.5 h-1.5 rounded-full bg-sage-300 flex-shrink-0" />
@@ -573,14 +573,14 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-body mb-5 uppercase tracking-wider">
+            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
               What We Offer
             </span>
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading leading-tight">
                 A program for every family
               </h2>
-              <p className="text-gray-500 font-body text-base max-w-sm md:text-right">
+              <p className="text-gray-500 font-secondary text-base max-w-sm md:text-right">
                 Click each program to explore what a semester looks like.
               </p>
             </div>
@@ -599,14 +599,14 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                   }`}
                 >
                   <span
-                    className={`text-xs font-semibold uppercase tracking-wider font-body block mb-2 ${activeProgram === i ? "text-primary" : "text-gray-400"}`}
+                    className={`text-xs font-semibold uppercase tracking-wider font-secondary block mb-2 ${activeProgram === i ? "text-primary" : "text-gray-400"}`}
                   >
                     {p.badge}
                   </span>
                   <p className="text-base font-bold text-gray-900 font-heading leading-tight mb-1">
                     {p.title}
                   </p>
-                  <p className="text-xs text-gray-500 font-body">{p.teaser}</p>
+                  <p className="text-xs text-gray-500 font-secondary">{p.teaser}</p>
                 </button>
               ))}
             </div>
@@ -629,7 +629,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     <span
-                      className={`absolute top-5 left-5 px-4 py-1.5 text-xs font-bold rounded-full font-body ${PROGRAMS[activeProgram].accentBg} ${PROGRAMS[activeProgram].accent}`}
+                      className={`absolute top-5 left-5 px-4 py-1.5 text-xs font-bold rounded-full font-secondary ${PROGRAMS[activeProgram].accentBg} ${PROGRAMS[activeProgram].accent}`}
                     >
                       {PROGRAMS[activeProgram].badge}
                     </span>
@@ -638,7 +638,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                   <h3 className="text-3xl font-bold text-gray-900 font-heading mb-4">
                     {PROGRAMS[activeProgram].title}
                   </h3>
-                  <p className="text-base text-gray-600 font-body leading-relaxed mb-6">
+                  <p className="text-base text-gray-600 font-secondary leading-relaxed mb-6">
                     {PROGRAMS[activeProgram].desc}
                   </p>
 
@@ -646,14 +646,14 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                     {PROGRAMS[activeProgram].details.map((d) => (
                       <span
                         key={d}
-                        className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-full text-xs font-semibold font-body"
+                        className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-full text-xs font-semibold font-secondary"
                       >
                         {d}
                       </span>
                     ))}
                   </div>
 
-                  <button className="px-8 py-3.5 bg-sage-900 hover:bg-sage-800 text-white rounded-xl font-semibold font-body transition-colors duration-200 flex items-center gap-2 cursor-pointer">
+                  <button className="px-8 py-3.5 bg-sage-900 hover:bg-sage-800 text-white rounded-xl font-semibold font-secondary transition-colors duration-200 flex items-center gap-2 cursor-pointer">
                     Learn More
                     <ArrowRight className="w-4 h-4" />
                   </button>
@@ -738,7 +738,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               <br />
               but a fire to be kindled.
             </blockquote>
-            <p className="text-sm text-gray-400 font-body uppercase tracking-widest mb-8">
+            <p className="text-sm text-gray-400 font-secondary uppercase tracking-widest mb-8">
               François Rabelais · Our guiding belief
             </p>
             <div className="mx-auto w-20 h-1 bg-primary rounded-full" />
@@ -779,7 +779,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 items-start">
           <div className="w-full lg:w-7/12">
             <motion.span
-              className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-body mb-7 uppercase tracking-wider"
+              className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider"
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -831,7 +831,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-7">
-                  <p className="text-primary font-body text-xs font-semibold uppercase tracking-widest mb-1.5">
+                  <p className="text-primary font-secondary text-xs font-semibold uppercase tracking-widest mb-1.5">
                     {TIMELINE[activeStep].time}
                   </p>
                   <p className="text-white font-heading font-bold text-xl">
@@ -868,13 +868,13 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-body mb-5 uppercase tracking-wider">
+            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
               Parent Stories
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-4">
               Families who found their fit
             </h2>
-            <p className="text-gray-500 font-body text-lg max-w-lg mx-auto">
+            <p className="text-gray-500 font-secondary text-lg max-w-lg mx-auto">
               From anxious starters to thriving explorers — one semester changed
               everything.
             </p>
@@ -896,7 +896,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                     <Star key={j} className="w-3.5 h-3.5 fill-primary text-primary" />
                   ))}
                 </div>
-                <blockquote className="text-base text-gray-700 font-body leading-relaxed italic mb-7 flex-1">
+                <blockquote className="text-base text-gray-700 font-secondary leading-relaxed italic mb-7 flex-1">
                   &ldquo;{t.quote}&rdquo;
                 </blockquote>
                 <div className="flex items-center gap-3">
@@ -907,7 +907,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                     <p className="text-sm font-bold text-gray-900 font-heading">
                       {t.name}
                     </p>
-                    <p className="text-xs text-gray-400 font-body">{t.detail}</p>
+                    <p className="text-xs text-gray-400 font-secondary">{t.detail}</p>
                   </div>
                 </div>
               </motion.div>
@@ -935,7 +935,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
               <div className="absolute top-7 right-7 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg">
-                <p className="text-xs text-gray-400 font-body font-semibold uppercase tracking-wider">
+                <p className="text-xs text-gray-400 font-secondary font-semibold uppercase tracking-wider">
                   Certified
                 </p>
                 <p className="text-sm font-bold text-gray-900 font-heading mt-0.5">
@@ -946,7 +946,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                 <p className="text-white font-heading font-bold text-xl">
                   Sarah Chen
                 </p>
-                <p className="text-white/60 font-body text-sm mt-1">
+                <p className="text-white/60 font-secondary text-sm mt-1">
                   Lead Teacher & School Director
                 </p>
               </div>
@@ -960,7 +960,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-body uppercase tracking-wider">
+            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary uppercase tracking-wider">
               Meet the Team
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading leading-tight">
@@ -968,12 +968,12 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               <br />
               <em className="text-primary not-italic">know your child.</em>
             </h2>
-            <p className="text-base text-gray-600 leading-relaxed font-body">
+            <p className="text-base text-gray-600 leading-relaxed font-secondary">
               Sarah holds an AMI Montessori certification and has spent 11 years
               in mixed-age classrooms. She founded Greenbrook after watching
               bright children wilt under the pressure of traditional schooling.
             </p>
-            <p className="text-base text-gray-600 leading-relaxed font-body">
+            <p className="text-base text-gray-600 leading-relaxed font-secondary">
               Our teacher-to-student ratio never exceeds 1:6. Every adult in the
               building knows every child — their interests, their frustrations,
               their spark.
@@ -987,18 +987,18 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               ].map((cred) => (
                 <span
                   key={cred}
-                  className="bg-sage-50 text-sage-700 px-4 py-2 rounded-full text-sm font-semibold font-body border border-sage-100"
+                  className="bg-sage-50 text-sage-700 px-4 py-2 rounded-full text-sm font-semibold font-secondary border border-sage-100"
                 >
                   {cred}
                 </span>
               ))}
             </div>
             <div className="bg-primary/8 rounded-2xl border-l-4 border-primary p-6">
-              <p className="text-sm text-gray-700 font-body leading-relaxed">
+              <p className="text-sm text-gray-700 font-secondary leading-relaxed">
                 &ldquo;I don&apos;t teach subjects. I teach children. The
                 subjects are just the vehicle.&rdquo;
               </p>
-              <p className="text-xs text-gray-400 font-body mt-2 uppercase tracking-wider">
+              <p className="text-xs text-gray-400 font-secondary mt-2 uppercase tracking-wider">
                 — Sarah Chen, Director
               </p>
             </div>
@@ -1025,7 +1025,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           viewport={{ once: true }}
           transition={{ duration: 0.9, ease: "easeOut" as const }}
         >
-          <p className="text-primary/80 font-semibold text-xs uppercase tracking-widest font-body mb-7">
+          <p className="text-primary/80 font-semibold text-xs uppercase tracking-widest font-secondary mb-7">
             Our Vision
           </p>
           <h2 className="text-5xl md:text-6xl lg:text-7xl font-heading font-bold text-white leading-tight mb-8">
@@ -1033,17 +1033,17 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             <br />
             Into Their Wisest Selves
           </h2>
-          <p className="text-lg text-white/55 font-body max-w-2xl mx-auto mb-12 leading-relaxed">
+          <p className="text-lg text-white/55 font-secondary max-w-2xl mx-auto mb-12 leading-relaxed">
             Every child arrives as a seed of endless possibility. We are the
             field — the safe, nourishing ground where they root, reach, and
             bloom.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            <button className="px-8 py-4 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl font-body transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
+            <button className="px-8 py-4 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
               Schedule a Tour
               <ArrowRight className="w-4 h-4" />
             </button>
-            <button className="px-8 py-4 bg-white/10 hover:bg-white/18 text-white font-semibold rounded-xl font-body transition-all duration-200 border border-white/25 cursor-pointer">
+            <button className="px-8 py-4 bg-white/10 hover:bg-white/18 text-white font-semibold rounded-xl font-secondary transition-all duration-200 border border-white/25 cursor-pointer">
               Read Our Philosophy
             </button>
           </div>
@@ -1060,13 +1060,13 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-body mb-5 uppercase tracking-wider">
+            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
               Our Curriculum
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-4">
               Four pillars. One whole child.
             </h2>
-            <p className="text-gray-500 font-body text-lg max-w-xl mx-auto">
+            <p className="text-gray-500 font-secondary text-lg max-w-xl mx-auto">
               We take what works best from each method — and weave it into a
               coherent, joyful day.
             </p>
@@ -1089,7 +1089,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                 <h3 className="text-xl font-bold text-gray-900 font-heading mb-3">
                   {pillar.title}
                 </h3>
-                <p className="text-sm text-gray-500 font-body leading-relaxed">
+                <p className="text-sm text-gray-500 font-secondary leading-relaxed">
                   {pillar.desc}
                 </p>
               </motion.div>
@@ -1135,13 +1135,13 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-primary/20 text-primary text-xs font-semibold rounded-full font-body mb-7 uppercase tracking-wider self-start">
+            <span className="inline-block px-5 py-2 bg-primary/20 text-primary text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider self-start">
               Enrollment Open
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-4 leading-tight">
               Claim your child&apos;s spot.
             </h2>
-            <p className="text-white/55 font-body text-base mb-10 leading-relaxed">
+            <p className="text-white/55 font-secondary text-base mb-10 leading-relaxed">
               We keep classes at 12 students maximum. Fill out the form — we
               respond within 48 hours to schedule your private tour.
             </p>
@@ -1160,7 +1160,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                   <p className="text-white text-2xl font-heading font-bold mb-3">
                     We&apos;ll be in touch!
                   </p>
-                  <p className="text-white/50 font-body">
+                  <p className="text-white/50 font-secondary">
                     Expect a reply within 48 hours to schedule your tour.
                   </p>
                 </motion.div>
@@ -1181,7 +1181,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                       setFormData((p) => ({ ...p, name: e.target.value }))
                     }
                     required
-                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-body focus:outline-none focus:border-primary transition-colors duration-200 text-base"
+                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-primary transition-colors duration-200 text-base"
                   />
                   <input
                     type="email"
@@ -1191,7 +1191,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                       setFormData((p) => ({ ...p, email: e.target.value }))
                     }
                     required
-                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-body focus:outline-none focus:border-primary transition-colors duration-200 text-base"
+                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-primary transition-colors duration-200 text-base"
                   />
                   <select
                     value={formData.program}
@@ -1199,7 +1199,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                       setFormData((p) => ({ ...p, program: e.target.value }))
                     }
                     required
-                    className="w-full px-5 py-4 rounded-xl bg-sage-800 border border-white/15 text-white font-body focus:outline-none focus:border-primary transition-colors duration-200 appearance-none cursor-pointer text-base"
+                    className="w-full px-5 py-4 rounded-xl bg-sage-800 border border-white/15 text-white font-secondary focus:outline-none focus:border-primary transition-colors duration-200 appearance-none cursor-pointer text-base"
                   >
                     <option value="" disabled>
                       Select a program...
@@ -1210,11 +1210,11 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                   </select>
                   <button
                     type="submit"
-                    className="w-full py-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl font-body transition-all duration-200 shadow-xl hover:shadow-2xl text-base cursor-pointer mt-2"
+                    className="w-full py-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl text-base cursor-pointer mt-2"
                   >
                     Submit Interest Form
                   </button>
-                  <p className="text-center text-white/25 font-body text-xs pt-1">
+                  <p className="text-center text-white/25 font-secondary text-xs pt-1">
                     No commitment. We&apos;ll reach out within 48 hours.
                   </p>
                 </motion.form>
@@ -1234,13 +1234,13 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-body mb-5 uppercase tracking-wider">
+            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
               FAQ
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-4">
               Questions parents ask
             </h2>
-            <p className="text-gray-500 font-body text-lg max-w-lg">
+            <p className="text-gray-500 font-secondary text-lg max-w-lg">
               Considering microschool for the first time? These are the most
               common things families want to know.
             </p>
@@ -1287,7 +1287,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                       transition={{ duration: 0.3, ease: "easeInOut" as const }}
                       className="overflow-hidden"
                     >
-                      <p className="pb-7 text-gray-500 font-body text-base leading-relaxed">
+                      <p className="pb-7 text-gray-500 font-secondary text-base leading-relaxed">
                         {faq.a}
                       </p>
                     </motion.div>
@@ -1309,7 +1309,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                 Greenbrook Academy
               </span>
             </div>
-            <p className="text-white/35 font-body text-sm">
+            <p className="text-white/35 font-secondary text-sm">
               A microschool for curious, growing minds.
             </p>
           </div>
@@ -1321,7 +1321,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               (link) => (
                 <button
                   key={link}
-                  className="text-white/40 hover:text-white font-body text-sm transition-colors duration-200 cursor-pointer"
+                  className="text-white/40 hover:text-white font-secondary text-sm transition-colors duration-200 cursor-pointer"
                 >
                   {link}
                 </button>
@@ -1338,7 +1338,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             </button>
           </div>
 
-          <p className="text-center text-white/20 font-body text-xs">
+          <p className="text-center text-white/20 font-secondary text-xs">
             © 2026 Greenbrook Academy Demo &nbsp;·&nbsp; Powered by SchoolStack
           </p>
         </div>
