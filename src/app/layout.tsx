@@ -38,9 +38,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "SchoolLayer — The complete operating system for microschools",
+  title: "MudKitchen — The complete operating system for microschools",
   description:
-    "SchoolLayer was built inside a real microschool to replace the 7 tools founders are stitching together. One system for enrollment, billing, parent communication, and daily operations.",
+    "MudKitchen was built inside a real microschool to replace the 7 tools founders are stitching together. One system for enrollment, billing, parent communication, and daily operations.",
 };
 
 export default function RootLayout({

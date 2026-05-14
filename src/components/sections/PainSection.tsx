@@ -2,6 +2,18 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import {
+  UserPlus,
+  CreditCard,
+  Receipt,
+  MessageSquare,
+  FilePen,
+  CalendarDays,
+  FolderOpen,
+  Users,
+  BarChart2,
+  Globe,
+} from "lucide-react";
 import { FadeInView } from "@/components/ui/FadeInView";
 
 // SVG coordinate space: 1000 × 680, center at (500, 340)
@@ -38,6 +50,7 @@ const PAIRS = [
     tool: "Google Forms",
     logo: "/images/competitors/GoogleForms.png",
     feature: "Enrollment",
+    icon: UserPlus,
     outer: { x: 500, y: 100 },
     inner: { x: 500, y: 235 },
     delay: 0,
@@ -46,6 +59,7 @@ const PAIRS = [
     tool: "Venmo",
     logo: "/images/competitors/Venmo.png",
     feature: "Payments",
+    icon: CreditCard,
     outer: { x: 740, y: 168 },
     inner: { x: 582, y: 255 },
     delay: 0.2,
@@ -54,6 +68,7 @@ const PAIRS = [
     tool: "PayPal",
     logo: "/images/competitors/Paypal.svg",
     feature: "Billing",
+    icon: Receipt,
     outer: { x: 876, y: 253 },
     inner: { x: 633, y: 308 },
     delay: 0.4,
@@ -62,6 +77,7 @@ const PAIRS = [
     tool: "Gmail",
     logo: "/images/competitors/Gmail.png",
     feature: "Messaging",
+    icon: MessageSquare,
     outer: { x: 876, y: 427 },
     inner: { x: 633, y: 372 },
     delay: 0.6,
@@ -70,6 +86,7 @@ const PAIRS = [
     tool: "DocuSign",
     logo: "/images/competitors/DocuSign.png",
     feature: "Contracts",
+    icon: FilePen,
     outer: { x: 740, y: 512 },
     inner: { x: 582, y: 425 },
     delay: 0.8,
@@ -78,6 +95,7 @@ const PAIRS = [
     tool: "Calendly",
     logo: "/images/competitors/Calendly.webp",
     feature: "Calendar",
+    icon: CalendarDays,
     outer: { x: 500, y: 580 },
     inner: { x: 500, y: 445 },
     delay: 1.0,
@@ -86,6 +104,7 @@ const PAIRS = [
     tool: "Google Drive",
     logo: "/images/competitors/GoogleDrive.png",
     feature: "Files",
+    icon: FolderOpen,
     outer: { x: 260, y: 512 },
     inner: { x: 418, y: 425 },
     delay: 0.8,
@@ -94,6 +113,7 @@ const PAIRS = [
     tool: "Google Docs",
     logo: "/images/competitors/GoogleDocs.png",
     feature: "Staff",
+    icon: Users,
     outer: { x: 124, y: 427 },
     inner: { x: 367, y: 372 },
     delay: 0.6,
@@ -102,6 +122,7 @@ const PAIRS = [
     tool: "Google Sheets",
     logo: "/images/competitors/GoogleSheets.png",
     feature: "Reports",
+    icon: BarChart2,
     outer: { x: 124, y: 253 },
     inner: { x: 367, y: 308 },
     delay: 0.4,
@@ -110,6 +131,7 @@ const PAIRS = [
     tool: "Wix",
     logo: "/images/competitors/Wix.png",
     feature: "Website",
+    icon: Globe,
     outer: { x: 260, y: 168 },
     inner: { x: 418, y: 255 },
     delay: 0.2,
@@ -243,7 +265,7 @@ export default function PainSection() {
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="flex flex-col items-center gap-1">
                     <Image
-                      src="/images/SchoolLayerLogo.png"
+                      src="/images/Logo.png"
                       alt="MudKitchen"
                       width={60}
                       height={60}
@@ -270,7 +292,7 @@ export default function PainSection() {
                       }}
                     >
                       <motion.span
-                        className="block rounded-pill bg-text text-[8px] md:text-[10px] lg:text-[11px] text-white font-medium px-1.5 md:px-2.5 lg:px-3 py-0.5 md:py-1 whitespace-nowrap shadow-sm"
+                        className="flex items-center gap-1 rounded-pill bg-text text-[8px] md:text-[10px] lg:text-[11px] text-white font-medium px-1.5 md:px-2.5 lg:px-3 py-0.5 md:py-1 whitespace-nowrap shadow-sm"
                         animate={{ opacity: [0.7, 1, 0.7] }}
                         transition={{
                           duration: 2.8,
@@ -279,6 +301,7 @@ export default function PainSection() {
                           delay: p.delay + 0.7,
                         }}
                       >
+                        <p.icon size={9} className="shrink-0 md:w-[11px] md:h-[11px]" />
                         {p.feature}
                       </motion.span>
                     </div>

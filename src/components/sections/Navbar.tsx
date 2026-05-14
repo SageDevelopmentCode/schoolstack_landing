@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Info, Layers, Tag } from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "About", href: "#about" },
-  { label: "Product", href: "#product" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "About",   href: "#about",   icon: Info },
+  { label: "Product", href: "#product", icon: Layers },
+  { label: "Pricing", href: "#pricing", icon: Tag },
 ];
 
 export default function Navbar() {
@@ -78,8 +79,9 @@ export default function Navbar() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm font-medium text-text-muted hover:text-text transition-colors duration-150"
+                  className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text transition-colors duration-150"
                 >
+                  <link.icon size={14} className="shrink-0" />
                   {link.label}
                 </a>
               ))}
@@ -175,8 +177,9 @@ export default function Navbar() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setDrawerOpen(false)}
-                    className="text-[17px] font-medium text-text-muted hover:text-text py-3 border-b border-border transition-colors duration-150"
+                    className="flex items-center gap-2 text-[17px] font-medium text-text-muted hover:text-text py-3 border-b border-border transition-colors duration-150"
                   >
+                    <link.icon size={16} className="shrink-0" />
                     {link.label}
                   </a>
                 ))}
