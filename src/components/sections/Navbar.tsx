@@ -99,7 +99,7 @@ export default function Navbar() {
             {/* Desktop CTA */}
             <div className="hidden md:flex">
               <a
-                href="#demo"
+                href="/get-started"
                 className="inline-flex items-center gap-1.5 bg-clay text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
               >
                 Book a Demo
@@ -205,7 +205,7 @@ export default function Navbar() {
               </nav>
               <div className="mt-8">
                 <a
-                  href="#demo"
+                  href="/get-started"
                   onClick={() => setDrawerOpen(false)}
                   className="flex items-center justify-center gap-2 bg-clay text-white text-sm font-medium rounded-pill h-12 w-full hover:opacity-90 transition-all duration-200"
                 >

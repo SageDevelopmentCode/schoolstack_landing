@@ -52,7 +52,7 @@ export default function CustomSection() {
         <FadeInView delay={0.26}>
           <div className="mt-10">
             <a
-              href="#demo"
+              href="/get-started"
               className="inline-flex items-center gap-2 bg-accent text-white rounded-pill px-7 h-12 text-sm font-medium font-secondary hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-200 shadow-xs"
             >
               Tell us what you need

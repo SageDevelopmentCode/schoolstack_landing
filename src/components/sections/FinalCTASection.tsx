@@ -28,7 +28,7 @@ export default function FinalCTASection() {
         <FadeInView delay={0.18}>
           <div className="mt-10">
             <a
-              href="#"
+              href="/get-started"
               className="inline-flex items-center gap-2 rounded-pill px-8 h-12 text-sm font-medium font-secondary hover:-translate-y-0.5 transition-all duration-200"
               style={{
                 backgroundColor: '#A05C45',

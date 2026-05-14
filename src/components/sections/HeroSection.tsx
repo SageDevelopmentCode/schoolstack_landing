@@ -128,7 +128,7 @@ export default function HeroSection() {
             className="flex justify-center items-center gap-4 mt-8"
           >
             <a
-              href="#demo"
+              href="/get-started"
               className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
             >
               Book a Demo

@@ -55,7 +55,7 @@ const STEPS: Step[] = [
     body: "Walk through your actual processes with the founder who runs a real microschool.",
     cta: "Book a Live Demo",
     footnote: "30 min · No pressure",
-    href: "#demo",
+    href: "/get-started",
   },
   {
     number: "04",

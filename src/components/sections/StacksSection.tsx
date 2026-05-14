@@ -62,7 +62,7 @@ export default function StacksSection() {
 
             <div className="mt-8">
               <a
-                href="#demo"
+                href="/get-started"
                 className="flex items-center justify-center gap-2 rounded-pill h-11 text-sm font-medium font-secondary bg-clay text-white hover:opacity-90 shadow-xs transition-all duration-200 hover:-translate-y-0.5"
               >
                 Book a Demo
@@ -88,7 +88,7 @@ export default function StacksSection() {
               We also offer tailored configurations for growing teams.
             </p>
             <a
-              href="#demo"
+              href="/get-started"
               className="inline-flex items-center gap-1.5 mt-3 text-[14px] text-accent hover:text-accent-hover underline underline-offset-2 transition-colors"
             >
               Talk About Your School
