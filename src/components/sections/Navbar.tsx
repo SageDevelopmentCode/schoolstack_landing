@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Info, Layers, Tag } from "lucide-react";
+import { Info, Layers, Users } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "About",   href: "#about",   icon: Info },
   { label: "Product", href: "#product", icon: Layers },
-  { label: "Pricing", href: "#pricing", icon: Tag },
 ];
 
 export default function Navbar() {
@@ -37,6 +36,7 @@ export default function Navbar() {
       document.body.style.overflow = "";
     };
   }, [drawerOpen]);
+
 
   return (
     <>
@@ -85,6 +85,15 @@ export default function Navbar() {
                   {link.label}
                 </a>
               ))}
+
+              {/* Customers link */}
+              <a
+                href="/customers"
+                className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text transition-colors duration-150"
+              >
+                <Users size={14} className="shrink-0" />
+                Customers
+              </a>
             </nav>
 
             {/* Desktop CTA */}
@@ -183,6 +192,16 @@ export default function Navbar() {
                     {link.label}
                   </a>
                 ))}
+
+                {/* Customers link */}
+                <a
+                  href="/customers"
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex items-center gap-2 text-[17px] font-medium text-text-muted hover:text-text py-3 border-b border-border transition-colors duration-150"
+                >
+                  <Users size={16} className="shrink-0" />
+                  Customers
+                </a>
               </nav>
               <div className="mt-8">
                 <a
