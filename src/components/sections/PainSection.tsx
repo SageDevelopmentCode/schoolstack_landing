@@ -144,25 +144,43 @@ export default function PainSection() {
       {/* Heading */}
       <div className="max-w-[680px] mx-auto px-6 text-center">
         <FadeInView>
+          <p className="text-[13px] font-medium uppercase tracking-widest text-text-muted mb-4">
+            Too many tools
+          </p>
           <h2 className="font-display text-[clamp(2rem,4vw,3rem)] leading-[1.05] text-text">
-            Too big for spreadsheets.
-            <br />
-            <em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>Too small for enterprise.</em>
+            When your school runs in five different places,{" "}
+            <em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>everything feels harder.</em>
           </h2>
         </FadeInView>
 
         <FadeInView delay={0.1}>
           <p className="text-[17px] text-text-muted leading-relaxed mt-6 max-w-[58ch] mx-auto">
-            That&apos;s where founders end up stitching together Google Forms,
-            Venmo, Stripe, Gmail, PDFs, and notes just to keep the school
-            moving. You built something special. The infrastructure should not
-            be the part that holds it back.
+            Enrollment lives in a form builder. Parent updates happen in texts
+            and email. Student details sit in spreadsheets. Important tasks
+            depend on memory. Mud Kitchen pulls those moving pieces into one
+            shared system, so your team always knows where things live and what
+            needs attention next.
           </p>
         </FadeInView>
       </div>
 
-      {/* Hub visual — wider than the text */}
+      {/* CTA */}
       <FadeInView delay={0.15}>
+        <div className="mt-8 flex justify-center">
+          <a
+            href="/get-started"
+            className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
+          >
+            Book a Demo
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+        </div>
+      </FadeInView>
+
+      {/* Hub visual — wider than the text */}
+      <FadeInView delay={0.2}>
         <div className="mt-14 w-full max-w-[1200px] mx-auto px-4 md:px-8 select-none">
           <div
             className="relative w-full"
@@ -312,6 +330,7 @@ export default function PainSection() {
           </div>
         </div>
       </FadeInView>
+
     </section>
   );
 }

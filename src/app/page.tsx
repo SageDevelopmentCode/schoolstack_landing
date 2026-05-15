@@ -1,6 +1,7 @@
 import Navbar from '@/components/sections/Navbar'
 import HeroSection from '@/components/sections/HeroSection'
 import PainSection from '@/components/sections/PainSection'
+import FamilyClaritySection from '@/components/sections/FamilyClaritySection'
 import FounderStorySection from '@/components/sections/FounderStorySection'
 import ProductPreviewSection from '@/components/sections/ProductPreviewSection'
 import WorkflowSection from '@/components/sections/WorkflowSection'
@@ -19,6 +20,7 @@ export default function Home() {
         <HeroSection />
         <ProductPreviewSection />
         <PainSection />
+        <FamilyClaritySection />
         <WorkflowSection />
         <StacksSection />
         {/* <MicroschoolsSection /> */}
