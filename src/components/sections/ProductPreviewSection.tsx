@@ -139,7 +139,7 @@ export default function ProductPreviewSection() {
   }
 
   return (
-    <section id="product" className="relative overflow-hidden bg-surface-soft py-24">
+    <section id="product" className="relative overflow-hidden bg-surface py-24">
 
       {/* ── Left cluster ── */}
       {/* Notebook — top-left */}
@@ -299,7 +299,7 @@ export default function ProductPreviewSection() {
           </div>
 
           {/* Product frame */}
-          <div className="mt-6 w-full h-[420px] md:h-[600px] lg:h-[700px] rounded-xl shadow-lg overflow-hidden relative bg-surface-soft">
+          <div className="mt-6 w-full h-[420px] md:h-[600px] lg:h-[700px] rounded-xl shadow-lg overflow-hidden relative bg-surface">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

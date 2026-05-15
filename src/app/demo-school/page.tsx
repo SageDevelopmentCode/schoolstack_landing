@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CalendarDays, School } from "lucide-react";
+import { ArrowRight, CalendarDays, School, LayoutDashboard, BookOpen, Users } from "lucide-react";
 import Navbar from "@/components/sections/Navbar";
 import Footer from "@/components/sections/Footer";
 
@@ -22,21 +22,24 @@ const ParentDashboardDemo = dynamic(
 
 type TabId = "admin" | "teacher" | "parent";
 
-const TABS: { id: TabId; label: string; description: string }[] = [
+const TABS: { id: TabId; label: string; description: string; icon: React.ElementType }[] = [
   {
     id: "admin",
     label: "Admin View",
     description: "Enrollment, billing, reporting & school operations",
+    icon: LayoutDashboard,
   },
   {
     id: "teacher",
     label: "Teacher View",
     description: "Attendance, lesson plans, hours & communication",
+    icon: BookOpen,
   },
   {
     id: "parent",
     label: "Parent View",
     description: "Forms, payments, messages & daily updates",
+    icon: Users,
   },
 ];
 
@@ -89,12 +92,13 @@ export default function DemoSchoolPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className="relative px-4 py-2 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200 cursor-pointer"
+                  className="relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200 cursor-pointer"
                   style={{
                     color: isActive ? "#ffffff" : "rgba(42,31,26,0.5)",
                     backgroundColor: isActive ? "#A05C45" : "transparent",
                   }}
                 >
+                  <tab.icon size={13} />
                   {tab.label}
                 </button>
               );
