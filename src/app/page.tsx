@@ -1,19 +1,19 @@
+import dynamic from 'next/dynamic'
 import Navbar from '@/components/sections/Navbar'
 import HeroSection from '@/components/sections/HeroSection'
-import PainSection from '@/components/sections/PainSection'
-import FamilyClaritySection from '@/components/sections/FamilyClaritySection'
-import AdminGrowthSection from '@/components/sections/AdminGrowthSection'
-import TeacherSupportSection from '@/components/sections/TeacherSupportSection'
-import RightSizedSection from '@/components/sections/RightSizedSection'
-import FounderStorySection from '@/components/sections/FounderStorySection'
 import ProductPreviewSection from '@/components/sections/ProductPreviewSection'
-import WorkflowSection from '@/components/sections/WorkflowSection'
-import StacksSection from '@/components/sections/StacksSection'
-import MicroschoolsSection from '@/components/sections/MicroschoolsSection'
-import CustomSection from '@/components/sections/CustomSection'
-import FinalCTASection from '@/components/sections/FinalCTASection'
-import Footer from '@/components/sections/Footer'
-import FloatingQuestionButton from '@/components/sections/FloatingQuestionButton'
+
+const PainSection = dynamic(() => import('@/components/sections/PainSection'))
+const FamilyClaritySection = dynamic(() => import('@/components/sections/FamilyClaritySection'))
+const AdminGrowthSection = dynamic(() => import('@/components/sections/AdminGrowthSection'))
+const TeacherSupportSection = dynamic(() => import('@/components/sections/TeacherSupportSection'))
+const WorkflowSection = dynamic(() => import('@/components/sections/WorkflowSection'))
+const StacksSection = dynamic(() => import('@/components/sections/StacksSection'))
+const FounderStorySection = dynamic(() => import('@/components/sections/FounderStorySection'))
+const CustomSection = dynamic(() => import('@/components/sections/CustomSection'))
+const FinalCTASection = dynamic(() => import('@/components/sections/FinalCTASection'))
+const Footer = dynamic(() => import('@/components/sections/Footer'))
+const FloatingQuestionButton = dynamic(() => import('@/components/sections/FloatingQuestionButton'))
 
 export default function Home() {
   return (
