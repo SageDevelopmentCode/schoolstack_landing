@@ -4,6 +4,7 @@ import PainSection from '@/components/sections/PainSection'
 import FamilyClaritySection from '@/components/sections/FamilyClaritySection'
 import AdminGrowthSection from '@/components/sections/AdminGrowthSection'
 import TeacherSupportSection from '@/components/sections/TeacherSupportSection'
+import RightSizedSection from '@/components/sections/RightSizedSection'
 import FounderStorySection from '@/components/sections/FounderStorySection'
 import ProductPreviewSection from '@/components/sections/ProductPreviewSection'
 import WorkflowSection from '@/components/sections/WorkflowSection'
@@ -25,6 +26,7 @@ export default function Home() {
         <FamilyClaritySection />
         <AdminGrowthSection />
         <TeacherSupportSection />
+        {/* <RightSizedSection /> */}
         <WorkflowSection />
         <StacksSection />
         {/* <MicroschoolsSection /> */}
