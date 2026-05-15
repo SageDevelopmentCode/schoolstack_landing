@@ -17,8 +17,8 @@ export default function Home() {
       <Navbar />
       <main>
         <HeroSection />
-        <PainSection />
         <ProductPreviewSection />
+        <PainSection />
         <WorkflowSection />
         <StacksSection />
         {/* <MicroschoolsSection /> */}

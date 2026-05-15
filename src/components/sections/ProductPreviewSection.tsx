@@ -127,26 +127,61 @@ export default function ProductPreviewSection() {
   }
 
   return (
-    <section id="product" className="bg-bg py-24">
+    <section id="product" className="bg-surface-soft py-24">
       <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
 
         {/* Top content */}
-        <div className="max-w-[680px] mx-auto text-center mb-12">
+        <div className="max-w-[720px] mx-auto text-center mb-16">
           <FadeInView>
-            <Badge>Product Tour</Badge>
+            <Badge>What is Mud Kitchen?</Badge>
           </FadeInView>
           <FadeInView delay={0.08}>
             <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.75rem)] leading-[1.05] text-text mt-5">
-              Built inside a{' '}
-              <em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>real microschool.</em>
+              One system for the work of running a microschool.
             </h2>
           </FadeInView>
           <FadeInView delay={0.16}>
-            <p className="text-[16px] text-text-muted leading-relaxed mt-4 max-w-[600px] mx-auto">
-              Click through the modules to see how MudKitchen handles the work
-              founders actually deal with every week: leads, enrollment, contracts,
-              family communication, billing, and staff operations in one system.
+            <p className="text-[16px] text-text-muted leading-relaxed mt-5 max-w-[640px] mx-auto">
+              Mud Kitchen brings{' '}
+              <strong className="text-text font-semibold">enrollment, family communication, student information, schedules,</strong>
+              {' '}and everyday operations{' '}
+              <em className="font-display text-[17px]" style={{ color: 'var(--color-accent)', fontStyle: 'italic' }}>into one place</em>
+              , so school teams can stay organized without relying on a patchwork of{' '}
+              <span className="line-through text-text-faint">spreadsheets, forms, inboxes, and apps.</span>
             </p>
+            <p className="text-[16px] text-text-muted leading-relaxed mt-4 max-w-[640px] mx-auto">
+              It is designed for the way{' '}
+              <strong className="text-text font-semibold">small schools actually work</strong>
+              {' '}—{' '}
+              <span style={{ color: 'var(--color-clay)' }}>high-touch, fast-moving, relationship-centered</span>
+              , and too often stuck stitching together tools that were never built for them.
+            </p>
+          </FadeInView>
+
+          {/* Bullet cards */}
+          <FadeInView delay={0.22}>
+            <ul className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+              {[
+                { title: 'One place', body: 'for the work your team touches every day.' },
+                { title: 'Clearer experience', body: 'for families from day one.' },
+                { title: 'Less friction', body: 'as your school grows.' },
+              ].map((item) => (
+                <li
+                  key={item.title}
+                  className="flex flex-col gap-2 rounded-xl px-5 py-4 border border-border bg-surface shadow-xs"
+                >
+                  <span className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-accent)' }}>
+                    <svg width="10" height="10" viewBox="0 0 8 8" fill="none">
+                      <path d="M1.5 4L3.5 6L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                  <p className="text-[15px] leading-snug">
+                    <strong className="font-semibold text-text">{item.title}</strong>{' '}
+                    <span className="text-text-muted">{item.body}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
           </FadeInView>
         </div>
 
