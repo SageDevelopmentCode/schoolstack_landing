@@ -45,7 +45,7 @@ const STEPS: Step[] = [
     body: "Click through enrollment, billing, and parent communication like it's your own school.",
     cta: "Explore the Demo School",
     footnote: "No account needed",
-    href: "#",
+    href: "/demo-school",
   },
   {
     number: "03",

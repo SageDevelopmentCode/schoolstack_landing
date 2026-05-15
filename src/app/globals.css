@@ -88,6 +88,7 @@ p {
 
 button {
   font-family: var(--font-secondary);
+  cursor: pointer;
 }
 
 /* Reset heading styles inside the parent dashboard demo shell */
