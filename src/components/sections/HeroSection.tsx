@@ -56,7 +56,7 @@ export default function HeroSection() {
     <section
       className="pt-[140px] pb-0 overflow-hidden"
       style={{
-        backgroundColor: t ? '#F7F1E7' : demoTab === 'admin' ? '#2E4A3C' : '#2E4A3C',
+        backgroundColor: t ? '#F7F1E7' : demoTab === 'admin' ? '#1a3327' : '#2E4A3C',
         transition: 'background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >

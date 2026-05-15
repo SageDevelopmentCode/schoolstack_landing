@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import { LucideIcon, Globe, ClipboardList, CreditCard, CalendarCheck, Clock, Megaphone, LayoutDashboard } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { FadeInView } from '@/components/ui/FadeInView'
@@ -126,8 +127,68 @@ export default function ProductPreviewSection() {
     }
   }
 
+  function illVariant(dir: 1 | -1, delay: number) {
+    return {
+      hidden: { opacity: 0, x: dir * 36 },
+      visible: {
+        opacity: 1,
+        x: 0,
+        transition: { duration: 0.85, ease: [0.16, 1, 0.3, 1] as const, delay },
+      },
+    }
+  }
+
   return (
-    <section id="product" className="bg-surface-soft py-24">
+    <section id="product" className="relative overflow-hidden bg-surface-soft py-24">
+
+      {/* ── Left cluster ── */}
+      {/* Notebook — top-left */}
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={illVariant(-1, 0.2)}
+        className="absolute top-6 left-[-150px] z-0 pointer-events-none select-none hidden lg:block"
+      >
+        <Image src="/images/illustrations/Notebook.png" alt="" aria-hidden width={340} height={340} style={{ opacity: 0.88 }} />
+      </motion.div>
+
+      {/* Backpack — mid-left, lower and pulled in a bit more */}
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={illVariant(-1, 0.38)}
+        className="absolute top-[310px] left-[-100px] z-0 pointer-events-none select-none hidden lg:block"
+      >
+        <Image src="/images/illustrations/Backpack.png" alt="" aria-hidden width={240} height={240} style={{ opacity: 0.82 }} />
+      </motion.div>
+
+      {/* ── Frame-level cluster ── */}
+      {/* Letters — bottom-left corner */}
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={illVariant(-1, 0.55)}
+        className="absolute bottom-[80px] left-[-70px] z-0 pointer-events-none select-none hidden lg:block"
+        style={{ rotate: '-8deg' }}
+      >
+        <Image src="/images/illustrations/Letters.png" alt="" aria-hidden width={260} height={260} style={{ opacity: 0.82 }} />
+      </motion.div>
+
+      {/* Pastel — bottom-right corner */}
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        variants={illVariant(1, 0.65)}
+        className="absolute bottom-0 right-[-80px] z-0 pointer-events-none select-none hidden lg:block"
+        style={{ rotate: '7deg' }}
+      >
+        <Image src="/images/illustrations/Pastel.png" alt="" aria-hidden width={260} height={260} style={{ opacity: 0.82 }} />
+      </motion.div>
+
       <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
 
         {/* Top content */}

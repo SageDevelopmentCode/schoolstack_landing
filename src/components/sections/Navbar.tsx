@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Info, Layers, Users } from "lucide-react";
 
@@ -10,21 +10,7 @@ const NAV_LINKS = [
 ];
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const current = window.scrollY;
-      // Hysteresis: enter pill at 60px, leave only when near top (< 15px)
-      if (current > 60) setScrolled(true);
-      else if (current < 15) setScrolled(false);
-      lastScrollY.current = current;
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   useEffect(() => {
     if (drawerOpen) {
@@ -40,22 +26,13 @@ export default function Navbar() {
 
   return (
     <>
-      <header
-        className={`fixed left-0 right-0 z-[200] flex justify-center transition-[padding] duration-300 font-secondary ${scrolled ? "pt-[10px]" : "pt-0"}`}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={scrolled ? "pill" : "full"}
-            className={`flex items-center justify-between w-full gap-8 ${
-              scrolled
-                ? "max-w-[860px] h-14 px-7 rounded-[18px] bg-white shadow-[0_4px_28px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.07)]"
-                : "max-w-[1280px] h-16 px-6 lg:px-16"
-            }`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: "easeInOut" }}
-          >
+      <header className="fixed left-0 right-0 z-[200] flex justify-center pt-[10px] font-secondary">
+        <motion.div
+          className="flex items-center justify-between w-full gap-8 max-w-[860px] h-14 px-7 rounded-[18px] bg-white shadow-[0_4px_28px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.07)]"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        >
             {/* Logo */}
             <a href="/" className="flex items-center gap-2 shrink-0">
               <img
@@ -131,8 +108,7 @@ export default function Navbar() {
               <span className="w-5 h-[1.5px] bg-text-muted block" />
               <span className="w-3.5 h-[1.5px] bg-text-muted block self-start" />
             </button>
-          </motion.div>
-        </AnimatePresence>
+        </motion.div>
       </header>
 
       {/* Mobile drawer */}
