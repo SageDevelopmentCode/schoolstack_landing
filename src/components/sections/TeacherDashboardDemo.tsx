@@ -1979,7 +1979,7 @@ const DEMO_CONVOS: DemoConvo[] = [
   },
   {
     id: "c4",
-    name: "Sage Field Office",
+    name: "Mud Kitchen Office",
     role: "Admin",
     color: "#4a7c59",
     lastMsg: "PD day reminder: May 2nd, no students.",
@@ -4863,11 +4863,12 @@ export default function TeacherDashboardDemo({
   }, []);
 
   const handleTourMouseLeave = useCallback(() => {
+    if (disableTour) return;
     resumeTimerRef.current = setTimeout(() => {
       setTourStep(0);
       setIsTouring(true);
     }, TOUR_RESUME_MS);
-  }, []);
+  }, [disableTour]);
 
   return (
     <div
@@ -4903,7 +4904,7 @@ export default function TeacherDashboardDemo({
             {/* Logo */}
             <div className="shrink-0">
               <Image
-                src="/images/SchoolLayerLogo.png"
+                src="/images/Logo.png"
                 alt="SchoolLayer"
                 width={96}
                 height={32}

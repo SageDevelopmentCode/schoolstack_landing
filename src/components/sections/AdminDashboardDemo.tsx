@@ -2042,7 +2042,7 @@ function DashboardPage() {
           Dashboard
         </h1>
         <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-          Sagefield School — Spring / Summer 2026
+          Mud Kitchen School — Spring / Summer 2026
         </p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -5566,18 +5566,18 @@ const DEMO_EMAILS = [
   {
     id: "em1",
     to: "All Summer 2026 Families",
-    from: "admin@sagefield.co",
+    from: "admin@mudkitchen.co",
     subject: "Summer 2026 Orientation — May 20th Details",
     preview:
       "We are excited to welcome your family to our Summer 2026 orientation on May 20th at 9 AM...",
     date: "2 days ago",
-    body: `<p>Dear Summer 2026 Families,</p><p>We are thrilled to welcome you to our Summer 2026 Orientation on <strong>May 20th at 9:00 AM</strong> in the Main Hall.</p><p>Please bring a valid photo ID and your signed enrollment forms. Light refreshments will be provided.</p><p>If you have any questions, please do not hesitate to reach out.</p><p>Warm regards,<br/>Sagefield Admin Team</p>`,
+    body: `<p>Dear Summer 2026 Families,</p><p>We are thrilled to welcome you to our Summer 2026 Orientation on <strong>May 20th at 9:00 AM</strong> in the Main Hall.</p><p>Please bring a valid photo ID and your signed enrollment forms. Light refreshments will be provided.</p><p>If you have any questions, please do not hesitate to reach out.</p><p>Warm regards,<br/>Mud Kitchen Admin Team</p>`,
     attachments: ["orientation_agenda.pdf"],
   },
   {
     id: "em2",
     to: "sarah.r@email.com",
-    from: "admin@sagefield.co",
+    from: "admin@mudkitchen.co",
     subject: "Emma Richardson — April Progress Update",
     preview:
       "We wanted to share a quick update on Emma's wonderful progress this month...",
@@ -5588,62 +5588,62 @@ const DEMO_EMAILS = [
   {
     id: "em3",
     to: "All Enrolled Families",
-    from: "admin@sagefield.co",
+    from: "admin@mudkitchen.co",
     subject: "April Newsletter — Spring Events & Updates",
     preview:
       "Spring is here! Check out our upcoming events, curriculum highlights, and important dates...",
     date: "1 week ago",
-    body: `<p>Dear Sagefield Families,</p><h3>🌸 Spring Events</h3><ul><li>April 22 — Spring Field Trip</li><li>April 25 — Open House (11 AM – 2 PM)</li><li>May 8 — End-of-Year Showcase</li></ul><h3>📚 Curriculum Spotlight</h3><p>This month we're exploring nature journaling and community helpers. Students have been amazing!</p><p>Thank you for your continued support.</p><p>The Sagefield Team</p>`,
+    body: `<p>Dear Mud Kitchen Families,</p><h3>🌸 Spring Events</h3><ul><li>April 22 — Spring Field Trip</li><li>April 25 — Open House (11 AM – 2 PM)</li><li>May 8 — End-of-Year Showcase</li></ul><h3>📚 Curriculum Spotlight</h3><p>This month we're exploring nature journaling and community helpers. Students have been amazing!</p><p>Thank you for your continued support.</p><p>The Mud Kitchen Team</p>`,
     attachments: ["april_newsletter.pdf", "spring_calendar.pdf"],
   },
   {
     id: "em4",
     to: "diana@email.com",
-    from: "admin@sagefield.co",
+    from: "admin@mudkitchen.co",
     subject: "Re: Noah Foster — Summer Enrollment Confirmation",
     preview:
       "Hi Diana, confirming that Noah's enrollment for Summer 2026 is complete...",
     date: "1 week ago",
-    body: `<p>Hi Diana,</p><p>Great news — Noah's Summer 2026 enrollment is officially confirmed! Here's a summary:</p><ul><li><strong>Program:</strong> Summer 2026</li><li><strong>Start Date:</strong> May 26, 2026</li><li><strong>Classroom:</strong> Room A (Pre-K – 2nd)</li><li><strong>Teacher:</strong> Ms. Taylor Reyes</li></ul><p>We can't wait to see Noah flourish this summer!</p><p>Warm regards,<br/>Sagefield Admin</p>`,
+    body: `<p>Hi Diana,</p><p>Great news — Noah's Summer 2026 enrollment is officially confirmed! Here's a summary:</p><ul><li><strong>Program:</strong> Summer 2026</li><li><strong>Start Date:</strong> May 26, 2026</li><li><strong>Classroom:</strong> Room A (Pre-K – 2nd)</li><li><strong>Teacher:</strong> Ms. Taylor Reyes</li></ul><p>We can't wait to see Noah flourish this summer!</p><p>Warm regards,<br/>Mud Kitchen Admin</p>`,
     attachments: [],
   },
   {
     id: "em5",
     to: "All School Year Families",
-    from: "admin@sagefield.co",
+    from: "admin@mudkitchen.co",
     subject: "Important: Enrollment Closing April 30th",
     preview:
       "A reminder that open enrollment for School Year 2026–27 closes on April 30th...",
     date: "2 weeks ago",
-    body: `<p>Dear School Year Families,</p><p>This is a friendly reminder that <strong>open enrollment for School Year 2026–27 closes on April 30th</strong>.</p><p>If you have friends or family interested in Sagefield, please share our enrollment link before the deadline.</p><p>Current families: your spots are secured — no action needed.</p><p>Thank you!</p>`,
+    body: `<p>Dear School Year Families,</p><p>This is a friendly reminder that <strong>open enrollment for School Year 2026–27 closes on April 30th</strong>.</p><p>If you have friends or family interested in Mud Kitchen, please share our enrollment link before the deadline.</p><p>Current families: your spots are secured — no action needed.</p><p>Thank you!</p>`,
     attachments: [],
   },
   {
     id: "em6",
     to: "kokonkwo@email.com",
-    from: "admin@sagefield.co",
+    from: "admin@mudkitchen.co",
     subject: "Chidera Okonkwo — Application Status Update",
     preview:
       "We've received Chidera's application and our team is currently reviewing it...",
     date: "2 weeks ago",
-    body: `<p>Dear Kevin,</p><p>Thank you for submitting Chidera's application for the School Year 2026–27 program.</p><p>Our admissions team is currently reviewing the application. We aim to follow up within 5–7 business days.</p><p>In the meantime, feel free to reach out with any questions.</p><p>Best,<br/>Sagefield Admissions</p>`,
+    body: `<p>Dear Kevin,</p><p>Thank you for submitting Chidera's application for the School Year 2026–27 program.</p><p>Our admissions team is currently reviewing the application. We aim to follow up within 5–7 business days.</p><p>In the meantime, feel free to reach out with any questions.</p><p>Best,<br/>Mud Kitchen Admissions</p>`,
     attachments: [],
   },
   {
     id: "em7",
     to: "All Families",
-    from: "admin@sagefield.co",
+    from: "admin@mudkitchen.co",
     subject: "Open House Reminder — April 25th",
     preview:
       "Just a reminder about our Open House this Saturday from 11 AM to 2 PM...",
     date: "3 weeks ago",
-    body: `<p>Dear Sagefield Community,</p><p>Don't forget — our <strong>Spring Open House is this Saturday, April 25th from 11 AM to 2 PM</strong>!</p><p>Tours, Q&A with teachers, student art displays, and light refreshments.</p><p>Bring a friend who's curious about Sagefield — we'd love to meet them.</p><p>See you there!</p>`,
+    body: `<p>Dear Mud Kitchen Community,</p><p>Don't forget — our <strong>Spring Open House is this Saturday, April 25th from 11 AM to 2 PM</strong>!</p><p>Tours, Q&A with teachers, student art displays, and light refreshments.</p><p>Bring a friend who's curious about Mud Kitchen — we'd love to meet them.</p><p>See you there!</p>`,
     attachments: [],
   },
   {
     id: "em8",
     to: "All Staff",
-    from: "admin@sagefield.co",
+    from: "admin@mudkitchen.co",
     subject: "Staff Meeting Recap — April 7th",
     preview:
       "Thanks everyone for a productive planning session. Here are the key takeaways...",
@@ -5712,11 +5712,11 @@ const WIZARD_TEMPLATES = [
     defaultAudienceKey: "warm_leads",
     defaultAutomationName: "Fall Enrollment Drip – 2026",
     defaultSteps: [
-      { type: "email" as const, label: "Welcome Email", delay: "Immediately", subject: "You're one step closer to Sagefield", body: "Hi [First Name], thanks for reaching out! Here's everything you need to know about our programs." },
+      { type: "email" as const, label: "Welcome Email", delay: "Immediately", subject: "You're one step closer to Mud Kitchen", body: "Hi [First Name], thanks for reaching out! Here's everything you need to know about our programs." },
       { type: "wait" as const, label: "Wait 2 days", delay: "Day 2" },
       { type: "email" as const, label: "Program Guide", delay: "Day 2", subject: "Our programs, explained — which fits your child?", body: "We offer three learning tracks depending on age and learning style. Let's find the right fit." },
       { type: "wait" as const, label: "Wait 3 days", delay: "Day 5" },
-      { type: "email" as const, label: "Tour Invite", delay: "Day 5", subject: "Come see Sagefield in person", body: "Nothing beats seeing it for yourself. Book a campus tour at your convenience." },
+      { type: "email" as const, label: "Tour Invite", delay: "Day 5", subject: "Come see Mud Kitchen in person", body: "Nothing beats seeing it for yourself. Book a campus tour at your convenience." },
       { type: "sms" as const, label: "SMS Nudge", delay: "Day 8", subject: "SMS: Final reminder", body: "Hi [First Name]! Just a quick note — enrollment spots are filling up. Reply to this message or book your tour online." },
     ],
   },
@@ -5751,7 +5751,7 @@ const WIZARD_TEMPLATES = [
     defaultAudienceKey: "enrolled",
     defaultAutomationName: "New Family Welcome Series",
     defaultSteps: [
-      { type: "email" as const, label: "Welcome to the Family", delay: "Immediately", subject: "Welcome to Sagefield! 🎉", body: "We're so excited to have you with us. Here's everything you need to know before your first day." },
+      { type: "email" as const, label: "Welcome to the Family", delay: "Immediately", subject: "Welcome to Mud Kitchen! 🎉", body: "We're so excited to have you with us. Here's everything you need to know before your first day." },
       { type: "wait" as const, label: "Wait 3 days", delay: "Day 3" },
       { type: "email" as const, label: "Supply List & Schedule", delay: "Day 3", subject: "Your first-week checklist", body: "Here's what to bring, where to go, and who to contact. We want day one to be seamless." },
       { type: "email" as const, label: "Meet the Team", delay: "Day 7", subject: "Meet your teachers and staff", body: "Get to know the people who will be shaping your child's experience this year." },
@@ -5770,7 +5770,7 @@ const WIZARD_TEMPLATES = [
     defaultAudienceKey: "all_leads",
     defaultAutomationName: "Lead Re-engagement",
     defaultSteps: [
-      { type: "email" as const, label: "Check-In Email", delay: "Immediately", subject: "Still thinking about Sagefield?", body: "Hi [First Name], we noticed it's been a while. We'd love to answer any questions you might have." },
+      { type: "email" as const, label: "Check-In Email", delay: "Immediately", subject: "Still thinking about Mud Kitchen?", body: "Hi [First Name], we noticed it's been a while. We'd love to answer any questions you might have." },
       { type: "wait" as const, label: "Wait 5 days", delay: "Day 5" },
       { type: "sms" as const, label: "SMS Reactivation", delay: "Day 5", subject: "SMS: Last chance to connect", body: "Hi [First Name], enrollment for Fall 2026 closes soon. If you're still interested, we'd love to chat!" },
     ],
@@ -5790,7 +5790,7 @@ const WIZARD_TEMPLATES = [
     defaultSteps: [
       { type: "email" as const, label: "Waitlist Confirmation", delay: "Immediately", subject: "You're on the waitlist — here's what's next", body: "We've added you to our waitlist. As soon as a spot opens, you'll be the first to know." },
       { type: "wait" as const, label: "Wait 2 weeks", delay: "Week 2" },
-      { type: "email" as const, label: "Community Update", delay: "Week 2", subject: "What's happening at Sagefield this month", body: "Even while you wait, we want to keep you connected. Here's a peek at life inside our school." },
+      { type: "email" as const, label: "Community Update", delay: "Week 2", subject: "What's happening at Mud Kitchen this month", body: "Even while you wait, we want to keep you connected. Here's a peek at life inside our school." },
       { type: "wait" as const, label: "Wait 2 weeks", delay: "Week 4" },
       { type: "email" as const, label: "Spot Opening Alert", delay: "Week 4", subject: "A spot may be opening soon — are you still interested?", body: "We're expecting a spot to become available shortly. Can you confirm you're still interested in enrolling?" },
     ],
@@ -5871,8 +5871,8 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         type: "email",
         label: "Welcome Email",
         delay: "Day 0",
-        subject: "Welcome to Sagefield — we’re so glad you reached out!",
-        body: "Thanks for your interest in Sagefield Academy. Here’s everything you need to know about our programs and next steps.",
+        subject: "Welcome to Mud Kitchen — we’re so glad you reached out!",
+        body: "Thanks for your interest in Mud Kitchen Academy. Here’s everything you need to know about our programs and next steps.",
         sent: 234,
         opened: 98,
         clicked: 42,
@@ -5882,7 +5882,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         type: "email",
         label: "Campus Tour Invite",
         delay: "Day 2",
-        subject: "Come see Sagefield in person — book your tour today",
+        subject: "Come see Mud Kitchen in person — book your tour today",
         body: "We’d love to show you around. Campus tours are available weekday mornings and Saturday afternoons.",
         sent: 234,
         opened: 112,
@@ -5904,7 +5904,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         type: "email",
         label: "Program Overview",
         delay: "Day 9",
-        subject: "A look inside Sagefield’s curriculum & community",
+        subject: "A look inside Mud Kitchen’s curriculum & community",
         body: "From Montessori-inspired learning to after-school enrichment, here’s what makes our school different.",
         sent: 187,
         opened: 74,
@@ -5926,7 +5926,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         type: "email",
         label: "Thank You Email",
         delay: "Day 0",
-        subject: "Thanks for visiting Sagefield!",
+        subject: "Thanks for visiting Mud Kitchen!",
         body: "It was wonderful meeting your family. Here’s a recap of everything we covered and how to apply.",
         sent: 89,
         opened: 52,
@@ -5949,7 +5949,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         label: "SMS Reminder",
         delay: "Day 8",
         subject: "Text: Application reminder",
-        body: "Hi [First Name], just a friendly reminder — your Sagefield application is only a few minutes away. Need help? Reply here.",
+        body: "Hi [First Name], just a friendly reminder — your Mud Kitchen application is only a few minutes away. Need help? Reply here.",
         sent: 63,
         opened: 58,
         clicked: 19,
@@ -5970,7 +5970,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         type: "email",
         label: "Save the Date",
         delay: "Day 0",
-        subject: "You’re invited: Sagefield Open House — April 25th",
+        subject: "You’re invited: Mud Kitchen Open House — April 25th",
         body: "Join us for a morning of campus tours, program demos, and Q&A with our teachers. Light refreshments provided.",
         sent: 312,
         opened: 159,
@@ -5992,7 +5992,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         type: "sms",
         label: "Day-Before Reminder",
         delay: "Day 9",
-        subject: "Text: Tomorrow — Open House at Sagefield!",
+        subject: "Text: Tomorrow — Open House at Mud Kitchen!",
         body: "Hi [First Name]! Excited to see you tomorrow at our Open House. Doors open at 11 AM. Questions? Reply here.",
         sent: 87,
         opened: 82,
@@ -6015,7 +6015,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         label: "Deposit Reminder",
         delay: "Day 0",
         subject: "Your child’s spot is reserved — complete enrollment today",
-        body: "Congratulations again on your acceptance to Sagefield! To secure your child’s place, please submit the enrollment deposit.",
+        body: "Congratulations again on your acceptance to Mud Kitchen! To secure your child’s place, please submit the enrollment deposit.",
         sent: 47,
         opened: 31,
         clicked: 21,
@@ -6026,7 +6026,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         label: "Urgent SMS",
         delay: "Day 3",
         subject: "Text: Spot may be released soon",
-        body: "Hi [First Name] — your Sagefield enrollment spot expires in 48 hours. Submit your deposit to hold it. Need help? Reply here.",
+        body: "Hi [First Name] — your Mud Kitchen enrollment spot expires in 48 hours. Submit your deposit to hold it. Need help? Reply here.",
         sent: 32,
         opened: 30,
         clicked: 18,
@@ -6058,8 +6058,8 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         type: "email",
         label: "We Miss You",
         delay: "Day 0",
-        subject: "Still interested in Sagefield? We saved your spot.",
-        body: "We noticed you haven’t been active in a while. We’d love to reconnect — here’s what’s new at Sagefield this year.",
+        subject: "Still interested in Mud Kitchen? We saved your spot.",
+        body: "We noticed you haven’t been active in a while. We’d love to reconnect — here’s what’s new at Mud Kitchen this year.",
         sent: 156,
         opened: 30,
         clicked: 11,
@@ -6096,7 +6096,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         type: "email",
         label: "Summer Announcement",
         delay: "Day 0",
-        subject: "Summer 2026 at Sagefield — Registration is now open!",
+        subject: "Summer 2026 at Mud Kitchen — Registration is now open!",
         body: "Our summer program is back with new themes, field trips, and enrichment activities for ages 4–12.",
         sent: 0,
         opened: 0,
@@ -6119,7 +6119,7 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
         label: "Last Chance SMS",
         delay: "Day 14",
         subject: "Text: Summer registration closing soon",
-        body: "Hi [First Name]! Summer 2026 spots at Sagefield are almost gone. Register before May 22nd to secure your spot.",
+        body: "Hi [First Name]! Summer 2026 spots at Mud Kitchen are almost gone. Register before May 22nd to secure your spot.",
         sent: 0,
         opened: 0,
         clicked: 0,
@@ -8130,7 +8130,7 @@ function EmailsPage() {
           Emails
         </h1>
         <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-          Sent emails via Sagefield admin
+          Sent emails via Mud Kitchen admin
         </p>
       </div>
       <div className="flex-1 overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
@@ -10282,7 +10282,7 @@ function Sidebar({
         }}
       >
         <Image
-          src="/images/SchoolLayerLogo.png"
+          src="/images/Logo.png"
           alt="SchoolLayer"
           width={isExpanded ? 120 : 28}
           height={28}
@@ -10457,7 +10457,7 @@ function Sidebar({
               className="text-xs truncate flex-1"
               style={{ color: C.textTertiary }}
             >
-              admin@sagefield.co
+              admin@mudkitchen.co
             </span>
           )}
         </div>

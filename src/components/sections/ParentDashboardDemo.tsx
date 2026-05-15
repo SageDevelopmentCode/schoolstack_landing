@@ -173,12 +173,12 @@ const DEMO_CHILDREN = {
       {
         name: "Ms. Taylor Reyes",
         role: "Lead Teacher",
-        email: "taylor@sagefield.co",
+        email: "taylor@mudkitchen.co",
       },
       {
         name: "Ms. Nicole Park",
         role: "Co-Teacher",
-        email: "nicole@sagefield.co",
+        email: "nicole@mudkitchen.co",
       },
     ],
   },
@@ -197,7 +197,7 @@ const DEMO_CHILDREN = {
       {
         name: "Ms. Paige Sun",
         role: "Lead Teacher",
-        email: "paige@sagefield.co",
+        email: "paige@mudkitchen.co",
       },
     ],
   },
@@ -215,7 +215,7 @@ const DEMO_CHILDREN = {
       {
         name: "Ms. Taylor Reyes",
         role: "Lead Teacher",
-        email: "taylor@sagefield.co",
+        email: "taylor@mudkitchen.co",
       },
     ],
   },
@@ -269,7 +269,7 @@ const DEMO_CONVERSATIONS: DemoConversation[] = [
   },
   {
     id: "c3",
-    name: "Sage Field Office",
+    name: "Mud Kitchen Office",
     role: "Admin",
     lastMsg: "Your enrollment checklist is almost complete.",
     lastTime: "Apr 17",
@@ -488,7 +488,7 @@ const DEMO_POSTS: DemoPost[] = [
   },
   {
     id: "p3",
-    author: "Sage Field Office",
+    author: "Mud Kitchen Office",
     role: "Admin",
     time: "Apr 17",
     color: "#4A6354",
@@ -606,10 +606,10 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
   liam: [
     {
       label: "School Contact",
-      name: "Sage Field Office",
+      name: "Mud Kitchen Office",
       relationship: "School",
       phone: "(555) 200-1234",
-      email: "hello@sagefield.co",
+      email: "hello@mudkitchen.co",
     },
     {
       label: "Parent — Mom",
@@ -636,10 +636,10 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
   emma: [
     {
       label: "School Contact",
-      name: "Sage Field Office",
+      name: "Mud Kitchen Office",
       relationship: "School",
       phone: "(555) 200-1234",
-      email: "hello@sagefield.co",
+      email: "hello@mudkitchen.co",
     },
     {
       label: "Parent — Mom",
@@ -666,10 +666,10 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
   jake: [
     {
       label: "School Contact",
-      name: "Sage Field Office",
+      name: "Mud Kitchen Office",
       relationship: "School",
       phone: "(555) 200-1234",
-      email: "hello@sagefield.co",
+      email: "hello@mudkitchen.co",
     },
     {
       label: "Parent — Mom",
@@ -699,7 +699,7 @@ const C1_SECTIONS = [
   {
     id: "1-1",
     title: "1. Program Description & Schedule",
-    body: "Sage Field Private School offers a nature-centered, play-based learning environment for Pre-K through Elementary students. Our program runs Monday through Friday, 8:00 AM to 3:00 PM, with optional after-care until 5:30 PM. Students participate in outdoor learning, project-based study, and community-focused activities aligned with each season.",
+    body: "Mud Kitchen Private School offers a nature-centered, play-based learning environment for Pre-K through Elementary students. Our program runs Monday through Friday, 8:00 AM to 3:00 PM, with optional after-care until 5:30 PM. Students participate in outdoor learning, project-based study, and community-focused activities aligned with each season.",
   },
   {
     id: "1-2",
@@ -714,7 +714,7 @@ const C1_SECTIONS = [
   {
     id: "1-4",
     title: "4. Acknowledgment & Agreement",
-    body: "By signing below, I confirm that I have read and understand all sections of the Program Description and Key Policies document. I agree to the terms outlined herein and commit to supporting the Sage Field community through my participation, communication, and adherence to the policies described.",
+    body: "By signing below, I confirm that I have read and understand all sections of the Program Description and Key Policies document. I agree to the terms outlined herein and commit to supporting the Mud Kitchen community through my participation, communication, and adherence to the policies described.",
   },
 ];
 
@@ -722,7 +722,7 @@ const C2_SECTIONS = [
   {
     id: "2-1",
     title: "1. Core Commitments",
-    body: "As a member of the Sage Field community, I commit to treating all students, staff, and families with dignity and respect. I will communicate concerns directly and constructively through appropriate channels, maintain confidentiality about individual children and families, and actively support a culture of inclusion, curiosity, and kindness.",
+    body: "As a member of the Mud Kitchen community, I commit to treating all students, staff, and families with dignity and respect. I will communicate concerns directly and constructively through appropriate channels, maintain confidentiality about individual children and families, and actively support a culture of inclusion, curiosity, and kindness.",
   },
   {
     id: "2-2",
@@ -732,7 +732,7 @@ const C2_SECTIONS = [
   {
     id: "2-3",
     title: "3. Acknowledgment",
-    body: "By signing below, I confirm that I have read and agree to uphold the Sage Field Community Agreement for the duration of my child's enrollment. I understand that this agreement exists to protect the safety, wellbeing, and dignity of every member of our school community.",
+    body: "By signing below, I confirm that I have read and agree to uphold the Mud Kitchen Community Agreement for the duration of my child's enrollment. I understand that this agreement exists to protect the safety, wellbeing, and dignity of every member of our school community.",
   },
 ];
 
@@ -740,17 +740,17 @@ const C5_SECTIONS = [
   {
     id: "5-1",
     title: "1. Permission to Photograph & Record",
-    body: "I, the undersigned parent or legal guardian, hereby grant Sage Field Private School permission to photograph, video record, and otherwise capture images or likenesses of my child during school activities, programs, field trips, events, and related educational experiences.",
+    body: "I, the undersigned parent or legal guardian, hereby grant Mud Kitchen Private School permission to photograph, video record, and otherwise capture images or likenesses of my child during school activities, programs, field trips, events, and related educational experiences.",
   },
   {
     id: "5-2",
     title: "2. Scope of Use",
-    body: "All photographs, videos, and other media captured by Sage Field staff are the property of Sage Field Private School. The School may edit, crop, or enhance media for use in materials including the website, social media, newsletters, and print publications. The School will not sell images to third parties.",
+    body: "All photographs, videos, and other media captured by Mud Kitchen staff are the property of Mud Kitchen Private School. The School may edit, crop, or enhance media for use in materials including the website, social media, newsletters, and print publications. The School will not sell images to third parties.",
   },
   {
     id: "5-3",
     title: "3. Parent/Guardian Acknowledgment",
-    body: "By signing below, I confirm my selected consent level and release Sage Field Private School from any claims arising from the use of photographs or recordings of my child as described in this agreement. This release remains in effect for the duration of enrollment unless revoked in writing.",
+    body: "By signing below, I confirm my selected consent level and release Mud Kitchen Private School from any claims arising from the use of photographs or recordings of my child as described in this agreement. This release remains in effect for the duration of enrollment unless revoked in writing.",
   },
 ];
 
@@ -758,7 +758,7 @@ const C6_SECTIONS = [
   {
     id: "6-1",
     title: "Releasor Acknowledgment & Signature",
-    body: "I, the undersigned parent or legal guardian, acknowledge that participation in Sage Field Private School programs involves inherent risks including but not limited to outdoor and nature-based activities, physical movement, and field excursions. I voluntarily assume all such risks and release Sage Field Private School, its directors, staff, and volunteers from any liability for injury or loss arising from participation in school activities. I have read this agreement in full and sign voluntarily.",
+    body: "I, the undersigned parent or legal guardian, acknowledge that participation in Mud Kitchen Private School programs involves inherent risks including but not limited to outdoor and nature-based activities, physical movement, and field excursions. I voluntarily assume all such risks and release Mud Kitchen Private School, its directors, staff, and volunteers from any liability for injury or loss arising from participation in school activities. I have read this agreement in full and sign voluntarily.",
   },
 ];
 
@@ -766,7 +766,7 @@ const C7_SECTIONS = [
   {
     id: "7-1",
     title: "Authorization Statement",
-    body: "I authorize the individuals listed above to pick up my child from Sage Field Private School on my behalf. I understand that school staff may request photo identification from any authorized pickup person and that this list supersedes any prior pickup authorization on file. I accept full responsibility for ensuring that all listed individuals are aware of and agree to comply with school pickup procedures.",
+    body: "I authorize the individuals listed above to pick up my child from Mud Kitchen Private School on my behalf. I understand that school staff may request photo identification from any authorized pickup person and that this list supersedes any prior pickup authorization on file. I accept full responsibility for ensuring that all listed individuals are aware of and agree to comply with school pickup procedures.",
   },
 ];
 
@@ -774,7 +774,7 @@ const C8_SECTIONS = [
   {
     id: "8-1",
     title: "Parent/Guardian Signature",
-    body: "By signing below, I certify that the information provided in this Health Statement is accurate and complete to the best of my knowledge. I understand that Sage Field Private School requires this documentation to ensure the health and safety of all enrolled students and that any changes to my child's health status should be reported to the school promptly.",
+    body: "By signing below, I certify that the information provided in this Health Statement is accurate and complete to the best of my knowledge. I understand that Mud Kitchen Private School requires this documentation to ensure the health and safety of all enrolled students and that any changes to my child's health status should be reported to the school promptly.",
   },
 ];
 
@@ -1407,7 +1407,7 @@ function AssumptionOfRiskModal({
       <div className="space-y-4">
         <div className="text-center text-xs text-gray-400 pb-2 border-b border-gray-100">
           <p className="font-semibold text-gray-600 text-sm">
-            Sage Field Private School
+            Mud Kitchen Private School
           </p>
           <p>Assumption of Risk & Release of Liability</p>
         </div>
@@ -1416,7 +1416,7 @@ function AssumptionOfRiskModal({
             Please read carefully before signing
           </p>
           <p className="text-sm text-gray-600 leading-relaxed">
-            I acknowledge that participation in Sage Field Private School
+            I acknowledge that participation in Mud Kitchen Private School
             programs involves inherent risks, including outdoor and nature-based
             activities, physical movement, and field excursions. I voluntarily
             assume all such risks on behalf of my child and agree to hold Sage
@@ -3899,7 +3899,7 @@ function DemoHeader({
       {/* Logo — left */}
       <div className="flex items-center gap-2 flex-1">
         <img
-          src="/images/SchoolLayerLogo.png"
+          src="/images/Logo.png"
           alt="SchoolLayer"
           className="h-7 w-auto object-contain"
         />
