@@ -156,42 +156,16 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BulletSection({
-  title, items, accent,
-}: {
-  title: string; items: string[]; accent: "emerald" | "amber" | "blue";
-}) {
-  const styles = {
-    emerald: { wrap: "border-emerald-100 bg-emerald-50/60", label: "text-emerald-700", dot: "bg-emerald-400" },
-    amber:   { wrap: "border-amber-100 bg-amber-50/60",     label: "text-amber-700",   dot: "bg-amber-400" },
-    blue:    { wrap: "border-blue-100 bg-blue-50/60",       label: "text-blue-700",    dot: "bg-blue-400" },
-  }[accent];
 
-  return (
-    <div className={`rounded-xl border p-5 ${styles.wrap}`}>
-      <p className={`text-[11px] font-bold uppercase tracking-wider mb-3 ${styles.label}`}>{title}</p>
-      <ul className="flex flex-col gap-2">
-        {items.map((item, i) => (
-          <li key={i} className="flex items-start gap-2">
-            <span className={`mt-2 w-1.5 h-1.5 rounded-full shrink-0 ${styles.dot}`} />
-            <span className="text-sm text-gray-700 leading-relaxed">{item}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+// ── Middle Panel — CRM Form ───────────────────────────────────────────────────
 
-// ── Right Panel — School Detail ───────────────────────────────────────────────
-
-function SchoolDetail({
+function CrmPanel({
   school,
   onSave,
 }: {
   school: School;
   onSave: (id: string, updates: Partial<School>) => Promise<void>;
 }) {
-  const [tab, setTab] = useState<"crm" | "research">("crm");
   const [status, setStatus] = useState<CrmStatus>(school.crm_status);
   const [contactName, setContactName] = useState(school.contact_name);
   const [contactEmail, setContactEmail] = useState(school.contact_email);
@@ -203,9 +177,7 @@ function SchoolDetail({
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
 
-  // Reset form when switching schools
   useEffect(() => {
-    setTab("crm");
     setStatus(school.crm_status);
     setContactName(school.contact_name);
     setContactEmail(school.contact_email);
@@ -233,10 +205,10 @@ function SchoolDetail({
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* School header */}
-      <div className="shrink-0 border-b border-gray-200 bg-white px-8 py-5">
-        <div className="flex items-start justify-between gap-6">
+      <div className="shrink-0 border-b border-gray-200 bg-white px-7 py-5">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
               <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${P_PILL[school.priority_score]}`}>
                 P{school.priority_score} · {P_LABEL[school.priority_score]}
               </span>
@@ -253,141 +225,167 @@ function SchoolDetail({
                 {CRM[status].label}
               </span>
             </div>
-            <h2 className="text-[22px] font-semibold text-gray-900 leading-tight">{school.name}</h2>
-            <p className="text-sm text-gray-400 mt-0.5">{school.location}</p>
+            <h2 className="text-lg font-semibold text-gray-900 leading-tight">{school.name}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{school.location}</p>
           </div>
           <a
             href={school.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-clay hover:underline mt-1"
+            className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-clay hover:underline mt-1"
           >
             {hostname(school.website)}
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2 10L10 2M10 2H5M10 2v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+              <path d="M2 9L9 2M9 2H5M9 2v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </a>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="shrink-0 border-b border-gray-200 bg-white px-8 flex items-center">
-        {(["crm", "research"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`py-3.5 mr-7 text-sm font-medium border-b-2 transition-all -mb-px ${
-              tab === t
-                ? "border-clay text-clay"
-                : "border-transparent text-gray-400 hover:text-gray-700"
-            }`}
-          >
-            {t === "crm" ? "CRM & Pipeline" : "Research Data"}
-          </button>
-        ))}
+      {/* CRM label */}
+      <div className="shrink-0 border-b border-gray-100 bg-white px-7 py-2.5">
+        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">CRM & Pipeline</p>
       </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-y-auto bg-gray-50/40">
-        {tab === "crm" ? (
-          <div className="px-8 py-7 max-w-2xl flex flex-col gap-7">
-            {/* Status picker */}
-            <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Pipeline Status</p>
-              <div className="flex flex-wrap gap-2">
-                {CRM_STATUSES.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStatus(s)}
-                    className={`inline-flex items-center gap-2 text-sm font-medium px-3.5 py-2 rounded-xl border transition-all ${
-                      status === s
-                        ? `${CRM[s].pill} shadow-sm ring-1 ring-inset ring-current/10`
-                        : "border-gray-200 text-gray-500 bg-white hover:border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    <span className={`w-2 h-2 rounded-full ${CRM[s].dot}`} />
-                    {CRM[s].label}
-                  </button>
-                ))}
-              </div>
+      {/* Form */}
+      <div className="flex-1 overflow-y-auto bg-gray-50/30">
+        <div className="px-7 py-6 flex flex-col gap-6">
+          {/* Status picker */}
+          <div>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">Status</p>
+            <div className="flex flex-col gap-1.5">
+              {CRM_STATUSES.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatus(s)}
+                  className={`w-full flex items-center gap-2.5 text-sm font-medium px-3.5 py-2.5 rounded-xl border transition-all text-left ${
+                    status === s
+                      ? `${CRM[s].pill} shadow-sm`
+                      : "border-gray-200 text-gray-500 bg-white hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${CRM[s].dot}`} />
+                  {CRM[s].label}
+                  {status === s && (
+                    <svg className="ml-auto shrink-0" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M2.5 7l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
+              ))}
             </div>
-
-            {/* Last contacted */}
-            {school.last_contacted_at && (
-              <p className="text-xs text-gray-400 -mt-4">
-                Last saved contact: <span className="text-gray-600 font-medium">{fmtDate(school.last_contacted_at)}</span>
-              </p>
-            )}
-
-            {/* Contact info */}
-            <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Contact Info</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Name" value={contactName} onChange={setContactName} placeholder="Sarah Johnson" />
-                <Field label="Email" value={contactEmail} onChange={setContactEmail} placeholder="sarah@school.org" type="email" />
-                <Field label="Phone" value={contactPhone} onChange={setContactPhone} placeholder="+1 (555) 000-0000" type="tel" />
-                <Field label="Last Contacted" value={lastContacted} onChange={setLastContacted} type="date" />
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Notes</p>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={7}
-                placeholder="Add call notes, follow-up items, context about this prospect…"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-clay/40 focus:ring-2 focus:ring-clay/10 resize-none transition-all bg-white"
-              />
-            </div>
-
-            {/* Save */}
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className={`h-11 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
-                savedMsg
-                  ? "bg-emerald-600 text-white"
-                  : "bg-clay text-white hover:opacity-90 disabled:opacity-50"
-              }`}
-            >
-              {saving ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
-                    <path d="M8 2a6 6 0 016 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  Saving…
-                </>
-              ) : savedMsg ? (
-                <>✓ Saved</>
-              ) : (
-                "Save Changes"
-              )}
-            </button>
           </div>
-        ) : (
-          /* Research tab */
-          <div className="px-8 py-7 max-w-2xl flex flex-col gap-6">
-            <div className="grid grid-cols-2 gap-4 p-5 bg-white rounded-xl border border-gray-200">
-              <div className="col-span-2">
-                <InfoBlock label="School Model" value={school.school_model} />
-              </div>
-              <InfoBlock label="Grades / Ages" value={school.grades} />
-              <InfoBlock label="Estimated Size" value={school.estimated_size} />
-              <div className="col-span-2">
-                <InfoBlock label="Tuition / Schedule" value={school.tuition_schedule} />
-              </div>
+
+          {/* Contact info */}
+          <div>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">Contact Info</p>
+            <div className="flex flex-col gap-2.5">
+              <Field label="Name" value={contactName} onChange={setContactName} placeholder="Sarah Johnson" />
+              <Field label="Email" value={contactEmail} onChange={setContactEmail} placeholder="sarah@school.org" type="email" />
+              <Field label="Phone" value={contactPhone} onChange={setContactPhone} placeholder="+1 (555) 000-0000" type="tel" />
+              <Field label="Last Contacted" value={lastContacted} onChange={setLastContacted} type="date" />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">Notes</p>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={6}
+              placeholder="Add call notes, follow-up items, context about this prospect…"
+              className="w-full px-3.5 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-clay/40 focus:ring-2 focus:ring-clay/10 resize-none transition-all bg-white"
+            />
+          </div>
+
+          {/* Save */}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className={`h-10 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+              savedMsg
+                ? "bg-emerald-500 text-white"
+                : "bg-clay text-white hover:opacity-90 disabled:opacity-50"
+            }`}
+          >
+            {saving ? (
+              <>
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+                  <path d="M8 2a6 6 0 016 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Saving…
+              </>
+            ) : savedMsg ? "✓ Saved" : "Save Changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Right Panel — Research Data ───────────────────────────────────────────────
+
+function ResearchPanel({ school }: { school: School }) {
+  return (
+    <div className="h-full flex flex-col overflow-hidden border-l border-gray-200">
+      {/* Header */}
+      <div className="shrink-0 border-b border-gray-100 bg-white px-6 py-2.5">
+        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Research Data</p>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto bg-white">
+        <div className="px-6 py-5 flex flex-col gap-5">
+
+          {/* Quick meta */}
+          <div className="flex flex-col gap-3 pb-4 border-b border-gray-100">
+            <InfoBlock label="School Model" value={school.school_model} />
+            <div className="grid grid-cols-2 gap-3">
+              <InfoBlock label="Grades" value={school.grades} />
+              <InfoBlock label="Size" value={school.estimated_size} />
+            </div>
+            <InfoBlock label="Tuition / Schedule" value={school.tuition_schedule} />
+            <div className="grid grid-cols-2 gap-3">
               <InfoBlock label="Confidence" value={school.confidence} />
-              <InfoBlock label="Source" value={school.source_file === "texas" ? "TX Microschool Research" : "Expanded Prospects"} />
+              <InfoBlock label="Source" value={school.source_file === "texas" ? "TX Research" : "Expanded"} />
             </div>
-
-            <BulletSection title="What They Do Well" items={school.strengths} accent="emerald" />
-            <BulletSection title="Possible Gaps / Pain Points" items={school.pain_points} accent="amber" />
-            <BulletSection title="Why SchoolStack Fits" items={[school.software_fit_reason]} accent="blue" />
           </div>
-        )}
+
+          {/* What they do well */}
+          <div>
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-2">What They Do Well</p>
+            <ul className="flex flex-col gap-2">
+              {school.strengths.map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Pain points */}
+          <div className="pt-3 border-t border-gray-100">
+            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">Gaps / Pain Points</p>
+            <ul className="flex flex-col gap-2">
+              {school.pain_points.map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Software fit */}
+          <div className="pt-3 border-t border-gray-100">
+            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2">Why SchoolStack Fits</p>
+            <p className="text-xs text-gray-600 leading-relaxed">{school.software_fit_reason}</p>
+          </div>
+
+        </div>
       </div>
     </div>
   );
@@ -646,14 +644,21 @@ export default function ResearchPage() {
           </div>
         </aside>
 
-        {/* ── Right panel ──────────────────────────────────────────────────── */}
-        <main className="flex-1 overflow-hidden flex flex-col">
+        {/* ── Middle panel — CRM ───────────────────────────────────────────── */}
+        <main className="flex-1 overflow-hidden flex flex-col min-w-0">
           {selectedSchool ? (
-            <SchoolDetail school={selectedSchool} onSave={handleSave} />
+            <CrmPanel school={selectedSchool} onSave={handleSave} />
           ) : (
             <EmptyState />
           )}
         </main>
+
+        {/* ── Right panel — Research ───────────────────────────────────────── */}
+        {selectedSchool && (
+          <aside className="w-72 xl:w-80 shrink-0 overflow-hidden flex flex-col">
+            <ResearchPanel school={selectedSchool} />
+          </aside>
+        )}
       </div>
     </div>
   );
