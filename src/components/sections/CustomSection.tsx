@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { FadeInView } from '@/components/ui/FadeInView'
 
 const TAGS = [
@@ -17,8 +18,34 @@ const TAGS = [
 
 export default function CustomSection() {
   return (
-    <section id="custom" className="bg-surface-muted py-24">
-      <div className="max-w-[860px] mx-auto px-6 text-center">
+    <section id="custom" className="py-24 overflow-hidden" style={{ backgroundColor: '#F4F7F2' }}>
+      <div className="relative max-w-[1280px] mx-auto px-6">
+
+        {/* Decorative illustration — left */}
+        <div className="absolute top-1/2 -translate-y-1/2 left-[-60px] xl:left-[-30px] z-0 pointer-events-none select-none hidden lg:block">
+          <Image
+            src="/images/illustrations/Plant.png"
+            alt=""
+            aria-hidden="true"
+            width={260}
+            height={320}
+            style={{ opacity: 0.75 }}
+          />
+        </div>
+
+        {/* Decorative illustration — right */}
+        <div className="absolute top-1/2 -translate-y-1/2 right-[-60px] xl:right-[-30px] z-0 pointer-events-none select-none hidden lg:block">
+          <Image
+            src="/images/illustrations/Drawing2.png"
+            alt=""
+            aria-hidden="true"
+            width={260}
+            height={320}
+            style={{ opacity: 0.75 }}
+          />
+        </div>
+
+      <div className="max-w-[860px] mx-auto px-6 text-center relative z-10">
 
         <FadeInView>
           <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.5rem)] leading-[1.05] text-text">
@@ -62,6 +89,8 @@ export default function CustomSection() {
             </a>
           </div>
         </FadeInView>
+
+      </div>
 
       </div>
     </section>

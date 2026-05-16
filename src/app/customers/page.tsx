@@ -1,8 +1,9 @@
+import Image from 'next/image'
 import Navbar from '@/components/sections/Navbar'
 import Footer from '@/components/sections/Footer'
 import { Badge } from '@/components/ui/Badge'
 import { FadeInView } from '@/components/ui/FadeInView'
-import { MapPin, TrendingUp, Users, ArrowRight } from 'lucide-react'
+import { MapPin, TrendingUp, Users, ArrowRight, ExternalLink } from 'lucide-react'
 
 export const metadata = {
   title: 'Customer Stories — MudKitchen',
@@ -21,6 +22,9 @@ const STORIES = [
       'Sage Field launched with a full public-facing school presence, enrollment pathways, tuition setup, staff workflows, and parent communication — all from one platform before the first student enrolled.',
     tags: ['Website', 'Enrollment', 'Tuition', 'Operations', 'Parent portal'],
     href: '/customers/sagefield',
+    image: '/images/sagefield/kids-running.jpg',
+    logo: '/images/SageFieldLogo.png',
+    website: 'https://www.sagefield.co',
   },
 ]
 
@@ -56,44 +60,81 @@ export default function CustomersPage() {
         {/* Stories grid */}
         <section className="pb-32">
           <div className="max-w-[1100px] mx-auto px-6 lg:px-16">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {STORIES.map((story, i) => (
                 <FadeInView key={story.href} delay={i * 0.06}>
-                  <a
-                    href={story.href}
-                    className="group flex flex-col h-full rounded-2xl border border-border bg-surface hover:-translate-y-1 hover:shadow-md transition-all duration-200 overflow-hidden"
-                  >
-                    {/* Placeholder image area */}
-                    <div
-                      className="flex items-center justify-center h-[180px] border-b border-border"
-                      style={{ backgroundColor: '#EDE0CE' }}
-                    >
-                      <div className="text-center px-4">
-                        <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-2">
-                          <Users size={18} className="text-accent" />
-                        </div>
-                        <p className="text-[11px] font-secondary text-text-faint">
-                          [School photo placeholder]
-                        </p>
-                      </div>
-                    </div>
+                  {/* Stretched-link card — outer div is position:relative, the main <a> covers the whole card */}
+                  <div className="group relative flex flex-col h-full rounded-2xl border border-border bg-surface hover:-translate-y-1 hover:shadow-md transition-all duration-200 overflow-hidden">
+                    {/* Full-card link */}
+                    <a href={story.href} className="absolute inset-0 z-[1]" aria-label={`Read the ${story.name} story`} />
 
-                    {/* Card body */}
-                    <div className="flex flex-col flex-1 p-6">
-                      {/* School name + location */}
+                    {/* School photo */}
+                    {story.image ? (
+                      <div className="h-[220px] border-b border-border overflow-hidden">
+                        <img
+                          src={story.image}
+                          alt={story.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="flex items-center justify-center h-[220px] border-b border-border"
+                        style={{ backgroundColor: '#EDE0CE' }}
+                      >
+                        <div className="text-center px-4">
+                          <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-2">
+                            <Users size={18} className="text-accent" />
+                          </div>
+                          <p className="text-[11px] font-secondary text-text-faint">
+                            [School photo placeholder]
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Card body — pointer-events-none lets clicks fall through to the full-card anchor */}
+                    <div className="pointer-events-none flex flex-col flex-1 p-6">
+                      {/* School name + logo row */}
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h2 className="font-display text-[1.2rem] text-text font-medium leading-snug">
-                          {story.name}
-                        </h2>
+                        <div className="flex items-center gap-2.5">
+                          {story.logo && (
+                            <div className="w-8 h-8 shrink-0 flex items-center justify-center">
+                              <Image
+                                src={story.logo}
+                                alt={`${story.name} logo`}
+                                width={32}
+                                height={32}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                          )}
+                          <h2 className="font-display text-[1.2rem] text-text font-medium leading-snug">
+                            {story.name}
+                          </h2>
+                        </div>
                         <span className="flex items-center gap-1 text-[11px] font-secondary text-text-faint shrink-0 mt-1">
                           <MapPin size={10} />
                           {story.location}
                         </span>
                       </div>
 
-                      <p className="text-[13px] font-secondary text-text-faint mb-1">
-                        {story.tagline} · {story.ages}
-                      </p>
+                      <div className="flex items-center gap-3 mt-0.5 mb-1">
+                        <p className="text-[13px] font-secondary text-text-faint">
+                          {story.tagline} · {story.ages}
+                        </p>
+                        {story.website && (
+                          <a
+                            href={story.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="pointer-events-auto relative z-[2] flex items-center gap-1 text-[11px] font-secondary text-accent hover:text-accent-hover transition-colors duration-150 shrink-0"
+                          >
+                            <ExternalLink size={10} />
+                            Website
+                          </a>
+                        )}
+                      </div>
 
                       <p className="text-[14px] font-secondary text-text-muted leading-relaxed mt-3 flex-1">
                         {story.description}
@@ -123,7 +164,7 @@ export default function CustomersPage() {
                         </span>
                       </div>
                     </div>
-                  </a>
+                  </div>
                 </FadeInView>
               ))}
 

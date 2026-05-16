@@ -140,21 +140,21 @@ const PAIRS = [
 
 export default function PainSection() {
   return (
-    <section className="bg-bg-alt py-24 overflow-hidden">
+    <section className="bg-accent py-16 overflow-hidden">
       {/* Heading */}
       <div className="max-w-[680px] mx-auto px-6 text-center">
         <FadeInView>
-          <p className="text-[13px] font-medium uppercase tracking-widest text-text-muted mb-4">
+          <p className="text-[13px] font-medium uppercase tracking-widest text-accent-soft mb-3">
             Too many tools
           </p>
-          <h2 className="font-display text-[clamp(2rem,4vw,3rem)] leading-[1.05] text-text">
+          <h2 className="font-display text-[clamp(2rem,4vw,3rem)] leading-[1.05] text-white">
             When your school runs in five different places,{" "}
             <em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>everything feels harder.</em>
           </h2>
         </FadeInView>
 
         <FadeInView delay={0.1}>
-          <p className="text-[17px] text-text-muted leading-relaxed mt-6 max-w-[58ch] mx-auto">
+          <p className="text-[17px] text-accent-highlight leading-relaxed mt-4 max-w-[58ch] mx-auto opacity-80">
             Enrollment lives in a form builder. Parent updates happen in texts
             and email. Student details sit in spreadsheets. Important tasks
             depend on memory. Mud Kitchen pulls those moving pieces into one
@@ -166,7 +166,7 @@ export default function PainSection() {
 
       {/* CTA */}
       <FadeInView delay={0.15}>
-        <div className="mt-8 flex justify-center">
+        <div className="mt-6 flex justify-center">
           <a
             href="/get-started"
             className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
@@ -181,7 +181,7 @@ export default function PainSection() {
 
       {/* Hub visual — wider than the text */}
       <FadeInView delay={0.2}>
-        <div className="mt-14 w-full max-w-[1200px] mx-auto px-4 md:px-8 select-none">
+        <div className="mt-10 w-full max-w-[1200px] mx-auto px-4 md:px-8 select-none">
           <div
             className="relative w-full"
             style={{ paddingBottom: `${(H / W) * 100}%` }}
@@ -203,8 +203,8 @@ export default function PainSection() {
                       y1={edge.y}
                       x2={p.inner.x}
                       y2={p.inner.y}
-                      stroke="#2E4A3C"
-                      strokeOpacity={0.1}
+                      stroke="#A6B89A"
+                      strokeOpacity={0.2}
                       strokeWidth={1}
                     />
                     {/* Flowing animated dots: tool → feature */}
@@ -213,8 +213,8 @@ export default function PainSection() {
                       y1={edge.y}
                       x2={p.inner.x}
                       y2={p.inner.y}
-                      stroke="#2E4A3C"
-                      strokeOpacity={0.45}
+                      stroke="#C5D5B8"
+                      strokeOpacity={0.55}
                       strokeWidth={1.5}
                       strokeLinecap="round"
                       strokeDasharray="4 20"
@@ -243,8 +243,8 @@ export default function PainSection() {
                 }}
               >
                 <motion.span
-                  className="flex items-center gap-1 md:gap-1.5 rounded-pill bg-surface border border-border text-[9px] md:text-[11px] text-text-faint px-2 md:px-3 py-0.5 md:py-1.5 whitespace-nowrap shadow-xs"
-                  animate={{ opacity: [0.55, 0.95, 0.55] }}
+                  className="flex items-center gap-1 md:gap-1.5 rounded-pill bg-white/20 border border-white/40 text-[9px] md:text-[11px] text-white px-2 md:px-3 py-0.5 md:py-1.5 whitespace-nowrap shadow-xs"
+                  animate={{ opacity: [0.75, 1, 0.75] }}
                   transition={{
                     duration: 3.5,
                     repeat: Infinity,
@@ -289,7 +289,7 @@ export default function PainSection() {
                       height={60}
                       className="object-contain"
                     />
-                    <span className="font-display text-[clamp(9px,1.2vw,15px)] text-text-muted whitespace-nowrap tracking-tight">
+                    <span className="font-display text-[clamp(9px,1.2vw,15px)] text-white/60 whitespace-nowrap tracking-tight">
                       MudKitchen
                     </span>
                   </div>
@@ -310,8 +310,8 @@ export default function PainSection() {
                       }}
                     >
                       <motion.span
-                        className="flex items-center gap-1 rounded-pill bg-text text-[8px] md:text-[10px] lg:text-[11px] text-white font-medium px-1.5 md:px-2.5 lg:px-3 py-0.5 md:py-1 whitespace-nowrap shadow-sm"
-                        animate={{ opacity: [0.7, 1, 0.7] }}
+                        className="flex items-center gap-1 rounded-pill bg-white text-[8px] md:text-[10px] lg:text-[11px] text-accent font-semibold px-1.5 md:px-2.5 lg:px-3 py-0.5 md:py-1 whitespace-nowrap shadow-md"
+                        animate={{ opacity: [0.85, 1, 0.85] }}
                         transition={{
                           duration: 2.8,
                           repeat: Infinity,

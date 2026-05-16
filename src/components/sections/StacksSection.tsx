@@ -1,4 +1,21 @@
+'use client'
+
+import Image from 'next/image'
+import { motion } from 'framer-motion'
 import { FadeInView } from '@/components/ui/FadeInView'
+
+const ease = [0.16, 1, 0.3, 1] as const
+
+function illustrationVariant(dir: 1 | -1) {
+  return {
+    hidden: { opacity: 0, x: dir * 40 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.8, ease, delay: 0.3 },
+    },
+  }
+}
 
 const CORE_FEATURES = [
   'Branded school website',
@@ -12,8 +29,63 @@ const CORE_FEATURES = [
 
 export default function StacksSection() {
   return (
-    <section id="pricing" className="bg-bg py-24">
-      <div className="max-w-[1100px] mx-auto px-6 lg:px-16">
+    <section id="pricing" className="relative bg-bg py-24 overflow-hidden">
+
+        {/* Decorative illustrations — left cluster (anchored to bottom-left) */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={illustrationVariant(-1)}
+          className="absolute bottom-0 left-[-80px] z-0 pointer-events-none select-none hidden lg:block"
+        >
+          <div className="relative w-[380px] h-[480px]">
+            {/* FolderWithLeaf rises from bottom — bottom edge intentionally clipped */}
+            <div className="absolute bottom-[-60px] left-0">
+              <Image
+                src="/images/illustrations/FolderWithLeaf.png"
+                alt=""
+                aria-hidden="true"
+                width={360}
+                height={360}
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Decorative illustrations — right cluster (anchored to bottom-right) */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={illustrationVariant(1)}
+          className="absolute bottom-0 right-[-140px] z-0 pointer-events-none select-none hidden lg:block"
+        >
+          <div className="relative w-[520px] h-[560px]">
+            {/* Boquet — large, upper area, partially bleeds off right */}
+            <div className="absolute top-0 right-[-20px]">
+              <Image
+                src="/images/illustrations/Boquet.png"
+                alt=""
+                aria-hidden="true"
+                width={420}
+                height={420}
+              />
+            </div>
+            {/* Counting — large, lower-left, partially bleeds off bottom */}
+            <div className="absolute bottom-[-40px] left-0">
+              <Image
+                src="/images/illustrations/Counting.png"
+                alt=""
+                aria-hidden="true"
+                width={320}
+                height={320}
+              />
+            </div>
+          </div>
+        </motion.div>
+
+      <div className="relative max-w-[1100px] mx-auto px-6 lg:px-16">
 
         {/* Heading */}
         <div className="text-center max-w-[560px] mx-auto mb-12">

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { FadeInView } from "@/components/ui/FadeInView";
 
+
 const STATS = [
   { number: "25", label: "Students enrolled" },
   { number: "< 3 mo", label: "To launch" },
@@ -63,8 +64,23 @@ export default function FounderStorySection() {
                   so we could focus on the kids. I don&apos;t know how we would
                   have launched without it.&rdquo;
                 </p>
-                <footer className="text-sm mt-4" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                  — Sabrina Obnamia, Co-Founder of Sage Field
+                <footer className="flex items-center gap-3 mt-5">
+                  <Image
+                    src="/images/sabrina-obnamia.png"
+                    alt="Sabrina Obnamia"
+                    width={36}
+                    height={36}
+                    className="rounded-full object-cover shrink-0"
+                    style={{ width: 36, height: 36 }}
+                  />
+                  <div>
+                    <p className="text-[13px] font-secondary font-semibold text-white leading-none">
+                      Sabrina Obnamia
+                    </p>
+                    <p className="text-[11px] font-secondary mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      Co-Founder, Sage Field
+                    </p>
+                  </div>
                 </footer>
               </blockquote>
             </FadeInView>

@@ -101,13 +101,7 @@ export default function Footer() {
             © 2026 MudKitchen. All rights reserved.
           </p>
           <p className="text-xs text-white/35">
-            Built by the team at{" "}
-            <a
-              href="#"
-              className="text-accent-soft hover:text-white/80 transition-colors"
-            >
-              Sage Field
-            </a>
+            🏫 Made for microschool founders, by people who get it.
           </p>
         </div>
       </div>

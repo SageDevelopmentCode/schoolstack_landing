@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { FadeInView } from '@/components/ui/FadeInView'
 import { Badge } from '@/components/ui/Badge'
 
@@ -67,22 +68,16 @@ export default function SagefieldWhyItWorked() {
               </blockquote>
             </FadeInView>
 
-            {/* School photo placeholder */}
+            {/* School photo */}
             <FadeInView delay={0.26}>
-              <div
-                className="mt-8 rounded-2xl border border-border overflow-hidden"
-                style={{ backgroundColor: '#EDE0CE' }}
-              >
-                <div className="flex items-center justify-center h-[200px]">
-                  <div className="text-center px-6">
-                    <p className="text-sm font-secondary text-text-muted">
-                      [Photo: Sage Field outdoor classroom]
-                    </p>
-                    <p className="text-[12px] font-secondary text-text-faint mt-1">
-                      Replace with actual school photography
-                    </p>
-                  </div>
-                </div>
+              <div className="mt-8 rounded-2xl border border-border overflow-hidden h-[220px]">
+                <Image
+                  src="/images/sagefield/mud-kitchen.jpg"
+                  alt="Students at the Sage Field outdoor mud kitchen"
+                  width={700}
+                  height={440}
+                  className="w-full h-full object-cover"
+                />
               </div>
             </FadeInView>
           </div>

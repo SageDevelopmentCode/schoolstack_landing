@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { ArrowRight, MapPin, Users, Globe } from 'lucide-react'
+import { ArrowRight, MapPin, Users, Globe, ExternalLink } from 'lucide-react'
 import { FadeInView } from '@/components/ui/FadeInView'
 
 const ease = [0.16, 1, 0.3, 1] as const
@@ -29,13 +29,13 @@ export default function SagefieldHero() {
         {/* Eyebrow */}
         <FadeInView>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
+            <div className="w-8 h-8 shrink-0 flex items-center justify-center">
               <Image
                 src="/images/SageFieldLogo.png"
                 alt="Sage Field logo"
                 width={32}
                 height={32}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-pill bg-sage-100 text-accent text-[11px] font-medium uppercase tracking-widest px-3.5 py-1.5 font-secondary">
@@ -44,6 +44,15 @@ export default function SagefieldHero() {
             <span className="text-[11px] font-secondary text-text-faint uppercase tracking-widest">
               Sage Field · Round Rock, TX
             </span>
+            <a
+              href="https://www.sagefield.co"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[11px] font-secondary text-accent hover:text-accent-hover transition-colors duration-150"
+            >
+              <ExternalLink size={10} />
+              sagefield.co
+            </a>
           </div>
         </FadeInView>
 
@@ -120,31 +129,37 @@ export default function SagefieldHero() {
           ))}
         </motion.div>
 
-        {/* Hero placeholder image */}
+        {/* Hero photos */}
         <FadeInView delay={0.4}>
-          <div
-            className="mt-14 w-full rounded-2xl border border-border overflow-hidden"
-            style={{ backgroundColor: '#EDE0CE' }}
-          >
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-surface">
-              <div className="w-3 h-3 rounded-full bg-border-strong" />
-              <div className="w-3 h-3 rounded-full bg-border-strong" />
-              <div className="w-3 h-3 rounded-full bg-border-strong" />
-              <span className="ml-2 text-[12px] font-mono text-text-faint">
-                sagefieldacademy.com
-              </span>
+          <div className="mt-14 grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-3">
+            <div className="rounded-2xl overflow-hidden h-[320px] lg:h-[420px]">
+              <Image
+                src="/images/sagefield/entrance.jpg"
+                alt="Sage Field school entrance with flowers"
+                width={900}
+                height={600}
+                className="w-full h-full object-cover"
+                priority
+              />
             </div>
-            <div className="flex items-center justify-center h-[320px] lg:h-[420px]">
-              <div className="text-center">
-                <div className="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-3">
-                  <Globe size={22} className="text-accent" />
-                </div>
-                <p className="text-sm font-secondary text-text-muted">
-                  [Screenshot: Sage Field public website]
-                </p>
-                <p className="text-[12px] font-secondary text-text-faint mt-1">
-                  Replace with actual school website screenshot
-                </p>
+            <div className="flex flex-col gap-3">
+              <div className="rounded-2xl overflow-hidden flex-1">
+                <Image
+                  src="/images/sagefield/garden.jpg"
+                  alt="Sage Field outdoor garden area"
+                  width={500}
+                  height={400}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="rounded-2xl overflow-hidden flex-1">
+                <Image
+                  src="/images/sagefield/kids-running.jpg"
+                  alt="Students at Sage Field"
+                  width={500}
+                  height={400}
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           </div>
