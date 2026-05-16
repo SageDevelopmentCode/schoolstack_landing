@@ -336,57 +336,122 @@ function ResearchPanel({ school }: { school: School }) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto bg-white">
-        <div className="px-6 py-5 flex flex-col gap-5">
+      <div className="flex-1 overflow-y-auto bg-gray-50/40">
+        <div className="px-5 py-5 flex flex-col gap-4">
 
-          {/* Quick meta */}
-          <div className="flex flex-col gap-3 pb-4 border-b border-gray-100">
-            <InfoBlock label="School Model" value={school.school_model} />
-            <div className="grid grid-cols-2 gap-3">
-              <InfoBlock label="Grades" value={school.grades} />
-              <InfoBlock label="Size" value={school.estimated_size} />
+          {/* School model card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <rect x="1" y="4" width="11" height="8" rx="1" stroke="#6B7280" strokeWidth="1.2" />
+                  <path d="M4 12V8h5v4" stroke="#6B7280" strokeWidth="1.2" strokeLinecap="round" />
+                  <path d="M1 4L6.5 1l5.5 3" stroke="#6B7280" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">School Model</span>
             </div>
-            <InfoBlock label="Tuition / Schedule" value={school.tuition_schedule} />
-            <div className="grid grid-cols-2 gap-3">
-              <InfoBlock label="Confidence" value={school.confidence} />
-              <InfoBlock label="Source" value={school.source_file === "texas" ? "TX Research" : "Expanded"} />
+            <p className="text-sm text-gray-800 leading-relaxed">{school.school_model || "—"}</p>
+          </div>
+
+          {/* Quick-stat badges */}
+          <div className="grid grid-cols-2 gap-2">
+            <StatBadge icon="🎓" label="Grades" value={school.grades} />
+            <StatBadge icon="👥" label="Size" value={school.estimated_size} />
+          </div>
+
+          {/* Tuition */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-base leading-none">💳</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tuition / Schedule</span>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">{school.tuition_schedule || "—"}</p>
+          </div>
+
+          {/* Confidence + Source row */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white rounded-xl border border-gray-200 px-3.5 py-3">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Confidence</p>
+              <p className="text-xs font-medium text-gray-700 leading-snug">{school.confidence || "—"}</p>
+            </div>
+            <div className={`rounded-xl border px-3.5 py-3 ${school.source_file === "texas" ? "bg-sky-50 border-sky-200" : "bg-violet-50 border-violet-200"}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${school.source_file === "texas" ? "text-sky-500" : "text-violet-500"}`}>Source</p>
+              <p className={`text-xs font-semibold ${school.source_file === "texas" ? "text-sky-700" : "text-violet-700"}`}>
+                {school.source_file === "texas" ? "TX Research" : "Expanded"}
+              </p>
             </div>
           </div>
 
           {/* What they do well */}
-          <div>
-            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-2">What They Do Well</p>
-            <ul className="flex flex-col gap-2">
+          <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-5 h-5 rounded-md bg-emerald-100 flex items-center justify-center shrink-0">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M2 5.5l2.5 2.5 4.5-5" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">What They Do Well</span>
+            </div>
+            <ul className="flex flex-col gap-2.5">
               {school.strengths.map((item, i) => (
-                <li key={i} className="flex items-start gap-2">
+                <li key={i} className="flex items-start gap-2.5">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                  <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
+                  <span className="text-xs text-emerald-900/80 leading-relaxed">{item}</span>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* Pain points */}
-          <div className="pt-3 border-t border-gray-100">
-            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">Gaps / Pain Points</p>
-            <ul className="flex flex-col gap-2">
+          <div className="bg-amber-50 rounded-xl border border-amber-100 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-5 h-5 rounded-md bg-amber-100 flex items-center justify-center shrink-0">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 1L10 9.5H1L5.5 1z" stroke="#D97706" strokeWidth="1.3" strokeLinejoin="round" />
+                  <path d="M5.5 4.5v2" stroke="#D97706" strokeWidth="1.3" strokeLinecap="round" />
+                  <circle cx="5.5" cy="7.5" r="0.4" fill="#D97706" />
+                </svg>
+              </div>
+              <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Gaps / Pain Points</span>
+            </div>
+            <ul className="flex flex-col gap-2.5">
               {school.pain_points.map((item, i) => (
-                <li key={i} className="flex items-start gap-2">
+                <li key={i} className="flex items-start gap-2.5">
                   <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                  <span className="text-xs text-gray-600 leading-relaxed">{item}</span>
+                  <span className="text-xs text-amber-900/80 leading-relaxed">{item}</span>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* Software fit */}
-          <div className="pt-3 border-t border-gray-100">
-            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2">Why SchoolStack Fits</p>
-            <p className="text-xs text-gray-600 leading-relaxed">{school.software_fit_reason}</p>
+          <div className="bg-blue-50 rounded-xl border border-blue-100 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-5 h-5 rounded-md bg-blue-100 flex items-center justify-center shrink-0">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                  <path d="M5.5 1l1.2 2.5L9.5 4l-2 1.9.5 2.6L5.5 7.2 3 8.5l.5-2.6L1.5 4l2.8-.5L5.5 1z" stroke="#2563EB" strokeWidth="1.2" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Why SchoolStack Fits</span>
+            </div>
+            <p className="text-xs text-blue-900/80 leading-relaxed">{school.software_fit_reason}</p>
           </div>
 
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatBadge({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 px-3.5 py-3">
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-sm leading-none">{icon}</span>
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</span>
+      </div>
+      <p className="text-xs font-medium text-gray-700 leading-snug">{value || "—"}</p>
     </div>
   );
 }
