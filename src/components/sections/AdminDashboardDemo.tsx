@@ -19,6 +19,7 @@ import {
   CalendarDays,
   School,
   ChevronRight,
+  ChevronDown,
   BarChart2,
   PanelLeftOpen,
   PanelLeftClose,
@@ -7613,8 +7614,7 @@ function BudgetRing({
   );
 }
 
-function BudgetPage() {
-  const [tab, setTab] = useState<BudgetTab>("overview");
+function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: BudgetTab; onTabChange: (tab: BudgetTab) => void }) {
   const [selectedExp, setSelectedExp] = useState<
     (typeof DEMO_EXPENSES)[0] | null
   >(null);
@@ -10092,6 +10092,222 @@ function ComingSoonPage({ name }: { name: string }) {
   );
 }
 
+// ─── My School sub-pages ──────────────────────────────────────────────────────
+
+function StaffPage() {
+  const members = [
+    { name: "Ms. Andrea Reyes", role: "Lead Teacher", room: "Sunflower Room", status: "Active" },
+    { name: "Mr. David Park", role: "Teaching Assistant", room: "Sunflower Room", status: "Active" },
+    { name: "Ms. Carla Nguyen", role: "Lead Teacher", room: "Oak Room", status: "Active" },
+    { name: "Mr. Sam Okafor", role: "Teaching Assistant", room: "Oak Room", status: "Active" },
+    { name: "Ms. Priya Singh", role: "Administrator", room: "Front Office", status: "Active" },
+    { name: "Mr. James Ellison", role: "Substitute", room: "—", status: "On Leave" },
+  ];
+  return (
+    <div className="h-full flex flex-col">
+      <div
+        className="flex items-center justify-between px-6 py-3 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>Staff</span>
+          <span
+            className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
+            style={{ backgroundColor: C.accentLight, color: C.accent }}
+          >
+            {members.length}
+          </span>
+        </div>
+        <button
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
+          style={{ backgroundColor: C.accent, color: "#fff" }}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add Staff
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ backgroundColor: C.elevated, borderBottom: `1px solid ${C.border}` }}>
+                {["Name", "Role", "Room", "Status"].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: C.textTertiary }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((m, i) => (
+                <tr
+                  key={i}
+                  style={{
+                    borderBottom: i < members.length - 1 ? `1px solid ${C.border}` : "none",
+                    backgroundColor: C.surface,
+                  }}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                        style={{ backgroundColor: C.accentLight, color: C.accent }}
+                      >
+                        {m.name.charAt(4)}
+                      </div>
+                      <span className="font-medium" style={{ color: C.textPrimary }}>{m.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs" style={{ color: C.textSecondary }}>{m.role}</td>
+                  <td className="px-4 py-3 text-xs" style={{ color: C.textSecondary }}>{m.room}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                      style={
+                        m.status === "Active"
+                          ? { backgroundColor: C.successBg, color: C.success }
+                          : { backgroundColor: C.warningBg, color: C.warning }
+                      }
+                    >
+                      {m.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClassroomsPage() {
+  const rooms = [
+    { name: "Sunflower Room", ageRange: "Ages 4–6", capacity: 12, enrolled: 10, teacher: "Ms. Andrea Reyes" },
+    { name: "Oak Room", ageRange: "Ages 7–9", capacity: 14, enrolled: 13, teacher: "Ms. Carla Nguyen" },
+    { name: "Maple Room", ageRange: "Ages 10–12", capacity: 12, enrolled: 8, teacher: "TBD" },
+    { name: "Garden Studio", ageRange: "All ages", capacity: 20, enrolled: 15, teacher: "Shared" },
+  ];
+  return (
+    <div className="h-full flex flex-col">
+      <div
+        className="flex items-center justify-between px-6 py-3 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>Classrooms</span>
+          <span
+            className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
+            style={{ backgroundColor: C.accentLight, color: C.accent }}
+          >
+            {rooms.length}
+          </span>
+        </div>
+        <button
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
+          style={{ backgroundColor: C.accent, color: "#fff" }}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add Room
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="grid grid-cols-1 gap-4">
+          {rooms.map((room, i) => {
+            const pct = Math.round((room.enrolled / room.capacity) * 100);
+            const isFull = pct >= 100;
+            return (
+              <div
+                key={i}
+                className="rounded-xl p-5"
+                style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="font-semibold text-sm" style={{ color: C.textPrimary }}>{room.name}</div>
+                    <div className="text-xs mt-0.5" style={{ color: C.textTertiary }}>{room.ageRange}</div>
+                  </div>
+                  <span
+                    className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                    style={
+                      isFull
+                        ? { backgroundColor: C.warningBg, color: C.warning }
+                        : { backgroundColor: C.successBg, color: C.success }
+                    }
+                  >
+                    {isFull ? "Full" : "Available"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 mb-3">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: C.textTertiary }}>Teacher</div>
+                    <div className="text-xs font-medium" style={{ color: C.textSecondary }}>{room.teacher}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: C.textTertiary }}>Enrolled</div>
+                    <div className="text-xs font-medium" style={{ color: C.textSecondary }}>{room.enrolled} / {room.capacity}</div>
+                  </div>
+                </div>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: C.border }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${pct}%`,
+                      backgroundColor: isFull ? C.warning : C.accent,
+                    }}
+                  />
+                </div>
+                <div className="text-[10px] mt-1 text-right" style={{ color: C.textTertiary }}>{pct}% capacity</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MySchoolPage({ activeTab, onTabChange }: { activeTab: MySchoolTab; onTabChange: (tab: MySchoolTab) => void }) {
+  return (
+    <div className="h-full flex flex-col">
+      <div
+        className="flex items-center gap-0 flex-shrink-0 px-4"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        {(
+          [
+            { key: "families", label: "Families" },
+            { key: "programs", label: "Programs" },
+            { key: "staff", label: "Staff" },
+            { key: "classrooms", label: "Classrooms" },
+          ] as { key: MySchoolTab; label: string }[]
+        ).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => onTabChange(tab.key)}
+            className="px-4 py-3 text-xs font-medium transition-colors duration-150"
+            style={{
+              color: activeTab === tab.key ? C.accent : C.textTertiary,
+              borderBottom: activeTab === tab.key ? `2px solid ${C.accent}` : "2px solid transparent",
+              background: "none",
+              cursor: "pointer",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex-1 overflow-hidden">
+        {activeTab === "families" && <PeoplePage />}
+        {activeTab === "programs" && <ProgramsPage />}
+        {activeTab === "staff" && <StaffPage />}
+        {activeTab === "classrooms" && <ClassroomsPage />}
+      </div>
+    </div>
+  );
+}
+
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 type ActivePage =
@@ -10099,9 +10315,12 @@ type ActivePage =
   | "leads"
   | "people"
   | "programs"
+  | "myschool"
   | "budget"
   | "marketing"
   | "impersonate";
+
+type MySchoolTab = "families" | "programs" | "staff" | "classrooms";
 
 interface NavItem {
   key: ActivePage | string;
@@ -10127,15 +10346,9 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         phase1: true,
       },
       {
-        key: "people",
-        name: "Families",
-        icon: <Users className="w-4 h-4" />,
-        phase1: true,
-      },
-      {
-        key: "programs",
-        name: "Programs",
-        icon: <BookOpen className="w-4 h-4" />,
+        key: "myschool",
+        name: "My School",
+        icon: <School className="w-4 h-4" />,
         phase1: true,
       },
     ],
@@ -10174,6 +10387,10 @@ function Sidebar({
   isDark,
   admissionsTab,
   onAdmissionsSubtab,
+  budgetTab,
+  onBudgetSubtab,
+  mySchoolTab,
+  onMySchoolSubtab,
 }: {
   activePage: string;
   onNavigate: (page: ActivePage) => void;
@@ -10183,8 +10400,14 @@ function Sidebar({
   isDark: boolean;
   admissionsTab: AdmissionsTab;
   onAdmissionsSubtab: (tab: AdmissionsTab) => void;
+  budgetTab: BudgetTab;
+  onBudgetSubtab: (tab: BudgetTab) => void;
+  mySchoolTab: MySchoolTab;
+  onMySchoolSubtab: (tab: MySchoolTab) => void;
 }) {
-  const [admissionsOpen, setAdmissionsOpen] = useState(true);
+  const [admissionsOpen, setAdmissionsOpen] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [mySchoolOpen, setMySchoolOpen] = useState(false);
   return (
     <motion.aside
       animate={{ width: isExpanded ? 185 : 52 }}
@@ -10276,7 +10499,12 @@ function Sidebar({
                   <div key={item.key}>
                     <button
                       data-tour-id={`nav-${item.key}`}
-                      onClick={() => onNavigate(item.key as ActivePage)}
+                      onClick={() => {
+                        onNavigate(item.key as ActivePage);
+                        if (item.key === "leads") setAdmissionsOpen(true);
+                        if (item.key === "budget") setBudgetOpen(true);
+                        if (item.key === "myschool") setMySchoolOpen(true);
+                      }}
                       title={!isExpanded ? item.name : undefined}
                       className="w-full flex items-center gap-2.5 rounded-sm text-sm font-medium transition-all duration-150 relative"
                       style={{
@@ -10311,7 +10539,7 @@ function Sidebar({
                       {isExpanded && (
                         <>
                           <span className="flex-1 truncate text-left">{item.name}</span>
-                          {!item.phase1 && item.key !== "teacher" && item.key !== "leads" && (
+                          {!item.phase1 && item.key !== "teacher" && item.key !== "leads" && item.key !== "budget" && (
                             <span
                               className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
                               style={{
@@ -10336,31 +10564,65 @@ function Sidebar({
                                 color: active ? C.accent : C.textTertiary,
                                 padding: "2px",
                                 cursor: "pointer",
-                                transform: admissionsOpen ? "rotate(90deg)" : "rotate(0deg)",
+                                transform: admissionsOpen ? "rotate(180deg)" : "rotate(0deg)",
                               }}
                             >
-                              <ChevronRight className="w-3 h-3" />
+                              <ChevronDown className="w-3 h-3" />
+                            </div>
+                          )}
+                          {item.key === "budget" && (
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => { e.stopPropagation(); setBudgetOpen((v) => !v); }}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); setBudgetOpen((v) => !v); } }}
+                              className="flex-shrink-0 flex items-center justify-center transition-transform duration-200"
+                              style={{
+                                color: active ? C.accent : C.textTertiary,
+                                padding: "2px",
+                                cursor: "pointer",
+                                transform: budgetOpen ? "rotate(180deg)" : "rotate(0deg)",
+                              }}
+                            >
+                              <ChevronDown className="w-3 h-3" />
+                            </div>
+                          )}
+                          {item.key === "myschool" && (
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => { e.stopPropagation(); setMySchoolOpen((v) => !v); }}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); setMySchoolOpen((v) => !v); } }}
+                              className="flex-shrink-0 flex items-center justify-center transition-transform duration-200"
+                              style={{
+                                color: active ? C.accent : C.textTertiary,
+                                padding: "2px",
+                                cursor: "pointer",
+                                transform: mySchoolOpen ? "rotate(180deg)" : "rotate(0deg)",
+                              }}
+                            >
+                              <ChevronDown className="w-3 h-3" />
                             </div>
                           )}
                         </>
                       )}
                     </button>
                     {/* Admissions subtabs */}
-                    {item.key === "leads" && isExpanded && admissionsOpen && (
+                    {item.key === "leads" && isExpanded && (
                       <AnimatePresence initial={false}>
+                        {admissionsOpen && (
                         <motion.div
                           key="admissions-subtabs"
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.18, ease: "easeInOut" }}
+                          transition={{ duration: 0.22, ease: "easeInOut" }}
                           style={{ overflow: "hidden" }}
                         >
                           <div
                             className="flex mt-1 mb-0.5"
                             style={{ paddingLeft: "12px" }}
                           >
-                            {/* Single vertical connector line */}
                             <div
                               className="flex-shrink-0"
                               style={{
@@ -10395,6 +10657,66 @@ function Sidebar({
                             </div>
                           </div>
                         </motion.div>
+                        )}
+                      </AnimatePresence>
+                    )}
+                    {/* Budget subtabs */}
+                    {item.key === "budget" && isExpanded && (
+                      <AnimatePresence initial={false}>
+                        {budgetOpen && (
+                        <motion.div
+                          key="budget-subtabs"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.22, ease: "easeInOut" }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <div
+                            className="flex mt-1 mb-0.5"
+                            style={{ paddingLeft: "12px" }}
+                          >
+                            <div
+                              className="flex-shrink-0"
+                              style={{
+                                width: "1px",
+                                backgroundColor: C.border,
+                                marginRight: "10px",
+                                borderRadius: "1px",
+                              }}
+                            />
+                            <div className="flex-1 space-y-0.5">
+                              {([
+                                { key: "overview", label: "Overview" },
+                                { key: "expenses", label: "Expenses" },
+                                { key: "revenue", label: "Revenue" },
+                                { key: "analysis", label: "Analysis" },
+                                { key: "transactions", label: "Transactions" },
+                              ] as { key: BudgetTab; label: string }[]).map((sub) => {
+                                const subActive = active && budgetTab === sub.key;
+                                return (
+                                  <button
+                                    key={sub.key}
+                                    onClick={() => {
+                                      onNavigate("budget");
+                                      onBudgetSubtab(sub.key);
+                                    }}
+                                    className="w-full text-left text-xs font-medium transition-all duration-150"
+                                    style={{
+                                      padding: "5px 8px",
+                                      borderRadius: C.r.sm,
+                                      backgroundColor: subActive ? C.accentLight : "transparent",
+                                      color: subActive ? C.accent : C.textTertiary,
+                                    }}
+                                  >
+                                    {sub.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </motion.div>
+                        )}
                       </AnimatePresence>
                     )}
                   </div>
@@ -10487,6 +10809,7 @@ export default function AdminDashboardDemo({
 }) {
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
   const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>("flows");
+  const [budgetTab, setBudgetTab] = useState<BudgetTab>("overview");
   const [isExpanded, setIsExpanded] = useState(
     defaultSidebarExpanded !== undefined ? defaultSidebarExpanded : !disableTour
   );
@@ -10526,7 +10849,7 @@ export default function AdminDashboardDemo({
       case "programs":
         return <ProgramsPage />;
       case "budget":
-        return <BudgetPage />;
+        return <BudgetPage activeTab={budgetTab} onTabChange={setBudgetTab} />;
       case "marketing":
         return <MarketingPage />;
       case "impersonate":
@@ -10787,6 +11110,11 @@ export default function AdminDashboardDemo({
           onAdmissionsSubtab={(tab) => {
             setActivePage("leads");
             setAdmissionsTab(tab);
+          }}
+          budgetTab={budgetTab}
+          onBudgetSubtab={(tab) => {
+            setActivePage("budget");
+            setBudgetTab(tab);
           }}
         />
       )}
