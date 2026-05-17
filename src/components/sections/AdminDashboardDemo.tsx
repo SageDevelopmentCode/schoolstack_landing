@@ -89,9 +89,9 @@ const C_DARK = {
 };
 
 const C_LIGHT = {
-  bg: "#F8FAFC",
+  bg: "#FFFFFF",
   surface: "#FFFFFF",
-  elevated: "#F8FAFC",
+  elevated: "#F4F6F9",
   border: "#EEF2F6",
   borderStrong: "#D4DBE8",
   accent: "#5E7C68",
@@ -3505,9 +3505,7 @@ function EnrollmentFlowsTab() {
 
 type AdmissionsTab = "flows" | "submissions" | "applications";
 
-function AdmissionsPage() {
-  const [activeTab, setActiveTab] = useState<AdmissionsTab>("flows");
-
+function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; onTabChange: (tab: AdmissionsTab) => void }) {
   const tabs: { key: AdmissionsTab; label: string }[] = [
     { key: "flows", label: "Enrollment Flows" },
     { key: "submissions", label: "Submissions" },
@@ -3524,7 +3522,7 @@ function AdmissionsPage() {
         {tabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => onTabChange(tab.key)}
             className="px-4 py-3 text-sm font-medium transition-colors"
             style={{
               color: activeTab === tab.key ? C.accent : C.textTertiary,
@@ -5049,102 +5047,99 @@ function PeoplePage() {
         </div>
       </div>
 
-      {/* Family cards grid */}
-      <div className="flex-1 overflow-y-auto px-6 py-5">
-        <div className="grid grid-cols-1 gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-          {filtered.map((parent, i) => {
-            const enrolledCount = parent.applications.filter((a) => a.status === "enrolled").length;
-            return (
-              <motion.div
-                key={parent.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="rounded-xl cursor-pointer transition-all"
-                style={{
-                  backgroundColor: C.surface,
-                  border: `1px solid ${C.border}`,
-                  boxShadow: C.shadowCard,
-                }}
-                onClick={() => setSelectedParent(parent)}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.borderStrong)}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = C.border)}
-              >
-                {/* Card header */}
-                <div
-                  className="flex items-center gap-3 px-4 py-3.5"
-                  style={{ borderBottom: `1px solid ${C.border}` }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                    style={{ backgroundColor: parent.color + "22", color: parent.color }}
-                  >
-                    {parent.initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>
-                      {parent.name}
-                    </p>
-                    <p className="text-xs truncate" style={{ color: C.textTertiary }}>
-                      {parent.g1Phone}
-                    </p>
-                  </div>
-                  {enrolledCount > 0 && (
-                    <span
-                      className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
-                      style={{ backgroundColor: C.successBg, color: C.success, border: `1px solid ${C.successBorder}` }}
-                    >
-                      Enrolled
-                    </span>
-                  )}
-                </div>
+      {/* Column headers */}
+      <div
+        className="flex items-center px-6 py-2 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: C.elevated }}
+      >
+        <div className="w-8 flex-shrink-0" />
+        <div className="w-48 flex-shrink-0 pl-3 text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>Family</div>
+        <div className="flex-1 min-w-0 text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>Children</div>
+        <div className="w-36 flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>Phone</div>
+        <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>Status</div>
+        <div className="w-4 flex-shrink-0" />
+      </div>
 
-                {/* Children */}
-                <div className="px-4 py-3">
-                  <p
-                    className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {parent.children.length === 1 ? "Child" : "Children"}
+      {/* Family rows */}
+      <div className="flex-1 overflow-y-auto" style={{ backgroundColor: C.surface }}>
+        {filtered.map((parent, i) => {
+          const enrolledCount = parent.applications.filter((a) => a.status === "enrolled").length;
+          const childSummary = parent.children.map((child) => {
+            const app = parent.applications.find((a) => a.childName === child.name);
+            const programLabel = app ? (PROGRAM_LABELS[app.program]?.label ?? app.program) : null;
+            return programLabel ? `${child.name} (${programLabel})` : child.name;
+          }).join(", ");
+
+          return (
+            <motion.div
+              key={parent.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03 }}
+              className="flex items-center px-6 py-3 cursor-pointer"
+              style={{ borderBottom: `1px solid ${C.border}` }}
+              onClick={() => setSelectedParent(parent)}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.elevated)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            >
+              {/* Avatar */}
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                style={{ backgroundColor: parent.color + "22", color: parent.color }}
+              >
+                {parent.initials}
+              </div>
+
+              {/* Name */}
+              <div className="w-48 flex-shrink-0 pl-3 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>
+                  {parent.name}
+                </p>
+                {parent.g2Name && (
+                  <p className="text-[11px] truncate" style={{ color: C.textTertiary }}>
+                    + {parent.g2Name}
                   </p>
-                  <div className="space-y-1.5">
-                    {parent.children.map((child) => {
-                      const appForChild = parent.applications.find((a) => a.childName === child.name);
-                      return (
-                        <div key={child.name} className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
-                              style={{ backgroundColor: parent.color + "18", color: parent.color }}
-                            >
-                              {child.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                            </div>
-                            <span className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
-                              {child.name}
-                            </span>
-                          </div>
-                          {appForChild && (
-                            <span
-                              className="text-[10px] font-medium flex-shrink-0"
-                              style={{ color: C.textTertiary }}
-                            >
-                              {PROGRAM_LABELS[appForChild.program]?.label ?? appForChild.program}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {parent.g2Name && (
-                    <p className="text-[11px] mt-2.5" style={{ color: C.textTertiary }}>
-                      + {parent.g2Name} ({parent.g2Relationship})
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                )}
+              </div>
+
+              {/* Children */}
+              <div className="flex-1 min-w-0 pr-4">
+                <p className="text-xs truncate" style={{ color: C.textSecondary }}>
+                  {childSummary}
+                </p>
+              </div>
+
+              {/* Phone */}
+              <div className="w-36 flex-shrink-0">
+                <p className="text-xs" style={{ color: C.textTertiary }}>
+                  {parent.g1Phone}
+                </p>
+              </div>
+
+              {/* Status */}
+              <div className="w-24 flex-shrink-0">
+                {enrolledCount > 0 ? (
+                  <span
+                    className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                    style={{ backgroundColor: C.successBg, color: C.success, border: `1px solid ${C.successBorder}` }}
+                  >
+                    Enrolled
+                  </span>
+                ) : (
+                  <span
+                    className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                    style={{ backgroundColor: C.elevated, color: C.textTertiary, border: `1px solid ${C.border}` }}
+                  >
+                    Pending
+                  </span>
+                )}
+              </div>
+
+              {/* Chevron */}
+              <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: C.textTertiary }} />
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Detail panel */}
@@ -10177,6 +10172,8 @@ function Sidebar({
   onToggleExpand,
   onToggleTheme,
   isDark,
+  admissionsTab,
+  onAdmissionsSubtab,
 }: {
   activePage: string;
   onNavigate: (page: ActivePage) => void;
@@ -10184,7 +10181,10 @@ function Sidebar({
   onToggleExpand: () => void;
   onToggleTheme: () => void;
   isDark: boolean;
+  admissionsTab: AdmissionsTab;
+  onAdmissionsSubtab: (tab: AdmissionsTab) => void;
 }) {
+  const [admissionsOpen, setAdmissionsOpen] = useState(true);
   return (
     <motion.aside
       animate={{ width: isExpanded ? 185 : 52 }}
@@ -10267,62 +10267,137 @@ function Sidebar({
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const active = activePage === item.key;
+                const admissionsSubtabs: { key: AdmissionsTab; label: string }[] = [
+                  { key: "flows", label: "Enrollment Flows" },
+                  { key: "submissions", label: "Submissions" },
+                  { key: "applications", label: "Applications" },
+                ];
                 return (
-                  <button
-                    key={item.key}
-                    data-tour-id={`nav-${item.key}`}
-                    onClick={() => onNavigate(item.key as ActivePage)}
-                    title={!isExpanded ? item.name : undefined}
-                    className="w-full flex items-center gap-2.5 rounded-sm text-sm font-medium transition-all duration-150 relative"
-                    style={{
-                      padding: isExpanded ? "8px 12px" : "8px",
-                      justifyContent: isExpanded ? "flex-start" : "center",
-                      backgroundColor: active ? C.accentLight : "transparent",
-                      color: active
-                        ? C.accent
-                        : item.phase1
-                          ? C.textTertiary
-                          : C.textQuaternary,
-                      borderLeft: isExpanded
-                        ? active
-                          ? `2px solid ${C.accent}`
-                          : "2px solid transparent"
-                        : "none",
-                      opacity: item.phase1 || active ? 1 : 0.5,
-                    }}
-                  >
-                    <span
+                  <div key={item.key}>
+                    <button
+                      data-tour-id={`nav-${item.key}`}
+                      onClick={() => onNavigate(item.key as ActivePage)}
+                      title={!isExpanded ? item.name : undefined}
+                      className="w-full flex items-center gap-2.5 rounded-sm text-sm font-medium transition-all duration-150 relative"
                       style={{
+                        padding: isExpanded ? "8px 12px" : "8px",
+                        justifyContent: isExpanded ? "flex-start" : "center",
+                        backgroundColor: active ? C.accentLight : "transparent",
                         color: active
                           ? C.accent
                           : item.phase1
                             ? C.textTertiary
                             : C.textQuaternary,
-                        flexShrink: 0,
+                        borderLeft: isExpanded
+                          ? active
+                            ? `2px solid ${C.accent}`
+                            : "2px solid transparent"
+                          : "none",
+                        opacity: item.phase1 || active ? 1 : 0.5,
                       }}
                     >
-                      {item.icon}
-                    </span>
-                    {isExpanded && (
-                      <>
-                        <span className="flex-1 truncate text-left">{item.name}</span>
-                        {!item.phase1 && item.key !== "teacher" && (
-                          <span
-                            className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
-                            style={{
-                              backgroundColor: C.elevated,
-                              color: C.textQuaternary,
-                            }}
+                      <span
+                        style={{
+                          color: active
+                            ? C.accent
+                            : item.phase1
+                              ? C.textTertiary
+                              : C.textQuaternary,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {item.icon}
+                      </span>
+                      {isExpanded && (
+                        <>
+                          <span className="flex-1 truncate text-left">{item.name}</span>
+                          {!item.phase1 && item.key !== "teacher" && item.key !== "leads" && (
+                            <span
+                              className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
+                              style={{
+                                backgroundColor: C.elevated,
+                                color: C.textQuaternary,
+                              }}
+                            >
+                              P2
+                            </span>
+                          )}
+                          {item.key === "teacher" && (
+                            <ChevronRight className="w-3 h-3 opacity-40 flex-shrink-0" />
+                          )}
+                          {item.key === "leads" && (
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => { e.stopPropagation(); setAdmissionsOpen((v) => !v); }}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); setAdmissionsOpen((v) => !v); } }}
+                              className="flex-shrink-0 flex items-center justify-center transition-transform duration-200"
+                              style={{
+                                color: active ? C.accent : C.textTertiary,
+                                padding: "2px",
+                                cursor: "pointer",
+                                transform: admissionsOpen ? "rotate(90deg)" : "rotate(0deg)",
+                              }}
+                            >
+                              <ChevronRight className="w-3 h-3" />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </button>
+                    {/* Admissions subtabs */}
+                    {item.key === "leads" && isExpanded && admissionsOpen && (
+                      <AnimatePresence initial={false}>
+                        <motion.div
+                          key="admissions-subtabs"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.18, ease: "easeInOut" }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <div
+                            className="flex mt-1 mb-0.5"
+                            style={{ paddingLeft: "12px" }}
                           >
-                            P2
-                          </span>
-                        )}
-                        {item.key === "teacher" && (
-                          <ChevronRight className="w-3 h-3 opacity-40 flex-shrink-0" />
-                        )}
-                      </>
+                            {/* Single vertical connector line */}
+                            <div
+                              className="flex-shrink-0"
+                              style={{
+                                width: "1px",
+                                backgroundColor: C.border,
+                                marginRight: "10px",
+                                borderRadius: "1px",
+                              }}
+                            />
+                            <div className="flex-1 space-y-0.5">
+                              {admissionsSubtabs.map((sub) => {
+                                const subActive = active && admissionsTab === sub.key;
+                                return (
+                                  <button
+                                    key={sub.key}
+                                    onClick={() => {
+                                      onNavigate("leads");
+                                      onAdmissionsSubtab(sub.key);
+                                    }}
+                                    className="w-full text-left text-xs font-medium transition-all duration-150"
+                                    style={{
+                                      padding: "5px 8px",
+                                      borderRadius: C.r.sm,
+                                      backgroundColor: subActive ? C.accentLight : "transparent",
+                                      color: subActive ? C.accent : C.textTertiary,
+                                    }}
+                                  >
+                                    {sub.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </motion.div>
+                      </AnimatePresence>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -10411,6 +10486,7 @@ export default function AdminDashboardDemo({
   defaultSidebarExpanded?: boolean
 }) {
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
+  const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>("flows");
   const [isExpanded, setIsExpanded] = useState(
     defaultSidebarExpanded !== undefined ? defaultSidebarExpanded : !disableTour
   );
@@ -10444,7 +10520,7 @@ export default function AdminDashboardDemo({
       case "dashboard":
         return <DashboardPage />;
       case "leads":
-        return <AdmissionsPage />;
+        return <AdmissionsPage activeTab={admissionsTab} onTabChange={setAdmissionsTab} />;
       case "people":
         return <PeoplePage />;
       case "programs":
@@ -10707,6 +10783,11 @@ export default function AdminDashboardDemo({
           onToggleExpand={() => setIsExpanded((v) => !v)}
           onToggleTheme={() => setIsDark((v) => !v)}
           isDark={isDark}
+          admissionsTab={admissionsTab}
+          onAdmissionsSubtab={(tab) => {
+            setActivePage("leads");
+            setAdmissionsTab(tab);
+          }}
         />
       )}
       <main className="flex-1 overflow-hidden">
