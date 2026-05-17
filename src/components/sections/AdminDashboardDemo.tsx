@@ -91,9 +91,9 @@ const C_DARK = {
 const C_LIGHT = {
   bg: "#F8FAFC",
   surface: "#FFFFFF",
-  elevated: "#F1F5F9",
-  border: "#E2E8F0",
-  borderStrong: "#CBD5E1",
+  elevated: "#F8FAFC",
+  border: "#EEF2F6",
+  borderStrong: "#D4DBE8",
   accent: "#5E7C68",
   accentBright: "#4A6354",
   accentLight: "rgba(94, 124, 104, 0.10)",
@@ -260,6 +260,7 @@ const DEMO_LEADS = [
     tags: ["Summer 2026"],
     date: "Apr 7",
     message: null,
+    flowId: "flow-2",
   },
   {
     id: "l2",
@@ -273,6 +274,7 @@ const DEMO_LEADS = [
     tags: ["School Year", "Financial Aid"],
     date: "Apr 1",
     message: "Interested in fall enrollment for my daughter in 3rd grade.",
+    flowId: "flow-1",
   },
   {
     id: "l3",
@@ -286,6 +288,7 @@ const DEMO_LEADS = [
     tags: ["School Year"],
     date: "Mar 20",
     message: null,
+    flowId: "flow-1",
   },
   {
     id: "l4",
@@ -299,6 +302,7 @@ const DEMO_LEADS = [
     tags: ["Summer 2026"],
     date: "Apr 3",
     message: "Looking for summer options for twin boys, ages 7.",
+    flowId: "flow-2",
   },
   {
     id: "l5",
@@ -312,6 +316,7 @@ const DEMO_LEADS = [
     tags: ["School Year"],
     date: "Mar 15",
     message: null,
+    flowId: "flow-1",
   },
   {
     id: "l6",
@@ -325,6 +330,7 @@ const DEMO_LEADS = [
     tags: ["Both"],
     date: "Feb 10",
     message: null,
+    flowId: "flow-1",
   },
   {
     id: "l7",
@@ -338,6 +344,7 @@ const DEMO_LEADS = [
     tags: [],
     date: "Apr 5",
     message: "Heard about your school from a friend. What are your rates?",
+    flowId: "flow-3",
   },
   {
     id: "l8",
@@ -351,6 +358,7 @@ const DEMO_LEADS = [
     tags: ["School Year"],
     date: "Mar 25",
     message: null,
+    flowId: "flow-1",
   },
 ];
 
@@ -2164,7 +2172,7 @@ function DashboardPage() {
   );
 }
 
-// ─── Leads page ────────────────────────────────────────────────────────────────
+// ─── Admissions page ──────────────────────────────────────────────────────────
 
 const LEAD_FILTERS = [
   { key: "all", label: "All", count: 37 },
@@ -2327,9 +2335,16 @@ function LeadDetailPanel({
   );
 }
 
-function LeadsPage() {
+const FLOW_FILTER_OPTIONS = [
+  { id: "all", label: "All Forms" },
+  { id: "flow-1", label: "Apply Now Form" },
+  { id: "flow-2", label: "Summer Program Enrollment" },
+  { id: "flow-3", label: "Waitlist Signup" },
+];
+
+function LeadsListTab() {
   const [activeFilter, setActiveFilter] = useState("all");
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeFlowFilter, setActiveFlowFilter] = useState("all");
   const [selectedLead, setSelectedLead] = useState<
     (typeof DEMO_LEADS)[0] | null
   >(null);
@@ -2341,34 +2356,56 @@ function LeadsPage() {
 
   const filtered = DEMO_LEADS.filter((l) => {
     const statusMatch = activeFilter === "all" || l.status === activeFilter;
-    const tagMatch = !activeTag || l.tags.includes(activeTag);
-    return statusMatch && tagMatch;
+    const flowMatch = activeFlowFilter === "all" || l.flowId === activeFlowFilter;
+    return statusMatch && flowMatch;
   });
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-6 pt-6 mb-5">
-        <h1
-          className="text-xl font-semibold tracking-tight"
-          style={{ color: C.textPrimary }}
-        >
-          Leads
-        </h1>
-        <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-          Waitlist signups and contact submissions
-        </p>
+      {/* Flow filter row */}
+      <div
+        className="flex items-center gap-2 px-6 py-3 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-widest flex-shrink-0" style={{ color: C.textTertiary }}>
+          Form
+        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {FLOW_FILTER_OPTIONS.map((f) => {
+            const isActive = activeFlowFilter === f.id;
+            return (
+              <button
+                key={f.id}
+                onClick={() => setActiveFlowFilter(f.id)}
+                className="px-2.5 py-1 text-xs font-medium rounded-full transition-all"
+                style={{
+                  backgroundColor: isActive ? C.accent : C.elevated,
+                  color: isActive ? "#fff" : C.textSecondary,
+                  border: `1px solid ${isActive ? C.accent : C.border}`,
+                }}
+              >
+                {f.label}
+                {f.id !== "all" && (
+                  <span className="ml-1 text-[10px] font-bold opacity-70">
+                    {DEMO_LEADS.filter((l) => l.flowId === f.id).length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 mb-3 flex-wrap px-6">
+      {/* Status filters */}
+      <div className="flex items-center gap-2 px-6 py-2.5 flex-wrap flex-shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
         {LEAD_FILTERS.map((f) => (
           <button
             key={f.key}
             onClick={() => setActiveFilter(f.key)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all"
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all"
             style={{
-              backgroundColor: activeFilter === f.key ? C.accent : C.elevated,
-              color: activeFilter === f.key ? "#fff" : C.textSecondary,
+              backgroundColor: activeFilter === f.key ? C.accentLight : "transparent",
+              color: activeFilter === f.key ? C.accent : C.textTertiary,
               border: `1px solid ${activeFilter === f.key ? C.accent : C.border}`,
             }}
           >
@@ -2377,32 +2414,15 @@ function LeadsPage() {
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-2 mb-4 flex-wrap px-6">
-        {LEAD_TAGS.map((tag) => (
-          <button
-            key={tag}
-            onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-            className="px-2.5 py-1 text-[11px] font-medium rounded-full transition-all"
-            style={{
-              backgroundColor:
-                activeTag === tag ? C.accentLight : "transparent",
-              color: activeTag === tag ? C.accent : C.textTertiary,
-              border: `1px solid ${activeTag === tag ? C.accent : C.border}`,
-            }}
-          >
-            {tag}
-          </button>
-        ))}
-      </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
+      <div className="flex-1 overflow-hidden relative">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                 {[
-                  "Type",
+                  "Form",
                   "Name",
                   "Contact",
                   "Child",
@@ -2438,17 +2458,10 @@ function LeadsPage() {
                     (e.currentTarget.style.backgroundColor = "transparent")
                   }
                 >
-                  <td className="px-4 py-3">
-                    <span
-                      className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
-                      style={{
-                        backgroundColor:
-                          lead.type === "waitlist" ? C.accentLight : C.purpleBg,
-                        color: lead.type === "waitlist" ? C.accent : C.purple,
-                      }}
-                    >
-                      {lead.type === "waitlist" ? "Waitlist" : "Contact"}
-                    </span>
+                  <td className="px-4 py-3 max-w-[140px]">
+                    <p className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
+                      {FLOW_FILTER_OPTIONS.find((f) => f.id === lead.flowId)?.label ?? "—"}
+                    </p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium" style={{ color: C.textPrimary }}>
@@ -2516,16 +2529,1034 @@ function LeadsPage() {
             </tbody>
           </table>
         </div>
+
+        <AnimatePresence>
+          {selectedLead && (
+            <LeadDetailPanel
+              lead={selectedLead}
+              onClose={() => setSelectedLead(null)}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+// ─── Enrollment Flow types & demo data ────────────────────────────────────────
+
+type FlowFieldType = "text" | "email" | "phone" | "select" | "checkbox" | "date";
+
+interface FlowField {
+  id: string;
+  label: string;
+  type: FlowFieldType;
+  required: boolean;
+  options?: string[];
+}
+
+interface FlowStep {
+  id: string;
+  title: string;
+  fields: FlowField[];
+}
+
+type FlowActionType = "email" | "sms" | "redirect" | "tag" | "notify_admin";
+
+interface FlowAction {
+  id: string;
+  type: FlowActionType;
+  config: Record<string, string>;
+}
+
+interface EnrollmentFlow {
+  id: string;
+  name: string;
+  steps: FlowStep[];
+  actions: FlowAction[];
+  updatedAt: string;
+}
+
+const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
+  {
+    id: "flow-1",
+    name: "Apply Now Form",
+    updatedAt: "May 12, 2026",
+    steps: [
+      {
+        id: "s1",
+        title: "Parent Info",
+        fields: [
+          { id: "f1", label: "First Name", type: "text", required: true },
+          { id: "f2", label: "Last Name", type: "text", required: true },
+          { id: "f3", label: "Email", type: "email", required: true },
+          { id: "f4", label: "Phone", type: "phone", required: false },
+        ],
+      },
+      {
+        id: "s2",
+        title: "Child Details",
+        fields: [
+          { id: "f5", label: "Child's Name", type: "text", required: true },
+          { id: "f6", label: "Date of Birth", type: "date", required: true },
+          { id: "f7", label: "Grade Level", type: "select", required: true, options: ["Pre-K", "K", "1st", "2nd", "3rd"] },
+        ],
+      },
+      {
+        id: "s3",
+        title: "Program Selection",
+        fields: [
+          { id: "f8", label: "Preferred Program", type: "select", required: true, options: ["Full Day", "Half Day", "After Care"] },
+          { id: "f9", label: "Preferred Start Date", type: "date", required: false },
+          { id: "f10", label: "Financial Aid Needed", type: "checkbox", required: false },
+        ],
+      },
+    ],
+    actions: [
+      { id: "a1", type: "email", config: { to: "{{parent_email}}", subject: "Application Received!", body: "Thank you for applying. We'll be in touch shortly." } },
+      { id: "a2", type: "notify_admin", config: {} },
+    ],
+  },
+  {
+    id: "flow-2",
+    name: "Summer Program Enrollment",
+    updatedAt: "May 8, 2026",
+    steps: [
+      {
+        id: "s4",
+        title: "Contact Info",
+        fields: [
+          { id: "f11", label: "Parent Name", type: "text", required: true },
+          { id: "f12", label: "Email", type: "email", required: true },
+          { id: "f13", label: "Phone", type: "phone", required: true },
+        ],
+      },
+      {
+        id: "s5",
+        title: "Child Info",
+        fields: [
+          { id: "f14", label: "Child's Name", type: "text", required: true },
+          { id: "f15", label: "Age", type: "text", required: true },
+        ],
+      },
+    ],
+    actions: [
+      { id: "a3", type: "email", config: { to: "{{parent_email}}", subject: "Summer Program — You're on the list!", body: "" } },
+      { id: "a4", type: "sms", config: { message: "Hi! You've successfully signed up for our summer program." } },
+      { id: "a5", type: "redirect", config: { url: "https://schoolstack.io/thank-you" } },
+    ],
+  },
+  {
+    id: "flow-3",
+    name: "Waitlist Signup",
+    updatedAt: "Apr 29, 2026",
+    steps: [
+      {
+        id: "s6",
+        title: "Family Info",
+        fields: [
+          { id: "f16", label: "Parent Name", type: "text", required: true },
+          { id: "f17", label: "Email", type: "email", required: true },
+          { id: "f18", label: "Child's Name", type: "text", required: true },
+          { id: "f19", label: "Interested in Financial Aid", type: "checkbox", required: false },
+        ],
+      },
+    ],
+    actions: [
+      { id: "a6", type: "email", config: { to: "{{parent_email}}", subject: "You're on the waitlist!", body: "" } },
+      { id: "a7", type: "tag", config: { tag: "Waitlist 2026" } },
+    ],
+  },
+];
+
+function getActionMeta(): Record<FlowActionType, { label: string; color: string; bgColor: string }> {
+  return {
+    email: { label: "Send Email", color: C.info, bgColor: C.infoBg },
+    sms: { label: "Send SMS", color: C.success, bgColor: C.successBg },
+    redirect: { label: "Redirect", color: C.warning, bgColor: C.warningBg },
+    tag: { label: "Add Tag", color: C.purple, bgColor: C.purpleBg },
+    notify_admin: { label: "Notify Admin", color: C.accent, bgColor: C.accentLight },
+  };
+}
+
+const FIELD_TYPE_OPTIONS: { value: FlowFieldType; label: string }[] = [
+  { value: "text", label: "Text" },
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Phone" },
+  { value: "select", label: "Select" },
+  { value: "checkbox", label: "Checkbox" },
+  { value: "date", label: "Date" },
+];
+
+let _flowIdCounter = 100;
+const newId = () => `gen-${++_flowIdCounter}`;
+
+function EnrollmentFlowsTab() {
+  const [flows, setFlows] = useState<EnrollmentFlow[]>(INITIAL_DEMO_FLOWS);
+  const [selectedFlowId, setSelectedFlowId] = useState<string>("flow-1");
+  const [selectedStepId, setSelectedStepId] = useState<string | null>("s1");
+  const [savedPulse, setSavedPulse] = useState(false);
+  const [previewStep, setPreviewStep] = useState<FlowStep | null>(null);
+  const ACTION_META = getActionMeta();
+
+  const selectedFlow = flows.find((f) => f.id === selectedFlowId) ?? null;
+
+  const updateFlow = (updater: (f: EnrollmentFlow) => EnrollmentFlow) => {
+    setFlows((prev) =>
+      prev.map((f) => (f.id === selectedFlowId ? updater(f) : f))
+    );
+  };
+
+  const addFlow = () => {
+    const id = newId();
+    const newFlow: EnrollmentFlow = {
+      id,
+      name: "New Enrollment Flow",
+      updatedAt: "Just now",
+      steps: [
+        {
+          id: newId(),
+          title: "Step 1",
+          fields: [
+            { id: newId(), label: "First Name", type: "text", required: true },
+            { id: newId(), label: "Email", type: "email", required: true },
+          ],
+        },
+      ],
+      actions: [],
+    };
+    setFlows((prev) => [newFlow, ...prev]);
+    setSelectedFlowId(id);
+    setSelectedStepId(null);
+  };
+
+  const addStep = () => {
+    const id = newId();
+    updateFlow((f) => ({
+      ...f,
+      steps: [...f.steps, { id, title: `Step ${f.steps.length + 1}`, fields: [] }],
+    }));
+    setSelectedStepId(id);
+  };
+
+  const deleteStep = (stepId: string) => {
+    updateFlow((f) => ({ ...f, steps: f.steps.filter((s) => s.id !== stepId) }));
+  };
+
+  const moveStep = (stepId: string, dir: -1 | 1) => {
+    updateFlow((f) => {
+      const idx = f.steps.findIndex((s) => s.id === stepId);
+      if (idx + dir < 0 || idx + dir >= f.steps.length) return f;
+      const steps = [...f.steps];
+      [steps[idx], steps[idx + dir]] = [steps[idx + dir], steps[idx]];
+      return { ...f, steps };
+    });
+  };
+
+  const updateStepTitle = (stepId: string, title: string) => {
+    updateFlow((f) => ({
+      ...f,
+      steps: f.steps.map((s) => (s.id === stepId ? { ...s, title } : s)),
+    }));
+  };
+
+  const addField = (stepId: string) => {
+    const id = newId();
+    updateFlow((f) => ({
+      ...f,
+      steps: f.steps.map((s) =>
+        s.id === stepId
+          ? { ...s, fields: [...s.fields, { id, label: "New Field", type: "text", required: false }] }
+          : s
+      ),
+    }));
+  };
+
+  const updateField = (stepId: string, fieldId: string, patch: Partial<FlowField>) => {
+    updateFlow((f) => ({
+      ...f,
+      steps: f.steps.map((s) =>
+        s.id === stepId
+          ? { ...s, fields: s.fields.map((field) => (field.id === fieldId ? { ...field, ...patch } : field)) }
+          : s
+      ),
+    }));
+  };
+
+  const deleteField = (stepId: string, fieldId: string) => {
+    updateFlow((f) => ({
+      ...f,
+      steps: f.steps.map((s) =>
+        s.id === stepId ? { ...s, fields: s.fields.filter((field) => field.id !== fieldId) } : s
+      ),
+    }));
+  };
+
+  const moveField = (stepId: string, fieldId: string, dir: -1 | 1) => {
+    updateFlow((f) => ({
+      ...f,
+      steps: f.steps.map((s) => {
+        if (s.id !== stepId) return s;
+        const idx = s.fields.findIndex((field) => field.id === fieldId);
+        if (idx + dir < 0 || idx + dir >= s.fields.length) return s;
+        const fields = [...s.fields];
+        [fields[idx], fields[idx + dir]] = [fields[idx + dir], fields[idx]];
+        return { ...s, fields };
+      }),
+    }));
+  };
+
+  const addAction = (type: FlowActionType) => {
+    const id = newId();
+    updateFlow((f) => ({
+      ...f,
+      actions: [...f.actions, { id, type, config: {} }],
+    }));
+  };
+
+  const updateAction = (actionId: string, patch: Partial<FlowAction>) => {
+    updateFlow((f) => ({
+      ...f,
+      actions: f.actions.map((a) => (a.id === actionId ? { ...a, ...patch } : a)),
+    }));
+  };
+
+  const deleteAction = (actionId: string) => {
+    updateFlow((f) => ({ ...f, actions: f.actions.filter((a) => a.id !== actionId) }));
+  };
+
+  const moveAction = (actionId: string, dir: -1 | 1) => {
+    updateFlow((f) => {
+      const idx = f.actions.findIndex((a) => a.id === actionId);
+      if (idx + dir < 0 || idx + dir >= f.actions.length) return f;
+      const actions = [...f.actions];
+      [actions[idx], actions[idx + dir]] = [actions[idx + dir], actions[idx]];
+      return { ...f, actions };
+    });
+  };
+
+  const saveFlow = () => {
+    updateFlow((f) => ({ ...f, updatedAt: "Just now" }));
+    setSavedPulse(true);
+    setTimeout(() => setSavedPulse(false), 1500);
+  };
+
+  const inputStyle = {
+    backgroundColor: C.elevated,
+    border: `1px solid ${C.border}`,
+    color: C.textPrimary,
+    borderRadius: C.r.md,
+    fontSize: "12px",
+    padding: "4px 8px",
+    outline: "none",
+    width: "100%",
+  } as React.CSSProperties;
+
+  const smallBtnStyle = (active?: boolean) => ({
+    padding: "2px 6px",
+    borderRadius: C.r.sm,
+    fontSize: "11px",
+    cursor: "pointer",
+    backgroundColor: active ? C.accentLight : C.elevated,
+    color: active ? C.accent : C.textTertiary,
+    border: `1px solid ${active ? C.accent : C.border}`,
+    transition: "all 0.15s",
+  } as React.CSSProperties);
+
+  return (
+    <div className="flex h-full" style={{ overflow: "hidden" }}>
+      {/* Left panel — flow list */}
+      <div
+        className="flex flex-col flex-shrink-0 overflow-hidden"
+        style={{
+          width: 220,
+          borderRight: `1px solid ${C.border}`,
+          backgroundColor: C.surface,
+        }}
+      >
+        <div
+          className="flex items-center justify-between px-3 py-3"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
+            Flow Templates
+          </span>
+          <button
+            onClick={addFlow}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all"
+            style={{ backgroundColor: C.accentLight, color: C.accent }}
+          >
+            <Plus className="w-3 h-3" />
+            New
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {flows.map((flow) => {
+            const isActive = flow.id === selectedFlowId;
+            return (
+              <button
+                key={flow.id}
+                onClick={() => { setSelectedFlowId(flow.id); setSelectedStepId(null); }}
+                className="w-full text-left px-3 py-3 transition-all"
+                style={{
+                  backgroundColor: isActive ? C.accentLight : "transparent",
+                  borderBottom: `1px solid ${C.border}`,
+                  borderLeft: isActive ? `2px solid ${C.accent}` : "2px solid transparent",
+                }}
+              >
+                <p className="text-xs font-medium truncate" style={{ color: isActive ? C.accent : C.textPrimary }}>
+                  {flow.name}
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: C.textTertiary }}>
+                  {flow.steps.length} step{flow.steps.length !== 1 ? "s" : ""} · {flow.updatedAt}
+                </p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <AnimatePresence>
-        {selectedLead && (
-          <LeadDetailPanel
-            lead={selectedLead}
-            onClose={() => setSelectedLead(null)}
-          />
-        )}
-      </AnimatePresence>
+      {/* Right panel — flow editor */}
+      {selectedFlow ? (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Editor header */}
+          <div
+            className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+            style={{ borderBottom: `1px solid ${C.border}` }}
+          >
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <input
+                value={selectedFlow.name}
+                onChange={(e) => updateFlow((f) => ({ ...f, name: e.target.value }))}
+                className="text-sm font-semibold bg-transparent border-none outline-none flex-1 min-w-0"
+                style={{ color: C.textPrimary }}
+              />
+            </div>
+            <button
+              onClick={saveFlow}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex-shrink-0"
+              style={{
+                backgroundColor: savedPulse ? C.success : C.accent,
+                color: "#fff",
+              }}
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              {savedPulse ? "Saved!" : "Save Template"}
+            </button>
+          </div>
+
+          {/* Scrollable editor body */}
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+
+            {/* Steps section — horizontal card rail */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Layers className="w-4 h-4" style={{ color: C.accent }} />
+                <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                  Form Steps
+                </span>
+                <span
+                  className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
+                  style={{ backgroundColor: C.accentLight, color: C.accent }}
+                >
+                  {selectedFlow.steps.length}
+                </span>
+              </div>
+
+              {/* Scrollable horizontal rail */}
+              <div
+                className="rounded-lg overflow-x-auto"
+                style={{
+                  backgroundImage: `radial-gradient(circle, ${C.border} 1px, transparent 1px)`,
+                  backgroundSize: "20px 20px",
+                  backgroundColor: C.elevated,
+                  border: `1px solid ${C.border}`,
+                  minHeight: 340,
+                  padding: "48px 40px",
+                }}
+              >
+                <div className="flex items-start gap-0" style={{ width: "max-content" }}>
+                  {selectedFlow.steps.map((step, stepIdx) => {
+                    const isSelected = selectedStepId === step.id;
+                    return (
+                      <motion.div
+                        key={step.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: stepIdx * 0.05, duration: 0.2 }}
+                        className="flex items-start"
+                      >
+                        {/* Step card */}
+                        <div
+                          className="flex flex-col rounded-lg overflow-hidden flex-shrink-0 transition-all"
+                          style={{
+                            width: 300,
+                            backgroundColor: C.surface,
+                            border: isSelected ? `2px solid ${C.accent}` : `1px solid ${C.border}`,
+                            boxShadow: isSelected ? `0 0 0 3px ${C.accentLight}` : C.shadowCard,
+                          }}
+                          onClick={() => setSelectedStepId(isSelected ? null : step.id)}
+                        >
+                          {/* Accent top strip */}
+                          <div className="h-1.5 w-full flex-shrink-0" style={{ backgroundColor: C.accent }} />
+
+                          {/* Card header */}
+                          <div
+                            className="flex items-center gap-2 px-4 pt-3.5 pb-3"
+                            style={{ borderBottom: `1px solid ${C.border}` }}
+                          >
+                            <span
+                              className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                              style={{ backgroundColor: C.accentLight, color: C.accent }}
+                            >
+                              {stepIdx + 1}
+                            </span>
+                            <input
+                              value={step.title}
+                              onChange={(e) => { e.stopPropagation(); updateStepTitle(step.id, e.target.value); }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex-1 min-w-0 text-sm font-semibold bg-transparent border-none outline-none"
+                              style={{ color: C.textPrimary }}
+                            />
+                            <div
+                              className="flex items-center gap-1 flex-shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                style={smallBtnStyle()}
+                                onClick={() => moveStep(step.id, -1)}
+                                disabled={stepIdx === 0}
+                                title="Move left"
+                              >
+                                ←
+                              </button>
+                              <button
+                                style={smallBtnStyle()}
+                                onClick={() => moveStep(step.id, 1)}
+                                disabled={stepIdx === selectedFlow.steps.length - 1}
+                                title="Move right"
+                              >
+                                →
+                              </button>
+                              <button
+                                style={{ ...smallBtnStyle(), color: C.error, borderColor: C.errorBorder }}
+                                onClick={() => deleteStep(step.id)}
+                                title="Delete step"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Fields list — always visible */}
+                          <div className="flex flex-col flex-1">
+                            {step.fields.map((field) => (
+                              <div
+                                key={field.id}
+                                className="flex items-center gap-2.5 px-4 py-3"
+                                style={{ borderBottom: `1px solid ${C.border}` }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  value={field.label}
+                                  onChange={(e) => updateField(step.id, field.id, { label: e.target.value })}
+                                  placeholder="Field label"
+                                  className="flex-1 min-w-0 bg-transparent border-none outline-none font-medium"
+                                  style={{ color: C.textPrimary, fontSize: 13 }}
+                                />
+                                <select
+                                  value={field.type}
+                                  onChange={(e) => updateField(step.id, field.id, { type: e.target.value as FlowFieldType })}
+                                  style={{
+                                    backgroundColor: C.infoBg,
+                                    color: C.info,
+                                    border: "none",
+                                    borderRadius: C.r.sm,
+                                    fontSize: "10px",
+                                    fontWeight: 600,
+                                    padding: "3px 5px",
+                                    flexShrink: 0,
+                                    cursor: "pointer",
+                                    outline: "none",
+                                  }}
+                                >
+                                  {FIELD_TYPE_OPTIONS.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                  ))}
+                                </select>
+                                {/* Required/Optional badge toggle */}
+                                <button
+                                  onClick={() => updateField(step.id, field.id, { required: !field.required })}
+                                  title={field.required ? "Click to make optional" : "Click to make required"}
+                                  className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-all"
+                                  style={{
+                                    backgroundColor: field.required ? C.errorBg : C.elevated,
+                                    color: field.required ? C.error : C.textTertiary,
+                                    border: `1px solid ${field.required ? C.errorBorder : C.border}`,
+                                  }}
+                                >
+                                  {field.required ? "Req*" : "Opt"}
+                                </button>
+                                <button
+                                  onClick={() => deleteField(step.id, field.id)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    color: C.textTertiary,
+                                    padding: "0 1px",
+                                    flexShrink: 0,
+                                    display: "flex",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+
+                            {/* Add field + Preview row */}
+                            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); addField(step.id); }}
+                                className="flex items-center gap-1.5 px-4 py-3 text-xs font-medium transition-all flex-1"
+                                style={{ color: C.accent }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.accentLight)}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                Add Field
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setPreviewStep(step); }}
+                                title="Preview step"
+                                className="flex items-center gap-1 px-3 py-3 text-[11px] font-medium transition-all flex-shrink-0"
+                                style={{ color: C.info, borderLeft: `1px solid ${C.border}` }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.infoBg)}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                Preview
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Arrow connector */}
+                        {stepIdx < selectedFlow.steps.length - 1 && (
+                          <div className="flex items-center self-center" style={{ paddingLeft: 20, paddingRight: 20 }}>
+                            <ArrowRight className="w-5 h-5 flex-shrink-0" style={{ color: C.textTertiary }} />
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+
+                  {/* Arrow before Add Step card */}
+                  {selectedFlow.steps.length > 0 && (
+                    <div className="flex items-center self-center" style={{ paddingLeft: 20, paddingRight: 20 }}>
+                      <ArrowRight className="w-5 h-5 flex-shrink-0" style={{ color: C.textTertiary }} />
+                    </div>
+                  )}
+
+                  {/* Add Step card */}
+                  <div
+                    className="flex flex-col items-center justify-center rounded-lg cursor-pointer flex-shrink-0 transition-all gap-2"
+                    style={{
+                      width: 160,
+                      minHeight: 140,
+                      border: `2px dashed ${C.borderStrong}`,
+                      color: C.textTertiary,
+                      backgroundColor: "transparent",
+                    }}
+                    onClick={addStep}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.backgroundColor = C.surface;
+                      (e.currentTarget as HTMLElement).style.borderColor = C.accent;
+                      (e.currentTarget as HTMLElement).style.color = C.accent;
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+                      (e.currentTarget as HTMLElement).style.borderColor = C.borderStrong;
+                      (e.currentTarget as HTMLElement).style.color = C.textTertiary;
+                    }}
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span className="text-xs font-medium">Add Step</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step preview modal */}
+            <AnimatePresence>
+              {previewStep && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 flex items-center justify-center"
+                  style={{ backgroundColor: "rgba(0,0,0,0.45)", zIndex: 9999 }}
+                  onClick={() => setPreviewStep(null)}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 24, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 16, scale: 0.97 }}
+                    transition={{ type: "spring", damping: 28, stiffness: 300 }}
+                    className="rounded-2xl overflow-hidden flex flex-col"
+                    style={{
+                      width: "min(860px, 90vw)",
+                      maxHeight: "85vh",
+                      backgroundColor: "#FFFFFF",
+                      boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Browser chrome bar */}
+                    <div
+                      className="flex items-center gap-2 px-4 py-3 flex-shrink-0"
+                      style={{ backgroundColor: "#F3F4F6", borderBottom: "1px solid #E5E7EB" }}
+                    >
+                      <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#FC605B" }} />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#FDBC40" }} />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#34C749" }} />
+                      </div>
+                      <div
+                        className="flex-1 mx-3 px-3 py-1 rounded text-xs text-center"
+                        style={{ backgroundColor: "#E5E7EB", color: "#6B7280" }}
+                      >
+                        yourschool.schoolstack.io/apply
+                      </div>
+                      <button
+                        onClick={() => setPreviewStep(null)}
+                        className="rounded p-0.5 transition-colors"
+                        style={{ color: "#9CA3AF" }}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Form content */}
+                    <div className="flex-1 overflow-y-auto px-10 py-8 flex flex-col items-center">
+                    <div className="w-full" style={{ maxWidth: 520 }}>
+                      {/* School branding mock */}
+                      <div className="flex items-center gap-2.5 mb-6">
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
+                          style={{ backgroundColor: C.accent }}
+                        >
+                          S
+                        </div>
+                        <span className="text-sm font-semibold" style={{ color: "#111827" }}>
+                          {selectedFlow?.name ?? "Enrollment Form"}
+                        </span>
+                      </div>
+
+                      {/* Step progress indicator */}
+                      <div className="flex items-center gap-2 mb-6">
+                        {selectedFlow?.steps.map((s, i) => {
+                          const isCurrent = s.id === previewStep.id;
+                          const isPast = (selectedFlow?.steps.findIndex((x) => x.id === previewStep.id) ?? 0) > i;
+                          return (
+                            <div key={s.id} className="flex items-center gap-2">
+                              <div
+                                className="flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold"
+                                style={{
+                                  backgroundColor: isCurrent ? C.accent : isPast ? C.accentLight : "#F3F4F6",
+                                  color: isCurrent ? "#fff" : isPast ? C.accent : "#9CA3AF",
+                                }}
+                              >
+                                {i + 1}
+                              </div>
+                              {i < (selectedFlow?.steps.length ?? 1) - 1 && (
+                                <div className="w-6 h-0.5 rounded" style={{ backgroundColor: isPast ? C.accent : "#E5E7EB" }} />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <h2 className="text-lg font-bold mb-1" style={{ color: "#111827" }}>
+                        {previewStep.title}
+                      </h2>
+                      <p className="text-sm mb-6" style={{ color: "#6B7280" }}>
+                        Please fill out the fields below to continue.
+                      </p>
+
+                      {/* Rendered fields */}
+                      <div className="space-y-4">
+                        {previewStep.fields.map((field) => (
+                          <div key={field.id} className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium flex items-center gap-1" style={{ color: "#374151" }}>
+                              {field.label}
+                              {field.required && (
+                                <span style={{ color: "#EF4444", fontSize: 14, lineHeight: 1 }}>*</span>
+                              )}
+                            </label>
+                            {field.type === "checkbox" ? (
+                              <label className="flex items-center gap-2.5 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 rounded"
+                                  style={{ accentColor: C.accent }}
+                                  readOnly
+                                />
+                                <span className="text-sm" style={{ color: "#6B7280" }}>
+                                  {field.label}
+                                </span>
+                              </label>
+                            ) : field.type === "select" ? (
+                              <select
+                                disabled
+                                className="w-full px-3 py-2.5 rounded-lg text-sm"
+                                style={{
+                                  border: "1.5px solid #E5E7EB",
+                                  color: "#9CA3AF",
+                                  backgroundColor: "#FAFAFA",
+                                  outline: "none",
+                                }}
+                              >
+                                <option>Select an option…</option>
+                                {field.options?.map((opt) => (
+                                  <option key={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type={field.type === "date" ? "date" : field.type === "email" ? "email" : field.type === "phone" ? "tel" : "text"}
+                                placeholder={
+                                  field.type === "email" ? "you@example.com"
+                                  : field.type === "phone" ? "(555) 000-0000"
+                                  : field.type === "date" ? ""
+                                  : `Enter ${field.label.toLowerCase()}…`
+                                }
+                                disabled
+                                className="w-full px-3 py-2.5 rounded-lg text-sm"
+                                style={{
+                                  border: "1.5px solid #E5E7EB",
+                                  color: "#9CA3AF",
+                                  backgroundColor: "#FAFAFA",
+                                  outline: "none",
+                                }}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Next / Submit button */}
+                      <button
+                        className="mt-8 w-full py-3 rounded-lg text-sm font-semibold text-white transition-all"
+                        style={{ backgroundColor: C.accent }}
+                        disabled
+                      >
+                        {(selectedFlow?.steps.findIndex((s) => s.id === previewStep.id) ?? 0) === (selectedFlow?.steps.length ?? 1) - 1
+                          ? "Submit Application"
+                          : "Next Step →"}
+                      </button>
+
+                      <p className="text-center text-xs mt-3" style={{ color: "#9CA3AF" }}>
+                        Powered by SchoolStack
+                      </p>
+                    </div>{/* inner max-width wrapper */}
+                    </div>{/* form content scroll */}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Post-Submit Actions section */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-4 h-4" style={{ color: C.warning }} />
+                <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                  Post-Submit Actions
+                </span>
+                <span
+                  className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
+                  style={{ backgroundColor: C.warningBg, color: C.warning }}
+                >
+                  {selectedFlow.actions.length}
+                </span>
+              </div>
+
+              <div className="space-y-2 mb-2">
+                {selectedFlow.actions.map((action, actionIdx) => {
+                  const meta = ACTION_META[action.type];
+                  return (
+                    <div
+                      key={action.id}
+                      className="rounded-lg p-3"
+                      style={{ border: `1px solid ${C.border}`, backgroundColor: C.elevated }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
+                            style={{ backgroundColor: meta.bgColor, color: meta.color }}
+                          >
+                            {meta.label}
+                          </span>
+                          <span className="text-[10px]" style={{ color: C.textTertiary }}>
+                            #{actionIdx + 1}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <button style={smallBtnStyle()} onClick={() => moveAction(action.id, -1)} disabled={actionIdx === 0}>↑</button>
+                          <button style={smallBtnStyle()} onClick={() => moveAction(action.id, 1)} disabled={actionIdx === selectedFlow.actions.length - 1}>↓</button>
+                          <button
+                            style={{ ...smallBtnStyle(), color: C.error, borderColor: C.errorBorder }}
+                            onClick={() => deleteAction(action.id)}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {action.type === "email" && (
+                        <div className="space-y-1.5">
+                          <input
+                            value={action.config.to ?? ""}
+                            onChange={(e) => updateAction(action.id, { config: { ...action.config, to: e.target.value } })}
+                            placeholder="To: e.g. {{parent_email}}"
+                            style={inputStyle}
+                          />
+                          <input
+                            value={action.config.subject ?? ""}
+                            onChange={(e) => updateAction(action.id, { config: { ...action.config, subject: e.target.value } })}
+                            placeholder="Subject"
+                            style={inputStyle}
+                          />
+                          <textarea
+                            value={action.config.body ?? ""}
+                            onChange={(e) => updateAction(action.id, { config: { ...action.config, body: e.target.value } })}
+                            placeholder="Email body..."
+                            rows={2}
+                            style={{ ...inputStyle, resize: "none" }}
+                          />
+                        </div>
+                      )}
+                      {action.type === "sms" && (
+                        <input
+                          value={action.config.message ?? ""}
+                          onChange={(e) => updateAction(action.id, { config: { ...action.config, message: e.target.value } })}
+                          placeholder="SMS message..."
+                          style={inputStyle}
+                        />
+                      )}
+                      {action.type === "redirect" && (
+                        <input
+                          value={action.config.url ?? ""}
+                          onChange={(e) => updateAction(action.id, { config: { ...action.config, url: e.target.value } })}
+                          placeholder="Redirect URL (e.g. https://...)"
+                          style={inputStyle}
+                        />
+                      )}
+                      {action.type === "tag" && (
+                        <input
+                          value={action.config.tag ?? ""}
+                          onChange={(e) => updateAction(action.id, { config: { ...action.config, tag: e.target.value } })}
+                          placeholder="Tag name"
+                          style={inputStyle}
+                        />
+                      )}
+                      {action.type === "notify_admin" && (
+                        <p className="text-[11px]" style={{ color: C.textTertiary }}>
+                          An in-app notification will be sent to all admin users.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Add action pills */}
+              <div className="flex flex-wrap gap-1.5">
+                {(["email", "sms", "redirect", "tag", "notify_admin"] as FlowActionType[]).map((type) => {
+                  const meta = ACTION_META[type];
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => addAction(type)}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition-all"
+                      style={{ backgroundColor: meta.bgColor, color: meta.color, border: `1px solid transparent` }}
+                      onMouseEnter={(e) => (e.currentTarget.style.border = `1px solid ${meta.color}`)}
+                      onMouseLeave={(e) => (e.currentTarget.style.border = `1px solid transparent`)}
+                    >
+                      <Plus className="w-3 h-3" />
+                      {meta.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center" style={{ color: C.textTertiary }}>
+          <p className="text-sm">Select a flow to edit</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type AdmissionsTab = "flows" | "submissions" | "applications";
+
+function AdmissionsPage() {
+  const [activeTab, setActiveTab] = useState<AdmissionsTab>("flows");
+
+  const tabs: { key: AdmissionsTab; label: string }[] = [
+    { key: "flows", label: "Enrollment Flows" },
+    { key: "submissions", label: "Submissions" },
+    { key: "applications", label: "Applications" },
+  ];
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Tab bar flush at top */}
+      <div
+        className="flex gap-0 px-6 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className="px-4 py-3 text-sm font-medium transition-colors"
+            style={{
+              color: activeTab === tab.key ? C.accent : C.textTertiary,
+              borderBottom: activeTab === tab.key ? `2px solid ${C.accent}` : "2px solid transparent",
+              marginBottom: "-1px",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="flex-1 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {activeTab === "flows" && (
+            <motion.div key="flows" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
+              <EnrollmentFlowsTab />
+            </motion.div>
+          )}
+          {activeTab === "submissions" && (
+            <motion.div key="submissions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
+              <LeadsListTab />
+            </motion.div>
+          )}
+          {activeTab === "applications" && (
+            <motion.div key="applications" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
+              <ApplicationsTabInner />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -2721,7 +3752,7 @@ const KANBAN_COLS = [
   },
 ];
 
-function ApplicationsPage() {
+function ApplicationsTabInner() {
   const [view, setView] = useState<AppView>("table");
   const [selectedApp, setSelectedApp] = useState<
     (typeof DEMO_APPLICATIONS)[0] | null
@@ -2735,38 +3766,23 @@ function ApplicationsPage() {
   const viewButtons: { key: AppView; icon: React.ReactNode; label: string }[] =
     [
       { key: "table", icon: <Table className="w-3.5 h-3.5" />, label: "Table" },
-      {
-        key: "kanban",
-        icon: <LayoutGrid className="w-3.5 h-3.5" />,
-        label: "Kanban",
-      },
-      {
-        key: "pipeline",
-        icon: <GitBranch className="w-3.5 h-3.5" />,
-        label: "Pipeline",
-      },
+      { key: "kanban", icon: <LayoutGrid className="w-3.5 h-3.5" />, label: "Kanban" },
+      { key: "pipeline", icon: <GitBranch className="w-3.5 h-3.5" />, label: "Pipeline" },
     ];
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-start justify-between px-6 pt-6 mb-5">
-        <div>
-          <h1
-            className="text-xl font-semibold tracking-tight"
-            style={{ color: C.textPrimary }}
-          >
-            Applications
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-            {DEMO_APPLICATIONS.length} applications total
-          </p>
-        </div>
+      {/* Compact toolbar */}
+      <div
+        className="flex items-center justify-between px-6 py-3 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <span className="text-xs" style={{ color: C.textTertiary }}>
+          {DEMO_APPLICATIONS.length} applications total
+        </span>
         <div
           className="flex items-center gap-1 p-1 rounded-lg"
-          style={{
-            backgroundColor: C.elevated,
-            border: `1px solid ${C.border}`,
-          }}
+          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
         >
           {viewButtons.map((b) => (
             <button
@@ -3130,230 +4146,6 @@ function ApplicationsPage() {
           />
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-// ─── Messages page ─────────────────────────────────────────────────────────────
-
-function MessagesPage() {
-  const [activeConv, setActiveConv] = useState<Conversation>(
-    DEMO_CONVERSATIONS[0],
-  );
-  const threadRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (threadRef.current) {
-      threadRef.current.scrollTop = threadRef.current.scrollHeight;
-    }
-  }, [activeConv]);
-
-  return (
-    <div className="flex flex-col h-full">
-      <div
-        className="flex-1 overflow-hidden flex"
-        style={{ borderTop: `1px solid ${C.border}` }}
-      >
-        {/* Conversation list */}
-        <div
-          className="w-72 flex-shrink-0 flex flex-col"
-          style={{
-            borderRight: `1px solid ${C.border}`,
-            backgroundColor: C.surface,
-          }}
-        >
-          <div
-            className="p-3"
-            style={{ borderBottom: `1px solid ${C.border}` }}
-          >
-            <div
-              className="flex items-center gap-2 px-3 py-2 rounded-lg"
-              style={{
-                backgroundColor: C.elevated,
-                border: `1px solid ${C.border}`,
-              }}
-            >
-              <Search
-                className="w-3.5 h-3.5"
-                style={{ color: C.textTertiary }}
-              />
-              <span className="text-xs" style={{ color: C.textTertiary }}>
-                Search conversations...
-              </span>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {DEMO_CONVERSATIONS.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => setActiveConv(conv)}
-                className="w-full flex items-start gap-3 p-4 text-left transition-colors"
-                style={{
-                  backgroundColor:
-                    activeConv.id === conv.id ? C.elevated : "transparent",
-                  borderBottom: `1px solid ${C.border}`,
-                }}
-                onMouseEnter={(e) => {
-                  if (activeConv.id !== conv.id)
-                    e.currentTarget.style.backgroundColor = C.elevated;
-                }}
-                onMouseLeave={(e) => {
-                  if (activeConv.id !== conv.id)
-                    e.currentTarget.style.backgroundColor = "transparent";
-                }}
-              >
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{
-                    backgroundColor: conv.color + "22",
-                    color: conv.color,
-                  }}
-                >
-                  {conv.initials}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {conv.name}
-                    </span>
-                    <span
-                      className="text-[10px]"
-                      style={{ color: C.textTertiary }}
-                    >
-                      {conv.time}
-                    </span>
-                  </div>
-                  <p
-                    className="text-xs truncate"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {conv.lastMsg}
-                  </p>
-                </div>
-                {conv.unread > 0 && (
-                  <span
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5"
-                    style={{ backgroundColor: C.accent, color: "#fff" }}
-                  >
-                    {conv.unread}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Thread */}
-        <div className="flex-1 flex flex-col" style={{ backgroundColor: C.bg }}>
-          <div
-            className="flex items-center gap-3 px-5 py-4"
-            style={{
-              borderBottom: `1px solid ${C.border}`,
-              backgroundColor: C.surface,
-            }}
-          >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-              style={{
-                backgroundColor: activeConv.color + "22",
-                color: activeConv.color,
-              }}
-            >
-              {activeConv.initials}
-            </div>
-            <div>
-              <p
-                className="text-sm font-semibold"
-                style={{ color: C.textPrimary }}
-              >
-                {activeConv.name}
-              </p>
-              <p className="text-xs" style={{ color: C.textTertiary }}>
-                Parent
-              </p>
-            </div>
-          </div>
-          <div ref={threadRef} className="flex-1 overflow-y-auto p-5 space-y-4">
-            {activeConv.messages.map((msg, i) => {
-              const isAdmin = msg.senderId === "admin";
-              return (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className={`flex items-end gap-2 ${isAdmin ? "flex-row-reverse" : "flex-row"}`}
-                >
-                  {!isAdmin && (
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                      style={{
-                        backgroundColor: activeConv.color + "22",
-                        color: activeConv.color,
-                      }}
-                    >
-                      {activeConv.initials}
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[70%] ${isAdmin ? "items-end" : "items-start"} flex flex-col gap-1`}
-                  >
-                    <div
-                      className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
-                      style={{
-                        backgroundColor: isAdmin ? C.accent : C.elevated,
-                        color: isAdmin ? "#fff" : C.textPrimary,
-                        borderRadius: isAdmin
-                          ? "18px 18px 4px 18px"
-                          : "18px 18px 18px 4px",
-                      }}
-                    >
-                      {msg.text}
-                    </div>
-                    <span
-                      className="text-[10px] px-1"
-                      style={{ color: C.textTertiary }}
-                    >
-                      {msg.time}
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-          <div
-            className="p-4"
-            style={{
-              borderTop: `1px solid ${C.border}`,
-              backgroundColor: C.surface,
-            }}
-          >
-            <div
-              className="flex items-center gap-3 px-4 py-3 rounded-xl"
-              style={{
-                backgroundColor: C.elevated,
-                border: `1px solid ${C.border}`,
-              }}
-            >
-              <span
-                className="flex-1 text-sm"
-                style={{ color: C.textTertiary }}
-              >
-                Type a message...
-              </span>
-              <button
-                className="p-2 rounded-lg flex-shrink-0"
-                style={{ backgroundColor: C.accent, color: "#fff" }}
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -4207,70 +4999,162 @@ function StudentsPageInner() {
   );
 }
 
-// ─── People page (Parents + Students combined) ─────────────────────────────────
-
-type PeopleView = "parents" | "students";
+// ─── Families page ─────────────────────────────────────────────────────────────
 
 function PeoplePage() {
-  const [view, setView] = useState<PeopleView>("parents");
+  const [selectedParent, setSelectedParent] = useState<DemoParent | null>(null);
+  const [search, setSearch] = useState("");
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+  useEffect(() => {
+    if (selectedParent) openBackdrop(() => setSelectedParent(null));
+    else closeBackdrop();
+  }, [selectedParent]);
 
-  const viewButtons: { key: PeopleView; icon: React.ReactNode; label: string }[] = [
-    { key: "parents", icon: <Users className="w-3.5 h-3.5" />, label: "Parents" },
-    { key: "students", icon: <GraduationCap className="w-3.5 h-3.5" />, label: "Students" },
-  ];
+  const filtered = DEMO_PARENTS.filter((p) =>
+    search === "" ||
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.children.some((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+  );
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-start justify-between px-6 pt-6 mb-5">
-        <div>
-          <h1
-            className="text-xl font-semibold tracking-tight"
-            style={{ color: C.textPrimary }}
+    <div className="h-full flex flex-col relative">
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-6 py-3 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+            Families
+          </span>
+          <span
+            className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
+            style={{ backgroundColor: C.accentLight, color: C.accent }}
           >
-            People
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-            {view === "parents"
-              ? `${DEMO_PARENTS.length} parent accounts`
-              : `${DEMO_STUDENTS_P2.length} enrolled students`}
-          </p>
+            {DEMO_PARENTS.length}
+          </span>
         </div>
         <div
-          className="flex items-center gap-1 p-1 rounded-lg"
-          style={{
-            backgroundColor: C.elevated,
-            border: `1px solid ${C.border}`,
-          }}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
         >
-          {viewButtons.map((b) => (
-            <button
-              key={b.key}
-              data-tour-id={`people-view-${b.key}`}
-              onClick={() => setView(b.key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all"
-              style={{
-                backgroundColor: view === b.key ? C.surface : "transparent",
-                color: view === b.key ? C.textPrimary : C.textTertiary,
-                boxShadow: view === b.key ? C.shadowCard : "none",
-              }}
-            >
-              {b.icon}
-              {b.label}
-            </button>
-          ))}
+          <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search families..."
+            className="bg-transparent border-none outline-none text-xs"
+            style={{ color: C.textPrimary, width: 160 }}
+          />
         </div>
       </div>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={view}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          className="flex-1 overflow-hidden flex flex-col"
-        >
-          {view === "parents" ? <ParentsPageInner /> : <StudentsPageInner />}
-        </motion.div>
+
+      {/* Family cards grid */}
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="grid grid-cols-1 gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+          {filtered.map((parent, i) => {
+            const enrolledCount = parent.applications.filter((a) => a.status === "enrolled").length;
+            return (
+              <motion.div
+                key={parent.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="rounded-xl cursor-pointer transition-all"
+                style={{
+                  backgroundColor: C.surface,
+                  border: `1px solid ${C.border}`,
+                  boxShadow: C.shadowCard,
+                }}
+                onClick={() => setSelectedParent(parent)}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.borderStrong)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = C.border)}
+              >
+                {/* Card header */}
+                <div
+                  className="flex items-center gap-3 px-4 py-3.5"
+                  style={{ borderBottom: `1px solid ${C.border}` }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                    style={{ backgroundColor: parent.color + "22", color: parent.color }}
+                  >
+                    {parent.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>
+                      {parent.name}
+                    </p>
+                    <p className="text-xs truncate" style={{ color: C.textTertiary }}>
+                      {parent.g1Phone}
+                    </p>
+                  </div>
+                  {enrolledCount > 0 && (
+                    <span
+                      className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
+                      style={{ backgroundColor: C.successBg, color: C.success, border: `1px solid ${C.successBorder}` }}
+                    >
+                      Enrolled
+                    </span>
+                  )}
+                </div>
+
+                {/* Children */}
+                <div className="px-4 py-3">
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                    style={{ color: C.textTertiary }}
+                  >
+                    {parent.children.length === 1 ? "Child" : "Children"}
+                  </p>
+                  <div className="space-y-1.5">
+                    {parent.children.map((child) => {
+                      const appForChild = parent.applications.find((a) => a.childName === child.name);
+                      return (
+                        <div key={child.name} className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                              style={{ backgroundColor: parent.color + "18", color: parent.color }}
+                            >
+                              {child.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <span className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
+                              {child.name}
+                            </span>
+                          </div>
+                          {appForChild && (
+                            <span
+                              className="text-[10px] font-medium flex-shrink-0"
+                              style={{ color: C.textTertiary }}
+                            >
+                              {PROGRAM_LABELS[appForChild.program]?.label ?? appForChild.program}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {parent.g2Name && (
+                    <p className="text-[11px] mt-2.5" style={{ color: C.textTertiary }}>
+                      + {parent.g2Name} ({parent.g2Relationship})
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Detail panel */}
+      <AnimatePresence>
+        {selectedParent && (
+          <ParentDetailPanel
+            parent={selectedParent}
+            onClose={() => setSelectedParent(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
@@ -6653,7 +7537,7 @@ function TransactionsPage() {
 
 // ─── Budget page ───────────────────────────────────────────────────────────────
 
-type BudgetTab = "overview" | "expenses" | "revenue" | "analysis";
+type BudgetTab = "overview" | "expenses" | "revenue" | "analysis" | "transactions";
 
 function BudgetRing({
   cat,
@@ -6745,6 +7629,7 @@ function BudgetPage() {
     { key: "expenses", label: "Expenses" },
     { key: "revenue", label: "Revenue" },
     { key: "analysis", label: "Analysis" },
+    { key: "transactions", label: "Transactions" },
   ];
 
   const totalRevenue = DEMO_INCOME.reduce((s, i) => s + i.amount, 0);
@@ -7344,954 +8229,23 @@ function BudgetPage() {
             </Card>
           </motion.div>
         )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
-// ─── Calendar page ─────────────────────────────────────────────────────────────
-
-const CAL_COLORS: Record<string, string> = {
-  "#5E7C68": "Sage",
-  "#38BDF8": "Sky",
-  "#EF4444": "Rose",
-  "#F59E0B": "Marigold",
-  "#8B5CF6": "Lavender",
-  "#22C55E": "Moss",
-  "#F97316": "Clay",
-  "#525252": "Slate",
-};
-
-function CalendarPage() {
-  const today = new Date(2026, 3, 22); // Apr 22, 2026
-  const [calView, setCalView] = useState<"month" | "week">("week");
-  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 3, 1));
-  const [weekStart, setWeekStart] = useState(() => {
-    // Sunday of today's week
-    const d = new Date(2026, 3, 22);
-    d.setDate(d.getDate() - d.getDay());
-    return d;
-  });
-  const [showEventPanel, setShowEventPanel] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
-  const [programFilter, setProgramFilter] = useState<string>("all");
-  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
-  useEffect(() => {
-    if (showEventPanel) openBackdrop(() => setShowEventPanel(false));
-    else closeBackdrop();
-  }, [showEventPanel]);
-
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const prevMonthDays = new Date(year, month, 0).getDate();
-
-  const filteredEvents = DEMO_CAL_EVENTS.filter(
-    (e) =>
-      programFilter === "all" ||
-      e.program === programFilter ||
-      e.program === "both",
-  );
-
-  const eventsForDate = (dateStr: string) =>
-    filteredEvents.filter((e) => e.date === dateStr);
-
-  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
-  const days: { date: Date | null; isCurrentMonth: boolean; day: number }[] =
-    [];
-  for (let i = 0; i < totalCells; i++) {
-    const cellDay = i - firstDay + 1;
-    if (i < firstDay) {
-      days.push({
-        date: new Date(year, month - 1, prevMonthDays - firstDay + i + 1),
-        isCurrentMonth: false,
-        day: prevMonthDays - firstDay + i + 1,
-      });
-    } else if (cellDay > daysInMonth) {
-      days.push({
-        date: new Date(year, month + 1, cellDay - daysInMonth),
-        isCurrentMonth: false,
-        day: cellDay - daysInMonth,
-      });
-    } else {
-      days.push({
-        date: new Date(year, month, cellDay),
-        isCurrentMonth: true,
-        day: cellDay,
-      });
-    }
-  }
-
-  const fmtDate = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const isToday = (d: Date) => fmtDate(d) === fmtDate(today);
-
-  const monthName = currentMonth.toLocaleString("default", {
-    month: "long",
-    year: "numeric",
-  });
-
-  // Week view helpers
-  const WEEK_START_HOUR = 7;
-  const WEEK_END_HOUR = 20;
-  const HOUR_HEIGHT = 56;
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    return d;
-  });
-  const weekRangeLabel = (() => {
-    const s = weekDays[0];
-    const e = weekDays[6];
-    const sMonth = s.toLocaleString("default", { month: "short" });
-    const eMonth = e.toLocaleString("default", { month: "short" });
-    if (sMonth === eMonth)
-      return `${sMonth} ${s.getDate()} – ${e.getDate()}, ${e.getFullYear()}`;
-    return `${sMonth} ${s.getDate()} – ${eMonth} ${e.getDate()}, ${e.getFullYear()}`;
-  })();
-  const timeToTop = (time: string) => {
-    const [h, m] = time.split(":").map(Number);
-    return ((h + m / 60 - WEEK_START_HOUR) / (WEEK_END_HOUR - WEEK_START_HOUR)) * (HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR));
-  };
-  const timeToHeight = (start: string, end: string) => {
-    const [sh, sm] = start.split(":").map(Number);
-    const [eh, em] = end.split(":").map(Number);
-    const mins = (eh * 60 + em) - (sh * 60 + sm);
-    return (mins / 60) * HOUR_HEIGHT;
-  };
-  // Current time line position (minutes past WEEK_START_HOUR)
-  const nowTop = (() => {
-    const nowH = 10; // simulate 10:15 AM for the demo
-    const nowM = 15;
-    return ((nowH + nowM / 60 - WEEK_START_HOUR) / (WEEK_END_HOUR - WEEK_START_HOUR)) * (HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR));
-  })();
-
-  const navPrev = () => {
-    if (calView === "month") {
-      setCurrentMonth(new Date(year, month - 1, 1));
-    } else {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() - 7);
-      setWeekStart(d);
-    }
-  };
-  const navNext = () => {
-    if (calView === "month") {
-      setCurrentMonth(new Date(year, month + 1, 1));
-    } else {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + 7);
-      setWeekStart(d);
-    }
-  };
-  const navToday = () => {
-    if (calView === "month") {
-      setCurrentMonth(new Date(2026, 3, 1));
-    } else {
-      const d = new Date(2026, 3, 22);
-      d.setDate(d.getDate() - d.getDay());
-      setWeekStart(d);
-    }
-  };
-
-  return (
-    <div className="h-full flex flex-col p-6">
-      {/* Header */}
-      <div className="flex items-center gap-2 justify-end mb-4">
-          {/* Month / Week toggle */}
-          <div
-            className="flex items-center gap-0.5 p-0.5 rounded-lg"
-            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+        {tab === "transactions" && (
+          <motion.div
+            key="transactions"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 overflow-hidden"
           >
-            {(["month", "week"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setCalView(v)}
-                className="px-3 py-1.5 text-xs font-semibold rounded-md capitalize transition-all"
-                style={{
-                  backgroundColor: calView === v ? C.accent : "transparent",
-                  color: calView === v ? "#fff" : C.textTertiary,
-                }}
-              >
-                {v}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() => {
-              setSelectedEvent(null);
-              setShowEventPanel(true);
-            }}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg"
-            style={{ backgroundColor: C.accent, color: "#fff" }}
-          >
-            + Add Event
-          </button>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-1">
-          <button
-            onClick={navPrev}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-            style={{
-              backgroundColor: C.elevated,
-              border: `1px solid ${C.border}`,
-              color: C.textSecondary,
-            }}
-          >
-            ‹
-          </button>
-          <span
-            className="px-3 text-sm font-semibold"
-            style={{ color: C.textPrimary, minWidth: 160, textAlign: "center" }}
-          >
-            {calView === "month" ? monthName : weekRangeLabel}
-          </span>
-          <button
-            onClick={navNext}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-            style={{
-              backgroundColor: C.elevated,
-              border: `1px solid ${C.border}`,
-              color: C.textSecondary,
-            }}
-          >
-            ›
-          </button>
-        </div>
-        <button
-          onClick={navToday}
-          className="px-3 py-1.5 text-xs font-medium rounded-lg"
-          style={{
-            backgroundColor: C.elevated,
-            border: `1px solid ${C.border}`,
-            color: C.textSecondary,
-          }}
-        >
-          Today
-        </button>
-        <div
-          className="ml-auto flex items-center gap-1 p-1 rounded-lg"
-          style={{
-            backgroundColor: C.elevated,
-            border: `1px solid ${C.border}`,
-          }}
-        >
-          {[
-            { key: "all", label: "All" },
-            { key: "summer_26", label: "Summer" },
-            { key: "school_year_26_27", label: "School Year" },
-          ].map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setProgramFilter(f.key)}
-              className="px-2.5 py-1 text-xs font-medium rounded-md transition-all"
-              style={{
-                backgroundColor:
-                  programFilter === f.key ? C.surface : "transparent",
-                color: programFilter === f.key ? C.textPrimary : C.textTertiary,
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {calView === "month" ? (
-        /* ── Month View ── */
-        <Card className="flex-1 overflow-hidden flex flex-col">
-          {/* Day headers */}
-          <div
-            className="grid grid-cols-7"
-            style={{ borderBottom: `1px solid ${C.border}` }}
-          >
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <div
-                key={d}
-                className="py-2 text-center text-[10px] font-semibold uppercase tracking-widest"
-                style={{ color: C.textTertiary }}
-              >
-                {d}
-              </div>
-            ))}
-          </div>
-          {/* Day cells */}
-          <div
-            className="flex-1 overflow-y-auto grid grid-cols-7"
-            style={{ gridAutoRows: "minmax(80px, 1fr)" }}
-          >
-            {days.map((cell, i) => {
-              const dateStr = cell.date ? fmtDate(cell.date) : "";
-              const dayEvents = cell.date ? eventsForDate(dateStr) : [];
-              const todayCell = cell.date ? isToday(cell.date) : false;
-              return (
-                <div
-                  key={i}
-                  className="relative p-1.5 flex flex-col gap-0.5 transition-colors"
-                  style={{
-                    borderRight:
-                      (i + 1) % 7 !== 0 ? `1px solid ${C.border}` : "none",
-                    borderBottom:
-                      i < days.length - 7 ? `1px solid ${C.border}` : "none",
-                    backgroundColor: !cell.isCurrentMonth ? C.bg : "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (cell.isCurrentMonth)
-                      e.currentTarget.style.backgroundColor = C.elevated;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = !cell.isCurrentMonth
-                      ? C.bg
-                      : "transparent";
-                  }}
-                >
-                  <div className="flex items-center justify-end mb-0.5">
-                    <span
-                      className={`w-6 h-6 flex items-center justify-center text-xs font-medium rounded-full`}
-                      style={{
-                        color: todayCell
-                          ? "#fff"
-                          : cell.isCurrentMonth
-                            ? C.textSecondary
-                            : C.textTertiary,
-                        backgroundColor: todayCell ? C.accent : "transparent",
-                        fontWeight: todayCell ? 700 : undefined,
-                      }}
-                    >
-                      {cell.day}
-                    </span>
-                  </div>
-                  {dayEvents.slice(0, 2).map((ev) => (
-                    <button
-                      key={ev.id}
-                      onClick={() => {
-                        setSelectedEvent(ev);
-                        setShowEventPanel(true);
-                      }}
-                      className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate transition-opacity hover:opacity-80"
-                      style={{
-                        backgroundColor: ev.color + "30",
-                        color: ev.color,
-                      }}
-                    >
-                      {ev.isAllDay
-                        ? ""
-                        : ev.startTime
-                          ? ev.startTime.replace(":", "") + " "
-                          : ""}
-                      {ev.title}
-                    </button>
-                  ))}
-                  {dayEvents.length > 2 && (
-                    <span
-                      className="text-[9px] px-1"
-                      style={{ color: C.textTertiary }}
-                    >
-                      +{dayEvents.length - 2} more
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      ) : (
-        /* ── Week View ── */
-        <Card className="flex-1 overflow-hidden flex flex-col">
-          {/* Day header row */}
-          <div
-            className="grid"
-            style={{
-              gridTemplateColumns: "52px repeat(7, 1fr)",
-              borderBottom: `1px solid ${C.border}`,
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ borderRight: `1px solid ${C.border}` }} />
-            {weekDays.map((d, i) => {
-              const todayCol = isToday(d);
-              return (
-                <div
-                  key={i}
-                  className="py-2 text-center"
-                  style={{
-                    borderRight: i < 6 ? `1px solid ${C.border}` : "none",
-                    backgroundColor: todayCol ? C.accent + "18" : "transparent",
-                  }}
-                >
-                  <div
-                    className="text-[9px] font-semibold uppercase tracking-widest"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]}
-                  </div>
-                  <div
-                    className="text-sm font-bold mt-0.5 w-7 h-7 mx-auto flex items-center justify-center rounded-full"
-                    style={{
-                      color: todayCol ? "#fff" : C.textPrimary,
-                      backgroundColor: todayCol ? C.accent : "transparent",
-                    }}
-                  >
-                    {d.getDate()}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* All-day strip */}
-          {weekDays.some((d) => eventsForDate(fmtDate(d)).some((e) => e.isAllDay)) && (
-            <div
-              className="grid"
-              style={{
-                gridTemplateColumns: "52px repeat(7, 1fr)",
-                borderBottom: `1px solid ${C.border}`,
-                flexShrink: 0,
-              }}
-            >
-              <div
-                className="flex items-center justify-end pr-2"
-                style={{
-                  borderRight: `1px solid ${C.border}`,
-                  minHeight: 28,
-                }}
-              >
-                <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
-                  all‑day
-                </span>
-              </div>
-              {weekDays.map((d, i) => {
-                const allDayEvs = eventsForDate(fmtDate(d)).filter((e) => e.isAllDay);
-                return (
-                  <div
-                    key={i}
-                    className="px-0.5 py-0.5 flex flex-col gap-0.5"
-                    style={{
-                      borderRight: i < 6 ? `1px solid ${C.border}` : "none",
-                      backgroundColor: isToday(d) ? C.accent + "18" : "transparent",
-                    }}
-                  >
-                    {allDayEvs.map((ev) => (
-                      <button
-                        key={ev.id}
-                        onClick={() => { setSelectedEvent(ev); setShowEventPanel(true); }}
-                        className="w-full text-left px-1 py-0.5 rounded text-[9px] font-semibold truncate hover:opacity-80"
-                        style={{ backgroundColor: ev.color + "30", color: ev.color }}
-                      >
-                        {ev.title}
-                      </button>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Scrollable time grid */}
-          <div className="flex-1 overflow-y-auto">
-            <div
-              className="grid relative"
-              style={{
-                gridTemplateColumns: "52px repeat(7, 1fr)",
-                height: HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR),
-              }}
-            >
-              {/* Time labels column */}
-              <div style={{ borderRight: `1px solid ${C.border}` }}>
-                {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => {
-                  const h = WEEK_START_HOUR + i;
-                  return (
-                    <div
-                      key={h}
-                      className="flex items-start justify-end pr-2 pt-0.5"
-                      style={{ height: HOUR_HEIGHT }}
-                    >
-                      <span className="text-[9px] font-medium" style={{ color: C.textTertiary }}>
-                        {h === 12 ? "12 PM" : h < 12 ? `${h} AM` : `${h - 12} PM`}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Day columns */}
-              {weekDays.map((d, colIdx) => {
-                const dateStr = fmtDate(d);
-                const timedEvs = eventsForDate(dateStr).filter((e) => !e.isAllDay && e.startTime && e.endTime);
-                const todayCol = isToday(d);
-                return (
-                  <div
-                    key={colIdx}
-                    className="relative"
-                    style={{
-                      borderRight: colIdx < 6 ? `1px solid ${C.border}` : "none",
-                      backgroundColor: todayCol ? C.accent + "0a" : "transparent",
-                    }}
-                  >
-                    {/* Hour grid lines */}
-                    {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          position: "absolute",
-                          top: i * HOUR_HEIGHT,
-                          left: 0,
-                          right: 0,
-                          borderTop: `1px solid ${C.border}`,
-                          pointerEvents: "none",
-                        }}
-                      />
-                    ))}
-
-                    {/* Half-hour lines */}
-                    {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => (
-                      <div
-                        key={`h${i}`}
-                        style={{
-                          position: "absolute",
-                          top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2,
-                          left: 0,
-                          right: 0,
-                          borderTop: `1px dashed ${C.border}`,
-                          opacity: 0.5,
-                          pointerEvents: "none",
-                        }}
-                      />
-                    ))}
-
-                    {/* Current time indicator */}
-                    {todayCol && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: nowTop,
-                          left: 0,
-                          right: 0,
-                          height: 2,
-                          backgroundColor: "#EF4444",
-                          zIndex: 10,
-                          pointerEvents: "none",
-                        }}
-                      >
-                        <div
-                          style={{
-                            position: "absolute",
-                            left: -4,
-                            top: -4,
-                            width: 10,
-                            height: 10,
-                            borderRadius: "50%",
-                            backgroundColor: "#EF4444",
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Timed events */}
-                    {timedEvs.map((ev) => {
-                      const top = timeToTop(ev.startTime!);
-                      const height = Math.max(timeToHeight(ev.startTime!, ev.endTime!), 20);
-                      return (
-                        <button
-                          key={ev.id}
-                          onClick={() => { setSelectedEvent(ev); setShowEventPanel(true); }}
-                          className="absolute left-0.5 right-0.5 rounded overflow-hidden text-left hover:opacity-90 transition-opacity"
-                          style={{
-                            top,
-                            height,
-                            backgroundColor: ev.color + "28",
-                            borderLeft: `3px solid ${ev.color}`,
-                            zIndex: 5,
-                          }}
-                        >
-                          <div className="px-1 pt-0.5">
-                            <div className="text-[9px] font-bold truncate" style={{ color: ev.color }}>
-                              {ev.title}
-                            </div>
-                            {height > 28 && (
-                              <div className="text-[8px]" style={{ color: ev.color + "cc" }}>
-                                {ev.startTime} – {ev.endTime}
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Event panel */}
-      <AnimatePresence>
-        {showEventPanel && (
-          <>
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="absolute top-0 right-0 bottom-0 z-50 flex flex-col"
-              style={{
-                width: 360,
-                backgroundColor: C.surface,
-                borderLeft: `1px solid ${C.border}`,
-                boxShadow: C.shadowMedium,
-              }}
-            >
-              <div
-                className="flex items-center justify-between px-5 py-4"
-                style={{ borderBottom: `1px solid ${C.border}` }}
-              >
-                <h3
-                  className="text-sm font-semibold"
-                  style={{ color: C.textPrimary }}
-                >
-                  {selectedEvent ? selectedEvent.title : "New Event"}
-                </h3>
-                <button
-                  onClick={() => setShowEventPanel(false)}
-                  style={{ color: C.textTertiary }}
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                {selectedEvent ? (
-                  <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: selectedEvent.color }}
-                      />
-                      <span
-                        className="text-xs font-semibold"
-                        style={{ color: C.textSecondary }}
-                      >
-                        {selectedEvent.category}
-                      </span>
-                    </div>
-                    <DetailField label="Date" value={selectedEvent.date} />
-                    <DetailField
-                      label="All Day"
-                      value={
-                        <YesNoChip
-                          value={selectedEvent.isAllDay}
-                          trueLabel="Yes"
-                          falseLabel="No"
-                        />
-                      }
-                    />
-                    {!selectedEvent.isAllDay && (
-                      <DetailField
-                        label="Time"
-                        value={`${selectedEvent.startTime} – ${selectedEvent.endTime}`}
-                      />
-                    )}
-                    <DetailField
-                      label="Program"
-                      value={
-                        selectedEvent.program === "both"
-                          ? "All Programs"
-                          : selectedEvent.program
-                      }
-                    />
-                    <div className="flex items-center gap-2 flex-wrap mt-2">
-                      {Object.entries(CAL_COLORS).map(([hex]) => (
-                        <div
-                          key={hex}
-                          className="w-5 h-5 rounded-full cursor-pointer transition-transform hover:scale-110 flex items-center justify-center"
-                          style={{
-                            backgroundColor: hex,
-                            outline:
-                              selectedEvent.color === hex
-                                ? `2px solid ${C.textPrimary}`
-                                : "none",
-                            outlineOffset: 2,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {[
-                      {
-                        label: "Event Title",
-                        placeholder: "e.g. Staff Meeting",
-                        type: "input",
-                      },
-                      {
-                        label: "Date",
-                        placeholder: "YYYY-MM-DD",
-                        type: "input",
-                      },
-                      {
-                        label: "Category",
-                        placeholder: "Select...",
-                        type: "input",
-                      },
-                    ].map((f) => (
-                      <div key={f.label}>
-                        <p
-                          className="text-xs font-semibold mb-1.5"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {f.label}
-                        </p>
-                        <div
-                          className="px-3 py-2 rounded-lg text-sm"
-                          style={{
-                            backgroundColor: C.elevated,
-                            border: `1px solid ${C.border}`,
-                            color: C.textTertiary,
-                          }}
-                        >
-                          {f.placeholder}
-                        </div>
-                      </div>
-                    ))}
-                    <div>
-                      <p
-                        className="text-xs font-semibold mb-2"
-                        style={{ color: C.textTertiary }}
-                      >
-                        Color
-                      </p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {Object.entries(CAL_COLORS).map(([hex, name]) => (
-                          <div
-                            key={hex}
-                            className="w-5 h-5 rounded-full cursor-pointer transition-transform hover:scale-110"
-                            title={name}
-                            style={{ backgroundColor: hex }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-              <div
-                className="px-5 py-4 flex gap-2"
-                style={{ borderTop: `1px solid ${C.border}` }}
-              >
-                <button
-                  className="flex-1 py-2 text-sm font-semibold rounded-lg"
-                  style={{ backgroundColor: C.accent, color: "#fff" }}
-                >
-                  {selectedEvent ? "Update" : "Save"}
-                </button>
-                <button
-                  onClick={() => setShowEventPanel(false)}
-                  className="px-4 py-2 text-sm font-medium rounded-lg"
-                  style={{
-                    backgroundColor: C.elevated,
-                    color: C.textSecondary,
-                    border: `1px solid ${C.border}`,
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          </>
+            <TransactionsPage />
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
 
-// ─── Emails page ───────────────────────────────────────────────────────────────
-
-function EmailsPage() {
-  const [selected, setSelected] = useState<(typeof DEMO_EMAILS)[0] | null>(
-    null,
-  );
-  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
-  useEffect(() => {
-    if (selected) openBackdrop(() => setSelected(null));
-    else closeBackdrop();
-  }, [selected]);
-  return (
-    <div className="h-full flex flex-col">
-      <div className="px-6 pt-6 mb-5">
-        <h1
-          className="text-xl font-semibold tracking-tight"
-          style={{ color: C.textPrimary }}
-        >
-          Emails
-        </h1>
-        <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-          Sent emails via Mud Kitchen admin
-        </p>
-      </div>
-      <div className="flex-1 overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
-        <div className="overflow-x-auto h-full">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                {["To", "Subject", "Preview", "Date"].map((col) => (
-                  <th
-                    key={col}
-                    className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {DEMO_EMAILS.map((email, i) => (
-                <motion.tr
-                  key={email.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.04 }}
-                  onClick={() => setSelected(email)}
-                  className="cursor-pointer"
-                  style={{ borderBottom: `1px solid ${C.border}` }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = C.elevated)
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "transparent")
-                  }
-                >
-                  <td className="px-4 py-3 max-w-[140px]">
-                    <p
-                      className="text-xs font-medium truncate"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {email.to}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 max-w-[200px]">
-                    <p
-                      className="text-xs font-medium truncate"
-                      style={{ color: C.textSecondary }}
-                    >
-                      {email.subject}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 max-w-[260px]">
-                    <p
-                      className="text-xs truncate"
-                      style={{ color: C.textTertiary }}
-                    >
-                      {email.preview}
-                    </p>
-                  </td>
-                  <td
-                    className="px-4 py-3 text-xs whitespace-nowrap"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {email.date}
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <AnimatePresence>
-        {selected && (
-          <>
-            <motion.div
-              initial={{ x: "100%", opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="absolute top-0 right-0 bottom-0 flex flex-col"
-              style={{
-                width: 400,
-                backgroundColor: C.surface,
-                borderLeft: `1px solid ${C.border}`,
-                zIndex: 10,
-              }}
-            >
-            <div
-              className="flex items-center justify-between px-5 py-4"
-              style={{ borderBottom: `1px solid ${C.border}` }}
-            >
-              <h3
-                className="text-sm font-semibold truncate pr-4"
-                style={{ color: C.textPrimary }}
-              >
-                {selected.subject}
-              </h3>
-              <button
-                onClick={() => setSelected(null)}
-                style={{ color: C.textTertiary, flexShrink: 0 }}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <div
-                className="px-5 py-4 space-y-2"
-                style={{ borderBottom: `1px solid ${C.border}` }}
-              >
-                <DetailField label="To" value={selected.to} />
-                <DetailField label="From" value={selected.from} />
-                <DetailField label="Date" value={selected.date} />
-              </div>
-              <div className="p-5">
-                <div
-                  className="prose prose-sm max-w-none rounded-xl p-4 text-sm leading-relaxed"
-                  style={{
-                    backgroundColor: C.elevated,
-                    border: `1px solid ${C.border}`,
-                    color: C.textSecondary,
-                  }}
-                  dangerouslySetInnerHTML={{ __html: selected.body }}
-                />
-                {selected.attachments.length > 0 && (
-                  <div className="mt-4">
-                    <p
-                      className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-                      style={{ color: C.textTertiary }}
-                    >
-                      Attachments
-                    </p>
-                    <div className="space-y-1.5">
-                      {selected.attachments.map((a) => (
-                        <div
-                          key={a}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
-                          style={{
-                            backgroundColor: C.elevated,
-                            border: `1px solid ${C.border}`,
-                            color: C.textSecondary,
-                          }}
-                        >
-                          📎 {a}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// \u2500\u2500\u2500 Marketing page \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-type AutomationFilter = "all" | "active" | "paused" | "draft";
 
 function AutomationStepIcon({ type }: { type: AutomationStep["type"] }) {
   if (type === "email") return <Mail className="w-3.5 h-3.5" />;
@@ -10148,14 +10102,9 @@ function ComingSoonPage({ name }: { name: string }) {
 type ActivePage =
   | "dashboard"
   | "leads"
-  | "applications"
-  | "messages"
   | "people"
   | "programs"
-  | "transactions"
   | "budget"
-  | "calendar"
-  | "emails"
   | "marketing"
   | "impersonate";
 
@@ -10178,13 +10127,13 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       },
       {
         key: "leads",
-        name: "Leads",
-        icon: <TrendingUp className="w-4 h-4" />,
+        name: "Admissions",
+        icon: <GraduationCap className="w-4 h-4" />,
         phase1: true,
       },
       {
         key: "people",
-        name: "People",
+        name: "Families",
         icon: <Users className="w-4 h-4" />,
         phase1: true,
       },
@@ -10192,18 +10141,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         key: "programs",
         name: "Programs",
         icon: <BookOpen className="w-4 h-4" />,
-        phase1: true,
-      },
-      {
-        key: "applications",
-        name: "Applications",
-        icon: <ClipboardList className="w-4 h-4" />,
-        phase1: true,
-      },
-      {
-        key: "transactions",
-        name: "Transactions",
-        icon: <CreditCard className="w-4 h-4" />,
         phase1: true,
       },
     ],
@@ -10215,24 +10152,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         key: "budget",
         name: "Budget",
         icon: <DollarSign className="w-4 h-4" />,
-        phase1: true,
-      },
-      {
-        key: "messages",
-        name: "Messages",
-        icon: <MessageSquare className="w-4 h-4" />,
-        phase1: true,
-      },
-      {
-        key: "calendar",
-        name: "Calendar",
-        icon: <CalendarDays className="w-4 h-4" />,
-        phase1: true,
-      },
-      {
-        key: "emails",
-        name: "Emails",
-        icon: <Mail className="w-4 h-4" />,
         phase1: true,
       },
       {
@@ -10515,10 +10434,7 @@ export default function AdminDashboardDemo({
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const PAGE_NAMES: Record<string, string> = {
-    transactions: "Transactions",
     budget: "Budget",
-    calendar: "Calendar",
-    emails: "Emails",
     marketing: "Marketing",
     teacher: "Teacher View",
   };
@@ -10528,23 +10444,13 @@ export default function AdminDashboardDemo({
       case "dashboard":
         return <DashboardPage />;
       case "leads":
-        return <LeadsPage />;
-      case "applications":
-        return <ApplicationsPage />;
-      case "messages":
-        return <MessagesPage />;
+        return <AdmissionsPage />;
       case "people":
         return <PeoplePage />;
       case "programs":
         return <ProgramsPage />;
-      case "transactions":
-        return <TransactionsPage />;
       case "budget":
         return <BudgetPage />;
-      case "calendar":
-        return <CalendarPage />;
-      case "emails":
-        return <EmailsPage />;
       case "marketing":
         return <MarketingPage />;
       case "impersonate":
@@ -10583,12 +10489,6 @@ export default function AdminDashboardDemo({
         action: () => setActivePage("leads"),
         targetId: "nav-leads",
         holdMs: 1800,
-        clickAnimation: true,
-      },
-      {
-        action: () => setActivePage("applications"),
-        targetId: "nav-applications",
-        holdMs: 1600,
         clickAnimation: true,
       },
       {
@@ -10823,7 +10723,7 @@ export default function AdminDashboardDemo({
               transition={{ duration: 0.2, ease: "easeOut" }}
               className={`h-full ${
                 activePage === "messages" || activePage === "calendar" || activePage === "impersonate" ||
-                activePage === "leads" || activePage === "applications" || activePage === "people" ||
+                activePage === "leads" || activePage === "people" ||
                 activePage === "transactions" || activePage === "emails" ||
                 activePage === "marketing"
                   ? ""
