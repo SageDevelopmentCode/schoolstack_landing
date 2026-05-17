@@ -2355,66 +2355,113 @@ const CALENDAR_EVENTS: DemoCalendarEvent[] = [
 type CalView = "month" | "week";
 
 function CalendarPage() {
-  const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
-  const [view, setView] = useState<CalView>("month");
-  const [selectedEvent, setSelectedEvent] = useState<DemoCalendarEvent | null>(
-    null,
-  );
+  const today = new Date(2026, 3, 22); // Apr 22, 2026 (fixed demo date)
   const currentTodayKey = todayKey(today);
 
-  const cells = getMonthDays(year, month);
-  const monthLabel = new Date(year, month, 1).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
+  const [calView, setCalView] = useState<CalView>("week");
+  const [year, setYear] = useState(2026);
+  const [month, setMonth] = useState(3); // April
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date(2026, 3, 22);
+    d.setDate(d.getDate() - d.getDay()); // Sunday of Apr 22's week → Apr 19
+    return d;
   });
+  const [selectedEvent, setSelectedEvent] = useState<DemoCalendarEvent | null>(null);
+
+  // Month view helpers
+  const cells = getMonthDays(year, month);
+  const monthLabel = new Date(year, month, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  // Week view helpers
+  const WEEK_START_HOUR = 7;
+  const WEEK_END_HOUR = 20;
+  const HOUR_HEIGHT = 56;
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+  const weekRangeLabel = (() => {
+    const s = weekDays[0];
+    const e = weekDays[6];
+    const sM = s.toLocaleString("default", { month: "short" });
+    const eM = e.toLocaleString("default", { month: "short" });
+    if (sM === eM) return `${sM} ${s.getDate()} \u2013 ${e.getDate()}, ${e.getFullYear()}`;
+    return `${sM} ${s.getDate()} \u2013 ${eM} ${e.getDate()}, ${e.getFullYear()}`;
+  })();
+
+  function fmtDate(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function isTodayDate(d: Date) { return fmtDate(d) === currentTodayKey; }
+  function eventsForDate(dateStr: string) {
+    return CALENDAR_EVENTS.filter((e) => e.event_date === dateStr);
+  }
+
+  const timeToTop = (time: string) => {
+    const [h, m] = time.split(":").map(Number);
+    return ((h + m / 60 - WEEK_START_HOUR) / (WEEK_END_HOUR - WEEK_START_HOUR)) * (HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR));
+  };
+  const timeToHeight = (start: string, end: string) => {
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    return ((eh * 60 + em - (sh * 60 + sm)) / 60) * HOUR_HEIGHT;
+  };
+  const nowTop = (() => {
+    const nowH = 10, nowM = 15; // simulate 10:15 AM
+    return ((nowH + nowM / 60 - WEEK_START_HOUR) / (WEEK_END_HOUR - WEEK_START_HOUR)) * (HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR));
+  })();
 
   function prevPeriod() {
-    if (view === "month") {
-      if (month === 0) {
-        setMonth(11);
-        setYear((y) => y - 1);
-      } else setMonth((m) => m - 1);
+    if (calView === "month") {
+      if (month === 0) { setMonth(11); setYear((y) => y - 1); }
+      else setMonth((m) => m - 1);
+    } else {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() - 7);
+      setWeekStart(d);
     }
   }
   function nextPeriod() {
-    if (view === "month") {
-      if (month === 11) {
-        setMonth(0);
-        setYear((y) => y + 1);
-      } else setMonth((m) => m + 1);
+    if (calView === "month") {
+      if (month === 11) { setMonth(0); setYear((y) => y + 1); }
+      else setMonth((m) => m + 1);
+    } else {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + 7);
+      setWeekStart(d);
+    }
+  }
+  function goToday() {
+    if (calView === "month") { setYear(2026); setMonth(3); }
+    else {
+      const d = new Date(2026, 3, 22);
+      d.setDate(d.getDate() - d.getDay());
+      setWeekStart(d);
     }
   }
 
-  function eventsForDay(d: Date) {
-    const key = todayKey(d);
-    return CALENDAR_EVENTS.filter((e) => e.event_date === key);
-  }
-
-  // Close sidebar on escape
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setSelectedEvent(null);
-    }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setSelectedEvent(null); }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   return (
-    <div className="flex flex-1 overflow-hidden border-t border-gray-100">
-      <div className="flex-1 min-w-0 overflow-y-auto px-6 py-6">
+    <div className="flex flex-1 overflow-hidden border-t border-gray-100 relative">
+      {/* Main calendar area */}
+      <div className="flex-1 min-w-0 overflow-hidden flex flex-col px-6 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between mb-4 shrink-0">
+          <div className="flex items-center gap-2">
             <button
               onClick={prevPeriod}
               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <h2 className="text-lg font-semibold font-body text-gray-800 min-w-[160px] text-center">
-              {monthLabel}
+            <h2 className="text-base font-semibold font-body text-gray-800 min-w-[190px] text-center">
+              {calView === "month" ? monthLabel : weekRangeLabel}
             </h2>
             <button
               data-tour-id="calendar-next-month"
@@ -2423,13 +2470,19 @@ function CalendarPage() {
             >
               <ChevronRight className="w-4 h-4" />
             </button>
+            <button
+              onClick={goToday}
+              className="ml-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer font-body"
+            >
+              Today
+            </button>
           </div>
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
             {(["month", "week"] as CalView[]).map((v) => (
               <button
                 key={v}
-                onClick={() => setView(v)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-body transition-all cursor-pointer capitalize ${view === v ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                onClick={() => setCalView(v)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-body transition-all cursor-pointer capitalize ${calView === v ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
               >
                 {v}
               </button>
@@ -2437,76 +2490,219 @@ function CalendarPage() {
           </div>
         </div>
 
-        {/* Month grid */}
-        <div className="grid grid-cols-7 mb-1">
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-            <div
-              key={d}
-              className="text-center text-xs font-semibold text-gray-300 font-body py-1.5"
-            >
-              {d}
+        {calView === "month" ? (
+          /* \u2500\u2500 Month View \u2500\u2500 */
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="grid grid-cols-7 mb-1 shrink-0">
+              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                <div key={d} className="text-center text-xs font-semibold text-gray-300 font-body py-1.5">{d}</div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-px bg-gray-100 overflow-hidden border border-gray-100">
-          {cells.map((d, i) => {
-            if (!d)
-              return <div key={`e-${i}`} className="bg-white min-h-[80px]" />;
-            const key = todayKey(d);
-            const isToday = key === currentTodayKey;
-            const dayEvents = eventsForDay(d);
-            const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-            return (
-              <div
-                key={key}
-                className={`bg-white min-h-[80px] p-1.5 ${isWeekend ? "bg-gray-50/60" : ""}`}
-              >
-                <div
-                  className={`text-xs font-semibold font-body mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-[#4a7c59] text-white" : "text-gray-500"}`}
-                >
-                  {d.getDate()}
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  {dayEvents.slice(0, 3).map((ev) => (
-                    <button
-                      key={ev.id}
-                      data-tour-id={ev.id === "e4" ? "calendar-event-e4" : undefined}
-                      onClick={() => setSelectedEvent(ev)}
-                      className="w-full text-left text-[10px] font-semibold font-body px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity"
+            <div className="flex-1 overflow-y-auto grid grid-cols-7 gap-px bg-gray-100 border border-gray-100" style={{ gridAutoRows: "minmax(80px, 1fr)" }}>
+              {cells.map((d, i) => {
+                if (!d) return <div key={`e-${i}`} className="bg-white" />;
+                const key = todayKey(d);
+                const isTodayCell = key === currentTodayKey;
+                const dayEvents = eventsForDate(key);
+                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                return (
+                  <div key={key} className={`p-1.5 ${isWeekend ? "bg-gray-50/60" : "bg-white"}`}>
+                    <div className={`text-xs font-semibold font-body mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isTodayCell ? "bg-[#4a7c59] text-white" : "text-gray-500"}`}>
+                      {d.getDate()}
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      {dayEvents.slice(0, 3).map((ev) => (
+                        <button
+                          key={ev.id}
+                          data-tour-id={ev.id === "e4" ? "calendar-event-e4" : undefined}
+                          onClick={() => setSelectedEvent(ev)}
+                          className="w-full text-left text-[10px] font-semibold font-body px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: (ev.color ?? "#4a7c59") + "22", color: ev.color ?? "#4a7c59" }}
+                        >
+                          {ev.title}
+                        </button>
+                      ))}
+                      {dayEvents.length > 3 && (
+                        <span className="text-[10px] text-gray-400 font-body px-1.5">+{dayEvents.length - 3} more</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* \u2500\u2500 Week View \u2500\u2500 */
+          <div className="flex-1 overflow-hidden flex flex-col border border-gray-100 rounded-xl bg-white">
+            {/* Day header row */}
+            <div
+              className="grid shrink-0"
+              style={{ gridTemplateColumns: "52px repeat(7, 1fr)", borderBottom: "1px solid #f3f4f6" }}
+            >
+              <div style={{ borderRight: "1px solid #f3f4f6" }} />
+              {weekDays.map((d, i) => {
+                const todayCol = isTodayDate(d);
+                return (
+                  <div
+                    key={i}
+                    className="py-2 text-center"
+                    style={{
+                      borderRight: i < 6 ? "1px solid #f3f4f6" : "none",
+                      backgroundColor: todayCol ? "#4a7c5918" : "transparent",
+                    }}
+                  >
+                    <div className="text-[9px] font-semibold uppercase tracking-widest text-gray-400">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()]}
+                    </div>
+                    <div
+                      className="text-sm font-bold mt-0.5 w-7 h-7 mx-auto flex items-center justify-center rounded-full"
                       style={{
-                        backgroundColor: (ev.color ?? "#4a7c59") + "22",
-                        color: ev.color ?? "#4a7c59",
+                        color: todayCol ? "#fff" : "#1f2937",
+                        backgroundColor: todayCol ? "#4a7c59" : "transparent",
                       }}
                     >
-                      {ev.title}
-                    </button>
-                  ))}
-                  {dayEvents.length > 3 && (
-                    <span className="text-[10px] text-gray-400 font-body px-1.5">
-                      +{dayEvents.length - 3} more
-                    </span>
-                  )}
+                      {d.getDate()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* All-day strip */}
+            {weekDays.some((d) => eventsForDate(fmtDate(d)).some((e) => e.is_all_day)) && (
+              <div
+                className="grid shrink-0"
+                style={{ gridTemplateColumns: "52px repeat(7, 1fr)", borderBottom: "1px solid #f3f4f6" }}
+              >
+                <div
+                  className="flex items-center justify-end pr-2"
+                  style={{ borderRight: "1px solid #f3f4f6", minHeight: 28 }}
+                >
+                  <span className="text-[9px] font-semibold uppercase tracking-widest text-gray-400">all\u2011day</span>
                 </div>
+                {weekDays.map((d, i) => {
+                  const allDayEvs = eventsForDate(fmtDate(d)).filter((e) => e.is_all_day);
+                  return (
+                    <div
+                      key={i}
+                      className="px-0.5 py-0.5 flex flex-col gap-0.5"
+                      style={{
+                        borderRight: i < 6 ? "1px solid #f3f4f6" : "none",
+                        backgroundColor: isTodayDate(d) ? "#4a7c5918" : "transparent",
+                      }}
+                    >
+                      {allDayEvs.map((ev) => (
+                        <button
+                          key={ev.id}
+                          data-tour-id={ev.id === "e4" ? "calendar-event-e4" : undefined}
+                          onClick={() => setSelectedEvent(ev)}
+                          className="w-full text-left px-1 py-0.5 rounded text-[9px] font-semibold truncate hover:opacity-80 cursor-pointer"
+                          style={{ backgroundColor: (ev.color ?? "#4a7c59") + "30", color: ev.color ?? "#4a7c59" }}
+                        >
+                          {ev.title}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            )}
+
+            {/* Scrollable time grid */}
+            <div className="flex-1 overflow-y-auto">
+              <div
+                className="grid relative"
+                style={{
+                  gridTemplateColumns: "52px repeat(7, 1fr)",
+                  height: HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR),
+                }}
+              >
+                {/* Time labels column */}
+                <div style={{ borderRight: "1px solid #f3f4f6" }}>
+                  {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => {
+                    const h = WEEK_START_HOUR + i;
+                    return (
+                      <div key={h} className="flex items-start justify-end pr-2 pt-0.5" style={{ height: HOUR_HEIGHT }}>
+                        <span className="text-[9px] font-medium text-gray-400">
+                          {h === 12 ? "12 PM" : h < 12 ? `${h} AM` : `${h - 12} PM`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Day columns */}
+                {weekDays.map((d, colIdx) => {
+                  const dateStr = fmtDate(d);
+                  const timedEvs = eventsForDate(dateStr).filter((e) => !e.is_all_day && e.start_time && e.end_time);
+                  const todayCol = isTodayDate(d);
+                  return (
+                    <div
+                      key={colIdx}
+                      className="relative"
+                      style={{
+                        borderRight: colIdx < 6 ? "1px solid #f3f4f6" : "none",
+                        backgroundColor: todayCol ? "#4a7c590a" : "transparent",
+                      }}
+                    >
+                      {/* Hour grid lines */}
+                      {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => (
+                        <div key={i} style={{ position: "absolute", top: i * HOUR_HEIGHT, left: 0, right: 0, borderTop: "1px solid #f3f4f6", pointerEvents: "none" }} />
+                      ))}
+                      {/* Half-hour lines */}
+                      {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => (
+                        <div key={`h${i}`} style={{ position: "absolute", top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2, left: 0, right: 0, borderTop: "1px dashed #f3f4f6", opacity: 0.5, pointerEvents: "none" }} />
+                      ))}
+                      {/* Current time indicator */}
+                      {todayCol && (
+                        <div style={{ position: "absolute", top: nowTop, left: 0, right: 0, height: 2, backgroundColor: "#ef4444", zIndex: 10, pointerEvents: "none" }}>
+                          <div style={{ position: "absolute", left: -4, top: -4, width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ef4444" }} />
+                        </div>
+                      )}
+                      {/* Timed events */}
+                      {timedEvs.map((ev) => {
+                        const top = timeToTop(ev.start_time!);
+                        const height = Math.max(timeToHeight(ev.start_time!, ev.end_time!), 20);
+                        return (
+                          <button
+                            key={ev.id}
+                            onClick={() => setSelectedEvent(ev)}
+                            className="absolute left-0.5 right-0.5 rounded overflow-hidden text-left hover:opacity-90 transition-opacity cursor-pointer"
+                            style={{
+                              top,
+                              height,
+                              backgroundColor: (ev.color ?? "#4a7c59") + "28",
+                              borderLeft: `3px solid ${ev.color ?? "#4a7c59"}`,
+                              zIndex: 5,
+                            }}
+                          >
+                            <div className="px-1 pt-0.5">
+                              <div className="text-[9px] font-bold truncate" style={{ color: ev.color ?? "#4a7c59" }}>{ev.title}</div>
+                              {height > 28 && (
+                                <div className="text-[8px]" style={{ color: (ev.color ?? "#4a7c59") + "cc" }}>{ev.start_time} \u2013 {ev.end_time}</div>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Legend */}
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-3 flex flex-wrap gap-3 shrink-0">
           {Array.from(new Set(CALENDAR_EVENTS.map((e) => e.category)))
             .filter(Boolean)
             .map((cat) => {
               const ev = CALENDAR_EVENTS.find((e) => e.category === cat)!;
               return (
                 <div key={cat} className="flex items-center gap-1.5">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: ev.color ?? "#4a7c59" }}
-                  />
-                  <span className="text-[11px] text-gray-500 font-body">
-                    {cat}
-                  </span>
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ev.color ?? "#4a7c59" }} />
+                  <span className="text-[11px] text-gray-500 font-body">{cat}</span>
                 </div>
               );
             })}
@@ -2515,9 +2711,7 @@ function CalendarPage() {
 
       {/* Upcoming events sidebar */}
       <div className="w-64 shrink-0 border-l border-gray-100 overflow-y-auto px-4 py-6 flex flex-col gap-3">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body">
-          Upcoming
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body">Upcoming</p>
         {CALENDAR_EVENTS.filter((e) => e.event_date >= currentTodayKey)
           .sort((a, b) => a.event_date.localeCompare(b.event_date))
           .slice(0, 6)
@@ -2527,17 +2721,10 @@ function CalendarPage() {
               onClick={() => setSelectedEvent(ev)}
               className="w-full text-left relative rounded-md border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors cursor-pointer"
             >
-              <div
-                className="absolute left-0 top-0 bottom-0 w-1"
-                style={{ backgroundColor: ev.color ?? "#4a7c59" }}
-              />
+              <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: ev.color ?? "#4a7c59" }} />
               <div className="pl-4 pr-3 py-2.5">
-                <p className="text-[11px] text-gray-400 font-body">
-                  {formatEventDate(ev)}
-                </p>
-                <p className="text-xs font-semibold text-gray-800 font-body leading-snug">
-                  {ev.title}
-                </p>
+                <p className="text-[11px] text-gray-400 font-body">{formatEventDate(ev)}</p>
+                <p className="text-xs font-semibold text-gray-800 font-body leading-snug">{ev.title}</p>
               </div>
             </button>
           ))}
@@ -2565,15 +2752,8 @@ function CalendarPage() {
             >
               <div className="sticky top-0 z-10 px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-white">
                 <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-3 h-3 rounded-full shrink-0"
-                    style={{
-                      backgroundColor: selectedEvent.color ?? "#4a7c59",
-                    }}
-                  />
-                  <h2 className="text-base font-semibold text-gray-800 font-body">
-                    {selectedEvent.title}
-                  </h2>
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: selectedEvent.color ?? "#4a7c59" }} />
+                  <h2 className="text-base font-semibold text-gray-800 font-body">{selectedEvent.title}</h2>
                 </div>
                 <button
                   data-tour-id="calendar-sidebar-close"
@@ -2587,62 +2767,40 @@ function CalendarPage() {
                 {selectedEvent.category && (
                   <span
                     className="inline-block text-xs font-semibold font-body px-2.5 py-1 rounded-full w-fit"
-                    style={{
-                      backgroundColor:
-                        (selectedEvent.color ?? "#4a7c59") + "22",
-                      color: selectedEvent.color ?? "#4a7c59",
-                    }}
+                    style={{ backgroundColor: (selectedEvent.color ?? "#4a7c59") + "22", color: selectedEvent.color ?? "#4a7c59" }}
                   >
                     {selectedEvent.category}
                   </span>
                 )}
                 <div>
-                  <p className="text-xs text-gray-400 font-body mb-0.5">
-                    Date & Time
-                  </p>
-                  <p className="text-sm font-semibold text-gray-800 font-body">
-                    {formatEventDate(selectedEvent)}
-                  </p>
+                  <p className="text-xs text-gray-400 font-body mb-0.5">Date & Time</p>
+                  <p className="text-sm font-semibold text-gray-800 font-body">{formatEventDate(selectedEvent)}</p>
                 </div>
                 {selectedEvent.location && (
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700 font-body">
-                      {selectedEvent.location}
-                    </p>
+                    <p className="text-sm text-gray-700 font-body">{selectedEvent.location}</p>
                   </div>
                 )}
                 {selectedEvent.description && (
                   <div>
-                    <p className="text-xs text-gray-400 font-body mb-1">
-                      Description
-                    </p>
-                    <p className="text-sm text-gray-700 font-body leading-relaxed">
-                      {selectedEvent.description}
-                    </p>
+                    <p className="text-xs text-gray-400 font-body mb-1">Description</p>
+                    <p className="text-sm text-gray-700 font-body leading-relaxed">{selectedEvent.description}</p>
                   </div>
                 )}
-                {selectedEvent.attachment_links &&
-                  selectedEvent.attachment_links.length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-400 font-body mb-2">
-                        Attachments
-                      </p>
-                      <div className="flex flex-col gap-2">
-                        {selectedEvent.attachment_links.map((name) => (
-                          <div
-                            key={name}
-                            className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2"
-                          >
-                            <Paperclip className="w-4 h-4 text-gray-400 shrink-0" />
-                            <span className="text-sm font-body text-gray-700 truncate">
-                              {name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                {selectedEvent.attachment_links && selectedEvent.attachment_links.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-body mb-2">Attachments</p>
+                    <div className="flex flex-col gap-2">
+                      {selectedEvent.attachment_links.map((name) => (
+                        <div key={name} className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+                          <Paperclip className="w-4 h-4 text-gray-400 shrink-0" />
+                          <span className="text-sm font-body text-gray-700 truncate">{name}</span>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
               </div>
             </motion.div>
           </>

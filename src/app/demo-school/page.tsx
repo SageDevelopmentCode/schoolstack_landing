@@ -152,7 +152,7 @@ export default function DemoSchoolPage() {
               className="w-full h-full overflow-y-auto overflow-x-hidden"
             >
               {activeTab === "admin" && (
-                <AdminDashboardDemo disableTour={true} />
+                <AdminDashboardDemo disableTour={true} defaultSidebarExpanded={true} />
               )}
               {activeTab === "teacher" && (
                 <TeacherDashboardDemo disableTour={true} />

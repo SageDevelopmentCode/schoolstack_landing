@@ -10484,13 +10484,17 @@ export default function AdminDashboardDemo({
   disableTour = false,
   initialPage = "dashboard",
   hideNav = false,
+  defaultSidebarExpanded,
 }: {
   disableTour?: boolean
   initialPage?: ActivePage
   hideNav?: boolean
+  defaultSidebarExpanded?: boolean
 }) {
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
-  const [isExpanded, setIsExpanded] = useState(!disableTour);
+  const [isExpanded, setIsExpanded] = useState(
+    defaultSidebarExpanded !== undefined ? defaultSidebarExpanded : !disableTour
+  );
   const [isDark, setIsDark] = useState(false);
   C = isDark ? C_DARK : C_LIGHT;
 

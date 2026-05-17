@@ -28,6 +28,7 @@ create table if not exists public.schools (
                         check (crm_status in (
                           'not_contacted',
                           'contacted',
+                          'nurturing',
                           'demo_scheduled',
                           'proposal_sent',
                           'not_interested',

@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/client";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type CrmStatus =
+  | "nurturing"
   | "not_contacted"
   | "contacted"
   | "demo_scheduled"
@@ -43,6 +44,7 @@ type School = {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CRM: Record<CrmStatus, { label: string; dot: string; pill: string }> = {
+  nurturing:      { label: "Nurturing ❤️",   dot: "bg-rose-400",    pill: "bg-rose-50 text-rose-700 border-rose-200" },
   not_contacted:  { label: "Not Contacted",  dot: "bg-gray-300",    pill: "bg-gray-100 text-gray-500 border-gray-200" },
   contacted:      { label: "Contacted",      dot: "bg-blue-400",    pill: "bg-blue-50 text-blue-700 border-blue-200" },
   demo_scheduled: { label: "Demo Scheduled", dot: "bg-violet-400",  pill: "bg-violet-50 text-violet-700 border-violet-200" },
@@ -176,6 +178,7 @@ function CrmPanel({
   );
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
+  const [statusSaving, setStatusSaving] = useState(false);
 
   useEffect(() => {
     setStatus(school.crm_status);
@@ -187,10 +190,16 @@ function CrmPanel({
     setSavedMsg(false);
   }, [school.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function handleStatusChange(s: CrmStatus) {
+    setStatus(s);
+    setStatusSaving(true);
+    await onSave(school.id, { crm_status: s });
+    setStatusSaving(false);
+  }
+
   async function handleSave() {
     setSaving(true);
     await onSave(school.id, {
-      crm_status: status,
       contact_name: contactName,
       contact_email: contactEmail,
       contact_phone: contactPhone,
@@ -252,13 +261,22 @@ function CrmPanel({
         <div className="px-7 py-6 flex flex-col gap-6">
           {/* Status picker */}
           <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">Status</p>
+            <div className="flex items-center gap-2 mb-2.5">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status</p>
+              {statusSaving && (
+                <svg className="animate-spin w-3 h-3 text-gray-300" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+                  <path d="M8 2a6 6 0 016 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              )}
+            </div>
             <div className="flex flex-col gap-1.5">
               {CRM_STATUSES.map((s) => (
                 <button
                   key={s}
-                  onClick={() => setStatus(s)}
-                  className={`w-full flex items-center gap-2.5 text-sm font-medium px-3.5 py-2.5 rounded-xl border transition-all text-left ${
+                  onClick={() => handleStatusChange(s)}
+                  disabled={statusSaving}
+                  className={`w-full flex items-center gap-2.5 text-sm font-medium px-3.5 py-2.5 rounded-xl border transition-all text-left disabled:opacity-60 ${
                     status === s
                       ? `${CRM[s].pill} shadow-sm`
                       : "border-gray-200 text-gray-500 bg-white hover:border-gray-300 hover:bg-gray-50"

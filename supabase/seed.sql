@@ -26,8 +26,8 @@ create table if not exists public.schools (
   -- CRM fields
   crm_status          text not null default 'not_contacted'
                         check (crm_status in (
-                          'not_contacted','contacted','demo_scheduled',
-                          'proposal_sent','not_interested','won'
+                          'not_contacted','contacted','nurturing',
+                          'demo_scheduled','proposal_sent','not_interested','won'
                         )),
   contact_name        text not null default '',
   contact_email       text not null default '',
