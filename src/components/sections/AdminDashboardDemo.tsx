@@ -46,6 +46,8 @@ import {
   Download,
   ChevronLeft,
   Shield,
+  Home,
+  Pencil,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -825,6 +827,25 @@ const DEMO_PARENTS: DemoParent[] = [
   },
 ];
 
+type DropInDay = "Mon" | "Tue" | "Wed" | "Thu" | "Fri";
+
+type StudentBillingFullTime = {
+  kind: "full_time";
+  monthlyTuition: number;
+  autopayOn: boolean;
+  paymentMethods: { label: string; last4: string; brand: string; default: boolean }[];
+  lineItems: { id: string; date: string; description: string; amount: number; status: "paid" | "pending" }[];
+};
+
+type StudentBillingHomeschool = {
+  kind: "homeschool_dropin";
+  ratePerDay: number;
+  weeks: { weekOf: string; days: DropInDay[] }[];
+  lineItems: { id: string; date: string; description: string; amount: number; status: "paid" | "pending" }[];
+};
+
+type StudentBilling = StudentBillingFullTime | StudentBillingHomeschool;
+
 type DemoStudent = {
   id: string;
   name: string;
@@ -859,6 +880,7 @@ type DemoStudent = {
   immunizations: { name: string; date: string; status: "complete" | "due" | "exempt" }[];
   emergencyContacts: { name: string; relationship: string; phone: string; priority: number }[];
   activityLog: { date: string; type: "attendance" | "note" | "event"; title: string; detail: string; author?: string }[];
+  billing: StudentBilling;
 };
 
 const DEMO_STUDENTS_P2: DemoStudent[] = [
@@ -918,6 +940,20 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Feb 12, 2026", type: "note", title: "Admin Note", detail: "Re-enrollment confirmation received for 2026–27 school year.", author: "Admin" },
       { date: "Nov 14, 2025", type: "event", title: "Enrolled – School Year 2026–27", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
     ],
+    billing: {
+      kind: "full_time",
+      monthlyTuition: 1450,
+      autopayOn: true,
+      paymentMethods: [
+        { label: "Visa", last4: "4242", brand: "card", default: true },
+        { label: "Checking · Chase", last4: "4412", brand: "bank", default: false },
+      ],
+      lineItems: [
+        { id: "ft-st1-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 1450, status: "paid" },
+        { id: "ft-st1-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year)", amount: 1450, status: "pending" },
+        { id: "ft-st1-3", date: "Apr 1, 2026", description: "Apr 2026 tuition (School Year)", amount: 1450, status: "paid" },
+      ],
+    },
   },
   {
     id: "st2",
@@ -977,6 +1013,16 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Feb 3, 2026", type: "note", title: "Movement Break Protocol Updated", detail: "Adjusted to 40-min intervals per occupational therapist recommendation.", author: "Admin" },
       { date: "Dec 3, 2025", type: "event", title: "Enrolled – Both Programs", detail: "Application approved for School Year 2026–27 and Summer 2026.", author: "Admin" },
     ],
+    billing: {
+      kind: "full_time",
+      monthlyTuition: 1480,
+      autopayOn: true,
+      paymentMethods: [{ label: "Mastercard", last4: "8910", brand: "card", default: true }],
+      lineItems: [
+        { id: "ft-st2-1", date: "May 1, 2026", description: "May 2026 tuition (combined programs)", amount: 1480, status: "paid" },
+        { id: "ft-st2-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (combined programs)", amount: 1480, status: "pending" },
+      ],
+    },
   },
   {
     id: "st3",
@@ -1045,6 +1091,21 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Mar 5, 2026", type: "note", title: "Teacher Note", detail: "Ava finished her first independent reading chapter book. Celebrated with the class.", author: "Ms. Kim" },
       { date: "Jan 15, 2026", type: "event", title: "Enrolled – Summer 2026", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
     ],
+    billing: {
+      kind: "homeschool_dropin",
+      ratePerDay: 95,
+      weeks: [
+        { weekOf: "May 12–16, 2026", days: ["Mon", "Wed", "Fri"] },
+        { weekOf: "May 5–9, 2026", days: ["Tue", "Thu"] },
+        { weekOf: "Apr 28 – May 2, 2026", days: ["Mon", "Tue", "Wed", "Thu"] },
+        { weekOf: "Apr 21–25, 2026", days: ["Mon", "Fri"] },
+      ],
+      lineItems: [
+        { id: "hs-st3-1", date: "May 12, 2026", description: "Drop-in: May 12–16 week (3 days × $95)", amount: 285, status: "paid" },
+        { id: "hs-st3-2", date: "May 19, 2026", description: "Scheduled: May 19–23 week (parent-selected days)", amount: 380, status: "pending" },
+        { id: "hs-st3-3", date: "Apr 28, 2026", description: "Drop-in: Apr 28 – May 2 week (4 days × $95)", amount: 380, status: "paid" },
+      ],
+    },
   },
   {
     id: "st4",
@@ -1102,6 +1163,16 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Mar 1, 2026", type: "note", title: "Milestone Note", detail: "Noah successfully led show-and-tell for the first time. Huge confidence boost.", author: "Ms. Johnson" },
       { date: "Jan 15, 2026", type: "event", title: "Enrolled – Summer 2026", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
     ],
+    billing: {
+      kind: "full_time",
+      monthlyTuition: 1280,
+      autopayOn: true,
+      paymentMethods: [{ label: "Visa", last4: "1155", brand: "card", default: true }],
+      lineItems: [
+        { id: "ft-st4-1", date: "May 1, 2026", description: "May 2026 tuition (Summer program)", amount: 1280, status: "paid" },
+        { id: "ft-st4-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (Summer program)", amount: 1280, status: "pending" },
+      ],
+    },
   },
   {
     id: "st5",
@@ -1153,6 +1224,17 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Feb 18, 2026", type: "note", title: "Admin Note", detail: "Recommended for gifted enrichment program. Parent notification sent.", author: "Admin" },
       { date: "Nov 14, 2025", type: "event", title: "Enrolled – School Year 2026–27", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
     ],
+    billing: {
+      kind: "full_time",
+      monthlyTuition: 1425,
+      autopayOn: false,
+      paymentMethods: [{ label: "Amex", last4: "3001", brand: "card", default: true }],
+      lineItems: [
+        { id: "ft-st5-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 1425, status: "paid" },
+        { id: "ft-st5-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year)", amount: 1425, status: "pending" },
+        { id: "ft-st5-3", date: "Apr 15, 2026", description: "Materials & lab fee", amount: 75, status: "paid" },
+      ],
+    },
   },
   {
     id: "st6",
@@ -1215,6 +1297,19 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Mar 18, 2026", type: "event", title: "Enrolled – School Year 2026–27", detail: "Enrollment agreement signed by Stephanie Clarke.", author: "Admin" },
       { date: "Feb 20, 2026", type: "note", title: "Teacher Note", detail: "Isabelle is demonstrating strong leadership in group projects. Recommended for student council.", author: "Mr. Reynolds" },
     ],
+    billing: {
+      kind: "full_time",
+      monthlyTuition: 1500,
+      autopayOn: true,
+      paymentMethods: [
+        { label: "Visa", last4: "7721", brand: "card", default: true },
+        { label: "Health savings · FSA", last4: "6600", brand: "fsa", default: false },
+      ],
+      lineItems: [
+        { id: "ft-st6-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 1500, status: "paid" },
+        { id: "ft-st6-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year) — autopay scheduled", amount: 1500, status: "pending" },
+      ],
+    },
   },
   {
     id: "st7",
@@ -1272,6 +1367,19 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Mar 10, 2026", type: "note", title: "Accommodation Update", detail: "Standing desk added to classroom. Tyler reports significantly better focus.", author: "Admin" },
       { date: "Dec 3, 2025", type: "event", title: "Enrolled – Both Programs", detail: "Application approved for School Year 2026–27 and Summer 2026.", author: "Admin" },
     ],
+    billing: {
+      kind: "homeschool_dropin",
+      ratePerDay: 72,
+      weeks: [
+        { weekOf: "May 12–16, 2026", days: ["Mon", "Tue", "Wed"] },
+        { weekOf: "May 5–9, 2026", days: ["Thu", "Fri"] },
+        { weekOf: "Apr 28 – May 2, 2026", days: ["Mon", "Wed", "Thu", "Fri"] },
+      ],
+      lineItems: [
+        { id: "hs-st7-1", date: "May 12, 2026", description: "Drop-in: May 12–16 (3 days × $72)", amount: 216, status: "paid" },
+        { id: "hs-st7-2", date: "May 19, 2026", description: "Pending: May 19–23 (parent picks days Mon–Fri)", amount: 288, status: "pending" },
+      ],
+    },
   },
   {
     id: "st8",
@@ -1330,6 +1438,16 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Apr 4, 2026", type: "event", title: "Application Submitted – Both Programs", detail: "Application submitted by Kevin Okonkwo. Currently in review.", author: "Admin" },
       { date: "Mar 5, 2026", type: "note", title: "Parent Note", detail: "Kevin Okonkwo requested application status update. Admin followed up same day.", author: "Admin" },
     ],
+    billing: {
+      kind: "full_time",
+      monthlyTuition: 1460,
+      autopayOn: true,
+      paymentMethods: [{ label: "Visa", last4: "4411", brand: "card", default: true }],
+      lineItems: [
+        { id: "ft-st8-1", date: "May 1, 2026", description: "May 2026 tuition (combined programs)", amount: 1460, status: "paid" },
+        { id: "ft-st8-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (combined programs)", amount: 1460, status: "pending" },
+      ],
+    },
   },
   {
     id: "st9",
@@ -1396,6 +1514,16 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Mar 2, 2026", type: "note", title: "Teacher Note", detail: "Marcus completed a 45-min independent coding project without breaks — a personal best.", author: "Ms. Carter" },
       { date: "Feb 8, 2026", type: "event", title: "Enrolled – School Year 2026–27", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
     ],
+    billing: {
+      kind: "full_time",
+      monthlyTuition: 1450,
+      autopayOn: true,
+      paymentMethods: [{ label: "Mastercard", last4: "9922", brand: "card", default: true }],
+      lineItems: [
+        { id: "ft-st9-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 1450, status: "paid" },
+        { id: "ft-st9-2", date: "May 20, 2026", description: "OT co-pay pass-through (quarterly)", amount: 120, status: "pending" },
+      ],
+    },
   },
   {
     id: "st10",
@@ -1463,6 +1591,19 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Feb 25, 2026", type: "note", title: "Parent Communication", detail: "Yuki Nakamura requested update on social integration. Positive report shared.", author: "Ms. Reyes" },
       { date: "Jan 27, 2026", type: "event", title: "Enrolled – Both Programs", detail: "Application approved for School Year 2026–27 and Summer 2026.", author: "Admin" },
     ],
+    billing: {
+      kind: "full_time",
+      monthlyTuition: 1475,
+      autopayOn: true,
+      paymentMethods: [
+        { label: "Visa", last4: "2100", brand: "card", default: true },
+        { label: "Apple Pay", last4: "—", brand: "wallet", default: false },
+      ],
+      lineItems: [
+        { id: "ft-st10-1", date: "May 1, 2026", description: "May 2026 tuition (combined programs)", amount: 1475, status: "paid" },
+        { id: "ft-st10-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (combined programs)", amount: 1475, status: "pending" },
+      ],
+    },
   },
   {
     id: "st11",
@@ -1521,6 +1662,19 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Mar 22, 2026", type: "note", title: "Milestone Note", detail: "Jordan sang the entire welcome song independently today — a first! Class celebrated.", author: "Ms. Johnson" },
       { date: "Apr 10, 2026", type: "event", title: "Application Submitted – Summer 2026", detail: "Application submitted by Carmen Rivera. Currently in review.", author: "Admin" },
     ],
+    billing: {
+      kind: "homeschool_dropin",
+      ratePerDay: 88,
+      weeks: [
+        { weekOf: "May 12–16, 2026", days: ["Tue", "Thu"] },
+        { weekOf: "May 5–9, 2026", days: ["Mon", "Wed", "Fri"] },
+        { weekOf: "Apr 28 – May 2, 2026", days: ["Mon", "Tue"] },
+      ],
+      lineItems: [
+        { id: "hs-st11-1", date: "May 5, 2026", description: "Drop-in: May 5–9 week (3 days × $88)", amount: 264, status: "paid" },
+        { id: "hs-st11-2", date: "May 19, 2026", description: "Scheduled: May 19–23 (2 days selected so far)", amount: 176, status: "pending" },
+      ],
+    },
   },
   {
     id: "st12",
@@ -1577,6 +1731,17 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { date: "Mar 18, 2026", type: "note", title: "Teacher Note", detail: "Priya recited an original spoken word poem for the class. Exceptional memory and delivery.", author: "Ms. Hughes" },
       { date: "Nov 14, 2025", type: "event", title: "Enrolled – School Year 2026–27", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
     ],
+    billing: {
+      kind: "full_time",
+      monthlyTuition: 1535,
+      autopayOn: false,
+      paymentMethods: [{ label: "ACH · Wells Fargo", last4: "7722", brand: "bank", default: true }],
+      lineItems: [
+        { id: "ft-st12-1", date: "May 1, 2026", description: "May 2026 tuition + reading aide stipend", amount: 1535, status: "paid" },
+        { id: "ft-st12-2", date: "Jun 1, 2026", description: "Jun 2026 tuition + reading aide stipend", amount: 1535, status: "pending" },
+        { id: "ft-st12-3", date: "Apr 20, 2026", description: "Assistive tech software (quarterly)", amount: 45, status: "paid" },
+      ],
+    },
   },
 ];
 
@@ -2978,15 +3143,65 @@ const FIELD_TYPE_OPTIONS: { value: FlowFieldType; label: string }[] = [
 let _flowIdCounter = 100;
 const newId = () => `gen-${++_flowIdCounter}`;
 
+/** Templates for suggested fields — a fresh id is assigned when added to a step */
+type FlowFieldTemplate = Omit<FlowField, "id">;
+
+const FLOW_FIELD_LIBRARY: FlowFieldTemplate[] = [
+  { label: "First Name", type: "text", required: true },
+  { label: "Last Name", type: "text", required: true },
+  { label: "Email", type: "email", required: true },
+  { label: "Phone", type: "phone", required: false },
+  { label: "Child's Name", type: "text", required: true },
+  { label: "Date of Birth", type: "date", required: true },
+  { label: "Age", type: "text", required: false },
+  {
+    label: "Grade Level",
+    type: "select",
+    required: true,
+    options: ["Pre-K", "K", "1st", "2nd", "3rd"],
+  },
+  {
+    label: "Preferred Program",
+    type: "select",
+    required: true,
+    options: ["Full Day", "Half Day", "After Care"],
+  },
+  { label: "Preferred Start Date", type: "date", required: false },
+  { label: "Interested in Financial Aid", type: "checkbox", required: false },
+  { label: "How did you hear about us?", type: "text", required: false },
+  { label: "Allergies or dietary notes", type: "text", required: false },
+  { label: "Emergency contact name", type: "text", required: false },
+  { label: "Emergency contact phone", type: "phone", required: false },
+];
+
 function EnrollmentFlowsTab() {
   const [flows, setFlows] = useState<EnrollmentFlow[]>(INITIAL_DEMO_FLOWS);
   const [selectedFlowId, setSelectedFlowId] = useState<string>("flow-1");
   const [selectedStepId, setSelectedStepId] = useState<string | null>("s1");
   const [savedPulse, setSavedPulse] = useState(false);
   const [previewStep, setPreviewStep] = useState<FlowStep | null>(null);
+  const [editingStepId, setEditingStepId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setEditingStepId(null);
+  }, [selectedFlowId]);
+
   const ACTION_META = getActionMeta();
 
   const selectedFlow = flows.find((f) => f.id === selectedFlowId) ?? null;
+
+  const editingStep =
+    selectedFlow?.steps.find((s) => s.id === editingStepId) ?? null;
+
+  useEffect(() => {
+    if (
+      editingStepId &&
+      selectedFlow &&
+      !selectedFlow.steps.some((s) => s.id === editingStepId)
+    ) {
+      setEditingStepId(null);
+    }
+  }, [selectedFlow, editingStepId]);
 
   const updateFlow = (updater: (f: EnrollmentFlow) => EnrollmentFlow) => {
     setFlows((prev) =>
@@ -3053,8 +3268,24 @@ function EnrollmentFlowsTab() {
       ...f,
       steps: f.steps.map((s) =>
         s.id === stepId
-          ? { ...s, fields: [...s.fields, { id, label: "New Field", type: "text", required: false }] }
+          ? { ...s, fields: [...s.fields, { id, label: "New question", type: "text", required: false }] }
           : s
+      ),
+    }));
+  };
+
+  const addPresetField = (stepId: string, template: FlowFieldTemplate) => {
+    const field: FlowField = {
+      id: newId(),
+      label: template.label,
+      type: template.type,
+      required: template.required,
+      options: template.options ? [...template.options] : undefined,
+    };
+    updateFlow((f) => ({
+      ...f,
+      steps: f.steps.map((s) =>
+        s.id === stepId ? { ...s, fields: [...s.fields, field] } : s
       ),
     }));
   };
@@ -3327,7 +3558,11 @@ function EnrollmentFlowsTab() {
                               </button>
                               <button
                                 style={{ ...smallBtnStyle(), color: C.error, borderColor: C.errorBorder }}
-                                onClick={() => deleteStep(step.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (editingStepId === step.id) setEditingStepId(null);
+                                  deleteStep(step.id);
+                                }}
                                 title="Delete step"
                               >
                                 <X className="w-2.5 h-2.5" />
@@ -3335,87 +3570,70 @@ function EnrollmentFlowsTab() {
                             </div>
                           </div>
 
-                          {/* Fields list — always visible */}
-                          <div className="flex flex-col flex-1">
-                            {step.fields.map((field) => (
+                          {/* Fields preview — read-only */}
+                          <div className="flex flex-col flex-1 min-h-0">
+                            {step.fields.length === 0 ? (
                               <div
-                                key={field.id}
-                                className="flex items-center gap-2.5 px-4 py-3"
-                                style={{ borderBottom: `1px solid ${C.border}` }}
-                                onClick={(e) => e.stopPropagation()}
+                                className="px-4 py-6 text-center text-xs leading-snug"
+                                style={{ color: C.textTertiary }}
                               >
-                                <input
-                                  value={field.label}
-                                  onChange={(e) => updateField(step.id, field.id, { label: e.target.value })}
-                                  placeholder="Field label"
-                                  className="flex-1 min-w-0 bg-transparent border-none outline-none font-medium"
-                                  style={{ color: C.textPrimary, fontSize: 13 }}
-                                />
-                                <select
-                                  value={field.type}
-                                  onChange={(e) => updateField(step.id, field.id, { type: e.target.value as FlowFieldType })}
-                                  style={{
-                                    backgroundColor: C.infoBg,
-                                    color: C.info,
-                                    border: "none",
-                                    borderRadius: C.r.sm,
-                                    fontSize: "10px",
-                                    fontWeight: 600,
-                                    padding: "3px 5px",
-                                    flexShrink: 0,
-                                    cursor: "pointer",
-                                    outline: "none",
-                                  }}
-                                >
-                                  {FIELD_TYPE_OPTIONS.map((opt) => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                  ))}
-                                </select>
-                                {/* Required/Optional badge toggle */}
-                                <button
-                                  onClick={() => updateField(step.id, field.id, { required: !field.required })}
-                                  title={field.required ? "Click to make optional" : "Click to make required"}
-                                  className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-all"
-                                  style={{
-                                    backgroundColor: field.required ? C.errorBg : C.elevated,
-                                    color: field.required ? C.error : C.textTertiary,
-                                    border: `1px solid ${field.required ? C.errorBorder : C.border}`,
-                                  }}
-                                >
-                                  {field.required ? "Req*" : "Opt"}
-                                </button>
-                                <button
-                                  onClick={() => deleteField(step.id, field.id)}
-                                  style={{
-                                    background: "none",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    color: C.textTertiary,
-                                    padding: "0 1px",
-                                    flexShrink: 0,
-                                    display: "flex",
-                                    alignItems: "center",
-                                  }}
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
+                                No fields yet — use Edit Step to add suggested or custom questions.
                               </div>
-                            ))}
+                            ) : (
+                              step.fields.map((field) => (
+                                <div
+                                  key={field.id}
+                                  className="flex items-center gap-2 px-4 py-2.5"
+                                  style={{ borderBottom: `1px solid ${C.border}` }}
+                                >
+                                  <span
+                                    className="flex-1 min-w-0 truncate font-medium"
+                                    style={{ color: C.textPrimary, fontSize: 13 }}
+                                  >
+                                    {field.label}
+                                  </span>
+                                  <span
+                                    className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold capitalize"
+                                    style={{
+                                      backgroundColor: C.infoBg,
+                                      color: C.info,
+                                    }}
+                                  >
+                                    {FIELD_TYPE_OPTIONS.find((o) => o.value === field.type)?.label ?? field.type}
+                                  </span>
+                                  <span
+                                    className="flex-shrink-0 text-[10px] font-semibold px-1"
+                                    style={{
+                                      color: field.required ? C.error : C.textTertiary,
+                                    }}
+                                  >
+                                    {field.required ? "*" : ""}
+                                  </span>
+                                </div>
+                              ))
+                            )}
 
-                            {/* Add field + Preview row */}
-                            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center mt-auto" onClick={(e) => e.stopPropagation()}>
                               <button
-                                onClick={(e) => { e.stopPropagation(); addField(step.id); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStepId(step.id);
+                                  setEditingStepId(step.id);
+                                }}
                                 className="flex items-center gap-1.5 px-4 py-3 text-xs font-medium transition-all flex-1"
                                 style={{ color: C.accent }}
                                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.accentLight)}
                                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                               >
-                                <Plus className="w-3.5 h-3.5" />
-                                Add Field
+                                <Pencil className="w-3.5 h-3.5" />
+                                Edit Step
                               </button>
                               <button
-                                onClick={(e) => { e.stopPropagation(); setPreviewStep(step); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingStepId(null);
+                                  setPreviewStep(step);
+                                }}
                                 title="Preview step"
                                 className="flex items-center gap-1 px-3 py-3 text-[11px] font-medium transition-all flex-shrink-0"
                                 style={{ color: C.info, borderLeft: `1px solid ${C.border}` }}
@@ -3652,6 +3870,262 @@ function EnrollmentFlowsTab() {
                   </motion.div>
                 </motion.div>
               )}
+            </AnimatePresence>
+
+            {/* Edit step — field library & CRUD */}
+            <AnimatePresence>
+              {editingStep && editingStepId ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 flex items-center justify-center p-4"
+                  style={{ backgroundColor: "rgba(0,0,0,0.45)", zIndex: 10000 }}
+                  onClick={() => setEditingStepId(null)}
+                >
+                  <motion.div
+                    key={editingStepId}
+                    initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 12, scale: 0.99 }}
+                    transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                    className="rounded-xl overflow-hidden flex flex-col w-full shadow-2xl"
+                    style={{
+                      maxWidth: 520,
+                      maxHeight: "min(560px, 85vh)",
+                      backgroundColor: C.surface,
+                      border: `1px solid ${C.border}`,
+                      boxShadow: C.shadowMedium,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div
+                      className="flex items-start justify-between gap-3 px-4 py-3 flex-shrink-0"
+                      style={{
+                        borderBottom: `1px solid ${C.border}`,
+                        backgroundColor: C.elevated,
+                      }}
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Pencil className="w-4 h-4 flex-shrink-0" style={{ color: C.accent }} />
+                          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                            Edit step
+                          </span>
+                        </div>
+                        <p className="text-[11px]" style={{ color: C.textTertiary }}>
+                          Add suggested fields or a custom question, then reorder or tweak each field below.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Close"
+                        className="flex-shrink-0 rounded p-1 transition-colors"
+                        style={{ color: C.textTertiary }}
+                        onClick={() => setEditingStepId(null)}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="px-4 py-3 flex-shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: C.textTertiary }}>
+                        Step title
+                      </label>
+                      <input
+                        value={editingStep.title}
+                        onChange={(e) => updateStepTitle(editingStep.id, e.target.value)}
+                        placeholder="Step title"
+                        style={{ ...inputStyle, fontWeight: 600, fontSize: 13 }}
+                      />
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 min-h-0">
+                      <div>
+                        <p className="text-[11px] font-semibold mb-2" style={{ color: C.textSecondary }}>
+                          Fields on this step
+                        </p>
+                        {editingStep.fields.length === 0 ? (
+                          <div
+                            className="rounded-lg px-3 py-4 text-center text-xs leading-relaxed"
+                            style={{
+                              border: `1px dashed ${C.borderStrong}`,
+                              color: C.textTertiary,
+                              backgroundColor: C.elevated,
+                            }}
+                          >
+                            No fields yet. Add from the suggestions below or create a custom field.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {editingStep.fields.map((field, fieldIdx) => (
+                              <div
+                                key={field.id}
+                                className="rounded-lg p-3 space-y-2"
+                                style={{
+                                  border: `1px solid ${C.border}`,
+                                  backgroundColor: C.elevated,
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    value={field.label}
+                                    onChange={(e) =>
+                                      updateField(editingStep.id, field.id, { label: e.target.value })
+                                    }
+                                    placeholder="Question or field label"
+                                    className="flex-1 min-w-0 bg-transparent outline-none border-none font-medium"
+                                    style={{ color: C.textPrimary, fontSize: 13 }}
+                                  />
+                                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                                    <button
+                                      type="button"
+                                      style={smallBtnStyle()}
+                                      disabled={fieldIdx === 0}
+                                      title="Move up"
+                                      onClick={() => moveField(editingStep.id, field.id, -1)}
+                                    >
+                                      ↑
+                                    </button>
+                                    <button
+                                      type="button"
+                                      style={smallBtnStyle()}
+                                      disabled={fieldIdx === editingStep.fields.length - 1}
+                                      title="Move down"
+                                      onClick={() => moveField(editingStep.id, field.id, 1)}
+                                    >
+                                      ↓
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <select
+                                    value={field.type}
+                                    onChange={(e) =>
+                                      updateField(editingStep.id, field.id, {
+                                        type: e.target.value as FlowFieldType,
+                                      })
+                                    }
+                                    style={{
+                                      backgroundColor: C.infoBg,
+                                      color: C.info,
+                                      border: "none",
+                                      borderRadius: C.r.sm,
+                                      fontSize: "10px",
+                                      fontWeight: 600,
+                                      padding: "4px 6px",
+                                      cursor: "pointer",
+                                      outline: "none",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {FIELD_TYPE_OPTIONS.map((opt) => (
+                                      <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    type="button"
+                                    title={field.required ? "Optional" : "Required"}
+                                    className="px-2 py-0.5 rounded text-[10px] font-semibold transition-all"
+                                    style={{
+                                      backgroundColor: field.required ? C.errorBg : C.surface,
+                                      color: field.required ? C.error : C.textTertiary,
+                                      border: `1px solid ${field.required ? C.errorBorder : C.border}`,
+                                    }}
+                                    onClick={() =>
+                                      updateField(editingStep.id, field.id, { required: !field.required })
+                                    }
+                                  >
+                                    {field.required ? "Required" : "Optional"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="ml-auto flex items-center gap-0.5 text-[10px] font-medium px-2 py-1 rounded-md"
+                                    style={{ color: C.error }}
+                                    onClick={() => deleteField(editingStep.id, field.id)}
+                                  >
+                                    <X className="w-3 h-3" />
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => addField(editingStep.id)}
+                          className="mt-2 flex items-center gap-1.5 w-full justify-center px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                          style={{
+                            border: `1px dashed ${C.borderStrong}`,
+                            color: C.accent,
+                            backgroundColor: C.accentLight,
+                          }}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add custom field
+                        </button>
+                      </div>
+
+                      <div>
+                        <p className="text-[11px] font-semibold mb-2" style={{ color: C.textSecondary }}>
+                          Suggested fields
+                        </p>
+                        <p className="text-[10px] mb-2 leading-snug" style={{ color: C.textTertiary }}>
+                          Tap to add common enrollment questions — you can still edit wording or requirement after adding.
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {FLOW_FIELD_LIBRARY.map((tpl, tplIdx) => (
+                            <button
+                              key={`${tpl.label}-${tplIdx}`}
+                              type="button"
+                              title={tpl.label}
+                              className="px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-colors text-left leading-tight max-w-full"
+                              style={{
+                                backgroundColor: C.surface,
+                                color: C.textSecondary,
+                                border: `1px solid ${C.border}`,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = C.accent;
+                                e.currentTarget.style.color = C.accent;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = C.border;
+                                e.currentTarget.style.color = C.textSecondary;
+                              }}
+                              onClick={() => addPresetField(editingStep.id, tpl)}
+                            >
+                              + {tpl.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      className="flex justify-end gap-2 px-4 py-3 flex-shrink-0"
+                      style={{ borderTop: `1px solid ${C.border}` }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setEditingStepId(null)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                        style={{
+                          backgroundColor: C.elevated,
+                          color: C.textSecondary,
+                          border: `1px solid ${C.border}`,
+                        }}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              ) : null}
             </AnimatePresence>
 
             {/* Post-Submit Actions section */}
@@ -5793,7 +6267,11 @@ function PeoplePage() {
 
 // ─── Students page (My Students tab) ──────────────────────────────────────────
 
-type StudentProfileTab = "profile" | "health" | "pickup" | "immunizations" | "emergency" | "paperwork" | "family";
+type StudentProfileTab = "profile" | "health" | "pickup" | "immunizations" | "emergency" | "paperwork" | "billing" | "family";
+
+function formatUsd(n: number) {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
 
 function StudentProfilePanel({ student }: { student: DemoStudent }) {
   const [tab, setTab] = useState<StudentProfileTab>("profile");
@@ -5812,6 +6290,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
     { key: "immunizations", label: "Immunizations" },
     { key: "emergency", label: "Emergency" },
     { key: "paperwork", label: "Paperwork" },
+    { key: "billing", label: "Billing" },
     { key: "family", label: "Family" },
   ];
 
@@ -5842,6 +6321,12 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
           </h3>
           <p className="text-[11px]" style={{ color: C.textTertiary }}>
             {student.grade} · {student.classroom} · {student.teacher}
+            {student.billing.kind === "homeschool_dropin" && (
+              <span className="inline-flex items-center gap-0.5 ml-1.5" title="Homeschool drop-in">
+                <Home className="w-3 h-3" style={{ color: C.accent }} aria-hidden />
+                <span className="sr-only">Homeschool drop-in</span>
+              </span>
+            )}
           </p>
           {flags.length > 0 && (
             <div className="flex items-center gap-1 flex-wrap mt-1.5">
@@ -6351,6 +6836,290 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
           </div>
         )}
 
+        {/* ── Billing tab ── */}
+        {tab === "billing" && (
+          <div className="p-5 space-y-5">
+            {student.billing.kind === "full_time" ? (
+              <>
+                <div
+                  className="flex items-center justify-between p-3 rounded-lg"
+                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                >
+                  <div className="flex items-center gap-2">
+                    <School className="w-4 h-4 flex-shrink-0" style={{ color: C.accent }} />
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+                        Full-time enrollment
+                      </p>
+                      <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                        Monthly tuition with optional autopay
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className="text-sm font-bold tabular-nums"
+                    style={{ color: C.textPrimary }}
+                  >
+                    {formatUsd(student.billing.monthlyTuition)}
+                    <span className="text-[10px] font-normal" style={{ color: C.textTertiary }}>
+                      {" "}/ mo
+                    </span>
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
+                    Autopay
+                  </p>
+                  <span
+                    className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                    style={{
+                      backgroundColor: student.billing.autopayOn ? C.success + "18" : C.elevated,
+                      color: student.billing.autopayOn ? C.success : C.textTertiary,
+                      border: `1px solid ${student.billing.autopayOn ? C.success + "44" : C.border}`,
+                    }}
+                  >
+                    {student.billing.autopayOn ? "On" : "Off"}
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+                    Saved payment methods
+                  </p>
+                  <div className="space-y-2">
+                    {student.billing.paymentMethods.map((pm, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-2.5 rounded-lg"
+                        style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                      >
+                        <span className="flex items-center gap-2 text-xs" style={{ color: C.textPrimary }}>
+                          <CreditCard className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
+                          {pm.label} ·••• {pm.last4}
+                        </span>
+                        {pm.default && (
+                          <span
+                            className="text-[9px] px-1.5 py-0.5 rounded font-semibold"
+                            style={{ backgroundColor: C.accentLight, color: C.accent }}
+                          >
+                            Default
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold"
+                    style={{ backgroundColor: C.accent, color: "#fff" }}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Send invoice
+                  </button>
+                  <button
+                    type="button"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold"
+                    style={{
+                      backgroundColor: C.elevated,
+                      color: C.textSecondary,
+                      border: `1px solid ${C.border}`,
+                    }}
+                  >
+                    <DollarSign className="w-3.5 h-3.5" />
+                    Record payment
+                  </button>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+                    Invoices & payments
+                  </p>
+                  <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+                    {student.billing.lineItems.map((row, i) => (
+                      <div
+                        key={row.id}
+                        className="flex items-center justify-between gap-2 px-3 py-2.5"
+                        style={{
+                          borderBottom:
+                            i < student.billing.lineItems.length - 1 ? `1px solid ${C.border}` : "none",
+                          backgroundColor: i % 2 === 0 ? "transparent" : C.elevated + "80",
+                        }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-medium truncate" style={{ color: C.textPrimary }}>
+                            {row.description}
+                          </p>
+                          <p className="text-[9px]" style={{ color: C.textTertiary }}>
+                            {row.date}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xs font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+                            {formatUsd(row.amount)}
+                          </p>
+                          <span
+                            className="text-[9px] font-semibold"
+                            style={{
+                              color: row.status === "paid" ? C.success : C.warning,
+                            }}
+                          >
+                            {row.status === "paid" ? "Paid" : "Pending"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="flex items-center justify-between p-3 rounded-lg"
+                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.accent + "55"}` }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Home className="w-4 h-4 flex-shrink-0" style={{ color: C.accent }} />
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+                        Homeschool drop-in
+                      </p>
+                      <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                        Parents select attendance days each week; charges are per day.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums" style={{ color: C.accent }}>
+                    {formatUsd(student.billing.ratePerDay)}
+                    <span className="text-[10px] font-normal" style={{ color: C.textTertiary }}>
+                      {" "}/ day
+                    </span>
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+                    Weekly schedule (school year)
+                  </p>
+                  <p className="text-[10px] mb-3" style={{ color: C.textSecondary }}>
+                    Each row is one calendar week. Selected days drive the invoice for that week.
+                  </p>
+                  <div className="space-y-2">
+                    {student.billing.weeks.map((w, wi) => {
+                      const n = w.days.length;
+                      const subtotal = n * student.billing.ratePerDay;
+                      return (
+                        <div
+                          key={wi}
+                          className="p-3 rounded-lg"
+                          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-[11px] font-semibold" style={{ color: C.textPrimary }}>
+                              {w.weekOf}
+                            </p>
+                            <p className="text-[10px] tabular-nums" style={{ color: C.textSecondary }}>
+                              {n} day{n !== 1 ? "s" : ""} × {formatUsd(student.billing.ratePerDay)} ={" "}
+                              <span className="font-semibold" style={{ color: C.textPrimary }}>
+                                {formatUsd(subtotal)}
+                              </span>
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {(["Mon", "Tue", "Wed", "Thu", "Fri"] as const).map((d) => {
+                              const on = w.days.includes(d);
+                              return (
+                                <span
+                                  key={d}
+                                  className="text-[9px] px-1.5 py-0.5 rounded font-semibold"
+                                  style={{
+                                    backgroundColor: on ? C.accentLight : C.bg,
+                                    color: on ? C.accent : C.textTertiary,
+                                    border: `1px solid ${on ? C.accent + "55" : C.border}`,
+                                  }}
+                                >
+                                  {d}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold"
+                    style={{ backgroundColor: C.accent, color: "#fff" }}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Invoice this week
+                  </button>
+                  <button
+                    type="button"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold"
+                    style={{
+                      backgroundColor: C.elevated,
+                      color: C.textSecondary,
+                      border: `1px solid ${C.border}`,
+                    }}
+                  >
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    Edit days
+                  </button>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+                    Charges & payments
+                  </p>
+                  <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+                    {student.billing.lineItems.map((row, i) => (
+                      <div
+                        key={row.id}
+                        className="flex items-center justify-between gap-2 px-3 py-2.5"
+                        style={{
+                          borderBottom:
+                            i < student.billing.lineItems.length - 1 ? `1px solid ${C.border}` : "none",
+                          backgroundColor: i % 2 === 0 ? "transparent" : C.elevated + "80",
+                        }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-medium truncate" style={{ color: C.textPrimary }}>
+                            {row.description}
+                          </p>
+                          <p className="text-[9px]" style={{ color: C.textTertiary }}>
+                            {row.date}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xs font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+                            {formatUsd(row.amount)}
+                          </p>
+                          <span
+                            className="text-[9px] font-semibold"
+                            style={{
+                              color: row.status === "paid" ? C.success : C.warning,
+                            }}
+                          >
+                            {row.status === "paid" ? "Paid" : "Pending"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* ── Family tab ── */}
         {tab === "family" && (
           <div className="p-5 space-y-5">
@@ -6509,7 +7278,8 @@ function StudentsPage() {
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.grade.toLowerCase().includes(search.toLowerCase()) ||
       s.classroom.toLowerCase().includes(search.toLowerCase()) ||
-      s.teacher.toLowerCase().includes(search.toLowerCase()),
+      s.teacher.toLowerCase().includes(search.toLowerCase()) ||
+      (search.toLowerCase().includes("home") && s.billing.kind === "homeschool_dropin"),
   );
 
   return (
@@ -6583,9 +7353,17 @@ function StudentsPage() {
                     {student.initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold truncate" style={{ color: C.textPrimary }}>
-                      {student.name}
-                    </p>
+                    <div className="flex items-center gap-1 min-w-0">
+                      <p className="text-xs font-semibold truncate" style={{ color: C.textPrimary }}>
+                        {student.name}
+                      </p>
+                      {student.billing.kind === "homeschool_dropin" && (
+                        <span title="Homeschool drop-in" className="flex-shrink-0 inline-flex">
+                          <Home className="w-3.5 h-3.5" style={{ color: C.accent }} aria-hidden />
+                          <span className="sr-only">Homeschool drop-in</span>
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[10px] truncate" style={{ color: C.textTertiary }}>
                       {student.grade} · {student.teacher}
                     </p>
