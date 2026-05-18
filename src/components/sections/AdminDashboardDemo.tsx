@@ -33,8 +33,7 @@ import {
   Clock,
   AlertCircle,
   Eye,
-  Sun,
-  Moon,
+  HelpCircle,
   Zap,
   UserCheck,
   Plus,
@@ -44,6 +43,9 @@ import {
   PhoneCall,
   Star,
   Timer,
+  Download,
+  ChevronLeft,
+  Shield,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -575,7 +577,7 @@ type DemoParent = {
   g2Relationship: string | null;
   g2Email: string | null;
   g2Phone: string | null;
-  children: { name: string; dob: string }[];
+  children: { name: string; dob: string; photo?: string }[];
   applications: {
     childName: string;
     program: string;
@@ -600,7 +602,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Father",
     g2Email: "tom.r@email.com",
     g2Phone: "(512) 555-0103",
-    children: [{ name: "Emma Richardson", dob: "Mar 12, 2017" }],
+    children: [{ name: "Emma Richardson", dob: "Mar 12, 2017", photo: "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg" }],
     applications: [
       {
         childName: "Emma Richardson",
@@ -625,7 +627,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Mother",
     g2Email: "ana.t@email.com",
     g2Phone: "(737) 555-0206",
-    children: [{ name: "Liam Torres", dob: "Jun 5, 2015" }],
+    children: [{ name: "Liam Torres", dob: "Jun 5, 2015", photo: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg" }],
     applications: [
       {
         childName: "Liam Torres",
@@ -650,7 +652,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: null,
     g2Email: null,
     g2Phone: null,
-    children: [{ name: "Noah Foster", dob: "Sep 22, 2019" }],
+    children: [{ name: "Noah Foster", dob: "Sep 22, 2019", photo: "/images/people/students/izzy-park-8hBY-30cEqI-unsplash.jpg" }],
     applications: [
       {
         childName: "Noah Foster",
@@ -675,7 +677,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Father",
     g2Email: "derek.c@email.com",
     g2Phone: "(512) 555-0319",
-    children: [{ name: "Isabelle Clarke", dob: "Jan 30, 2013" }],
+    children: [{ name: "Isabelle Clarke", dob: "Jan 30, 2013", photo: "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg" }],
     applications: [
       {
         childName: "Isabelle Clarke",
@@ -700,7 +702,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Mother",
     g2Email: "adaeze.o@email.com",
     g2Phone: "(737) 555-0611",
-    children: [{ name: "Chidera Okonkwo", dob: "Nov 8, 2016" }],
+    children: [{ name: "Chidera Okonkwo", dob: "Nov 8, 2016", photo: "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg" }],
     applications: [
       {
         childName: "Chidera Okonkwo",
@@ -726,8 +728,8 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Email: null,
     g2Phone: null,
     children: [
-      { name: "Kai Simmons", dob: "Feb 14, 2013" },
-      { name: "Jade Simmons", dob: "Aug 3, 2016" },
+      { name: "Kai Simmons", dob: "Feb 14, 2013", photo: "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg" },
+      { name: "Jade Simmons", dob: "Aug 3, 2016", photo: "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg" },
     ],
     applications: [
       {
@@ -760,7 +762,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Mother",
     g2Email: "monica.w@email.com",
     g2Phone: "(512) 555-0723",
-    children: [{ name: "Marcus Webb", dob: "Jul 18, 2014" }],
+    children: [{ name: "Marcus Webb", dob: "Jul 18, 2014", photo: "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash.jpg" }],
     applications: [
       {
         childName: "Marcus Webb",
@@ -785,7 +787,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: "Father",
     g2Email: "kenji.n@email.com",
     g2Phone: "(737) 555-0833",
-    children: [{ name: "Lily Nakamura", dob: "Oct 3, 2017" }],
+    children: [{ name: "Lily Nakamura", dob: "Oct 3, 2017", photo: "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg" }],
     applications: [
       {
         childName: "Lily Nakamura",
@@ -810,7 +812,7 @@ const DEMO_PARENTS: DemoParent[] = [
     g2Relationship: null,
     g2Email: null,
     g2Phone: null,
-    children: [{ name: "Jordan Rivera", dob: "Mar 5, 2020" }],
+    children: [{ name: "Jordan Rivera", dob: "Mar 5, 2020", photo: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg" }],
     applications: [
       {
         childName: "Jordan Rivera",
@@ -832,6 +834,8 @@ type DemoStudent = {
   dob: string;
   parent: string;
   program: string;
+  classroom: string;
+  teacher: string;
   hasAllergies: boolean;
   hasMedical: boolean;
   hasEmergencyMeds: boolean;
@@ -852,6 +856,9 @@ type DemoStudent = {
     physician: string;
   }[];
   authorizedPickup: { name: string; relationship: string; phone: string }[];
+  immunizations: { name: string; date: string; status: "complete" | "due" | "exempt" }[];
+  emergencyContacts: { name: string; relationship: string; phone: string; priority: number }[];
+  activityLog: { date: string; type: "attendance" | "note" | "event"; title: string; detail: string; author?: string }[];
 };
 
 const DEMO_STUDENTS_P2: DemoStudent[] = [
@@ -888,6 +895,29 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
         phone: "(512) 555-0103",
       },
     ],
+    classroom: "Room 2 – Meadow Class",
+    teacher: "Ms. Reyes",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Sep 2019", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Sep 2019", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Sep 2019", status: "complete" },
+      { name: "Hepatitis B", date: "Mar 2018", status: "complete" },
+      { name: "Polio (IPV)", date: "Sep 2019", status: "complete" },
+      { name: "Flu (Annual)", date: "—", status: "due" },
+    ],
+    emergencyContacts: [
+      { name: "Sarah Richardson", relationship: "Mother", phone: "(512) 555-0101", priority: 1 },
+      { name: "Tom Richardson", relationship: "Father", phone: "(512) 555-0103", priority: 2 },
+      { name: "Aunt Patricia", relationship: "Aunt", phone: "(512) 555-0199", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 14, 2026", type: "attendance", title: "Present", detail: "On time. Participated in art project and shared her dinosaur drawing.", author: "Ms. Reyes" },
+      { date: "May 7, 2026", type: "note", title: "Teacher Note", detail: "Emma excelled in today's creative writing exercise. Work shared with the class.", author: "Ms. Reyes" },
+      { date: "Apr 28, 2026", type: "attendance", title: "Absent – Sick", detail: "Parent called in. Fever. Returned May 1.", author: "Office" },
+      { date: "Mar 15, 2026", type: "event", title: "Field Trip Permission Signed", detail: "Spring Nature Walk form signed and submitted by Sarah Richardson.", author: "Admin" },
+      { date: "Feb 12, 2026", type: "note", title: "Admin Note", detail: "Re-enrollment confirmation received for 2026–27 school year.", author: "Admin" },
+      { date: "Nov 14, 2025", type: "event", title: "Enrolled – School Year 2026–27", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
+    ],
   },
   {
     id: "st2",
@@ -923,6 +953,29 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
         relationship: "Grandmother",
         phone: "(737) 555-0299",
       },
+    ],
+    classroom: "Room 4 – Oak Class",
+    teacher: "Mr. Davis",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Jul 2017", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Jul 2017", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Jul 2017", status: "complete" },
+      { name: "Hepatitis B", date: "Jun 2016", status: "complete" },
+      { name: "Polio (IPV)", date: "Jul 2017", status: "complete" },
+      { name: "Flu (Annual)", date: "—", status: "due" },
+    ],
+    emergencyContacts: [
+      { name: "Miguel Torres", relationship: "Father", phone: "(737) 555-0204", priority: 1 },
+      { name: "Ana Torres", relationship: "Mother", phone: "(737) 555-0206", priority: 2 },
+      { name: "Grandma Rosa", relationship: "Grandmother", phone: "(737) 555-0299", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 15, 2026", type: "attendance", title: "Present", detail: "On time. Led group robotics activity.", author: "Mr. Davis" },
+      { date: "May 9, 2026", type: "note", title: "Allergy Alert Reminder", detail: "EpiPen kit inspected and in-date. Parents notified of annual review.", author: "Nurse" },
+      { date: "Apr 22, 2026", type: "attendance", title: "Tardy (10 min)", detail: "Traffic delay. Note from parent on file.", author: "Office" },
+      { date: "Mar 20, 2026", type: "event", title: "Parent Conference", detail: "Spring conference with Miguel & Ana Torres. Positive progress noted in math.", author: "Mr. Davis" },
+      { date: "Feb 3, 2026", type: "note", title: "Movement Break Protocol Updated", detail: "Adjusted to 40-min intervals per occupational therapist recommendation.", author: "Admin" },
+      { date: "Dec 3, 2025", type: "event", title: "Enrolled – Both Programs", detail: "Application approved for School Year 2026–27 and Summer 2026.", author: "Admin" },
     ],
   },
   {
@@ -969,6 +1022,29 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
     authorizedPickup: [
       { name: "David Chen", relationship: "Father", phone: "(512) 555-0221" },
     ],
+    classroom: "Room 1 – Sunflower Class",
+    teacher: "Ms. Kim",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "May 2020", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "May 2020", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "May 2020", status: "complete" },
+      { name: "Hepatitis B", date: "May 2019", status: "complete" },
+      { name: "Polio (IPV)", date: "May 2020", status: "complete" },
+      { name: "Hib (Haemophilus influenzae)", date: "May 2020", status: "complete" },
+      { name: "Flu (Annual)", date: "Nov 2025", status: "complete" },
+    ],
+    emergencyContacts: [
+      { name: "Jennifer Chen", relationship: "Mother", phone: "(512) 555-0220", priority: 1 },
+      { name: "David Chen", relationship: "Father", phone: "(512) 555-0221", priority: 2 },
+    ],
+    activityLog: [
+      { date: "May 14, 2026", type: "attendance", title: "Early Dismissal – 1:30 PM", detail: "Doctor appointment. Parent pickup confirmed.", author: "Office" },
+      { date: "May 6, 2026", type: "note", title: "Nurse Check-In", detail: "Ava used Albuterol inhaler during outdoor play. Parents notified. Recovered fully within 20 min.", author: "Nurse" },
+      { date: "Apr 18, 2026", type: "attendance", title: "Present", detail: "Great participation in music circle.", author: "Ms. Kim" },
+      { date: "Mar 30, 2026", type: "event", title: "Sensory Plan Reviewed", detail: "Sensory accommodation plan updated. Noise-canceling headphones added to classroom kit.", author: "Admin" },
+      { date: "Mar 5, 2026", type: "note", title: "Teacher Note", detail: "Ava finished her first independent reading chapter book. Celebrated with the class.", author: "Ms. Kim" },
+      { date: "Jan 15, 2026", type: "event", title: "Enrolled – Summer 2026", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
+    ],
   },
   {
     id: "st4",
@@ -1002,6 +1078,30 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
         phone: "(512) 555-0155",
       },
     ],
+    classroom: "Room K – Seedling Class",
+    teacher: "Ms. Johnson",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Sep 2021", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Sep 2021", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Sep 2021", status: "complete" },
+      { name: "Hepatitis B", date: "Sep 2020", status: "complete" },
+      { name: "Polio (IPV)", date: "Sep 2021", status: "complete" },
+      { name: "Hib (Haemophilus influenzae)", date: "Sep 2021", status: "complete" },
+      { name: "Flu (Annual)", date: "—", status: "due" },
+    ],
+    emergencyContacts: [
+      { name: "Diana Foster", relationship: "Mother", phone: "(512) 555-0142", priority: 1 },
+      { name: "Grandpa Joe", relationship: "Grandfather", phone: "(512) 555-0155", priority: 2 },
+      { name: "Aunt Linda", relationship: "Aunt", phone: "(512) 555-0156", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 13, 2026", type: "attendance", title: "Present", detail: "Positive day. Used emotion chart successfully during peer conflict.", author: "Ms. Johnson" },
+      { date: "May 5, 2026", type: "note", title: "Aide Session Note", detail: "30-min 1:1 session with Ms. Kim. Worked on turn-taking with blocks. Good progress.", author: "Ms. Kim" },
+      { date: "Apr 25, 2026", type: "attendance", title: "Absent – Sick", detail: "Parent called in. Stomach bug. Returned Apr 28.", author: "Office" },
+      { date: "Apr 10, 2026", type: "event", title: "Parent Meeting – Social Development Plan", detail: "Diana Foster met with teacher and aide to review Noah's social-emotional goals.", author: "Admin" },
+      { date: "Mar 1, 2026", type: "note", title: "Milestone Note", detail: "Noah successfully led show-and-tell for the first time. Huge confidence boost.", author: "Ms. Johnson" },
+      { date: "Jan 15, 2026", type: "event", title: "Enrolled – Summer 2026", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
+    ],
   },
   {
     id: "st5",
@@ -1030,6 +1130,28 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
     medications: [],
     authorizedPickup: [
       { name: "Raj Patel", relationship: "Father", phone: "(512) 555-0392" },
+    ],
+    classroom: "Room 3 – Willow Class",
+    teacher: "Ms. Hughes",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Jan 2019", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Jan 2019", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Jan 2019", status: "complete" },
+      { name: "Hepatitis B", date: "Dec 2017", status: "complete" },
+      { name: "Polio (IPV)", date: "Jan 2019", status: "complete" },
+      { name: "Flu (Annual)", date: "Oct 2025", status: "complete" },
+    ],
+    emergencyContacts: [
+      { name: "Priya Patel", relationship: "Mother", phone: "(512) 555-0391", priority: 1 },
+      { name: "Raj Patel", relationship: "Father", phone: "(512) 555-0392", priority: 2 },
+    ],
+    activityLog: [
+      { date: "May 15, 2026", type: "attendance", title: "Present", detail: "Completed independent astronomy research project.", author: "Ms. Hughes" },
+      { date: "May 2, 2026", type: "note", title: "Teacher Note", detail: "Sophia volunteered to present her research to the class today — excellent growth in public speaking confidence.", author: "Ms. Hughes" },
+      { date: "Apr 20, 2026", type: "attendance", title: "Tardy (5 min)", detail: "Minor delay. Settled in quickly.", author: "Office" },
+      { date: "Mar 25, 2026", type: "event", title: "Academic Achievement", detail: "Sophia scored in the 98th percentile on the statewide math assessment.", author: "Admin" },
+      { date: "Feb 18, 2026", type: "note", title: "Admin Note", detail: "Recommended for gifted enrichment program. Parent notification sent.", author: "Admin" },
+      { date: "Nov 14, 2025", type: "event", title: "Enrolled – School Year 2026–27", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
     ],
   },
   {
@@ -1068,6 +1190,31 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { name: "Derek Clarke", relationship: "Father", phone: "(512) 555-0319" },
       { name: "Aunt Bev", relationship: "Aunt", phone: "(512) 555-0320" },
     ],
+    classroom: "Room 6 – Summit Class",
+    teacher: "Mr. Reynolds",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Feb 2015", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Feb 2015", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Feb 2015", status: "complete" },
+      { name: "Hepatitis B", date: "Jan 2014", status: "complete" },
+      { name: "Polio (IPV)", date: "Feb 2015", status: "complete" },
+      { name: "Tdap (Booster)", date: "Feb 2024", status: "complete" },
+      { name: "HPV (Series)", date: "Feb 2025", status: "complete" },
+      { name: "Flu (Annual)", date: "Oct 2025", status: "complete" },
+    ],
+    emergencyContacts: [
+      { name: "Stephanie Clarke", relationship: "Mother", phone: "(512) 555-0317", priority: 1 },
+      { name: "Derek Clarke", relationship: "Father", phone: "(512) 555-0319", priority: 2 },
+      { name: "Aunt Bev", relationship: "Aunt", phone: "(512) 555-0320", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 14, 2026", type: "attendance", title: "Present", detail: "Facilitated debate club. Blood glucose stable all day.", author: "Mr. Reynolds" },
+      { date: "May 8, 2026", type: "note", title: "Nurse Note", detail: "Blood glucose reading of 68 at 11:00 AM. Juice administered per protocol. Parents notified. Fully recovered.", author: "Nurse" },
+      { date: "Apr 29, 2026", type: "attendance", title: "Present", detail: "Won 2nd place in school chess tournament.", author: "Mr. Reynolds" },
+      { date: "Apr 15, 2026", type: "event", title: "Glucagon Kit Renewal", detail: "Emergency glucagon kit replaced. Expiry: Dec 2026. Parents provided updated kit.", author: "Nurse" },
+      { date: "Mar 18, 2026", type: "event", title: "Enrolled – School Year 2026–27", detail: "Enrollment agreement signed by Stephanie Clarke.", author: "Admin" },
+      { date: "Feb 20, 2026", type: "note", title: "Teacher Note", detail: "Isabelle is demonstrating strong leadership in group projects. Recommended for student council.", author: "Mr. Reynolds" },
+    ],
   },
   {
     id: "st7",
@@ -1101,6 +1248,29 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
         relationship: "Mother",
         phone: "(737) 555-0650",
       },
+    ],
+    classroom: "Room 4 – Oak Class",
+    teacher: "Mr. Davis",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "May 2017", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "May 2017", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "May 2017", status: "complete" },
+      { name: "Hepatitis B", date: "Apr 2016", status: "complete" },
+      { name: "Polio (IPV)", date: "May 2017", status: "complete" },
+      { name: "Flu (Annual)", date: "Nov 2025", status: "complete" },
+    ],
+    emergencyContacts: [
+      { name: "Jerome Watkins", relationship: "Father", phone: "(737) 555-0648", priority: 1 },
+      { name: "Keisha Watkins", relationship: "Mother", phone: "(737) 555-0650", priority: 2 },
+      { name: "Coach Miles", relationship: "Family Friend", phone: "(737) 555-0699", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 15, 2026", type: "attendance", title: "Present", detail: "Led science experiment on plant growth. Helped two classmates troubleshoot.", author: "Mr. Davis" },
+      { date: "May 1, 2026", type: "note", title: "Reading Specialist Note", detail: "Tyler completed Level 4 reading fluency milestone. Progressing well with bi-weekly sessions.", author: "Ms. Morgan" },
+      { date: "Apr 23, 2026", type: "attendance", title: "Absent – Family Event", detail: "Pre-approved absence. Work packets completed.", author: "Office" },
+      { date: "Apr 8, 2026", type: "event", title: "Parent Conference – Spring", detail: "Jerome & Keisha Watkins met with Mr. Davis. Focus on reading support plan.", author: "Mr. Davis" },
+      { date: "Mar 10, 2026", type: "note", title: "Accommodation Update", detail: "Standing desk added to classroom. Tyler reports significantly better focus.", author: "Admin" },
+      { date: "Dec 3, 2025", type: "event", title: "Enrolled – Both Programs", detail: "Application approved for School Year 2026–27 and Summer 2026.", author: "Admin" },
     ],
   },
   {
@@ -1136,6 +1306,29 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
         phone: "(737) 555-0611",
       },
       { name: "Uncle Emeka", relationship: "Uncle", phone: "(737) 555-0612" },
+    ],
+    classroom: "Room 3 – Willow Class",
+    teacher: "Ms. Hughes",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Dec 2018", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Dec 2018", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Dec 2018", status: "complete" },
+      { name: "Hepatitis B", date: "Nov 2017", status: "complete" },
+      { name: "Polio (IPV)", date: "Dec 2018", status: "complete" },
+      { name: "Flu (Annual)", date: "—", status: "due" },
+    ],
+    emergencyContacts: [
+      { name: "Kevin Okonkwo", relationship: "Father", phone: "(737) 555-0609", priority: 1 },
+      { name: "Adaeze Okonkwo", relationship: "Mother", phone: "(737) 555-0611", priority: 2 },
+      { name: "Uncle Emeka", relationship: "Uncle", phone: "(737) 555-0612", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 14, 2026", type: "attendance", title: "Present", detail: "Led peer math tutoring session. High engagement.", author: "Ms. Hughes" },
+      { date: "May 6, 2026", type: "note", title: "Seating Update", detail: "Moved to front-left desk nearest teacher. Focus improvement noted same day.", author: "Ms. Hughes" },
+      { date: "Apr 30, 2026", type: "attendance", title: "Tardy (20 min)", detail: "Traffic. Parent note submitted.", author: "Office" },
+      { date: "Apr 12, 2026", type: "event", title: "Cultural Sharing Presentation", detail: "Chidera presented on Nigerian history to the class. Standing ovation from peers.", author: "Ms. Hughes" },
+      { date: "Apr 4, 2026", type: "event", title: "Application Submitted – Both Programs", detail: "Application submitted by Kevin Okonkwo. Currently in review.", author: "Admin" },
+      { date: "Mar 5, 2026", type: "note", title: "Parent Note", detail: "Kevin Okonkwo requested application status update. Admin followed up same day.", author: "Admin" },
     ],
   },
   {
@@ -1179,6 +1372,29 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
         relationship: "Grandmother",
         phone: "(512) 555-0799",
       },
+    ],
+    classroom: "Room 5 – Horizon Class",
+    teacher: "Ms. Carter",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Aug 2016", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Aug 2016", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Aug 2016", status: "complete" },
+      { name: "Hepatitis B", date: "Jul 2015", status: "complete" },
+      { name: "Polio (IPV)", date: "Aug 2016", status: "complete" },
+      { name: "Flu (Annual)", date: "Oct 2025", status: "complete" },
+    ],
+    emergencyContacts: [
+      { name: "David Webb", relationship: "Father", phone: "(512) 555-0721", priority: 1 },
+      { name: "Monica Webb", relationship: "Mother", phone: "(512) 555-0723", priority: 2 },
+      { name: "Grandma Ruth", relationship: "Grandmother", phone: "(512) 555-0799", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 15, 2026", type: "attendance", title: "Present", detail: "Medication administered at 8 AM. Focused session. Completed robotics challenge.", author: "Ms. Carter" },
+      { date: "May 8, 2026", type: "note", title: "OT Session Note", detail: "Occupational therapy session completed. Working on fine motor and sustained focus. Positive progress.", author: "Ms. Thompson (OT)" },
+      { date: "Apr 24, 2026", type: "attendance", title: "Absent – Doctor Appointment", detail: "ADHD medication check-in with Dr. Green. Pre-approved absence.", author: "Office" },
+      { date: "Apr 10, 2026", type: "event", title: "Medication Authorization Updated", detail: "Methylphenidate dosage updated from 5mg to 10mg per Dr. Green's direction.", author: "Nurse" },
+      { date: "Mar 2, 2026", type: "note", title: "Teacher Note", detail: "Marcus completed a 45-min independent coding project without breaks — a personal best.", author: "Ms. Carter" },
+      { date: "Feb 8, 2026", type: "event", title: "Enrolled – School Year 2026–27", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
     ],
   },
   {
@@ -1224,6 +1440,29 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       },
       { name: "Aunt Hana", relationship: "Aunt", phone: "(737) 555-0899" },
     ],
+    classroom: "Room 2 – Meadow Class",
+    teacher: "Ms. Reyes",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Oct 2019", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Oct 2019", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Oct 2019", status: "complete" },
+      { name: "Hepatitis B", date: "Oct 2018", status: "complete" },
+      { name: "Polio (IPV)", date: "Oct 2019", status: "complete" },
+      { name: "Flu (Annual)", date: "Nov 2025", status: "complete" },
+    ],
+    emergencyContacts: [
+      { name: "Yuki Nakamura", relationship: "Mother", phone: "(737) 555-0831", priority: 1 },
+      { name: "Kenji Nakamura", relationship: "Father", phone: "(737) 555-0833", priority: 2 },
+      { name: "Aunt Hana", relationship: "Aunt", phone: "(737) 555-0899", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 14, 2026", type: "attendance", title: "Present", detail: "EpiPen kit check complete. Participated in outdoor art project.", author: "Ms. Reyes" },
+      { date: "May 9, 2026", type: "note", title: "Annual Allergy Review", detail: "Allergy action plan reviewed with Yuki Nakamura. EpiPen Jr. in-date. No changes required.", author: "Nurse" },
+      { date: "Apr 28, 2026", type: "attendance", title: "Present", detail: "Led class origami lesson. Bilingual narration in English and Japanese.", author: "Ms. Reyes" },
+      { date: "Mar 20, 2026", type: "event", title: "Language Achievement Award", detail: "Lily recognized at spring assembly for bilingual excellence.", author: "Admin" },
+      { date: "Feb 25, 2026", type: "note", title: "Parent Communication", detail: "Yuki Nakamura requested update on social integration. Positive report shared.", author: "Ms. Reyes" },
+      { date: "Jan 27, 2026", type: "event", title: "Enrolled – Both Programs", detail: "Application approved for School Year 2026–27 and Summer 2026.", author: "Admin" },
+    ],
   },
   {
     id: "st11",
@@ -1258,6 +1497,30 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
         phone: "(512) 555-0944",
       },
     ],
+    classroom: "Room K – Seedling Class",
+    teacher: "Ms. Johnson",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Mar 2022", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Mar 2022", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Mar 2022", status: "complete" },
+      { name: "Hepatitis B", date: "Mar 2021", status: "complete" },
+      { name: "Polio (IPV)", date: "Mar 2022", status: "complete" },
+      { name: "Hib (Haemophilus influenzae)", date: "Mar 2022", status: "complete" },
+      { name: "Flu (Annual)", date: "—", status: "due" },
+    ],
+    emergencyContacts: [
+      { name: "Carmen Rivera", relationship: "Mother", phone: "(512) 555-0914", priority: 1 },
+      { name: "Grandpa Luis", relationship: "Grandfather", phone: "(512) 555-0944", priority: 2 },
+      { name: "Neighbor Maria", relationship: "Family Friend", phone: "(512) 555-0945", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 13, 2026", type: "attendance", title: "Present", detail: "Speech therapist visit. Good session. Jordan used 3 new words independently.", author: "Ms. Johnson" },
+      { date: "May 5, 2026", type: "note", title: "Speech Therapy Note", detail: "Weekly session completed. Jordan's expressive vocabulary expanding. Now at 45-word functional vocabulary.", author: "Ms. Stacy (SLP)" },
+      { date: "Apr 29, 2026", type: "attendance", title: "Absent – Sick", detail: "Parent called in. Cold. Returned May 1.", author: "Office" },
+      { date: "Apr 15, 2026", type: "event", title: "Communication Plan Updated", detail: "Visual schedule cards updated with 6 new routine symbols. Parent trained on use at home.", author: "Ms. Johnson" },
+      { date: "Mar 22, 2026", type: "note", title: "Milestone Note", detail: "Jordan sang the entire welcome song independently today — a first! Class celebrated.", author: "Ms. Johnson" },
+      { date: "Apr 10, 2026", type: "event", title: "Application Submitted – Summer 2026", detail: "Application submitted by Carmen Rivera. Currently in review.", author: "Admin" },
+    ],
   },
   {
     id: "st12",
@@ -1290,6 +1553,29 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
     authorizedPickup: [
       { name: "Anita Mehta", relationship: "Mother", phone: "(737) 555-1201" },
       { name: "Ravi Mehta", relationship: "Father", phone: "(737) 555-1202" },
+    ],
+    classroom: "Room 3 – Willow Class",
+    teacher: "Ms. Hughes",
+    immunizations: [
+      { name: "MMR (Measles, Mumps, Rubella)", date: "Jul 2018", status: "complete" },
+      { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Jul 2018", status: "complete" },
+      { name: "Varicella (Chickenpox)", date: "Jul 2018", status: "complete" },
+      { name: "Hepatitis B", date: "Jun 2017", status: "complete" },
+      { name: "Polio (IPV)", date: "Jul 2018", status: "complete" },
+      { name: "Flu (Annual)", date: "Oct 2025", status: "complete" },
+    ],
+    emergencyContacts: [
+      { name: "Anita Mehta", relationship: "Mother", phone: "(737) 555-1201", priority: 1 },
+      { name: "Ravi Mehta", relationship: "Father", phone: "(737) 555-1202", priority: 2 },
+      { name: "Grandma Kavya", relationship: "Grandmother", phone: "(737) 555-1299", priority: 3 },
+    ],
+    activityLog: [
+      { date: "May 15, 2026", type: "attendance", title: "Present", detail: "Audiobook morning session. High comprehension scores.", author: "Ms. Hughes" },
+      { date: "May 7, 2026", type: "note", title: "Aide Session Note", detail: "Reading aide present for math assessment. Large-print materials used. Priya completed ahead of time.", author: "Ms. Reyes (Aide)" },
+      { date: "Apr 25, 2026", type: "attendance", title: "Early Dismissal – 2:00 PM", detail: "Eye doctor appointment. Pre-approved.", author: "Office" },
+      { date: "Apr 12, 2026", type: "event", title: "Low Vision Accommodation Review", detail: "Annual review with Anita Mehta and vision specialist. Display settings and lighting updated.", author: "Admin" },
+      { date: "Mar 18, 2026", type: "note", title: "Teacher Note", detail: "Priya recited an original spoken word poem for the class. Exceptional memory and delivery.", author: "Ms. Hughes" },
+      { date: "Nov 14, 2025", type: "event", title: "Enrolled – School Year 2026–27", detail: "Application approved and enrollment agreement signed.", author: "Admin" },
     ],
   },
 ];
@@ -4199,189 +4485,567 @@ function DetailField({
   );
 }
 
-function ParentDetailPanel({
-  parent,
-  onClose,
-}: {
-  parent: DemoParent;
-  onClose: () => void;
-}) {
+type FormType = "enrollment" | "health" | "media" | "financial" | "permission";
+
+type PaperworkForm = {
+  id: string;
+  title: string;
+  child: string;
+  status: "signed" | "awaiting" | "pending";
+  date: string | null;
+  formType: FormType;
+};
+
+const FORM_TYPE_COLORS: Record<FormType, string> = {
+  enrollment: "#5E7C68",
+  health:     "#EF4444",
+  media:      "#8B5CF6",
+  financial:  "#F59E0B",
+  permission: "#38BDF8",
+};
+
+function getFamilyPaperwork(parent: DemoParent): PaperworkForm[] {
+  const results: PaperworkForm[] = [];
+  for (const child of parent.children) {
+    const app = parent.applications.find((a) => a.childName === child.name);
+    const done = app?.status === "enrolled" || app?.status === "enrolling";
+    const partial = app?.status === "in_review";
+    const submitted = app?.submitted ?? null;
+    results.push(
+      { id: `${child.name}-enr`, title: "Enrollment Agreement",         child: child.name, formType: "enrollment",  status: done ? "signed" : partial ? "awaiting" : "pending", date: done ? submitted : null },
+      { id: `${child.name}-hei`, title: "Health & Emergency Info",       child: child.name, formType: "health",      status: done || partial ? "signed" : "pending",            date: done ? submitted : null },
+      { id: `${child.name}-med`, title: "Media Release & Photo Consent", child: child.name, formType: "media",       status: done ? "signed" : "pending",                       date: done ? submitted : null },
+      { id: `${child.name}-tur`, title: "Tuition Authorization",         child: child.name, formType: "financial",   status: done ? "signed" : partial ? "awaiting" : "pending", date: done ? submitted : null },
+      { id: `${child.name}-ftp`, title: "Field Trip Permission",         child: child.name, formType: "permission",  status: done ? "signed" : "pending",                       date: done ? "Jan 8, 2026" : null },
+    );
+  }
+  return results;
+}
+
+type TemplateEntry = {
+  id: string;
+  title: string;
+  school: string;
+  category: FormType;
+  rating: number;
+  uses: number;
+};
+
+const TEMPLATE_STORE: TemplateEntry[] = [
+  { id: "t1",  title: "Enrollment Agreement 2025–26",          school: "Acorn Microschool",       category: "enrollment",  rating: 4.9, uses: 87 },
+  { id: "t2",  title: "Re-Enrollment Intent Form",             school: "Cedar Path School",        category: "enrollment",  rating: 4.7, uses: 62 },
+  { id: "t3",  title: "Waitlist Application",                  school: "Wildwood Learning Co.",    category: "enrollment",  rating: 4.6, uses: 41 },
+  { id: "t4",  title: "Health & Wellness Intake Form",         school: "Little Sprouts Academy",   category: "health",      rating: 4.8, uses: 73 },
+  { id: "t5",  title: "Allergy & Dietary Needs Form",          school: "Meadow Path School",       category: "health",      rating: 4.9, uses: 55 },
+  { id: "t6",  title: "Medication Authorization Form",         school: "Fern Valley Micro",        category: "health",      rating: 4.5, uses: 38 },
+  { id: "t7",  title: "Field Trip Blanket Permission",         school: "Little Sprouts Academy",   category: "permission",  rating: 4.8, uses: 94 },
+  { id: "t8",  title: "Photo & Media Release Consent",         school: "Stonegate Learning",       category: "media",       rating: 4.7, uses: 68 },
+  { id: "t9",  title: "Annual Transportation Consent",         school: "Acorn Microschool",        category: "permission",  rating: 4.6, uses: 29 },
+  { id: "t10", title: "Tuition Payment Plan Agreement",        school: "Cedar Path School",        category: "financial",   rating: 4.8, uses: 51 },
+  { id: "t11", title: "Enrollment Deposit Authorization",      school: "Wildwood Learning Co.",    category: "financial",   rating: 4.7, uses: 44 },
+  { id: "t12", title: "Parent Handbook Acknowledgment",        school: "Fern Valley Micro",        category: "enrollment",  rating: 4.9, uses: 112 },
+];
+
+function FormDocPreview({ formType, size = "md" }: { formType: FormType; size?: "sm" | "md" }) {
+  const color = FORM_TYPE_COLORS[formType];
+  const h = size === "sm" ? 64 : 88;
+  const w = size === "sm" ? 52 : 72;
+  const lineY = size === "sm" ? [22, 30, 38, 46, 53] : [30, 40, 50, 60, 70];
+  const lineWidths = [
+    [0.75, 0.55, 0.85, 0.45, 0.65],
+    [0.8,  0.6,  0.7,  0.5,  0.75],
+    [0.6,  0.85, 0.5,  0.7,  0.55],
+    [0.7,  0.5,  0.8,  0.6,  0.45],
+    [0.85, 0.65, 0.55, 0.75, 0.6 ],
+  ];
+  const typeIdx = ["enrollment","health","media","financial","permission"].indexOf(formType);
+  const widths = lineWidths[typeIdx] ?? lineWidths[0];
+  const headerH = size === "sm" ? 14 : 18;
+  const cx = C;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* paper background */}
+      <rect width={w} height={h} rx="3" fill={cx.elevated} />
+      {/* colored header band */}
+      <rect width={w} height={headerH} rx="3" fill={color + "CC"} />
+      <rect y={headerH - 3} width={w} height={3} fill={color + "CC"} />
+      {/* small logo dot in header */}
+      <circle cx={size === "sm" ? 8 : 10} cy={headerH / 2} r={size === "sm" ? 3 : 4} fill="white" fillOpacity="0.7" />
+      {/* text lines */}
+      {lineY.map((y, i) => (
+        <rect
+          key={i}
+          x={size === "sm" ? 5 : 7}
+          y={y}
+          width={(w - (size === "sm" ? 10 : 14)) * widths[i]}
+          height={size === "sm" ? 2.5 : 3}
+          rx="1"
+          fill={cx.border}
+        />
+      ))}
+      {/* signature line */}
+      <line
+        x1={size === "sm" ? 5 : 7}
+        y1={h - (size === "sm" ? 7 : 9)}
+        x2={w * 0.55}
+        y2={h - (size === "sm" ? 7 : 9)}
+        stroke={color}
+        strokeWidth="1"
+        strokeDasharray="2 2"
+      />
+      <line
+        x1={w * 0.65}
+        y1={h - (size === "sm" ? 7 : 9)}
+        x2={w - (size === "sm" ? 5 : 7)}
+        y2={h - (size === "sm" ? 7 : 9)}
+        stroke={cx.border}
+        strokeWidth="1"
+        strokeDasharray="2 2"
+      />
+    </svg>
+  );
+}
+
+function ParentDetailPanel({ parent }: { parent: DemoParent }) {
+  const [tab, setTab] = useState<"info" | "paperwork">("info");
+  const [showStore, setShowStore] = useState(false);
+  const [storeCategory, setStoreCategory] = useState<FormType | "all">("all");
+  const paperwork = getFamilyPaperwork(parent);
+  const signedCount = paperwork.filter((f) => f.status === "signed").length;
+  const pendingForms = paperwork.filter((f) => f.status !== "signed");
+
+  const storeFiltered = storeCategory === "all"
+    ? TEMPLATE_STORE
+    : TEMPLATE_STORE.filter((t) => t.category === storeCategory);
+
+  const communityPreview = TEMPLATE_STORE.slice(0, 3);
+
   return (
     <motion.div
-      initial={{ x: "100%", opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: "100%", opacity: 0 }}
-      transition={{ type: "spring", damping: 28, stiffness: 300 }}
-      className="absolute top-0 right-0 bottom-0 w-84 flex flex-col overflow-hidden"
-      style={{
-        width: 340,
-        backgroundColor: C.surface,
-        borderLeft: `1px solid ${C.border}`,
-        zIndex: 10,
-      }}
+      key={parent.id}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="flex flex-col h-full overflow-hidden relative"
+      style={{ backgroundColor: C.surface }}
     >
+      {/* Header */}
       <div
-        className="flex items-center justify-between px-5 py-4"
+        className="flex items-center gap-3 px-5 py-4 flex-shrink-0"
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-            style={{
-              backgroundColor: parent.color + "22",
-              color: parent.color,
-            }}
-          >
-            {parent.initials}
-          </div>
-          <h3
-            className="text-sm font-semibold"
-            style={{ color: C.textPrimary }}
-          >
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+          style={{ backgroundColor: parent.color + "22", color: parent.color }}
+        >
+          {parent.initials}
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
             {parent.name}
           </h3>
-        </div>
-        <button
-          onClick={onClose}
-          className="p-1 rounded"
-          style={{ color: C.textTertiary }}
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        {/* Guardian 1 */}
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-            style={{ color: C.textTertiary }}
-          >
-            Guardian 1
-          </p>
-          <div>
-            <DetailField label="Cell Phone" value={parent.g1Phone} />
-            {parent.g1WorkPhone && (
-              <DetailField label="Work Phone" value={parent.g1WorkPhone} />
-            )}
-            <DetailField label="Preferred Contact" value={parent.g1Preferred} />
-            <DetailField
-              label="Lives with Child"
-              value={<YesNoChip value={parent.g1LivesWith} />}
-            />
-            <DetailField
-              label="Has Custody"
-              value={<YesNoChip value={parent.g1Custody} />}
-            />
-          </div>
-        </div>
-        {/* Guardian 2 */}
-        {parent.g2Name && (
-          <div>
-            <p
-              className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-              style={{ color: C.textTertiary }}
-            >
-              Guardian 2
+          {parent.g2Name && (
+            <p className="text-[11px]" style={{ color: C.textTertiary }}>
+              + {parent.g2Name}
             </p>
-            <DetailField label="Name" value={parent.g2Name} />
-            <DetailField label="Relationship" value={parent.g2Relationship} />
-            <DetailField label="Email" value={parent.g2Email} />
-            <DetailField label="Cell Phone" value={parent.g2Phone} />
+          )}
+        </div>
+      </div>
+
+      {/* Tab bar */}
+      <div
+        className="flex items-center gap-1 px-5 pt-3 pb-0 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        {(["info", "paperwork"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className="px-3 pb-2.5 text-xs font-medium relative"
+            style={{ color: tab === t ? C.accent : C.textTertiary }}
+          >
+            {t === "info" ? "Info" : "Paperwork"}
+            {tab === t && (
+              <span
+                className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                style={{ backgroundColor: C.accent }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="flex-1 overflow-y-auto">
+
+        {/* ── Info tab ── */}
+        {tab === "info" && (
+          <div className="p-5 space-y-5">
+            {/* Guardian 1 */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Guardian 1
+              </p>
+              <div>
+                <DetailField label="Name" value={parent.name} />
+                <DetailField label="Cell Phone" value={parent.g1Phone} />
+                {parent.g1WorkPhone && <DetailField label="Work Phone" value={parent.g1WorkPhone} />}
+                <DetailField label="Preferred Contact" value={parent.g1Preferred} />
+                <DetailField label="Lives with Child" value={<YesNoChip value={parent.g1LivesWith} />} />
+                <DetailField label="Has Custody" value={<YesNoChip value={parent.g1Custody} />} />
+              </div>
+            </div>
+
+            {/* Guardian 2 */}
+            {parent.g2Name && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                  Guardian 2
+                </p>
+                <DetailField label="Name" value={parent.g2Name} />
+                <DetailField label="Relationship" value={parent.g2Relationship} />
+                <DetailField label="Email" value={parent.g2Email} />
+                <DetailField label="Cell Phone" value={parent.g2Phone} />
+              </div>
+            )}
+
+            {/* Children */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Children ({parent.children.length})
+              </p>
+              <div className="space-y-2">
+                {parent.children.map((child) => (
+                  <div
+                    key={child.name}
+                    className="flex items-center gap-3 p-3 rounded-lg"
+                    style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  >
+                    {child.photo ? (
+                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                        <Image src={child.photo} alt={child.name} width={32} height={32} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                        style={{ backgroundColor: parent.color + "22", color: parent.color }}
+                      >
+                        {child.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: C.textPrimary }}>{child.name}</p>
+                      <p className="text-xs" style={{ color: C.textTertiary }}>DOB: {child.dob}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Applications */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Applications
+              </p>
+              <div className="space-y-2">
+                {parent.applications.map((app, i) => (
+                  <div
+                    key={i}
+                    className="p-3 rounded-lg"
+                    style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  >
+                    <p className="text-xs font-semibold mb-2" style={{ color: C.textPrimary }}>{app.childName}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ProgramBadge program={app.program} />
+                      <StatusBadge status={app.status} />
+                      {app.approved && (
+                        <span className="text-[10px] font-semibold" style={{ color: C.success }}>✓ Approved</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] mt-2" style={{ color: C.textTertiary }}>Submitted {app.submitted}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
-        {/* Children */}
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-            style={{ color: C.textTertiary }}
-          >
-            Children ({parent.children.length})
-          </p>
-          <div className="space-y-2">
-            {parent.children.map((child) => (
-              <div
-                key={child.name}
-                className="flex items-center gap-3 p-3 rounded-lg"
-                style={{
-                  backgroundColor: C.elevated,
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{
-                    backgroundColor: parent.color + "22",
-                    color: parent.color,
-                  }}
-                >
-                  {child.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)}
-                </div>
-                <div>
-                  <p
-                    className="text-sm font-medium"
-                    style={{ color: C.textPrimary }}
+
+        {/* ── Paperwork tab ── */}
+        {tab === "paperwork" && (
+          <div className="p-4 space-y-4">
+
+            {/* Action row */}
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
+                {signedCount} / {paperwork.length} complete
+              </p>
+              <div className="flex items-center gap-2">
+                {pendingForms.length > 0 && (
+                  <button
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold"
+                    style={{ backgroundColor: C.accentLight, color: C.accent, border: `1px solid ${C.accentDark + "44"}` }}
                   >
-                    {child.name}
-                  </p>
-                  <p className="text-xs" style={{ color: C.textTertiary }}>
-                    DOB: {child.dob}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* Applications */}
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-            style={{ color: C.textTertiary }}
-          >
-            Applications
-          </p>
-          <div className="space-y-2">
-            {parent.applications.map((app, i) => (
-              <div
-                key={i}
-                className="p-3 rounded-lg"
-                style={{
-                  backgroundColor: C.elevated,
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                <p
-                  className="text-xs font-semibold mb-2"
-                  style={{ color: C.textPrimary }}
+                    <Send className="w-3 h-3" />
+                    Send Pending
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowStore(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold"
+                  style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
                 >
-                  {app.childName}
-                </p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <ProgramBadge program={app.program} />
-                  <StatusBadge status={app.status} />
-                  {app.approved && (
-                    <span
-                      className="text-[10px] font-semibold"
-                      style={{ color: C.success }}
+                  <Plus className="w-3 h-3" />
+                  New Form
+                </button>
+              </div>
+            </div>
+
+            {/* Form cards grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {paperwork.map((form) => {
+                const color = FORM_TYPE_COLORS[form.formType];
+                return (
+                  <div
+                    key={form.id}
+                    className="rounded-xl overflow-hidden flex flex-col"
+                    style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  >
+                    {/* Doc preview */}
+                    <div
+                      className="flex items-center justify-center py-3"
+                      style={{ backgroundColor: C.bg }}
                     >
-                      ✓ Approved
-                    </span>
-                  )}
-                </div>
-                <p
-                  className="text-[10px] mt-2"
-                  style={{ color: C.textTertiary }}
-                >
-                  Submitted {app.submitted}
+                      <FormDocPreview formType={form.formType} size="md" />
+                    </div>
+
+                    {/* Card body */}
+                    <div className="px-2.5 pt-2 pb-2.5 flex flex-col gap-1.5 flex-1">
+                      <p className="text-[10px] font-semibold leading-tight" style={{ color: C.textPrimary }}>
+                        {form.title}
+                      </p>
+                      {parent.children.length > 1 && (
+                        <p className="text-[9px]" style={{ color: C.textTertiary }}>{form.child}</p>
+                      )}
+
+                      {/* Status badge */}
+                      <div className="flex items-center gap-1">
+                        {form.status === "signed" ? (
+                          <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: C.success }} />
+                        ) : form.status === "awaiting" ? (
+                          <Clock className="w-3 h-3 flex-shrink-0" style={{ color: C.warning }} />
+                        ) : (
+                          <AlertCircle className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
+                        )}
+                        <span
+                          className="text-[9px] font-semibold"
+                          style={{
+                            color: form.status === "signed" ? C.success : form.status === "awaiting" ? C.warning : C.textTertiary,
+                          }}
+                        >
+                          {form.status === "signed" ? (form.date ? `Signed ${form.date}` : "Signed") : form.status === "awaiting" ? "Awaiting signature" : "Not yet sent"}
+                        </span>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {form.status === "signed" ? (
+                          <>
+                            <button
+                              className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium"
+                              style={{ backgroundColor: C.surface, color: C.textSecondary, border: `1px solid ${C.border}` }}
+                            >
+                              <Eye className="w-2.5 h-2.5" /> View
+                            </button>
+                            <button
+                              className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium"
+                              style={{ backgroundColor: C.surface, color: C.textSecondary, border: `1px solid ${C.border}` }}
+                            >
+                              <Download className="w-2.5 h-2.5" /> Save
+                            </button>
+                          </>
+                        ) : form.status === "awaiting" ? (
+                          <button
+                            className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold"
+                            style={{ backgroundColor: C.warningBg, color: C.warning, border: `1px solid ${C.warningBorder}` }}
+                          >
+                            <Send className="w-2.5 h-2.5" /> Resend
+                          </button>
+                        ) : (
+                          <button
+                            className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold"
+                            style={{ backgroundColor: color + "18", color: color, border: `1px solid ${color}44` }}
+                          >
+                            <Send className="w-2.5 h-2.5" /> Send
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Community templates preview */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
+                  From the Community
                 </p>
+                <button
+                  onClick={() => setShowStore(true)}
+                  className="text-[10px] font-medium flex items-center gap-0.5"
+                  style={{ color: C.accent }}
+                >
+                  Browse all <ArrowRight className="w-3 h-3" />
+                </button>
               </div>
-            ))}
+              <div className="space-y-2">
+                {communityPreview.map((tmpl) => {
+                  const color = FORM_TYPE_COLORS[tmpl.category];
+                  return (
+                    <div
+                      key={tmpl.id}
+                      className="flex items-center gap-3 p-2.5 rounded-lg"
+                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                    >
+                      <div className="flex-shrink-0">
+                        <FormDocPreview formType={tmpl.category} size="sm" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] font-semibold truncate" style={{ color: C.textPrimary }}>{tmpl.title}</p>
+                        <p className="text-[9px] truncate" style={{ color: C.textTertiary }}>by {tmpl.school}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Star className="w-2.5 h-2.5" style={{ color: C.warning }} />
+                          <span className="text-[9px]" style={{ color: C.textTertiary }}>{tmpl.rating} · {tmpl.uses} uses</span>
+                        </div>
+                      </div>
+                      <button
+                        className="flex-shrink-0 px-2 py-1 rounded text-[9px] font-semibold"
+                        style={{ backgroundColor: color + "18", color: color, border: `1px solid ${color}44` }}
+                      >
+                        Use
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* ── Template store overlay ── */}
+      <AnimatePresence>
+        {showStore && (
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 320 }}
+            className="absolute inset-0 flex flex-col overflow-hidden"
+            style={{ backgroundColor: C.surface, zIndex: 20 }}
+          >
+            {/* Store header */}
+            <div
+              className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
+              style={{ borderBottom: `1px solid ${C.border}` }}
+            >
+              <button
+                onClick={() => setShowStore(false)}
+                className="flex items-center gap-1 text-xs font-medium"
+                style={{ color: C.textSecondary }}
+              >
+                <ChevronLeft className="w-4 h-4" /> Back
+              </button>
+              <div className="flex-1">
+                <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>Community Templates</p>
+                <p className="text-[10px]" style={{ color: C.textTertiary }}>Forms shared by other microschools</p>
+              </div>
+            </div>
+
+            {/* Category filter pills */}
+            <div className="flex items-center gap-1.5 px-4 py-2.5 flex-shrink-0 overflow-x-auto" style={{ borderBottom: `1px solid ${C.border}` }}>
+              {(["all", "enrollment", "health", "permission", "media", "financial"] as const).map((cat) => {
+                const isActive = storeCategory === cat;
+                const color = cat === "all" ? C.accent : FORM_TYPE_COLORS[cat as FormType];
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setStoreCategory(cat)}
+                    className="px-2.5 py-1 rounded-full text-[10px] font-semibold flex-shrink-0 capitalize"
+                    style={{
+                      backgroundColor: isActive ? color + "20" : C.elevated,
+                      color: isActive ? color : C.textTertiary,
+                      border: `1px solid ${isActive ? color + "60" : C.border}`,
+                    }}
+                  >
+                    {cat === "all" ? "All" : cat === "media" ? "Media" : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Template grid */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid grid-cols-2 gap-3">
+                {storeFiltered.map((tmpl) => {
+                  const color = FORM_TYPE_COLORS[tmpl.category];
+                  return (
+                    <motion.div
+                      key={tmpl.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-xl overflow-hidden flex flex-col"
+                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                    >
+                      {/* Doc preview */}
+                      <div
+                        className="flex items-center justify-center py-3"
+                        style={{ backgroundColor: C.bg }}
+                      >
+                        <FormDocPreview formType={tmpl.category} size="md" />
+                      </div>
+
+                      {/* Card body */}
+                      <div className="px-2.5 pt-2 pb-2.5 flex flex-col gap-1 flex-1">
+                        <p className="text-[10px] font-semibold leading-tight" style={{ color: C.textPrimary }}>
+                          {tmpl.title}
+                        </p>
+                        <p className="text-[9px]" style={{ color: C.textTertiary }}>by {tmpl.school}</p>
+
+                        {/* Rating */}
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Star className="w-2.5 h-2.5" style={{ color: C.warning }} />
+                          <span className="text-[9px]" style={{ color: C.textTertiary }}>
+                            {tmpl.rating} · {tmpl.uses} uses
+                          </span>
+                        </div>
+
+                        {/* Category badge */}
+                        <span
+                          className="self-start px-1.5 py-0.5 rounded-full text-[8px] font-semibold capitalize mt-0.5"
+                          style={{ backgroundColor: color + "18", color: color, border: `1px solid ${color}44` }}
+                        >
+                          {tmpl.category}
+                        </span>
+
+                        {/* Use button */}
+                        <button
+                          className="mt-1.5 w-full py-1.5 rounded-lg text-[10px] font-semibold"
+                          style={{ backgroundColor: color + "20", color: color, border: `1px solid ${color}50` }}
+                        >
+                          Use Template
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -4513,10 +5177,7 @@ function ParentsPageInner() {
       </div>
       <AnimatePresence>
         {selected && (
-          <ParentDetailPanel
-            parent={selected}
-            onClose={() => setSelected(null)}
-          />
+          <ParentDetailPanel key={selected.id} parent={selected} />
         )}
       </AnimatePresence>
     </div>
@@ -5001,13 +5662,8 @@ function StudentsPageInner() {
 // ─── Families page ─────────────────────────────────────────────────────────────
 
 function PeoplePage() {
-  const [selectedParent, setSelectedParent] = useState<DemoParent | null>(null);
+  const [selectedParent, setSelectedParent] = useState<DemoParent>(DEMO_PARENTS[0]);
   const [search, setSearch] = useState("");
-  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
-  useEffect(() => {
-    if (selectedParent) openBackdrop(() => setSelectedParent(null));
-    else closeBackdrop();
-  }, [selectedParent]);
 
   const filtered = DEMO_PARENTS.filter((p) =>
     search === "" ||
@@ -5016,142 +5672,950 @@ function PeoplePage() {
   );
 
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-row overflow-hidden">
+      {/* ── Left panel: family list ── */}
+      <div
+        className="w-64 flex-shrink-0 flex flex-col overflow-hidden"
+        style={{ borderRight: `1px solid ${C.border}` }}
+      >
+        {/* List header + search */}
+        <div
+          className="px-4 py-3 flex-shrink-0 space-y-2"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+              Families
+            </span>
+            <span
+              className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
+              style={{ backgroundColor: C.accentLight, color: C.accent }}
+            >
+              {DEMO_PARENTS.length}
+            </span>
+          </div>
+          <div
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          >
+            <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="bg-transparent border-none outline-none text-xs w-full"
+              style={{ color: C.textPrimary }}
+            />
+          </div>
+        </div>
+
+        {/* Family list */}
+        <div className="flex-1 overflow-y-auto">
+          {filtered.map((parent, i) => {
+            const isActive = selectedParent.id === parent.id;
+            return (
+              <motion.div
+                key={parent.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                className="cursor-pointer px-3 py-2.5"
+                style={{
+                  borderBottom: `1px solid ${C.border}`,
+                  borderLeft: `2px solid ${isActive ? C.accent : "transparent"}`,
+                  backgroundColor: isActive ? C.accentLight : "transparent",
+                }}
+                onClick={() => setSelectedParent(parent)}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.backgroundColor = C.elevated;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = isActive ? C.accentLight : "transparent";
+                }}
+              >
+                {/* Parent row */}
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                    style={{ backgroundColor: parent.color + "22", color: parent.color }}
+                  >
+                    {parent.initials}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color: C.textPrimary }}>
+                      {parent.name}
+                    </p>
+                    {parent.g2Name && (
+                      <p className="text-[10px] truncate" style={{ color: C.textTertiary }}>
+                        + {parent.g2Name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Children rows (indented) */}
+                <div className="mt-1.5 space-y-1 pl-2">
+                  {parent.children.map((child) => (
+                    <div key={child.name} className="flex items-center gap-2 pl-3" style={{ borderLeft: `1px solid ${C.border}` }}>
+                      {child.photo ? (
+                        <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0">
+                          <Image src={child.photo} alt={child.name} width={20} height={20} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                          style={{ backgroundColor: parent.color + "18", color: parent.color }}
+                        >
+                          {child.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                        </div>
+                      )}
+                      <p className="text-[10px] truncate" style={{ color: C.textSecondary }}>
+                        {child.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Right panel: family detail ── */}
+      <div className="flex-1 min-w-0 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <ParentDetailPanel key={selectedParent.id} parent={selectedParent} />
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+// ─── Students page (My Students tab) ──────────────────────────────────────────
+
+type StudentProfileTab = "profile" | "health" | "pickup" | "immunizations" | "emergency" | "paperwork" | "family";
+
+function StudentProfilePanel({ student }: { student: DemoStudent }) {
+  const [tab, setTab] = useState<StudentProfileTab>("profile");
+  const flags = HEALTH_FLAGS.filter((f) => student[f.key]);
+  const matchedParent = DEMO_PARENTS.find((p) => p.name === student.parent) ?? null;
+  const studentPaperwork = matchedParent
+    ? getFamilyPaperwork(matchedParent).filter((f) => f.child === student.name)
+    : [];
+  const paperworkSigned = studentPaperwork.filter((f) => f.status === "signed").length;
+  const paperworkPending = studentPaperwork.filter((f) => f.status !== "signed");
+
+  const PROFILE_TABS: { key: StudentProfileTab; label: string }[] = [
+    { key: "profile", label: "Profile" },
+    { key: "health", label: "Health" },
+    { key: "pickup", label: "Pickup" },
+    { key: "immunizations", label: "Immunizations" },
+    { key: "emergency", label: "Emergency" },
+    { key: "paperwork", label: "Paperwork" },
+    { key: "family", label: "Family" },
+  ];
+
+  return (
+    <motion.div
+      key={student.id}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="flex flex-col h-full overflow-hidden"
+      style={{ backgroundColor: C.surface }}
+    >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-6 py-3 flex-shrink-0"
+        className="flex items-start gap-3 px-5 py-4 flex-shrink-0"
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            Families
-          </span>
-          <span
-            className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
-          >
-            {DEMO_PARENTS.length}
-          </span>
-        </div>
         <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+          style={{ backgroundColor: student.color + "22", color: student.color }}
         >
-          <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search families..."
-            className="bg-transparent border-none outline-none text-xs"
-            style={{ color: C.textPrimary, width: 160 }}
-          />
+          {student.initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+            {student.name}
+          </h3>
+          <p className="text-[11px]" style={{ color: C.textTertiary }}>
+            {student.grade} · {student.classroom} · {student.teacher}
+          </p>
+          {flags.length > 0 && (
+            <div className="flex items-center gap-1 flex-wrap mt-1.5">
+              {flags.map((f) => (
+                <span
+                  key={f.key}
+                  className="px-1.5 py-0.5 rounded text-[9px] font-semibold"
+                  style={{ backgroundColor: f.bg, color: f.color }}
+                >
+                  {f.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Column headers */}
+      {/* Tab bar */}
       <div
-        className="flex items-center px-6 py-2 flex-shrink-0"
-        style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: C.elevated }}
+        className="flex items-center px-4 pt-2.5 pb-0 flex-shrink-0 overflow-x-auto"
+        style={{ borderBottom: `1px solid ${C.border}`, gap: 0 }}
       >
-        <div className="w-8 flex-shrink-0" />
-        <div className="w-48 flex-shrink-0 pl-3 text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>Family</div>
-        <div className="flex-1 min-w-0 text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>Children</div>
-        <div className="w-36 flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>Phone</div>
-        <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>Status</div>
-        <div className="w-4 flex-shrink-0" />
+        {PROFILE_TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className="flex-shrink-0 px-2.5 pb-2.5 text-[11px] font-medium relative whitespace-nowrap"
+            style={{ color: tab === t.key ? C.accent : C.textTertiary }}
+          >
+            {t.label}
+            {tab === t.key && (
+              <span
+                className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                style={{ backgroundColor: C.accent }}
+              />
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Family rows */}
-      <div className="flex-1 overflow-y-auto" style={{ backgroundColor: C.surface }}>
-        {filtered.map((parent, i) => {
-          const enrolledCount = parent.applications.filter((a) => a.status === "enrolled").length;
-          const childSummary = parent.children.map((child) => {
-            const app = parent.applications.find((a) => a.childName === child.name);
-            const programLabel = app ? (PROGRAM_LABELS[app.program]?.label ?? app.program) : null;
-            return programLabel ? `${child.name} (${programLabel})` : child.name;
-          }).join(", ");
+      {/* Tab content */}
+      <div className="flex-1 overflow-y-auto">
 
-          return (
-            <motion.div
-              key={parent.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              className="flex items-center px-6 py-3 cursor-pointer"
-              style={{ borderBottom: `1px solid ${C.border}` }}
-              onClick={() => setSelectedParent(parent)}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.elevated)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-            >
-              {/* Avatar */}
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ backgroundColor: parent.color + "22", color: parent.color }}
-              >
-                {parent.initials}
-              </div>
+        {/* ── Profile tab ── */}
+        {tab === "profile" && (
+          <div className="p-5 space-y-5">
 
-              {/* Name */}
-              <div className="w-48 flex-shrink-0 pl-3 min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>
-                  {parent.name}
+            {/* Student Info */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Student Info
+              </p>
+              <DetailField label="Full Name" value={student.name} />
+              <DetailField label="Date of Birth" value={student.dob} />
+              <DetailField label="Grade" value={student.grade} />
+              <DetailField label="Classroom" value={student.classroom} />
+              <DetailField label="Teacher" value={student.teacher} />
+              <DetailField label="Program" value={<ProgramBadge program={student.program} />} />
+              <DetailField label="Parent / Guardian" value={student.parent} />
+            </div>
+
+            {/* Learning Profile */}
+            {(student.learningStyle || student.strengths || student.challenges) && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                  Learning Profile
                 </p>
-                {parent.g2Name && (
-                  <p className="text-[11px] truncate" style={{ color: C.textTertiary }}>
-                    + {parent.g2Name}
-                  </p>
-                )}
+                {student.learningStyle && <DetailField label="Learning Style" value={student.learningStyle} />}
+                {student.strengths && <DetailField label="Strengths" value={student.strengths} />}
+                {student.challenges && <DetailField label="Challenges" value={student.challenges} />}
+                {student.regulationStrategies && <DetailField label="Regulation" value={student.regulationStrategies} />}
+                {student.specialInterests && <DetailField label="Interests" value={student.specialInterests} />}
               </div>
+            )}
 
-              {/* Children */}
-              <div className="flex-1 min-w-0 pr-4">
-                <p className="text-xs truncate" style={{ color: C.textSecondary }}>
-                  {childSummary}
+            {/* Support Aide */}
+            {student.needsAide && student.aideDetails && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                  Support Aide
+                </p>
+                <p className="text-xs leading-relaxed" style={{ color: C.textSecondary }}>
+                  {student.aideDetails}
                 </p>
               </div>
+            )}
 
-              {/* Phone */}
-              <div className="w-36 flex-shrink-0">
-                <p className="text-xs" style={{ color: C.textTertiary }}>
-                  {parent.g1Phone}
-                </p>
+            {/* Activity / History Log */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Activity Log
+              </p>
+              <div className="space-y-0">
+                {student.activityLog.map((entry, i) => {
+                  const logColor =
+                    entry.type === "attendance" ? "#38BDF8"
+                    : entry.type === "note" ? "#A78BFA"
+                    : "#22C55E";
+                  const LogIcon =
+                    entry.type === "attendance" ? CalendarDays
+                    : entry.type === "note" ? MessageSquare
+                    : Zap;
+                  return (
+                    <div key={i} className="flex gap-2.5">
+                      <div className="flex flex-col items-center flex-shrink-0">
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                          style={{ backgroundColor: logColor + "20" }}
+                        >
+                          <LogIcon className="w-3 h-3" style={{ color: logColor }} />
+                        </div>
+                        {i < student.activityLog.length - 1 && (
+                          <div className="w-px flex-1 min-h-[16px] my-0.5" style={{ backgroundColor: C.border }} />
+                        )}
+                      </div>
+                      <div className="pb-4 min-w-0 flex-1">
+                        <div className="flex items-baseline gap-2 mb-0.5">
+                          <p className="text-[11px] font-semibold" style={{ color: C.textPrimary }}>
+                            {entry.title}
+                          </p>
+                          <span className="text-[9px] flex-shrink-0" style={{ color: C.textTertiary }}>
+                            {entry.date}
+                          </span>
+                        </div>
+                        <p className="text-[10px] leading-relaxed" style={{ color: C.textSecondary }}>
+                          {entry.detail}
+                        </p>
+                        {entry.author && (
+                          <p className="text-[9px] mt-0.5" style={{ color: C.textTertiary }}>
+                            — {entry.author}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-
-              {/* Status */}
-              <div className="w-24 flex-shrink-0">
-                {enrolledCount > 0 ? (
-                  <span
-                    className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
-                    style={{ backgroundColor: C.successBg, color: C.success, border: `1px solid ${C.successBorder}` }}
-                  >
-                    Enrolled
-                  </span>
-                ) : (
-                  <span
-                    className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
-                    style={{ backgroundColor: C.elevated, color: C.textTertiary, border: `1px solid ${C.border}` }}
-                  >
-                    Pending
-                  </span>
-                )}
-              </div>
-
-              {/* Chevron */}
-              <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: C.textTertiary }} />
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Detail panel */}
-      <AnimatePresence>
-        {selectedParent && (
-          <ParentDetailPanel
-            parent={selectedParent}
-            onClose={() => setSelectedParent(null)}
-          />
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+
+        {/* ── Health tab ── */}
+        {tab === "health" && (
+          <div className="p-5 space-y-5">
+            {flags.length === 0 && student.medications.length === 0 && (
+              <div className="text-center py-8">
+                <Shield className="w-8 h-8 mx-auto mb-2" style={{ color: C.textTertiary }} />
+                <p className="text-xs" style={{ color: C.textTertiary }}>No active health flags on file.</p>
+              </div>
+            )}
+
+            {student.hasAllergies && (
+              <div>
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                  style={{ color: "#F59E0B" }}
+                >
+                  ⚠ Allergies
+                </p>
+                <p
+                  className="text-xs leading-relaxed p-3 rounded-lg"
+                  style={{
+                    color: C.textSecondary,
+                    backgroundColor: "rgba(245,158,11,0.08)",
+                    border: "1px solid rgba(245,158,11,0.2)",
+                  }}
+                >
+                  {student.allergies}
+                </p>
+              </div>
+            )}
+
+            {student.hasMedical && (
+              <div>
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                  style={{ color: "#EF4444" }}
+                >
+                  Medical Conditions
+                </p>
+                <p
+                  className="text-xs leading-relaxed p-3 rounded-lg"
+                  style={{
+                    color: C.textSecondary,
+                    backgroundColor: "rgba(239,68,68,0.08)",
+                    border: "1px solid rgba(239,68,68,0.2)",
+                  }}
+                >
+                  {student.medicalConditions}
+                </p>
+              </div>
+            )}
+
+            {student.hasEmergencyMeds && (
+              <div>
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                  style={{ color: "#F97316" }}
+                >
+                  Emergency Meds Protocol
+                </p>
+                <p
+                  className="text-xs leading-relaxed p-3 rounded-lg"
+                  style={{
+                    color: C.textSecondary,
+                    backgroundColor: "rgba(249,115,22,0.08)",
+                    border: "1px solid rgba(249,115,22,0.2)",
+                  }}
+                >
+                  {student.emergencyMeds}
+                </p>
+              </div>
+            )}
+
+            {student.medications.length > 0 && (
+              <div>
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+                  style={{ color: C.textTertiary }}
+                >
+                  Medications ({student.medications.length})
+                </p>
+                <div className="space-y-2">
+                  {student.medications.map((med, i) => (
+                    <div
+                      key={i}
+                      className="p-3 rounded-lg"
+                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+                          {med.name}
+                        </p>
+                        <span
+                          className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
+                          style={{
+                            backgroundColor: med.type === "daily" ? "#38BDF820" : "#F9731620",
+                            color: med.type === "daily" ? "#38BDF8" : "#F97316",
+                          }}
+                        >
+                          {med.type === "daily" ? "Daily" : "Emergency"}
+                        </span>
+                      </div>
+                      <p className="text-[10px]" style={{ color: C.textSecondary }}>{med.dosage}</p>
+                      <p className="text-[10px]" style={{ color: C.textTertiary }}>{med.physician}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Authorized Pickup tab ── */}
+        {tab === "pickup" && (
+          <div className="p-5">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+              style={{ color: C.textTertiary }}
+            >
+              Authorized Pickup ({student.authorizedPickup.length})
+            </p>
+            <div className="space-y-2">
+              {student.authorizedPickup.map((person, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-3 rounded-lg"
+                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style={{ backgroundColor: student.color + "22", color: student.color }}
+                  >
+                    {person.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>{person.name}</p>
+                    <p className="text-[10px]" style={{ color: C.textTertiary }}>{person.relationship}</p>
+                  </div>
+                  <span className="flex items-center gap-1 text-[10px]" style={{ color: C.accent }}>
+                    <PhoneCall className="w-3 h-3 flex-shrink-0" />
+                    {person.phone}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Immunizations tab ── */}
+        {tab === "immunizations" && (
+          <div className="p-5">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+              style={{ color: C.textTertiary }}
+            >
+              Immunization Records
+            </p>
+            <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+              {student.immunizations.map((imm, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-3 py-2.5"
+                  style={{
+                    borderBottom: i < student.immunizations.length - 1 ? `1px solid ${C.border}` : "none",
+                    backgroundColor: i % 2 === 0 ? "transparent" : C.elevated + "80",
+                  }}
+                >
+                  <p className="text-xs font-medium" style={{ color: C.textPrimary }}>{imm.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px]" style={{ color: C.textTertiary }}>{imm.date || "—"}</p>
+                    <span
+                      className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold"
+                      style={{
+                        backgroundColor:
+                          imm.status === "complete" ? "#22C55E20"
+                          : imm.status === "due" ? "#F59E0B20"
+                          : "#94A3B820",
+                        color:
+                          imm.status === "complete" ? "#22C55E"
+                          : imm.status === "due" ? "#F59E0B"
+                          : "#94A3B8",
+                      }}
+                    >
+                      {imm.status === "complete" ? "Complete" : imm.status === "due" ? "Due" : "Exempt"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Emergency Contacts tab ── */}
+        {tab === "emergency" && (
+          <div className="p-5">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+              style={{ color: C.textTertiary }}
+            >
+              Emergency Contacts
+            </p>
+            <div className="space-y-2">
+              {[...student.emergencyContacts]
+                .sort((a, b) => a.priority - b.priority)
+                .map((contact, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-3 rounded-lg"
+                    style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  >
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                      style={{ backgroundColor: C.border, color: C.textTertiary }}
+                    >
+                      {contact.priority}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>{contact.name}</p>
+                      <p className="text-[10px]" style={{ color: C.textTertiary }}>{contact.relationship}</p>
+                    </div>
+                    <span className="flex items-center gap-1 text-[10px]" style={{ color: C.accent }}>
+                      <PhoneCall className="w-3 h-3 flex-shrink-0" />
+                      {contact.phone}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Paperwork tab ── */}
+        {tab === "paperwork" && (
+          <div className="p-4 space-y-4">
+            {studentPaperwork.length === 0 ? (
+              <p className="text-xs text-center py-8" style={{ color: C.textTertiary }}>
+                No paperwork on file.
+              </p>
+            ) : (
+              <>
+                {/* Action row */}
+                <div className="flex items-center justify-between">
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-widest"
+                    style={{ color: C.textTertiary }}
+                  >
+                    {paperworkSigned} / {studentPaperwork.length} complete
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {paperworkPending.length > 0 && (
+                      <button
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold"
+                        style={{
+                          backgroundColor: C.accentLight,
+                          color: C.accent,
+                          border: `1px solid ${C.accentDark + "44"}`,
+                        }}
+                      >
+                        <Send className="w-3 h-3" /> Send Pending
+                      </button>
+                    )}
+                    <button
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold"
+                      style={{
+                        backgroundColor: C.elevated,
+                        color: C.textSecondary,
+                        border: `1px solid ${C.border}`,
+                      }}
+                    >
+                      <Plus className="w-3 h-3" /> New Form
+                    </button>
+                  </div>
+                </div>
+
+                {/* Form cards */}
+                <div className="grid grid-cols-2 gap-3">
+                  {studentPaperwork.map((form) => {
+                    const color = FORM_TYPE_COLORS[form.formType];
+                    return (
+                      <div
+                        key={form.id}
+                        className="rounded-xl overflow-hidden flex flex-col"
+                        style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                      >
+                        <div
+                          className="flex items-center justify-center py-3"
+                          style={{ backgroundColor: C.bg }}
+                        >
+                          <FormDocPreview formType={form.formType} size="md" />
+                        </div>
+                        <div className="px-2.5 pt-2 pb-2.5 flex flex-col gap-1.5 flex-1">
+                          <p
+                            className="text-[10px] font-semibold leading-tight"
+                            style={{ color: C.textPrimary }}
+                          >
+                            {form.title}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            {form.status === "signed" ? (
+                              <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: C.success }} />
+                            ) : form.status === "awaiting" ? (
+                              <Clock className="w-3 h-3 flex-shrink-0" style={{ color: C.warning }} />
+                            ) : (
+                              <AlertCircle className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
+                            )}
+                            <span
+                              className="text-[9px] font-semibold"
+                              style={{
+                                color:
+                                  form.status === "signed" ? C.success
+                                  : form.status === "awaiting" ? C.warning
+                                  : C.textTertiary,
+                              }}
+                            >
+                              {form.status === "signed"
+                                ? form.date ? `Signed ${form.date}` : "Signed"
+                                : form.status === "awaiting"
+                                ? "Awaiting signature"
+                                : "Not yet sent"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {form.status === "signed" ? (
+                              <>
+                                <button
+                                  className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium"
+                                  style={{
+                                    backgroundColor: C.surface,
+                                    color: C.textSecondary,
+                                    border: `1px solid ${C.border}`,
+                                  }}
+                                >
+                                  <Eye className="w-2.5 h-2.5" /> View
+                                </button>
+                                <button
+                                  className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium"
+                                  style={{
+                                    backgroundColor: C.surface,
+                                    color: C.textSecondary,
+                                    border: `1px solid ${C.border}`,
+                                  }}
+                                >
+                                  <Download className="w-2.5 h-2.5" /> Save
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold"
+                                style={{
+                                  backgroundColor: color + "18",
+                                  color,
+                                  border: `1px solid ${color}44`,
+                                }}
+                              >
+                                <Send className="w-2.5 h-2.5" />
+                                {form.status === "awaiting" ? "Resend" : "Send"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Family tab ── */}
+        {tab === "family" && (
+          <div className="p-5 space-y-5">
+            {!matchedParent ? (
+              <p className="text-xs text-center py-8" style={{ color: C.textTertiary }}>
+                Family information not found.
+              </p>
+            ) : (
+              <>
+                {/* Guardian 1 */}
+                <div>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Guardian 1
+                  </p>
+                  <DetailField label="Name" value={matchedParent.name} />
+                  <DetailField label="Cell Phone" value={matchedParent.g1Phone} />
+                  {matchedParent.g1WorkPhone && (
+                    <DetailField label="Work Phone" value={matchedParent.g1WorkPhone} />
+                  )}
+                  <DetailField label="Preferred Contact" value={matchedParent.g1Preferred} />
+                  <DetailField label="Lives with Child" value={<YesNoChip value={matchedParent.g1LivesWith} />} />
+                  <DetailField label="Has Custody" value={<YesNoChip value={matchedParent.g1Custody} />} />
+                </div>
+
+                {/* Guardian 2 */}
+                {matchedParent.g2Name && (
+                  <div>
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+                      style={{ color: C.textTertiary }}
+                    >
+                      Guardian 2
+                    </p>
+                    <DetailField label="Name" value={matchedParent.g2Name} />
+                    <DetailField label="Relationship" value={matchedParent.g2Relationship} />
+                    <DetailField label="Email" value={matchedParent.g2Email} />
+                    <DetailField label="Cell Phone" value={matchedParent.g2Phone} />
+                  </div>
+                )}
+
+                {/* Siblings */}
+                {matchedParent.children.filter((c) => c.name !== student.name).length > 0 && (
+                  <div>
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+                      style={{ color: C.textTertiary }}
+                    >
+                      Siblings
+                    </p>
+                    <div className="space-y-2">
+                      {matchedParent.children
+                        .filter((c) => c.name !== student.name)
+                        .map((sibling) => (
+                          <div
+                            key={sibling.name}
+                            className="flex items-center gap-3 p-3 rounded-lg"
+                            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                          >
+                            {sibling.photo ? (
+                              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                                <Image
+                                  src={sibling.photo}
+                                  alt={sibling.name}
+                                  width={32}
+                                  height={32}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                style={{
+                                  backgroundColor: matchedParent.color + "22",
+                                  color: matchedParent.color,
+                                }}
+                              >
+                                {sibling.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs font-medium" style={{ color: C.textPrimary }}>
+                                {sibling.name}
+                              </p>
+                              <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                                DOB: {sibling.dob}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Applications */}
+                <div>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Applications
+                  </p>
+                  <div className="space-y-2">
+                    {matchedParent.applications
+                      .filter((a) => a.childName === student.name)
+                      .map((app, i) => (
+                        <div
+                          key={i}
+                          className="p-3 rounded-lg"
+                          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                        >
+                          <p
+                            className="text-xs font-semibold mb-2"
+                            style={{ color: C.textPrimary }}
+                          >
+                            {app.childName}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <ProgramBadge program={app.program} />
+                            <StatusBadge status={app.status} />
+                            {app.approved && (
+                              <span
+                                className="text-[10px] font-semibold"
+                                style={{ color: C.success }}
+                              >
+                                ✓ Approved
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] mt-2" style={{ color: C.textTertiary }}>
+                            Submitted {app.submitted}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+      </div>
+    </motion.div>
+  );
+}
+
+function StudentsPage() {
+  const [selectedStudent, setSelectedStudent] = useState<DemoStudent>(DEMO_STUDENTS_P2[0]);
+  const [search, setSearch] = useState("");
+
+  const filtered = DEMO_STUDENTS_P2.filter(
+    (s) =>
+      search === "" ||
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.grade.toLowerCase().includes(search.toLowerCase()) ||
+      s.classroom.toLowerCase().includes(search.toLowerCase()) ||
+      s.teacher.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div className="h-full flex flex-row overflow-hidden">
+      {/* ── Left panel: student list ── */}
+      <div
+        className="w-64 flex-shrink-0 flex flex-col overflow-hidden"
+        style={{ borderRight: `1px solid ${C.border}` }}
+      >
+        {/* Header + search */}
+        <div
+          className="px-4 py-3 flex-shrink-0 space-y-2"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+              My Students
+            </span>
+            <span
+              className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
+              style={{ backgroundColor: C.accentLight, color: C.accent }}
+            >
+              {DEMO_STUDENTS_P2.length}
+            </span>
+          </div>
+          <div
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          >
+            <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search students..."
+              className="bg-transparent border-none outline-none text-xs w-full"
+              style={{ color: C.textPrimary }}
+            />
+          </div>
+        </div>
+
+        {/* Student list */}
+        <div className="flex-1 overflow-y-auto">
+          {filtered.map((student, i) => {
+            const isActive = selectedStudent.id === student.id;
+            const flags = HEALTH_FLAGS.filter((f) => student[f.key]);
+            return (
+              <motion.div
+                key={student.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.02 }}
+                className="cursor-pointer px-3 py-2.5"
+                style={{
+                  borderBottom: `1px solid ${C.border}`,
+                  borderLeft: `2px solid ${isActive ? C.accent : "transparent"}`,
+                  backgroundColor: isActive ? C.accentLight : "transparent",
+                }}
+                onClick={() => setSelectedStudent(student)}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.backgroundColor = C.elevated;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = isActive ? C.accentLight : "transparent";
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                    style={{ backgroundColor: student.color + "22", color: student.color }}
+                  >
+                    {student.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color: C.textPrimary }}>
+                      {student.name}
+                    </p>
+                    <p className="text-[10px] truncate" style={{ color: C.textTertiary }}>
+                      {student.grade} · {student.teacher}
+                    </p>
+                  </div>
+                </div>
+                {flags.length > 0 && (
+                  <div className="flex items-center gap-1 mt-1.5 pl-9 flex-wrap">
+                    {flags.map((f) => (
+                      <span
+                        key={f.key}
+                        className="text-[8px] px-1 py-0.5 rounded font-semibold"
+                        style={{ backgroundColor: f.bg, color: f.color }}
+                      >
+                        {f.label.split(" ")[0]}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Right panel: student profile ── */}
+      <div className="flex-1 min-w-0 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <StudentProfilePanel key={selectedStudent.id} student={selectedStudent} />
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -9101,6 +10565,348 @@ const WIZARD_INITIAL_STATE: WizardState = {
   launched: false,
 };
 
+// ─── Marketplace page ──────────────────────────────────────────────────────────
+
+type MarketplaceCategory = "documents" | "curriculum" | "policies" | "communications" | "assessments";
+
+type MarketplaceListing = {
+  id: string;
+  title: string;
+  description: string;
+  school: string;
+  category: MarketplaceCategory;
+  rating: number;
+  uses: number;
+  free: boolean;
+  price?: number;
+  tags: string[];
+  formType: FormType;
+};
+
+const MARKETPLACE_CATEGORY_META: {
+  key: MarketplaceCategory | "all";
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+}[] = [
+  { key: "all",            label: "All",              icon: <Layers className="w-3.5 h-3.5" />,       color: "#5E7C68" },
+  { key: "documents",      label: "Documents & Forms", icon: <ClipboardList className="w-3.5 h-3.5" />, color: "#38BDF8" },
+  { key: "curriculum",     label: "Curriculum",        icon: <BookOpen className="w-3.5 h-3.5" />,      color: "#8B5CF6" },
+  { key: "policies",       label: "Policies",          icon: <Shield className="w-3.5 h-3.5" />,        color: "#F59E0B" },
+  { key: "communications", label: "Communications",    icon: <Mail className="w-3.5 h-3.5" />,          color: "#EF4444" },
+  { key: "assessments",    label: "Assessments",       icon: <BarChart2 className="w-3.5 h-3.5" />,     color: "#22C55E" },
+];
+
+const CATEGORY_COLOR: Record<MarketplaceCategory, string> = {
+  documents:      "#38BDF8",
+  curriculum:     "#8B5CF6",
+  policies:       "#F59E0B",
+  communications: "#EF4444",
+  assessments:    "#22C55E",
+};
+
+const CATEGORY_FORM_TYPE: Record<MarketplaceCategory, FormType> = {
+  documents:      "enrollment",
+  curriculum:     "media",
+  policies:       "financial",
+  communications: "health",
+  assessments:    "permission",
+};
+
+const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
+  // Documents & Forms
+  {
+    id: "m1", title: "Enrollment Agreement 2025–26",
+    description: "Comprehensive enrollment contract covering tuition, schedule, policies, and guardian acknowledgment. Editable in Google Docs.",
+    school: "Acorn Microschool", category: "documents", rating: 4.9, uses: 134, free: true,
+    tags: ["enrollment", "contract", "editable"], formType: "enrollment",
+  },
+  {
+    id: "m2", title: "Health & Emergency Information Form",
+    description: "Complete health intake form with allergy fields, emergency contacts, medication authorization, and physician info.",
+    school: "Little Sprouts Academy", category: "documents", rating: 4.8, uses: 98, free: true,
+    tags: ["health", "emergency", "intake"], formType: "health",
+  },
+  {
+    id: "m3", title: "Field Trip Blanket Permission",
+    description: "A single blanket permission form covering all outings for the school year. Reduces paperwork per trip significantly.",
+    school: "Cedar Path School", category: "documents", rating: 4.7, uses: 87, free: true,
+    tags: ["permission", "field trips", "annual"], formType: "permission",
+  },
+  {
+    id: "m4", title: "Tuition Authorization & Payment Plan",
+    description: "ACH/card authorization form with monthly payment plan options, late fee disclosures, and refund policy.",
+    school: "Wildwood Learning Co.", category: "documents", rating: 4.6, uses: 61, free: false, price: 4,
+    tags: ["tuition", "billing", "payment"], formType: "financial",
+  },
+  {
+    id: "m5", title: "Media Release & Photo Consent",
+    description: "Covers photography, video, and social media use. Includes opt-out clause and internal-only vs. public-facing options.",
+    school: "Stonegate Learning", category: "documents", rating: 4.8, uses: 79, free: true,
+    tags: ["media", "consent", "photos"], formType: "media",
+  },
+
+  // Curriculum
+  {
+    id: "m6", title: "Montessori Nature Journaling Unit (6 Weeks)",
+    description: "Full 6-week outdoor science and writing unit for ages 5–10. Includes daily prompts, observation sheets, and family extensions.",
+    school: "Fern Valley Micro", category: "curriculum", rating: 4.9, uses: 56, free: false, price: 12,
+    tags: ["montessori", "science", "nature", "writing"], formType: "media",
+  },
+  {
+    id: "m7", title: "Community Helpers Project-Based Unit",
+    description: "3-week PBL unit exploring community roles. Includes field trip guides, interview templates, and a capstone presentation.",
+    school: "Meadow Path School", category: "curriculum", rating: 4.7, uses: 43, free: false, price: 8,
+    tags: ["PBL", "social studies", "K–3"], formType: "media",
+  },
+  {
+    id: "m8", title: "Seasonal Math Games Bundle (Fall)",
+    description: "15 hands-on math games for mixed ages 4–8. Covers counting, patterns, and early addition. Print-and-play format.",
+    school: "Acorn Microschool", category: "curriculum", rating: 4.8, uses: 72, free: false, price: 6,
+    tags: ["math", "games", "mixed-age"], formType: "media",
+  },
+
+  // Policies
+  {
+    id: "m9", title: "Parent Handbook Template (Fully Editable)",
+    description: "50-page editable handbook covering school philosophy, daily schedule, discipline, communication, and health policies.",
+    school: "Cedar Path School", category: "policies", rating: 4.9, uses: 118, free: false, price: 15,
+    tags: ["handbook", "policies", "editable"], formType: "financial",
+  },
+  {
+    id: "m10", title: "Technology & Screen Time Policy",
+    description: "Clear policy template covering personal devices, school technology use, and family screen agreements. One-page parent-facing version included.",
+    school: "Little Sprouts Academy", category: "policies", rating: 4.6, uses: 49, free: true,
+    tags: ["technology", "screens", "devices"], formType: "financial",
+  },
+  {
+    id: "m11", title: "Discipline & Conflict Resolution Framework",
+    description: "Restorative-practice-based discipline policy with language scripts for educators and family communication templates.",
+    school: "Wildwood Learning Co.", category: "policies", rating: 4.8, uses: 63, free: false, price: 9,
+    tags: ["discipline", "restorative", "behavior"], formType: "financial",
+  },
+
+  // Communications
+  {
+    id: "m12", title: "End-of-Week Family Update Template",
+    description: "Structured weekly newsletter format with sections for curriculum recap, upcoming dates, spotlight, and photos. Works in email or print.",
+    school: "Stonegate Learning", category: "communications", rating: 4.9, uses: 91, free: true,
+    tags: ["newsletter", "weekly", "template"], formType: "health",
+  },
+  {
+    id: "m13", title: "Difficult Conversation Script Kit",
+    description: "10 ready-to-use email + in-person scripts for: billing issues, behavioral concerns, learning struggles, and family conflicts.",
+    school: "Fern Valley Micro", category: "communications", rating: 4.8, uses: 55, free: false, price: 7,
+    tags: ["scripts", "email", "conflict"], formType: "health",
+  },
+  {
+    id: "m14", title: "Tour Follow-Up Email Sequence (3 Emails)",
+    description: "Conversion-focused 3-email sequence to send after a prospective family tour. Includes day-1, day-3, and day-7 versions.",
+    school: "Acorn Microschool", category: "communications", rating: 4.7, uses: 68, free: false, price: 5,
+    tags: ["leads", "email", "conversion"], formType: "health",
+  },
+
+  // Assessments
+  {
+    id: "m15", title: "Kindergarten Developmental Checklist",
+    description: "Comprehensive K readiness and ongoing development checklist aligned to developmental milestones. Includes teacher and parent versions.",
+    school: "Meadow Path School", category: "assessments", rating: 4.9, uses: 82, free: true,
+    tags: ["kindergarten", "development", "checklist"], formType: "permission",
+  },
+  {
+    id: "m16", title: "Student Portfolio Framework & Rubrics",
+    description: "Complete portfolio system with collection guides, reflection prompts, and presentation rubrics for ages 5–14.",
+    school: "Cedar Path School", category: "assessments", rating: 4.7, uses: 47, free: false, price: 10,
+    tags: ["portfolio", "rubrics", "reflection"], formType: "permission",
+  },
+  {
+    id: "m17", title: "Monthly Progress Report Template",
+    description: "Narrative-focused progress report replacing letter grades. Covers academic growth, social-emotional development, and goals.",
+    school: "Little Sprouts Academy", category: "assessments", rating: 4.8, uses: 74, free: false, price: 6,
+    tags: ["progress report", "narrative", "monthly"], formType: "permission",
+  },
+];
+
+function MarketplacePage() {
+  const [activeCategory, setActiveCategory] = useState<MarketplaceCategory | "all">("all");
+  const [search, setSearch] = useState("");
+
+  const filtered = MARKETPLACE_LISTINGS.filter((l) => {
+    const matchCat = activeCategory === "all" || l.category === activeCategory;
+    const q = search.toLowerCase();
+    const matchSearch = q === "" || l.title.toLowerCase().includes(q) || l.school.toLowerCase().includes(q) || l.tags.some((t) => t.includes(q));
+    return matchCat && matchSearch;
+  });
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-6 py-4 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div>
+          <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>Marketplace</h2>
+          <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+            Resources shared by the microschool community
+          </p>
+        </div>
+        <button
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+          style={{ backgroundColor: C.accentLight, color: C.accent, border: `1px solid ${C.accentDark + "44"}` }}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Share a Resource
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div
+        className="flex items-center gap-2 px-6 py-3 flex-shrink-0 flex-wrap"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        {/* Category pills */}
+        <div className="flex items-center gap-1.5 flex-wrap flex-1">
+          {MARKETPLACE_CATEGORY_META.map((cat) => {
+            const isActive = activeCategory === cat.key;
+            return (
+              <button
+                key={cat.key}
+                onClick={() => setActiveCategory(cat.key as MarketplaceCategory | "all")}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
+                style={{
+                  backgroundColor: isActive ? cat.color + "20" : C.elevated,
+                  color: isActive ? cat.color : C.textTertiary,
+                  border: `1px solid ${isActive ? cat.color + "60" : C.border}`,
+                }}
+              >
+                {cat.icon}
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search */}
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg flex-shrink-0"
+          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+        >
+          <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search resources..."
+            className="bg-transparent border-none outline-none text-xs"
+            style={{ color: C.textPrimary, width: 160 }}
+          />
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 gap-2">
+            <p className="text-sm font-medium" style={{ color: C.textTertiary }}>No resources found</p>
+            <p className="text-xs" style={{ color: C.textQuaternary }}>Try adjusting your search or category</p>
+          </div>
+        ) : (
+          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+            {filtered.map((listing, i) => {
+              const color = CATEGORY_COLOR[listing.category];
+              return (
+                <motion.div
+                  key={listing.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="rounded-xl overflow-hidden flex flex-col"
+                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                >
+                  {/* Doc preview area */}
+                  <div
+                    className="flex items-center justify-center py-4"
+                    style={{ backgroundColor: C.bg }}
+                  >
+                    <FormDocPreview formType={listing.formType} size="md" />
+                  </div>
+
+                  {/* Card body */}
+                  <div className="p-3 flex flex-col gap-2 flex-1">
+                    {/* Category badge */}
+                    <span
+                      className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold capitalize"
+                      style={{ backgroundColor: color + "18", color, border: `1px solid ${color}44` }}
+                    >
+                      {MARKETPLACE_CATEGORY_META.find((c) => c.key === listing.category)?.label ?? listing.category}
+                    </span>
+
+                    {/* Title */}
+                    <p className="text-xs font-semibold leading-tight" style={{ color: C.textPrimary }}>
+                      {listing.title}
+                    </p>
+
+                    {/* Description */}
+                    <p className="text-[10px] leading-relaxed line-clamp-2" style={{ color: C.textTertiary }}>
+                      {listing.description}
+                    </p>
+
+                    {/* School */}
+                    <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                      by <span style={{ color: C.textSecondary }}>{listing.school}</span>
+                    </p>
+
+                    {/* Rating + uses */}
+                    <div className="flex items-center gap-1">
+                      <Star className="w-3 h-3" style={{ color: C.warning }} />
+                      <span className="text-[10px] font-medium" style={{ color: C.textSecondary }}>
+                        {listing.rating}
+                      </span>
+                      <span className="text-[10px]" style={{ color: C.textTertiary }}>
+                        · {listing.uses} uses
+                      </span>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1">
+                      {listing.tags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          className="px-1.5 py-0.5 rounded text-[8px] font-medium"
+                          style={{ backgroundColor: C.surface, color: C.textTertiary, border: `1px solid ${C.border}` }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Price + action */}
+                    <div className="flex items-center justify-between mt-auto pt-1">
+                      {listing.free ? (
+                        <span className="text-[10px] font-semibold" style={{ color: C.success }}>Free</span>
+                      ) : (
+                        <span className="text-[10px] font-semibold" style={{ color: C.textPrimary }}>
+                          ${listing.price}
+                        </span>
+                      )}
+                      <button
+                        className="px-2.5 py-1 rounded-lg text-[10px] font-semibold"
+                        style={{ backgroundColor: color + "20", color, border: `1px solid ${color}50` }}
+                      >
+                        {listing.free ? "Use Free" : "Get"}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MarketingPage() {
   const [filter, setFilter] = useState<AutomationFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -10270,40 +12076,11 @@ function ClassroomsPage() {
 
 function MySchoolPage({ activeTab, onTabChange }: { activeTab: MySchoolTab; onTabChange: (tab: MySchoolTab) => void }) {
   return (
-    <div className="h-full flex flex-col">
-      <div
-        className="flex items-center gap-0 flex-shrink-0 px-4"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        {(
-          [
-            { key: "families", label: "Families" },
-            { key: "programs", label: "Programs" },
-            { key: "staff", label: "Staff" },
-            { key: "classrooms", label: "Classrooms" },
-          ] as { key: MySchoolTab; label: string }[]
-        ).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => onTabChange(tab.key)}
-            className="px-4 py-3 text-xs font-medium transition-colors duration-150"
-            style={{
-              color: activeTab === tab.key ? C.accent : C.textTertiary,
-              borderBottom: activeTab === tab.key ? `2px solid ${C.accent}` : "2px solid transparent",
-              background: "none",
-              cursor: "pointer",
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex-1 overflow-hidden">
-        {activeTab === "families" && <PeoplePage />}
-        {activeTab === "programs" && <ProgramsPage />}
-        {activeTab === "staff" && <StaffPage />}
-        {activeTab === "classrooms" && <ClassroomsPage />}
-      </div>
+    <div className="h-full overflow-hidden">
+      {activeTab === "students" && <StudentsPage />}
+      {activeTab === "programs" && <ProgramsPage />}
+      {activeTab === "staff" && <StaffPage />}
+      {activeTab === "classrooms" && <ClassroomsPage />}
     </div>
   );
 }
@@ -10318,9 +12095,10 @@ type ActivePage =
   | "myschool"
   | "budget"
   | "marketing"
-  | "impersonate";
+  | "impersonate"
+  | "marketplace";
 
-type MySchoolTab = "families" | "programs" | "staff" | "classrooms";
+type MySchoolTab = "students" | "programs" | "staff" | "classrooms";
 
 interface NavItem {
   key: ActivePage | string;
@@ -10374,17 +12152,242 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         icon: <Eye className="w-4 h-4" />,
         phase1: true,
       },
+      {
+        key: "marketplace",
+        name: "Marketplace",
+        icon: <Layers className="w-4 h-4" />,
+        phase1: true,
+      },
     ],
   },
 ];
+
+// ─── Support Modal ─────────────────────────────────────────────────────────────
+function SupportModal({ onClose }: { onClose: () => void }) {
+  const [message, setMessage] = useState("");
+
+  const quickLinks = [
+    { icon: <BookOpen className="w-4 h-4" />, label: "Documentation", sub: "Guides, references & API docs" },
+    { icon: <BarChart2 className="w-4 h-4" />, label: "Video Tutorials", sub: "Step-by-step walkthroughs" },
+    { icon: <Zap className="w-4 h-4" />, label: "Release Notes", sub: "What's new in SchoolStack" },
+  ];
+
+  return (
+    <motion.div
+      key="support-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="absolute inset-0 flex items-center justify-center"
+      style={{ backgroundColor: "rgba(0,0,0,0.35)", zIndex: 50 }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 12 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 400,
+          maxWidth: "calc(100% - 32px)",
+          backgroundColor: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: C.r.xl,
+          boxShadow: C.shadowMedium,
+          overflow: "hidden",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: "18px 20px 16px",
+            borderBottom: `1px solid ${C.border}`,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: C.r.md,
+                backgroundColor: C.accentLight,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+                flexShrink: 0,
+              }}
+            >
+              🍵
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, lineHeight: 1.3 }}>
+                Mud Kitchen Development
+              </div>
+              <div style={{ fontSize: 11, color: C.textTertiary, marginTop: 1 }}>
+                Support Team — typically replies in minutes
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              padding: 4,
+              borderRadius: C.r.sm,
+              color: C.textTertiary,
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Quick links */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textQuaternary, marginBottom: 8 }}>
+              Quick Links
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {quickLinks.map((link) => (
+                <div
+                  key={link.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 10px",
+                    borderRadius: C.r.md,
+                    backgroundColor: C.elevated,
+                    border: `1px solid ${C.border}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ color: C.accent, flexShrink: 0 }}>{link.icon}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: C.textPrimary }}>{link.label}</div>
+                    <div style={{ fontSize: 11, color: C.textTertiary, marginTop: 1 }}>{link.sub}</div>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textQuaternary }} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textQuaternary, marginBottom: 8 }}>
+              Contact Us
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <button
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: C.r.md,
+                  backgroundColor: C.accent,
+                  border: "none",
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Chat with support
+              </button>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 10px",
+                  borderRadius: C.r.md,
+                  border: `1px solid ${C.border}`,
+                  backgroundColor: C.elevated,
+                }}
+              >
+                <Mail className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
+                <span style={{ fontSize: 12, color: C.textSecondary }}>support@trymudkitchen.com</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Message box */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textQuaternary, marginBottom: 8 }}>
+              Send a Message
+            </div>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Describe your issue or question…"
+              rows={3}
+              style={{
+                width: "100%",
+                resize: "none",
+                padding: "8px 10px",
+                borderRadius: C.r.md,
+                border: `1px solid ${C.border}`,
+                backgroundColor: C.elevated,
+                color: C.textPrimary,
+                fontSize: 12,
+                outline: "none",
+                fontFamily: "inherit",
+                boxSizing: "border-box",
+              }}
+            />
+            <button
+              disabled={!message.trim()}
+              style={{
+                marginTop: 6,
+                width: "100%",
+                padding: "7px 12px",
+                borderRadius: C.r.md,
+                backgroundColor: message.trim() ? C.accent : C.elevated,
+                border: `1px solid ${message.trim() ? C.accent : C.border}`,
+                color: message.trim() ? "#fff" : C.textQuaternary,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: message.trim() ? "pointer" : "not-allowed",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                transition: "all 0.15s",
+              }}
+            >
+              <Send className="w-3.5 h-3.5" />
+              Send message
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 function Sidebar({
   activePage,
   onNavigate,
   isExpanded,
   onToggleExpand,
-  onToggleTheme,
-  isDark,
+  onOpenSupport,
   admissionsTab,
   onAdmissionsSubtab,
   budgetTab,
@@ -10396,8 +12399,7 @@ function Sidebar({
   onNavigate: (page: ActivePage) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onToggleTheme: () => void;
-  isDark: boolean;
+  onOpenSupport: () => void;
   admissionsTab: AdmissionsTab;
   onAdmissionsSubtab: (tab: AdmissionsTab) => void;
   budgetTab: BudgetTab;
@@ -10433,7 +12435,7 @@ function Sidebar({
         />
       </div>
 
-      {/* Theme toggle */}
+      {/* Need help? */}
       <div
         style={{
           borderBottom: `1px solid ${C.border}`,
@@ -10441,9 +12443,8 @@ function Sidebar({
         }}
       >
         <button
-          data-tour-id="theme-toggle"
-          onClick={onToggleTheme}
-          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          onClick={onOpenSupport}
+          title="Need help?"
           className="w-full flex items-center transition-colors duration-150"
           style={{
             justifyContent: isExpanded ? "flex-start" : "center",
@@ -10456,9 +12457,9 @@ function Sidebar({
             cursor: "pointer",
           }}
         >
-          {isDark ? <Sun className="w-3.5 h-3.5 flex-shrink-0" /> : <Moon className="w-3.5 h-3.5 flex-shrink-0" />}
+          <HelpCircle className="w-3.5 h-3.5 flex-shrink-0" />
           {isExpanded && (
-            <span className="text-xs font-medium">{isDark ? "Light mode" : "Dark mode"}</span>
+            <span className="text-xs font-medium">Need help?</span>
           )}
         </button>
       </div>
@@ -10719,6 +12720,64 @@ function Sidebar({
                         )}
                       </AnimatePresence>
                     )}
+                    {/* My School subtabs */}
+                    {item.key === "myschool" && isExpanded && (
+                      <AnimatePresence initial={false}>
+                        {mySchoolOpen && (
+                        <motion.div
+                          key="myschool-subtabs"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.22, ease: "easeInOut" }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <div
+                            className="flex mt-1 mb-0.5"
+                            style={{ paddingLeft: "12px" }}
+                          >
+                            <div
+                              className="flex-shrink-0"
+                              style={{
+                                width: "1px",
+                                backgroundColor: C.border,
+                                marginRight: "10px",
+                                borderRadius: "1px",
+                              }}
+                            />
+                            <div className="flex-1 space-y-0.5">
+                              {([
+                                { key: "students", label: "My Students" },
+                                { key: "programs", label: "Programs" },
+                                { key: "staff", label: "Staff" },
+                                { key: "classrooms", label: "Classrooms" },
+                              ] as { key: MySchoolTab; label: string }[]).map((sub) => {
+                                const subActive = active && mySchoolTab === sub.key;
+                                return (
+                                  <button
+                                    key={sub.key}
+                                    onClick={() => {
+                                      onNavigate("myschool");
+                                      onMySchoolSubtab(sub.key);
+                                    }}
+                                    className="w-full text-left text-xs font-medium transition-all duration-150"
+                                    style={{
+                                      padding: "5px 8px",
+                                      borderRadius: C.r.sm,
+                                      backgroundColor: subActive ? C.accentLight : "transparent",
+                                      color: subActive ? C.accent : C.textTertiary,
+                                    }}
+                                  >
+                                    {sub.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </motion.div>
+                        )}
+                      </AnimatePresence>
+                    )}
                   </div>
                 );
               })}
@@ -10810,12 +12869,14 @@ export default function AdminDashboardDemo({
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
   const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>("flows");
   const [budgetTab, setBudgetTab] = useState<BudgetTab>("overview");
+  const [mySchoolTab, setMySchoolTab] = useState<MySchoolTab>("students");
   const [isExpanded, setIsExpanded] = useState(
     defaultSidebarExpanded !== undefined ? defaultSidebarExpanded : !disableTour
   );
-  const [isDark, setIsDark] = useState(false);
+  const [isDark] = useState(false);
   C = isDark ? C_DARK : C_LIGHT;
 
+  const [showSupport, setShowSupport] = useState(false);
   const [backdropClose, setBackdropClose] = useState<(() => void) | null>(null);
   const backdropCtx = useMemo(() => ({
     openBackdrop: (onClose: () => void) => setBackdropClose(() => onClose),
@@ -10848,12 +12909,16 @@ export default function AdminDashboardDemo({
         return <PeoplePage />;
       case "programs":
         return <ProgramsPage />;
+      case "myschool":
+        return <MySchoolPage activeTab={mySchoolTab} onTabChange={setMySchoolTab} />;
       case "budget":
         return <BudgetPage activeTab={budgetTab} onTabChange={setBudgetTab} />;
       case "marketing":
         return <MarketingPage />;
       case "impersonate":
         return <ImpersonatePage />;
+      case "marketplace":
+        return <MarketplacePage />;
       default:
         return <ComingSoonPage name={PAGE_NAMES[activePage] ?? activePage} />;
     }
@@ -10913,8 +12978,8 @@ export default function AdminDashboardDemo({
         clickAnimation: true,
       },
       {
-        action: () => setActivePage("people"),
-        targetId: "nav-people",
+        action: () => setActivePage("myschool"),
+        targetId: "nav-myschool",
         holdMs: 1800,
         clickAnimation: true,
       },
@@ -10982,8 +13047,8 @@ export default function AdminDashboardDemo({
         clickAnimation: true,
       },
       {
-        action: () => setActivePage("programs"),
-        targetId: "nav-programs",
+        action: () => setActivePage("myschool"),
+        targetId: "nav-myschool",
         holdMs: 1800,
         clickAnimation: true,
       },
@@ -11098,14 +13163,18 @@ export default function AdminDashboardDemo({
           />
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {showSupport && (
+          <SupportModal key="support-modal" onClose={() => setShowSupport(false)} />
+        )}
+      </AnimatePresence>
       {!hideNav && (
         <Sidebar
           activePage={activePage}
           onNavigate={(page) => setActivePage(page)}
           isExpanded={isExpanded}
           onToggleExpand={() => setIsExpanded((v) => !v)}
-          onToggleTheme={() => setIsDark((v) => !v)}
-          isDark={isDark}
+          onOpenSupport={() => setShowSupport(true)}
           admissionsTab={admissionsTab}
           onAdmissionsSubtab={(tab) => {
             setActivePage("leads");
@@ -11115,6 +13184,11 @@ export default function AdminDashboardDemo({
           onBudgetSubtab={(tab) => {
             setActivePage("budget");
             setBudgetTab(tab);
+          }}
+          mySchoolTab={mySchoolTab}
+          onMySchoolSubtab={(tab) => {
+            setActivePage("myschool");
+            setMySchoolTab(tab);
           }}
         />
       )}

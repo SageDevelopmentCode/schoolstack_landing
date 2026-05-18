@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CalendarDays, School, LayoutDashboard, BookOpen, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, School, LayoutDashboard, BookOpen, Users, Smartphone } from "lucide-react";
 import Navbar from "@/components/sections/Navbar";
 import Footer from "@/components/sections/Footer";
 
@@ -20,9 +20,9 @@ const ParentDashboardDemo = dynamic(
   { ssr: false }
 );
 
-type TabId = "admin" | "teacher" | "parent";
+type TabId = "admin" | "teacher" | "parent" | "mobile";
 
-const TABS: { id: TabId; label: string; description: string; icon: React.ElementType }[] = [
+const TABS: { id: TabId; label: string; description: string; icon: React.ElementType; disabled?: boolean }[] = [
   {
     id: "admin",
     label: "Admin View",
@@ -40,6 +40,13 @@ const TABS: { id: TabId; label: string; description: string; icon: React.Element
     label: "Parent View",
     description: "Forms, payments, messages & daily updates",
     icon: Users,
+  },
+  {
+    id: "mobile",
+    label: "Mobile App",
+    description: "Native mobile experience for parents & teachers",
+    icon: Smartphone,
+    disabled: true,
   },
 ];
 
@@ -91,15 +98,33 @@ export default function DemoSchoolPage() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className="relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200 cursor-pointer"
+                  onClick={() => !tab.disabled && setActiveTab(tab.id)}
+                  disabled={tab.disabled}
+                  className="relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200"
                   style={{
-                    color: isActive ? "#ffffff" : "rgba(42,31,26,0.5)",
-                    backgroundColor: isActive ? "#A05C45" : "transparent",
+                    color: tab.disabled
+                      ? "rgba(42,31,26,0.3)"
+                      : isActive
+                      ? "#ffffff"
+                      : "rgba(42,31,26,0.5)",
+                    backgroundColor: isActive && !tab.disabled ? "#A05C45" : "transparent",
+                    cursor: tab.disabled ? "not-allowed" : "pointer",
                   }}
                 >
                   <tab.icon size={13} />
                   {tab.label}
+                  {tab.disabled && (
+                    <span
+                      className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold font-secondary leading-none"
+                      style={{
+                        backgroundColor: "rgba(160,92,69,0.12)",
+                        color: "#A05C45",
+                        border: "1px solid rgba(160,92,69,0.25)",
+                      }}
+                    >
+                      Coming soon
+                    </span>
+                  )}
                 </button>
               );
             })}
