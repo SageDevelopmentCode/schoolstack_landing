@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
 import ParentDashboardDemo from "./ParentDashboardDemo";
 import {
   LayoutDashboard,
@@ -48,6 +48,7 @@ import {
   Shield,
   Home,
   Pencil,
+  GripVertical,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -266,6 +267,13 @@ const DEMO_LEADS = [
     date: "Apr 7",
     message: null,
     flowId: "flow-2",
+    responses: {
+      f11: "Diana Foster",
+      f12: "diana@email.com",
+      f13: "(512) 555-0142",
+      f14: "Noah Foster",
+      f15: "5",
+    },
   },
   {
     id: "l2",
@@ -280,6 +288,18 @@ const DEMO_LEADS = [
     date: "Apr 1",
     message: "Interested in fall enrollment for my daughter in 3rd grade.",
     flowId: "flow-1",
+    responses: {
+      f1: "Robert",
+      f2: "Kim",
+      f3: "rkim@gmail.com",
+      f4: "(737) 555-0218",
+      f5: "Hannah Kim",
+      f6: "2017-01-22",
+      f7: "3rd",
+      f8: "Full Day",
+      f9: "2026-08-18",
+      f10: true,
+    },
   },
   {
     id: "l3",
@@ -294,6 +314,18 @@ const DEMO_LEADS = [
     date: "Mar 20",
     message: null,
     flowId: "flow-1",
+    responses: {
+      f1: "Priya",
+      f2: "Patel",
+      f3: "ppatel@email.com",
+      f4: "(512) 555-0391",
+      f5: "Raj Patel",
+      f6: "2018-06-04",
+      f7: "2nd",
+      f8: "Half Day",
+      f9: "2026-08-24",
+      f10: false,
+    },
   },
   {
     id: "l4",
@@ -308,6 +340,13 @@ const DEMO_LEADS = [
     date: "Apr 3",
     message: "Looking for summer options for twin boys, ages 7.",
     flowId: "flow-2",
+    responses: {
+      f11: "Mark Sullivan",
+      f12: "msullivan@email.com",
+      f13: "(737) 555-0477",
+      f14: "Alex & Ben Sullivan (twins)",
+      f15: "7",
+    },
   },
   {
     id: "l5",
@@ -322,6 +361,18 @@ const DEMO_LEADS = [
     date: "Mar 15",
     message: null,
     flowId: "flow-1",
+    responses: {
+      f1: "Claire",
+      f2: "Beaumont",
+      f3: "claire.b@email.com",
+      f4: "(512) 555-0563",
+      f5: "Lily Beaumont",
+      f6: "2019-11-30",
+      f7: "1st",
+      f8: "Full Day",
+      f9: "2026-08-10",
+      f10: false,
+    },
   },
   {
     id: "l6",
@@ -336,6 +387,18 @@ const DEMO_LEADS = [
     date: "Feb 10",
     message: null,
     flowId: "flow-1",
+    responses: {
+      f1: "Jerome",
+      f2: "Watkins",
+      f3: "jwatkins@email.com",
+      f4: "(737) 555-0649",
+      f5: "Tyler Watkins",
+      f6: "2016-04-18",
+      f7: "4th",
+      f8: "After Care",
+      f9: "2026-05-26",
+      f10: false,
+    },
   },
   {
     id: "l7",
@@ -350,6 +413,12 @@ const DEMO_LEADS = [
     date: "Apr 5",
     message: "Heard about your school from a friend. What are your rates?",
     flowId: "flow-3",
+    responses: {
+      f16: "Sandra Cho",
+      f17: "sandcho@email.com",
+      f18: "Jordan Cho",
+      f19: false,
+    },
   },
   {
     id: "l8",
@@ -364,6 +433,18 @@ const DEMO_LEADS = [
     date: "Mar 25",
     message: null,
     flowId: "flow-1",
+    responses: {
+      f1: "Luis",
+      f2: "Mendez",
+      f3: "lmendez@email.com",
+      f4: "(737) 555-0821",
+      f5: "Sofia Mendez",
+      f6: "2017-09-02",
+      f7: "3rd",
+      f8: "Full Day",
+      f9: "2026-08-17",
+      f10: true,
+    },
   },
 ];
 
@@ -413,6 +494,12 @@ const STATUS_COLORS: Record<
     border: C.purpleBorder,
     text: C.purple,
     label: "Enrolling",
+  },
+  lost: {
+    bg: C.errorBg,
+    border: C.errorBorder,
+    text: C.error,
+    label: "Lost",
   },
 };
 
@@ -2643,150 +2730,6 @@ const LEAD_TAGS = [
   "Homeschool",
 ];
 
-function LeadDetailPanel({
-  lead,
-  onClose,
-}: {
-  lead: (typeof DEMO_LEADS)[0];
-  onClose: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ x: "100%", opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: "100%", opacity: 0 }}
-      transition={{ type: "spring", damping: 28, stiffness: 300 }}
-      className="absolute top-0 right-0 bottom-0 w-80 flex flex-col overflow-hidden"
-      style={{
-        backgroundColor: C.surface,
-        borderLeft: `1px solid ${C.border}`,
-        zIndex: 10,
-      }}
-    >
-      <div
-        className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-          {lead.name}
-        </h3>
-        <button
-          onClick={onClose}
-          className="p-1 rounded"
-          style={{ color: C.textTertiary }}
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: C.textTertiary }}
-          >
-            Contact
-          </p>
-          <p className="text-sm" style={{ color: C.textSecondary }}>
-            {lead.email}
-          </p>
-          <p className="text-sm" style={{ color: C.textSecondary }}>
-            {lead.phone}
-          </p>
-        </div>
-        {lead.childName && (
-          <div>
-            <p
-              className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-              style={{ color: C.textTertiary }}
-            >
-              Child
-            </p>
-            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-              {lead.childName}
-            </p>
-            <p className="text-xs" style={{ color: C.textTertiary }}>
-              Age {lead.childAge}
-            </p>
-          </div>
-        )}
-        {lead.message && (
-          <div>
-            <p
-              className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-              style={{ color: C.textTertiary }}
-            >
-              Message
-            </p>
-            <p
-              className="text-sm leading-relaxed"
-              style={{ color: C.textSecondary }}
-            >
-              {lead.message}
-            </p>
-          </div>
-        )}
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: C.textTertiary }}
-          >
-            Status
-          </p>
-          <StatusBadge status={lead.status} />
-        </div>
-        {lead.tags.length > 0 && (
-          <div>
-            <p
-              className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-              style={{ color: C.textTertiary }}
-            >
-              Tags
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {lead.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-2 py-0.5 text-xs rounded-full"
-                  style={{ backgroundColor: C.accentLight, color: C.accent }}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: C.textTertiary }}
-          >
-            Admin Notes
-          </p>
-          <div
-            className="rounded-lg p-3 text-sm"
-            style={{
-              backgroundColor: C.elevated,
-              border: `1px solid ${C.border}`,
-              color: C.textTertiary,
-              fontStyle: "italic",
-            }}
-          >
-            Add a note...
-          </div>
-        </div>
-      </div>
-      <div className="px-5 py-4" style={{ borderTop: `1px solid ${C.border}` }}>
-        <button
-          className="w-full py-2 text-sm font-semibold rounded-lg transition-colors"
-          style={{ backgroundColor: C.accentLight, color: C.accent }}
-        >
-          Send Application Link
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
 const FLOW_FILTER_OPTIONS = [
   { id: "all", label: "All Forms" },
   { id: "flow-1", label: "Apply Now Form" },
@@ -2794,17 +2737,13 @@ const FLOW_FILTER_OPTIONS = [
   { id: "flow-3", label: "Waitlist Signup" },
 ];
 
-function LeadsListTab() {
+function LeadsListTab({
+  onSelectLead,
+}: {
+  onSelectLead: (lead: (typeof DEMO_LEADS)[0]) => void;
+}) {
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeFlowFilter, setActiveFlowFilter] = useState("all");
-  const [selectedLead, setSelectedLead] = useState<
-    (typeof DEMO_LEADS)[0] | null
-  >(null);
-  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
-  useEffect(() => {
-    if (selectedLead) openBackdrop(() => setSelectedLead(null));
-    else closeBackdrop();
-  }, [selectedLead]);
 
   const filtered = DEMO_LEADS.filter((l) => {
     const statusMatch = activeFilter === "all" || l.status === activeFilter;
@@ -2868,7 +2807,7 @@ function LeadsListTab() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -2900,7 +2839,7 @@ function LeadsListTab() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: i * 0.03 }}
-                  onClick={() => setSelectedLead(lead)}
+                  onClick={() => onSelectLead(lead)}
                   className="cursor-pointer transition-colors"
                   style={{ borderBottom: `1px solid ${C.border}` }}
                   onMouseEnter={(e) =>
@@ -2981,15 +2920,6 @@ function LeadsListTab() {
             </tbody>
           </table>
         </div>
-
-        <AnimatePresence>
-          {selectedLead && (
-            <LeadDetailPanel
-              lead={selectedLead}
-              onClose={() => setSelectedLead(null)}
-            />
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );
@@ -3121,6 +3051,650 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
   },
 ];
 
+/** Demo: submissions use the seed flow schema; a real app would load the form definition tied to each submission. */
+function getFlowForLead(flowId: string): EnrollmentFlow | undefined {
+  return INITIAL_DEMO_FLOWS.find((f) => f.id === flowId);
+}
+
+function formatSubmissionFieldAnswer(
+  field: FlowField,
+  raw: string | boolean | undefined,
+): string {
+  if (raw === undefined || raw === null) return "—";
+  if (typeof raw === "string" && raw.trim() === "") return "—";
+  if (field.type === "checkbox") {
+    if (typeof raw === "boolean") return raw ? "Yes" : "No";
+    const s = String(raw).toLowerCase();
+    if (s === "true" || s === "yes" || s === "on" || s === "1") return "Yes";
+    return "No";
+  }
+  return String(raw);
+}
+
+const SUBMISSION_STATUS_OPTIONS = [
+  "new",
+  "contacted",
+  "emailed",
+  "application_sent",
+  "enrolled",
+  "lost",
+] as const;
+
+type LeadActivityEntry = {
+  id: string;
+  at: string;
+  actor: string;
+  title: string;
+  summary: string;
+  variant: "mail" | "note" | "action";
+};
+
+type DemoActivityTimelineVariant =
+  | "attendance"
+  | "note"
+  | "event"
+  | "mail"
+  | "action";
+
+const DEMO_ACTIVITY_TIMELINE_ICONS: Record<
+  DemoActivityTimelineVariant,
+  { Icon: typeof Mail; color: string }
+> = {
+  attendance: { Icon: CalendarDays, color: "#38BDF8" },
+  note: { Icon: MessageSquare, color: "#A78BFA" },
+  event: { Icon: Zap, color: "#22C55E" },
+  mail: { Icon: Mail, color: "#0284C7" },
+  action: { Icon: Zap, color: "#16A34A" },
+};
+
+function demoActivityAuthorInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function demoActivityAuthorAvatarColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++)
+    h = (h + name.charCodeAt(i) * (i + 1)) % 360;
+  return `hsl(${h} 38% 42%)`;
+}
+
+function DemoActivityAuthorLine({ author }: { author: string }) {
+  if (!author) return null;
+  const initials = demoActivityAuthorInitials(author);
+  const color = demoActivityAuthorAvatarColor(author);
+  return (
+    <div className="mt-1 flex items-center gap-1.5">
+      <div
+        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[8px] font-bold leading-none"
+        style={{ backgroundColor: `${color}22`, color }}
+        aria-hidden
+      >
+        {initials}
+      </div>
+      <p className="text-[9px]" style={{ color: C.textTertiary }}>
+        — {author}
+      </p>
+    </div>
+  );
+}
+
+function DemoActivityTimelineRow({
+  variant,
+  title,
+  date,
+  detail,
+  author,
+  showConnectorBelow,
+}: {
+  variant: DemoActivityTimelineVariant;
+  title: string;
+  date: string;
+  detail: string;
+  author?: string;
+  showConnectorBelow: boolean;
+}) {
+  const { Icon, color } = DEMO_ACTIVITY_TIMELINE_ICONS[variant];
+  return (
+    <div className="flex gap-2.5">
+      <div className="flex flex-col items-center flex-shrink-0">
+        <div
+          className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
+          style={{ backgroundColor: color + "20" }}
+        >
+          <Icon className="h-3 w-3" style={{ color }} />
+        </div>
+        {showConnectorBelow && (
+          <div
+            className="my-0.5 min-h-[16px] w-px flex-1"
+            style={{ backgroundColor: C.border }}
+          />
+        )}
+      </div>
+      <div className="min-w-0 flex-1 pb-4">
+        <div className="mb-0.5 flex items-baseline gap-2">
+          <p
+            className="text-[11px] font-semibold"
+            style={{ color: C.textPrimary }}
+          >
+            {title}
+          </p>
+          <span
+            className="flex-shrink-0 text-[9px]"
+            style={{ color: C.textTertiary }}
+          >
+            {date}
+          </span>
+        </div>
+        <p
+          className="text-[10px] leading-relaxed"
+          style={{ color: C.textSecondary }}
+        >
+          {detail}
+        </p>
+        {author ? <DemoActivityAuthorLine author={author} /> : null}
+      </div>
+    </div>
+  );
+}
+
+function LeadDetailPanel({
+  lead,
+  onClose,
+}: {
+  lead: (typeof DEMO_LEADS)[0];
+  onClose: () => void;
+}) {
+  const flow = getFlowForLead(lead.flowId);
+  const responseMap = lead.responses as unknown as Record<string, string | boolean>;
+  const showToc = Boolean(flow && flow.steps.length > 1);
+
+  const scrollMainRef = useRef<HTMLDivElement>(null);
+  const [activeStepId, setActiveStepId] = useState<string | null>(
+    flow?.steps[0]?.id ?? null,
+  );
+  const [leadStatus, setLeadStatus] = useState(lead.status);
+  const [leadTags, setLeadTags] = useState<string[]>(() => [...lead.tags]);
+  const [tagDraft, setTagDraft] = useState("");
+  const [activity, setActivity] = useState<LeadActivityEntry[]>([]);
+
+  useEffect(() => {
+    setActiveStepId(flow?.steps[0]?.id ?? null);
+  }, [flow, lead.id]);
+
+  useEffect(() => {
+    setLeadStatus(lead.status);
+    setLeadTags([...lead.tags]);
+    setTagDraft("");
+    const statusLabel = STATUS_COLORS[lead.status]?.label ?? lead.status;
+    const initial: LeadActivityEntry[] = [
+      {
+        id: `${lead.id}-a0`,
+        at: `${lead.date} · 9:02 AM`,
+        actor: "System",
+        title: "Submission received",
+        summary: "Form submission received and queued for review.",
+        variant: "mail",
+      },
+      {
+        id: `${lead.id}-a1`,
+        at: `${lead.date} · 9:03 AM`,
+        actor: "Automation",
+        title: "Confirmation sent",
+        summary: `Confirmation email sent to ${lead.email}.`,
+        variant: "mail",
+      },
+    ];
+    if (lead.tags.length > 0) {
+      initial.push({
+        id: `${lead.id}-a2`,
+        at: `${lead.date} · 10:15 AM`,
+        actor: "Jordan M.",
+        title: "Tags updated",
+        summary: `Added tags: ${lead.tags.join(", ")}.`,
+        variant: "note",
+      });
+    }
+    if (lead.status !== "new") {
+      initial.push({
+        id: `${lead.id}-a3`,
+        at: `${lead.date} · 2:40 PM`,
+        actor: "Jordan M.",
+        title: "Status updated",
+        summary: `Status set to ${statusLabel}.`,
+        variant: "action",
+      });
+    }
+    setActivity(initial);
+  }, [lead.id, lead.date, lead.email, lead.status, lead.tags]);
+
+  useEffect(() => {
+    if (!flow || !scrollMainRef.current) return;
+    const root = scrollMainRef.current;
+    const stepIds = flow.steps.map((s) => `lead-detail-step-${lead.id}-${s.id}`);
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const hit = entries
+          .filter((e) => e.isIntersecting && e.target.id)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (hit?.target.id) {
+          const prefix = `lead-detail-step-${lead.id}-`;
+          if (hit.target.id.startsWith(prefix)) {
+            setActiveStepId(hit.target.id.slice(prefix.length));
+          }
+        }
+      },
+      { root, rootMargin: "-12% 0px -55% 0px", threshold: [0, 0.1, 0.25, 0.5, 1] },
+    );
+    stepIds.forEach((domId) => {
+      const el = document.getElementById(domId);
+      if (el) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, [flow, lead.id]);
+
+  const scrollToStep = (stepId: string) => {
+    setActiveStepId(stepId);
+    const el = document.getElementById(`lead-detail-step-${lead.id}-${stepId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const activityNow = () =>
+    new Date().toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+  const onStatusChange = (next: string) => {
+    if (next === leadStatus) return;
+    const prevLabel = STATUS_COLORS[leadStatus]?.label ?? leadStatus;
+    const nextLabel = STATUS_COLORS[next]?.label ?? next;
+    setLeadStatus(next);
+    setActivity((prev) => [
+      ...prev,
+      {
+        id: `${lead.id}-st-${Date.now()}`,
+        at: activityNow(),
+        actor: "You",
+        title: "Status updated",
+        summary: `Changed status from ${prevLabel} to ${nextLabel}.`,
+        variant: "action",
+      },
+    ]);
+  };
+
+  const addTag = () => {
+    const t = tagDraft.trim();
+    if (!t || leadTags.includes(t)) return;
+    setLeadTags((prev) => [...prev, t]);
+    setTagDraft("");
+    setActivity((prev) => [
+      ...prev,
+      {
+        id: `${lead.id}-tg-${Date.now()}`,
+        at: activityNow(),
+        actor: "You",
+        title: "Tag added",
+        summary: `Added tag “${t}”.`,
+        variant: "note",
+      },
+    ]);
+  };
+
+  const removeTag = (t: string) => {
+    setLeadTags((prev) => prev.filter((x) => x !== t));
+    setActivity((prev) => [
+      ...prev,
+      {
+        id: `${lead.id}-tr-${Date.now()}`,
+        at: activityNow(),
+        actor: "You",
+        title: "Tag removed",
+        summary: `Removed tag “${t}”.`,
+        variant: "note",
+      },
+    ]);
+  };
+
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="absolute inset-y-0 right-0 flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden rounded-none"
+      style={{
+        backgroundColor: C.surface,
+        borderLeft: `1px solid ${C.border}`,
+        boxShadow: C.shadowMedium,
+        zIndex: 15,
+      }}
+    >
+      <div
+        className="flex flex-shrink-0 items-center justify-between px-4 py-3 sm:px-5"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="min-w-0 pr-3">
+          <h3
+            className="truncate text-sm font-semibold"
+            style={{ color: C.textPrimary }}
+          >
+            {lead.name}
+          </h3>
+          <p className="mt-0.5 truncate text-xs" style={{ color: C.textTertiary }}>
+            {flow?.name ?? "Form submission"}
+            <span className="mx-1.5 opacity-50">·</span>
+            Submitted {lead.date}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-shrink-0 rounded p-1"
+          style={{ color: C.textTertiary }}
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-row overflow-hidden">
+        {showToc && flow && (
+          <nav
+            className="flex w-28 flex-shrink-0 flex-col overflow-y-auto border-r py-2 sm:w-36"
+            style={{
+              borderColor: C.border,
+              backgroundColor: C.bg,
+            }}
+            aria-label="Form sections"
+          >
+            <p
+              className="mb-1.5 px-2.5 text-[9px] font-semibold uppercase tracking-wider sm:px-3"
+              style={{ color: C.textQuaternary }}
+            >
+              Sections
+            </p>
+            {flow.steps.map((step, idx) => {
+              const isActive = activeStepId === step.id;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => scrollToStep(step.id)}
+                  className="w-full py-2 pl-2 pr-1.5 text-left text-[11px] font-medium leading-snug transition-colors sm:pl-3 sm:pr-2 sm:text-xs"
+                  style={{
+                    color: isActive ? C.accent : C.textSecondary,
+                    backgroundColor: isActive ? C.accentLight : "transparent",
+                    borderLeft: isActive ? `3px solid ${C.accent}` : "3px solid transparent",
+                  }}
+                >
+                  <span className="mr-1 font-mono text-[10px] opacity-40">
+                    {idx + 1}.
+                  </span>
+                  {step.title}
+                </button>
+              );
+            })}
+          </nav>
+        )}
+
+        <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+          <div
+            ref={scrollMainRef}
+            className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-0 sm:px-5"
+          >
+            <div
+              className="sticky top-0 z-[1] -mx-4 mb-3 border-b px-4 py-3 sm:-mx-5 sm:px-5"
+              style={{
+                backgroundColor: C.surface,
+                borderColor: C.border,
+              }}
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <label
+                    htmlFor={`lead-status-${lead.id}`}
+                    className="mb-1 block text-[10px] font-semibold uppercase tracking-widest"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Status
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      id={`lead-status-${lead.id}`}
+                      value={leadStatus}
+                      onChange={(e) => onStatusChange(e.target.value)}
+                      className="max-w-full rounded-md border py-1.5 pl-2 pr-7 text-xs font-medium outline-none"
+                      style={{
+                        backgroundColor: C.surface,
+                        borderColor: C.borderStrong,
+                        color: C.textPrimary,
+                      }}
+                    >
+                      {SUBMISSION_STATUS_OPTIONS.map((key) => (
+                        <option key={key} value={key}>
+                          {STATUS_COLORS[key]?.label ?? key}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1 sm:pl-4">
+                  <p
+                    className="mb-1 text-[10px] font-semibold uppercase tracking-widest"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Tags
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {leadTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-0.5 rounded-full border pl-2 pr-1 text-[11px] font-medium"
+                        style={{
+                          backgroundColor: C.surface,
+                          borderColor: C.border,
+                          color: C.accent,
+                        }}
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          className="rounded-full p-0.5 transition-opacity hover:opacity-70"
+                          style={{ color: C.textTertiary }}
+                          title={`Remove ${tag}`}
+                          aria-label={`Remove tag ${tag}`}
+                          onClick={() => removeTag(tag)}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                    <span className="inline-flex items-center gap-1 rounded-full border pl-1.5 pr-1 py-0.5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
+                      <input
+                        type="text"
+                        value={tagDraft}
+                        onChange={(e) => setTagDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addTag();
+                          }
+                        }}
+                        placeholder="Add tag…"
+                        className="w-24 min-w-0 border-0 bg-transparent py-0.5 text-[11px] outline-none sm:w-32"
+                        style={{ color: C.textPrimary }}
+                      />
+                      <button
+                        type="button"
+                        onClick={addTag}
+                        className="rounded-full p-1"
+                        style={{ color: C.accent, backgroundColor: C.accentLight }}
+                        title="Add tag"
+                        aria-label="Add tag"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {!flow && (
+              <p className="text-sm" style={{ color: C.textTertiary }}>
+                Form definition not found for this submission.
+              </p>
+            )}
+
+            {flow &&
+              flow.steps.map((step) => (
+                <section
+                  key={step.id}
+                  id={`lead-detail-step-${lead.id}-${step.id}`}
+                  className="scroll-mt-2 pb-6 last:pb-3"
+                >
+                  <div className="mb-3">
+                    <p
+                      className="text-xs font-semibold"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {step.title}
+                    </p>
+                    <div
+                      className="mt-1 h-px w-8 rounded-full"
+                      style={{ backgroundColor: C.accent }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {step.fields.map((field) => {
+                      const raw = responseMap[field.id];
+                      const answer = formatSubmissionFieldAnswer(field, raw);
+                      const multiline =
+                        field.type === "text" && answer.length > 80;
+                      return (
+                        <div
+                          key={field.id}
+                          className="rounded-lg px-3 py-2.5 sm:px-4 sm:py-3"
+                          style={{
+                            backgroundColor: C.surface,
+                            border: `1px solid ${C.border}`,
+                            boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
+                          }}
+                        >
+                          <p
+                            className="mb-1 text-[10px] font-semibold uppercase tracking-widest"
+                            style={{ color: C.textTertiary }}
+                          >
+                            {field.label}
+                            {field.required ? (
+                              <span style={{ color: C.textQuaternary }}> *</span>
+                            ) : null}
+                          </p>
+                          <p
+                            className={`text-sm font-medium ${
+                              multiline ? "whitespace-pre-wrap leading-relaxed" : ""
+                            }`}
+                            style={{ color: C.textPrimary }}
+                          >
+                            {answer}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+
+            {lead.message && (
+              <div className="mt-1 pb-4">
+                <p
+                  className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: C.textTertiary }}
+                >
+                  Message (inquiry)
+                </p>
+                <div
+                  className="rounded-lg border px-3 py-2.5 text-sm leading-relaxed sm:px-4 sm:py-3"
+                  style={{
+                    backgroundColor: C.surface,
+                    borderColor: C.border,
+                    color: C.textSecondary,
+                    whiteSpace: "pre-wrap",
+                    boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
+                  }}
+                >
+                  {lead.message}
+                </div>
+              </div>
+            )}
+
+            <div className="pb-3 pt-1">
+              <p
+                className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
+                style={{ color: C.textTertiary }}
+              >
+                Admin Notes
+              </p>
+              <div
+                className="rounded-lg border px-3 py-2.5 text-sm"
+                style={{
+                  backgroundColor: C.surface,
+                  borderColor: C.border,
+                  color: C.textTertiary,
+                  fontStyle: "italic",
+                  boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
+                }}
+              >
+                Add a note…
+              </div>
+            </div>
+
+            <div className="pb-6 pt-2">
+              <p
+                className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
+                style={{ color: C.textTertiary }}
+              >
+                Activity log
+              </p>
+              <div className="space-y-0">
+                {activity.map((row, i) => (
+                  <DemoActivityTimelineRow
+                    key={row.id}
+                    variant={row.variant}
+                    title={row.title}
+                    date={row.at}
+                    detail={row.summary}
+                    author={row.actor}
+                    showConnectorBelow={i < activity.length - 1}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="flex-shrink-0 px-4 py-3 sm:px-5"
+        style={{ borderTop: `1px solid ${C.border}` }}
+      >
+        <button
+          type="button"
+          className="w-full rounded-lg py-2 text-sm font-semibold transition-colors"
+          style={{ backgroundColor: C.accentLight, color: C.accent }}
+        >
+          Send Application Link
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 function getActionMeta(): Record<FlowActionType, { label: string; color: string; bgColor: string }> {
   return {
     email: { label: "Send Email", color: C.info, bgColor: C.infoBg },
@@ -3173,6 +3747,507 @@ const FLOW_FIELD_LIBRARY: FlowFieldTemplate[] = [
   { label: "Emergency contact name", type: "text", required: false },
   { label: "Emergency contact phone", type: "phone", required: false },
 ];
+
+function EnrollmentFlowEditReorderField({
+  stepId,
+  field,
+  updateField,
+  deleteField,
+}: {
+  stepId: string;
+  field: FlowField;
+  updateField: (sid: string, fid: string, patch: Partial<FlowField>) => void;
+  deleteField: (sid: string, fid: string) => void;
+}) {
+  const dragControls = useDragControls();
+
+  const controlStyle: React.CSSProperties = {
+    backgroundColor: C.surface,
+    border: `1px solid ${C.borderStrong}`,
+    color: C.textPrimary,
+    borderRadius: "5px",
+    fontSize: "13px",
+    padding: "10px 12px",
+    outline: "none",
+    width: "100%",
+    boxSizing: "border-box",
+  };
+
+  const selectStyle: React.CSSProperties = {
+    ...controlStyle,
+    cursor: "pointer",
+    appearance: "none",
+    WebkitAppearance: "none",
+    MozAppearance: "none",
+    paddingRight: "36px",
+    minHeight: "42px",
+  };
+
+  return (
+    <Reorder.Item
+      as="div"
+      value={field}
+      dragListener={false}
+      dragControls={dragControls}
+      className="flex gap-2.5 rounded-md border p-3.5"
+      style={{
+        borderColor: C.borderStrong,
+        backgroundColor: C.surface,
+        listStyle: "none",
+        cursor: "default",
+        boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
+      }}
+      layout="position"
+    >
+      <button
+        type="button"
+        aria-label="Drag to reorder"
+        title="Drag to reorder"
+        className="touch-none shrink-0 mt-1 self-start cursor-grab rounded p-1 outline-none active:cursor-grabbing"
+        style={{
+          color: C.textQuaternary,
+          backgroundColor: "transparent",
+        }}
+        onPointerDown={(e) => dragControls.start(e)}
+      >
+        <GripVertical className="h-4 w-4" strokeWidth={2} />
+      </button>
+      <div className="min-w-0 flex flex-1 flex-col gap-3">
+        <div>
+          <label
+            className="mb-1 block text-[10px] font-semibold uppercase tracking-wide"
+            style={{ color: C.textTertiary }}
+          >
+            Question / label
+          </label>
+          <input
+            type="text"
+            value={field.label}
+            onChange={(e) =>
+              updateField(stepId, field.id, { label: e.target.value })
+            }
+            placeholder="What families see on the form"
+            autoComplete="off"
+            style={controlStyle}
+          />
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="min-w-[140px] flex-1">
+            <label
+              className="mb-1 block text-[10px] font-semibold uppercase tracking-wide"
+              style={{ color: C.textTertiary }}
+            >
+              Answer type
+            </label>
+            <div className="relative w-full">
+              <select
+                value={field.type}
+                onChange={(e) =>
+                  updateField(stepId, field.id, {
+                    type: e.target.value as FlowFieldType,
+                  })
+                }
+                style={selectStyle}
+                aria-label="Answer type"
+              >
+                {FIELD_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 shrink-0"
+                style={{ color: C.textQuaternary }}
+                strokeWidth={2.25}
+              />
+            </div>
+          </div>
+
+          <div className="min-w-[180px] flex-1">
+            <span
+              className="mb-1 block text-[10px] font-semibold uppercase tracking-wide"
+              style={{ color: C.textTertiary }}
+            >
+              Require an answer?
+            </span>
+            <div
+              className="flex gap-0.5 rounded-md border p-0.5"
+              role="group"
+              aria-label="Whether this field is required"
+              style={{
+                borderColor: C.borderStrong,
+                backgroundColor: C.surface,
+              }}
+            >
+              <button
+                type="button"
+                className="flex-1 rounded px-2 py-2 text-[11px] font-semibold transition-all"
+                style={{
+                  backgroundColor: !field.required ? C.accentLight : "transparent",
+                  color: !field.required ? C.accent : C.textTertiary,
+                  border: !field.required ? `1px solid ${C.accent}` : "1px solid transparent",
+                }}
+                onClick={() =>
+                  field.required && updateField(stepId, field.id, { required: false })
+                }
+              >
+                Optional
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded px-2 py-2 text-[11px] font-semibold transition-all"
+                style={{
+                  backgroundColor: field.required ? C.errorBg : "transparent",
+                  color: field.required ? C.error : C.textTertiary,
+                  border: field.required ? `1px solid ${C.errorBorder}` : "1px solid transparent",
+                }}
+                onClick={() =>
+                  !field.required && updateField(stepId, field.id, { required: true })
+                }
+              >
+                Required
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors"
+            style={{ color: C.error }}
+            onClick={() => deleteField(stepId, field.id)}
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={2} />
+            Remove field
+          </button>
+        </div>
+      </div>
+    </Reorder.Item>
+  );
+}
+
+function EnrollmentFlowStepReorderItem({
+  step,
+  stepIdx,
+  totalSteps,
+  isSelected,
+  editingStepId,
+  setSelectedStepId,
+  setEditingStepId,
+  setPreviewStep,
+  updateStepTitle,
+  deleteStep,
+}: {
+  step: FlowStep;
+  stepIdx: number;
+  totalSteps: number;
+  isSelected: boolean;
+  editingStepId: string | null;
+  setSelectedStepId: (id: string | null) => void;
+  setEditingStepId: (id: string | null) => void;
+  setPreviewStep: (s: FlowStep | null) => void;
+  updateStepTitle: (stepId: string, title: string) => void;
+  deleteStep: (stepId: string) => void;
+}) {
+  const dragControls = useDragControls();
+  const showArrowAfter = stepIdx < totalSteps - 1;
+
+  const smallDel: React.CSSProperties = {
+    padding: "2px 6px",
+    borderRadius: C.r.sm,
+    fontSize: "11px",
+    cursor: "pointer",
+    backgroundColor: C.elevated,
+    color: C.error,
+    border: `1px solid ${C.errorBorder}`,
+  };
+
+  return (
+    <Reorder.Item
+      as="div"
+      value={step}
+      dragListener={false}
+      dragControls={dragControls}
+      className="flex shrink-0 items-start gap-2"
+      layout="position"
+      style={{ listStyle: "none" }}
+    >
+      <div className="flex shrink-0 items-start gap-1">
+        <button
+          type="button"
+          aria-label="Drag to reorder step"
+          title="Drag to reorder step"
+          className="mt-7 touch-none cursor-grab self-start rounded p-1 outline-none active:cursor-grabbing"
+          style={{ color: C.textQuaternary }}
+          onPointerDown={(e) => dragControls.start(e)}
+        >
+          <GripVertical className="h-3.5 w-3.5" strokeWidth={2} />
+        </button>
+        <div
+          className="flex shrink-0 flex-col overflow-hidden rounded-md transition-all"
+          style={{
+            width: 252,
+            backgroundColor: C.surface,
+            border: isSelected ? `2px solid ${C.accent}` : `1px solid ${C.borderStrong}`,
+            boxShadow: isSelected ? `0 0 0 3px ${C.accentLight}` : C.shadowCard,
+          }}
+          onClick={() => setSelectedStepId(isSelected ? null : step.id)}
+        >
+          <div className="h-1 w-full shrink-0" style={{ backgroundColor: C.accent }} />
+          <div
+            className="flex items-center gap-2 px-3 pb-2.5 pt-2.5"
+            style={{ borderBottom: `1px solid ${C.border}` }}
+          >
+            <span
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none"
+              style={{ backgroundColor: C.accentLight, color: C.accent }}
+            >
+              {stepIdx + 1}
+            </span>
+            <input
+              value={step.title}
+              onChange={(e) => {
+                e.stopPropagation();
+                updateStepTitle(step.id, e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="min-w-0 flex-1 border-none bg-transparent text-xs font-semibold outline-none"
+              style={{ color: C.textPrimary }}
+            />
+            <div onClick={(e) => e.stopPropagation()} className="flex shrink-0 items-center gap-0.5">
+              <button
+                type="button"
+                style={smallDel}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (editingStepId === step.id) setEditingStepId(null);
+                  deleteStep(step.id);
+                }}
+                title="Delete step"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </div>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col">
+            {step.fields.length === 0 ? (
+              <div className="px-3 py-4 text-center text-[11px] leading-snug" style={{ color: C.textTertiary }}>
+                No fields yet — use Edit Step to add suggested or custom questions.
+              </div>
+            ) : (
+              step.fields.map((field) => (
+                <div
+                  key={field.id}
+                  className="flex min-w-0 items-center justify-between gap-2 px-3 py-2"
+                  style={{ borderBottom: `1px solid ${C.border}` }}
+                >
+                  <span
+                    className="min-w-0 flex-1 truncate font-medium"
+                    style={{ color: C.textPrimary, fontSize: 12 }}
+                  >
+                    {field.label}
+                    {field.required && (
+                      <span className="text-[12px]" style={{ color: C.error }} aria-label="required">
+                        *
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold capitalize"
+                    style={{
+                      backgroundColor: C.infoBg,
+                      color: C.info,
+                    }}
+                  >
+                    {FIELD_TYPE_OPTIONS.find((o) => o.value === field.type)?.label ?? field.type}
+                  </span>
+                </div>
+              ))
+            )}
+            <div className="mt-auto flex items-center" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedStepId(step.id);
+                  setEditingStepId(step.id);
+                }}
+                className="flex flex-1 items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium transition-all"
+                style={{ color: C.accent }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.accentLight)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              >
+                <Pencil className="h-3 w-3" />
+                Edit Step
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingStepId(null);
+                  setPreviewStep(step);
+                }}
+                title="Preview step"
+                className="flex shrink-0 items-center gap-1 px-2.5 py-2.5 text-[10px] font-medium transition-all"
+                style={{ color: C.info, borderLeft: `1px solid ${C.border}` }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.infoBg)}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              >
+                <Eye className="h-3 w-3" />
+                Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {showArrowAfter && (
+        <div className="flex items-center self-center px-3" style={{ paddingTop: 28 }}>
+          <ArrowRight className="h-4 w-4 shrink-0" style={{ color: C.textQuaternary }} />
+        </div>
+      )}
+    </Reorder.Item>
+  );
+}
+
+function EnrollmentPostSubmitReorderItem({
+  action,
+  actionIdx,
+  meta,
+  updateAction,
+  deleteAction,
+  postSubmitInputStyle,
+}: {
+  action: FlowAction;
+  actionIdx: number;
+  meta: { label: string; color: string; bgColor: string };
+  updateAction: (actionId: string, patch: Partial<FlowAction>) => void;
+  deleteAction: (actionId: string) => void;
+  postSubmitInputStyle: React.CSSProperties;
+}) {
+  const dragControls = useDragControls();
+  const smallDel: React.CSSProperties = {
+    padding: "2px 6px",
+    borderRadius: C.r.sm,
+    fontSize: "11px",
+    cursor: "pointer",
+    backgroundColor: C.surface,
+    color: C.error,
+    border: `1px solid ${C.errorBorder}`,
+  };
+
+  return (
+    <Reorder.Item
+      as="div"
+      value={action}
+      dragListener={false}
+      dragControls={dragControls}
+      className="rounded-md border p-3"
+      style={{
+        borderColor: C.borderStrong,
+        backgroundColor: C.surface,
+        listStyle: "none",
+        boxShadow: "0 1px 2px rgba(17,28,22,0.05)",
+      }}
+      layout="position"
+    >
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <button
+            type="button"
+            aria-label="Drag to reorder action"
+            title="Drag to reorder"
+            className="touch-none shrink-0 cursor-grab rounded p-0.5 outline-none active:cursor-grabbing"
+            style={{ color: C.textQuaternary }}
+            onPointerDown={(e) => dragControls.start(e)}
+          >
+            <GripVertical className="h-3.5 w-3.5" strokeWidth={2} />
+          </button>
+          <span
+            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+            style={{ backgroundColor: meta.bgColor, color: meta.color }}
+          >
+            {meta.label}
+          </span>
+          <span className="text-[10px]" style={{ color: C.textTertiary }}>
+            #{actionIdx + 1}
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button type="button" style={smallDel} onClick={() => deleteAction(action.id)} title="Remove action">
+            <X className="h-2.5 w-2.5" />
+          </button>
+        </div>
+      </div>
+
+      {action.type === "email" && (
+        <div className="space-y-1.5">
+          <input
+            value={action.config.to ?? ""}
+            onChange={(e) =>
+              updateAction(action.id, { config: { ...action.config, to: e.target.value } })
+            }
+            placeholder="To: e.g. {{parent_email}}"
+            style={postSubmitInputStyle}
+          />
+          <input
+            value={action.config.subject ?? ""}
+            onChange={(e) =>
+              updateAction(action.id, { config: { ...action.config, subject: e.target.value } })
+            }
+            placeholder="Subject"
+            style={postSubmitInputStyle}
+          />
+          <textarea
+            value={action.config.body ?? ""}
+            onChange={(e) =>
+              updateAction(action.id, { config: { ...action.config, body: e.target.value } })
+            }
+            placeholder="Email body..."
+            rows={2}
+            style={{ ...postSubmitInputStyle, resize: "none" }}
+          />
+        </div>
+      )}
+      {action.type === "sms" && (
+        <input
+          value={action.config.message ?? ""}
+          onChange={(e) =>
+            updateAction(action.id, { config: { ...action.config, message: e.target.value } })
+          }
+          placeholder="SMS message..."
+          style={postSubmitInputStyle}
+        />
+      )}
+      {action.type === "redirect" && (
+        <input
+          value={action.config.url ?? ""}
+          onChange={(e) =>
+            updateAction(action.id, { config: { ...action.config, url: e.target.value } })
+          }
+          placeholder="Redirect URL (e.g. https://...)"
+          style={postSubmitInputStyle}
+        />
+      )}
+      {action.type === "tag" && (
+        <input
+          value={action.config.tag ?? ""}
+          onChange={(e) => updateAction(action.id, { config: { ...action.config, tag: e.target.value } })}
+          placeholder="Tag name"
+          style={postSubmitInputStyle}
+        />
+      )}
+      {action.type === "notify_admin" && (
+        <p className="text-[11px]" style={{ color: C.textTertiary }}>
+          An in-app notification will be sent to all admin users.
+        </p>
+      )}
+    </Reorder.Item>
+  );
+}
 
 function EnrollmentFlowsTab() {
   const [flows, setFlows] = useState<EnrollmentFlow[]>(INITIAL_DEMO_FLOWS);
@@ -3245,14 +4320,8 @@ function EnrollmentFlowsTab() {
     updateFlow((f) => ({ ...f, steps: f.steps.filter((s) => s.id !== stepId) }));
   };
 
-  const moveStep = (stepId: string, dir: -1 | 1) => {
-    updateFlow((f) => {
-      const idx = f.steps.findIndex((s) => s.id === stepId);
-      if (idx + dir < 0 || idx + dir >= f.steps.length) return f;
-      const steps = [...f.steps];
-      [steps[idx], steps[idx + dir]] = [steps[idx + dir], steps[idx]];
-      return { ...f, steps };
-    });
+  const setStepsOrder = (steps: FlowStep[]) => {
+    updateFlow((f) => ({ ...f, steps }));
   };
 
   const updateStepTitle = (stepId: string, title: string) => {
@@ -3310,17 +4379,10 @@ function EnrollmentFlowsTab() {
     }));
   };
 
-  const moveField = (stepId: string, fieldId: string, dir: -1 | 1) => {
+  const setStepFieldsOrder = (stepId: string, fields: FlowField[]) => {
     updateFlow((f) => ({
       ...f,
-      steps: f.steps.map((s) => {
-        if (s.id !== stepId) return s;
-        const idx = s.fields.findIndex((field) => field.id === fieldId);
-        if (idx + dir < 0 || idx + dir >= s.fields.length) return s;
-        const fields = [...s.fields];
-        [fields[idx], fields[idx + dir]] = [fields[idx + dir], fields[idx]];
-        return { ...s, fields };
-      }),
+      steps: f.steps.map((s) => (s.id === stepId ? { ...s, fields } : s)),
     }));
   };
 
@@ -3343,14 +4405,8 @@ function EnrollmentFlowsTab() {
     updateFlow((f) => ({ ...f, actions: f.actions.filter((a) => a.id !== actionId) }));
   };
 
-  const moveAction = (actionId: string, dir: -1 | 1) => {
-    updateFlow((f) => {
-      const idx = f.actions.findIndex((a) => a.id === actionId);
-      if (idx + dir < 0 || idx + dir >= f.actions.length) return f;
-      const actions = [...f.actions];
-      [actions[idx], actions[idx + dir]] = [actions[idx + dir], actions[idx]];
-      return { ...f, actions };
-    });
+  const setActionsOrder = (actions: FlowAction[]) => {
+    updateFlow((f) => ({ ...f, actions }));
   };
 
   const saveFlow = () => {
@@ -3370,16 +4426,17 @@ function EnrollmentFlowsTab() {
     width: "100%",
   } as React.CSSProperties;
 
-  const smallBtnStyle = (active?: boolean) => ({
-    padding: "2px 6px",
-    borderRadius: C.r.sm,
-    fontSize: "11px",
-    cursor: "pointer",
-    backgroundColor: active ? C.accentLight : C.elevated,
-    color: active ? C.accent : C.textTertiary,
-    border: `1px solid ${active ? C.accent : C.border}`,
-    transition: "all 0.15s",
-  } as React.CSSProperties);
+  const postSubmitInputStyle = {
+    backgroundColor: C.surface,
+    border: `1px solid ${C.borderStrong}`,
+    color: C.textPrimary,
+    borderRadius: "5px",
+    fontSize: "12px",
+    padding: "6px 10px",
+    outline: "none",
+    width: "100%",
+    boxSizing: "border-box" as const,
+  } as React.CSSProperties;
 
   return (
     <div className="flex h-full" style={{ overflow: "hidden" }}>
@@ -3483,193 +4540,56 @@ function EnrollmentFlowsTab() {
 
               {/* Scrollable horizontal rail */}
               <div
-                className="rounded-lg overflow-x-auto"
+                className="overflow-x-auto rounded-lg"
                 style={{
-                  backgroundImage: `radial-gradient(circle, ${C.border} 1px, transparent 1px)`,
-                  backgroundSize: "20px 20px",
-                  backgroundColor: C.elevated,
+                  backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
-                  minHeight: 340,
-                  padding: "48px 40px",
+                  minHeight: 300,
+                  padding: "28px 32px",
+                  backgroundImage: `radial-gradient(circle, ${C.border} 0.75px, transparent 0.75px)`,
+                  backgroundSize: "22px 22px",
                 }}
               >
                 <div className="flex items-start gap-0" style={{ width: "max-content" }}>
-                  {selectedFlow.steps.map((step, stepIdx) => {
-                    const isSelected = selectedStepId === step.id;
-                    return (
-                      <motion.div
-                        key={step.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: stepIdx * 0.05, duration: 0.2 }}
-                        className="flex items-start"
-                      >
-                        {/* Step card */}
-                        <div
-                          className="flex flex-col rounded-lg overflow-hidden flex-shrink-0 transition-all"
-                          style={{
-                            width: 300,
-                            backgroundColor: C.surface,
-                            border: isSelected ? `2px solid ${C.accent}` : `1px solid ${C.border}`,
-                            boxShadow: isSelected ? `0 0 0 3px ${C.accentLight}` : C.shadowCard,
-                          }}
-                          onClick={() => setSelectedStepId(isSelected ? null : step.id)}
-                        >
-                          {/* Accent top strip */}
-                          <div className="h-1.5 w-full flex-shrink-0" style={{ backgroundColor: C.accent }} />
+                  <Reorder.Group
+                    axis="x"
+                    values={selectedFlow.steps}
+                    onReorder={setStepsOrder}
+                    as="div"
+                    className="flex items-start gap-0"
+                  >
+                    {selectedFlow.steps.map((step, stepIdx) => {
+                      const isSelected = selectedStepId === step.id;
+                      return (
+                        <EnrollmentFlowStepReorderItem
+                          key={step.id}
+                          step={step}
+                          stepIdx={stepIdx}
+                          totalSteps={selectedFlow.steps.length}
+                          isSelected={isSelected}
+                          editingStepId={editingStepId}
+                          setSelectedStepId={setSelectedStepId}
+                          setEditingStepId={setEditingStepId}
+                          setPreviewStep={setPreviewStep}
+                          updateStepTitle={updateStepTitle}
+                          deleteStep={deleteStep}
+                        />
+                      );
+                    })}
+                  </Reorder.Group>
 
-                          {/* Card header */}
-                          <div
-                            className="flex items-center gap-2 px-4 pt-3.5 pb-3"
-                            style={{ borderBottom: `1px solid ${C.border}` }}
-                          >
-                            <span
-                              className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                              style={{ backgroundColor: C.accentLight, color: C.accent }}
-                            >
-                              {stepIdx + 1}
-                            </span>
-                            <input
-                              value={step.title}
-                              onChange={(e) => { e.stopPropagation(); updateStepTitle(step.id, e.target.value); }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex-1 min-w-0 text-sm font-semibold bg-transparent border-none outline-none"
-                              style={{ color: C.textPrimary }}
-                            />
-                            <div
-                              className="flex items-center gap-1 flex-shrink-0"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                style={smallBtnStyle()}
-                                onClick={() => moveStep(step.id, -1)}
-                                disabled={stepIdx === 0}
-                                title="Move left"
-                              >
-                                ←
-                              </button>
-                              <button
-                                style={smallBtnStyle()}
-                                onClick={() => moveStep(step.id, 1)}
-                                disabled={stepIdx === selectedFlow.steps.length - 1}
-                                title="Move right"
-                              >
-                                →
-                              </button>
-                              <button
-                                style={{ ...smallBtnStyle(), color: C.error, borderColor: C.errorBorder }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (editingStepId === step.id) setEditingStepId(null);
-                                  deleteStep(step.id);
-                                }}
-                                title="Delete step"
-                              >
-                                <X className="w-2.5 h-2.5" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Fields preview — read-only */}
-                          <div className="flex flex-col flex-1 min-h-0">
-                            {step.fields.length === 0 ? (
-                              <div
-                                className="px-4 py-6 text-center text-xs leading-snug"
-                                style={{ color: C.textTertiary }}
-                              >
-                                No fields yet — use Edit Step to add suggested or custom questions.
-                              </div>
-                            ) : (
-                              step.fields.map((field) => (
-                                <div
-                                  key={field.id}
-                                  className="flex items-center gap-2 px-4 py-2.5"
-                                  style={{ borderBottom: `1px solid ${C.border}` }}
-                                >
-                                  <span
-                                    className="flex-1 min-w-0 truncate font-medium"
-                                    style={{ color: C.textPrimary, fontSize: 13 }}
-                                  >
-                                    {field.label}
-                                  </span>
-                                  <span
-                                    className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold capitalize"
-                                    style={{
-                                      backgroundColor: C.infoBg,
-                                      color: C.info,
-                                    }}
-                                  >
-                                    {FIELD_TYPE_OPTIONS.find((o) => o.value === field.type)?.label ?? field.type}
-                                  </span>
-                                  <span
-                                    className="flex-shrink-0 text-[10px] font-semibold px-1"
-                                    style={{
-                                      color: field.required ? C.error : C.textTertiary,
-                                    }}
-                                  >
-                                    {field.required ? "*" : ""}
-                                  </span>
-                                </div>
-                              ))
-                            )}
-
-                            <div className="flex items-center mt-auto" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedStepId(step.id);
-                                  setEditingStepId(step.id);
-                                }}
-                                className="flex items-center gap-1.5 px-4 py-3 text-xs font-medium transition-all flex-1"
-                                style={{ color: C.accent }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.accentLight)}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                                Edit Step
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingStepId(null);
-                                  setPreviewStep(step);
-                                }}
-                                title="Preview step"
-                                className="flex items-center gap-1 px-3 py-3 text-[11px] font-medium transition-all flex-shrink-0"
-                                style={{ color: C.info, borderLeft: `1px solid ${C.border}` }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.infoBg)}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                Preview
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Arrow connector */}
-                        {stepIdx < selectedFlow.steps.length - 1 && (
-                          <div className="flex items-center self-center" style={{ paddingLeft: 20, paddingRight: 20 }}>
-                            <ArrowRight className="w-5 h-5 flex-shrink-0" style={{ color: C.textTertiary }} />
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-
-                  {/* Arrow before Add Step card */}
                   {selectedFlow.steps.length > 0 && (
-                    <div className="flex items-center self-center" style={{ paddingLeft: 20, paddingRight: 20 }}>
-                      <ArrowRight className="w-5 h-5 flex-shrink-0" style={{ color: C.textTertiary }} />
+                    <div className="flex items-center self-center px-3" style={{ paddingTop: 28 }}>
+                      <ArrowRight className="h-4 w-4 shrink-0" style={{ color: C.textQuaternary }} />
                     </div>
                   )}
 
                   {/* Add Step card */}
                   <div
-                    className="flex flex-col items-center justify-center rounded-lg cursor-pointer flex-shrink-0 transition-all gap-2"
+                    className="flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md transition-all"
                     style={{
-                      width: 160,
-                      minHeight: 140,
+                      width: 140,
+                      minHeight: 120,
                       border: `2px dashed ${C.borderStrong}`,
                       color: C.textTertiary,
                       backgroundColor: "transparent",
@@ -3686,8 +4606,8 @@ function EnrollmentFlowsTab() {
                       (e.currentTarget as HTMLElement).style.color = C.textTertiary;
                     }}
                   >
-                    <Plus className="w-5 h-5" />
-                    <span className="text-xs font-medium">Add Step</span>
+                    <Plus className="h-4 w-4" />
+                    <span className="text-[11px] font-medium">Add Step</span>
                   </div>
                 </div>
               </div>
@@ -3889,10 +4809,10 @@ function EnrollmentFlowsTab() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 12, scale: 0.99 }}
                     transition={{ type: "spring", damping: 28, stiffness: 320 }}
-                    className="rounded-xl overflow-hidden flex flex-col w-full shadow-2xl"
+                    className="flex w-full flex-col overflow-hidden rounded-lg shadow-2xl"
                     style={{
-                      maxWidth: 520,
-                      maxHeight: "min(560px, 85vh)",
+                      maxWidth: "min(760px, 94vw)",
+                      maxHeight: "min(680px, 88vh)",
                       backgroundColor: C.surface,
                       border: `1px solid ${C.border}`,
                       boxShadow: C.shadowMedium,
@@ -3900,10 +4820,10 @@ function EnrollmentFlowsTab() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div
-                      className="flex items-start justify-between gap-3 px-4 py-3 flex-shrink-0"
+                      className="flex flex-shrink-0 items-start justify-between gap-3 px-5 py-4"
                       style={{
                         borderBottom: `1px solid ${C.border}`,
-                        backgroundColor: C.elevated,
+                        backgroundColor: C.surface,
                       }}
                     >
                       <div className="min-w-0">
@@ -3914,7 +4834,7 @@ function EnrollmentFlowsTab() {
                           </span>
                         </div>
                         <p className="text-[11px]" style={{ color: C.textTertiary }}>
-                          Add suggested fields or a custom question, then reorder or tweak each field below.
+                          Add suggested fields or a custom question, then reorder by dragging the handle on each block.
                         </p>
                       </div>
                       <button
@@ -3928,141 +4848,78 @@ function EnrollmentFlowsTab() {
                       </button>
                     </div>
 
-                    <div className="px-4 py-3 flex-shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: C.textTertiary }}>
+                    <div
+                      className="flex-shrink-0 px-5 py-3"
+                      style={{ borderBottom: `1px solid ${C.border}` }}
+                    >
+                      <label className="mb-2 block text-[10px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
                         Step title
                       </label>
                       <input
                         value={editingStep.title}
                         onChange={(e) => updateStepTitle(editingStep.id, e.target.value)}
                         placeholder="Step title"
-                        style={{ ...inputStyle, fontWeight: 600, fontSize: 13 }}
+                        style={{
+                          backgroundColor: C.surface,
+                          border: `1px solid ${C.borderStrong}`,
+                          color: C.textPrimary,
+                          borderRadius: "5px",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          padding: "10px 12px",
+                          outline: "none",
+                          width: "100%",
+                          boxSizing: "border-box",
+                        }}
                       />
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 min-h-0">
+                    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
                       <div>
                         <p className="text-[11px] font-semibold mb-2" style={{ color: C.textSecondary }}>
                           Fields on this step
                         </p>
                         {editingStep.fields.length === 0 ? (
                           <div
-                            className="rounded-lg px-3 py-4 text-center text-xs leading-relaxed"
+                            className="rounded-md px-3 py-4 text-center text-xs leading-relaxed"
                             style={{
                               border: `1px dashed ${C.borderStrong}`,
                               color: C.textTertiary,
-                              backgroundColor: C.elevated,
+                              backgroundColor: C.surface,
                             }}
                           >
                             No fields yet. Add from the suggestions below or create a custom field.
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            {editingStep.fields.map((field, fieldIdx) => (
-                              <div
+                          <Reorder.Group
+                            axis="y"
+                            values={editingStep.fields}
+                            as="div"
+                            onReorder={(next) =>
+                              setStepFieldsOrder(editingStep.id, next)
+                            }
+                            className="flex flex-col gap-2"
+                          >
+                            {editingStep.fields.map((field) => (
+                              <EnrollmentFlowEditReorderField
                                 key={field.id}
-                                className="rounded-lg p-3 space-y-2"
-                                style={{
-                                  border: `1px solid ${C.border}`,
-                                  backgroundColor: C.elevated,
-                                }}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    value={field.label}
-                                    onChange={(e) =>
-                                      updateField(editingStep.id, field.id, { label: e.target.value })
-                                    }
-                                    placeholder="Question or field label"
-                                    className="flex-1 min-w-0 bg-transparent outline-none border-none font-medium"
-                                    style={{ color: C.textPrimary, fontSize: 13 }}
-                                  />
-                                  <div className="flex items-center gap-0.5 flex-shrink-0">
-                                    <button
-                                      type="button"
-                                      style={smallBtnStyle()}
-                                      disabled={fieldIdx === 0}
-                                      title="Move up"
-                                      onClick={() => moveField(editingStep.id, field.id, -1)}
-                                    >
-                                      ↑
-                                    </button>
-                                    <button
-                                      type="button"
-                                      style={smallBtnStyle()}
-                                      disabled={fieldIdx === editingStep.fields.length - 1}
-                                      title="Move down"
-                                      onClick={() => moveField(editingStep.id, field.id, 1)}
-                                    >
-                                      ↓
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <select
-                                    value={field.type}
-                                    onChange={(e) =>
-                                      updateField(editingStep.id, field.id, {
-                                        type: e.target.value as FlowFieldType,
-                                      })
-                                    }
-                                    style={{
-                                      backgroundColor: C.infoBg,
-                                      color: C.info,
-                                      border: "none",
-                                      borderRadius: C.r.sm,
-                                      fontSize: "10px",
-                                      fontWeight: 600,
-                                      padding: "4px 6px",
-                                      cursor: "pointer",
-                                      outline: "none",
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    {FIELD_TYPE_OPTIONS.map((opt) => (
-                                      <option key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <button
-                                    type="button"
-                                    title={field.required ? "Optional" : "Required"}
-                                    className="px-2 py-0.5 rounded text-[10px] font-semibold transition-all"
-                                    style={{
-                                      backgroundColor: field.required ? C.errorBg : C.surface,
-                                      color: field.required ? C.error : C.textTertiary,
-                                      border: `1px solid ${field.required ? C.errorBorder : C.border}`,
-                                    }}
-                                    onClick={() =>
-                                      updateField(editingStep.id, field.id, { required: !field.required })
-                                    }
-                                  >
-                                    {field.required ? "Required" : "Optional"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="ml-auto flex items-center gap-0.5 text-[10px] font-medium px-2 py-1 rounded-md"
-                                    style={{ color: C.error }}
-                                    onClick={() => deleteField(editingStep.id, field.id)}
-                                  >
-                                    <X className="w-3 h-3" />
-                                    Remove
-                                  </button>
-                                </div>
-                              </div>
+                                stepId={editingStep.id}
+                                field={field}
+                                updateField={updateField}
+                                deleteField={deleteField}
+                              />
                             ))}
-                          </div>
+                          </Reorder.Group>
                         )}
 
                         <button
                           type="button"
                           onClick={() => addField(editingStep.id)}
-                          className="mt-2 flex items-center gap-1.5 w-full justify-center px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-all"
                           style={{
                             border: `1px dashed ${C.borderStrong}`,
                             color: C.accent,
-                            backgroundColor: C.accentLight,
+                            backgroundColor: C.surface,
                           }}
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -4083,7 +4940,7 @@ function EnrollmentFlowsTab() {
                               key={`${tpl.label}-${tplIdx}`}
                               type="button"
                               title={tpl.label}
-                              className="px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-colors text-left leading-tight max-w-full"
+                              className="max-w-full rounded px-2.5 py-1.5 text-left text-[10px] leading-tight font-medium transition-colors"
                               style={{
                                 backgroundColor: C.surface,
                                 color: C.textSecondary,
@@ -4107,17 +4964,17 @@ function EnrollmentFlowsTab() {
                     </div>
 
                     <div
-                      className="flex justify-end gap-2 px-4 py-3 flex-shrink-0"
+                      className="flex flex-shrink-0 justify-end gap-2 px-5 py-3"
                       style={{ borderTop: `1px solid ${C.border}` }}
                     >
                       <button
                         type="button"
                         onClick={() => setEditingStepId(null)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                        className="rounded-md px-3 py-1.5 text-xs font-semibold transition-all"
                         style={{
-                          backgroundColor: C.elevated,
+                          backgroundColor: C.surface,
                           color: C.textSecondary,
-                          border: `1px solid ${C.border}`,
+                          border: `1px solid ${C.borderStrong}`,
                         }}
                       >
                         Done
@@ -4143,95 +5000,28 @@ function EnrollmentFlowsTab() {
                 </span>
               </div>
 
-              <div className="space-y-2 mb-2">
+              <Reorder.Group
+                axis="y"
+                values={selectedFlow.actions}
+                onReorder={setActionsOrder}
+                className="mb-2 flex flex-col gap-2"
+                as="div"
+              >
                 {selectedFlow.actions.map((action, actionIdx) => {
                   const meta = ACTION_META[action.type];
                   return (
-                    <div
+                    <EnrollmentPostSubmitReorderItem
                       key={action.id}
-                      className="rounded-lg p-3"
-                      style={{ border: `1px solid ${C.border}`, backgroundColor: C.elevated }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
-                            style={{ backgroundColor: meta.bgColor, color: meta.color }}
-                          >
-                            {meta.label}
-                          </span>
-                          <span className="text-[10px]" style={{ color: C.textTertiary }}>
-                            #{actionIdx + 1}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-0.5">
-                          <button style={smallBtnStyle()} onClick={() => moveAction(action.id, -1)} disabled={actionIdx === 0}>↑</button>
-                          <button style={smallBtnStyle()} onClick={() => moveAction(action.id, 1)} disabled={actionIdx === selectedFlow.actions.length - 1}>↓</button>
-                          <button
-                            style={{ ...smallBtnStyle(), color: C.error, borderColor: C.errorBorder }}
-                            onClick={() => deleteAction(action.id)}
-                          >
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {action.type === "email" && (
-                        <div className="space-y-1.5">
-                          <input
-                            value={action.config.to ?? ""}
-                            onChange={(e) => updateAction(action.id, { config: { ...action.config, to: e.target.value } })}
-                            placeholder="To: e.g. {{parent_email}}"
-                            style={inputStyle}
-                          />
-                          <input
-                            value={action.config.subject ?? ""}
-                            onChange={(e) => updateAction(action.id, { config: { ...action.config, subject: e.target.value } })}
-                            placeholder="Subject"
-                            style={inputStyle}
-                          />
-                          <textarea
-                            value={action.config.body ?? ""}
-                            onChange={(e) => updateAction(action.id, { config: { ...action.config, body: e.target.value } })}
-                            placeholder="Email body..."
-                            rows={2}
-                            style={{ ...inputStyle, resize: "none" }}
-                          />
-                        </div>
-                      )}
-                      {action.type === "sms" && (
-                        <input
-                          value={action.config.message ?? ""}
-                          onChange={(e) => updateAction(action.id, { config: { ...action.config, message: e.target.value } })}
-                          placeholder="SMS message..."
-                          style={inputStyle}
-                        />
-                      )}
-                      {action.type === "redirect" && (
-                        <input
-                          value={action.config.url ?? ""}
-                          onChange={(e) => updateAction(action.id, { config: { ...action.config, url: e.target.value } })}
-                          placeholder="Redirect URL (e.g. https://...)"
-                          style={inputStyle}
-                        />
-                      )}
-                      {action.type === "tag" && (
-                        <input
-                          value={action.config.tag ?? ""}
-                          onChange={(e) => updateAction(action.id, { config: { ...action.config, tag: e.target.value } })}
-                          placeholder="Tag name"
-                          style={inputStyle}
-                        />
-                      )}
-                      {action.type === "notify_admin" && (
-                        <p className="text-[11px]" style={{ color: C.textTertiary }}>
-                          An in-app notification will be sent to all admin users.
-                        </p>
-                      )}
-                    </div>
+                      action={action}
+                      actionIdx={actionIdx}
+                      meta={meta}
+                      updateAction={updateAction}
+                      deleteAction={deleteAction}
+                      postSubmitInputStyle={postSubmitInputStyle}
+                    />
                   );
                 })}
-              </div>
+              </Reorder.Group>
 
               {/* Add action pills */}
               <div className="flex flex-wrap gap-1.5">
@@ -4267,6 +5057,19 @@ function EnrollmentFlowsTab() {
 type AdmissionsTab = "flows" | "submissions" | "applications";
 
 function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; onTabChange: (tab: AdmissionsTab) => void }) {
+  const [selectedLead, setSelectedLead] = useState<(typeof DEMO_LEADS)[0] | null>(null);
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+
+  useEffect(() => {
+    if (activeTab !== "submissions") {
+      setSelectedLead(null);
+      closeBackdrop();
+      return;
+    }
+    if (selectedLead) openBackdrop(() => setSelectedLead(null));
+    else closeBackdrop();
+  }, [activeTab, selectedLead, openBackdrop, closeBackdrop]);
+
   const tabs: { key: AdmissionsTab; label: string }[] = [
     { key: "flows", label: "Enrollment Flows" },
     { key: "submissions", label: "Submissions" },
@@ -4274,10 +5077,10 @@ function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; 
   ];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="relative flex h-full min-h-0 flex-col">
       {/* Tab bar flush at top */}
       <div
-        className="flex gap-0 px-6 flex-shrink-0"
+        className="flex flex-shrink-0 gap-0 px-6"
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
         {tabs.map((tab) => (
@@ -4297,7 +5100,7 @@ function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; 
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <AnimatePresence mode="wait">
           {activeTab === "flows" && (
             <motion.div key="flows" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
@@ -4306,7 +5109,7 @@ function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; 
           )}
           {activeTab === "submissions" && (
             <motion.div key="submissions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-              <LeadsListTab />
+              <LeadsListTab onSelectLead={setSelectedLead} />
             </motion.div>
           )}
           {activeTab === "applications" && (
@@ -4316,6 +5119,15 @@ function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; 
           )}
         </AnimatePresence>
       </div>
+      <AnimatePresence>
+        {activeTab === "submissions" && selectedLead && (
+          <LeadDetailPanel
+            key={selectedLead.id}
+            lead={selectedLead}
+            onClose={() => setSelectedLead(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -6421,46 +7233,22 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
               </p>
               <div className="space-y-0">
                 {student.activityLog.map((entry, i) => {
-                  const logColor =
-                    entry.type === "attendance" ? "#38BDF8"
-                    : entry.type === "note" ? "#A78BFA"
-                    : "#22C55E";
-                  const LogIcon =
-                    entry.type === "attendance" ? CalendarDays
-                    : entry.type === "note" ? MessageSquare
-                    : Zap;
+                  const variant: DemoActivityTimelineVariant =
+                    entry.type === "attendance"
+                      ? "attendance"
+                      : entry.type === "note"
+                        ? "note"
+                        : "event";
                   return (
-                    <div key={i} className="flex gap-2.5">
-                      <div className="flex flex-col items-center flex-shrink-0">
-                        <div
-                          className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                          style={{ backgroundColor: logColor + "20" }}
-                        >
-                          <LogIcon className="w-3 h-3" style={{ color: logColor }} />
-                        </div>
-                        {i < student.activityLog.length - 1 && (
-                          <div className="w-px flex-1 min-h-[16px] my-0.5" style={{ backgroundColor: C.border }} />
-                        )}
-                      </div>
-                      <div className="pb-4 min-w-0 flex-1">
-                        <div className="flex items-baseline gap-2 mb-0.5">
-                          <p className="text-[11px] font-semibold" style={{ color: C.textPrimary }}>
-                            {entry.title}
-                          </p>
-                          <span className="text-[9px] flex-shrink-0" style={{ color: C.textTertiary }}>
-                            {entry.date}
-                          </span>
-                        </div>
-                        <p className="text-[10px] leading-relaxed" style={{ color: C.textSecondary }}>
-                          {entry.detail}
-                        </p>
-                        {entry.author && (
-                          <p className="text-[9px] mt-0.5" style={{ color: C.textTertiary }}>
-                            — {entry.author}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                    <DemoActivityTimelineRow
+                      key={i}
+                      variant={variant}
+                      title={entry.title}
+                      date={entry.date}
+                      detail={entry.detail}
+                      author={entry.author}
+                      showConnectorBelow={i < student.activityLog.length - 1}
+                    />
                   );
                 })}
               </div>
