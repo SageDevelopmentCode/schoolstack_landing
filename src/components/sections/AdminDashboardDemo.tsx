@@ -8224,18 +8224,11 @@ function StudentsPage() {
         className="w-64 flex-shrink-0 flex flex-col overflow-hidden"
         style={{ borderRight: `1px solid ${C.border}` }}
       >
-        {/* Header + search */}
+        {/* Search */}
         <div
-          className="px-4 py-3 flex-shrink-0 space-y-2"
+          className="px-3 py-2 flex-shrink-0"
           style={{ borderBottom: `1px solid ${C.border}` }}
         >
-          <PageHeader
-            icon="👧"
-            title="Students"
-            subtitle={`${DEMO_STUDENTS_P2.length} enrolled`}
-            tip="Your roster hub — search by name, then click a student to see their profile, billing, and health info."
-            className="mb-0 space-y-2"
-          />
           <div
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
             style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
@@ -14881,7 +14874,7 @@ export default function AdminDashboardDemo({
                 activePage === "messages" || activePage === "calendar" || activePage === "impersonate" ||
                 activePage === "leads" || activePage === "people" ||
                 activePage === "transactions" || activePage === "emails" ||
-                activePage === "marketing"
+                activePage === "marketing" || activePage === "myschool"
                   ? ""
                   : "max-w-screen-xl mx-auto p-6"
               }`}
