@@ -47,6 +47,8 @@ import {
   Home,
   Pencil,
   GripVertical,
+  Tag,
+  Bell,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -4002,14 +4004,110 @@ function LeadDetailPanel({
   );
 }
 
-function getActionMeta(): Record<FlowActionType, { label: string; color: string; bgColor: string }> {
+type PostSubmitActionMeta = {
+  label: string;
+  color: string;
+  bgColor: string;
+  description: string;
+  Icon: typeof Mail;
+};
+
+const FLOW_ACTION_TYPES: FlowActionType[] = [
+  "email",
+  "sms",
+  "redirect",
+  "tag",
+  "notify_admin",
+];
+
+function getActionMeta(): Record<FlowActionType, PostSubmitActionMeta> {
   return {
-    email: { label: "Send Email", color: C.info, bgColor: C.infoBg },
-    sms: { label: "Send SMS", color: C.success, bgColor: C.successBg },
-    redirect: { label: "Redirect", color: C.warning, bgColor: C.warningBg },
-    tag: { label: "Add Tag", color: C.purple, bgColor: C.purpleBg },
-    notify_admin: { label: "Notify Admin", color: C.accent, bgColor: C.accentLight },
+    email: {
+      label: "Send Email",
+      color: C.info,
+      bgColor: C.infoBg,
+      description: "Email a confirmation to the family",
+      Icon: Mail,
+    },
+    sms: {
+      label: "Send SMS",
+      color: C.success,
+      bgColor: C.successBg,
+      description: "Text message to the parent",
+      Icon: MessageSquare,
+    },
+    redirect: {
+      label: "Redirect",
+      color: C.warning,
+      bgColor: C.warningBg,
+      description: "Send families to a thank-you page",
+      Icon: ArrowRight,
+    },
+    tag: {
+      label: "Add Tag",
+      color: C.purple,
+      bgColor: C.purpleBg,
+      description: "Tag the lead for follow-up",
+      Icon: Tag,
+    },
+    notify_admin: {
+      label: "Notify Admin",
+      color: C.accent,
+      bgColor: C.accentLight,
+      description: "Alert your team in the dashboard",
+      Icon: Bell,
+    },
   };
+}
+
+function truncateSummary(text: string, max: number) {
+  return text.length <= max ? text : `${text.slice(0, max)}…`;
+}
+
+function getPostSubmitActionSummary(action: FlowAction): string {
+  switch (action.type) {
+    case "email":
+      return action.config.subject?.trim() || "No subject";
+    case "sms":
+      return action.config.message?.trim()
+        ? truncateSummary(action.config.message.trim(), 48)
+        : "No message";
+    case "redirect": {
+      const url = action.config.url?.trim();
+      if (!url) return "No URL set";
+      try {
+        return new URL(url).hostname || url;
+      } catch {
+        return truncateSummary(url, 40);
+      }
+    }
+    case "tag":
+      return action.config.tag?.trim()
+        ? `Tag: ${action.config.tag.trim()}`
+        : "No tag set";
+    case "notify_admin":
+      return "Notifies all admins";
+  }
+}
+
+function PostSubmitLabeledField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label
+        className="mb-1 block text-[10px] font-medium"
+        style={{ color: C.textTertiary }}
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  );
 }
 
 const FIELD_TYPE_OPTIONS: { value: FlowFieldType; label: string }[] = [
@@ -4423,28 +4521,29 @@ function EnrollmentFlowStepReorderItem({
 function EnrollmentPostSubmitReorderItem({
   action,
   actionIdx,
+  totalActions,
   meta,
+  isExpanded,
+  onToggleExpand,
   updateAction,
   deleteAction,
   postSubmitInputStyle,
 }: {
   action: FlowAction;
   actionIdx: number;
-  meta: { label: string; color: string; bgColor: string };
+  totalActions: number;
+  meta: PostSubmitActionMeta;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
   updateAction: (actionId: string, patch: Partial<FlowAction>) => void;
   deleteAction: (actionId: string) => void;
   postSubmitInputStyle: React.CSSProperties;
 }) {
+  const [hovered, setHovered] = useState(false);
   const dragControls = useDragControls();
-  const smallDel: React.CSSProperties = {
-    padding: "2px 6px",
-    borderRadius: C.r.sm,
-    fontSize: "11px",
-    cursor: "pointer",
-    backgroundColor: C.surface,
-    color: C.error,
-    border: `1px solid ${C.errorBorder}`,
-  };
+  const summary = getPostSubmitActionSummary(action);
+  const Icon = meta.Icon;
+  const isLast = actionIdx === totalActions - 1;
 
   return (
     <Reorder.Item
@@ -4452,106 +4551,249 @@ function EnrollmentPostSubmitReorderItem({
       value={action}
       dragListener={false}
       dragControls={dragControls}
-      className="rounded-md border p-3"
-      style={{
-        borderColor: C.borderStrong,
-        backgroundColor: C.surface,
-        listStyle: "none",
-        boxShadow: "0 1px 2px rgba(17,28,22,0.05)",
-      }}
+      className="relative flex gap-3"
+      style={{ listStyle: "none" }}
       layout="position"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <button
-            type="button"
-            aria-label="Drag to reorder action"
-            title="Drag to reorder"
-            className="touch-none shrink-0 cursor-grab rounded p-0.5 outline-none active:cursor-grabbing"
-            style={{ color: C.textQuaternary }}
-            onPointerDown={(e) => dragControls.start(e)}
-          >
-            <GripVertical className="h-3.5 w-3.5" strokeWidth={2} />
-          </button>
-          <span
-            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-            style={{ backgroundColor: meta.bgColor, color: meta.color }}
-          >
-            {meta.label}
-          </span>
-          <span className="text-[10px]" style={{ color: C.textTertiary }}>
-            #{actionIdx + 1}
-          </span>
+      <div className="flex w-6 flex-shrink-0 flex-col items-center">
+        <div
+          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none"
+          style={{
+            backgroundColor: C.accentLight,
+            color: C.accent,
+            border: `2px solid ${C.accent}`,
+          }}
+        >
+          {actionIdx + 1}
         </div>
-        <div className="flex shrink-0 items-center gap-0.5">
-          <button type="button" style={smallDel} onClick={() => deleteAction(action.id)} title="Remove action">
-            <X className="h-2.5 w-2.5" />
-          </button>
-        </div>
+        {!isLast && (
+          <div
+            className="mt-1 w-px flex-1 min-h-[12px]"
+            style={{ backgroundColor: C.border }}
+          />
+        )}
       </div>
 
-      {action.type === "email" && (
-        <div className="space-y-1.5">
-          <input
-            value={action.config.to ?? ""}
-            onChange={(e) =>
-              updateAction(action.id, { config: { ...action.config, to: e.target.value } })
-            }
-            placeholder="To: e.g. {{parent_email}}"
-            style={postSubmitInputStyle}
-          />
-          <input
-            value={action.config.subject ?? ""}
-            onChange={(e) =>
-              updateAction(action.id, { config: { ...action.config, subject: e.target.value } })
-            }
-            placeholder="Subject"
-            style={postSubmitInputStyle}
-          />
-          <textarea
-            value={action.config.body ?? ""}
-            onChange={(e) =>
-              updateAction(action.id, { config: { ...action.config, body: e.target.value } })
-            }
-            placeholder="Email body..."
-            rows={2}
-            style={{ ...postSubmitInputStyle, resize: "none" }}
-          />
+      <div className="mb-3 min-w-0 flex-1">
+        <div
+          className="overflow-hidden rounded-sm"
+          style={{
+            backgroundColor: C.surface,
+            border: `1px solid ${isExpanded ? C.accent : C.border}`,
+            boxShadow: isExpanded ? `0 0 0 2px ${C.accentLight}` : C.shadowCard,
+          }}
+        >
+          <div className="flex w-full items-center gap-2 px-3 py-2.5">
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className="flex min-w-0 flex-1 items-center gap-3 text-left outline-none"
+            >
+              <div
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-sm"
+                style={{ backgroundColor: meta.bgColor, color: meta.color }}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div
+                  className="text-[11px] font-semibold"
+                  style={{ color: C.textPrimary }}
+                >
+                  {meta.label}
+                </div>
+                {!isExpanded && (
+                  <div
+                    className="mt-0.5 truncate text-[10px]"
+                    style={{ color: C.textTertiary }}
+                  >
+                    {summary}
+                  </div>
+                )}
+              </div>
+            </button>
+            <div className="flex flex-shrink-0 items-center gap-0.5">
+              <button
+                type="button"
+                aria-label="Drag to reorder action"
+                title="Drag to reorder"
+                className="touch-none cursor-grab rounded p-1 outline-none active:cursor-grabbing"
+                style={{ color: C.textQuaternary }}
+                onPointerDown={(e) => dragControls.start(e)}
+              >
+                <GripVertical className="h-3.5 w-3.5" strokeWidth={2} />
+              </button>
+              {hovered && (
+                <button
+                  type="button"
+                  aria-label="Remove action"
+                  title="Remove action"
+                  onClick={() => deleteAction(action.id)}
+                  className="flex h-5 w-5 items-center justify-center rounded-full"
+                  style={{ backgroundColor: C.errorBg, color: C.error }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+              <button
+                type="button"
+                aria-label={isExpanded ? "Collapse action" : "Expand action"}
+                onClick={onToggleExpand}
+                className="rounded p-1 outline-none"
+                style={{ color: C.textTertiary }}
+              >
+                <ChevronDown
+                  className="h-4 w-4 transition-transform duration-150"
+                  style={{
+                    transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
+              </button>
+            </div>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="overflow-hidden"
+              >
+                <div
+                  className="space-y-3 px-3 pb-3 pt-2"
+                  style={{
+                    borderTop: `1px solid ${C.border}`,
+                    backgroundColor: C.elevated,
+                  }}
+                >
+                  {action.type === "email" && (
+                    <>
+                      <PostSubmitLabeledField label="To">
+                        <input
+                          value={action.config.to ?? ""}
+                          onChange={(e) =>
+                            updateAction(action.id, {
+                              config: { ...action.config, to: e.target.value },
+                            })
+                          }
+                          placeholder="e.g. {{parent_email}}"
+                          style={postSubmitInputStyle}
+                        />
+                      </PostSubmitLabeledField>
+                      <PostSubmitLabeledField label="Subject">
+                        <input
+                          value={action.config.subject ?? ""}
+                          onChange={(e) =>
+                            updateAction(action.id, {
+                              config: { ...action.config, subject: e.target.value },
+                            })
+                          }
+                          placeholder="Application received"
+                          style={postSubmitInputStyle}
+                        />
+                      </PostSubmitLabeledField>
+                      <PostSubmitLabeledField label="Message">
+                        <textarea
+                          value={action.config.body ?? ""}
+                          onChange={(e) =>
+                            updateAction(action.id, {
+                              config: { ...action.config, body: e.target.value },
+                            })
+                          }
+                          placeholder="Thank you for applying…"
+                          rows={3}
+                          style={{ ...postSubmitInputStyle, resize: "vertical" }}
+                        />
+                      </PostSubmitLabeledField>
+                    </>
+                  )}
+                  {action.type === "sms" && (
+                    <PostSubmitLabeledField label="Message">
+                      <textarea
+                        value={action.config.message ?? ""}
+                        onChange={(e) =>
+                          updateAction(action.id, {
+                            config: { ...action.config, message: e.target.value },
+                          })
+                        }
+                        placeholder="Hi! Thanks for your application…"
+                        rows={3}
+                        style={{ ...postSubmitInputStyle, resize: "vertical" }}
+                      />
+                    </PostSubmitLabeledField>
+                  )}
+                  {action.type === "redirect" && (
+                    <PostSubmitLabeledField label="Redirect URL">
+                      <input
+                        value={action.config.url ?? ""}
+                        onChange={(e) =>
+                          updateAction(action.id, {
+                            config: { ...action.config, url: e.target.value },
+                          })
+                        }
+                        placeholder="https://yourschool.com/thank-you"
+                        style={postSubmitInputStyle}
+                      />
+                      <p
+                        className="mt-1 text-[10px] leading-snug"
+                        style={{ color: C.textTertiary }}
+                      >
+                        Families will be sent to this page after submitting the form.
+                      </p>
+                    </PostSubmitLabeledField>
+                  )}
+                  {action.type === "tag" && (
+                    <PostSubmitLabeledField label="Tag name">
+                      <input
+                        value={action.config.tag ?? ""}
+                        onChange={(e) =>
+                          updateAction(action.id, {
+                            config: { ...action.config, tag: e.target.value },
+                          })
+                        }
+                        placeholder="e.g. Waitlist 2026"
+                        style={postSubmitInputStyle}
+                      />
+                    </PostSubmitLabeledField>
+                  )}
+                  {action.type === "notify_admin" && (
+                    <div
+                      className="flex items-start gap-2.5 rounded-sm px-3 py-2.5"
+                      style={{
+                        backgroundColor: C.surface,
+                        border: `1px solid ${C.border}`,
+                      }}
+                    >
+                      <Bell
+                        className="mt-0.5 h-4 w-4 flex-shrink-0"
+                        style={{ color: C.accent }}
+                      />
+                      <div>
+                        <p
+                          className="text-[11px] font-medium"
+                          style={{ color: C.textPrimary }}
+                        >
+                          Admin notification
+                        </p>
+                        <p
+                          className="mt-0.5 text-[10px] leading-snug"
+                          style={{ color: C.textTertiary }}
+                        >
+                          {meta.description}. No extra configuration needed.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      )}
-      {action.type === "sms" && (
-        <input
-          value={action.config.message ?? ""}
-          onChange={(e) =>
-            updateAction(action.id, { config: { ...action.config, message: e.target.value } })
-          }
-          placeholder="SMS message..."
-          style={postSubmitInputStyle}
-        />
-      )}
-      {action.type === "redirect" && (
-        <input
-          value={action.config.url ?? ""}
-          onChange={(e) =>
-            updateAction(action.id, { config: { ...action.config, url: e.target.value } })
-          }
-          placeholder="Redirect URL (e.g. https://...)"
-          style={postSubmitInputStyle}
-        />
-      )}
-      {action.type === "tag" && (
-        <input
-          value={action.config.tag ?? ""}
-          onChange={(e) => updateAction(action.id, { config: { ...action.config, tag: e.target.value } })}
-          placeholder="Tag name"
-          style={postSubmitInputStyle}
-        />
-      )}
-      {action.type === "notify_admin" && (
-        <p className="text-[11px]" style={{ color: C.textTertiary }}>
-          An in-app notification will be sent to all admin users.
-        </p>
-      )}
+      </div>
     </Reorder.Item>
   );
 }
@@ -4563,9 +4805,13 @@ function EnrollmentFlowsTab() {
   const [savedPulse, setSavedPulse] = useState(false);
   const [previewStep, setPreviewStep] = useState<FlowStep | null>(null);
   const [editingStepId, setEditingStepId] = useState<string | null>(null);
+  const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
+  const [showAddActionPicker, setShowAddActionPicker] = useState(false);
 
   useEffect(() => {
     setEditingStepId(null);
+    setExpandedActionId(null);
+    setShowAddActionPicker(false);
   }, [selectedFlowId]);
 
   const ACTION_META = getActionMeta();
@@ -4699,6 +4945,8 @@ function EnrollmentFlowsTab() {
       ...f,
       actions: [...f.actions, { id, type, config: {} }],
     }));
+    setExpandedActionId(id);
+    setShowAddActionPicker(false);
   };
 
   const updateAction = (actionId: string, patch: Partial<FlowAction>) => {
@@ -4710,6 +4958,7 @@ function EnrollmentFlowsTab() {
 
   const deleteAction = (actionId: string) => {
     updateFlow((f) => ({ ...f, actions: f.actions.filter((a) => a.id !== actionId) }));
+    setExpandedActionId((prev) => (prev === actionId ? null : prev));
   };
 
   const setActionsOrder = (actions: FlowAction[]) => {
@@ -4757,18 +5006,18 @@ function EnrollmentFlowsTab() {
         }}
       >
         <div
-          className="flex items-center justify-between px-3 py-3"
+          className="flex h-14 flex-shrink-0 items-center justify-between px-3"
           style={{ borderBottom: `1px solid ${C.border}` }}
         >
-          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
-            Flow Templates
+          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+            Flow templates
           </span>
           <button
             onClick={addFlow}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all"
+            className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-xs font-semibold transition-all"
             style={{ backgroundColor: C.accentLight, color: C.accent }}
           >
-            <Plus className="w-3 h-3" />
+            <Plus className="w-3.5 h-3.5" />
             New
           </button>
         </div>
@@ -4801,32 +5050,6 @@ function EnrollmentFlowsTab() {
       {/* Right panel — flow editor */}
       {selectedFlow ? (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Editor header */}
-          <div
-            className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-            style={{ borderBottom: `1px solid ${C.border}` }}
-          >
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <input
-                value={selectedFlow.name}
-                onChange={(e) => updateFlow((f) => ({ ...f, name: e.target.value }))}
-                className="text-sm font-semibold bg-transparent border-none outline-none flex-1 min-w-0"
-                style={{ color: C.textPrimary }}
-              />
-            </div>
-            <button
-              onClick={saveFlow}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-sm transition-all flex-shrink-0"
-              style={{
-                backgroundColor: savedPulse ? C.success : C.accent,
-                color: "#fff",
-              }}
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              {savedPulse ? "Saved!" : "Save Template"}
-            </button>
-          </div>
-
           {/* Scrollable editor body */}
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
@@ -5294,62 +5517,182 @@ function EnrollmentFlowsTab() {
 
             {/* Post-Submit Actions section */}
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Zap className="w-4 h-4" style={{ color: C.warning }} />
+              <div className="mb-1 flex items-center gap-2">
+                <Zap className="h-4 w-4" style={{ color: C.warning }} />
                 <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
                   Post-Submit Actions
                 </span>
                 <span
-                  className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
+                  className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
                   style={{ backgroundColor: C.warningBg, color: C.warning }}
                 >
                   {selectedFlow.actions.length}
                 </span>
               </div>
+              <p className="mb-4 text-[11px] leading-snug" style={{ color: C.textTertiary }}>
+                These run automatically in order when a family submits the form.
+              </p>
 
-              <Reorder.Group
-                axis="y"
-                values={selectedFlow.actions}
-                onReorder={setActionsOrder}
-                className="mb-2 flex flex-col gap-2"
-                as="div"
-              >
-                {selectedFlow.actions.map((action, actionIdx) => {
-                  const meta = ACTION_META[action.type];
-                  return (
-                    <EnrollmentPostSubmitReorderItem
-                      key={action.id}
-                      action={action}
-                      actionIdx={actionIdx}
-                      meta={meta}
-                      updateAction={updateAction}
-                      deleteAction={deleteAction}
-                      postSubmitInputStyle={postSubmitInputStyle}
-                    />
-                  );
-                })}
-              </Reorder.Group>
+              {selectedFlow.actions.length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center rounded-sm py-10"
+                  style={{ border: `2px dashed ${C.border}`, color: C.textTertiary }}
+                >
+                  <Zap className="mb-2 h-6 w-6 opacity-40" />
+                  <p className="mb-3 text-[11px]">No post-submit actions yet.</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddActionPicker(true)}
+                    className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+                    style={{
+                      backgroundColor: C.accentLight,
+                      color: C.accent,
+                      border: `1px solid ${C.accent}`,
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add first action
+                  </button>
+                </div>
+              ) : (
+                <Reorder.Group
+                  axis="y"
+                  values={selectedFlow.actions}
+                  onReorder={setActionsOrder}
+                  className="flex flex-col"
+                  as="div"
+                >
+                  {selectedFlow.actions.map((action, actionIdx) => {
+                    const meta = ACTION_META[action.type];
+                    return (
+                      <EnrollmentPostSubmitReorderItem
+                        key={action.id}
+                        action={action}
+                        actionIdx={actionIdx}
+                        totalActions={selectedFlow.actions.length}
+                        meta={meta}
+                        isExpanded={expandedActionId === action.id}
+                        onToggleExpand={() =>
+                          setExpandedActionId((prev) =>
+                            prev === action.id ? null : action.id
+                          )
+                        }
+                        updateAction={updateAction}
+                        deleteAction={deleteAction}
+                        postSubmitInputStyle={postSubmitInputStyle}
+                      />
+                    );
+                  })}
+                </Reorder.Group>
+              )}
 
-              {/* Add action pills */}
-              <div className="flex flex-wrap gap-1.5">
-                {(["email", "sms", "redirect", "tag", "notify_admin"] as FlowActionType[]).map((type) => {
-                  const meta = ACTION_META[type];
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => addAction(type)}
-                      className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition-all"
-                      style={{ backgroundColor: meta.bgColor, color: meta.color, border: `1px solid transparent` }}
-                      onMouseEnter={(e) => (e.currentTarget.style.border = `1px solid ${meta.color}`)}
-                      onMouseLeave={(e) => (e.currentTarget.style.border = `1px solid transparent`)}
+              <AnimatePresence initial={false}>
+                {showAddActionPicker && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className={`overflow-hidden ${selectedFlow.actions.length > 0 ? "mt-2" : "mt-0"}`}
+                  >
+                    <div
+                      className="grid grid-cols-2 gap-1.5 rounded-sm p-2 sm:grid-cols-3"
+                      style={{
+                        backgroundColor: C.elevated,
+                        border: `1px solid ${C.border}`,
+                      }}
                     >
-                      <Plus className="w-3 h-3" />
-                      {meta.label}
-                    </button>
-                  );
-                })}
-              </div>
+                      {FLOW_ACTION_TYPES.map((type) => {
+                        const meta = ACTION_META[type];
+                        const TypeIcon = meta.Icon;
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => addAction(type)}
+                            className="flex flex-col items-center gap-1.5 rounded-sm px-2 py-2.5 text-center transition-all"
+                            style={{
+                              backgroundColor: C.surface,
+                              border: `1px solid ${C.border}`,
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = meta.color;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = C.border;
+                            }}
+                          >
+                            <div
+                              className="flex h-8 w-8 items-center justify-center rounded-sm"
+                              style={{ backgroundColor: meta.bgColor, color: meta.color }}
+                            >
+                              <TypeIcon className="h-4 w-4" />
+                            </div>
+                            <span
+                              className="text-[10px] font-semibold leading-tight"
+                              style={{ color: C.textPrimary }}
+                            >
+                              {meta.label}
+                            </span>
+                            <span
+                              className="text-[9px] leading-snug"
+                              style={{ color: C.textTertiary }}
+                            >
+                              {meta.description}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {selectedFlow.actions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddActionPicker((v) => !v)}
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold transition-all"
+                  style={{
+                    border: `1px dashed ${showAddActionPicker ? C.accent : C.borderStrong}`,
+                    color: showAddActionPicker ? C.accent : C.textSecondary,
+                    backgroundColor: showAddActionPicker ? C.accentLight : "transparent",
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {showAddActionPicker ? "Cancel" : "Add action"}
+                </button>
+              )}
             </div>
+          </div>
+
+          {/* Editor footer */}
+          <div
+            className="flex h-14 flex-shrink-0 items-center justify-between px-5"
+            style={{
+              borderTop: `1px solid ${C.border}`,
+              backgroundColor: C.surface,
+            }}
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <input
+                value={selectedFlow.name}
+                onChange={(e) => updateFlow((f) => ({ ...f, name: e.target.value }))}
+                className="min-w-0 flex-1 border-none bg-transparent text-sm font-semibold outline-none"
+                style={{ color: C.textPrimary }}
+              />
+            </div>
+            <button
+              onClick={saveFlow}
+              className="flex flex-shrink-0 items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-semibold transition-all"
+              style={{
+                backgroundColor: savedPulse ? C.success : C.accent,
+                color: "#fff",
+              }}
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              {savedPulse ? "Saved!" : "Save Changes"}
+            </button>
           </div>
         </div>
       ) : (
@@ -5363,7 +5706,7 @@ function EnrollmentFlowsTab() {
 
 type AdmissionsTab = "flows" | "submissions";
 
-function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; onTabChange: (tab: AdmissionsTab) => void }) {
+function AdmissionsPage({ activeTab }: { activeTab: AdmissionsTab }) {
   const [selectedLead, setSelectedLead] = useState<(typeof DEMO_LEADS)[0] | null>(null);
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
@@ -5377,62 +5720,20 @@ function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; 
     else closeBackdrop();
   }, [activeTab, selectedLead, openBackdrop, closeBackdrop]);
 
-  const tabs: { key: AdmissionsTab; label: string }[] = [
-    { key: "flows", label: "Enrollment Flows" },
-    { key: "submissions", label: "Submissions" },
-  ];
-
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
-      <div className="flex-shrink-0 px-6 pt-5 pb-3">
-        <PageHeader
-          icon="🎓"
-          title="Admissions"
-          subtitle="Enrollment flows and family inquiries"
-          tip={
-            activeTab === "flows"
-              ? "These are the forms families fill out on your website. Pick a flow on the left, edit steps, and preview what parents see."
-              : "Every inquiry lands here. Click a family name to review their answers, update status, and move them toward enrollment."
-          }
-          className="mb-0"
-        />
-      </div>
-      {/* Tab bar */}
-      <div
-        className="flex flex-shrink-0 gap-0 px-6"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => onTabChange(tab.key)}
-            className="px-4 py-3 text-sm font-medium transition-colors"
-            style={{
-              color: activeTab === tab.key ? C.accent : C.textTertiary,
-              borderBottom: activeTab === tab.key ? `2px solid ${C.accent}` : "2px solid transparent",
-              marginBottom: "-1px",
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <AnimatePresence mode="wait">
-          {activeTab === "flows" && (
-            <motion.div key="flows" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-              <EnrollmentFlowsTab />
-            </motion.div>
-          )}
-          {activeTab === "submissions" && (
-            <motion.div key="submissions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-              <LeadsListTab onSelectLead={setSelectedLead} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+      <AnimatePresence mode="wait">
+        {activeTab === "flows" && (
+          <motion.div key="flows" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
+            <EnrollmentFlowsTab />
+          </motion.div>
+        )}
+        {activeTab === "submissions" && (
+          <motion.div key="submissions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
+            <LeadsListTab onSelectLead={setSelectedLead} />
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {activeTab === "submissions" && selectedLead && (
           <LeadDetailPanel
@@ -14177,7 +14478,7 @@ export default function AdminDashboardDemo({
       case "dashboard":
         return <DashboardPage />;
       case "leads":
-        return <AdmissionsPage activeTab={admissionsTab} onTabChange={setAdmissionsTab} />;
+        return <AdmissionsPage activeTab={admissionsTab} />;
       case "people":
         return <PeoplePage />;
       case "programs":
