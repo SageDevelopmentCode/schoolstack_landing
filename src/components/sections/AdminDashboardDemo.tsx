@@ -4064,6 +4064,29 @@ function truncateSummary(text: string, max: number) {
   return text.length <= max ? text : `${text.slice(0, max)}…`;
 }
 
+const FIELD_TYPE_OWNER_LABELS: Record<FlowFieldType, string> = {
+  text: "Short answer",
+  email: "Email address",
+  phone: "Phone number",
+  select: "Dropdown choices",
+  checkbox: "Yes/No checkbox",
+  date: "Date",
+};
+
+function getFieldTypeOwnerLabel(type: FlowFieldType): string {
+  return FIELD_TYPE_OWNER_LABELS[type] ?? type;
+}
+
+function getStepSummary(step: FlowStep): string {
+  const count = step.fields.length;
+  if (count === 0) return "No questions yet";
+  const noun = count === 1 ? "question" : "questions";
+  const labels = step.fields.slice(0, 3).map((f) => f.label);
+  const preview = labels.join(", ");
+  const more = count > 3 ? ` +${count - 3} more` : "";
+  return `${count} ${noun}${preview ? ` · ${preview}${more}` : ""}`;
+}
+
 function getPostSubmitActionSummary(action: FlowAction): string {
   switch (action.type) {
     case "email":
@@ -4258,7 +4281,7 @@ function EnrollmentFlowEditReorderField({
               >
                 {FIELD_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {getFieldTypeOwnerLabel(opt.value)}
                   </option>
                 ))}
               </select>
@@ -4339,37 +4362,37 @@ function EnrollmentFlowStepReorderItem({
   step,
   stepIdx,
   totalSteps,
-  isSelected,
-  editingStepId,
-  setSelectedStepId,
-  setEditingStepId,
+  isExpanded,
+  onToggleExpand,
   setPreviewStep,
   updateStepTitle,
   deleteStep,
+  addField,
+  addPresetField,
+  updateField,
+  deleteField,
+  setStepFieldsOrder,
+  fieldInputStyle,
 }: {
   step: FlowStep;
   stepIdx: number;
   totalSteps: number;
-  isSelected: boolean;
-  editingStepId: string | null;
-  setSelectedStepId: (id: string | null) => void;
-  setEditingStepId: (id: string | null) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
   setPreviewStep: (s: FlowStep | null) => void;
   updateStepTitle: (stepId: string, title: string) => void;
   deleteStep: (stepId: string) => void;
+  addField: (stepId: string) => void;
+  addPresetField: (stepId: string, template: FlowFieldTemplate) => void;
+  updateField: (stepId: string, fieldId: string, patch: Partial<FlowField>) => void;
+  deleteField: (stepId: string, fieldId: string) => void;
+  setStepFieldsOrder: (stepId: string, fields: FlowField[]) => void;
+  fieldInputStyle: React.CSSProperties;
 }) {
+  const [hovered, setHovered] = useState(false);
   const dragControls = useDragControls();
-  const showArrowAfter = stepIdx < totalSteps - 1;
-
-  const smallDel: React.CSSProperties = {
-    padding: "2px 6px",
-    borderRadius: C.r.sm,
-    fontSize: "11px",
-    cursor: "pointer",
-    backgroundColor: C.elevated,
-    color: C.error,
-    border: `1px solid ${C.errorBorder}`,
-  };
+  const summary = getStepSummary(step);
+  const isLast = stepIdx === totalSteps - 1;
 
   return (
     <Reorder.Item
@@ -4377,143 +4400,240 @@ function EnrollmentFlowStepReorderItem({
       value={step}
       dragListener={false}
       dragControls={dragControls}
-      className="flex shrink-0 items-start gap-2"
-      layout="position"
+      className="relative flex gap-3"
       style={{ listStyle: "none" }}
+      layout="position"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <div className="flex shrink-0 items-start gap-1">
-        <button
-          type="button"
-          aria-label="Drag to reorder step"
-          title="Drag to reorder step"
-          className="mt-7 touch-none cursor-grab self-start rounded p-1 outline-none active:cursor-grabbing"
-          style={{ color: C.textQuaternary }}
-          onPointerDown={(e) => dragControls.start(e)}
-        >
-          <GripVertical className="h-3.5 w-3.5" strokeWidth={2} />
-        </button>
+      <div className="flex w-6 flex-shrink-0 flex-col items-center">
         <div
-          className="flex shrink-0 flex-col overflow-hidden rounded-md transition-all"
+          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none"
           style={{
-            width: 252,
-            backgroundColor: C.surface,
-            border: isSelected ? `2px solid ${C.accent}` : `1px solid ${C.borderStrong}`,
-            boxShadow: isSelected ? `0 0 0 3px ${C.accentLight}` : C.shadowCard,
+            backgroundColor: C.accentLight,
+            color: C.accent,
+            border: `2px solid ${C.accent}`,
           }}
-          onClick={() => setSelectedStepId(isSelected ? null : step.id)}
         >
-          <div className="h-1 w-full shrink-0" style={{ backgroundColor: C.accent }} />
+          {stepIdx + 1}
+        </div>
+        {!isLast && (
           <div
-            className="flex items-center gap-2 px-3 pb-2.5 pt-2.5"
-            style={{ borderBottom: `1px solid ${C.border}` }}
-          >
-            <span
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none"
-              style={{ backgroundColor: C.accentLight, color: C.accent }}
+            className="mt-1 w-px flex-1 min-h-[12px]"
+            style={{ backgroundColor: C.border }}
+          />
+        )}
+      </div>
+      <div className="mb-3 min-w-0 flex-1">
+        <div
+          className="overflow-hidden rounded-sm"
+          style={{
+            backgroundColor: C.surface,
+            border: `1px solid ${isExpanded ? C.accent : C.border}`,
+            boxShadow: isExpanded ? `0 0 0 2px ${C.accentLight}` : C.shadowCard,
+          }}
+        >
+          <div className="flex w-full items-center gap-2 px-3 py-2.5">
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className="flex min-w-0 flex-1 items-center gap-3 text-left outline-none"
             >
-              {stepIdx + 1}
-            </span>
-            <input
-              value={step.title}
-              onChange={(e) => {
-                e.stopPropagation();
-                updateStepTitle(step.id, e.target.value);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="min-w-0 flex-1 border-none bg-transparent text-xs font-semibold outline-none"
-              style={{ color: C.textPrimary }}
-            />
-            <div onClick={(e) => e.stopPropagation()} className="flex shrink-0 items-center gap-0.5">
-              <button
-                type="button"
-                style={smallDel}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (editingStepId === step.id) setEditingStepId(null);
-                  deleteStep(step.id);
-                }}
-                title="Delete step"
+              <div
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-sm"
+                style={{ backgroundColor: C.accentLight, color: C.accent }}
               >
-                <X className="h-2.5 w-2.5" />
-              </button>
-            </div>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col">
-            {step.fields.length === 0 ? (
-              <div className="px-3 py-4 text-center text-[11px] leading-snug" style={{ color: C.textTertiary }}>
-                No fields yet — use Edit Step to add suggested or custom questions.
+                <Layers className="h-4 w-4" />
               </div>
-            ) : (
-              step.fields.map((field) => (
+              <div className="min-w-0 flex-1">
                 <div
-                  key={field.id}
-                  className="flex min-w-0 items-center justify-between gap-2 px-3 py-2"
-                  style={{ borderBottom: `1px solid ${C.border}` }}
+                  className="text-[11px] font-semibold"
+                  style={{ color: C.textPrimary }}
                 >
-                  <span
-                    className="min-w-0 flex-1 truncate font-medium"
-                    style={{ color: C.textPrimary, fontSize: 12 }}
-                  >
-                    {field.label}
-                    {field.required && (
-                      <span className="text-[12px]" style={{ color: C.error }} aria-label="required">
-                        *
-                      </span>
-                    )}
-                  </span>
-                  <span
-                    className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold capitalize"
-                    style={{
-                      backgroundColor: C.infoBg,
-                      color: C.info,
-                    }}
-                  >
-                    {FIELD_TYPE_OPTIONS.find((o) => o.value === field.type)?.label ?? field.type}
-                  </span>
+                  {step.title}
                 </div>
-              ))
-            )}
-            <div className="mt-auto flex items-center" onClick={(e) => e.stopPropagation()}>
+                {!isExpanded && (
+                  <div
+                    className="mt-0.5 truncate text-[10px]"
+                    style={{ color: C.textTertiary }}
+                  >
+                    {summary}
+                  </div>
+                )}
+              </div>
+            </button>
+            <div className="flex flex-shrink-0 items-center gap-0.5">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedStepId(step.id);
-                  setEditingStepId(step.id);
-                }}
-                className="flex flex-1 items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium transition-all"
-                style={{ color: C.accent }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.accentLight)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                aria-label="Drag to reorder step"
+                title="Drag to reorder"
+                className="touch-none cursor-grab rounded p-1 outline-none active:cursor-grabbing"
+                style={{ color: C.textQuaternary }}
+                onPointerDown={(e) => dragControls.start(e)}
               >
-                <Pencil className="h-3 w-3" />
-                Edit Step
+                <GripVertical className="h-3.5 w-3.5" strokeWidth={2} />
               </button>
+              {hovered && (
+                <button
+                  type="button"
+                  aria-label="Remove step"
+                  title="Remove step"
+                  onClick={() => deleteStep(step.id)}
+                  className="flex h-5 w-5 items-center justify-center rounded-full"
+                  style={{ backgroundColor: C.errorBg, color: C.error }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditingStepId(null);
-                  setPreviewStep(step);
-                }}
-                title="Preview step"
-                className="flex shrink-0 items-center gap-1 px-2.5 py-2.5 text-[10px] font-medium transition-all"
-                style={{ color: C.info, borderLeft: `1px solid ${C.border}` }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = C.infoBg)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                aria-label={isExpanded ? "Collapse step" : "Expand step"}
+                onClick={onToggleExpand}
+                className="rounded p-1 outline-none"
+                style={{ color: C.textTertiary }}
               >
-                <Eye className="h-3 w-3" />
-                Preview
+                <ChevronDown
+                  className="h-4 w-4 transition-transform duration-150"
+                  style={{
+                    transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
               </button>
             </div>
           </div>
+          <AnimatePresence initial={false}>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="overflow-hidden"
+              >
+                <div
+                  className="space-y-4 px-3 pb-3 pt-2"
+                  style={{
+                    borderTop: `1px solid ${C.border}`,
+                    backgroundColor: C.elevated,
+                  }}
+                >
+                  <PostSubmitLabeledField label="Page title families see">
+                    <input
+                      value={step.title}
+                      onChange={(e) => updateStepTitle(step.id, e.target.value)}
+                      placeholder="e.g. Parent Info"
+                      style={fieldInputStyle}
+                    />
+                  </PostSubmitLabeledField>
+
+                  <div>
+                    <p
+                      className="mb-2 text-[11px] font-semibold"
+                      style={{ color: C.textSecondary }}
+                    >
+                      Questions on this page
+                    </p>
+                    {step.fields.length === 0 ? (
+                      <div
+                        className="rounded-md px-3 py-4 text-center text-[11px] leading-relaxed"
+                        style={{
+                          border: `1px dashed ${C.borderStrong}`,
+                          color: C.textTertiary,
+                          backgroundColor: C.surface,
+                        }}
+                      >
+                        Add questions below or pick from suggestions.
+                      </div>
+                    ) : (
+                      <Reorder.Group
+                        axis="y"
+                        values={step.fields}
+                        onReorder={(next) => setStepFieldsOrder(step.id, next)}
+                        as="div"
+                        className="flex flex-col gap-2"
+                      >
+                        {step.fields.map((field) => (
+                          <EnrollmentFlowEditReorderField
+                            key={field.id}
+                            stepId={step.id}
+                            field={field}
+                            updateField={updateField}
+                            deleteField={deleteField}
+                          />
+                        ))}
+                      </Reorder.Group>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => addField(step.id)}
+                      className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-all"
+                      style={{
+                        border: `1px dashed ${C.borderStrong}`,
+                        color: C.accent,
+                        backgroundColor: C.surface,
+                      }}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add custom question
+                    </button>
+                  </div>
+
+                  <div>
+                    <p
+                      className="mb-1 text-[11px] font-semibold"
+                      style={{ color: C.textSecondary }}
+                    >
+                      Suggested questions
+                    </p>
+                    <p
+                      className="mb-2 text-[10px] leading-snug"
+                      style={{ color: C.textTertiary }}
+                    >
+                      Tap to add common enrollment questions — you can edit wording after adding.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FLOW_FIELD_LIBRARY.map((tpl, tplIdx) => (
+                        <button
+                          key={`${tpl.label}-${tplIdx}`}
+                          type="button"
+                          title={tpl.label}
+                          className="max-w-full rounded px-2.5 py-1.5 text-left text-[10px] font-medium leading-tight transition-colors"
+                          style={{
+                            backgroundColor: C.surface,
+                            color: C.textSecondary,
+                            border: `1px solid ${C.border}`,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = C.accent;
+                            e.currentTarget.style.color = C.accent;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = C.border;
+                            e.currentTarget.style.color = C.textSecondary;
+                          }}
+                          onClick={() => addPresetField(step.id, tpl)}
+                        >
+                          + {tpl.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setPreviewStep(step)}
+                    className="flex items-center gap-1.5 text-[11px] font-medium transition-colors"
+                    style={{ color: C.info }}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Preview this page
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-      {showArrowAfter && (
-        <div className="flex items-center self-center px-3" style={{ paddingTop: 28 }}>
-          <ArrowRight className="h-4 w-4 shrink-0" style={{ color: C.textQuaternary }} />
-        </div>
-      )}
     </Reorder.Item>
   );
 }
@@ -4801,15 +4921,14 @@ function EnrollmentPostSubmitReorderItem({
 function EnrollmentFlowsTab() {
   const [flows, setFlows] = useState<EnrollmentFlow[]>(INITIAL_DEMO_FLOWS);
   const [selectedFlowId, setSelectedFlowId] = useState<string>("flow-1");
-  const [selectedStepId, setSelectedStepId] = useState<string | null>("s1");
+  const [expandedStepId, setExpandedStepId] = useState<string | null>("s1");
   const [savedPulse, setSavedPulse] = useState(false);
   const [previewStep, setPreviewStep] = useState<FlowStep | null>(null);
-  const [editingStepId, setEditingStepId] = useState<string | null>(null);
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
   const [showAddActionPicker, setShowAddActionPicker] = useState(false);
 
   useEffect(() => {
-    setEditingStepId(null);
+    setExpandedStepId(null);
     setExpandedActionId(null);
     setShowAddActionPicker(false);
   }, [selectedFlowId]);
@@ -4818,18 +4937,15 @@ function EnrollmentFlowsTab() {
 
   const selectedFlow = flows.find((f) => f.id === selectedFlowId) ?? null;
 
-  const editingStep =
-    selectedFlow?.steps.find((s) => s.id === editingStepId) ?? null;
-
   useEffect(() => {
     if (
-      editingStepId &&
+      expandedStepId &&
       selectedFlow &&
-      !selectedFlow.steps.some((s) => s.id === editingStepId)
+      !selectedFlow.steps.some((s) => s.id === expandedStepId)
     ) {
-      setEditingStepId(null);
+      setExpandedStepId(null);
     }
-  }, [selectedFlow, editingStepId]);
+  }, [selectedFlow, expandedStepId]);
 
   const updateFlow = (updater: (f: EnrollmentFlow) => EnrollmentFlow) => {
     setFlows((prev) =>
@@ -4857,7 +4973,7 @@ function EnrollmentFlowsTab() {
     };
     setFlows((prev) => [newFlow, ...prev]);
     setSelectedFlowId(id);
-    setSelectedStepId(null);
+    setExpandedStepId(null);
   };
 
   const addStep = () => {
@@ -4866,11 +4982,12 @@ function EnrollmentFlowsTab() {
       ...f,
       steps: [...f.steps, { id, title: `Step ${f.steps.length + 1}`, fields: [] }],
     }));
-    setSelectedStepId(id);
+    setExpandedStepId(id);
   };
 
   const deleteStep = (stepId: string) => {
     updateFlow((f) => ({ ...f, steps: f.steps.filter((s) => s.id !== stepId) }));
+    setExpandedStepId((prev) => (prev === stepId ? null : prev));
   };
 
   const setStepsOrder = (steps: FlowStep[]) => {
@@ -4982,6 +5099,18 @@ function EnrollmentFlowsTab() {
     width: "100%",
   } as React.CSSProperties;
 
+  const fieldInputStyle = {
+    backgroundColor: C.surface,
+    border: `1px solid ${C.borderStrong}`,
+    color: C.textPrimary,
+    borderRadius: "5px",
+    fontSize: "12px",
+    padding: "6px 10px",
+    outline: "none",
+    width: "100%",
+    boxSizing: "border-box",
+  } as React.CSSProperties;
+
   const postSubmitInputStyle = {
     backgroundColor: C.surface,
     border: `1px solid ${C.borderStrong}`,
@@ -5027,7 +5156,7 @@ function EnrollmentFlowsTab() {
             return (
               <button
                 key={flow.id}
-                onClick={() => { setSelectedFlowId(flow.id); setSelectedStepId(null); }}
+                onClick={() => { setSelectedFlowId(flow.id); setExpandedStepId(null); }}
                 className="w-full text-left px-3 py-3 transition-all"
                 style={{
                   backgroundColor: isActive ? C.accentLight : "transparent",
@@ -5053,94 +5182,104 @@ function EnrollmentFlowsTab() {
           {/* Scrollable editor body */}
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
-            {/* Steps section — horizontal card rail */}
+            {/* Form Steps — vertical timeline */}
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Layers className="w-4 h-4" style={{ color: C.accent }} />
+              <div className="mb-1 flex items-center gap-2">
+                <Layers className="h-4 w-4" style={{ color: C.accent }} />
                 <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
                   Form Steps
                 </span>
                 <span
-                  className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
+                  className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
                   style={{ backgroundColor: C.accentLight, color: C.accent }}
                 >
                   {selectedFlow.steps.length}
                 </span>
               </div>
+              <p className="mb-4 text-[11px] leading-snug" style={{ color: C.textTertiary }}>
+                Families complete these pages in order. Each step is one screen of questions.
+              </p>
 
-              {/* Scrollable horizontal rail */}
-              <div
-                className="overflow-x-auto rounded-sm"
-                style={{
-                  backgroundColor: C.surface,
-                  border: `1px solid ${C.border}`,
-                  minHeight: 300,
-                  padding: "28px 32px",
-                  backgroundImage: `radial-gradient(circle, ${C.border} 0.75px, transparent 0.75px)`,
-                  backgroundSize: "22px 22px",
-                }}
-              >
-                <div className="flex items-start gap-0" style={{ width: "max-content" }}>
-                  <Reorder.Group
-                    axis="x"
-                    values={selectedFlow.steps}
-                    onReorder={setStepsOrder}
-                    as="div"
-                    className="flex items-start gap-0"
-                  >
-                    {selectedFlow.steps.map((step, stepIdx) => {
-                      const isSelected = selectedStepId === step.id;
-                      return (
-                        <EnrollmentFlowStepReorderItem
-                          key={step.id}
-                          step={step}
-                          stepIdx={stepIdx}
-                          totalSteps={selectedFlow.steps.length}
-                          isSelected={isSelected}
-                          editingStepId={editingStepId}
-                          setSelectedStepId={setSelectedStepId}
-                          setEditingStepId={setEditingStepId}
-                          setPreviewStep={setPreviewStep}
-                          updateStepTitle={updateStepTitle}
-                          deleteStep={deleteStep}
-                        />
-                      );
-                    })}
-                  </Reorder.Group>
-
-                  {selectedFlow.steps.length > 0 && (
-                    <div className="flex items-center self-center px-3" style={{ paddingTop: 28 }}>
-                      <ArrowRight className="h-4 w-4 shrink-0" style={{ color: C.textQuaternary }} />
-                    </div>
-                  )}
-
-                  {/* Add Step card */}
-                  <div
-                    className="flex shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md transition-all"
-                    style={{
-                      width: 140,
-                      minHeight: 120,
-                      border: `2px dashed ${C.borderStrong}`,
-                      color: C.textTertiary,
-                      backgroundColor: "transparent",
-                    }}
+              {selectedFlow.steps.length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center rounded-sm py-10"
+                  style={{ border: `2px dashed ${C.border}`, color: C.textTertiary }}
+                >
+                  <Layers className="mb-2 h-6 w-6 opacity-40" />
+                  <p className="mb-3 text-[11px]">No form pages yet.</p>
+                  <button
+                    type="button"
                     onClick={addStep}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = C.surface;
-                      (e.currentTarget as HTMLElement).style.borderColor = C.accent;
-                      (e.currentTarget as HTMLElement).style.color = C.accent;
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
-                      (e.currentTarget as HTMLElement).style.borderColor = C.borderStrong;
-                      (e.currentTarget as HTMLElement).style.color = C.textTertiary;
+                    className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+                    style={{
+                      backgroundColor: C.accentLight,
+                      color: C.accent,
+                      border: `1px solid ${C.accent}`,
                     }}
                   >
-                    <Plus className="h-4 w-4" />
-                    <span className="text-[11px] font-medium">Add Step</span>
-                  </div>
+                    <Plus className="h-3 w-3" />
+                    Add your first page
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <Reorder.Group
+                  axis="y"
+                  values={selectedFlow.steps}
+                  onReorder={setStepsOrder}
+                  className="flex flex-col"
+                  as="div"
+                >
+                  {selectedFlow.steps.map((step, stepIdx) => (
+                    <EnrollmentFlowStepReorderItem
+                      key={step.id}
+                      step={step}
+                      stepIdx={stepIdx}
+                      totalSteps={selectedFlow.steps.length}
+                      isExpanded={expandedStepId === step.id}
+                      onToggleExpand={() =>
+                        setExpandedStepId((prev) =>
+                          prev === step.id ? null : step.id
+                        )
+                      }
+                      setPreviewStep={setPreviewStep}
+                      updateStepTitle={updateStepTitle}
+                      deleteStep={deleteStep}
+                      addField={addField}
+                      addPresetField={addPresetField}
+                      updateField={updateField}
+                      deleteField={deleteField}
+                      setStepFieldsOrder={setStepFieldsOrder}
+                      fieldInputStyle={fieldInputStyle}
+                    />
+                  ))}
+                </Reorder.Group>
+              )}
+
+              {selectedFlow.steps.length > 0 && (
+                <button
+                  type="button"
+                  onClick={addStep}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-sm px-3 py-2.5 text-[11px] font-medium transition-all"
+                  style={{
+                    border: `2px dashed ${C.borderStrong}`,
+                    color: C.textTertiary,
+                    backgroundColor: "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = C.surface;
+                    e.currentTarget.style.borderColor = C.accent;
+                    e.currentTarget.style.color = C.accent;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.borderColor = C.borderStrong;
+                    e.currentTarget.style.color = C.textTertiary;
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add step
+                </button>
+              )}
             </div>
 
             {/* Step preview modal */}
@@ -5320,199 +5459,6 @@ function EnrollmentFlowsTab() {
                   </motion.div>
                 </motion.div>
               )}
-            </AnimatePresence>
-
-            {/* Edit step — field library & CRUD */}
-            <AnimatePresence>
-              {editingStep && editingStepId ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 flex items-center justify-center p-4"
-                  style={{ backgroundColor: "rgba(0,0,0,0.45)", zIndex: 10000 }}
-                  onClick={() => setEditingStepId(null)}
-                >
-                  <motion.div
-                    key={editingStepId}
-                    initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 12, scale: 0.99 }}
-                    transition={{ type: "spring", damping: 28, stiffness: 320 }}
-                    className="flex w-full flex-col overflow-hidden rounded-sm shadow-2xl"
-                    style={{
-                      maxWidth: "min(760px, 94vw)",
-                      maxHeight: "min(680px, 88vh)",
-                      backgroundColor: C.surface,
-                      border: `1px solid ${C.border}`,
-                      boxShadow: C.shadowMedium,
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div
-                      className="flex flex-shrink-0 items-start justify-between gap-3 px-5 py-4"
-                      style={{
-                        borderBottom: `1px solid ${C.border}`,
-                        backgroundColor: C.surface,
-                      }}
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Pencil className="w-4 h-4 flex-shrink-0" style={{ color: C.accent }} />
-                          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                            Edit step
-                          </span>
-                        </div>
-                        <p className="text-[11px]" style={{ color: C.textTertiary }}>
-                          Add suggested fields or a custom question, then reorder by dragging the handle on each block.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label="Close"
-                        className="flex-shrink-0 rounded p-1 transition-colors"
-                        style={{ color: C.textTertiary }}
-                        onClick={() => setEditingStepId(null)}
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div
-                      className="flex-shrink-0 px-5 py-3"
-                      style={{ borderBottom: `1px solid ${C.border}` }}
-                    >
-                      <label className="mb-2 block text-[10px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
-                        Step title
-                      </label>
-                      <input
-                        value={editingStep.title}
-                        onChange={(e) => updateStepTitle(editingStep.id, e.target.value)}
-                        placeholder="Step title"
-                        style={{
-                          backgroundColor: C.surface,
-                          border: `1px solid ${C.borderStrong}`,
-                          color: C.textPrimary,
-                          borderRadius: "5px",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                          padding: "10px 12px",
-                          outline: "none",
-                          width: "100%",
-                          boxSizing: "border-box",
-                        }}
-                      />
-                    </div>
-
-                    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-                      <div>
-                        <p className="text-[11px] font-semibold mb-2" style={{ color: C.textSecondary }}>
-                          Fields on this step
-                        </p>
-                        {editingStep.fields.length === 0 ? (
-                          <div
-                            className="rounded-md px-3 py-4 text-center text-xs leading-relaxed"
-                            style={{
-                              border: `1px dashed ${C.borderStrong}`,
-                              color: C.textTertiary,
-                              backgroundColor: C.surface,
-                            }}
-                          >
-                            No fields yet. Add from the suggestions below or create a custom field.
-                          </div>
-                        ) : (
-                          <Reorder.Group
-                            axis="y"
-                            values={editingStep.fields}
-                            as="div"
-                            onReorder={(next) =>
-                              setStepFieldsOrder(editingStep.id, next)
-                            }
-                            className="flex flex-col gap-2"
-                          >
-                            {editingStep.fields.map((field) => (
-                              <EnrollmentFlowEditReorderField
-                                key={field.id}
-                                stepId={editingStep.id}
-                                field={field}
-                                updateField={updateField}
-                                deleteField={deleteField}
-                              />
-                            ))}
-                          </Reorder.Group>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => addField(editingStep.id)}
-                          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-all"
-                          style={{
-                            border: `1px dashed ${C.borderStrong}`,
-                            color: C.accent,
-                            backgroundColor: C.surface,
-                          }}
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          Add custom field
-                        </button>
-                      </div>
-
-                      <div>
-                        <p className="text-[11px] font-semibold mb-2" style={{ color: C.textSecondary }}>
-                          Suggested fields
-                        </p>
-                        <p className="text-[10px] mb-2 leading-snug" style={{ color: C.textTertiary }}>
-                          Tap to add common enrollment questions — you can still edit wording or requirement after adding.
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {FLOW_FIELD_LIBRARY.map((tpl, tplIdx) => (
-                            <button
-                              key={`${tpl.label}-${tplIdx}`}
-                              type="button"
-                              title={tpl.label}
-                              className="max-w-full rounded px-2.5 py-1.5 text-left text-[10px] leading-tight font-medium transition-colors"
-                              style={{
-                                backgroundColor: C.surface,
-                                color: C.textSecondary,
-                                border: `1px solid ${C.border}`,
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = C.accent;
-                                e.currentTarget.style.color = C.accent;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = C.border;
-                                e.currentTarget.style.color = C.textSecondary;
-                              }}
-                              onClick={() => addPresetField(editingStep.id, tpl)}
-                            >
-                              + {tpl.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className="flex flex-shrink-0 justify-end gap-2 px-5 py-3"
-                      style={{ borderTop: `1px solid ${C.border}` }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setEditingStepId(null)}
-                        className="rounded-md px-3 py-1.5 text-xs font-semibold transition-all"
-                        style={{
-                          backgroundColor: C.surface,
-                          color: C.textSecondary,
-                          border: `1px solid ${C.borderStrong}`,
-                        }}
-                      >
-                        Done
-                      </button>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              ) : null}
             </AnimatePresence>
 
             {/* Post-Submit Actions section */}
