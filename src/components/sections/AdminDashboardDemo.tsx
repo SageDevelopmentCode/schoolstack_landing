@@ -49,6 +49,7 @@ import {
   GripVertical,
   Tag,
   Bell,
+  ListFilter,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -270,7 +271,7 @@ const DEMO_LEADS = [
     childAge: 5,
     status: "new",
     tags: ["Summer 2026"],
-    date: "Apr 7",
+    date: "18 minutes ago",
     message: null,
     flowId: "flow-2",
     responses: {
@@ -291,7 +292,7 @@ const DEMO_LEADS = [
     childAge: null,
     status: "contacted",
     tags: ["School Year", "Financial Aid"],
-    date: "Apr 1",
+    date: "5 hours ago",
     message: "Interested in fall enrollment for my daughter in 3rd grade.",
     flowId: "flow-1",
     responses: {
@@ -343,7 +344,7 @@ const DEMO_LEADS = [
     childAge: null,
     status: "new",
     tags: ["Summer 2026"],
-    date: "Apr 3",
+    date: "3 hours ago",
     message: "Looking for summer options for twin boys, ages 7.",
     flowId: "flow-2",
     responses: {
@@ -416,7 +417,7 @@ const DEMO_LEADS = [
     childAge: null,
     status: "new",
     tags: [],
-    date: "Apr 5",
+    date: "2 hours ago",
     message: "Heard about your school from a friend. What are your rates?",
     flowId: "flow-3",
     responses: {
@@ -436,7 +437,7 @@ const DEMO_LEADS = [
     childAge: 8,
     status: "contacted",
     tags: ["School Year"],
-    date: "Mar 25",
+    date: "4 days ago",
     message: null,
     flowId: "flow-1",
     responses: {
@@ -462,7 +463,7 @@ const DEMO_LEADS = [
     childAge: 8,
     status: "scheduled",
     tags: ["Both", "Tour"],
-    date: "Apr 14",
+    date: "Yesterday",
     message: "Interested in school year and summer; twin sibling may apply next year.",
     flowId: "flow-4",
     responses: {
@@ -537,7 +538,7 @@ const DEMO_LEADS = [
     childAge: 7,
     status: "requested",
     tags: ["Tour"],
-    date: "Apr 5",
+    date: "52 minutes ago",
     message: "Requested a tour for next week — awaiting confirmation.",
     flowId: "flow-4",
     responses: {
@@ -2970,6 +2971,93 @@ const FLOW_FILTER_OPTIONS = [
   { id: "flow-4", label: "Book a Campus Tour" },
 ];
 
+const LEAD_CHILD_PHOTOS: Record<string, string> = {
+  "Noah Foster": "/images/people/students/izzy-park-8hBY-30cEqI-unsplash.jpg",
+  "Raj Patel": "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg",
+  "Lily Beaumont": "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg",
+  "Tyler Watkins": "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",
+  "Sofia Mendez": "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",
+  "Marcus Park": "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash.jpg",
+  "Hannah Kim": "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",
+  "Jordan Cho": "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg",
+  "Ella Thornton": "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg",
+  "Chidera Okonkwo": "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",
+  "Alex & Ben Sullivan": "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",
+};
+
+function LeadsFiltersPanel({
+  activeFilter,
+  onChange,
+  onClose,
+}: {
+  activeFilter: string;
+  onChange: (key: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="absolute inset-y-0 right-0 flex w-72 max-w-full flex-col overflow-hidden"
+      style={{
+        backgroundColor: C.surface,
+        borderLeft: `1px solid ${C.border}`,
+        boxShadow: C.shadowMedium,
+        zIndex: 12,
+      }}
+    >
+      <div
+        className="flex flex-shrink-0 items-center justify-between px-4 py-3"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+          Filters
+        </h3>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-shrink-0 rounded p-1"
+          style={{ color: C.textTertiary }}
+          aria-label="Close filters"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <p
+          className="mb-2 text-[10px] font-semibold uppercase tracking-wide"
+          style={{ color: C.textTertiary }}
+        >
+          Status
+        </p>
+        <div className="flex flex-col gap-1.5">
+          {LEAD_FILTERS.map((f) => {
+            const isActive = activeFilter === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => onChange(f.key)}
+                className="flex w-full items-center justify-between gap-2 rounded-sm px-3 py-2 text-left text-xs font-medium transition-all"
+                style={{
+                  backgroundColor: isActive ? C.accentLight : "transparent",
+                  color: isActive ? C.accent : C.textSecondary,
+                  border: `1px solid ${isActive ? C.accent : C.border}`,
+                }}
+              >
+                <span>{f.label}</span>
+                <span className="text-[10px] font-bold opacity-70">{f.count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function LeadsListTab({
   onSelectLead,
 }: {
@@ -2977,6 +3065,7 @@ function LeadsListTab({
 }) {
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeFlowFilter, setActiveFlowFilter] = useState("all");
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
 
   const filtered = DEMO_LEADS.filter((l) => {
     const statusMatch = activeFilter === "all" || l.status === activeFilter;
@@ -2984,24 +3073,26 @@ function LeadsListTab({
     return statusMatch && flowMatch;
   });
 
+  const activeStatusLabel =
+    LEAD_FILTERS.find((f) => f.key === activeFilter)?.label ?? "All";
+  const hasActiveStatusFilter = activeFilter !== "all";
+
   return (
-    <div className="h-full flex flex-col">
-      {/* Flow filter row */}
+    <div className="relative flex h-full flex-col">
+      {/* Form toolbar + filter icon */}
       <div
-        className="flex items-center gap-2 px-6 py-3 flex-shrink-0"
+        className="flex flex-shrink-0 items-center gap-2 px-6 py-3"
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        <span className="text-xs font-medium flex-shrink-0" style={{ color: C.textTertiary }}>
-          Form
-        </span>
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           {FLOW_FILTER_OPTIONS.map((f) => {
             const isActive = activeFlowFilter === f.id;
             return (
               <button
                 key={f.id}
+                type="button"
                 onClick={() => setActiveFlowFilter(f.id)}
-                className="px-2.5 py-1 text-xs font-medium rounded-full transition-all"
+                className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
                 style={{
                   backgroundColor: isActive ? C.accent : C.elevated,
                   color: isActive ? "#fff" : C.textSecondary,
@@ -3018,26 +3109,56 @@ function LeadsListTab({
             );
           })}
         </div>
+        <button
+          type="button"
+          onClick={() => setFilterPanelOpen(true)}
+          className="relative ml-auto flex flex-shrink-0 items-center justify-center rounded-sm p-2 transition-all"
+          style={{
+            backgroundColor: hasActiveStatusFilter ? C.accentLight : C.elevated,
+            color: hasActiveStatusFilter ? C.accent : C.textSecondary,
+            border: `1px solid ${hasActiveStatusFilter ? C.accent : C.border}`,
+          }}
+          aria-label={
+            hasActiveStatusFilter
+              ? `Filter submissions (${activeStatusLabel})`
+              : "Filter submissions"
+          }
+        >
+          <ListFilter className="h-4 w-4" />
+          {hasActiveStatusFilter && (
+            <span
+              className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: C.accent }}
+            />
+          )}
+        </button>
       </div>
 
-      {/* Status filters */}
-      <div className="flex items-center gap-2 px-6 py-2.5 flex-wrap flex-shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
-        {LEAD_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setActiveFilter(f.key)}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all"
-            style={{
-              backgroundColor: activeFilter === f.key ? C.accentLight : "transparent",
-              color: activeFilter === f.key ? C.accent : C.textTertiary,
-              border: `1px solid ${activeFilter === f.key ? C.accent : C.border}`,
-            }}
-          >
-            {f.label}
-            <span className="text-[10px] font-bold opacity-70">{f.count}</span>
-          </button>
-        ))}
-      </div>
+      <AnimatePresence>
+        {filterPanelOpen && (
+          <>
+            <motion.div
+              key="leads-filter-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0"
+              style={{ backgroundColor: "rgba(0,0,0,0.12)", zIndex: 11 }}
+              onClick={() => setFilterPanelOpen(false)}
+            />
+            <LeadsFiltersPanel
+              key="leads-filters-panel"
+              activeFilter={activeFilter}
+              onChange={(key) => {
+                setActiveFilter(key);
+                setFilterPanelOpen(false);
+              }}
+              onClose={() => setFilterPanelOpen(false)}
+            />
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Table */}
       <div className="flex-1 overflow-hidden">
@@ -3100,17 +3221,49 @@ function LeadsListTab({
                   </td>
                   <td className="px-4 py-3">
                     {lead.childName ? (
-                      <>
-                        <p style={{ color: C.textSecondary }}>
-                          {lead.childName}
-                        </p>
-                        <p
-                          className="text-xs"
-                          style={{ color: C.textTertiary }}
-                        >
-                          Age {lead.childAge}
-                        </p>
-                      </>
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        {LEAD_CHILD_PHOTOS[lead.childName] ? (
+                          <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
+                            <Image
+                              src={LEAD_CHILD_PHOTOS[lead.childName]}
+                              alt={lead.childName}
+                              width={32}
+                              height={32}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                            style={{
+                              backgroundColor: C.accentLight,
+                              color: C.accent,
+                            }}
+                          >
+                            {lead.childName
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .slice(0, 2)}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p
+                            className="truncate text-sm"
+                            style={{ color: C.textSecondary }}
+                          >
+                            {lead.childName}
+                          </p>
+                          {lead.childAge != null && (
+                            <p
+                              className="text-xs"
+                              style={{ color: C.textTertiary }}
+                            >
+                              Age {lead.childAge}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     ) : (
                       <span style={{ color: C.textTertiary }}>—</span>
                     )}
@@ -3398,6 +3551,14 @@ type LeadActivityEntry = {
   variant: "mail" | "note" | "action";
 };
 
+type LeadDetailTabId = `step:${string}` | "status" | "notes" | "activity";
+
+type LeadDetailTab = {
+  id: LeadDetailTabId;
+  label: string;
+  kind: "step" | "status" | "notes" | "activity";
+};
+
 type DemoActivityTimelineVariant =
   | "attendance"
   | "note"
@@ -3518,20 +3679,36 @@ function LeadDetailPanel({
 }) {
   const flow = getFlowForLead(lead.flowId);
   const responseMap = lead.responses as unknown as Record<string, string | boolean>;
-  const showToc = Boolean(flow && flow.steps.length > 1);
 
-  const scrollMainRef = useRef<HTMLDivElement>(null);
-  const [activeStepId, setActiveStepId] = useState<string | null>(
-    flow?.steps[0]?.id ?? null,
+  const tabs = useMemo<LeadDetailTab[]>(
+    () => [
+      ...(flow?.steps.map((s) => ({
+        id: `step:${s.id}` as LeadDetailTabId,
+        label: s.title,
+        kind: "step" as const,
+      })) ?? []),
+      { id: "status", label: "Status & Tags", kind: "status" },
+      { id: "notes", label: "Notes", kind: "notes" },
+      { id: "activity", label: "Activity Log", kind: "activity" },
+    ],
+    [flow],
   );
+
+  const defaultTab = useMemo<LeadDetailTabId>(
+    () => (flow?.steps[0]?.id ? `step:${flow.steps[0].id}` : "status"),
+    [flow],
+  );
+
+  const [activeTab, setActiveTab] = useState<LeadDetailTabId>(defaultTab);
   const [leadStatus, setLeadStatus] = useState(lead.status);
   const [leadTags, setLeadTags] = useState<string[]>(() => [...lead.tags]);
   const [tagDraft, setTagDraft] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
   const [activity, setActivity] = useState<LeadActivityEntry[]>([]);
 
   useEffect(() => {
-    setActiveStepId(flow?.steps[0]?.id ?? null);
-  }, [flow, lead.id]);
+    setActiveTab(defaultTab);
+  }, [defaultTab, lead.id]);
 
   useEffect(() => {
     setLeadStatus(lead.status);
@@ -3577,38 +3754,19 @@ function LeadDetailPanel({
       });
     }
     setActivity(initial);
+    setAdminNotes("");
   }, [lead.id, lead.date, lead.email, lead.status, lead.tags]);
 
-  useEffect(() => {
-    if (!flow || !scrollMainRef.current) return;
-    const root = scrollMainRef.current;
-    const stepIds = flow.steps.map((s) => `lead-detail-step-${lead.id}-${s.id}`);
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const hit = entries
-          .filter((e) => e.isIntersecting && e.target.id)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (hit?.target.id) {
-          const prefix = `lead-detail-step-${lead.id}-`;
-          if (hit.target.id.startsWith(prefix)) {
-            setActiveStepId(hit.target.id.slice(prefix.length));
-          }
-        }
-      },
-      { root, rootMargin: "-12% 0px -55% 0px", threshold: [0, 0.1, 0.25, 0.5, 1] },
-    );
-    stepIds.forEach((domId) => {
-      const el = document.getElementById(domId);
-      if (el) obs.observe(el);
-    });
-    return () => obs.disconnect();
-  }, [flow, lead.id]);
+  const activeStep =
+    activeTab.startsWith("step:") && flow
+      ? flow.steps.find((s) => `step:${s.id}` === activeTab)
+      : undefined;
 
-  const scrollToStep = (stepId: string) => {
-    setActiveStepId(stepId);
-    const el = document.getElementById(`lead-detail-step-${lead.id}-${stepId}`);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const showInquiryOnActiveTab =
+    Boolean(lead.message) &&
+    flow &&
+    flow.steps[0] &&
+    activeTab === (`step:${flow.steps[0].id}` as LeadDetailTabId);
 
   const activityNow = () =>
     new Date().toLocaleString(undefined, {
@@ -3636,11 +3794,10 @@ function LeadDetailPanel({
     ]);
   };
 
-  const addTag = () => {
-    const t = tagDraft.trim();
-    if (!t || leadTags.includes(t)) return;
-    setLeadTags((prev) => [...prev, t]);
-    setTagDraft("");
+  const addTagValue = (t: string) => {
+    const trimmed = t.trim();
+    if (!trimmed || leadTags.includes(trimmed)) return;
+    setLeadTags((prev) => [...prev, trimmed]);
     setActivity((prev) => [
       ...prev,
       {
@@ -3648,11 +3805,20 @@ function LeadDetailPanel({
         at: activityNow(),
         actor: "You",
         title: "Tag added",
-        summary: `Added tag “${t}”.`,
+        summary: `Added tag “${trimmed}”.`,
         variant: "note",
       },
     ]);
   };
+
+  const addTag = () => {
+    const t = tagDraft.trim();
+    if (!t || leadTags.includes(t)) return;
+    addTagValue(t);
+    setTagDraft("");
+  };
+
+  const suggestedTags = LEAD_TAGS.filter((t) => !leadTags.includes(t));
 
   const removeTag = (t: string) => {
     setLeadTags((prev) => prev.filter((x) => x !== t));
@@ -3712,28 +3878,22 @@ function LeadDetailPanel({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-row overflow-hidden">
-        {showToc && flow && (
+        {tabs.length > 0 && (
           <nav
             className="flex w-28 flex-shrink-0 flex-col overflow-y-auto border-r py-2 sm:w-36"
             style={{
               borderColor: C.border,
               backgroundColor: C.bg,
             }}
-            aria-label="Form sections"
+            aria-label="Submission views"
           >
-            <p
-              className="mb-1.5 px-2.5 text-[9px] font-semibold uppercase tracking-wider sm:px-3"
-              style={{ color: C.textQuaternary }}
-            >
-              Sections
-            </p>
-            {flow.steps.map((step, idx) => {
-              const isActive = activeStepId === step.id;
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
               return (
                 <button
-                  key={step.id}
+                  key={tab.id}
                   type="button"
-                  onClick={() => scrollToStep(step.id)}
+                  onClick={() => setActiveTab(tab.id)}
                   className="w-full py-2 pl-2 pr-1.5 text-left text-[11px] font-medium leading-snug transition-colors sm:pl-3 sm:pr-2 sm:text-xs"
                   style={{
                     color: isActive ? C.accent : C.textSecondary,
@@ -3741,80 +3901,86 @@ function LeadDetailPanel({
                     borderLeft: isActive ? `3px solid ${C.accent}` : "3px solid transparent",
                   }}
                 >
-                  <span className="mr-1 font-mono text-[10px] opacity-40">
-                    {idx + 1}.
-                  </span>
-                  {step.title}
+                  {tab.label}
                 </button>
               );
             })}
           </nav>
         )}
 
-        <div className="flex min-w-0 min-h-0 flex-1 flex-col">
-          <div
-            ref={scrollMainRef}
-            className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-0 sm:px-5"
-          >
-            <div
-              className="sticky top-0 z-[1] -mx-4 mb-3 border-b px-4 py-3 sm:-mx-5 sm:px-5"
-              style={{
-                backgroundColor: C.surface,
-                borderColor: C.border,
-              }}
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="min-w-0 flex-1">
-                  <label
-                    htmlFor={`lead-status-${lead.id}`}
-                    className="mb-1 block text-[10px] font-semibold uppercase tracking-widest"
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-3 sm:px-5">
+            {activeTab === "status" && (
+              <div className="flex flex-col gap-5 pb-3">
+                <div>
+                  <p
+                    className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
                     style={{ color: C.textTertiary }}
                   >
                     Status
-                  </label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      id={`lead-status-${lead.id}`}
-                      value={leadStatus}
-                      onChange={(e) => onStatusChange(e.target.value)}
-                      className="max-w-full rounded-md border py-1.5 pl-2 pr-7 text-xs font-medium outline-none"
-                      style={{
-                        backgroundColor: C.surface,
-                        borderColor: C.borderStrong,
-                        color: C.textPrimary,
-                      }}
-                    >
-                      {getStatusOptionsForLead(lead.flowId).map((key) => (
-                        <option key={key} value={key}>
-                          {STATUS_COLORS[key]?.label ?? key}
-                        </option>
-                      ))}
-                    </select>
+                  </p>
+                  <div className="flex flex-col gap-1.5" role="listbox" aria-label="Lead status">
+                    {getStatusOptionsForLead(lead.flowId).map((key) => {
+                      const isActive = leadStatus === key;
+                      const statusStyle = STATUS_COLORS[key] ?? {
+                        bg: C.elevated,
+                        border: C.border,
+                        text: C.textTertiary,
+                        label: key,
+                      };
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          role="option"
+                          aria-selected={isActive}
+                          onClick={() => onStatusChange(key)}
+                          className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs font-medium transition-all"
+                          style={{
+                            backgroundColor: isActive ? statusStyle.bg : "transparent",
+                            color: isActive ? statusStyle.text : C.textSecondary,
+                            border: `1px solid ${isActive ? statusStyle.border : C.border}`,
+                          }}
+                        >
+                          <span
+                            className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                            style={{ backgroundColor: statusStyle.text }}
+                            aria-hidden
+                          />
+                          <span>{statusStyle.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-                <div className="min-w-0 flex-1 sm:pl-4">
+                <div>
                   <p
-                    className="mb-1 text-[10px] font-semibold uppercase tracking-widest"
+                    className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
                     style={{ color: C.textTertiary }}
                   >
                     Tags
                   </p>
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div
+                    className="flex min-h-[36px] flex-wrap items-center gap-1.5 rounded-sm border px-2 py-1.5"
+                    style={{
+                      backgroundColor: C.surface,
+                      borderColor: C.border,
+                    }}
+                  >
                     {leadTags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center gap-0.5 rounded-full border pl-2 pr-1 text-[11px] font-medium"
+                        className="inline-flex items-center gap-0.5 rounded-sm py-0.5 pl-1.5 pr-0.5 text-[11px] font-medium"
                         style={{
-                          backgroundColor: C.surface,
-                          borderColor: C.border,
+                          backgroundColor: C.accentLight,
                           color: C.accent,
                         }}
                       >
                         {tag}
                         <button
                           type="button"
-                          className="rounded-full p-0.5 transition-opacity hover:opacity-70"
-                          style={{ color: C.textTertiary }}
+                          className="rounded-sm p-0.5 opacity-60 transition-opacity hover:opacity-100"
+                          style={{ color: C.accent }}
                           title={`Remove ${tag}`}
                           aria-label={`Remove tag ${tag}`}
                           onClick={() => removeTag(tag)}
@@ -3823,167 +3989,176 @@ function LeadDetailPanel({
                         </button>
                       </span>
                     ))}
-                    <span className="inline-flex items-center gap-1 rounded-full border pl-1.5 pr-1 py-0.5" style={{ borderColor: C.border, backgroundColor: C.surface }}>
-                      <input
-                        type="text"
-                        value={tagDraft}
-                        onChange={(e) => setTagDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            addTag();
-                          }
-                        }}
-                        placeholder="Add tag…"
-                        className="w-24 min-w-0 border-0 bg-transparent py-0.5 text-[11px] outline-none sm:w-32"
-                        style={{ color: C.textPrimary }}
-                      />
-                      <button
-                        type="button"
-                        onClick={addTag}
-                        className="rounded-full p-1"
-                        style={{ color: C.accent, backgroundColor: C.accentLight }}
-                        title="Add tag"
-                        aria-label="Add tag"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
+                    <input
+                      type="text"
+                      value={tagDraft}
+                      onChange={(e) => setTagDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTag();
+                        }
+                      }}
+                      placeholder={leadTags.length === 0 ? "Type a tag, press Enter" : "Add another…"}
+                      className="min-w-[7rem] flex-1 border-0 bg-transparent py-0.5 text-xs outline-none"
+                      style={{ color: C.textPrimary }}
+                    />
                   </div>
+                  {suggestedTags.length > 0 && (
+                    <p className="mt-2 text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+                      <span style={{ color: C.textQuaternary }}>Suggested </span>
+                      {suggestedTags.map((tag, i) => (
+                        <span key={tag}>
+                          {i > 0 && (
+                            <span className="mx-1" style={{ color: C.textQuaternary }}>
+                              ·
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="font-medium transition-opacity hover:opacity-70"
+                            style={{ color: C.accent }}
+                            onClick={() => addTagValue(tag)}
+                          >
+                            {tag}
+                          </button>
+                        </span>
+                      ))}
+                    </p>
+                  )}
+
                 </div>
               </div>
-            </div>
-
-            {!flow && (
+            )}
+            {activeTab.startsWith("step:") && !flow && (
               <p className="text-sm" style={{ color: C.textTertiary }}>
                 Form definition not found for this submission.
               </p>
             )}
 
-            {flow &&
-              flow.steps.map((step) => (
-                <section
-                  key={step.id}
-                  id={`lead-detail-step-${lead.id}-${step.id}`}
-                  className="scroll-mt-2 pb-6 last:pb-3"
-                >
-                  <div className="mb-3">
+            {activeTab.startsWith("step:") && activeStep && (
+              <section className="pb-3">
+                <div className="mb-3">
+                  <p
+                    className="text-xs font-semibold"
+                    style={{ color: C.textPrimary }}
+                  >
+                    {activeStep.title}
+                  </p>
+                  <div
+                    className="mt-1 h-px w-8 rounded-full"
+                    style={{ backgroundColor: C.accent }}
+                  />
+                </div>
+                <div className="flex flex-col gap-3">
+                  {activeStep.fields.map((field) => {
+                    const raw = responseMap[field.id];
+                    const answer = formatSubmissionFieldAnswer(field, raw);
+                    const multiline =
+                      field.type === "text" && answer.length > 80;
+                    return (
+                      <div
+                        key={field.id}
+                        className="rounded-sm px-3 py-2.5 sm:px-4 sm:py-3"
+                        style={{
+                          backgroundColor: C.surface,
+                          border: `1px solid ${C.border}`,
+                          boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
+                        }}
+                      >
+                        <p
+                          className="mb-1 text-[10px] font-semibold uppercase tracking-widest"
+                          style={{ color: C.textTertiary }}
+                        >
+                          {field.label}
+                          {field.required ? (
+                            <span style={{ color: C.textQuaternary }}> *</span>
+                          ) : null}
+                        </p>
+                        <p
+                          className={`text-sm font-medium ${
+                            multiline ? "whitespace-pre-wrap leading-relaxed" : ""
+                          }`}
+                          style={{ color: C.textPrimary }}
+                        >
+                          {answer}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+                {showInquiryOnActiveTab && (
+                  <div className="mt-4">
                     <p
-                      className="text-xs font-semibold"
-                      style={{ color: C.textPrimary }}
+                      className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
+                      style={{ color: C.textTertiary }}
                     >
-                      {step.title}
+                      Message (inquiry)
                     </p>
                     <div
-                      className="mt-1 h-px w-8 rounded-full"
-                      style={{ backgroundColor: C.accent }}
-                    />
+                      className="rounded-sm border px-3 py-2.5 text-sm leading-relaxed sm:px-4 sm:py-3"
+                      style={{
+                        backgroundColor: C.surface,
+                        borderColor: C.border,
+                        color: C.textSecondary,
+                        whiteSpace: "pre-wrap",
+                        boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
+                      }}
+                    >
+                      {lead.message}
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-3">
-                    {step.fields.map((field) => {
-                      const raw = responseMap[field.id];
-                      const answer = formatSubmissionFieldAnswer(field, raw);
-                      const multiline =
-                        field.type === "text" && answer.length > 80;
-                      return (
-                        <div
-                          key={field.id}
-                          className="rounded-sm px-3 py-2.5 sm:px-4 sm:py-3"
-                          style={{
-                            backgroundColor: C.surface,
-                            border: `1px solid ${C.border}`,
-                            boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
-                          }}
-                        >
-                          <p
-                            className="mb-1 text-[10px] font-semibold uppercase tracking-widest"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {field.label}
-                            {field.required ? (
-                              <span style={{ color: C.textQuaternary }}> *</span>
-                            ) : null}
-                          </p>
-                          <p
-                            className={`text-sm font-medium ${
-                              multiline ? "whitespace-pre-wrap leading-relaxed" : ""
-                            }`}
-                            style={{ color: C.textPrimary }}
-                          >
-                            {answer}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
+                )}
+              </section>
+            )}
 
-            {lead.message && (
-              <div className="mt-1 pb-4">
+            {activeTab === "notes" && (
+              <div className="pb-3 pt-1">
                 <p
                   className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
                   style={{ color: C.textTertiary }}
                 >
-                  Message (inquiry)
+                  Admin Notes
                 </p>
-                <div
-                  className="rounded-sm border px-3 py-2.5 text-sm leading-relaxed sm:px-4 sm:py-3"
+                <textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  rows={6}
+                  placeholder="Add a note…"
+                  className="w-full resize-y rounded-sm border px-3 py-2.5 text-sm outline-none"
                   style={{
                     backgroundColor: C.surface,
                     borderColor: C.border,
-                    color: C.textSecondary,
-                    whiteSpace: "pre-wrap",
+                    color: C.textPrimary,
                     boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
                   }}
-                >
-                  {lead.message}
-                </div>
+                />
               </div>
             )}
 
-            <div className="pb-3 pt-1">
-              <p
-                className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
-                style={{ color: C.textTertiary }}
-              >
-                Admin Notes
-              </p>
-              <div
-                className="rounded-sm border px-3 py-2.5 text-sm"
-                style={{
-                  backgroundColor: C.surface,
-                  borderColor: C.border,
-                  color: C.textTertiary,
-                  fontStyle: "italic",
-                  boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
-                }}
-              >
-                Add a note…
+            {activeTab === "activity" && (
+              <div className="pb-6 pt-1">
+                <p
+                  className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: C.textTertiary }}
+                >
+                  Activity log
+                </p>
+                <div className="space-y-0">
+                  {activity.map((row, i) => (
+                    <DemoActivityTimelineRow
+                      key={row.id}
+                      variant={row.variant}
+                      title={row.title}
+                      date={row.at}
+                      detail={row.summary}
+                      author={row.actor}
+                      showConnectorBelow={i < activity.length - 1}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-
-            <div className="pb-6 pt-2">
-              <p
-                className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
-                style={{ color: C.textTertiary }}
-              >
-                Activity log
-              </p>
-              <div className="space-y-0">
-                {activity.map((row, i) => (
-                  <DemoActivityTimelineRow
-                    key={row.id}
-                    variant={row.variant}
-                    title={row.title}
-                    date={row.at}
-                    detail={row.summary}
-                    author={row.actor}
-                    showConnectorBelow={i < activity.length - 1}
-                  />
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
