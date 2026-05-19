@@ -87,27 +87,33 @@ const C_DARK = {
   purple: "#8B5CF6",
   purpleBg: "rgba(139, 92, 246, 0.08)",
   purpleBorder: "rgba(139, 92, 246, 0.25)",
+  clay: "#C4896E",
+  clayBg: "rgba(196, 137, 110, 0.12)",
+  clayBorder: "rgba(196, 137, 110, 0.30)",
   shadowCard: "0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.4)",
   shadowMedium: "0 4px 16px rgba(0,0,0,0.5)",
-  r: { sm: "6px", md: "8px", lg: "12px", xl: "16px", full: "9999px" },
+  r: { sm: "3px", md: "5px", lg: "6px", xl: "8px", full: "9999px" },
 };
 
 const C_LIGHT = {
-  bg: "#FFFFFF",
-  surface: "#FFFFFF",
-  elevated: "#F4F6F9",
-  border: "#EEF2F6",
-  borderStrong: "#D4DBE8",
-  accent: "#5E7C68",
-  accentBright: "#4A6354",
-  accentLight: "rgba(94, 124, 104, 0.10)",
-  accentGlow: "rgba(94, 124, 104, 0.10)",
-  accentMid: "#4A6354",
-  accentDark: "#3A5244",
-  textPrimary: "#111C16",
-  textSecondary: "#3D5448",
-  textTertiary: "#6B8478",
-  textQuaternary: "#94ADA4",
+  bg: "#F7F1E7",
+  surface: "#FFFAF4",
+  elevated: "#EDE0CE",
+  border: "#DDD0BE",
+  borderStrong: "#B8A898",
+  accent: "#2E4A3C",
+  accentBright: "#4a7c59",
+  accentLight: "rgba(46, 74, 60, 0.10)",
+  accentGlow: "rgba(74, 124, 89, 0.12)",
+  accentMid: "#4a7c59",
+  accentDark: "#233B2F",
+  clay: "#A05C45",
+  clayBg: "rgba(160, 92, 69, 0.10)",
+  clayBorder: "rgba(160, 92, 69, 0.25)",
+  textPrimary: "#2B241D",
+  textSecondary: "#6D6257",
+  textTertiary: "#8A7B6E",
+  textQuaternary: "#B8A898",
   success: "#16A34A",
   successBg: "rgba(22, 163, 74, 0.08)",
   successBorder: "rgba(22, 163, 74, 0.25)",
@@ -123,9 +129,9 @@ const C_LIGHT = {
   purple: "#7C3AED",
   purpleBg: "rgba(124, 58, 237, 0.08)",
   purpleBorder: "rgba(124, 58, 237, 0.25)",
-  shadowCard: "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
-  shadowMedium: "0 4px 16px rgba(0,0,0,0.08)",
-  r: { sm: "6px", md: "8px", lg: "12px", xl: "16px", full: "9999px" },
+  shadowCard: "0 1px 3px rgba(43,36,29,0.06), 0 1px 2px rgba(43,36,29,0.04)",
+  shadowMedium: "0 4px 16px rgba(43,36,29,0.08)",
+  r: { sm: "3px", md: "5px", lg: "6px", xl: "8px", full: "9999px" },
 };
 
 // mutable — set by AdminDashboardDemo before each render so all sub-components pick it up
@@ -2206,14 +2212,136 @@ function Card({
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({
+  children,
+  hint,
+}: {
+  children: React.ReactNode;
+  hint?: string;
+}) {
   return (
-    <p
-      className="text-xs font-semibold uppercase tracking-widest mb-4"
-      style={{ color: C.textTertiary }}
+    <div className="mb-4">
+      <p
+        className="text-sm font-medium"
+        style={{ color: C.textSecondary }}
+      >
+        {children}
+      </p>
+      {hint && (
+        <p className="text-xs mt-1 leading-relaxed" style={{ color: C.textTertiary }}>
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function FeatureTip({ text }: { text: string }) {
+  return (
+    <div
+      className="flex items-start gap-2.5 px-3.5 py-2.5"
+      style={{
+        backgroundColor: C.clayBg,
+        border: `1px solid ${C.clayBorder}`,
+        borderLeft: `3px solid ${C.clay}`,
+        borderRadius: C.r.md,
+      }}
+    >
+      <HelpCircle
+        className="w-4 h-4 flex-shrink-0 mt-0.5"
+        style={{ color: C.clay }}
+      />
+      <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+        {text}
+      </p>
+    </div>
+  );
+}
+
+function PageHeader({
+  icon,
+  title,
+  subtitle,
+  tip,
+  action,
+  className,
+}: {
+  icon?: string;
+  title: string;
+  subtitle?: string;
+  tip?: string;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-3 mb-5 ${className ?? ""}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1
+            className="text-xl font-semibold tracking-tight flex items-center gap-2"
+            style={{ color: C.textPrimary }}
+          >
+            {icon && <span className="text-lg leading-none">{icon}</span>}
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="text-sm mt-1" style={{ color: C.textTertiary }}>
+              {subtitle}
+            </p>
+          )}
+        </div>
+        {action}
+      </div>
+      {tip && <FeatureTip text={tip} />}
+    </div>
+  );
+}
+
+function DemoButton({
+  children,
+  onClick,
+  variant = "primary",
+  className,
+  style,
+  ...rest
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: "primary" | "secondary" | "ghost";
+  className?: string;
+  style?: React.CSSProperties;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  const variants = {
+    primary: {
+      backgroundColor: C.accent,
+      color: "#fff",
+      border: `1px solid ${C.accentDark}`,
+    },
+    secondary: {
+      backgroundColor: C.accentLight,
+      color: C.accent,
+      border: `1px solid ${C.clayBorder}`,
+    },
+    ghost: {
+      backgroundColor: C.elevated,
+      color: C.textSecondary,
+      border: `1px solid ${C.border}`,
+    },
+  };
+  const v = variants[variant];
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold transition-colors ${className ?? ""}`}
+      style={{
+        borderRadius: C.r.sm,
+        ...v,
+        ...style,
+      }}
+      {...rest}
     >
       {children}
-    </p>
+    </button>
   );
 }
 
@@ -2281,20 +2409,20 @@ function StatCard({
         backgroundColor: C.surface,
         border: `1px solid ${C.border}`,
         borderRadius: C.r.lg,
-        padding: "14px",
+        padding: "18px",
         boxShadow: C.shadowCard,
       }}
     >
       {icon && (
         <div
-          className="absolute top-3 right-3 w-6 h-6 rounded-md flex items-center justify-center"
+          className="absolute top-3 right-3 w-7 h-7 rounded-sm flex items-center justify-center"
           style={{ backgroundColor: C.accentGlow }}
         >
           <span style={{ color: C.accent }}>{icon}</span>
         </div>
       )}
       <p
-        className="text-[10px] font-semibold uppercase tracking-wider mb-2"
+        className="text-xs font-medium mb-2"
         style={{ color: C.textTertiary }}
       >
         {title}
@@ -2482,7 +2610,9 @@ const DOT_COLORS: Record<string, string> = {
 function ActivityFeed() {
   return (
     <Card style={{ padding: "20px" }}>
-      <SectionLabel>Recent Activity</SectionLabel>
+      <SectionLabel hint="Latest family activity — applications, payments, and tours appear here automatically.">
+        Recent Activity
+      </SectionLabel>
       <div
         className="relative pl-4"
         style={{ borderLeft: `2px solid ${C.border}` }}
@@ -2526,7 +2656,9 @@ function FunnelWidget() {
   const max = FUNNEL_STAGES[0].count;
   return (
     <Card style={{ padding: "20px" }}>
-      <SectionLabel>Enrollment Pipeline</SectionLabel>
+      <SectionLabel hint="Track families from first inquiry to enrolled — spot bottlenecks at a glance.">
+        Enrollment Pipeline
+      </SectionLabel>
       <div className="space-y-3">
         {FUNNEL_STAGES.map((stage, i) => {
           const pct = Math.round((stage.count / max) * 100);
@@ -2575,7 +2707,9 @@ function UpcomingEventsWidget() {
   };
   return (
     <Card style={{ padding: "20px" }}>
-      <SectionLabel>Upcoming</SectionLabel>
+      <SectionLabel hint="Deadlines and events coming up — never miss orientation or enrollment close dates.">
+        Upcoming
+      </SectionLabel>
       <div className="space-y-3">
         {DEMO_EVENTS.map((ev) => {
           const d = new Date(ev.date);
@@ -2586,7 +2720,7 @@ function UpcomingEventsWidget() {
           return (
             <div key={ev.id} className="flex items-start gap-3">
               <div
-                className="flex-shrink-0 w-10 h-10 rounded-lg flex flex-col items-center justify-center"
+                className="flex-shrink-0 w-10 h-10 rounded-sm flex flex-col items-center justify-center"
                 style={{
                   backgroundColor: C.elevated,
                   border: `1px solid ${C.border}`,
@@ -2677,17 +2811,12 @@ function DashboardPage() {
   ];
   return (
     <div className="space-y-6">
-      <div>
-        <h1
-          className="text-xl font-semibold tracking-tight"
-          style={{ color: C.textPrimary }}
-        >
-          Dashboard
-        </h1>
-        <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-          Mud Kitchen School — Spring / Summer 2026
-        </p>
-      </div>
+      <PageHeader
+        icon="📊"
+        title="Dashboard"
+        subtitle="Mud Kitchen School — Spring / Summer 2026"
+        tip="Your morning snapshot — see revenue, enrollment, leads, and upcoming dates all in one place. Numbers update as families apply and pay."
+      />
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {KPIS.map((kpi, i) => (
           <StatCard
@@ -2710,7 +2839,9 @@ function DashboardPage() {
         >
           <Card style={{ padding: "20px" }}>
             <div className="flex items-center justify-between mb-4">
-              <SectionLabel>Revenue vs Expenses</SectionLabel>
+              <SectionLabel hint="Green line is tuition coming in; dashed line is what you're spending.">
+                Revenue vs Expenses
+              </SectionLabel>
               <div className="flex items-center gap-4 text-[11px]">
                 <span className="flex items-center gap-1.5">
                   <span
@@ -2737,7 +2868,9 @@ function DashboardPage() {
           transition={{ delay: 0.25 }}
         >
           <Card style={{ padding: "20px" }}>
-            <SectionLabel>Enrollment Capacity</SectionLabel>
+            <SectionLabel hint="See how full each program is — and how many families are waiting for a spot.">
+              Enrollment Capacity
+            </SectionLabel>
             <div className="space-y-5">
               <ProgressRing
                 value={90}
@@ -2856,7 +2989,7 @@ function LeadsListTab({
         className="flex items-center gap-2 px-6 py-3 flex-shrink-0"
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-widest flex-shrink-0" style={{ color: C.textTertiary }}>
+        <span className="text-xs font-medium flex-shrink-0" style={{ color: C.textTertiary }}>
           Form
         </span>
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -2922,7 +3055,7 @@ function LeadsListTab({
                 ].map((col) => (
                   <th
                     key={col}
-                    className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
+                    className="text-left px-4 py-3 text-xs font-medium"
                     style={{ color: C.textTertiary }}
                   >
                     {col}
@@ -3753,7 +3886,7 @@ function LeadDetailPanel({
                       return (
                         <div
                           key={field.id}
-                          className="rounded-lg px-3 py-2.5 sm:px-4 sm:py-3"
+                          className="rounded-sm px-3 py-2.5 sm:px-4 sm:py-3"
                           style={{
                             backgroundColor: C.surface,
                             border: `1px solid ${C.border}`,
@@ -3793,7 +3926,7 @@ function LeadDetailPanel({
                   Message (inquiry)
                 </p>
                 <div
-                  className="rounded-lg border px-3 py-2.5 text-sm leading-relaxed sm:px-4 sm:py-3"
+                  className="rounded-sm border px-3 py-2.5 text-sm leading-relaxed sm:px-4 sm:py-3"
                   style={{
                     backgroundColor: C.surface,
                     borderColor: C.border,
@@ -3815,7 +3948,7 @@ function LeadDetailPanel({
                 Admin Notes
               </p>
               <div
-                className="rounded-lg border px-3 py-2.5 text-sm"
+                className="rounded-sm border px-3 py-2.5 text-sm"
                 style={{
                   backgroundColor: C.surface,
                   borderColor: C.border,
@@ -3859,7 +3992,7 @@ function LeadDetailPanel({
       >
         <button
           type="button"
-          className="w-full rounded-lg py-2 text-sm font-semibold transition-colors"
+          className="w-full rounded-sm py-2 text-sm font-semibold transition-colors"
           style={{ backgroundColor: C.accentLight, color: C.accent }}
         >
           Send Application Link
@@ -4683,7 +4816,7 @@ function EnrollmentFlowsTab() {
             </div>
             <button
               onClick={saveFlow}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex-shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-sm transition-all flex-shrink-0"
               style={{
                 backgroundColor: savedPulse ? C.success : C.accent,
                 color: "#fff",
@@ -4714,7 +4847,7 @@ function EnrollmentFlowsTab() {
 
               {/* Scrollable horizontal rail */}
               <div
-                className="overflow-x-auto rounded-lg"
+                className="overflow-x-auto rounded-sm"
                 style={{
                   backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
@@ -4803,7 +4936,7 @@ function EnrollmentFlowsTab() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 16, scale: 0.97 }}
                     transition={{ type: "spring", damping: 28, stiffness: 300 }}
-                    className="rounded-2xl overflow-hidden flex flex-col"
+                    className="rounded-md overflow-hidden flex flex-col"
                     style={{
                       width: "min(860px, 90vw)",
                       maxHeight: "85vh",
@@ -4843,7 +4976,7 @@ function EnrollmentFlowsTab() {
                       {/* School branding mock */}
                       <div className="flex items-center gap-2.5 mb-6">
                         <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
+                          className="w-8 h-8 rounded-sm flex items-center justify-center text-white text-xs font-bold"
                           style={{ backgroundColor: C.accent }}
                         >
                           S
@@ -4909,7 +5042,7 @@ function EnrollmentFlowsTab() {
                             ) : field.type === "select" ? (
                               <select
                                 disabled
-                                className="w-full px-3 py-2.5 rounded-lg text-sm"
+                                className="w-full px-3 py-2.5 rounded-sm text-sm"
                                 style={{
                                   border: "1.5px solid #E5E7EB",
                                   color: "#9CA3AF",
@@ -4932,7 +5065,7 @@ function EnrollmentFlowsTab() {
                                   : `Enter ${field.label.toLowerCase()}…`
                                 }
                                 disabled
-                                className="w-full px-3 py-2.5 rounded-lg text-sm"
+                                className="w-full px-3 py-2.5 rounded-sm text-sm"
                                 style={{
                                   border: "1.5px solid #E5E7EB",
                                   color: "#9CA3AF",
@@ -4947,7 +5080,7 @@ function EnrollmentFlowsTab() {
 
                       {/* Next / Submit button */}
                       <button
-                        className="mt-8 w-full py-3 rounded-lg text-sm font-semibold text-white transition-all"
+                        className="mt-8 w-full py-3 rounded-sm text-sm font-semibold text-white transition-all"
                         style={{ backgroundColor: C.accent }}
                         disabled
                       >
@@ -4983,7 +5116,7 @@ function EnrollmentFlowsTab() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 12, scale: 0.99 }}
                     transition={{ type: "spring", damping: 28, stiffness: 320 }}
-                    className="flex w-full flex-col overflow-hidden rounded-lg shadow-2xl"
+                    className="flex w-full flex-col overflow-hidden rounded-sm shadow-2xl"
                     style={{
                       maxWidth: "min(760px, 94vw)",
                       maxHeight: "min(680px, 88vh)",
@@ -5251,7 +5384,20 @@ function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; 
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      {/* Tab bar flush at top */}
+      <div className="flex-shrink-0 px-6 pt-5 pb-3">
+        <PageHeader
+          icon="🎓"
+          title="Admissions"
+          subtitle="Enrollment flows and family inquiries"
+          tip={
+            activeTab === "flows"
+              ? "These are the forms families fill out on your website. Pick a flow on the left, edit steps, and preview what parents see."
+              : "Every inquiry lands here. Click a family name to review their answers, update status, and move them toward enrollment."
+          }
+          className="mb-0"
+        />
+      </div>
+      {/* Tab bar */}
       <div
         className="flex flex-shrink-0 gap-0 px-6"
         style={{ borderBottom: `1px solid ${C.border}` }}
@@ -5584,7 +5730,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                 {parent.children.map((child) => (
                   <div
                     key={child.name}
-                    className="flex items-center gap-3 p-3 rounded-lg"
+                    className="flex items-center gap-3 p-3 rounded-sm"
                     style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                   >
                     {child.photo ? (
@@ -5617,7 +5763,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                 {parent.applications.map((app, i) => (
                   <div
                     key={i}
-                    className="p-3 rounded-lg"
+                    className="p-3 rounded-sm"
                     style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                   >
                     <p className="text-xs font-semibold mb-2" style={{ color: C.textPrimary }}>{app.childName}</p>
@@ -5648,7 +5794,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
               <div className="flex items-center gap-2">
                 {pendingForms.length > 0 && (
                   <button
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-semibold"
                     style={{ backgroundColor: C.accentLight, color: C.accent, border: `1px solid ${C.accentDark + "44"}` }}
                   >
                     <Send className="w-3 h-3" />
@@ -5657,7 +5803,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                 )}
                 <button
                   onClick={() => setShowStore(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-semibold"
                   style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
                 >
                   <Plus className="w-3 h-3" />
@@ -5673,7 +5819,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                 return (
                   <div
                     key={form.id}
-                    className="rounded-xl overflow-hidden flex flex-col"
+                    className="rounded-sm overflow-hidden flex flex-col"
                     style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                   >
                     {/* Doc preview */}
@@ -5771,7 +5917,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                   return (
                     <div
                       key={tmpl.id}
-                      className="flex items-center gap-3 p-2.5 rounded-lg"
+                      className="flex items-center gap-3 p-2.5 rounded-sm"
                       style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                     >
                       <div className="flex-shrink-0">
@@ -5861,7 +6007,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                       key={tmpl.id}
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl overflow-hidden flex flex-col"
+                      className="rounded-sm overflow-hidden flex flex-col"
                       style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                     >
                       {/* Doc preview */}
@@ -5897,7 +6043,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
 
                         {/* Use button */}
                         <button
-                          className="mt-1.5 w-full py-1.5 rounded-lg text-[10px] font-semibold"
+                          className="mt-1.5 w-full py-1.5 rounded-sm text-[10px] font-semibold"
                           style={{ backgroundColor: color + "20", color: color, border: `1px solid ${color}50` }}
                         >
                           Use Template
@@ -5941,7 +6087,7 @@ function ParentsPageInner() {
                 ].map((col) => (
                   <th
                     key={col}
-                    className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
+                    className="text-left px-4 py-3 text-xs font-medium"
                     style={{ color: C.textTertiary }}
                   >
                     {col}
@@ -6170,7 +6316,7 @@ function StudentDetailPanel({
                   ].map((f) => (
                     <div
                       key={f}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg text-xs"
+                      className="flex items-center justify-between px-3 py-2 rounded-sm text-xs"
                       style={{
                         backgroundColor: C.elevated,
                         border: `1px solid ${C.border}`,
@@ -6192,7 +6338,7 @@ function StudentDetailPanel({
                     {student.medications.map((m) => (
                       <div
                         key={m.name}
-                        className="p-3 rounded-lg"
+                        className="p-3 rounded-sm"
                         style={{
                           backgroundColor: C.elevated,
                           border: `1px solid ${C.border}`,
@@ -6242,7 +6388,7 @@ function StudentDetailPanel({
                   {student.authorizedPickup.map((p) => (
                     <div
                       key={p.name}
-                      className="p-3 rounded-lg"
+                      className="p-3 rounded-sm"
                       style={{
                         backgroundColor: C.elevated,
                         border: `1px solid ${C.border}`,
@@ -6370,7 +6516,7 @@ function StudentDetailPanel({
           ].map((card) => (
             <div
               key={card.title}
-              className="rounded-xl p-4"
+              className="rounded-sm p-4"
               style={{
                 backgroundColor: C.elevated,
                 border: `1px solid ${C.border}`,
@@ -6411,7 +6557,7 @@ function StudentsPageInner() {
                   (col) => (
                     <th
                       key={col}
-                      className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
+                      className="text-left px-4 py-3 text-xs font-medium"
                       style={{ color: C.textTertiary }}
                     >
                       {col}
@@ -6560,7 +6706,7 @@ function PeoplePage() {
             </span>
           </div>
           <div
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
             style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
           >
             <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
@@ -6854,7 +7000,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   ⚠ Allergies
                 </p>
                 <p
-                  className="text-xs leading-relaxed p-3 rounded-lg"
+                  className="text-xs leading-relaxed p-3 rounded-sm"
                   style={{
                     color: C.textSecondary,
                     backgroundColor: "rgba(245,158,11,0.08)",
@@ -6875,7 +7021,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   Medical Conditions
                 </p>
                 <p
-                  className="text-xs leading-relaxed p-3 rounded-lg"
+                  className="text-xs leading-relaxed p-3 rounded-sm"
                   style={{
                     color: C.textSecondary,
                     backgroundColor: "rgba(239,68,68,0.08)",
@@ -6896,7 +7042,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   Emergency Meds Protocol
                 </p>
                 <p
-                  className="text-xs leading-relaxed p-3 rounded-lg"
+                  className="text-xs leading-relaxed p-3 rounded-sm"
                   style={{
                     color: C.textSecondary,
                     backgroundColor: "rgba(249,115,22,0.08)",
@@ -6920,7 +7066,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   {student.medications.map((med, i) => (
                     <div
                       key={i}
-                      className="p-3 rounded-lg"
+                      className="p-3 rounded-sm"
                       style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                     >
                       <div className="flex items-center justify-between mb-1">
@@ -6960,7 +7106,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
               {student.authorizedPickup.map((person, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 p-3 rounded-lg"
+                  className="flex items-center gap-3 p-3 rounded-sm"
                   style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                 >
                   <div
@@ -6992,7 +7138,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
             >
               Immunization Records
             </p>
-            <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+            <div className="rounded-sm overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
               {student.immunizations.map((imm, i) => (
                 <div
                   key={i}
@@ -7042,7 +7188,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                 .map((contact, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-3 p-3 rounded-lg"
+                    className="flex items-center gap-3 p-3 rounded-sm"
                     style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                   >
                     <div
@@ -7085,7 +7231,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   <div className="flex items-center gap-2">
                     {paperworkPending.length > 0 && (
                       <button
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-semibold"
                         style={{
                           backgroundColor: C.accentLight,
                           color: C.accent,
@@ -7096,7 +7242,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                       </button>
                     )}
                     <button
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-semibold"
                       style={{
                         backgroundColor: C.elevated,
                         color: C.textSecondary,
@@ -7115,7 +7261,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                     return (
                       <div
                         key={form.id}
-                        className="rounded-xl overflow-hidden flex flex-col"
+                        className="rounded-sm overflow-hidden flex flex-col"
                         style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                       >
                         <div
@@ -7209,7 +7355,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
             {student.billing.kind === "full_time" ? (
               <>
                 <div
-                  className="flex items-center justify-between p-3 rounded-lg"
+                  className="flex items-center justify-between p-3 rounded-sm"
                   style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                 >
                   <div className="flex items-center gap-2">
@@ -7258,7 +7404,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                     {student.billing.paymentMethods.map((pm, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between p-2.5 rounded-lg"
+                        className="flex items-center justify-between p-2.5 rounded-sm"
                         style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                       >
                         <span className="flex items-center gap-2 text-xs" style={{ color: C.textPrimary }}>
@@ -7281,7 +7427,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
                     style={{ backgroundColor: C.accent, color: "#fff" }}
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -7289,7 +7435,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   </button>
                   <button
                     type="button"
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
                     style={{
                       backgroundColor: C.elevated,
                       color: C.textSecondary,
@@ -7305,7 +7451,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
                     Invoices & payments
                   </p>
-                  <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+                  <div className="rounded-sm overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
                     {student.billing.lineItems.map((row, i) => (
                       <div
                         key={row.id}
@@ -7345,7 +7491,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
             ) : (
               <>
                 <div
-                  className="flex items-center justify-between p-3 rounded-lg"
+                  className="flex items-center justify-between p-3 rounded-sm"
                   style={{ backgroundColor: C.elevated, border: `1px solid ${C.accent + "55"}` }}
                 >
                   <div className="flex items-center gap-2">
@@ -7381,7 +7527,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                       return (
                         <div
                           key={wi}
-                          className="p-3 rounded-lg"
+                          className="p-3 rounded-sm"
                           style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                         >
                           <div className="flex items-center justify-between mb-2">
@@ -7422,7 +7568,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
                     style={{ backgroundColor: C.accent, color: "#fff" }}
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -7430,7 +7576,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   </button>
                   <button
                     type="button"
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-semibold"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
                     style={{
                       backgroundColor: C.elevated,
                       color: C.textSecondary,
@@ -7446,7 +7592,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
                     Charges & payments
                   </p>
-                  <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+                  <div className="rounded-sm overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
                     {student.billing.lineItems.map((row, i) => (
                       <div
                         key={row.id}
@@ -7545,7 +7691,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                         .map((sibling) => (
                           <div
                             key={sibling.name}
-                            className="flex items-center gap-3 p-3 rounded-lg"
+                            className="flex items-center gap-3 p-3 rounded-sm"
                             style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                           >
                             {sibling.photo ? (
@@ -7597,7 +7743,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                       .map((app, i) => (
                         <div
                           key={i}
-                          className="p-3 rounded-lg"
+                          className="p-3 rounded-sm"
                           style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                         >
                           <p
@@ -7661,27 +7807,23 @@ function StudentsPage() {
           className="px-4 py-3 flex-shrink-0 space-y-2"
           style={{ borderBottom: `1px solid ${C.border}` }}
         >
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold" style={{ color: C.textPrimary }}>
-              My Students
-            </span>
-            <span
-              className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
-              style={{ backgroundColor: C.accentLight, color: C.accent }}
-            >
-              {DEMO_STUDENTS_P2.length}
-            </span>
-          </div>
+          <PageHeader
+            icon="👧"
+            title="Students"
+            subtitle={`${DEMO_STUDENTS_P2.length} enrolled`}
+            tip="Your roster hub — search by name, then click a student to see their profile, billing, and health info."
+            className="mb-0 space-y-2"
+          />
           <div
-            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg"
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
             style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
           >
-            <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
+            <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search students..."
-              className="bg-transparent border-none outline-none text-xs w-full"
+              className="bg-transparent border-none outline-none text-sm w-full"
               style={{ color: C.textPrimary }}
             />
           </div>
@@ -7815,7 +7957,7 @@ function ProgramsPage() {
             <button
               key={prog.id}
               onClick={() => switchProgram(prog)}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-xs font-medium transition-all"
+              className="w-full text-left px-3 py-2.5 rounded-sm text-xs font-medium transition-all"
               style={{
                 backgroundColor: active ? C.accentLight : "transparent",
                 color: active ? C.accent : C.textSecondary,
@@ -7835,18 +7977,14 @@ function ProgramsPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="mb-4">
-          <h1
-            className="text-xl font-semibold tracking-tight"
-            style={{ color: C.textPrimary }}
-          >
-            {activeProgram.name}
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-            {totalStudents} students enrolled
-          </p>
-        </div>
+      <div className="flex-1 flex flex-col min-w-0 p-4">
+        <PageHeader
+          icon="📚"
+          title={activeProgram.name}
+          subtitle={`${totalStudents} students enrolled`}
+          tip="Group students by program and session. Switch programs on the left, then pick a teacher tab to see their class roster."
+          className="mb-4"
+        />
 
         {/* Teacher tabs */}
         <div className="flex items-center gap-2 mb-5 flex-wrap">
@@ -7856,7 +7994,7 @@ function ProgramsPage() {
               <button
                 key={teacher.id}
                 onClick={() => setActiveTeacherId(teacher.id)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all"
+                className="flex items-center gap-2 px-3 py-2 rounded-sm text-xs font-medium transition-all"
                 style={{
                   backgroundColor: active ? C.accentLight : C.elevated,
                   border: `1px solid ${active ? C.accent : C.border}`,
@@ -7907,7 +8045,7 @@ function ProgramsPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => setSelectedStudent(student)}
-                className="cursor-pointer rounded-xl p-4 flex flex-col items-center text-center transition-colors"
+                className="cursor-pointer rounded-sm p-4 flex flex-col items-center text-center transition-colors"
                 style={{
                   backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
@@ -9653,7 +9791,7 @@ function TransactionsPage() {
           </p>
         </div>
         <div
-          className="flex items-center gap-1 p-1 rounded-lg"
+          className="flex items-center gap-1 p-1 rounded-sm"
           style={{
             backgroundColor: C.elevated,
             border: `1px solid ${C.border}`,
@@ -9706,7 +9844,7 @@ function TransactionsPage() {
                       ].map((col) => (
                         <th
                           key={col}
-                          className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
+                          className="text-left px-4 py-3 text-xs font-medium"
                           style={{ color: C.textTertiary }}
                         >
                           {col}
@@ -9843,7 +9981,7 @@ function TransactionsPage() {
                   </div>
                   <div className="flex-1 overflow-y-auto p-5 space-y-4">
                     <div
-                      className="rounded-xl p-4"
+                      className="rounded-sm p-4"
                       style={{
                         backgroundColor: C.elevated,
                         border: `1px solid ${C.border}`,
@@ -9896,7 +10034,7 @@ function TransactionsPage() {
                       <DetailField label="Date" value={selectedTx.date} />
                     </div>
                     <div
-                      className="rounded-lg p-3"
+                      className="rounded-sm p-3"
                       style={{
                         backgroundColor: C.elevated,
                         border: `1px solid ${C.border}`,
@@ -10161,7 +10299,7 @@ function BudgetRing({
   const diff = Math.abs(cat.planned - cat.actual);
   return (
     <div
-      className="rounded-xl p-4 flex flex-col items-center text-center"
+      className="rounded-sm p-4 flex flex-col items-center text-center"
       style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
     >
       <div className="relative mb-3" style={{ width: size, height: size }}>
@@ -10240,44 +10378,47 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
   const totalExpenses = DEMO_EXPENSES.reduce((s, e) => s + e.amount, 0);
   const fmt = (n: number) => `$${n.toLocaleString()}`;
 
+  const BUDGET_TIPS: Record<BudgetTab, string> = {
+    overview: "Your financial snapshot — revenue, expenses, and profit at a glance for the current school year.",
+    expenses: "Log every cost here — supplies, rent, payroll. Categorize so you know where money goes.",
+    revenue: "Track tuition and fees coming in. See which families have paid and what's still outstanding.",
+    analysis: "Spot trends over time — compare months and find where to save or grow enrollment.",
+    transactions: "Every payment in and out, in one list. Use this to reconcile with your bank account.",
+  };
+
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h1
-            className="text-xl font-semibold tracking-tight"
-            style={{ color: C.textPrimary }}
+      <PageHeader
+        icon="💰"
+        title="Budget"
+        subtitle="Fiscal Year 2025–2026"
+        tip={BUDGET_TIPS[tab]}
+        action={
+          <div
+            className="flex items-center gap-1 p-1 rounded-sm"
+            style={{
+              backgroundColor: C.elevated,
+              border: `1px solid ${C.border}`,
+            }}
           >
-            Budget
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-            Fiscal Year 2025–2026
-          </p>
-        </div>
-        <div
-          className="flex items-center gap-1 p-1 rounded-lg"
-          style={{
-            backgroundColor: C.elevated,
-            border: `1px solid ${C.border}`,
-          }}
-        >
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              data-tour-id={`budget-tab-${t.key}`}
-              onClick={() => setTab(t.key)}
-              className="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
-              style={{
-                backgroundColor: tab === t.key ? C.surface : "transparent",
-                color: tab === t.key ? C.textPrimary : C.textTertiary,
-                boxShadow: tab === t.key ? C.shadowCard : "none",
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                data-tour-id={`budget-tab-${t.key}`}
+                onClick={() => setTab(t.key)}
+                className="px-3 py-1.5 text-xs font-medium rounded-sm transition-all"
+                style={{
+                  backgroundColor: tab === t.key ? C.surface : "transparent",
+                  color: tab === t.key ? C.textPrimary : C.textTertiary,
+                  boxShadow: tab === t.key ? C.shadowCard : "none",
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       <AnimatePresence mode="wait">
         {tab === "overview" && (
@@ -10300,14 +10441,14 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="rounded-xl p-4"
+                  className="rounded-sm p-4"
                   style={{
                     backgroundColor: C.surface,
                     border: `1px solid ${C.border}`,
                   }}
                 >
                   <p
-                    className="text-xs uppercase tracking-widest font-semibold mb-2"
+                    className="text-xs font-medium mb-2"
                     style={{ color: C.textTertiary }}
                   >
                     {s.label}
@@ -10376,7 +10517,7 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
                       ].map((col) => (
                         <th
                           key={col}
-                          className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
+                          className="text-left px-4 py-3 text-xs font-medium"
                           style={{ color: C.textTertiary }}
                         >
                           {col}
@@ -10479,7 +10620,7 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
                   </div>
                   <div className="flex-1 p-5 space-y-4">
                     <div
-                      className="rounded-xl p-4"
+                      className="rounded-sm p-4"
                       style={{
                         backgroundColor: C.elevated,
                         border: `1px solid ${C.border}`,
@@ -10554,7 +10695,7 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
               ].map((s) => (
                 <div
                   key={s.label}
-                  className="rounded-xl p-4"
+                  className="rounded-sm p-4"
                   style={{
                     backgroundColor: C.surface,
                     border: `1px solid ${C.border}`,
@@ -10583,7 +10724,7 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
                       (col) => (
                         <th
                           key={col}
-                          className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
+                          className="text-left px-4 py-3 text-xs font-medium"
                           style={{ color: C.textTertiary }}
                         >
                           {col}
@@ -10765,7 +10906,7 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
                     ].map((col) => (
                       <th
                         key={col}
-                        className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
+                        className="text-left px-4 py-3 text-xs font-medium"
                         style={{ color: C.textTertiary }}
                       >
                         {col}
@@ -11130,7 +11271,7 @@ function NewAutomationWizard({
                       <button
                         key={tmpl.id}
                         onClick={() => onChange({ templateId: tmpl.id })}
-                        className="text-left rounded-xl p-3 transition-all duration-150"
+                        className="text-left rounded-sm p-3 transition-all duration-150"
                         style={{
                           border: `2px solid ${sel ? C.accent : C.border}`,
                           backgroundColor: sel ? C.accentLight : C.surface,
@@ -11139,7 +11280,7 @@ function NewAutomationWizard({
                       >
                         <div className="flex items-start gap-2 mb-1.5">
                           <div
-                            className="flex items-center justify-center rounded-lg flex-shrink-0"
+                            className="flex items-center justify-center rounded-sm flex-shrink-0"
                             style={{ width: 30, height: 30, backgroundColor: color + "22", color }}
                           >
                             <Megaphone className="w-3.5 h-3.5" />
@@ -11180,7 +11321,7 @@ function NewAutomationWizard({
                 </div>
                 <button
                   onClick={() => onChange({ templateId: "scratch", flowSteps: [], automationName: "" })}
-                  className="mt-2.5 w-full rounded-xl py-3 text-[11px] font-medium transition-all duration-150"
+                  className="mt-2.5 w-full rounded-sm py-3 text-[11px] font-medium transition-all duration-150"
                   style={{
                     border: `1.5px dashed ${state.templateId === "scratch" ? C.accent : C.border}`,
                     color: state.templateId === "scratch" ? C.accent : C.textTertiary,
@@ -11209,14 +11350,14 @@ function NewAutomationWizard({
                       <button
                         key={trig.id}
                         onClick={() => onChange({ triggerKey: trig.id })}
-                        className="w-full text-left flex items-center gap-3 rounded-xl p-3 transition-all duration-150"
+                        className="w-full text-left flex items-center gap-3 rounded-sm p-3 transition-all duration-150"
                         style={{
                           border: `2px solid ${sel ? C.accent : C.border}`,
                           backgroundColor: sel ? C.accentLight : C.surface,
                         }}
                       >
                         <div
-                          className="flex items-center justify-center rounded-lg flex-shrink-0"
+                          className="flex items-center justify-center rounded-sm flex-shrink-0"
                           style={{ width: 36, height: 36, backgroundColor: C.elevated, color: sel ? C.accent : C.textSecondary }}
                         >
                           <TriggerIcon id={trig.id} />
@@ -11256,7 +11397,7 @@ function NewAutomationWizard({
                       <button
                         key={seg.id}
                         onClick={() => onChange({ audienceKey: seg.id })}
-                        className="w-full text-left flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-150"
+                        className="w-full text-left flex items-center gap-3 rounded-sm px-3 py-2.5 transition-all duration-150"
                         style={{
                           border: `2px solid ${sel ? C.accent : C.border}`,
                           backgroundColor: sel ? C.accentLight : C.surface,
@@ -11342,7 +11483,7 @@ function NewAutomationWizard({
                 </div>
 
                 <div
-                  className="rounded-xl p-3"
+                  className="rounded-sm p-3"
                   style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                 >
                   <div className="text-[11px] mb-1.5" style={{ color: C.textSecondary }}>
@@ -11376,14 +11517,14 @@ function NewAutomationWizard({
 
                 {state.flowSteps.length === 0 ? (
                   <div
-                    className="flex flex-col items-center justify-center rounded-xl py-10"
+                    className="flex flex-col items-center justify-center rounded-sm py-10"
                     style={{ border: `2px dashed ${C.border}`, color: C.textTertiary }}
                   >
                     <Layers className="w-6 h-6 mb-2 opacity-40" />
                     <div className="text-[11px] mb-3">Your flow is empty.</div>
                     <button
                       onClick={() => setAddPickerIndex(0)}
-                      className="flex items-center gap-1 text-[11px] font-medium rounded-lg px-3 py-1.5"
+                      className="flex items-center gap-1 text-[11px] font-medium rounded-sm px-3 py-1.5"
                       style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
                     >
                       <Plus className="w-3 h-3" /> Add first step
@@ -11401,14 +11542,14 @@ function NewAutomationWizard({
                           className="overflow-hidden mb-2"
                         >
                           <div
-                            className="flex gap-1.5 p-2 rounded-xl"
+                            className="flex gap-1.5 p-2 rounded-sm"
                             style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                           >
                             {WIZARD_STEP_TYPES.map((st) => (
                               <button
                                 key={st.type}
                                 onClick={() => addStep(st.type, 0)}
-                                className="flex-1 flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium transition-all"
+                                className="flex-1 flex flex-col items-center gap-1 rounded-sm py-2 text-[10px] font-medium transition-all"
                                 style={{ backgroundColor: st.color + "22", color: st.color }}
                               >
                                 <StepTypeIcon type={st.type} />
@@ -11429,7 +11570,7 @@ function NewAutomationWizard({
                             layout
                             onMouseEnter={() => setHoveredStepIndex(i)}
                             onMouseLeave={() => setHoveredStepIndex(null)}
-                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 relative"
+                            className="flex items-center gap-3 rounded-sm px-3 py-2.5 relative"
                             style={{
                               backgroundColor: C.surface,
                               border: `1px solid ${C.border}`,
@@ -11438,7 +11579,7 @@ function NewAutomationWizard({
                             }}
                           >
                             <div
-                              className="flex items-center justify-center rounded-lg flex-shrink-0"
+                              className="flex items-center justify-center rounded-sm flex-shrink-0"
                               style={{ width: 32, height: 32, backgroundColor: sc.bg, color: sc.fg }}
                             >
                               <StepTypeIcon type={step.type} />
@@ -11490,14 +11631,14 @@ function NewAutomationWizard({
                                 className="overflow-hidden mb-2"
                               >
                                 <div
-                                  className="flex gap-1.5 p-2 rounded-xl"
+                                  className="flex gap-1.5 p-2 rounded-sm"
                                   style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                                 >
                                   {WIZARD_STEP_TYPES.map((st) => (
                                     <button
                                       key={st.type}
                                       onClick={() => addStep(st.type, i + 1)}
-                                      className="flex-1 flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium transition-all"
+                                      className="flex-1 flex flex-col items-center gap-1 rounded-sm py-2 text-[10px] font-medium transition-all"
                                       style={{ backgroundColor: st.color + "22", color: st.color }}
                                     >
                                       <StepTypeIcon type={st.type} />
@@ -11579,7 +11720,7 @@ function NewAutomationWizard({
                       type="text"
                       value={state.automationName}
                       onChange={(e) => onChange({ automationName: e.target.value })}
-                      className="w-full text-sm font-semibold rounded-xl px-3.5 py-2.5 mb-4 outline-none"
+                      className="w-full text-sm font-semibold rounded-sm px-3.5 py-2.5 mb-4 outline-none"
                       style={{
                         backgroundColor: C.elevated,
                         border: `1px solid ${C.border}`,
@@ -11592,7 +11733,7 @@ function NewAutomationWizard({
 
                     {/* Launch mode toggle */}
                     <div
-                      className="flex p-1 rounded-xl mb-4"
+                      className="flex p-1 rounded-sm mb-4"
                       style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                     >
                       {(["live", "draft"] as const).map((mode) => {
@@ -11601,7 +11742,7 @@ function NewAutomationWizard({
                           <button
                             key={mode}
                             onClick={() => onChange({ launchMode: mode })}
-                            className="flex-1 text-xs font-medium rounded-lg py-2 transition-all duration-150"
+                            className="flex-1 text-xs font-medium rounded-sm py-2 transition-all duration-150"
                             style={{
                               backgroundColor: active ? C.surface : "transparent",
                               color: active ? C.textPrimary : C.textTertiary,
@@ -11616,7 +11757,7 @@ function NewAutomationWizard({
 
                     {/* Summary card */}
                     <div
-                      className="rounded-xl p-4"
+                      className="rounded-sm p-4"
                       style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                     >
                       <div className="text-[10px] font-semibold uppercase tracking-wide mb-3" style={{ color: C.textTertiary }}>
@@ -11661,7 +11802,7 @@ function NewAutomationWizard({
           {state.step > 1 && (
             <button
               onClick={handleBack}
-              className="text-xs font-medium rounded-lg px-4 py-2"
+              className="text-xs font-medium rounded-sm px-4 py-2"
               style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}`, color: C.textSecondary }}
             >
               Back
@@ -11671,7 +11812,7 @@ function NewAutomationWizard({
             <button
               onClick={handleNext}
               disabled={!canContinue}
-              className="ml-auto flex items-center gap-1.5 text-xs font-semibold rounded-lg px-4 py-2 transition-opacity"
+              className="ml-auto flex items-center gap-1.5 text-xs font-semibold rounded-sm px-4 py-2 transition-opacity"
               style={{
                 backgroundColor: C.accent,
                 color: "#fff",
@@ -11684,7 +11825,7 @@ function NewAutomationWizard({
           ) : (
             <button
               onClick={handleLaunch}
-              className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold rounded-xl py-2.5"
+              className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold rounded-sm py-2.5"
               style={{ backgroundColor: C.accent, color: "#fff" }}
             >
               Launch Automation <ArrowRight className="w-4 h-4" />
@@ -11885,24 +12026,20 @@ function MarketplacePage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div>
-          <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>Marketplace</h2>
-          <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-            Resources shared by the microschool community
-          </p>
-        </div>
-        <button
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-          style={{ backgroundColor: C.accentLight, color: C.accent, border: `1px solid ${C.accentDark + "44"}` }}
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Share a Resource
-        </button>
+      <div className="px-6 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
+        <PageHeader
+          icon="🛒"
+          title="Marketplace"
+          subtitle="Resources shared by the microschool community"
+          tip="Browse forms, templates, and guides from other schools. Search or filter by category, then click Use to add one to your school."
+          action={
+            <DemoButton variant="secondary">
+              <Plus className="w-4 h-4" />
+              Share a Resource
+            </DemoButton>
+          }
+          className="mb-0"
+        />
       </div>
 
       {/* Filters */}
@@ -11934,7 +12071,7 @@ function MarketplacePage() {
 
         {/* Search */}
         <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg flex-shrink-0"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-sm flex-shrink-0"
           style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
         >
           <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
@@ -11965,7 +12102,7 @@ function MarketplacePage() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  className="rounded-xl overflow-hidden flex flex-col"
+                  className="rounded-sm overflow-hidden flex flex-col"
                   style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
                 >
                   {/* Doc preview area */}
@@ -12035,7 +12172,7 @@ function MarketplacePage() {
                         </span>
                       )}
                       <button
-                        className="px-2.5 py-1 rounded-lg text-[10px] font-semibold"
+                        className="px-2.5 py-1 rounded-sm text-[10px] font-semibold"
                         style={{ backgroundColor: color + "20", color, border: `1px solid ${color}50` }}
                       >
                         {listing.free ? "Use Free" : "Get"}
@@ -12114,34 +12251,26 @@ function MarketingPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div
-        className="flex items-start justify-between px-6 pt-5 pb-4 flex-shrink-0"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div>
-          <h1
-            className="text-lg font-semibold tracking-tight"
-            style={{ color: C.textPrimary }}
-          >
-            Automation Pipelines
-          </h1>
-          <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-            Automated email & SMS sequences for leads and families
-          </p>
-        </div>
-        <button
-          onClick={() => { setWizardState(WIZARD_INITIAL_STATE); setIsCreating(true); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg flex-shrink-0"
-          style={{ backgroundColor: C.accent, color: "#fff" }}
-        >
-          <span className="text-sm leading-none">+</span> New Automation
-        </button>
+      <div className="px-6 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
+        <PageHeader
+          icon="📣"
+          title="Automation Pipelines"
+          subtitle="Automated email & SMS sequences for leads and families"
+          tip="Set up once, runs while you teach — welcome emails, tour reminders, and follow-ups go out automatically. Click + New Automation to build your first sequence."
+          action={
+            <DemoButton onClick={() => { setWizardState(WIZARD_INITIAL_STATE); setIsCreating(true); }}>
+              <span className="text-base leading-none">+</span> New Automation
+            </DemoButton>
+          }
+          className="mb-0"
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {/* KPI row — grid view only */}
         {!selected && (
+          <>
+          <FeatureTip text="These numbers show how your automations are performing — open rates and conversions tell you what's working." />
           <div className="grid grid-cols-4 gap-3">
             {KPI_STATS.map((s) => (
               <div
@@ -12153,7 +12282,7 @@ function MarketingPage() {
                 }}
               >
                 <p
-                  className="text-[10px] uppercase tracking-widest font-semibold mb-1.5"
+                  className="text-xs font-medium mb-1.5"
                   style={{ color: C.textTertiary }}
                 >
                   {s.label}
@@ -12167,6 +12296,7 @@ function MarketingPage() {
               </div>
             ))}
           </div>
+          </>
         )}
 
         {/* Filter chips — grid view only */}
@@ -12212,7 +12342,7 @@ function MarketingPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setSelectedId(null)}
-                  className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg"
+                  className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-sm"
                   style={{
                     color: C.textSecondary,
                     backgroundColor: C.elevated,
@@ -12317,7 +12447,7 @@ function MarketingPage() {
 
               {/* Step sequence — node flow */}
               <div
-                className="rounded-lg p-4"
+                className="rounded-sm p-4"
                 style={{
                   backgroundImage: `radial-gradient(circle, ${C.border} 1px, transparent 1px)`,
                   backgroundSize: "20px 20px",
@@ -12604,7 +12734,7 @@ function MarketingPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.04 }}
                     onClick={() => setSelectedId(pipeline.id)}
-                    className="text-left rounded-xl p-4 transition-all duration-150"
+                    className="text-left rounded-sm p-4 transition-all duration-150"
                     style={{
                       backgroundColor: C.surface,
                       border: `1px solid ${C.border}`,
@@ -12884,9 +13014,19 @@ function ImpersonatePage() {
 
   return (
     <div
-      className="flex h-full gap-0 overflow-hidden"
+      className="flex h-full flex-col gap-0 overflow-hidden"
       style={{ borderTop: `1px solid ${C.border}`, backgroundColor: C.surface }}
     >
+      <div className="flex-shrink-0 px-4 pt-4 pb-2">
+        <PageHeader
+          icon="👀"
+          title="Parent View"
+          subtitle="See exactly what families see"
+          tip="Pick a family on the left to preview their parent portal — payments, messages, and student info exactly as they see it."
+          className="mb-0"
+        />
+      </div>
+      <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Left panel — parent list */}
       <div
         className="flex-shrink-0 overflow-y-auto"
@@ -12894,7 +13034,7 @@ function ImpersonatePage() {
       >
         <div className="px-3 py-3 border-b" style={{ borderColor: C.border }}>
           <p
-            className="text-xs font-semibold uppercase tracking-wider"
+            className="text-xs font-medium"
             style={{ color: C.textQuaternary }}
           >
             Families
@@ -12994,7 +13134,7 @@ function ImpersonatePage() {
               </div>
               <button
                 onClick={() => setSelected(null)}
-                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-sm transition-colors"
                 style={{
                   color: C.textSecondary,
                   backgroundColor: C.elevated,
@@ -13012,6 +13152,7 @@ function ImpersonatePage() {
           </>
         )}
       </div>
+      </div>
     </div>
   );
 }
@@ -13022,7 +13163,7 @@ function ComingSoonPage({ name }: { name: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[320px] text-center gap-4">
       <div
-        className="w-16 h-16 rounded-2xl flex items-center justify-center mb-2"
+        className="w-16 h-16 rounded-md flex items-center justify-center mb-2"
         style={{ backgroundColor: C.accentLight }}
       >
         <span style={{ color: C.accent, fontSize: 28 }}>✦</span>
@@ -13056,29 +13197,23 @@ function StaffPage() {
   ];
   return (
     <div className="h-full flex flex-col">
-      <div
-        className="flex items-center justify-between px-6 py-3 flex-shrink-0"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>Staff</span>
-          <span
-            className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
-          >
-            {members.length}
-          </span>
-        </div>
-        <button
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
-          style={{ backgroundColor: C.accent, color: "#fff" }}
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Staff
-        </button>
+      <div className="px-6 pt-5 pb-3 flex-shrink-0">
+        <PageHeader
+          icon="👩‍🏫"
+          title="Staff"
+          subtitle={`${members.length} team members`}
+          tip="See who teaches in each room. Add staff here and assign them to programs from the Programs tab."
+          action={
+            <DemoButton>
+              <Plus className="w-4 h-4" />
+              Add Staff
+            </DemoButton>
+          }
+          className="mb-0"
+        />
       </div>
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div className="overflow-hidden" style={{ border: `1px solid ${C.border}`, borderRadius: C.r.lg }}>
           <table className="w-full text-sm">
             <thead>
               <tr style={{ backgroundColor: C.elevated, borderBottom: `1px solid ${C.border}` }}>
@@ -13142,28 +13277,22 @@ function ClassroomsPage() {
   ];
   return (
     <div className="h-full flex flex-col">
-      <div
-        className="flex items-center justify-between px-6 py-3 flex-shrink-0"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>Classrooms</span>
-          <span
-            className="px-1.5 py-0.5 text-[10px] font-bold rounded-full"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
-          >
-            {rooms.length}
-          </span>
-        </div>
-        <button
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
-          style={{ backgroundColor: C.accent, color: "#fff" }}
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Room
-        </button>
+      <div className="px-6 pt-5 pb-3 flex-shrink-0">
+        <PageHeader
+          icon="🏫"
+          title="Classrooms"
+          subtitle={`${rooms.length} rooms`}
+          tip="Each room shows capacity and who's teaching. Green means spots are open; orange means the room is full."
+          action={
+            <DemoButton>
+              <Plus className="w-4 h-4" />
+              Add Room
+            </DemoButton>
+          }
+          className="mb-0"
+        />
       </div>
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
         <div className="grid grid-cols-1 gap-4">
           {rooms.map((room, i) => {
             const pct = Math.round((room.enrolled / room.capacity) * 100);
@@ -13171,8 +13300,8 @@ function ClassroomsPage() {
             return (
               <div
                 key={i}
-                className="rounded-xl p-5"
-                style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                className="p-5"
+                style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}`, borderRadius: C.r.lg }}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -13192,11 +13321,11 @@ function ClassroomsPage() {
                 </div>
                 <div className="flex items-center gap-4 mb-3">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: C.textTertiary }}>Teacher</div>
+                    <div className="text-xs font-medium mb-0.5" style={{ color: C.textTertiary }}>Teacher</div>
                     <div className="text-xs font-medium" style={{ color: C.textSecondary }}>{room.teacher}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: C.textTertiary }}>Enrolled</div>
+                    <div className="text-xs font-medium mb-0.5" style={{ color: C.textTertiary }}>Enrolled</div>
                     <div className="text-xs font-medium" style={{ color: C.textSecondary }}>{room.enrolled} / {room.capacity}</div>
                   </div>
                 </div>
@@ -13401,7 +13530,7 @@ function SupportModal({ onClose }: { onClose: () => void }) {
         <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Quick links */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textQuaternary, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.textSecondary, marginBottom: 8 }}>
               Quick Links
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -13432,7 +13561,7 @@ function SupportModal({ onClose }: { onClose: () => void }) {
 
           {/* Contact */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textQuaternary, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.textSecondary, marginBottom: 8 }}>
               Contact Us
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -13440,7 +13569,7 @@ function SupportModal({ onClose }: { onClose: () => void }) {
                 style={{
                   width: "100%",
                   padding: "8px 12px",
-                  borderRadius: C.r.md,
+                  borderRadius: C.r.sm,
                   backgroundColor: C.accent,
                   border: "none",
                   color: "#fff",
@@ -13475,7 +13604,7 @@ function SupportModal({ onClose }: { onClose: () => void }) {
 
           {/* Message box */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textQuaternary, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.textSecondary, marginBottom: 8 }}>
               Send a Message
             </div>
             <textarea
@@ -13503,7 +13632,7 @@ function SupportModal({ onClose }: { onClose: () => void }) {
                 marginTop: 6,
                 width: "100%",
                 padding: "7px 12px",
-                borderRadius: C.r.md,
+                borderRadius: C.r.sm,
                 backgroundColor: message.trim() ? C.accent : C.elevated,
                 border: `1px solid ${message.trim() ? C.accent : C.border}`,
                 color: message.trim() ? "#fff" : C.textQuaternary,
@@ -13595,16 +13724,16 @@ function Sidebar({
             justifyContent: isExpanded ? "flex-start" : "center",
             gap: isExpanded ? "8px" : 0,
             padding: "6px 8px",
-            borderRadius: C.r.md,
-            border: `1px solid ${C.border}`,
-            backgroundColor: C.elevated,
+            borderRadius: C.r.sm,
+            border: `1px solid ${C.clayBorder}`,
+            backgroundColor: C.clayBg,
             color: C.textSecondary,
             cursor: "pointer",
           }}
         >
           <HelpCircle className="w-3.5 h-3.5 flex-shrink-0" />
           {isExpanded && (
-            <span className="text-xs font-medium">Need help?</span>
+            <span className="text-sm font-medium">Need help?</span>
           )}
         </button>
       </div>
@@ -13618,7 +13747,7 @@ function Sidebar({
           <div key={group.label}>
             {isExpanded && (
               <div
-                className="text-xs font-semibold uppercase tracking-wider px-3 mb-1.5"
+                className="text-xs font-medium px-3 mb-1.5"
                 style={{ color: C.textQuaternary }}
               >
                 {group.label}
@@ -13982,7 +14111,7 @@ function Sidebar({
         </div>
         {isExpanded && (
           <button
-            className="w-full text-left px-3 py-2 text-xs font-medium rounded-lg mt-3 transition-colors"
+            className="w-full text-left px-3 py-2 text-xs font-medium rounded-sm mt-3 transition-colors"
             style={{
               color: C.textSecondary,
               backgroundColor: C.elevated,
