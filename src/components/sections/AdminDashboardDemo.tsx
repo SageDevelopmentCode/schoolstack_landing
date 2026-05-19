@@ -13772,6 +13772,32 @@ type ActivePage =
 
 type MySchoolTab = "students" | "programs" | "staff" | "classrooms";
 
+type SubtabItem<T extends string> = {
+  key: T;
+  label: string;
+  icon: React.ReactNode;
+};
+
+const ADMISSIONS_SUBTABS: SubtabItem<AdmissionsTab>[] = [
+  { key: "flows", label: "Enrollment Flows", icon: <GitBranch className="w-3.5 h-3.5" /> },
+  { key: "submissions", label: "Submissions", icon: <ClipboardList className="w-3.5 h-3.5" /> },
+];
+
+const BUDGET_SUBTABS: SubtabItem<BudgetTab>[] = [
+  { key: "overview", label: "Overview", icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
+  { key: "expenses", label: "Expenses", icon: <CreditCard className="w-3.5 h-3.5" /> },
+  { key: "revenue", label: "Revenue", icon: <TrendingUp className="w-3.5 h-3.5" /> },
+  { key: "analysis", label: "Analysis", icon: <BarChart2 className="w-3.5 h-3.5" /> },
+  { key: "transactions", label: "Transactions", icon: <ListFilter className="w-3.5 h-3.5" /> },
+];
+
+const MYSCHOOL_SUBTABS: SubtabItem<MySchoolTab>[] = [
+  { key: "students", label: "My Students", icon: <Users className="w-3.5 h-3.5" /> },
+  { key: "programs", label: "Programs", icon: <BookOpen className="w-3.5 h-3.5" /> },
+  { key: "staff", label: "Staff", icon: <UserCheck className="w-3.5 h-3.5" /> },
+  { key: "classrooms", label: "Classrooms", icon: <Home className="w-3.5 h-3.5" /> },
+];
+
 interface NavItem {
   key: ActivePage | string;
   name: string;
@@ -14163,10 +14189,6 @@ function Sidebar({
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const active = activePage === item.key;
-                const admissionsSubtabs: { key: AdmissionsTab; label: string }[] = [
-                  { key: "flows", label: "Enrollment Flows" },
-                  { key: "submissions", label: "Submissions" },
-                ];
                 return (
                   <div key={item.key}>
                     <button
@@ -14305,7 +14327,7 @@ function Sidebar({
                               }}
                             />
                             <div className="flex-1 space-y-0.5">
-                              {admissionsSubtabs.map((sub) => {
+                              {ADMISSIONS_SUBTABS.map((sub) => {
                                 const subActive = active && admissionsTab === sub.key;
                                 return (
                                   <button
@@ -14314,7 +14336,7 @@ function Sidebar({
                                       onNavigate("leads");
                                       onAdmissionsSubtab(sub.key);
                                     }}
-                                    className="w-full text-left text-xs font-medium transition-all duration-150"
+                                    className="w-full flex items-center gap-2 text-left text-xs font-medium transition-all duration-150"
                                     style={{
                                       padding: "5px 8px",
                                       borderRadius: C.r.sm,
@@ -14322,7 +14344,13 @@ function Sidebar({
                                       color: subActive ? C.accent : C.textTertiary,
                                     }}
                                   >
-                                    {sub.label}
+                                    <span
+                                      className="flex-shrink-0 flex items-center"
+                                      style={{ color: subActive ? C.accent : C.textTertiary }}
+                                    >
+                                      {sub.icon}
+                                    </span>
+                                    <span className="truncate">{sub.label}</span>
                                   </button>
                                 );
                               })}
@@ -14358,13 +14386,7 @@ function Sidebar({
                               }}
                             />
                             <div className="flex-1 space-y-0.5">
-                              {([
-                                { key: "overview", label: "Overview" },
-                                { key: "expenses", label: "Expenses" },
-                                { key: "revenue", label: "Revenue" },
-                                { key: "analysis", label: "Analysis" },
-                                { key: "transactions", label: "Transactions" },
-                              ] as { key: BudgetTab; label: string }[]).map((sub) => {
+                              {BUDGET_SUBTABS.map((sub) => {
                                 const subActive = active && budgetTab === sub.key;
                                 return (
                                   <button
@@ -14373,7 +14395,7 @@ function Sidebar({
                                       onNavigate("budget");
                                       onBudgetSubtab(sub.key);
                                     }}
-                                    className="w-full text-left text-xs font-medium transition-all duration-150"
+                                    className="w-full flex items-center gap-2 text-left text-xs font-medium transition-all duration-150"
                                     style={{
                                       padding: "5px 8px",
                                       borderRadius: C.r.sm,
@@ -14381,7 +14403,13 @@ function Sidebar({
                                       color: subActive ? C.accent : C.textTertiary,
                                     }}
                                   >
-                                    {sub.label}
+                                    <span
+                                      className="flex-shrink-0 flex items-center"
+                                      style={{ color: subActive ? C.accent : C.textTertiary }}
+                                    >
+                                      {sub.icon}
+                                    </span>
+                                    <span className="truncate">{sub.label}</span>
                                   </button>
                                 );
                               })}
@@ -14417,12 +14445,7 @@ function Sidebar({
                               }}
                             />
                             <div className="flex-1 space-y-0.5">
-                              {([
-                                { key: "students", label: "My Students" },
-                                { key: "programs", label: "Programs" },
-                                { key: "staff", label: "Staff" },
-                                { key: "classrooms", label: "Classrooms" },
-                              ] as { key: MySchoolTab; label: string }[]).map((sub) => {
+                              {MYSCHOOL_SUBTABS.map((sub) => {
                                 const subActive = active && mySchoolTab === sub.key;
                                 return (
                                   <button
@@ -14431,7 +14454,7 @@ function Sidebar({
                                       onNavigate("myschool");
                                       onMySchoolSubtab(sub.key);
                                     }}
-                                    className="w-full text-left text-xs font-medium transition-all duration-150"
+                                    className="w-full flex items-center gap-2 text-left text-xs font-medium transition-all duration-150"
                                     style={{
                                       padding: "5px 8px",
                                       borderRadius: C.r.sm,
@@ -14439,7 +14462,13 @@ function Sidebar({
                                       color: subActive ? C.accent : C.textTertiary,
                                     }}
                                   >
-                                    {sub.label}
+                                    <span
+                                      className="flex-shrink-0 flex items-center"
+                                      style={{ color: subActive ? C.accent : C.textTertiary }}
+                                    >
+                                      {sub.icon}
+                                    </span>
+                                    <span className="truncate">{sub.label}</span>
                                   </button>
                                 );
                               })}
