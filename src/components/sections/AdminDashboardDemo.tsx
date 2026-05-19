@@ -26,8 +26,6 @@ import {
   Search,
   Send,
   X,
-  LayoutGrid,
-  Table,
   GitBranch,
   CheckCircle,
   Clock,
@@ -446,6 +444,206 @@ const DEMO_LEADS = [
       f10: true,
     },
   },
+  {
+    id: "l9",
+    type: "contact",
+    name: "Jason Park",
+    email: "jpark@email.com",
+    phone: "(512) 555-0291",
+    childName: "Marcus Park",
+    childAge: 8,
+    status: "scheduled",
+    tags: ["Both", "Tour"],
+    date: "Apr 14",
+    message: "Interested in school year and summer; twin sibling may apply next year.",
+    flowId: "flow-4",
+    responses: {
+      f20: "Jason Park",
+      f21: "jpark@email.com",
+      f22: "(512) 555-0291",
+      f23: "Marcus Park",
+      f24: "8",
+      f25: "2026-04-14",
+      f26: "10:00 AM",
+      f27: "School Year & Summer",
+      f28: "Interested in school year and summer; twin sibling may apply next year.",
+    },
+  },
+  {
+    id: "l10",
+    type: "contact",
+    name: "Robert Kim",
+    email: "rkim@gmail.com",
+    phone: "(737) 555-0218",
+    childName: "Hannah Kim",
+    childAge: 9,
+    status: "scheduled",
+    tags: ["School Year", "Financial Aid", "Tour"],
+    date: "Apr 16",
+    message: "Daughter entering 3rd grade; asked about financial aid.",
+    flowId: "flow-4",
+    responses: {
+      f20: "Robert Kim",
+      f21: "rkim@gmail.com",
+      f22: "(737) 555-0218",
+      f23: "Hannah Kim",
+      f24: "9",
+      f25: "2026-04-16",
+      f26: "2:30 PM",
+      f27: "School Year 2026–27",
+      f28: "Daughter entering 3rd grade; asked about financial aid.",
+    },
+  },
+  {
+    id: "l11",
+    type: "contact",
+    name: "Claire Beaumont",
+    email: "claire.b@email.com",
+    phone: "(512) 555-0563",
+    childName: "Lily Beaumont",
+    childAge: 6,
+    status: "completed",
+    tags: ["School Year", "Tour"],
+    date: "Mar 28",
+    message: "Great fit; application link sent same day.",
+    flowId: "flow-4",
+    responses: {
+      f20: "Claire Beaumont",
+      f21: "claire.b@email.com",
+      f22: "(512) 555-0563",
+      f23: "Lily Beaumont",
+      f24: "6",
+      f25: "2026-03-28",
+      f26: "10:00 AM",
+      f27: "School Year 2026–27",
+      f28: "Great fit; application link sent same day.",
+    },
+  },
+  {
+    id: "l12",
+    type: "contact",
+    name: "Sandra Cho",
+    email: "sandcho@email.com",
+    phone: "(512) 555-0735",
+    childName: "Jordan Cho",
+    childAge: 7,
+    status: "requested",
+    tags: ["Tour"],
+    date: "Apr 5",
+    message: "Requested a tour for next week — awaiting confirmation.",
+    flowId: "flow-4",
+    responses: {
+      f20: "Sandra Cho",
+      f21: "sandcho@email.com",
+      f22: "(512) 555-0735",
+      f23: "Jordan Cho",
+      f24: "7",
+      f25: "",
+      f26: "",
+      f27: "School Year 2026–27",
+      f28: "Requested a tour for next week — awaiting confirmation.",
+    },
+  },
+  {
+    id: "l13",
+    type: "contact",
+    name: "Brian Thornton",
+    email: "bthornton@email.com",
+    phone: "(737) 555-0312",
+    childName: "Ella Thornton",
+    childAge: 6,
+    status: "scheduled",
+    tags: ["Summer 2026", "Tour"],
+    date: "Apr 11",
+    message: "Referred by current family; summer program focus.",
+    flowId: "flow-4",
+    responses: {
+      f20: "Brian Thornton",
+      f21: "bthornton@email.com",
+      f22: "(737) 555-0312",
+      f23: "Ella Thornton",
+      f24: "6",
+      f25: "2026-04-11",
+      f26: "11:00 AM",
+      f27: "Summer 2026",
+      f28: "Referred by current family; summer program focus.",
+    },
+  },
+  {
+    id: "l14",
+    type: "contact",
+    name: "Kevin Okonkwo",
+    email: "kokonkwo@email.com",
+    phone: "(512) 555-0884",
+    childName: "Chidera Okonkwo",
+    childAge: 8,
+    status: "completed",
+    tags: ["Both", "Tour"],
+    date: "Mar 22",
+    message: "Strong interest; application submitted after tour.",
+    flowId: "flow-4",
+    responses: {
+      f20: "Kevin Okonkwo",
+      f21: "kokonkwo@email.com",
+      f22: "(512) 555-0884",
+      f23: "Chidera Okonkwo",
+      f24: "8",
+      f25: "2026-03-22",
+      f26: "10:00 AM",
+      f27: "School Year & Summer",
+      f28: "Strong interest; application submitted after tour.",
+    },
+  },
+  {
+    id: "l15",
+    type: "contact",
+    name: "Mark Sullivan",
+    email: "msullivan@email.com",
+    phone: "(737) 555-0477",
+    childName: "Alex & Ben Sullivan",
+    childAge: 7,
+    status: "no_show",
+    tags: ["Summer 2026", "Tour"],
+    date: "Apr 2",
+    message: "Did not attend; follow-up email sent.",
+    flowId: "flow-4",
+    responses: {
+      f20: "Mark Sullivan",
+      f21: "msullivan@email.com",
+      f22: "(737) 555-0477",
+      f23: "Alex & Ben Sullivan",
+      f24: "7",
+      f25: "2026-04-02",
+      f26: "3:00 PM",
+      f27: "Summer 2026",
+      f28: "Did not attend; follow-up email sent.",
+    },
+  },
+  {
+    id: "l16",
+    type: "contact",
+    name: "Priya Patel",
+    email: "ppatel@email.com",
+    phone: "(512) 555-0391",
+    childName: "Raj Patel",
+    childAge: 7,
+    status: "cancelled",
+    tags: ["School Year", "Tour"],
+    date: "Mar 18",
+    message: "Family rescheduled out of area move.",
+    flowId: "flow-4",
+    responses: {
+      f20: "Priya Patel",
+      f21: "ppatel@email.com",
+      f22: "(512) 555-0391",
+      f23: "Raj Patel",
+      f24: "7",
+      f25: "2026-03-18",
+      f26: "1:00 PM",
+      f27: "School Year 2026–27",
+      f28: "Family rescheduled out of area move.",
+    },
+  },
 ];
 
 const STATUS_COLORS: Record<
@@ -501,6 +699,36 @@ const STATUS_COLORS: Record<
     text: C.error,
     label: "Lost",
   },
+  scheduled: {
+    bg: C.infoBg,
+    border: C.infoBorder,
+    text: C.info,
+    label: "Scheduled",
+  },
+  completed: {
+    bg: C.successBg,
+    border: C.successBorder,
+    text: C.success,
+    label: "Completed",
+  },
+  no_show: {
+    bg: C.errorBg,
+    border: C.errorBorder,
+    text: C.error,
+    label: "No Show",
+  },
+  cancelled: {
+    bg: C.elevated,
+    border: C.border,
+    text: C.textTertiary,
+    label: "Cancelled",
+  },
+  requested: {
+    bg: C.warningBg,
+    border: C.warningBorder,
+    text: C.warning,
+    label: "Requested",
+  },
 };
 
 const PROGRAM_LABELS: Record<
@@ -517,138 +745,6 @@ const PROGRAM_LABELS: Record<
   },
 };
 
-const DEMO_APPLICATIONS = [
-  {
-    id: "a1",
-    childName: "Emma Richardson",
-    preferredName: null,
-    age: 7,
-    grade: "2nd",
-    program: "school_year_26_27",
-    parent: "Sarah Richardson",
-    email: "sarah.r@email.com",
-    status: "enrolled",
-    approved: true,
-    submitted: "Nov 14, 2025",
-  },
-  {
-    id: "a2",
-    childName: "Marcus Park",
-    preferredName: "Marc",
-    age: 8,
-    grade: "3rd",
-    program: "both",
-    parent: "Jason Park",
-    email: "jpark@email.com",
-    status: "in_review",
-    approved: false,
-    submitted: "Mar 30, 2026",
-  },
-  {
-    id: "a3",
-    childName: "Sofia Mendez",
-    preferredName: null,
-    age: 8,
-    grade: "3rd",
-    program: "school_year_26_27",
-    parent: "Luis Mendez",
-    email: "lmendez@email.com",
-    status: "in_review",
-    approved: false,
-    submitted: "Apr 1, 2026",
-  },
-  {
-    id: "a4",
-    childName: "Liam Torres",
-    preferredName: null,
-    age: 9,
-    grade: "4th",
-    program: "both",
-    parent: "Miguel Torres",
-    email: "mig.t@email.com",
-    status: "enrolled",
-    approved: true,
-    submitted: "Dec 3, 2025",
-  },
-  {
-    id: "a5",
-    childName: "Isabelle Clarke",
-    preferredName: "Izzy",
-    age: 11,
-    grade: "6th",
-    program: "school_year_26_27",
-    parent: "Stephanie Clarke",
-    email: "sclarke@email.com",
-    status: "enrolling",
-    approved: true,
-    submitted: "Mar 18, 2026",
-  },
-  {
-    id: "a6",
-    childName: "Tyler Watkins",
-    preferredName: null,
-    age: 9,
-    grade: "4th",
-    program: "both",
-    parent: "Jerome Watkins",
-    email: "jwatkins@email.com",
-    status: "enrolled",
-    approved: true,
-    submitted: "Dec 20, 2025",
-  },
-  {
-    id: "a7",
-    childName: "Grace Hammond",
-    preferredName: null,
-    age: 7,
-    grade: "2nd",
-    program: "school_year_26_27",
-    parent: "Alicia Hammond",
-    email: "ahammond@email.com",
-    status: "in_review",
-    approved: false,
-    submitted: "Apr 2, 2026",
-  },
-  {
-    id: "a8",
-    childName: "Chidera Okonkwo",
-    preferredName: "Chi",
-    age: 8,
-    grade: "3rd",
-    program: "both",
-    parent: "Kevin Okonkwo",
-    email: "kokonkwo@email.com",
-    status: "in_progress",
-    approved: false,
-    submitted: "Apr 4, 2026",
-  },
-  {
-    id: "a9",
-    childName: "Kai Simmons",
-    preferredName: null,
-    age: 11,
-    grade: "6th",
-    program: "school_year_26_27",
-    parent: "Rachel Simmons",
-    email: "rsimmons@email.com",
-    status: "enrolling",
-    approved: true,
-    submitted: "Mar 22, 2026",
-  },
-  {
-    id: "a10",
-    childName: "Noah Foster",
-    preferredName: null,
-    age: 5,
-    grade: "K",
-    program: "summer_26",
-    parent: "Diana Foster",
-    email: "diana@email.com",
-    status: "enrolled",
-    approved: true,
-    submitted: "Jan 15, 2026",
-  },
-];
 
 // ─── Phase 2 demo data ────────────────────────────────────────────────────────
 
@@ -2714,11 +2810,11 @@ function DashboardPage() {
 // ─── Admissions page ──────────────────────────────────────────────────────────
 
 const LEAD_FILTERS = [
-  { key: "all", label: "All", count: 37 },
-  { key: "new", label: "New", count: 14 },
-  { key: "contacted", label: "Contacted", count: 9 },
-  { key: "application_sent", label: "App Sent", count: 6 },
-  { key: "enrolled", label: "Enrolled", count: 6 },
+  { key: "all", label: "All", count: 16 },
+  { key: "new", label: "New", count: 2 },
+  { key: "contacted", label: "Contacted", count: 2 },
+  { key: "application_sent", label: "App Sent", count: 1 },
+  { key: "enrolled", label: "Enrolled", count: 1 },
   { key: "lost", label: "Lost", count: 2 },
 ];
 
@@ -2728,6 +2824,7 @@ const LEAD_TAGS = [
   "Both",
   "Financial Aid",
   "Homeschool",
+  "Tour",
 ];
 
 const FLOW_FILTER_OPTIONS = [
@@ -2735,6 +2832,7 @@ const FLOW_FILTER_OPTIONS = [
   { id: "flow-1", label: "Apply Now Form" },
   { id: "flow-2", label: "Summer Program Enrollment" },
   { id: "flow-3", label: "Waitlist Signup" },
+  { id: "flow-4", label: "Book a Campus Tour" },
 ];
 
 function LeadsListTab({
@@ -2925,6 +3023,7 @@ function LeadsListTab({
   );
 }
 
+
 // ─── Enrollment Flow types & demo data ────────────────────────────────────────
 
 type FlowFieldType = "text" | "email" | "phone" | "select" | "checkbox" | "date";
@@ -3049,6 +3148,68 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
       { id: "a7", type: "tag", config: { tag: "Waitlist 2026" } },
     ],
   },
+  {
+    id: "flow-4",
+    name: "Book a Campus Tour",
+    updatedAt: "May 15, 2026",
+    steps: [
+      {
+        id: "s7",
+        title: "Family & Child",
+        fields: [
+          { id: "f20", label: "Parent Name", type: "text", required: true },
+          { id: "f21", label: "Email", type: "email", required: true },
+          { id: "f22", label: "Phone", type: "phone", required: true },
+          { id: "f23", label: "Child's Name", type: "text", required: true },
+          { id: "f24", label: "Child's Age", type: "text", required: true },
+        ],
+      },
+      {
+        id: "s8",
+        title: "Tour Preferences",
+        fields: [
+          {
+            id: "f25",
+            label: "Preferred Tour Date",
+            type: "date",
+            required: true,
+          },
+          {
+            id: "f26",
+            label: "Preferred Time",
+            type: "select",
+            required: true,
+            options: ["9:00 AM", "10:00 AM", "11:00 AM", "1:00 PM", "2:30 PM", "3:00 PM"],
+          },
+          {
+            id: "f27",
+            label: "Program Interest",
+            type: "select",
+            required: true,
+            options: [
+              "School Year 2026–27",
+              "Summer 2026",
+              "School Year & Summer",
+            ],
+          },
+          { id: "f28", label: "Additional Notes", type: "text", required: false },
+        ],
+      },
+    ],
+    actions: [
+      {
+        id: "a8",
+        type: "email",
+        config: {
+          to: "{{parent_email}}",
+          subject: "Your campus tour request — Mud Kitchen",
+          body: "We've received your tour request and will confirm your visit shortly.",
+        },
+      },
+      { id: "a9", type: "notify_admin", config: {} },
+      { id: "a10", type: "tag", config: { tag: "Tour Request" } },
+    ],
+  },
 ];
 
 /** Demo: submissions use the seed flow schema; a real app would load the form definition tied to each submission. */
@@ -3079,6 +3240,19 @@ const SUBMISSION_STATUS_OPTIONS = [
   "enrolled",
   "lost",
 ] as const;
+
+const TOUR_STATUS_OPTIONS = [
+  "requested",
+  "scheduled",
+  "completed",
+  "no_show",
+  "cancelled",
+] as const;
+
+function getStatusOptionsForLead(flowId: string): readonly string[] {
+  if (flowId === "flow-4") return TOUR_STATUS_OPTIONS;
+  return SUBMISSION_STATUS_OPTIONS;
+}
 
 type LeadActivityEntry = {
   id: string;
@@ -3475,7 +3649,7 @@ function LeadDetailPanel({
                         color: C.textPrimary,
                       }}
                     >
-                      {SUBMISSION_STATUS_OPTIONS.map((key) => (
+                      {getStatusOptionsForLead(lead.flowId).map((key) => (
                         <option key={key} value={key}>
                           {STATUS_COLORS[key]?.label ?? key}
                         </option>
@@ -5054,7 +5228,7 @@ function EnrollmentFlowsTab() {
   );
 }
 
-type AdmissionsTab = "flows" | "submissions" | "applications";
+type AdmissionsTab = "flows" | "submissions";
 
 function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; onTabChange: (tab: AdmissionsTab) => void }) {
   const [selectedLead, setSelectedLead] = useState<(typeof DEMO_LEADS)[0] | null>(null);
@@ -5073,7 +5247,6 @@ function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; 
   const tabs: { key: AdmissionsTab; label: string }[] = [
     { key: "flows", label: "Enrollment Flows" },
     { key: "submissions", label: "Submissions" },
-    { key: "applications", label: "Applications" },
   ];
 
   return (
@@ -5112,11 +5285,6 @@ function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; 
               <LeadsListTab onSelectLead={setSelectedLead} />
             </motion.div>
           )}
-          {activeTab === "applications" && (
-            <motion.div key="applications" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-              <ApplicationsTabInner />
-            </motion.div>
-          )}
         </AnimatePresence>
       </div>
       <AnimatePresence>
@@ -5125,595 +5293,6 @@ function AdmissionsPage({ activeTab, onTabChange }: { activeTab: AdmissionsTab; 
             key={selectedLead.id}
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ─── Applications page ─────────────────────────────────────────────────────────
-
-type AppView = "table" | "kanban" | "pipeline";
-
-function AppDetailPanel({
-  app,
-  onClose,
-}: {
-  app: (typeof DEMO_APPLICATIONS)[0];
-  onClose: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ x: "100%", opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: "100%", opacity: 0 }}
-      transition={{ type: "spring", damping: 28, stiffness: 300 }}
-      className="absolute top-0 right-0 bottom-0 w-80 flex flex-col overflow-hidden"
-      style={{
-        backgroundColor: C.surface,
-        borderLeft: `1px solid ${C.border}`,
-        zIndex: 10,
-      }}
-    >
-      <div
-        className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div>
-          <h3
-            className="text-sm font-semibold"
-            style={{ color: C.textPrimary }}
-          >
-            {app.childName}
-          </h3>
-          {app.preferredName && (
-            <p className="text-xs" style={{ color: C.textTertiary }}>
-              Goes by "{app.preferredName}"
-            </p>
-          )}
-        </div>
-        <button
-          onClick={onClose}
-          className="p-1 rounded"
-          style={{ color: C.textTertiary }}
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: "Grade", value: app.grade },
-            { label: "Age", value: `${app.age} yrs` },
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              className="rounded-lg p-3"
-              style={{
-                backgroundColor: C.elevated,
-                border: `1px solid ${C.border}`,
-              }}
-            >
-              <p
-                className="text-[10px] font-semibold uppercase tracking-widest mb-1"
-                style={{ color: C.textTertiary }}
-              >
-                {label}
-              </p>
-              <p
-                className="text-sm font-medium"
-                style={{ color: C.textPrimary }}
-              >
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: C.textTertiary }}
-          >
-            Program
-          </p>
-          <ProgramBadge program={app.program} />
-        </div>
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: C.textTertiary }}
-          >
-            Status
-          </p>
-          <StatusBadge status={app.status} />
-        </div>
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: C.textTertiary }}
-          >
-            Guardian
-          </p>
-          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-            {app.parent}
-          </p>
-          <p className="text-xs" style={{ color: C.textTertiary }}>
-            {app.email}
-          </p>
-        </div>
-        <div>
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: C.textTertiary }}
-          >
-            Submitted
-          </p>
-          <p className="text-sm" style={{ color: C.textSecondary }}>
-            {app.submitted}
-          </p>
-        </div>
-        {app.approved && (
-          <div
-            className="flex items-center gap-2 p-3 rounded-lg"
-            style={{
-              backgroundColor: C.successBg,
-              border: `1px solid ${C.successBorder}`,
-            }}
-          >
-            <CheckCircle className="w-4 h-4" style={{ color: C.success }} />
-            <span
-              className="text-xs font-semibold"
-              style={{ color: C.success }}
-            >
-              Approved
-            </span>
-          </div>
-        )}
-      </div>
-      <div
-        className="px-5 py-4 flex gap-2"
-        style={{ borderTop: `1px solid ${C.border}` }}
-      >
-        <button
-          className="flex-1 py-2 text-xs font-semibold rounded-lg"
-          style={{
-            backgroundColor: C.successBg,
-            color: C.success,
-            border: `1px solid ${C.successBorder}`,
-          }}
-        >
-          Approve
-        </button>
-        <button
-          className="flex-1 py-2 text-xs font-semibold rounded-lg"
-          style={{
-            backgroundColor: C.errorBg,
-            color: C.error,
-            border: `1px solid ${C.errorBorder}`,
-          }}
-        >
-          Deny
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
-const KANBAN_COLS = [
-  {
-    key: "in_progress",
-    label: "In Progress",
-    icon: <Clock className="w-3.5 h-3.5" />,
-  },
-  {
-    key: "in_review",
-    label: "In Review",
-    icon: <AlertCircle className="w-3.5 h-3.5" />,
-  },
-  {
-    key: "enrolling",
-    label: "Enrolling",
-    icon: <TrendingUp className="w-3.5 h-3.5" />,
-  },
-  {
-    key: "enrolled",
-    label: "Enrolled",
-    icon: <CheckCircle className="w-3.5 h-3.5" />,
-  },
-];
-
-function ApplicationsTabInner() {
-  const [view, setView] = useState<AppView>("table");
-  const [selectedApp, setSelectedApp] = useState<
-    (typeof DEMO_APPLICATIONS)[0] | null
-  >(null);
-  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
-  useEffect(() => {
-    if (selectedApp) openBackdrop(() => setSelectedApp(null));
-    else closeBackdrop();
-  }, [selectedApp]);
-
-  const viewButtons: { key: AppView; icon: React.ReactNode; label: string }[] =
-    [
-      { key: "table", icon: <Table className="w-3.5 h-3.5" />, label: "Table" },
-      { key: "kanban", icon: <LayoutGrid className="w-3.5 h-3.5" />, label: "Kanban" },
-      { key: "pipeline", icon: <GitBranch className="w-3.5 h-3.5" />, label: "Pipeline" },
-    ];
-
-  return (
-    <div className="h-full flex flex-col">
-      {/* Compact toolbar */}
-      <div
-        className="flex items-center justify-between px-6 py-3 flex-shrink-0"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <span className="text-xs" style={{ color: C.textTertiary }}>
-          {DEMO_APPLICATIONS.length} applications total
-        </span>
-        <div
-          className="flex items-center gap-1 p-1 rounded-lg"
-          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
-        >
-          {viewButtons.map((b) => (
-            <button
-              key={b.key}
-              data-tour-id={`app-view-${b.key}`}
-              onClick={() => setView(b.key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all"
-              style={{
-                backgroundColor: view === b.key ? C.surface : "transparent",
-                color: view === b.key ? C.textPrimary : C.textTertiary,
-                boxShadow: view === b.key ? C.shadowCard : "none",
-              }}
-            >
-              {b.icon}
-              {b.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {view === "table" && (
-          <motion.div
-            key="table"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 overflow-hidden"
-            style={{ borderTop: `1px solid ${C.border}` }}
-          >
-            <div className="h-full overflow-hidden">
-              <div className="overflow-x-auto h-full">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                      {[
-                        "Child",
-                        "Parent",
-                        "Age / Grade",
-                        "Program",
-                        "Status",
-                        "Approved",
-                        "Submitted",
-                        "",
-                      ].map((col) => (
-                        <th
-                          key={col}
-                          className="text-left px-4 py-3 text-[10px] font-semibold uppercase tracking-widest"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {DEMO_APPLICATIONS.map((app, i) => (
-                      <motion.tr
-                        key={app.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.03 }}
-                        style={{ borderBottom: `1px solid ${C.border}` }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = C.elevated)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            "transparent")
-                        }
-                      >
-                        <td className="px-4 py-3">
-                          <p
-                            className="font-medium"
-                            style={{ color: C.textPrimary }}
-                          >
-                            {app.childName}
-                          </p>
-                          {app.preferredName && (
-                            <p
-                              className="text-xs"
-                              style={{ color: C.textTertiary }}
-                            >
-                              "{app.preferredName}"
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <p style={{ color: C.textSecondary }}>{app.parent}</p>
-                          <p
-                            className="text-xs"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {app.email}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p style={{ color: C.textSecondary }}>
-                            {app.age} yrs
-                          </p>
-                          <p
-                            className="text-xs"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {app.grade}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <ProgramBadge program={app.program} />
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={app.status} />
-                        </td>
-                        <td className="px-4 py-3">
-                          {app.approved ? (
-                            <span
-                              className="text-xs font-semibold"
-                              style={{ color: C.success }}
-                            >
-                              ✓ Approved
-                            </span>
-                          ) : (
-                            <span style={{ color: C.textTertiary }}>—</span>
-                          )}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {app.submitted}
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => setSelectedApp(app)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors"
-                            style={{
-                              backgroundColor: C.elevated,
-                              color: C.textSecondary,
-                              border: `1px solid ${C.border}`,
-                            }}
-                          >
-                            <Eye className="w-3 h-3" /> View
-                          </button>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {view === "kanban" && (
-          <motion.div
-            key="kanban"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex gap-4 flex-1 overflow-x-auto pb-2"
-          >
-            {KANBAN_COLS.map((col) => {
-              const apps = DEMO_APPLICATIONS.filter(
-                (a) => a.status === col.key,
-              );
-              const s = STATUS_COLORS[col.key];
-              return (
-                <div key={col.key} className="flex-shrink-0 w-64 flex flex-col">
-                  <div className="flex items-center gap-2 mb-3 px-1">
-                    <span style={{ color: s?.text ?? C.textTertiary }}>
-                      {col.icon}
-                    </span>
-                    <span
-                      className="text-xs font-semibold"
-                      style={{ color: C.textSecondary }}
-                    >
-                      {col.label}
-                    </span>
-                    <span
-                      className="ml-auto text-xs font-bold tabular-nums"
-                      style={{ color: C.textTertiary }}
-                    >
-                      {apps.length}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {apps.map((app, i) => (
-                      <motion.div
-                        key={app.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.06 }}
-                        onClick={() => setSelectedApp(app)}
-                        className="cursor-pointer rounded-xl p-3 transition-colors"
-                        style={{
-                          backgroundColor: C.surface,
-                          border: `1px solid ${C.border}`,
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.borderColor = C.borderStrong)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.borderColor = C.border)
-                        }
-                      >
-                        <p
-                          className="text-sm font-semibold mb-1"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {app.childName}
-                        </p>
-                        <p
-                          className="text-xs mb-2"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {app.parent}
-                        </p>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <ProgramBadge program={app.program} />
-                          <span
-                            className="text-[10px]"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {app.grade}
-                          </span>
-                        </div>
-                      </motion.div>
-                    ))}
-                    {apps.length === 0 && (
-                      <div
-                        className="rounded-xl p-4 text-center"
-                        style={{ border: `1px dashed ${C.border}` }}
-                      >
-                        <p
-                          className="text-xs"
-                          style={{ color: C.textTertiary }}
-                        >
-                          No applications
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </motion.div>
-        )}
-
-        {view === "pipeline" && (
-          <motion.div
-            key="pipeline"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1"
-          >
-            <Card style={{ padding: "32px" }}>
-              <SectionLabel>Enrollment Pipeline</SectionLabel>
-              <div className="space-y-5 mt-4">
-                {FUNNEL_STAGES.map((stage, i) => {
-                  const max = FUNNEL_STAGES[0].count;
-                  const pct = Math.round((stage.count / max) * 100);
-                  const convPct =
-                    i > 0
-                      ? Math.round(
-                          (stage.count / FUNNEL_STAGES[i - 1].count) * 100,
-                        )
-                      : 100;
-                  return (
-                    <div key={stage.label}>
-                      <div className="flex items-center gap-4 mb-2">
-                        <span
-                          className="w-24 text-xs font-semibold"
-                          style={{ color: C.textSecondary }}
-                        >
-                          {stage.label}
-                        </span>
-                        <div
-                          className="flex-1 h-3 rounded-full overflow-hidden"
-                          style={{ backgroundColor: C.border }}
-                        >
-                          <motion.div
-                            className="h-full rounded-full"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${pct}%` }}
-                            transition={{
-                              duration: 0.9,
-                              delay: i * 0.12,
-                              ease: "easeOut",
-                            }}
-                            style={{ backgroundColor: stage.color }}
-                          />
-                        </div>
-                        <span
-                          className="w-8 text-sm font-bold tabular-nums text-right"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {stage.count}
-                        </span>
-                        {i > 0 && (
-                          <span
-                            className="w-16 text-xs text-right"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {convPct}% conv.
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[
-                  { label: "Total Leads", value: "37", color: C.accent },
-                  { label: "Conversion Rate", value: "65%", color: C.success },
-                  {
-                    label: "Avg. Time to Enroll",
-                    value: "18 days",
-                    color: C.info,
-                  },
-                  {
-                    label: "Revenue Pipeline",
-                    value: "$86k",
-                    color: C.warning,
-                  },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="rounded-xl p-4 text-center"
-                    style={{
-                      backgroundColor: C.elevated,
-                      border: `1px solid ${C.border}`,
-                    }}
-                  >
-                    <p
-                      className="text-2xl font-bold tabular-nums"
-                      style={{ color: stat.color }}
-                    >
-                      {stat.value}
-                    </p>
-                    <p
-                      className="text-xs mt-1"
-                      style={{ color: C.textTertiary }}
-                    >
-                      {stat.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {selectedApp && (
-          <AppDetailPanel
-            app={selectedApp}
-            onClose={() => setSelectedApp(null)}
           />
         )}
       </AnimatePresence>
@@ -14060,7 +13639,6 @@ function Sidebar({
                 const admissionsSubtabs: { key: AdmissionsTab; label: string }[] = [
                   { key: "flows", label: "Enrollment Flows" },
                   { key: "submissions", label: "Submissions" },
-                  { key: "applications", label: "Applications" },
                 ];
                 return (
                   <div key={item.key}>
@@ -14518,28 +14096,6 @@ export default function AdminDashboardDemo({
       {
         action: () => setActivePage("leads"),
         targetId: "nav-leads",
-        holdMs: 1800,
-        clickAnimation: true,
-      },
-      {
-        action: () => {
-          const el = containerRef.current?.querySelector(
-            '[data-tour-id="app-view-kanban"]',
-          );
-          (el as HTMLElement)?.click();
-        },
-        targetId: "app-view-kanban",
-        holdMs: 1800,
-        clickAnimation: true,
-      },
-      {
-        action: () => {
-          const el = containerRef.current?.querySelector(
-            '[data-tour-id="app-view-pipeline"]',
-          );
-          (el as HTMLElement)?.click();
-        },
-        targetId: "app-view-pipeline",
         holdMs: 1800,
         clickAnimation: true,
       },
