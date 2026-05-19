@@ -5937,6 +5937,97 @@ const FORM_TYPE_COLORS: Record<FormType, string> = {
   permission: "#38BDF8",
 };
 
+const FORM_TYPE_LABELS: Record<FormType, string> = {
+  enrollment: "Enrollment",
+  health: "Health",
+  media: "Media",
+  financial: "Financial",
+  permission: "Permission",
+};
+
+function PaperworkFormCard({ form }: { form: PaperworkForm }) {
+  const color = FORM_TYPE_COLORS[form.formType];
+  const statusColor =
+    form.status === "signed" ? C.success : form.status === "awaiting" ? C.warning : C.textTertiary;
+  const statusLabel =
+    form.status === "signed"
+      ? form.date
+        ? `Signed ${form.date}`
+        : "Signed"
+      : form.status === "awaiting"
+        ? "Awaiting signature"
+        : "Not yet sent";
+
+  return (
+    <div
+      className="flex flex-col rounded-sm p-3 min-h-[148px]"
+      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+    >
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color }}>
+          {FORM_TYPE_LABELS[form.formType]}
+        </span>
+        {form.status === "signed" ? (
+          <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.success }} />
+        ) : form.status === "awaiting" ? (
+          <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.warning }} />
+        ) : (
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
+        )}
+      </div>
+      <p className="text-[11px] font-semibold leading-snug mb-2" style={{ color: C.textPrimary }}>
+        {form.title}
+      </p>
+      <div
+        className="flex-1 rounded-sm p-2 mb-2 space-y-1.5"
+        style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+      >
+        <div className="h-1 rounded-full" style={{ width: "88%", backgroundColor: C.border }} />
+        <div className="h-1 rounded-full" style={{ width: "72%", backgroundColor: C.border }} />
+        <div className="h-1 rounded-full" style={{ width: "58%", backgroundColor: C.border }} />
+        <div className="pt-1 flex items-end justify-between gap-2">
+          <div className="h-px flex-1 border-b border-dashed" style={{ borderColor: color + "99" }} />
+          <span className="text-[8px] font-medium flex-shrink-0" style={{ color: C.textTertiary }}>
+            Signature
+          </span>
+        </div>
+      </div>
+      <p className="text-[9px] font-medium mb-2" style={{ color: statusColor }}>
+        {statusLabel}
+      </p>
+      <div className="flex items-center gap-1.5 mt-auto flex-wrap">
+        {form.status === "signed" ? (
+          <>
+            <button
+              type="button"
+              className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium"
+              style={{ color: C.textSecondary, border: `1px solid ${C.border}` }}
+            >
+              <Eye className="w-2.5 h-2.5" /> View
+            </button>
+            <button
+              type="button"
+              className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium"
+              style={{ color: C.textSecondary, border: `1px solid ${C.border}` }}
+            >
+              <Download className="w-2.5 h-2.5" /> Save
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold"
+            style={{ color, border: `1px solid ${color}44` }}
+          >
+            <Send className="w-2.5 h-2.5" />
+            {form.status === "awaiting" ? "Resend" : "Send"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function getFamilyPaperwork(parent: DemoParent): PaperworkForm[] {
   const results: PaperworkForm[] = [];
   for (const child of parent.children) {
@@ -7524,16 +7615,19 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
             >
               Authorized Pickup ({student.authorizedPickup.length})
             </p>
-            <div className="space-y-2">
+            <div>
               {student.authorizedPickup.map((person, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 p-3 rounded-sm"
-                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  className="flex items-center gap-3 py-2.5"
+                  style={{
+                    borderBottom:
+                      i < student.authorizedPickup.length - 1 ? `1px solid ${C.border}` : "none",
+                  }}
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: student.color + "22", color: student.color }}
+                    style={{ backgroundColor: student.color + "18", color: student.color }}
                   >
                     {person.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                   </div>
@@ -7541,8 +7635,8 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                     <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>{person.name}</p>
                     <p className="text-[10px]" style={{ color: C.textTertiary }}>{person.relationship}</p>
                   </div>
-                  <span className="flex items-center gap-1 text-[10px]" style={{ color: C.accent }}>
-                    <PhoneCall className="w-3 h-3 flex-shrink-0" />
+                  <span className="flex items-center gap-1 text-[10px] flex-shrink-0" style={{ color: C.textSecondary }}>
+                    <PhoneCall className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
                     {person.phone}
                   </span>
                 </div>
@@ -7550,6 +7644,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
             </div>
           </div>
         )}
+
 
         {/* ── Immunizations tab ── */}
         {tab === "immunizations" && (
@@ -7560,14 +7655,14 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
             >
               Immunization Records
             </p>
-            <div className="rounded-sm overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+            
+            <div>
               {student.immunizations.map((imm, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between px-3 py-2.5"
+                  className="flex items-center justify-between py-2.5"
                   style={{
                     borderBottom: i < student.immunizations.length - 1 ? `1px solid ${C.border}` : "none",
-                    backgroundColor: i % 2 === 0 ? "transparent" : C.elevated + "80",
                   }}
                 >
                   <p className="text-xs font-medium" style={{ color: C.textPrimary }}>{imm.name}</p>
@@ -7595,6 +7690,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
           </div>
         )}
 
+
         {/* ── Emergency Contacts tab ── */}
         {tab === "emergency" && (
           <div className="p-5">
@@ -7604,18 +7700,21 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
             >
               Emergency Contacts
             </p>
-            <div className="space-y-2">
-              {[...student.emergencyContacts]
-                .sort((a, b) => a.priority - b.priority)
-                .map((contact, i) => (
+            
+            <div>
+              {(() => {
+                const contacts = [...student.emergencyContacts].sort((a, b) => a.priority - b.priority);
+                return contacts.map((contact, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-3 p-3 rounded-sm"
-                    style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                    className="flex items-center gap-3 py-2.5"
+                    style={{
+                      borderBottom: i < contacts.length - 1 ? `1px solid ${C.border}` : "none",
+                    }}
                   >
                     <div
                       className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                      style={{ backgroundColor: C.border, color: C.textTertiary }}
+                      style={{ backgroundColor: C.bg, color: C.textTertiary, border: `1px solid ${C.border}` }}
                     >
                       {contact.priority}
                     </div>
@@ -7623,15 +7722,17 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                       <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>{contact.name}</p>
                       <p className="text-[10px]" style={{ color: C.textTertiary }}>{contact.relationship}</p>
                     </div>
-                    <span className="flex items-center gap-1 text-[10px]" style={{ color: C.accent }}>
-                      <PhoneCall className="w-3 h-3 flex-shrink-0" />
+                    <span className="flex items-center gap-1 text-[10px] flex-shrink-0" style={{ color: C.textSecondary }}>
+                      <PhoneCall className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
                       {contact.phone}
                     </span>
                   </div>
-                ))}
+                ));
+              })()}
             </div>
           </div>
         )}
+
 
         {/* ── Paperwork tab ── */}
         {tab === "paperwork" && (
@@ -7664,9 +7765,9 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                       </button>
                     )}
                     <button
+                      type="button"
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-semibold"
                       style={{
-                        backgroundColor: C.elevated,
                         color: C.textSecondary,
                         border: `1px solid ${C.border}`,
                       }}
@@ -7677,173 +7778,66 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                 </div>
 
                 {/* Form cards */}
-                <div className="grid grid-cols-2 gap-3">
-                  {studentPaperwork.map((form) => {
-                    const color = FORM_TYPE_COLORS[form.formType];
-                    return (
-                      <div
-                        key={form.id}
-                        className="rounded-sm overflow-hidden flex flex-col"
-                        style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
-                      >
-                        <div
-                          className="flex items-center justify-center py-3"
-                          style={{ backgroundColor: C.bg }}
-                        >
-                          <FormDocPreview formType={form.formType} size="md" />
-                        </div>
-                        <div className="px-2.5 pt-2 pb-2.5 flex flex-col gap-1.5 flex-1">
-                          <p
-                            className="text-[10px] font-semibold leading-tight"
-                            style={{ color: C.textPrimary }}
-                          >
-                            {form.title}
-                          </p>
-                          <div className="flex items-center gap-1">
-                            {form.status === "signed" ? (
-                              <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: C.success }} />
-                            ) : form.status === "awaiting" ? (
-                              <Clock className="w-3 h-3 flex-shrink-0" style={{ color: C.warning }} />
-                            ) : (
-                              <AlertCircle className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
-                            )}
-                            <span
-                              className="text-[9px] font-semibold"
-                              style={{
-                                color:
-                                  form.status === "signed" ? C.success
-                                  : form.status === "awaiting" ? C.warning
-                                  : C.textTertiary,
-                              }}
-                            >
-                              {form.status === "signed"
-                                ? form.date ? `Signed ${form.date}` : "Signed"
-                                : form.status === "awaiting"
-                                ? "Awaiting signature"
-                                : "Not yet sent"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {form.status === "signed" ? (
-                              <>
-                                <button
-                                  className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium"
-                                  style={{
-                                    backgroundColor: C.surface,
-                                    color: C.textSecondary,
-                                    border: `1px solid ${C.border}`,
-                                  }}
-                                >
-                                  <Eye className="w-2.5 h-2.5" /> View
-                                </button>
-                                <button
-                                  className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium"
-                                  style={{
-                                    backgroundColor: C.surface,
-                                    color: C.textSecondary,
-                                    border: `1px solid ${C.border}`,
-                                  }}
-                                >
-                                  <Download className="w-2.5 h-2.5" /> Save
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold"
-                                style={{
-                                  backgroundColor: color + "18",
-                                  color,
-                                  border: `1px solid ${color}44`,
-                                }}
-                              >
-                                <Send className="w-2.5 h-2.5" />
-                                {form.status === "awaiting" ? "Resend" : "Send"}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="grid grid-cols-3 gap-3">
+                  {studentPaperwork.map((form) => (
+                    <PaperworkFormCard key={form.id} form={form} />
+                  ))}
                 </div>
               </>
             )}
           </div>
         )}
 
+
         {/* ── Billing tab ── */}
         {tab === "billing" && (
           <div className="p-5 space-y-5">
             {student.billing.kind === "full_time" ? (
               <>
-                <div
-                  className="flex items-center justify-between p-3 rounded-sm"
-                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
-                >
-                  <div className="flex items-center gap-2">
-                    <School className="w-4 h-4 flex-shrink-0" style={{ color: C.accent }} />
-                    <div>
-                      <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
-                        Full-time enrollment
-                      </p>
-                      <p className="text-[10px]" style={{ color: C.textTertiary }}>
-                        Monthly tuition with optional autopay
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className="text-sm font-bold tabular-nums"
-                    style={{ color: C.textPrimary }}
-                  >
-                    {formatUsd(student.billing.monthlyTuition)}
-                    <span className="text-[10px] font-normal" style={{ color: C.textTertiary }}>
-                      {" "}/ mo
-                    </span>
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
-                    Autopay
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                    Enrollment
                   </p>
-                  <span
-                    className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                    style={{
-                      backgroundColor: student.billing.autopayOn ? C.success + "18" : C.elevated,
-                      color: student.billing.autopayOn ? C.success : C.textTertiary,
-                      border: `1px solid ${student.billing.autopayOn ? C.success + "44" : C.border}`,
-                    }}
-                  >
-                    {student.billing.autopayOn ? "On" : "Off"}
-                  </span>
+                  <DetailField
+                    label="Plan"
+                    value={
+                      <span className="flex items-center gap-1.5 justify-end">
+                        <School className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.accent }} />
+                        Full-time enrollment
+                      </span>
+                    }
+                  />
+                  <DetailField label="Tuition" value={`${formatUsd(student.billing.monthlyTuition)} / mo`} />
+                  <DetailField label="Autopay" value={student.billing.autopayOn ? "On" : "Off"} />
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
                     Saved payment methods
                   </p>
-                  <div className="space-y-2">
-                    {student.billing.paymentMethods.map((pm, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-2.5 rounded-sm"
-                        style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
-                      >
-                        <span className="flex items-center gap-2 text-xs" style={{ color: C.textPrimary }}>
-                          <CreditCard className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
-                          {pm.label} ·••• {pm.last4}
+                  {student.billing.paymentMethods.map((pm, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between py-2.5"
+                      style={{
+                        borderBottom:
+                          i < student.billing.paymentMethods.length - 1 ? `1px solid ${C.border}` : "none",
+                      }}
+                    >
+                      <span className="flex items-center gap-2 text-xs" style={{ color: C.textPrimary }}>
+                        <CreditCard className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
+                        {pm.label} ·••• {pm.last4}
+                      </span>
+                      {pm.default && (
+                        <span
+                          className="text-[9px] px-1.5 py-0.5 rounded font-semibold"
+                          style={{ backgroundColor: C.accentLight, color: C.accent }}
+                        >
+                          Default
                         </span>
-                        {pm.default && (
-                          <span
-                            className="text-[9px] px-1.5 py-0.5 rounded font-semibold"
-                            style={{ backgroundColor: C.accentLight, color: C.accent }}
-                          >
-                            Default
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -7859,7 +7853,6 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                     type="button"
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
                     style={{
-                      backgroundColor: C.elevated,
                       color: C.textSecondary,
                       border: `1px solid ${C.border}`,
                     }}
@@ -7873,15 +7866,14 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
                     Invoices & payments
                   </p>
-                  <div className="rounded-sm overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+                  <div>
                     {student.billing.lineItems.map((row, i) => (
                       <div
                         key={row.id}
-                        className="flex items-center justify-between gap-2 px-3 py-2.5"
+                        className="flex items-center justify-between gap-2 py-2.5"
                         style={{
                           borderBottom:
                             i < student.billing.lineItems.length - 1 ? `1px solid ${C.border}` : "none",
-                          backgroundColor: i % 2 === 0 ? "transparent" : C.elevated + "80",
                         }}
                       >
                         <div className="min-w-0 flex-1">
@@ -7912,27 +7904,20 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
               </>
             ) : (
               <>
-                <div
-                  className="flex items-center justify-between p-3 rounded-sm"
-                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.accent + "55"}` }}
-                >
-                  <div className="flex items-center gap-2">
-                    <Home className="w-4 h-4 flex-shrink-0" style={{ color: C.accent }} />
-                    <div>
-                      <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                    Enrollment
+                  </p>
+                  <DetailField
+                    label="Plan"
+                    value={
+                      <span className="flex items-center gap-1.5 justify-end">
+                        <Home className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.accent }} />
                         Homeschool drop-in
-                      </p>
-                      <p className="text-[10px]" style={{ color: C.textTertiary }}>
-                        Parents select attendance days each week; charges are per day.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-bold tabular-nums" style={{ color: C.accent }}>
-                    {formatUsd(student.billing.ratePerDay)}
-                    <span className="text-[10px] font-normal" style={{ color: C.textTertiary }}>
-                      {" "}/ day
-                    </span>
-                  </span>
+                      </span>
+                    }
+                  />
+                  <DetailField label="Rate" value={`${formatUsd(student.billing.ratePerDay)} / day`} />
                 </div>
 
                 <div>
@@ -7949,8 +7934,8 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                       return (
                         <div
                           key={wi}
-                          className="p-3 rounded-sm"
-                          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                          className="py-3"
+                          style={{ borderBottom: wi < student.billing.weeks.length - 1 ? `1px solid ${C.border}` : "none" }}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-[11px] font-semibold" style={{ color: C.textPrimary }}>
@@ -8000,7 +7985,6 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                     type="button"
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
                     style={{
-                      backgroundColor: C.elevated,
                       color: C.textSecondary,
                       border: `1px solid ${C.border}`,
                     }}
@@ -8014,15 +7998,14 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                   <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
                     Charges & payments
                   </p>
-                  <div className="rounded-sm overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+                  <div>
                     {student.billing.lineItems.map((row, i) => (
                       <div
                         key={row.id}
-                        className="flex items-center justify-between gap-2 px-3 py-2.5"
+                        className="flex items-center justify-between gap-2 py-2.5"
                         style={{
                           borderBottom:
                             i < student.billing.lineItems.length - 1 ? `1px solid ${C.border}` : "none",
-                          backgroundColor: i % 2 === 0 ? "transparent" : C.elevated + "80",
                         }}
                       >
                         <div className="min-w-0 flex-1">
