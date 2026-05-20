@@ -10909,6 +10909,9 @@ const DEMO_EXPENSES = [
     amount: 5800,
     date: "Mar 31, 2026",
     receipt: "payroll_mar.pdf",
+    vendor: "Sunshine Montessori LLC",
+    paymentMethod: "ACH",
+    status: "paid" as const,
   },
   {
     id: "ex2",
@@ -10917,6 +10920,9 @@ const DEMO_EXPENSES = [
     amount: 1400,
     date: "Apr 1, 2026",
     receipt: "rent_apr.pdf",
+    vendor: "Oak Street Properties",
+    paymentMethod: "Check",
+    status: "paid" as const,
   },
   {
     id: "ex3",
@@ -10925,6 +10931,9 @@ const DEMO_EXPENSES = [
     amount: 487,
     date: "Mar 28, 2026",
     receipt: "michaels_receipt.pdf",
+    vendor: "Michaels",
+    paymentMethod: "Card",
+    status: "paid" as const,
   },
   {
     id: "ex4",
@@ -10933,6 +10942,9 @@ const DEMO_EXPENSES = [
     amount: 620,
     date: "Apr 1, 2026",
     receipt: "insurance_q2.pdf",
+    vendor: "State Farm",
+    paymentMethod: "ACH",
+    status: "paid" as const,
   },
   {
     id: "ex5",
@@ -10941,6 +10953,9 @@ const DEMO_EXPENSES = [
     amount: 1280,
     date: "Mar 31, 2026",
     receipt: "aide_mar.pdf",
+    vendor: "Sunshine Montessori LLC",
+    paymentMethod: "ACH",
+    status: "paid" as const,
   },
   {
     id: "ex6",
@@ -10949,6 +10964,9 @@ const DEMO_EXPENSES = [
     amount: 180,
     date: "Mar 22, 2026",
     receipt: "print_shop.pdf",
+    vendor: "Local Print Co.",
+    paymentMethod: "Card",
+    status: "paid" as const,
   },
   {
     id: "ex7",
@@ -10957,6 +10975,9 @@ const DEMO_EXPENSES = [
     amount: 312,
     date: "Mar 31, 2026",
     receipt: null,
+    vendor: "City Power & Gas",
+    paymentMethod: "ACH",
+    status: "paid" as const,
   },
   {
     id: "ex8",
@@ -10965,6 +10986,9 @@ const DEMO_EXPENSES = [
     amount: 224,
     date: "Mar 15, 2026",
     receipt: "curriculum.pdf",
+    vendor: "Handwriting Without Tears",
+    paymentMethod: "Card",
+    status: "paid" as const,
   },
   {
     id: "ex9",
@@ -10973,6 +10997,9 @@ const DEMO_EXPENSES = [
     amount: 89,
     date: "Apr 1, 2026",
     receipt: null,
+    vendor: "Google / Zoom",
+    paymentMethod: "Card",
+    status: "pending" as const,
   },
   {
     id: "ex10",
@@ -10981,8 +11008,19 @@ const DEMO_EXPENSES = [
     amount: 400,
     date: "Mar 20, 2026",
     receipt: "pd_workshop.pdf",
+    vendor: "Montessori Institute",
+    paymentMethod: "Check",
+    status: "paid" as const,
   },
 ];
+
+const EXP_STATUS_COLORS: Record<
+  (typeof DEMO_EXPENSES)[0]["status"],
+  { bg: string; border: string; text: string }
+> = {
+  paid: { bg: C.successBg, border: C.successBorder, text: C.success },
+  pending: { bg: C.warningBg, border: C.warningBorder, text: C.warning },
+};
 
 const DEMO_INCOME = [
   {
@@ -12769,65 +12807,546 @@ function BudgetRing({
   );
 }
 
-function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: BudgetTab; onTabChange: (tab: BudgetTab) => void }) {
+const DEMO_CURRENT_MONTH = "Apr";
+
+function BudgetExpensesTab() {
   const [selectedExp, setSelectedExp] = useState<
     (typeof DEMO_EXPENSES)[0] | null
   >(null);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [missingReceiptOnly, setMissingReceiptOnly] = useState(false);
+  const [dateFilter, setDateFilter] = useState<"all" | "mar" | "apr">("all");
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
-  const tabs: { key: BudgetTab; label: string }[] = [
-    { key: "overview", label: "Overview" },
-    { key: "expenses", label: "Expenses" },
-    { key: "revenue", label: "Revenue" },
-    { key: "analysis", label: "Analysis" },
-    { key: "transactions", label: "Transactions" },
-  ];
+  useEffect(() => {
+    if (selectedExp) openBackdrop(() => setSelectedExp(null));
+    else closeBackdrop();
+  }, [selectedExp, openBackdrop, closeBackdrop]);
 
-  const totalRevenue = DEMO_INCOME.reduce((s, i) => s + i.amount, 0);
-  const totalExpenses = DEMO_EXPENSES.reduce((s, e) => s + e.amount, 0);
   const fmt = (n: number) => `$${n.toLocaleString()}`;
 
-  const BUDGET_TIPS: Record<BudgetTab, string> = {
-    overview: "Your financial snapshot — revenue, expenses, and profit at a glance for the current school year.",
-    expenses: "Log every cost here — supplies, rent, payroll. Categorize so you know where money goes.",
-    revenue: "Track tuition and fees coming in. See which families have paid and what's still outstanding.",
-    analysis: "Spot trends over time — compare months and find where to save or grow enrollment.",
-    transactions: "Every payment in and out, in one list. Use this to reconcile with your bank account.",
-  };
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return DEMO_EXPENSES.filter((exp) => {
+      const catMatch =
+        categoryFilter === "all" || exp.category === categoryFilter;
+      const searchMatch =
+        !q ||
+        exp.description.toLowerCase().includes(q) ||
+        exp.vendor.toLowerCase().includes(q);
+      const receiptMatch = !missingReceiptOnly || exp.receipt === null;
+      const dateMatch =
+        dateFilter === "all" ||
+        (dateFilter === "mar" && exp.date.startsWith("Mar")) ||
+        (dateFilter === "apr" && exp.date.startsWith("Apr"));
+      return catMatch && searchMatch && receiptMatch && dateMatch;
+    });
+  }, [categoryFilter, search, missingReceiptOnly, dateFilter]);
+
+  const kpis = useMemo(() => {
+    const ytd = filtered.reduce((s, e) => s + e.amount, 0);
+    const monthTotal = filtered
+      .filter((e) => e.date.startsWith(DEMO_CURRENT_MONTH))
+      .reduce((s, e) => s + e.amount, 0);
+    const missingReceipts = filtered.filter((e) => e.receipt === null).length;
+    const byCat = filtered.reduce<Record<string, number>>((acc, e) => {
+      acc[e.category] = (acc[e.category] ?? 0) + e.amount;
+      return acc;
+    }, {});
+    const topEntry = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+    return {
+      ytd,
+      monthTotal,
+      missingReceipts,
+      topCategory: topEntry?.[0] ?? "—",
+      topAmount: topEntry?.[1] ?? 0,
+    };
+  }, [filtered]);
+
+  const hasActiveFilters = missingReceiptOnly || dateFilter !== "all";
+
+  const categoryOptions = [
+    { key: "all", label: "All" },
+    ...BUDGET_CATS.map((c) => ({ key: c.name, label: c.name })),
+  ];
+
+  return (
+    <div className="relative flex h-full flex-col">
+      <div
+        className="flex flex-shrink-0 flex-wrap items-center gap-2 px-6 py-3"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          {categoryOptions.map((opt) => {
+            const isActive = categoryFilter === opt.key;
+            const count =
+              opt.key === "all"
+                ? DEMO_EXPENSES.length
+                : DEMO_EXPENSES.filter((e) => e.category === opt.key).length;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setCategoryFilter(opt.key)}
+                className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
+                style={{
+                  backgroundColor: isActive ? C.accent : C.elevated,
+                  color: isActive ? "#fff" : C.textSecondary,
+                  border: `1px solid ${isActive ? C.accent : C.border}`,
+                }}
+              >
+                {opt.label}
+                <span className="ml-1 text-[10px] font-bold opacity-70">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div
+          className="flex flex-shrink-0 items-center gap-2"
+          style={{ minWidth: 200 }}
+        >
+          <div
+            className="relative flex items-center"
+            style={{ minWidth: 160 }}
+          >
+            <Search
+              className="absolute left-2.5 h-3.5 w-3.5"
+              style={{ color: C.textTertiary }}
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search expenses…"
+              className="w-full rounded-sm py-1.5 pl-8 pr-3 text-xs outline-none"
+              style={{
+                backgroundColor: C.elevated,
+                border: `1px solid ${C.border}`,
+                color: C.textPrimary,
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFilterPanelOpen(true)}
+            className="relative flex flex-shrink-0 items-center justify-center rounded-sm p-2 transition-all"
+            style={{
+              backgroundColor: hasActiveFilters ? C.accentLight : C.elevated,
+              color: hasActiveFilters ? C.accent : C.textSecondary,
+              border: `1px solid ${hasActiveFilters ? C.accent : C.border}`,
+            }}
+            aria-label="Filter expenses"
+          >
+            <ListFilter className="h-4 w-4" />
+            {hasActiveFilters && (
+              <span
+                className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: C.accent }}
+              />
+            )}
+          </button>
+          <DemoButton variant="secondary">
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </DemoButton>
+          <DemoButton>
+            <Plus className="h-3.5 w-3.5" />
+            Add expense
+          </DemoButton>
+        </div>
+      </div>
+
+      <div
+        className="flex flex-shrink-0 flex-wrap items-center gap-x-6 gap-y-2 px-6 py-2.5 text-xs"
+        style={{
+          borderBottom: `1px solid ${C.border}`,
+          backgroundColor: C.surface,
+        }}
+      >
+        {[
+          { label: "YTD spend", value: fmt(kpis.ytd) },
+          {
+            label: `${DEMO_CURRENT_MONTH} spend`,
+            value: fmt(kpis.monthTotal),
+          },
+          {
+            label: "Missing receipts",
+            value: String(kpis.missingReceipts),
+            warn: kpis.missingReceipts > 0,
+          },
+          {
+            label: "Top category",
+            value:
+              kpis.topAmount > 0
+                ? `${kpis.topCategory} · ${fmt(kpis.topAmount)}`
+                : "—",
+          },
+        ].map((k) => (
+          <div key={k.label} className="flex items-center gap-2">
+            <span style={{ color: C.textTertiary }}>{k.label}</span>
+            <span
+              className="font-semibold tabular-nums"
+              style={{
+                color: k.warn ? C.warning : C.textPrimary,
+              }}
+            >
+              {k.value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {filterPanelOpen && (
+          <>
+            <motion.div
+              key="expenses-filter-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0"
+              style={{ backgroundColor: "rgba(0,0,0,0.12)", zIndex: 11 }}
+              onClick={() => setFilterPanelOpen(false)}
+            />
+            <motion.div
+              key="expenses-filters-panel"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="absolute top-0 right-0 bottom-0 flex flex-col"
+              style={{
+                width: 280,
+                backgroundColor: C.surface,
+                borderLeft: `1px solid ${C.border}`,
+                zIndex: 12,
+              }}
+            >
+              <div
+                className="flex items-center justify-between px-5 py-4"
+                style={{ borderBottom: `1px solid ${C.border}` }}
+              >
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: C.textPrimary }}
+                >
+                  Filters
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setFilterPanelOpen(false)}
+                  style={{ color: C.textTertiary }}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex-1 space-y-5 overflow-y-auto p-5">
+                <div>
+                  <p
+                    className="mb-2 text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Date
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(
+                      [
+                        { key: "all", label: "All time" },
+                        { key: "mar", label: "March 2026" },
+                        { key: "apr", label: "April 2026" },
+                      ] as const
+                    ).map((d) => (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() => setDateFilter(d.key)}
+                        className="rounded-sm px-2.5 py-1 text-xs font-medium"
+                        style={{
+                          backgroundColor:
+                            dateFilter === d.key ? C.accent : C.elevated,
+                          color:
+                            dateFilter === d.key ? "#fff" : C.textSecondary,
+                          border: `1px solid ${dateFilter === d.key ? C.accent : C.border}`,
+                        }}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={missingReceiptOnly}
+                    onChange={(e) => setMissingReceiptOnly(e.target.checked)}
+                    className="rounded-sm"
+                  />
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: C.textSecondary }}
+                  >
+                    Missing receipt only
+                  </span>
+                </label>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead
+              className="sticky top-0 z-[1]"
+              style={{ backgroundColor: C.surface }}
+            >
+              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                {[
+                  "Date",
+                  "Category",
+                  "Description",
+                  "Vendor",
+                  "Amount",
+                  "Payment",
+                  "Status",
+                  "Receipt",
+                ].map((col) => (
+                  <th
+                    key={col}
+                    className="text-left px-4 py-3 text-xs font-medium"
+                    style={{ color: C.textTertiary }}
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((exp, i) => {
+                const sc = EXP_STATUS_COLORS[exp.status];
+                return (
+                  <motion.tr
+                    key={exp.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.02 }}
+                    onClick={() => setSelectedExp(exp)}
+                    className="cursor-pointer"
+                    style={{ borderBottom: `1px solid ${C.border}` }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = C.elevated)
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
+                  >
+                    <td
+                      className="px-4 py-3 text-xs whitespace-nowrap"
+                      style={{ color: C.textTertiary }}
+                    >
+                      {exp.date}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="text-xs font-medium px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: C.accentLight,
+                          color: C.accent,
+                        }}
+                      >
+                        {exp.category}
+                      </span>
+                    </td>
+                    <td
+                      className="px-4 py-3 text-xs max-w-[200px] truncate"
+                      style={{ color: C.textSecondary }}
+                    >
+                      {exp.description}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-xs whitespace-nowrap"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {exp.vendor}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-sm font-bold tabular-nums whitespace-nowrap"
+                      style={{ color: C.error }}
+                    >
+                      {fmt(exp.amount)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                        style={{
+                          backgroundColor: C.elevated,
+                          color: C.textSecondary,
+                          border: `1px solid ${C.border}`,
+                        }}
+                      >
+                        {exp.paymentMethod}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
+                        style={{
+                          backgroundColor: sc.bg,
+                          border: `1px solid ${sc.border}`,
+                          color: sc.text,
+                        }}
+                      >
+                        {exp.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {exp.receipt ? (
+                        <span
+                          className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                          style={{
+                            backgroundColor: C.infoBg,
+                            color: C.info,
+                          }}
+                        >
+                          Attached
+                        </span>
+                      ) : (
+                        <span
+                          className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                          style={{
+                            backgroundColor: C.warningBg,
+                            color: C.warning,
+                          }}
+                        >
+                          Missing
+                        </span>
+                      )}
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filtered.length === 0 && (
+            <p
+              className="py-12 text-center text-sm"
+              style={{ color: C.textTertiary }}
+            >
+              No expenses match your filters.
+            </p>
+          )}
+        </div>
+
+        <AnimatePresence>
+          {selectedExp && (
+            <motion.div
+              initial={{ x: "100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="absolute top-0 right-0 bottom-0 flex flex-col shadow-lg"
+              style={{
+                width: 320,
+                backgroundColor: C.surface,
+                borderLeft: `1px solid ${C.border}`,
+                zIndex: 10,
+              }}
+            >
+              <div
+                className="flex items-center justify-between px-5 py-4"
+                style={{ borderBottom: `1px solid ${C.border}` }}
+              >
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: C.textPrimary }}
+                >
+                  Expense Detail
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setSelectedExp(null)}
+                  style={{ color: C.textTertiary }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                <div
+                  className="rounded-sm p-4"
+                  style={{
+                    backgroundColor: C.elevated,
+                    border: `1px solid ${C.border}`,
+                  }}
+                >
+                  <p
+                    className="text-2xl font-bold tabular-nums"
+                    style={{ color: C.error }}
+                  >
+                    {fmt(selectedExp.amount)}
+                  </p>
+                  <p
+                    className="text-xs mt-1"
+                    style={{ color: C.textTertiary }}
+                  >
+                    {selectedExp.category}
+                  </p>
+                  <span
+                    className="mt-2 inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
+                    style={{
+                      backgroundColor: EXP_STATUS_COLORS[selectedExp.status].bg,
+                      border: `1px solid ${EXP_STATUS_COLORS[selectedExp.status].border}`,
+                      color: EXP_STATUS_COLORS[selectedExp.status].text,
+                    }}
+                  >
+                    {selectedExp.status}
+                  </span>
+                </div>
+                <DetailField
+                  label="Description"
+                  value={selectedExp.description}
+                />
+                <DetailField label="Vendor" value={selectedExp.vendor} />
+                <DetailField label="Date" value={selectedExp.date} />
+                <DetailField
+                  label="Payment"
+                  value={selectedExp.paymentMethod}
+                />
+                <DetailField
+                  label="Receipt"
+                  value={
+                    selectedExp.receipt ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
+                        style={{ color: C.info }}
+                      >
+                        <Download className="h-3 w-3" />
+                        {selectedExp.receipt}
+                      </button>
+                    ) : (
+                      <span style={{ color: C.warning }}>Missing</span>
+                    )
+                  }
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function BudgetPage({ activeTab: tab }: { activeTab: BudgetTab; onTabChange: (tab: BudgetTab) => void }) {
+  const fmt = (n: number) => `$${n.toLocaleString()}`;
 
   return (
     <div className="h-full flex flex-col">
-      <PageHeader
-        icon="💰"
-        title="Budget"
-        subtitle="Fiscal Year 2025–2026"
-        tip={BUDGET_TIPS[tab]}
-        action={
-          <div
-            className="flex items-center gap-1 p-1 rounded-sm"
-            style={{
-              backgroundColor: C.elevated,
-              border: `1px solid ${C.border}`,
-            }}
-          >
-            {tabs.map((t) => (
-              <button
-                key={t.key}
-                data-tour-id={`budget-tab-${t.key}`}
-                onClick={() => setTab(t.key)}
-                className="px-3 py-1.5 text-xs font-medium rounded-sm transition-all"
-                style={{
-                  backgroundColor: tab === t.key ? C.surface : "transparent",
-                  color: tab === t.key ? C.textPrimary : C.textTertiary,
-                  boxShadow: tab === t.key ? C.shadowCard : "none",
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        }
-      />
-
       <AnimatePresence mode="wait">
         {tab === "overview" && (
           <motion.div
@@ -12835,7 +13354,7 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="flex-1 overflow-y-auto space-y-5"
+            className="flex-1 overflow-y-auto space-y-5 p-6"
           >
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
@@ -12909,157 +13428,9 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 overflow-hidden relative"
+            className="flex-1 overflow-hidden"
           >
-            <Card className="h-full overflow-hidden">
-              <div className="overflow-x-auto h-full">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                      {[
-                        "Category",
-                        "Description",
-                        "Amount",
-                        "Date",
-                        "Receipt",
-                      ].map((col) => (
-                        <th
-                          key={col}
-                          className="text-left px-4 py-3 text-xs font-medium"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {DEMO_EXPENSES.map((exp, i) => (
-                      <motion.tr
-                        key={exp.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.03 }}
-                        onClick={() => setSelectedExp(exp)}
-                        className="cursor-pointer"
-                        style={{ borderBottom: `1px solid ${C.border}` }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = C.elevated)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            "transparent")
-                        }
-                      >
-                        <td className="px-4 py-3">
-                          <span
-                            className="text-xs font-medium px-2 py-0.5 rounded-full"
-                            style={{
-                              backgroundColor: C.accentLight,
-                              color: C.accent,
-                            }}
-                          >
-                            {exp.category}
-                          </span>
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs"
-                          style={{ color: C.textSecondary }}
-                        >
-                          {exp.description}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-sm font-bold tabular-nums"
-                          style={{ color: C.error }}
-                        >
-                          {fmt(exp.amount)}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {exp.date}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-xs"
-                          style={{
-                            color: exp.receipt ? C.info : C.textTertiary,
-                          }}
-                        >
-                          {exp.receipt ?? "—"}
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-            <AnimatePresence>
-              {selectedExp && (
-                <motion.div
-                  initial={{ x: "100%", opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: "100%", opacity: 0 }}
-                  transition={{ type: "spring", damping: 28, stiffness: 300 }}
-                  className="absolute top-0 right-0 bottom-0 flex flex-col"
-                  style={{
-                    width: 300,
-                    backgroundColor: C.surface,
-                    borderLeft: `1px solid ${C.border}`,
-                    zIndex: 10,
-                  }}
-                >
-                  <div
-                    className="flex items-center justify-between px-5 py-4"
-                    style={{ borderBottom: `1px solid ${C.border}` }}
-                  >
-                    <h3
-                      className="text-sm font-semibold"
-                      style={{ color: C.textPrimary }}
-                    >
-                      Expense Detail
-                    </h3>
-                    <button
-                      onClick={() => setSelectedExp(null)}
-                      style={{ color: C.textTertiary }}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="flex-1 p-5 space-y-4">
-                    <div
-                      className="rounded-sm p-4"
-                      style={{
-                        backgroundColor: C.elevated,
-                        border: `1px solid ${C.border}`,
-                      }}
-                    >
-                      <p
-                        className="text-2xl font-bold tabular-nums"
-                        style={{ color: C.error }}
-                      >
-                        {fmt(selectedExp.amount)}
-                      </p>
-                      <p
-                        className="text-xs mt-1"
-                        style={{ color: C.textTertiary }}
-                      >
-                        {selectedExp.category}
-                      </p>
-                    </div>
-                    <DetailField
-                      label="Description"
-                      value={selectedExp.description}
-                    />
-                    <DetailField label="Date" value={selectedExp.date} />
-                    <DetailField
-                      label="Receipt"
-                      value={selectedExp.receipt ?? "—"}
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <BudgetExpensesTab />
           </motion.div>
         )}
 
@@ -13069,7 +13440,7 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 overflow-y-auto space-y-4"
+            className="flex-1 overflow-y-auto space-y-4 p-6"
           >
             <div className="grid grid-cols-3 gap-3">
               {[
@@ -13206,7 +13577,7 @@ function BudgetPage({ activeTab: tab, onTabChange: setTab }: { activeTab: Budget
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 overflow-y-auto space-y-5"
+            className="flex-1 overflow-y-auto space-y-5 p-6"
           >
             <Card style={{ padding: "24px" }}>
               <SectionLabel>Planned vs Actual by Category</SectionLabel>
@@ -17716,6 +18087,7 @@ function Sidebar({
                                 return (
                                   <button
                                     key={sub.key}
+                                    data-tour-id={`budget-tab-${sub.key}`}
                                     onClick={() => {
                                       onNavigate("budget");
                                       onBudgetSubtab(sub.key);
@@ -18211,7 +18583,8 @@ export default function AdminDashboardDemo({
                 activePage === "messages" || activePage === "calendar" || activePage === "impersonate" ||
                 activePage === "leads" || activePage === "people" ||
                 activePage === "transactions" || activePage === "emails" ||
-                activePage === "marketing" || activePage === "myschool"
+                activePage === "marketing" || activePage === "myschool" ||
+                activePage === "budget"
                   ? ""
                   : "max-w-screen-xl mx-auto p-6"
               }`}
