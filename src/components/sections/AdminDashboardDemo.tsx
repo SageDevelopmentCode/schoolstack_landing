@@ -1117,7 +1117,7 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       },
     ],
     classroom: "Room 2 – Meadow Class",
-    teacher: "Ms. Reyes",
+    teacher: "Ms. Taylor Reyes",
     immunizations: [
       { name: "MMR (Measles, Mumps, Rubella)", date: "Sep 2019", status: "complete" },
       { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Sep 2019", status: "complete" },
@@ -1768,7 +1768,7 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
       { name: "Aunt Hana", relationship: "Aunt", phone: "(737) 555-0899" },
     ],
     classroom: "Room 2 – Meadow Class",
-    teacher: "Ms. Reyes",
+    teacher: "Ms. Taylor Reyes",
     immunizations: [
       { name: "MMR (Measles, Mumps, Rubella)", date: "Oct 2019", status: "complete" },
       { name: "DTaP (Diphtheria, Tetanus, Pertussis)", date: "Oct 2019", status: "complete" },
@@ -2279,6 +2279,511 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
   },
 ];
 
+// ─── Staff (My School → Staff tab) ─────────────────────────────────────────────
+
+type StaffPaperworkStatus = "signed" | "pending" | "overdue";
+type StaffCredentialStatus = "valid" | "expiring" | "expired" | "missing";
+type StaffProfileTab =
+  | "profile"
+  | "paperwork"
+  | "credentials"
+  | "payroll"
+  | "compensation"
+  | "schedule"
+  | "classes"
+  | "access"
+  | "activity";
+
+type DemoStaff = {
+  id: string;
+  name: string;
+  initials: string;
+  color: string;
+  role: string;
+  status: "active" | "on_leave" | "inactive";
+  room: string;
+  email: string;
+  phone: string;
+  hireDate: string;
+  employmentType: "full_time" | "part_time" | "substitute";
+  emergencyContact: { name: string; relationship: string; phone: string };
+  programTeacherIds?: string[];
+  paperwork: { id: string; title: string; status: StaffPaperworkStatus; signedDate?: string }[];
+  credentials: {
+    id: string;
+    name: string;
+    status: StaffCredentialStatus;
+    expiryDate?: string;
+    issuedDate?: string;
+  }[];
+  payroll: {
+    payType: "hourly" | "salary";
+    rate: number;
+    schedule: string;
+    lastPayDate: string;
+    lastNet: number;
+    ytdGross: number;
+    recentPeriods: { period: string; net: number }[];
+  };
+  compensationHistory: {
+    date: string;
+    label: string;
+    previousRate?: number;
+    newRate: number;
+    payType: "hourly" | "salary";
+    reason: string;
+    author?: string;
+  }[];
+  schedule: {
+    weeklyHours: { day: string; start: string; end: string }[];
+    pto: { used: number; total: number };
+    recentTimeEntries: { date: string; in: string; out: string; hours: number }[];
+  };
+  access: {
+    portalRole: string;
+    permissions: { key: string; label: string; enabled: boolean }[];
+  };
+  activityLog: {
+    date: string;
+    type: "event" | "note" | "action";
+    title: string;
+    detail: string;
+    author?: string;
+  }[];
+};
+
+const STAFF_STATUS_STYLES: Record<
+  DemoStaff["status"],
+  { label: string; bg: string; text: string }
+> = {
+  active: { label: "Active", bg: C.successBg, text: C.success },
+  on_leave: { label: "On Leave", bg: C.warningBg, text: C.warning },
+  inactive: { label: "Inactive", bg: C.elevated, text: C.textTertiary },
+};
+
+const CREDENTIAL_STATUS_STYLES: Record<
+  StaffCredentialStatus,
+  { label: string; bg: string; text: string }
+> = {
+  valid: { label: "Valid", bg: C.successBg, text: C.success },
+  expiring: { label: "Expiring", bg: C.warningBg, text: C.warning },
+  expired: { label: "Expired", bg: C.errorBg, text: C.error },
+  missing: { label: "Missing", bg: C.elevated, text: C.textTertiary },
+};
+
+const TEACHER_ACCESS_PERMISSIONS: DemoStaff["access"]["permissions"] = [
+  { key: "students", label: "View & edit student profiles", enabled: true },
+  { key: "attendance", label: "Record attendance", enabled: true },
+  { key: "messaging", label: "Message families", enabled: true },
+  { key: "billing", label: "View billing & invoices", enabled: false },
+  { key: "enrollment", label: "Manage enrollment flows", enabled: false },
+  { key: "staff", label: "Manage staff records", enabled: false },
+  { key: "budget", label: "View school budget", enabled: false },
+  { key: "impersonate", label: "Impersonate users", enabled: false },
+];
+
+const ADMIN_ACCESS_PERMISSIONS: DemoStaff["access"]["permissions"] = [
+  { key: "students", label: "View & edit student profiles", enabled: true },
+  { key: "attendance", label: "Record attendance", enabled: true },
+  { key: "messaging", label: "Message families", enabled: true },
+  { key: "billing", label: "View billing & invoices", enabled: true },
+  { key: "enrollment", label: "Manage enrollment flows", enabled: true },
+  { key: "staff", label: "Manage staff records", enabled: true },
+  { key: "budget", label: "View school budget", enabled: true },
+  { key: "impersonate", label: "Impersonate users", enabled: false },
+];
+
+const SUB_ACCESS_PERMISSIONS: DemoStaff["access"]["permissions"] = [
+  { key: "students", label: "View & edit student profiles", enabled: true },
+  { key: "attendance", label: "Record attendance", enabled: true },
+  { key: "messaging", label: "Message families", enabled: false },
+  { key: "billing", label: "View billing & invoices", enabled: false },
+  { key: "enrollment", label: "Manage enrollment flows", enabled: false },
+  { key: "staff", label: "Manage staff records", enabled: false },
+  { key: "budget", label: "View school budget", enabled: false },
+  { key: "impersonate", label: "Impersonate users", enabled: false },
+];
+
+const DEMO_STAFF: DemoStaff[] = [
+  {
+    id: "staff-reyes",
+    name: "Ms. Taylor Reyes",
+    initials: "TR",
+    color: "#5E7C68",
+    role: "Lead Teacher",
+    status: "active",
+    room: "Room 2 – Meadow Class",
+    email: "t.reyes@mudkitchen.edu",
+    phone: "(512) 555-0201",
+    hireDate: "Aug 12, 2021",
+    employmentType: "full_time",
+    emergencyContact: { name: "Marco Reyes", relationship: "Spouse", phone: "(512) 555-0202" },
+    programTeacherIds: ["t1", "t3"],
+    paperwork: [
+      { id: "sp1", title: "W-4 Tax Withholding", status: "signed", signedDate: "Jan 10, 2026" },
+      { id: "sp2", title: "Employee Handbook Acknowledgement", status: "signed", signedDate: "Jan 10, 2026" },
+      { id: "sp3", title: "Direct Deposit Authorization", status: "signed", signedDate: "Jan 11, 2026" },
+      { id: "sp4", title: "Emergency Contact Update", status: "pending" },
+    ],
+    credentials: [
+      { id: "sc1", name: "Texas Teaching Certificate", status: "valid", expiryDate: "Aug 2028", issuedDate: "Aug 2019" },
+      { id: "sc2", name: "CPR / First Aid", status: "expiring", expiryDate: "Jun 15, 2026", issuedDate: "Jun 2024" },
+      { id: "sc3", name: "Background Check", status: "valid", expiryDate: "Jan 2027", issuedDate: "Jan 2025" },
+      { id: "sc4", name: "Mandated Reporter Training", status: "valid", expiryDate: "Dec 2026", issuedDate: "Dec 2025" },
+    ],
+    payroll: {
+      payType: "salary",
+      rate: 52000,
+      schedule: "Biweekly (24 pay periods)",
+      lastPayDate: "Apr 25, 2026",
+      lastNet: 1842.5,
+      ytdGross: 17333.33,
+      recentPeriods: [
+        { period: "Apr 6 – Apr 19, 2026", net: 1842.5 },
+        { period: "Mar 23 – Apr 5, 2026", net: 1842.5 },
+        { period: "Mar 9 – Mar 22, 2026", net: 1842.5 },
+      ],
+    },
+    compensationHistory: [
+      { date: "Aug 1, 2025", label: "Annual raise", previousRate: 48000, newRate: 52000, payType: "salary", reason: "3-year review — performance exceeds expectations", author: "Priya Singh" },
+      { date: "Aug 1, 2023", label: "Promotion", previousRate: 42000, newRate: 48000, payType: "salary", reason: "Promoted to Lead Teacher", author: "Priya Singh" },
+      { date: "Aug 12, 2021", label: "Start date", newRate: 42000, payType: "salary", reason: "Initial hire — Lead Teacher", author: "Priya Singh" },
+    ],
+    schedule: {
+      weeklyHours: [
+        { day: "Mon", start: "7:45 AM", end: "3:45 PM" },
+        { day: "Tue", start: "7:45 AM", end: "3:45 PM" },
+        { day: "Wed", start: "7:45 AM", end: "3:45 PM" },
+        { day: "Thu", start: "7:45 AM", end: "3:45 PM" },
+        { day: "Fri", start: "7:45 AM", end: "3:45 PM" },
+      ],
+      pto: { used: 3, total: 12 },
+      recentTimeEntries: [
+        { date: "May 19, 2026", in: "7:42 AM", out: "3:48 PM", hours: 8.1 },
+        { date: "May 16, 2026", in: "7:50 AM", out: "3:40 PM", hours: 7.8 },
+        { date: "May 15, 2026", in: "7:44 AM", out: "3:52 PM", hours: 8.1 },
+      ],
+    },
+    access: { portalRole: "Lead Teacher", permissions: TEACHER_ACCESS_PERMISSIONS },
+    activityLog: [
+      { date: "May 14, 2026", type: "note", title: "Teacher observation", detail: "Strong classroom management during nature unit. Parent conference notes filed.", author: "Priya Singh" },
+      { date: "May 1, 2026", type: "event", title: "Assigned — School Year 26–27", detail: "Primary (K – 2nd) lead for School Year 26–27 program.", author: "Admin" },
+      { date: "Apr 20, 2026", type: "action", title: "Payroll processed", detail: "Biweekly pay of $1,842.50 deposited.", author: "System" },
+      { date: "Jan 10, 2026", type: "event", title: "Onboarding complete", detail: "All required HR paperwork signed for 2026.", author: "Priya Singh" },
+    ],
+  },
+  {
+    id: "staff-park",
+    name: "Mr. David Park",
+    initials: "DP",
+    color: "#6B8CAE",
+    role: "Teaching Assistant",
+    status: "active",
+    room: "Room 1 – Sunflower Class",
+    email: "d.park@mudkitchen.edu",
+    phone: "(512) 555-0210",
+    hireDate: "Jan 8, 2024",
+    employmentType: "part_time",
+    emergencyContact: { name: "Linda Park", relationship: "Mother", phone: "(512) 555-0211" },
+    paperwork: [
+      { id: "sp5", title: "W-4 Tax Withholding", status: "signed", signedDate: "Jan 8, 2024" },
+      { id: "sp6", title: "Employee Handbook Acknowledgement", status: "signed", signedDate: "Jan 8, 2024" },
+      { id: "sp7", title: "Direct Deposit Authorization", status: "signed", signedDate: "Jan 9, 2024" },
+      { id: "sp8", title: "Technology Use Policy", status: "overdue" },
+    ],
+    credentials: [
+      { id: "sc5", name: "CPR / First Aid", status: "valid", expiryDate: "Mar 2027", issuedDate: "Mar 2025" },
+      { id: "sc6", name: "Background Check", status: "valid", expiryDate: "Jan 2027", issuedDate: "Jan 2025" },
+      { id: "sc7", name: "Mandated Reporter Training", status: "valid", expiryDate: "Nov 2026", issuedDate: "Nov 2025" },
+      { id: "sc8", name: "Texas Teaching Certificate", status: "missing" },
+    ],
+    payroll: {
+      payType: "hourly",
+      rate: 18.5,
+      schedule: "Biweekly",
+      lastPayDate: "Apr 25, 2026",
+      lastNet: 1247.2,
+      ytdGross: 11240,
+      recentPeriods: [
+        { period: "Apr 6 – Apr 19, 2026", net: 1247.2 },
+        { period: "Mar 23 – Apr 5, 2026", net: 1186.0 },
+        { period: "Mar 9 – Mar 22, 2026", net: 1298.5 },
+      ],
+    },
+    compensationHistory: [
+      { date: "Jan 1, 2026", label: "Hourly increase", previousRate: 17.5, newRate: 18.5, payType: "hourly", reason: "Annual cost-of-living adjustment", author: "Priya Singh" },
+      { date: "Jan 8, 2024", label: "Start date", newRate: 17.5, payType: "hourly", reason: "Initial hire — Teaching Assistant", author: "Priya Singh" },
+    ],
+    schedule: {
+      weeklyHours: [
+        { day: "Mon", start: "8:30 AM", end: "2:30 PM" },
+        { day: "Tue", start: "8:30 AM", end: "2:30 PM" },
+        { day: "Wed", start: "8:30 AM", end: "2:30 PM" },
+        { day: "Thu", start: "8:30 AM", end: "2:30 PM" },
+        { day: "Fri", start: "—", end: "—" },
+      ],
+      pto: { used: 1, total: 6 },
+      recentTimeEntries: [
+        { date: "May 19, 2026", in: "8:28 AM", out: "2:35 PM", hours: 6.1 },
+        { date: "May 15, 2026", in: "8:31 AM", out: "2:28 PM", hours: 5.9 },
+      ],
+    },
+    access: { portalRole: "Teacher", permissions: TEACHER_ACCESS_PERMISSIONS },
+    activityLog: [
+      { date: "May 10, 2026", type: "event", title: "Supports Sunflower Room", detail: "Assigned as TA under Ms. Taylor Reyes for School Year 26–27.", author: "Admin" },
+      { date: "Apr 1, 2026", type: "action", title: "Form reminder sent", detail: "Technology Use Policy — overdue reminder emailed.", author: "Priya Singh" },
+    ],
+  },
+  {
+    id: "staff-npark",
+    name: "Ms. Nicole Park",
+    initials: "NP",
+    color: "#8B6BAE",
+    role: "Lead Teacher",
+    status: "active",
+    room: "Room 4 – Oak Class",
+    email: "n.park@mudkitchen.edu",
+    phone: "(512) 555-0220",
+    hireDate: "Jun 1, 2022",
+    employmentType: "full_time",
+    emergencyContact: { name: "James Park", relationship: "Spouse", phone: "(512) 555-0221" },
+    programTeacherIds: ["t4"],
+    paperwork: [
+      { id: "sp9", title: "W-4 Tax Withholding", status: "signed", signedDate: "Jan 10, 2026" },
+      { id: "sp10", title: "Employee Handbook Acknowledgement", status: "signed", signedDate: "Jan 10, 2026" },
+      { id: "sp11", title: "Direct Deposit Authorization", status: "signed", signedDate: "Jan 11, 2026" },
+    ],
+    credentials: [
+      { id: "sc9", name: "Texas Teaching Certificate", status: "valid", expiryDate: "Jun 2029", issuedDate: "Jun 2020" },
+      { id: "sc10", name: "CPR / First Aid", status: "valid", expiryDate: "Sep 2027", issuedDate: "Sep 2025" },
+      { id: "sc11", name: "Background Check", status: "valid", expiryDate: "Jun 2027", issuedDate: "Jun 2025" },
+      { id: "sc12", name: "Fingerprint Clearance", status: "valid", expiryDate: "Jun 2027", issuedDate: "Jun 2025" },
+    ],
+    payroll: {
+      payType: "salary",
+      rate: 50000,
+      schedule: "Biweekly (24 pay periods)",
+      lastPayDate: "Apr 25, 2026",
+      lastNet: 1771.15,
+      ytdGross: 16666.67,
+      recentPeriods: [
+        { period: "Apr 6 – Apr 19, 2026", net: 1771.15 },
+        { period: "Mar 23 – Apr 5, 2026", net: 1771.15 },
+      ],
+    },
+    compensationHistory: [
+      { date: "Aug 1, 2025", label: "Annual raise", previousRate: 47000, newRate: 50000, payType: "salary", reason: "Annual review", author: "Priya Singh" },
+      { date: "Jun 1, 2022", label: "Start date", newRate: 47000, payType: "salary", reason: "Initial hire — Lead Teacher", author: "Priya Singh" },
+    ],
+    schedule: {
+      weeklyHours: [
+        { day: "Mon", start: "7:45 AM", end: "3:45 PM" },
+        { day: "Tue", start: "7:45 AM", end: "3:45 PM" },
+        { day: "Wed", start: "7:45 AM", end: "3:45 PM" },
+        { day: "Thu", start: "7:45 AM", end: "3:45 PM" },
+        { day: "Fri", start: "7:45 AM", end: "3:45 PM" },
+      ],
+      pto: { used: 2, total: 12 },
+      recentTimeEntries: [
+        { date: "May 19, 2026", in: "7:48 AM", out: "3:44 PM", hours: 7.9 },
+        { date: "May 16, 2026", in: "7:46 AM", out: "3:50 PM", hours: 8.1 },
+      ],
+    },
+    access: { portalRole: "Lead Teacher", permissions: TEACHER_ACCESS_PERMISSIONS },
+    activityLog: [
+      { date: "May 1, 2026", type: "event", title: "Assigned — Elementary (3rd – 4th)", detail: "Lead teacher for School Year 26–27.", author: "Admin" },
+      { date: "Mar 12, 2026", type: "note", title: "PD completed", detail: "Differentiated instruction workshop — 6 hours.", author: "Priya Singh" },
+    ],
+  },
+  {
+    id: "staff-carla",
+    name: "Ms. Carla Nguyen",
+    initials: "CN",
+    color: "#C4896E",
+    role: "Lead Teacher",
+    status: "active",
+    room: "Homeschool Studio",
+    email: "c.nguyen@mudkitchen.edu",
+    phone: "(512) 555-0230",
+    hireDate: "Sep 3, 2023",
+    employmentType: "part_time",
+    emergencyContact: { name: "Anh Nguyen", relationship: "Sibling", phone: "(512) 555-0231" },
+    programTeacherIds: ["t6"],
+    paperwork: [
+      { id: "sp12", title: "W-4 Tax Withholding", status: "signed", signedDate: "Sep 3, 2023" },
+      { id: "sp13", title: "Drop-In Program Agreement", status: "signed", signedDate: "Sep 5, 2023" },
+      { id: "sp14", title: "Direct Deposit Authorization", status: "signed", signedDate: "Sep 4, 2023" },
+    ],
+    credentials: [
+      { id: "sc13", name: "CPR / First Aid", status: "valid", expiryDate: "Oct 2027", issuedDate: "Oct 2025" },
+      { id: "sc14", name: "Background Check", status: "valid", expiryDate: "Sep 2026", issuedDate: "Sep 2024" },
+      { id: "sc15", name: "Mandated Reporter Training", status: "expiring", expiryDate: "Jun 1, 2026", issuedDate: "Jun 2024" },
+    ],
+    payroll: {
+      payType: "hourly",
+      rate: 24,
+      schedule: "Biweekly",
+      lastPayDate: "Apr 25, 2026",
+      lastNet: 892.8,
+      ytdGross: 8040,
+      recentPeriods: [
+        { period: "Apr 6 – Apr 19, 2026", net: 892.8 },
+        { period: "Mar 23 – Apr 5, 2026", net: 768.0 },
+      ],
+    },
+    compensationHistory: [
+      { date: "Jan 1, 2026", label: "Hourly increase", previousRate: 22, newRate: 24, payType: "hourly", reason: "Homeschool program expansion", author: "Priya Singh" },
+      { date: "Sep 3, 2023", label: "Start date", newRate: 22, payType: "hourly", reason: "Initial hire — Homeschool Drop-In lead", author: "Priya Singh" },
+    ],
+    schedule: {
+      weeklyHours: [
+        { day: "Mon", start: "8:30 AM", end: "2:30 PM" },
+        { day: "Wed", start: "8:30 AM", end: "2:30 PM" },
+        { day: "Fri", start: "8:30 AM", end: "2:30 PM" },
+      ],
+      pto: { used: 0, total: 8 },
+      recentTimeEntries: [
+        { date: "May 19, 2026", in: "8:32 AM", out: "2:28 PM", hours: 5.9 },
+        { date: "May 16, 2026", in: "8:30 AM", out: "2:35 PM", hours: 6.1 },
+      ],
+    },
+    access: { portalRole: "Teacher", permissions: TEACHER_ACCESS_PERMISSIONS },
+    activityLog: [
+      { date: "Apr 15, 2026", type: "event", title: "Homeschool Drop-In lead", detail: "Primary instructor for mixed-ages drop-in program.", author: "Admin" },
+      { date: "Jun 1, 2026", type: "action", title: "Credential renewal due", detail: "Mandated Reporter Training expires Jun 1, 2026 — reminder scheduled.", author: "System" },
+    ],
+  },
+  {
+    id: "staff-singh",
+    name: "Ms. Priya Singh",
+    initials: "PS",
+    color: "#7C3AED",
+    role: "Administrator",
+    status: "active",
+    room: "Front Office",
+    email: "priya@mudkitchen.edu",
+    phone: "(512) 555-0100",
+    hireDate: "Jul 1, 2020",
+    employmentType: "full_time",
+    emergencyContact: { name: "Raj Singh", relationship: "Spouse", phone: "(512) 555-0101" },
+    paperwork: [
+      { id: "sp15", title: "W-4 Tax Withholding", status: "signed", signedDate: "Jan 8, 2026" },
+      { id: "sp16", title: "Employee Handbook Acknowledgement", status: "signed", signedDate: "Jan 8, 2026" },
+      { id: "sp17", title: "Administrator Agreement", status: "signed", signedDate: "Jul 1, 2020" },
+    ],
+    credentials: [
+      { id: "sc16", name: "Background Check", status: "valid", expiryDate: "Jul 2027", issuedDate: "Jul 2025" },
+      { id: "sc17", name: "CPR / First Aid", status: "valid", expiryDate: "Feb 2028", issuedDate: "Feb 2026" },
+    ],
+    payroll: {
+      payType: "salary",
+      rate: 68000,
+      schedule: "Biweekly (24 pay periods)",
+      lastPayDate: "Apr 25, 2026",
+      lastNet: 2410.5,
+      ytdGross: 22666.67,
+      recentPeriods: [{ period: "Apr 6 – Apr 19, 2026", net: 2410.5 }],
+    },
+    compensationHistory: [
+      { date: "Aug 1, 2025", label: "Annual raise", previousRate: 64000, newRate: 68000, payType: "salary", reason: "Director compensation review", author: "Board" },
+      { date: "Jul 1, 2020", label: "Start date", newRate: 55000, payType: "salary", reason: "Founding administrator", author: "Board" },
+    ],
+    schedule: {
+      weeklyHours: [
+        { day: "Mon", start: "7:30 AM", end: "4:30 PM" },
+        { day: "Tue", start: "7:30 AM", end: "4:30 PM" },
+        { day: "Wed", start: "7:30 AM", end: "4:30 PM" },
+        { day: "Thu", start: "7:30 AM", end: "4:30 PM" },
+        { day: "Fri", start: "7:30 AM", end: "3:00 PM" },
+      ],
+      pto: { used: 4, total: 15 },
+      recentTimeEntries: [
+        { date: "May 19, 2026", in: "7:28 AM", out: "4:35 PM", hours: 9.1 },
+      ],
+    },
+    access: { portalRole: "Administrator", permissions: ADMIN_ACCESS_PERMISSIONS },
+    activityLog: [
+      { date: "May 18, 2026", type: "action", title: "Staff rate change approved", detail: "Approved hourly increase for Ms. Carla Nguyen.", author: "Priya Singh" },
+      { date: "Apr 7, 2026", type: "event", title: "Staff planning meeting", detail: "Led all-staff check-in for spring term.", author: "Priya Singh" },
+    ],
+  },
+  {
+    id: "staff-ellison",
+    name: "Mr. James Ellison",
+    initials: "JE",
+    color: "#8A7B6E",
+    role: "Substitute",
+    status: "on_leave",
+    room: "—",
+    email: "j.ellison@mudkitchen.edu",
+    phone: "(512) 555-0240",
+    hireDate: "Aug 20, 2025",
+    employmentType: "substitute",
+    emergencyContact: { name: "Kate Ellison", relationship: "Spouse", phone: "(512) 555-0241" },
+    paperwork: [
+      { id: "sp18", title: "Substitute Teacher Agreement", status: "signed", signedDate: "Aug 20, 2025" },
+      { id: "sp19", title: "W-4 Tax Withholding", status: "signed", signedDate: "Aug 20, 2025" },
+      { id: "sp20", title: "Emergency Contact Update", status: "pending" },
+    ],
+    credentials: [
+      { id: "sc18", name: "Substitute Teaching Permit", status: "valid", expiryDate: "Aug 2027", issuedDate: "Aug 2025" },
+      { id: "sc19", name: "Background Check", status: "valid", expiryDate: "Aug 2027", issuedDate: "Aug 2025" },
+      { id: "sc20", name: "CPR / First Aid", status: "expired", expiryDate: "Apr 1, 2026", issuedDate: "Apr 2024" },
+    ],
+    payroll: {
+      payType: "hourly",
+      rate: 22,
+      schedule: "Per diem (as worked)",
+      lastPayDate: "Mar 14, 2026",
+      lastNet: 176,
+      ytdGross: 2640,
+      recentPeriods: [{ period: "Mar 10 – Mar 14, 2026", net: 176 }],
+    },
+    compensationHistory: [
+      { date: "Aug 20, 2025", label: "Start date", newRate: 22, payType: "hourly", reason: "Added to substitute pool", author: "Priya Singh" },
+    ],
+    schedule: {
+      weeklyHours: [],
+      pto: { used: 0, total: 0 },
+      recentTimeEntries: [],
+    },
+    access: { portalRole: "Substitute", permissions: SUB_ACCESS_PERMISSIONS },
+    activityLog: [
+      { date: "Apr 22, 2026", type: "event", title: "Leave of absence", detail: "On leave through Jun 1, 2026 — family medical leave.", author: "Priya Singh" },
+      { date: "Mar 14, 2026", type: "event", title: "Last assignment", detail: "Covered Oak Room for Ms. Nicole Park — 1 day.", author: "Admin" },
+    ],
+  },
+];
+
+function getStaffProgramAssignments(
+  staff: DemoStaff,
+): { program: DemoProgram; teacher: ProgramTeacher }[] {
+  if (!staff.programTeacherIds?.length) return [];
+  return DEMO_PROGRAMS_P2.flatMap((program) =>
+    program.teachers
+      .filter((t) => staff.programTeacherIds!.includes(t.id))
+      .map((teacher) => ({ program, teacher })),
+  );
+}
+
+function getStaffComplianceSummary(staff: DemoStaff): {
+  expiringCredentials: number;
+  overduePaperwork: number;
+} {
+  const expiringCredentials = staff.credentials.filter(
+    (c) => c.status === "expiring" || c.status === "expired",
+  ).length;
+  const overduePaperwork = staff.paperwork.filter((p) => p.status === "overdue").length;
+  return { expiringCredentials, overduePaperwork };
+}
+
+function formatStaffPayRate(staff: DemoStaff): string {
+  if (staff.payroll.payType === "salary") {
+    return `${formatUsd(staff.payroll.rate)} / yr`;
+  }
+  return `${formatUsd(staff.payroll.rate)} / hr`;
+}
+
 function getProgramEnrolledCount(prog: DemoProgram): number {
   return prog.teachers.reduce((sum, t) => sum + t.studentIds.length, 0);
 }
@@ -2294,6 +2799,400 @@ function formatProgramPrice(prog: DemoProgram): string {
   if (billingModel === "monthly") return `$${baseAmount.toLocaleString()}/mo`;
   if (billingModel === "weekly") return `$${baseAmount}/wk`;
   return `$${baseAmount}/day`;
+}
+
+// ─── Classrooms (My School → Classrooms tab) ───────────────────────────────────
+
+type ClassroomStatus = "open" | "full" | "inactive";
+type ClassroomTabId = "overview" | "health_safety" | "staff" | "schedule" | "roster";
+type ClassroomStaffRole = "Lead Teacher" | "Teaching Assistant" | "Aide" | "Substitute";
+type ClassroomSupplyStatus = "in_date" | "expiring" | "missing";
+
+type DemoClassroom = {
+  id: string;
+  name: string;
+  shortName: string;
+  ageRange: string;
+  gradeRange: string;
+  location: { building: string; roomNumber: string };
+  roomType: "homeroom" | "studio" | "shared";
+  status: ClassroomStatus;
+  capacity: number;
+  waitlistCount: number;
+  licensingMaxRatio: number;
+  programIds: string[];
+  staffAssignments: {
+    staffId?: string;
+    name: string;
+    role: ClassroomStaffRole;
+    initials: string;
+    color: string;
+  }[];
+  schedule: {
+    daysOfWeek: string;
+    dailyHours: { dropOff: string; core: string; pickUp: string; afterCare?: string };
+    sessionNotes?: string;
+  };
+  amenities: string[];
+  description: string;
+  attendanceToday: { present: number; absent: number };
+  emergencySupplies: {
+    id: string;
+    item: string;
+    location: string;
+    status: ClassroomSupplyStatus;
+    lastChecked: string;
+    notes?: string;
+  }[];
+  nurseContact?: string;
+};
+
+const CLASSROOM_STATUS_STYLES: Record<
+  ClassroomStatus,
+  { label: string; bg: string; text: string }
+> = {
+  open: { label: "Available", bg: C.successBg, text: C.success },
+  full: { label: "Full", bg: C.warningBg, text: C.warning },
+  inactive: { label: "Inactive", bg: C.elevated, text: C.textTertiary },
+};
+
+const ROOM_TYPE_LABELS: Record<DemoClassroom["roomType"], string> = {
+  homeroom: "Homeroom",
+  studio: "Studio",
+  shared: "Shared space",
+};
+
+const CLASSROOM_TABS: { id: ClassroomTabId; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "health_safety", label: "Health & Safety" },
+  { id: "staff", label: "Staff" },
+  { id: "schedule", label: "Schedule" },
+  { id: "roster", label: "Roster" },
+];
+
+const SUPPLY_STATUS_STYLES: Record<
+  ClassroomSupplyStatus,
+  { label: string; bg: string; text: string }
+> = {
+  in_date: { label: "In date", bg: C.successBg, text: C.success },
+  expiring: { label: "Expiring", bg: C.warningBg, text: C.warning },
+  missing: { label: "Missing", bg: C.errorBg, text: C.error },
+};
+
+const DEMO_CLASSROOMS: DemoClassroom[] = [
+  {
+    id: "room-sunflower",
+    name: "Room 1 – Sunflower Class",
+    shortName: "Sunflower",
+    ageRange: "Ages 6–7",
+    gradeRange: "1st",
+    location: { building: "Main Campus", roomNumber: "Room 1" },
+    roomType: "homeroom",
+    status: "open",
+    capacity: 12,
+    waitlistCount: 1,
+    licensingMaxRatio: 12,
+    programIds: ["summer_26", "school_year_26_27"],
+    staffAssignments: [
+      { name: "Ms. Kim", role: "Lead Teacher", initials: "MK", color: "#5E7C68" },
+      { staffId: "staff-park", name: "Mr. David Park", role: "Teaching Assistant", initials: "DP", color: "#6B8CAE" },
+    ],
+    schedule: {
+      daysOfWeek: "Mon – Fri",
+      dailyHours: {
+        dropOff: "8:00 – 8:30 AM",
+        core: "8:30 AM – 3:00 PM",
+        pickUp: "3:00 – 3:30 PM",
+        afterCare: "3:30 – 5:30 PM",
+      },
+      sessionNotes: "Primary homeroom for early elementary — natural light, reading nook, and garden window.",
+    },
+    amenities: ["Garden window", "Reading nook", "Sensory kit", "Outdoor deck access"],
+    description: "Bright first-grade homeroom with direct access to the garden deck. Used for Summer and School Year programs.",
+    attendanceToday: { present: 1, absent: 0 },
+    nurseContact: "Nurse office — Room 101",
+    emergencySupplies: [
+      { id: "es-sf-1", item: "Sensory kit", location: "Quiet corner shelf", status: "in_date", lastChecked: "May 10, 2026", notes: "Noise-canceling headphones, fidget tools" },
+      { id: "es-sf-2", item: "First aid kit", location: "Cabinet above sink", status: "in_date", lastChecked: "May 10, 2026" },
+      { id: "es-sf-3", item: "Albuterol inhaler", location: "Emergency med bin", status: "in_date", lastChecked: "May 6, 2026", notes: "Ava Chen — rescue inhaler" },
+    ],
+  },
+  {
+    id: "room-meadow",
+    name: "Room 2 – Meadow Class",
+    shortName: "Meadow",
+    ageRange: "Ages 7–8",
+    gradeRange: "2nd",
+    location: { building: "Main Campus", roomNumber: "Room 2" },
+    roomType: "homeroom",
+    status: "open",
+    capacity: 12,
+    waitlistCount: 2,
+    licensingMaxRatio: 12,
+    programIds: ["summer_26", "school_year_26_27"],
+    staffAssignments: [
+      { staffId: "staff-reyes", name: "Ms. Taylor Reyes", role: "Lead Teacher", initials: "TR", color: "#5E7C68" },
+    ],
+    schedule: {
+      daysOfWeek: "Mon – Fri",
+      dailyHours: {
+        dropOff: "8:00 – 8:30 AM",
+        core: "8:30 AM – 3:00 PM",
+        pickUp: "3:00 – 3:30 PM",
+        afterCare: "3:30 – 5:30 PM",
+      },
+      sessionNotes: "Nature-themed classroom with meadow mural and project tables for hands-on science.",
+    },
+    amenities: ["Project tables", "Classroom emergency kit", "Nature mural", "Quiet corner"],
+    description: "Second-grade homeroom led by Ms. Taylor Reyes. Strong focus on outdoor learning and collaborative projects.",
+    attendanceToday: { present: 2, absent: 0 },
+    nurseContact: "Nurse office — Room 101",
+    emergencySupplies: [
+      { id: "es-md-1", item: "Classroom emergency kit", location: "Wall hook by door", status: "in_date", lastChecked: "May 12, 2026" },
+      { id: "es-md-2", item: "EpiPen Jr.", location: "Emergency kit — front pocket", status: "expiring", lastChecked: "May 9, 2026", notes: "Lily Nakamura — expires Nov 2026" },
+      { id: "es-md-3", item: "First aid kit", location: "Teacher desk drawer", status: "in_date", lastChecked: "May 12, 2026" },
+    ],
+  },
+  {
+    id: "room-seedling",
+    name: "Room K – Seedling Class",
+    shortName: "Seedling",
+    ageRange: "Ages 4–6",
+    gradeRange: "K",
+    location: { building: "Main Campus", roomNumber: "Room K" },
+    roomType: "homeroom",
+    status: "open",
+    capacity: 10,
+    waitlistCount: 3,
+    licensingMaxRatio: 10,
+    programIds: ["summer_26"],
+    staffAssignments: [
+      { name: "Ms. Johnson", role: "Lead Teacher", initials: "MJ", color: "#C4896E" },
+    ],
+    schedule: {
+      daysOfWeek: "Mon – Thu",
+      dailyHours: {
+        dropOff: "8:15 – 8:45 AM",
+        core: "8:45 AM – 2:45 PM",
+        pickUp: "2:45 – 3:15 PM",
+      },
+      sessionNotes: "Kindergarten space with play-based centers, visual schedules, and calm-down corner.",
+    },
+    amenities: ["Play centers", "Visual schedule wall", "Calm-down corner", "Low sinks"],
+    description: "Kindergarten homeroom designed for social-emotional development and play-based learning.",
+    attendanceToday: { present: 1, absent: 1 },
+    nurseContact: "Nurse office — Room 101",
+    emergencySupplies: [
+      { id: "es-se-1", item: "First aid kit", location: "Entry cubby station", status: "in_date", lastChecked: "May 8, 2026" },
+      { id: "es-se-2", item: "Calm-down kit", location: "Calm-down corner", status: "in_date", lastChecked: "May 8, 2026", notes: "Emotion chart, visual schedule cards" },
+    ],
+  },
+  {
+    id: "room-willow",
+    name: "Room 3 – Willow Class",
+    shortName: "Willow",
+    ageRange: "Ages 8–9",
+    gradeRange: "3rd",
+    location: { building: "Main Campus", roomNumber: "Room 3" },
+    roomType: "homeroom",
+    status: "open",
+    capacity: 14,
+    waitlistCount: 1,
+    licensingMaxRatio: 12,
+    programIds: ["school_year_26_27", "summer_26"],
+    staffAssignments: [
+      { name: "Ms. Hughes", role: "Lead Teacher", initials: "MH", color: "#8B6BAE" },
+      { name: "Ms. Reyes (Aide)", role: "Aide", initials: "TR", color: "#5E7C68" },
+    ],
+    schedule: {
+      daysOfWeek: "Mon – Fri",
+      dailyHours: {
+        dropOff: "8:00 – 8:30 AM",
+        core: "8:30 AM – 3:00 PM",
+        pickUp: "3:00 – 3:30 PM",
+        afterCare: "3:30 – 5:30 PM",
+      },
+      sessionNotes: "Third-grade homeroom with front-row low-distraction seating and large-print station.",
+    },
+    amenities: ["Large-print station", "Front-row seating", "Library corner", "STEM shelf"],
+    description: "Third-grade homeroom with differentiated seating and enrichment resources for mixed-ability learners.",
+    attendanceToday: { present: 3, absent: 0 },
+    nurseContact: "Nurse office — Room 101",
+    emergencySupplies: [
+      { id: "es-wi-1", item: "Large-print materials station", location: "Front row — window side", status: "in_date", lastChecked: "May 14, 2026", notes: "Priya Mehta — preferred seating area" },
+      { id: "es-wi-2", item: "Aide support binder", location: "Teacher podium", status: "in_date", lastChecked: "May 7, 2026", notes: "Reading aide protocols & assistive tech log" },
+      { id: "es-wi-3", item: "First aid kit", location: "Supply closet", status: "in_date", lastChecked: "May 14, 2026" },
+    ],
+  },
+  {
+    id: "room-oak",
+    name: "Room 4 – Oak Class",
+    shortName: "Oak",
+    ageRange: "Ages 9–10",
+    gradeRange: "4th",
+    location: { building: "Main Campus", roomNumber: "Room 4" },
+    roomType: "homeroom",
+    status: "open",
+    capacity: 14,
+    waitlistCount: 0,
+    licensingMaxRatio: 12,
+    programIds: ["school_year_26_27", "summer_26"],
+    staffAssignments: [
+      { name: "Mr. Davis", role: "Lead Teacher", initials: "MD", color: "#6B8CAE" },
+      { staffId: "staff-npark", name: "Ms. Nicole Park", role: "Teaching Assistant", initials: "NP", color: "#8B6BAE" },
+    ],
+    schedule: {
+      daysOfWeek: "Mon – Fri",
+      dailyHours: {
+        dropOff: "8:00 – 8:30 AM",
+        core: "8:30 AM – 3:00 PM",
+        pickUp: "3:00 – 3:30 PM",
+        afterCare: "3:30 – 5:30 PM",
+      },
+      sessionNotes: "Upper-elementary room with standing desks and science lab corner.",
+    },
+    amenities: ["Standing desks", "Science lab corner", "Whiteboard wall", "Outdoor access"],
+    description: "Fourth-grade homeroom emphasizing project-based science and flexible seating options.",
+    attendanceToday: { present: 2, absent: 0 },
+    nurseContact: "Nurse office — Room 101",
+    emergencySupplies: [
+      { id: "es-ok-1", item: "First aid kit", location: "Science lab corner", status: "in_date", lastChecked: "May 11, 2026" },
+      { id: "es-ok-2", item: "Allergy action plan binder", location: "Teacher desk", status: "in_date", lastChecked: "May 9, 2026", notes: "Liam Torres — tree nut allergy" },
+    ],
+  },
+  {
+    id: "room-horizon",
+    name: "Room 5 – Horizon Class",
+    shortName: "Horizon",
+    ageRange: "Ages 10–11",
+    gradeRange: "5th",
+    location: { building: "Main Campus", roomNumber: "Room 5" },
+    roomType: "homeroom",
+    status: "open",
+    capacity: 12,
+    waitlistCount: 2,
+    licensingMaxRatio: 12,
+    programIds: ["school_year_26_27"],
+    staffAssignments: [
+      { name: "Ms. Carter", role: "Lead Teacher", initials: "MC", color: "#7C3AED" },
+    ],
+    schedule: {
+      daysOfWeek: "Mon – Fri",
+      dailyHours: {
+        dropOff: "8:00 – 8:30 AM",
+        core: "8:30 AM – 3:00 PM",
+        pickUp: "3:00 – 3:30 PM",
+        afterCare: "3:30 – 5:30 PM",
+      },
+      sessionNotes: "Fifth-grade homeroom with robotics station and movement break zone.",
+    },
+    amenities: ["Robotics station", "Movement break zone", "Task checklists", "Fidget tools"],
+    description: "Fifth-grade homeroom built for hands-on STEM and ADHD-friendly routines.",
+    attendanceToday: { present: 1, absent: 0 },
+    nurseContact: "Nurse office — Room 101",
+    emergencySupplies: [
+      { id: "es-hz-1", item: "Fidget tools bin", location: "Movement break zone", status: "in_date", lastChecked: "May 13, 2026" },
+      { id: "es-hz-2", item: "Medication log clipboard", location: "Teacher desk", status: "in_date", lastChecked: "May 15, 2026", notes: "Marcus Webb — daily medication at 8 AM" },
+      { id: "es-hz-3", item: "First aid kit", location: "Robotics station cabinet", status: "in_date", lastChecked: "May 13, 2026" },
+    ],
+  },
+  {
+    id: "room-summit",
+    name: "Room 6 – Summit Class",
+    shortName: "Summit",
+    ageRange: "Ages 11–12",
+    gradeRange: "6th",
+    location: { building: "Main Campus", roomNumber: "Room 6" },
+    roomType: "homeroom",
+    status: "open",
+    capacity: 10,
+    waitlistCount: 0,
+    licensingMaxRatio: 12,
+    programIds: ["school_year_26_27"],
+    staffAssignments: [
+      { name: "Mr. Reynolds", role: "Lead Teacher", initials: "MR", color: "#8A7B6E" },
+    ],
+    schedule: {
+      daysOfWeek: "Mon – Fri",
+      dailyHours: {
+        dropOff: "8:00 – 8:30 AM",
+        core: "8:30 AM – 3:00 PM",
+        pickUp: "3:00 – 3:30 PM",
+      },
+      sessionNotes: "Middle-elementary capstone room — debate corner and independent study desks.",
+    },
+    amenities: ["Debate corner", "Independent study desks", "Glucagon kit storage", "Chess set"],
+    description: "Sixth-grade homeroom for leadership development, debate, and advanced independent work.",
+    attendanceToday: { present: 1, absent: 0 },
+    nurseContact: "Nurse office — Room 101 · glucagon backup on file",
+    emergencySupplies: [
+      { id: "es-sm-1", item: "Glucagon emergency kit", location: "Locked cabinet — north wall", status: "in_date", lastChecked: "Apr 15, 2026", notes: "Isabelle Clarke — expires Dec 2026" },
+      { id: "es-sm-2", item: "Glucagon backup kit", location: "Nurse office — Room 101", status: "in_date", lastChecked: "Apr 15, 2026", notes: "Duplicate kit per diabetes action plan" },
+      { id: "es-sm-3", item: "First aid kit", location: "Debate corner shelf", status: "in_date", lastChecked: "May 10, 2026" },
+    ],
+  },
+];
+
+function getClassroomStudents(classroom: DemoClassroom): DemoStudent[] {
+  return DEMO_STUDENTS_P2.filter((s) => s.classroom === classroom.name);
+}
+
+function getClassroomEnrolledCount(classroom: DemoClassroom): number {
+  return getClassroomStudents(classroom).length;
+}
+
+function getClassroomStaffCount(classroom: DemoClassroom): number {
+  return classroom.staffAssignments.length;
+}
+
+function getClassroomRatio(classroom: DemoClassroom): string {
+  const staff = getClassroomStaffCount(classroom);
+  if (staff === 0) return "—";
+  const enrolled = getClassroomEnrolledCount(classroom);
+  return `${(enrolled / staff).toFixed(1)}:1`;
+}
+
+function getClassroomHealthAlertCount(classroom: DemoClassroom): number {
+  return getClassroomStudents(classroom).filter(
+    (s) => s.hasAllergies || s.hasMedical || s.hasEmergencyMeds || s.needsAide,
+  ).length;
+}
+
+function getClassroomStudentsWithHealthFlags(classroom: DemoClassroom): DemoStudent[] {
+  return getClassroomStudents(classroom).filter(
+    (s) => s.hasAllergies || s.hasMedical || s.hasEmergencyMeds || s.needsAide,
+  );
+}
+
+function getClassroomHealthStats(classroom: DemoClassroom) {
+  const students = getClassroomStudents(classroom);
+  return {
+    flagged: getClassroomHealthAlertCount(classroom),
+    enrolled: students.length,
+    allergies: students.filter((s) => s.hasAllergies).length,
+    medical: students.filter((s) => s.hasMedical).length,
+    emergencyMeds: students.filter((s) => s.hasEmergencyMeds).length,
+    aides: students.filter((s) => s.needsAide).length,
+  };
+}
+
+function getSupplyStatusStyle(status: ClassroomSupplyStatus) {
+  return SUPPLY_STATUS_STYLES[status];
+}
+
+function getStudentHealthSnippet(student: DemoStudent): string {
+  if (student.hasAllergies && student.allergies) return student.allergies;
+  if (student.hasEmergencyMeds && student.emergencyMeds) return student.emergencyMeds;
+  if (student.hasMedical && student.medicalConditions) return student.medicalConditions;
+  if (student.needsAide && student.aideDetails) return student.aideDetails;
+  return "";
+}
+
+function getClassroomSidebarMeta(classroom: DemoClassroom) {
+  return {
+    badge: { bg: C.accentLight, text: C.accent },
+    initials: classroom.shortName.slice(0, 2).toUpperCase(),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -5586,14 +6485,14 @@ function EnrollmentFlowsTab() {
   } as React.CSSProperties;
 
   return (
-    <div className="flex h-full" style={{ overflow: "hidden" }}>
+    <div className="flex h-full" style={{ overflow: "hidden", backgroundColor: C.bg }}>
       {/* Left panel — flow list */}
       <div
         className="flex flex-col flex-shrink-0 overflow-hidden"
         style={{
           width: 220,
           borderRight: `1px solid ${C.border}`,
-          backgroundColor: C.surface,
+          backgroundColor: C.bg,
         }}
       >
         <div
@@ -5625,6 +6524,12 @@ function EnrollmentFlowsTab() {
                   borderBottom: `1px solid ${C.border}`,
                   borderLeft: isActive ? `2px solid ${C.accent}` : "2px solid transparent",
                 }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.backgroundColor = C.elevated;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = isActive ? C.accentLight : "transparent";
+                }}
               >
                 <p className="text-xs font-medium truncate" style={{ color: isActive ? C.accent : C.textPrimary }}>
                   {flow.name}
@@ -5640,7 +6545,10 @@ function EnrollmentFlowsTab() {
 
       {/* Right panel — flow editor */}
       {selectedFlow ? (
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div
+          className="flex-1 flex flex-col overflow-hidden"
+          style={{ backgroundColor: C.surface }}
+        >
           {/* Scrollable editor body */}
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
@@ -6104,7 +7012,10 @@ function EnrollmentFlowsTab() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center" style={{ color: C.textTertiary }}>
+        <div
+          className="flex-1 flex items-center justify-center"
+          style={{ backgroundColor: C.surface, color: C.textTertiary }}
+        >
           <p className="text-sm">Select a flow to edit</p>
         </div>
       )}
@@ -14683,164 +15594,1479 @@ function ComingSoonPage({ name }: { name: string }) {
 
 // ─── My School sub-pages ──────────────────────────────────────────────────────
 
-function StaffPage() {
-  const members = [
-    { name: "Ms. Andrea Reyes", role: "Lead Teacher", room: "Sunflower Room", status: "Active" },
-    { name: "Mr. David Park", role: "Teaching Assistant", room: "Sunflower Room", status: "Active" },
-    { name: "Ms. Carla Nguyen", role: "Lead Teacher", room: "Oak Room", status: "Active" },
-    { name: "Mr. Sam Okafor", role: "Teaching Assistant", room: "Oak Room", status: "Active" },
-    { name: "Ms. Priya Singh", role: "Administrator", room: "Front Office", status: "Active" },
-    { name: "Mr. James Ellison", role: "Substitute", room: "—", status: "On Leave" },
-  ];
+const STAFF_PROFILE_TABS: { key: StaffProfileTab; label: string }[] = [
+  { key: "profile", label: "Profile" },
+  { key: "paperwork", label: "Paperwork" },
+  { key: "credentials", label: "Credentials" },
+  { key: "payroll", label: "Payroll" },
+  { key: "compensation", label: "Compensation" },
+  { key: "schedule", label: "Schedule" },
+  { key: "classes", label: "Classes" },
+  { key: "access", label: "Access" },
+  { key: "activity", label: "Activity" },
+];
+
+function StaffPaperworkCard({
+  form,
+}: {
+  form: DemoStaff["paperwork"][number];
+}) {
+  const statusColor =
+    form.status === "signed" ? C.success : form.status === "overdue" ? C.error : C.warning;
+  const statusLabel =
+    form.status === "signed"
+      ? form.signedDate
+        ? `Signed ${form.signedDate}`
+        : "Signed"
+      : form.status === "overdue"
+        ? "Overdue"
+        : "Pending";
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-6 pt-5 pb-3 flex-shrink-0">
-        <PageHeader
-          icon="👩‍🏫"
-          title="Staff"
-          subtitle={`${members.length} team members`}
-          tip="See who teaches in each room. Add staff here and assign them to programs from the Programs tab."
-          action={
-            <DemoButton>
-              <Plus className="w-4 h-4" />
-              Add Staff
-            </DemoButton>
-          }
-          className="mb-0"
-        />
+    <div
+      className="flex flex-col rounded-sm p-3 min-h-[120px]"
+      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <p className="text-xs font-semibold leading-snug" style={{ color: C.textPrimary }}>
+          {form.title}
+        </p>
+        {form.status === "signed" ? (
+          <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.success }} />
+        ) : (
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: statusColor }} />
+        )}
       </div>
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
-        <div className="overflow-hidden" style={{ border: `1px solid ${C.border}`, borderRadius: C.r.lg }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ backgroundColor: C.elevated, borderBottom: `1px solid ${C.border}` }}>
-                {["Name", "Role", "Room", "Status"].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: C.textTertiary }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m, i) => (
-                <tr
-                  key={i}
+      <p className="text-[10px] mt-auto font-medium" style={{ color: statusColor }}>
+        {statusLabel}
+      </p>
+    </div>
+  );
+}
+
+function StaffProfilePanel({ staff }: { staff: DemoStaff }) {
+  const [tab, setTab] = useState<StaffProfileTab>("profile");
+  const statusStyle = STAFF_STATUS_STYLES[staff.status];
+  const compliance = getStaffComplianceSummary(staff);
+  const assignments = getStaffProgramAssignments(staff);
+  const paperworkSigned = staff.paperwork.filter((p) => p.status === "signed").length;
+  const paperworkPending = staff.paperwork.filter((p) => p.status !== "signed");
+
+  const employmentLabel =
+    staff.employmentType === "full_time"
+      ? "Full-time"
+      : staff.employmentType === "part_time"
+        ? "Part-time"
+        : "Substitute";
+
+  return (
+    <motion.div
+      key={staff.id}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="flex flex-col h-full overflow-hidden"
+      style={{ backgroundColor: C.surface }}
+    >
+      <div
+        className="flex items-start gap-3 px-5 py-4 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+          style={{ backgroundColor: staff.color + "22", color: staff.color }}
+        >
+          {staff.initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+            {staff.name}
+          </h3>
+          <p className="text-[11px]" style={{ color: C.textTertiary }}>
+            {staff.role} · {staff.room} ·{" "}
+            <span style={{ color: statusStyle.text }}>{statusStyle.label}</span>
+          </p>
+          {(compliance.expiringCredentials > 0 || compliance.overduePaperwork > 0) && (
+            <div className="flex items-center gap-1 flex-wrap mt-1.5">
+              {compliance.expiringCredentials > 0 && (
+                <span
+                  className="px-1.5 py-0.5 rounded text-[9px] font-semibold"
+                  style={{ backgroundColor: C.warningBg, color: C.warning }}
+                >
+                  {compliance.expiringCredentials} credential
+                  {compliance.expiringCredentials !== 1 ? "s" : ""} need attention
+                </span>
+              )}
+              {compliance.overduePaperwork > 0 && (
+                <span
+                  className="px-1.5 py-0.5 rounded text-[9px] font-semibold"
+                  style={{ backgroundColor: C.errorBg, color: C.error }}
+                >
+                  {compliance.overduePaperwork} overdue form
+                  {compliance.overduePaperwork !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div
+        className="flex items-center px-4 pt-2.5 pb-0 flex-shrink-0 overflow-x-auto"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        {STAFF_PROFILE_TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className="flex-shrink-0 px-2.5 pb-2.5 text-[11px] font-medium relative whitespace-nowrap"
+            style={{ color: tab === t.key ? C.accent : C.textTertiary }}
+          >
+            {t.label}
+            {tab === t.key && (
+              <span
+                className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                style={{ backgroundColor: C.accent }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {tab === "profile" && (
+          <div className="p-5 space-y-5">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Contact
+              </p>
+              <DetailField label="Email" value={staff.email} />
+              <DetailField label="Phone" value={staff.phone} />
+              <DetailField
+                label="Emergency Contact"
+                value={`${staff.emergencyContact.name} (${staff.emergencyContact.relationship}) · ${staff.emergencyContact.phone}`}
+              />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Employment
+              </p>
+              <DetailField label="Role" value={staff.role} />
+              <DetailField label="Primary Room" value={staff.room} />
+              <DetailField label="Employment Type" value={employmentLabel} />
+              <DetailField label="Hire Date" value={staff.hireDate} />
+              <DetailField label="Pay Rate" value={formatStaffPayRate(staff)} />
+            </div>
+          </div>
+        )}
+
+        {tab === "paperwork" && (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
+                {paperworkSigned} / {staff.paperwork.length} complete
+              </p>
+              <div className="flex items-center gap-2">
+                {paperworkPending.length > 0 && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-semibold"
+                    style={{
+                      backgroundColor: C.accentLight,
+                      color: C.accent,
+                      border: `1px solid ${C.accentDark + "44"}`,
+                    }}
+                  >
+                    <Send className="w-3 h-3" />
+                    Send Pending
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-semibold"
+                  style={{ color: C.textSecondary, border: `1px solid ${C.border}` }}
+                >
+                  <Plus className="w-3 h-3" />
+                  New Form
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {staff.paperwork.map((form) => (
+                <StaffPaperworkCard key={form.id} form={form} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "credentials" && (
+          <div className="p-5 space-y-3">
+            {[...staff.credentials]
+              .sort((a, b) => {
+                const order: Record<StaffCredentialStatus, number> = {
+                  expired: 0,
+                  expiring: 1,
+                  missing: 2,
+                  valid: 3,
+                };
+                return order[a.status] - order[b.status];
+              })
+              .map((cred, i) => {
+                const style = CREDENTIAL_STATUS_STYLES[cred.status];
+                return (
+                  <div
+                    key={cred.id}
+                    className="flex items-start justify-between gap-4 py-3"
+                    style={{
+                      borderBottom:
+                        i < staff.credentials.length - 1 ? `1px solid ${C.border}` : "none",
+                    }}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+                        {cred.name}
+                      </p>
+                      <p className="text-[10px] mt-0.5" style={{ color: C.textTertiary }}>
+                        {cred.issuedDate ? `Issued ${cred.issuedDate}` : "Not on file"}
+                        {cred.expiryDate ? ` · Expires ${cred.expiryDate}` : ""}
+                      </p>
+                    </div>
+                    <span
+                      className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
+                      style={{ backgroundColor: style.bg, color: style.text }}
+                    >
+                      {style.label}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+
+        {tab === "payroll" && (
+          <div className="p-5 space-y-5">
+            <div className="flex flex-wrap gap-4">
+              {[
+                { label: "Pay Rate", value: formatStaffPayRate(staff) },
+                { label: "Last Pay", value: formatUsd(staff.payroll.lastNet) },
+                { label: "YTD Gross", value: formatUsd(staff.payroll.ytdGross) },
+              ].map((stat, i) => (
+                <div
+                  key={stat.label}
+                  className="flex-1 min-w-[5.5rem]"
                   style={{
-                    borderBottom: i < members.length - 1 ? `1px solid ${C.border}` : "none",
-                    backgroundColor: C.surface,
+                    borderLeft: i > 0 ? `1px solid ${C.border}` : undefined,
+                    paddingLeft: i > 0 ? "1rem" : undefined,
                   }}
                 >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                        style={{ backgroundColor: C.accentLight, color: C.accent }}
-                      >
-                        {m.name.charAt(4)}
-                      </div>
-                      <span className="font-medium" style={{ color: C.textPrimary }}>{m.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-xs" style={{ color: C.textSecondary }}>{m.role}</td>
-                  <td className="px-4 py-3 text-xs" style={{ color: C.textSecondary }}>{m.room}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
-                      style={
-                        m.status === "Active"
-                          ? { backgroundColor: C.successBg, color: C.success }
-                          : { backgroundColor: C.warningBg, color: C.warning }
-                      }
-                    >
-                      {m.status}
-                    </span>
-                  </td>
-                </tr>
+                  <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: C.textTertiary }}>
+                    {stat.label}
+                  </p>
+                  <p className="text-lg font-semibold mt-0.5 tabular-nums" style={{ color: C.textPrimary }}>
+                    {stat.value}
+                  </p>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+            <div>
+              <DetailField label="Pay Type" value={staff.payroll.payType === "salary" ? "Salary" : "Hourly"} />
+              <DetailField label="Schedule" value={staff.payroll.schedule} />
+              <DetailField label="Last Pay Date" value={staff.payroll.lastPayDate} />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Recent Pay Periods
+              </p>
+              {staff.payroll.recentPeriods.map((period, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between py-2.5 text-xs"
+                  style={{
+                    borderBottom:
+                      i < staff.payroll.recentPeriods.length - 1 ? `1px solid ${C.border}` : "none",
+                  }}
+                >
+                  <span style={{ color: C.textSecondary }}>{period.period}</span>
+                  <span className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+                    {formatUsd(period.net)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="text-[11px] font-medium flex items-center gap-1"
+              style={{ color: C.accent }}
+            >
+              View in Budget
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+
+        {tab === "compensation" && (
+          <div className="p-5">
+            <div className="space-y-0">
+              {staff.compensationHistory.map((entry, i) => (
+                <div
+                  key={i}
+                  className="py-3"
+                  style={{
+                    borderBottom:
+                      i < staff.compensationHistory.length - 1 ? `1px solid ${C.border}` : "none",
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+                        {entry.label}
+                      </p>
+                      <p className="text-[10px] mt-0.5" style={{ color: C.textTertiary }}>
+                        {entry.date}
+                        {entry.author ? ` · ${entry.author}` : ""}
+                      </p>
+                    </div>
+                    <p className="text-xs font-semibold tabular-nums flex-shrink-0" style={{ color: C.accent }}>
+                      {entry.previousRate != null
+                        ? `${entry.payType === "salary" ? formatUsd(entry.previousRate) + "/yr" : formatUsd(entry.previousRate) + "/hr"} → `
+                        : ""}
+                      {entry.payType === "salary"
+                        ? `${formatUsd(entry.newRate)}/yr`
+                        : `${formatUsd(entry.newRate)}/hr`}
+                    </p>
+                  </div>
+                  <p className="text-[11px] mt-2 leading-relaxed" style={{ color: C.textSecondary }}>
+                    {entry.reason}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "schedule" && (
+          <div className="p-5 space-y-5">
+            {staff.status === "on_leave" ? (
+              <div
+                className="text-center py-8 px-4 rounded-sm"
+                style={{ backgroundColor: C.warningBg, border: `1px solid ${C.warningBorder}` }}
+              >
+                <Clock className="w-8 h-8 mx-auto mb-2" style={{ color: C.warning }} />
+                <p className="text-xs font-medium" style={{ color: C.textPrimary }}>
+                  On leave
+                </p>
+                <p className="text-[11px] mt-1" style={{ color: C.textSecondary }}>
+                  Schedule and time entries paused until return date.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                    Typical Week
+                  </p>
+                  {staff.schedule.weeklyHours.length === 0 ? (
+                    <p className="text-xs" style={{ color: C.textTertiary }}>
+                      No fixed weekly schedule on file.
+                    </p>
+                  ) : (
+                    staff.schedule.weeklyHours.map((row, i) => (
+                      <div
+                        key={row.day}
+                        className="flex items-center justify-between py-2 text-xs"
+                        style={{
+                          borderBottom:
+                            i < staff.schedule.weeklyHours.length - 1 ? `1px solid ${C.border}` : "none",
+                        }}
+                      >
+                        <span className="font-medium w-8" style={{ color: C.textPrimary }}>
+                          {row.day}
+                        </span>
+                        <span style={{ color: C.textSecondary }}>
+                          {row.start} – {row.end}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+                    PTO Balance
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: C.border }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${staff.schedule.pto.total ? (staff.schedule.pto.used / staff.schedule.pto.total) * 100 : 0}%`,
+                          backgroundColor: C.accent,
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs tabular-nums font-medium" style={{ color: C.textPrimary }}>
+                      {staff.schedule.pto.used} / {staff.schedule.pto.total} days used
+                    </span>
+                  </div>
+                </div>
+                {staff.schedule.recentTimeEntries.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                      Recent Time Entries
+                    </p>
+                    {staff.schedule.recentTimeEntries.map((entry, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-2.5 text-xs"
+                        style={{
+                          borderBottom:
+                            i < staff.schedule.recentTimeEntries.length - 1
+                              ? `1px solid ${C.border}`
+                              : "none",
+                        }}
+                      >
+                        <div>
+                          <p className="font-medium" style={{ color: C.textPrimary }}>
+                            {entry.date}
+                          </p>
+                          <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                            {entry.in} – {entry.out}
+                          </p>
+                        </div>
+                        <span className="font-semibold tabular-nums" style={{ color: C.textSecondary }}>
+                          {entry.hours}h
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === "classes" && (
+          <div className="p-5">
+            {assignments.length === 0 ? (
+              <div className="text-center py-10">
+                <GraduationCap className="w-8 h-8 mx-auto mb-2" style={{ color: C.textTertiary }} />
+                <p className="text-xs font-medium" style={{ color: C.textPrimary }}>
+                  No program assignments
+                </p>
+                <p className="text-[11px] mt-1 max-w-[220px] mx-auto" style={{ color: C.textTertiary }}>
+                  {staff.role === "Administrator"
+                    ? "Administrators are not assigned to classroom rosters."
+                    : "Assign this staff member to a program from the Programs tab."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {assignments.map(({ program, teacher }) => {
+                  const pct = teacher.capacity
+                    ? Math.round((teacher.studentIds.length / teacher.capacity) * 100)
+                    : 0;
+                  const isFull = teacher.capacity
+                    ? teacher.studentIds.length >= teacher.capacity
+                    : false;
+                  return (
+                    <div
+                      key={`${program.id}-${teacher.id}`}
+                      className="py-3"
+                      style={{ borderBottom: `1px solid ${C.border}` }}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div>
+                          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                            {program.name}
+                          </p>
+                          <p className="text-[11px] mt-0.5" style={{ color: C.textTertiary }}>
+                            {teacher.classroom}
+                          </p>
+                        </div>
+                        <span
+                          className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: C.accentLight, color: C.accent }}
+                        >
+                          {PROGRAM_TYPE_LABELS[program.type]}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-xs tabular-nums font-medium" style={{ color: C.textPrimary }}>
+                          {teacher.studentIds.length}
+                          {teacher.capacity ? ` / ${teacher.capacity}` : ""} students
+                        </span>
+                        {teacher.capacity ? (
+                          <div className="w-24 flex-shrink-0">
+                            <div
+                              className="h-1 rounded-full overflow-hidden"
+                              style={{ backgroundColor: C.elevated }}
+                            >
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${Math.min(pct, 100)}%`,
+                                  backgroundColor: isFull ? C.warning : C.accent,
+                                }}
+                              />
+                            </div>
+                            <p className="text-[10px] mt-1 text-right" style={{ color: C.textTertiary }}>
+                              {pct}% capacity
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        className="mt-2 text-[10px] font-medium flex items-center gap-1"
+                        style={{ color: C.accent }}
+                      >
+                        View program
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "access" && (
+          <div className="p-5 space-y-5">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Portal Role
+              </p>
+              <span
+                className="inline-flex px-2.5 py-1 text-xs font-semibold rounded-full"
+                style={{ backgroundColor: C.purpleBg, color: C.purple }}
+              >
+                {staff.access.portalRole}
+              </span>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+                Permissions
+              </p>
+              {staff.access.permissions.map((perm, i) => (
+                <div
+                  key={perm.key}
+                  className="flex items-center justify-between py-2.5 text-xs"
+                  style={{
+                    borderBottom:
+                      i < staff.access.permissions.length - 1 ? `1px solid ${C.border}` : "none",
+                  }}
+                >
+                  <span style={{ color: C.textSecondary }}>{perm.label}</span>
+                  {perm.enabled ? (
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: C.success }} />
+                  ) : (
+                    <X className="w-4 h-4 flex-shrink-0" style={{ color: C.textTertiary }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "activity" && (
+          <div className="p-5">
+            <div className="space-y-0">
+              {staff.activityLog.map((entry, i) => (
+                <DemoActivityTimelineRow
+                  key={i}
+                  variant={entry.type === "note" ? "note" : entry.type === "action" ? "action" : "event"}
+                  title={entry.title}
+                  date={entry.date}
+                  detail={entry.detail}
+                  author={entry.author}
+                  showConnectorBelow={i < staff.activityLog.length - 1}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function StaffPage() {
+  const [selectedStaff, setSelectedStaff] = useState<DemoStaff>(DEMO_STAFF[0]);
+  const [search, setSearch] = useState("");
+
+  const filtered = DEMO_STAFF.filter(
+    (s) =>
+      search === "" ||
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.role.toLowerCase().includes(search.toLowerCase()) ||
+      s.room.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div className="h-full flex flex-row overflow-hidden">
+      <div
+        className="w-64 flex-shrink-0 flex flex-col overflow-hidden"
+        style={{ borderRight: `1px solid ${C.border}` }}
+      >
+        <div
+          className="px-3 py-2 flex-shrink-0 space-y-2"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <div
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
+            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          >
+            <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search staff..."
+              className="bg-transparent border-none outline-none text-sm w-full"
+              style={{ color: C.textPrimary }}
+            />
+          </div>
+          <DemoButton variant="ghost" className="w-full justify-center text-xs">
+            <Plus className="w-3.5 h-3.5" />
+            Add Staff
+          </DemoButton>
         </div>
+        <div className="flex-1 overflow-y-auto">
+            {filtered.map((member, i) => {
+              const isActive = selectedStaff.id === member.id;
+              const statusStyle = STAFF_STATUS_STYLES[member.status];
+              const compliance = getStaffComplianceSummary(member);
+              const alertCount = compliance.expiringCredentials + compliance.overduePaperwork;
+              return (
+                <motion.div
+                  key={member.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.02 }}
+                  className="cursor-pointer px-3 py-2.5"
+                  style={{
+                    borderBottom: `1px solid ${C.border}`,
+                    borderLeft: `2px solid ${isActive ? C.accent : "transparent"}`,
+                    backgroundColor: isActive ? C.accentLight : "transparent",
+                  }}
+                  onClick={() => setSelectedStaff(member)}
+                  onMouseEnter={(e) => {
+                    if (!isActive) e.currentTarget.style.backgroundColor = C.elevated;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = isActive ? C.accentLight : "transparent";
+                  }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                      style={{ backgroundColor: member.color + "22", color: member.color }}
+                    >
+                      {member.initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate" style={{ color: C.textPrimary }}>
+                        {member.name}
+                      </p>
+                      <p className="text-[10px] truncate" style={{ color: C.textTertiary }}>
+                        {member.role} · {member.room}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 mt-1.5 pl-9 flex-wrap">
+                    <span
+                      className="text-[8px] px-1 py-0.5 rounded font-semibold"
+                      style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
+                    >
+                      {statusStyle.label}
+                    </span>
+                    {alertCount > 0 && (
+                      <span
+                        className="text-[8px] px-1 py-0.5 rounded font-semibold"
+                        style={{ backgroundColor: C.warningBg, color: C.warning }}
+                      >
+                        {alertCount} alert{alertCount !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+        </div>
+      </div>
+      <div className="flex-1 min-w-0 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <StaffProfilePanel key={selectedStaff.id} staff={selectedStaff} />
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function ClassroomHealthSafetyTab({
+  classroom,
+  onSelectStudent,
+}: {
+  classroom: DemoClassroom;
+  onSelectStudent: (student: DemoStudent) => void;
+}) {
+  const stats = getClassroomHealthStats(classroom);
+  const flaggedStudents = getClassroomStudentsWithHealthFlags(classroom);
+  const accommodationStudents = getClassroomStudents(classroom).filter(
+    (s) => s.needsAide || s.regulationStrategies,
+  );
+
+  return (
+    <div className="overflow-y-auto pb-6">
+      <ProgramStatStrip
+        stats={[
+          {
+            label: "Flagged students",
+            value: stats.flagged,
+            sub: `of ${stats.enrolled} enrolled`,
+          },
+          { label: "Allergies", value: stats.allergies, sub: "in roster" },
+          { label: "Emergency meds", value: stats.emergencyMeds, sub: "in roster" },
+          { label: "Support aides", value: stats.aides, sub: "assigned" },
+        ]}
+      />
+
+      <ProgramDivider />
+
+      <ProgramSection title="Emergency supplies">
+        <div
+          className="hidden sm:grid grid-cols-[1fr_auto_auto] gap-x-4 text-[10px] font-semibold uppercase tracking-widest pb-2"
+          style={{ color: C.textTertiary, borderBottom: `1px solid ${C.border}` }}
+        >
+          <span>Item</span>
+          <span>Status</span>
+          <span className="text-right">Last checked</span>
+        </div>
+        {classroom.emergencySupplies.map((supply, i) => {
+          const statusStyle = getSupplyStatusStyle(supply.status);
+          return (
+            <div
+              key={supply.id}
+              className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1 py-3.5"
+              style={{ borderBottom: `1px solid ${C.border}` }}
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                  {supply.item}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+                  {supply.location}
+                </p>
+                {supply.notes && (
+                  <p className="text-[10px] mt-1" style={{ color: C.textSecondary }}>
+                    {supply.notes}
+                  </p>
+                )}
+              </div>
+              <span
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full self-start sm:self-center h-fit"
+                style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
+              >
+                {statusStyle.label}
+              </span>
+              <span
+                className="text-xs self-start sm:self-center sm:text-right tabular-nums"
+                style={{ color: C.textTertiary }}
+              >
+                {supply.lastChecked}
+              </span>
+            </div>
+          );
+        })}
+        <p className="text-xs mt-4 flex items-center gap-2" style={{ color: C.textSecondary }}>
+          <Shield className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.accent }} />
+          {classroom.nurseContact ?? "Nurse office — main building"}
+        </p>
+      </ProgramSection>
+
+      <ProgramDivider />
+
+      <ProgramSection title="Student health summary">
+        {flaggedStudents.length === 0 ? (
+          <div className="text-center py-8">
+            <Shield className="w-8 h-8 mx-auto mb-2" style={{ color: C.textTertiary }} />
+            <p className="text-xs" style={{ color: C.textTertiary }}>
+              No active health flags in this room.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {flaggedStudents.map((student) => {
+              const flags = HEALTH_FLAGS.filter((f) => student[f.key]);
+              const snippet = getStudentHealthSnippet(student);
+              return (
+                <div
+                  key={student.id}
+                  onClick={() => onSelectStudent(student)}
+                  className="cursor-pointer rounded-sm p-3 transition-colors"
+                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = C.accentLight;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = C.elevated;
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{ backgroundColor: student.color + "22", color: student.color }}
+                    >
+                      {student.initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                          {student.name}
+                        </p>
+                        <span className="text-[10px]" style={{ color: C.textTertiary }}>
+                          {student.grade}
+                        </span>
+                      </div>
+                      {flags.length > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                          {flags.map((f) => (
+                            <span
+                              key={f.key}
+                              className="text-[8px] px-1 py-0.5 rounded font-semibold"
+                              style={{ backgroundColor: f.bg, color: f.color }}
+                            >
+                              {f.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {snippet && (
+                        <p
+                          className="text-xs mt-2 leading-relaxed line-clamp-2"
+                          style={{ color: C.textSecondary }}
+                        >
+                          {snippet}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </ProgramSection>
+
+      {accommodationStudents.length > 0 && (
+        <>
+          <ProgramDivider />
+          <ProgramSection title="Accommodations">
+            <div className="space-y-0">
+              {accommodationStudents.map((student, i) => (
+                <div
+                  key={student.id}
+                  className="py-2.5"
+                  style={{ borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}
+                >
+                  <p className="text-xs font-semibold mb-1" style={{ color: C.textPrimary }}>
+                    {student.name}
+                  </p>
+                  <p className="text-xs leading-relaxed" style={{ color: C.textSecondary }}>
+                    {student.needsAide && student.aideDetails
+                      ? student.aideDetails
+                      : student.regulationStrategies}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </ProgramSection>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ClassroomOverviewTab({ classroom }: { classroom: DemoClassroom }) {
+  const enrolled = getClassroomEnrolledCount(classroom);
+  const openSpots = Math.max(classroom.capacity - enrolled, 0);
+  const statusStyle = CLASSROOM_STATUS_STYLES[classroom.status];
+  const healthAlerts = getClassroomHealthAlertCount(classroom);
+  const pct = Math.round((enrolled / classroom.capacity) * 100);
+  const isFull = enrolled >= classroom.capacity;
+  const linkedPrograms = classroom.programIds
+    .map((id) => DEMO_PROGRAMS_P2.find((p) => p.id === id))
+    .filter(Boolean) as DemoProgram[];
+
+  return (
+    <div className="overflow-y-auto pb-6">
+      <ProgramStatStrip
+        stats={[
+          { label: "Enrolled", value: enrolled, sub: `of ${classroom.capacity}` },
+          { label: "Open spots", value: openSpots, sub: openSpots === 0 ? "at capacity" : "available" },
+          { label: "Waitlist", value: classroom.waitlistCount, sub: classroom.waitlistCount > 0 ? "active" : "none" },
+          { label: "Ratio", value: getClassroomRatio(classroom), sub: `max ${classroom.licensingMaxRatio}:1` },
+        ]}
+      />
+
+      <ProgramDivider />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-8">
+        <ProgramSection title="About">
+          <p className="text-sm leading-relaxed max-w-prose" style={{ color: C.textSecondary }}>
+            {classroom.description}
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-4 text-xs" style={{ color: C.textTertiary }}>
+            {classroom.amenities.map((a) => (
+              <span key={a}>{a}</span>
+            ))}
+          </div>
+          <div className="mt-5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+              Capacity
+            </p>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: C.border }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(pct, 100)}%`,
+                  backgroundColor: isFull ? C.warning : C.accent,
+                }}
+              />
+            </div>
+            <p className="text-[10px] mt-1" style={{ color: C.textTertiary }}>
+              {pct}% filled · {enrolled} of {classroom.capacity} seats
+            </p>
+          </div>
+        </ProgramSection>
+
+        <ProgramSection title="Details">
+          <ProgramDetailRows
+            rows={[
+              ["Display name", classroom.name],
+              ["Short name", classroom.shortName],
+              ["Age range", classroom.ageRange],
+              ["Grades", classroom.gradeRange],
+              ["Building", classroom.location.building],
+              ["Room", classroom.location.roomNumber],
+              ["Type", ROOM_TYPE_LABELS[classroom.roomType]],
+              ["Status", statusStyle.label],
+              [
+                "Today's attendance",
+                `${classroom.attendanceToday.present} present · ${classroom.attendanceToday.absent} absent`,
+              ],
+              ["Health alerts", healthAlerts > 0 ? `${healthAlerts} in roster` : "None"],
+            ]}
+          />
+          {linkedPrograms.length > 0 && (
+            <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+                Programs using this room
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {linkedPrograms.map((prog) => (
+                  <span
+                    key={prog.id}
+                    className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: C.accentLight, color: C.accent }}
+                  >
+                    {prog.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </ProgramSection>
+      </div>
+    </div>
+  );
+}
+
+function ClassroomStaffTab({ classroom }: { classroom: DemoClassroom }) {
+  const students = getClassroomStudents(classroom);
+
+  return (
+    <div className="overflow-y-auto pb-6">
+      <p className="text-sm mb-4" style={{ color: C.textTertiary }}>
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {classroom.staffAssignments.length}
+        </span>{" "}
+        staff assigned ·{" "}
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {students.length}
+        </span>{" "}
+        students · ratio{" "}
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {getClassroomRatio(classroom)}
+        </span>
+      </p>
+      <div
+        className="hidden sm:grid grid-cols-[auto_1fr_auto] gap-x-4 text-[10px] font-semibold uppercase tracking-widest pb-2"
+        style={{ color: C.textTertiary, borderBottom: `1px solid ${C.border}` }}
+      >
+        <span className="w-10" />
+        <span>Name</span>
+        <span>Role</span>
+      </div>
+      {classroom.staffAssignments.map((member, i) => {
+        const staffRecord = member.staffId
+          ? DEMO_STAFF.find((s) => s.id === member.staffId)
+          : undefined;
+        return (
+          <div
+            key={`${member.name}-${i}`}
+            className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] gap-x-4 gap-y-2 items-center py-4"
+            style={{ borderBottom: `1px solid ${C.border}` }}
+          >
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+              style={{ backgroundColor: member.color + "22", color: member.color }}
+            >
+              {member.initials}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                {member.name}
+              </p>
+              {staffRecord && (
+                <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+                  {staffRecord.email} · {staffRecord.employmentType.replace("_", " ")}
+                </p>
+              )}
+            </div>
+            <span
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full self-start sm:self-center"
+              style={{ backgroundColor: C.accentLight, color: C.accent }}
+            >
+              {member.role}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ClassroomScheduleTab({ classroom }: { classroom: DemoClassroom }) {
+  const linkedPrograms = classroom.programIds
+    .map((id) => DEMO_PROGRAMS_P2.find((p) => p.id === id))
+    .filter(Boolean) as DemoProgram[];
+
+  return (
+    <div className="overflow-y-auto pb-6">
+      <ProgramStatStrip
+        stats={[
+          { label: "Days", value: classroom.schedule.daysOfWeek },
+          { label: "Drop-off", value: classroom.schedule.dailyHours.dropOff.split(" – ")[0] ?? classroom.schedule.dailyHours.dropOff },
+          { label: "Pick-up", value: classroom.schedule.dailyHours.pickUp.split(" – ").pop() ?? classroom.schedule.dailyHours.pickUp },
+          { label: "Staff", value: getClassroomStaffCount(classroom), sub: "assigned" },
+        ]}
+      />
+
+      <ProgramDivider />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-8">
+        <ProgramSection title="Daily rhythm">
+          <p className="text-base font-medium mb-1" style={{ color: C.textPrimary }}>
+            {classroom.schedule.daysOfWeek}
+          </p>
+          {classroom.schedule.sessionNotes && (
+            <p className="text-sm mb-4 max-w-prose" style={{ color: C.textSecondary }}>
+              {classroom.schedule.sessionNotes}
+            </p>
+          )}
+          <div>
+            {[
+              ["Drop-off", classroom.schedule.dailyHours.dropOff],
+              ["Core hours", classroom.schedule.dailyHours.core],
+              ["Pick-up", classroom.schedule.dailyHours.pickUp],
+              ...(classroom.schedule.dailyHours.afterCare
+                ? [["After care", classroom.schedule.dailyHours.afterCare] as const]
+                : []),
+            ].map(([label, time], i) => (
+              <div
+                key={label}
+                className="flex items-center gap-3 py-2.5 text-sm"
+                style={{ borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}
+              >
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.accent }} />
+                <span className="font-medium w-24 flex-shrink-0" style={{ color: C.textSecondary }}>
+                  {label}
+                </span>
+                <span style={{ color: C.textPrimary }}>{time}</span>
+              </div>
+            ))}
+          </div>
+        </ProgramSection>
+
+        {linkedPrograms.length > 0 && (
+          <ProgramSection title="Program schedules">
+            <div className="space-y-3">
+              {linkedPrograms.map((prog) => (
+                <div
+                  key={prog.id}
+                  className="p-3 rounded-sm"
+                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                >
+                  <p className="text-xs font-semibold mb-1" style={{ color: C.textPrimary }}>
+                    {prog.name}
+                  </p>
+                  <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                    {prog.schedule.daysOfWeek} · {prog.schedule.dailyHours.core}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </ProgramSection>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ClassroomRosterTab({
+  classroom,
+  onSelectStudent,
+}: {
+  classroom: DemoClassroom;
+  onSelectStudent: (student: DemoStudent) => void;
+}) {
+  const students = getClassroomStudents(classroom);
+  const enrolled = students.length;
+
+  return (
+    <div className="flex flex-col min-h-0 flex-1 overflow-y-auto pb-6">
+      <p className="text-sm mb-4 flex-shrink-0" style={{ color: C.textTertiary }}>
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {enrolled}
+        </span>{" "}
+        enrolled ·{" "}
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {classroom.waitlistCount}
+        </span>{" "}
+        waitlisted ·{" "}
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {classroom.capacity}
+        </span>{" "}
+        capacity
+      </p>
+
+      {students.length === 0 ? (
+        <p className="text-sm text-center py-8" style={{ color: C.textTertiary }}>
+          No students assigned to this room yet.
+        </p>
+      ) : (
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}
+        >
+          {students.map((student, i) => {
+            const flags = HEALTH_FLAGS.filter((f) => student[f.key]);
+            return (
+              <motion.div
+                key={student.id}
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.05 }}
+                onClick={() => onSelectStudent(student)}
+                className="cursor-pointer rounded-sm p-3 flex flex-col items-center text-center transition-colors"
+                style={{ backgroundColor: C.surface }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = C.accentLight;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = C.surface;
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold mb-2"
+                  style={{ backgroundColor: student.color + "22", color: student.color }}
+                >
+                  {student.initials}
+                </div>
+                <p className="text-xs font-semibold leading-tight" style={{ color: C.textPrimary }}>
+                  {student.name}
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: C.textTertiary }}>
+                  {student.grade}
+                </p>
+                {flags.length > 0 && (
+                  <div className="flex items-center gap-1 mt-2 flex-wrap justify-center">
+                    {flags.map((f) => (
+                      <span
+                        key={f.key}
+                        className="text-[8px] px-1 py-0.5 rounded font-semibold"
+                        style={{ backgroundColor: f.bg, color: f.color }}
+                      >
+                        {f.label.split(" ")[0]}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ClassroomListRail({
+  activeClassroomId,
+  onSelect,
+}: {
+  activeClassroomId: string;
+  onSelect: (room: DemoClassroom) => void;
+}) {
+  const [search, setSearch] = useState("");
+
+  const filtered = DEMO_CLASSROOMS.filter((room) => {
+    if (search === "") return true;
+    const q = search.toLowerCase();
+    return (
+      room.name.toLowerCase().includes(q) ||
+      room.shortName.toLowerCase().includes(q) ||
+      room.gradeRange.toLowerCase().includes(q) ||
+      room.location.roomNumber.toLowerCase().includes(q) ||
+      room.location.building.toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div
+      className="w-64 flex-shrink-0 flex flex-col overflow-hidden"
+      style={{ borderRight: `1px solid ${C.border}`, backgroundColor: C.bg }}
+    >
+      <div
+        className="px-3 py-2 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
+          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+        >
+          <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search rooms..."
+            className="bg-transparent border-none outline-none text-sm w-full"
+            style={{ color: C.textPrimary }}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {filtered.map((room, i) => {
+          const isActive = activeClassroomId === room.id;
+          const enrolled = getClassroomEnrolledCount(room);
+          const statusStyle = CLASSROOM_STATUS_STYLES[room.status];
+          const { badge, initials } = getClassroomSidebarMeta(room);
+
+          return (
+            <motion.button
+              key={room.id}
+              type="button"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.02 }}
+              onClick={() => onSelect(room)}
+              className="w-full text-left px-3 py-2.5"
+              style={{
+                borderBottom: `1px solid ${C.border}`,
+                borderLeft: `2px solid ${isActive ? C.accent : "transparent"}`,
+                backgroundColor: isActive ? C.accentLight : "transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) e.currentTarget.style.backgroundColor = C.elevated;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = isActive ? C.accentLight : "transparent";
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                  style={{ backgroundColor: badge.bg, color: badge.text }}
+                >
+                  {initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: C.textPrimary }}>
+                    {room.shortName}
+                  </p>
+                  <p className="text-[10px] truncate" style={{ color: C.textTertiary }}>
+                    {room.gradeRange} · {enrolled}/{room.capacity} enrolled
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-1.5 pl-9 flex-wrap">
+                <span
+                  className="text-[8px] px-1 py-0.5 rounded font-semibold"
+                  style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
+                >
+                  {statusStyle.label}
+                </span>
+                {room.waitlistCount > 0 && (
+                  <span
+                    className="text-[8px] px-1 py-0.5 rounded font-semibold"
+                    style={{ backgroundColor: C.warningBg, color: C.warning }}
+                  >
+                    {room.waitlistCount} waitlist
+                  </span>
+                )}
+              </div>
+            </motion.button>
+          );
+        })}
+        {filtered.length === 0 && (
+          <p className="px-3 py-6 text-xs text-center" style={{ color: C.textTertiary }}>
+            No rooms match your search
+          </p>
+        )}
+      </div>
+
+      <div
+        className="px-3 py-2 flex-shrink-0"
+        style={{ borderTop: `1px solid ${C.border}` }}
+      >
+        <DemoButton variant="ghost" className="w-full justify-center text-xs">
+          <Plus className="w-3.5 h-3.5" />
+          Add Room
+        </DemoButton>
       </div>
     </div>
   );
 }
 
 function ClassroomsPage() {
-  const rooms = [
-    { name: "Sunflower Room", ageRange: "Ages 4–6", capacity: 12, enrolled: 10, teacher: "Ms. Andrea Reyes" },
-    { name: "Oak Room", ageRange: "Ages 7–9", capacity: 14, enrolled: 13, teacher: "Ms. Carla Nguyen" },
-    { name: "Maple Room", ageRange: "Ages 10–12", capacity: 12, enrolled: 8, teacher: "TBD" },
-    { name: "Garden Studio", ageRange: "All ages", capacity: 20, enrolled: 15, teacher: "Shared" },
-  ];
+  const [activeClassroom, setActiveClassroom] = useState<DemoClassroom>(DEMO_CLASSROOMS[0]);
+  const [activeTab, setActiveTab] = useState<ClassroomTabId>("overview");
+  const [selectedStudent, setSelectedStudent] = useState<DemoStudent | null>(null);
+
+  const enrolled = getClassroomEnrolledCount(activeClassroom);
+  const statusStyle = CLASSROOM_STATUS_STYLES[activeClassroom.status];
+  const healthAlertCount = getClassroomHealthAlertCount(activeClassroom);
+  const leadTeacher =
+    activeClassroom.staffAssignments.find((s) => s.role === "Lead Teacher")?.name ?? "TBD";
+
+  const switchClassroom = (room: DemoClassroom) => {
+    setActiveClassroom(room);
+    setActiveTab("overview");
+    setSelectedStudent(null);
+  };
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-6 pt-5 pb-3 flex-shrink-0">
-        <PageHeader
-          icon="🏫"
-          title="Classrooms"
-          subtitle={`${rooms.length} rooms`}
-          tip="Each room shows capacity and who's teaching. Green means spots are open; orange means the room is full."
-          action={
-            <DemoButton>
-              <Plus className="w-4 h-4" />
-              Add Room
-            </DemoButton>
-          }
-          className="mb-0"
-        />
-      </div>
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
-        <div className="grid grid-cols-1 gap-4">
-          {rooms.map((room, i) => {
-            const pct = Math.round((room.enrolled / room.capacity) * 100);
-            const isFull = pct >= 100;
-            return (
-              <div
-                key={i}
-                className="p-5"
-                style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}`, borderRadius: C.r.lg }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="font-semibold text-sm" style={{ color: C.textPrimary }}>{room.name}</div>
-                    <div className="text-xs mt-0.5" style={{ color: C.textTertiary }}>{room.ageRange}</div>
-                  </div>
-                  <span
-                    className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
-                    style={
-                      isFull
-                        ? { backgroundColor: C.warningBg, color: C.warning }
-                        : { backgroundColor: C.successBg, color: C.success }
-                    }
-                  >
-                    {isFull ? "Full" : "Available"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 mb-3">
-                  <div>
-                    <div className="text-xs font-medium mb-0.5" style={{ color: C.textTertiary }}>Teacher</div>
-                    <div className="text-xs font-medium" style={{ color: C.textSecondary }}>{room.teacher}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-medium mb-0.5" style={{ color: C.textTertiary }}>Enrolled</div>
-                    <div className="text-xs font-medium" style={{ color: C.textSecondary }}>{room.enrolled} / {room.capacity}</div>
-                  </div>
-                </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: C.border }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: isFull ? C.warning : C.accent,
-                    }}
-                  />
-                </div>
-                <div className="text-[10px] mt-1 text-right" style={{ color: C.textTertiary }}>{pct}% capacity</div>
+    <div className="h-full flex relative overflow-hidden" style={{ backgroundColor: C.bg }}>
+      <ClassroomListRail
+        activeClassroomId={activeClassroom.id}
+        onSelect={switchClassroom}
+      />
+
+      <div
+        className="flex-1 flex flex-col min-w-0 overflow-hidden"
+        style={{ backgroundColor: C.surface }}
+      >
+        <div className="flex-shrink-0 px-6 pt-4 pb-0">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1
+                  className="text-xl font-semibold tracking-tight"
+                  style={{ color: C.textPrimary }}
+                >
+                  {activeClassroom.name}
+                </h1>
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide"
+                  style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
+                >
+                  {statusStyle.label}
+                </span>
+                <span
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: C.accentLight, color: C.accent }}
+                >
+                  {ROOM_TYPE_LABELS[activeClassroom.roomType]}
+                </span>
               </div>
-            );
-          })}
+              <p className="text-sm mt-1" style={{ color: C.textTertiary }}>
+                {activeClassroom.gradeRange} · {activeClassroom.location.roomNumber} ·{" "}
+                {enrolled}/{activeClassroom.capacity} enrolled · {leadTeacher}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <DemoButton variant="secondary" className="text-xs">
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </DemoButton>
+            </div>
+          </div>
+
+          <div
+            className="flex items-center gap-1 overflow-x-auto pb-0 -mb-px"
+            style={{ borderBottom: `1px solid ${C.border}` }}
+          >
+            {CLASSROOM_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const tabLabel =
+                tab.id === "health_safety" && healthAlertCount > 0
+                  ? `${tab.label} (${healthAlertCount})`
+                  : tab.label;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className="px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors"
+                  style={{
+                    color: isActive ? C.accent : C.textSecondary,
+                    borderBottom: isActive
+                      ? `2px solid ${C.accent}`
+                      : "2px solid transparent",
+                    marginBottom: -1,
+                  }}
+                >
+                  {tabLabel}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 pt-5 pb-2">
+          {activeTab === "overview" && (
+            <ClassroomOverviewTab classroom={activeClassroom} />
+          )}
+          {activeTab === "health_safety" && (
+            <ClassroomHealthSafetyTab
+              classroom={activeClassroom}
+              onSelectStudent={setSelectedStudent}
+            />
+          )}
+          {activeTab === "staff" && <ClassroomStaffTab classroom={activeClassroom} />}
+          {activeTab === "schedule" && (
+            <ClassroomScheduleTab classroom={activeClassroom} />
+          )}
+          {activeTab === "roster" && (
+            <ClassroomRosterTab
+              classroom={activeClassroom}
+              onSelectStudent={setSelectedStudent}
+            />
+          )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedStudent && (
+          <StudentDetailPanel
+            student={selectedStudent}
+            onClose={() => setSelectedStudent(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
