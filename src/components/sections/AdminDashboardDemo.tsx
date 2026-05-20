@@ -754,6 +754,13 @@ const PROGRAM_LABELS: Record<
   },
 };
 
+/** Align admin program IDs with parent/transaction demo IDs. */
+const PROGRAM_ID_MAP: Record<string, string> = {
+  summer_26: "summer",
+  school_year_26_27: "school_year",
+  homeschool_drop_in: "homeschool_drop_in",
+};
+
 
 // ─── Phase 2 demo data ────────────────────────────────────────────────────────
 
@@ -1943,13 +1950,151 @@ type ProgramTeacher = {
   initials: string;
   classroom: string;
   studentIds: string[];
+  capacity?: number;
 };
-type DemoProgram = { id: string; name: string; teachers: ProgramTeacher[] };
+
+type ProgramType = "summer" | "school_year" | "homeschool_drop_in";
+type ProgramStatus = "draft" | "open" | "waitlist" | "full" | "closed";
+
+type DemoProgram = {
+  id: string;
+  name: string;
+  type: ProgramType;
+  status: ProgramStatus;
+  publicVisible: boolean;
+  description: { short: string; long: string };
+  marketing: { badge: string; details: string[] };
+  eligibility: {
+    ageRange: string;
+    gradeRange?: string;
+    capacity: number;
+    waitlistEnabled: boolean;
+    waitlistCount: number;
+    tracks?: string[];
+  };
+  enrollment: {
+    applyFlowId: string;
+    enrollFlowId?: string;
+    registrationFee: number;
+    checklistItems: string[];
+    autoTag: string;
+    websiteCta: string;
+  };
+  pricing: {
+    billingModel: "monthly" | "weekly" | "per_day";
+    baseAmount: number;
+    fees: { label: string; amount: number; refundable?: boolean }[];
+    paymentSchedule: string[];
+    acceptsFinancialAid: boolean;
+    includes: string[];
+  };
+  schedule: {
+    startDate: string;
+    endDate: string;
+    registrationOpen: string;
+    registrationClose: string;
+    daysOfWeek: string;
+    dailyHours: { dropOff: string; core: string; pickUp: string; afterCare?: string };
+    sessionNotes?: string;
+    breaks?: string[];
+    minDaysPerWeek?: number;
+    maxDaysPerWeek?: number;
+    bookingCutoff?: string;
+  };
+  stats: { leads: number; revenue: number };
+  teachers: ProgramTeacher[];
+};
+
+const PROGRAM_TYPE_LABELS: Record<ProgramType, string> = {
+  summer: "Summer",
+  school_year: "School Year",
+  homeschool_drop_in: "Homeschool",
+};
+
+const PROGRAM_STATUS_STYLES: Record<
+  ProgramStatus,
+  { label: string; bg: string; text: string }
+> = {
+  draft: { label: "Draft", bg: C.elevated, text: C.textTertiary },
+  open: { label: "Open", bg: C.successBg, text: C.success },
+  waitlist: { label: "Waitlist", bg: C.warningBg, text: C.warning },
+  full: { label: "Full", bg: C.errorBg, text: C.error },
+  closed: { label: "Closed", bg: C.border, text: C.textSecondary },
+};
+
+const SUMMER_WEEK_SCHEDULE = [
+  "Registration Fee",
+  ...Array.from({ length: 12 }, (_, i) => `Week ${i + 1}`),
+];
+
+const SCHOOL_YEAR_MONTH_SCHEDULE = [
+  "Registration Fee",
+  "Supply Fee",
+  ...["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"].map(
+    (m) => `${m} Tuition`,
+  ),
+];
 
 const DEMO_PROGRAMS_P2: DemoProgram[] = [
   {
     id: "summer_26",
     name: "Summer 2026",
+    type: "summer",
+    status: "open",
+    publicVisible: true,
+    description: {
+      short: "12 weeks of outdoor projects & enrichment",
+      long: "Twelve weeks of themed adventures, hands-on projects, nature play, art, and academic enrichment in a small, nurturing group. Every day feels like a discovery.",
+    },
+    marketing: {
+      badge: "Summer Program",
+      details: ["Ages 4–11", "Mon–Thu", "12 Weeks", "Max 24 Kids"],
+    },
+    eligibility: {
+      ageRange: "Ages 4–11",
+      gradeRange: "Pre-K – 6th",
+      capacity: 24,
+      waitlistEnabled: true,
+      waitlistCount: 3,
+    },
+    enrollment: {
+      applyFlowId: "flow-1",
+      enrollFlowId: "flow-2",
+      registrationFee: 75,
+      checklistItems: [
+        "Enrollment contract",
+        "Health & emergency form",
+        "Immunization records",
+        "Photo release",
+        "Registration fee ($75)",
+      ],
+      autoTag: "Summer 2026",
+      websiteCta: "Enroll Now",
+    },
+    pricing: {
+      billingModel: "weekly",
+      baseAmount: 225,
+      fees: [{ label: "Registration fee", amount: 75 }],
+      paymentSchedule: SUMMER_WEEK_SCHEDULE,
+      acceptsFinancialAid: true,
+      includes: ["All materials", "Field trips", "Daily snack"],
+    },
+    schedule: {
+      startDate: "Jun 2, 2026",
+      endDate: "Aug 21, 2026",
+      registrationOpen: "Jan 15, 2026",
+      registrationClose: "May 30, 2026",
+      daysOfWeek: "Mon – Thu",
+      dailyHours: {
+        dropOff: "8:00 – 8:30 AM",
+        core: "8:30 AM – 3:00 PM",
+        pickUp: "3:00 – 3:30 PM",
+        afterCare: "3:30 – 5:30 PM (+$15/day)",
+      },
+      sessionNotes: "12 themed weeks — nature, art, STEM, and community projects",
+      breaks: ["Jul 4 – Jul 7 (Independence Day week)"],
+    },
+    stats: { leads: 14, revenue: 18450 },
     teachers: [
       {
         id: "t1",
@@ -1957,6 +2102,7 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
         initials: "TR",
         classroom: "Room A (Pre-K – 2nd)",
         studentIds: ["st1", "st3", "st4", "st5"],
+        capacity: 12,
       },
       {
         id: "t2",
@@ -1964,12 +2110,79 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
         initials: "JK",
         classroom: "Room B (3rd – 6th)",
         studentIds: ["st2", "st7", "st8"],
+        capacity: 12,
       },
     ],
   },
   {
     id: "school_year_26_27",
     name: "School Year 26–27",
+    type: "school_year",
+    status: "open",
+    publicVisible: true,
+    description: {
+      short: "A complete microschool year, ability-paced",
+      long: "A full microschool year blending Montessori, Waldorf, and Reggio-inspired methods with TEKS-aligned academics. Individualized pacing. Genuine community.",
+    },
+    marketing: {
+      badge: "School Year",
+      details: ["Ages 4–11", "Mon–Fri", "10-Month Term", "Max 36 Kids"],
+    },
+    eligibility: {
+      ageRange: "Ages 4–11",
+      gradeRange: "K – 6th",
+      capacity: 36,
+      waitlistEnabled: true,
+      waitlistCount: 8,
+      tracks: ["Full Day", "Half Day", "After Care"],
+    },
+    enrollment: {
+      applyFlowId: "flow-1",
+      enrollFlowId: "flow-1",
+      registrationFee: 150,
+      checklistItems: [
+        "Enrollment contract",
+        "Health & emergency form",
+        "Immunization records",
+        "Photo release",
+        "Registration fee ($150)",
+        "Supply fee ($150)",
+      ],
+      autoTag: "School Year",
+      websiteCta: "Apply Now",
+    },
+    pricing: {
+      billingModel: "monthly",
+      baseAmount: 1280,
+      fees: [
+        { label: "Registration fee", amount: 150 },
+        { label: "Supply fee", amount: 150 },
+        { label: "Deposit", amount: 500, refundable: true },
+      ],
+      paymentSchedule: SCHOOL_YEAR_MONTH_SCHEDULE,
+      acceptsFinancialAid: true,
+      includes: ["Curriculum materials", "Portfolio assessments", "Parent conferences"],
+    },
+    schedule: {
+      startDate: "Aug 18, 2026",
+      endDate: "May 29, 2027",
+      registrationOpen: "Nov 1, 2025",
+      registrationClose: "Aug 1, 2026",
+      daysOfWeek: "Mon – Fri",
+      dailyHours: {
+        dropOff: "7:45 – 8:15 AM",
+        core: "8:15 AM – 3:15 PM",
+        pickUp: "3:15 – 3:45 PM",
+        afterCare: "3:45 – 5:30 PM (+$200/mo)",
+      },
+      sessionNotes: "10-month academic term with ability-paced groupings",
+      breaks: [
+        "Nov 24 – 28 (Thanksgiving)",
+        "Dec 22 – Jan 2 (Winter break)",
+        "Mar 9 – 13 (Spring break)",
+      ],
+    },
+    stats: { leads: 22, revenue: 42800 },
     teachers: [
       {
         id: "t3",
@@ -1977,6 +2190,7 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
         initials: "TR",
         classroom: "Primary (K – 2nd)",
         studentIds: ["st1", "st4"],
+        capacity: 12,
       },
       {
         id: "t4",
@@ -1984,6 +2198,7 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
         initials: "NP",
         classroom: "Elementary (3rd – 4th)",
         studentIds: ["st2", "st5", "st7"],
+        capacity: 14,
       },
       {
         id: "t5",
@@ -1991,12 +2206,66 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
         initials: "DO",
         classroom: "Middle (5th – 6th)",
         studentIds: ["st6", "st8"],
+        capacity: 12,
       },
     ],
   },
   {
     id: "homeschool_drop_in",
     name: "Homeschool Drop-In",
+    type: "homeschool_drop_in",
+    status: "open",
+    publicVisible: true,
+    description: {
+      short: "1–5 flexible days for homeschool families",
+      long: "Flexible enrichment for families who want structure without losing autonomy. Choose 1 to 5 days — adjust as your family's rhythm evolves. All enrichments included.",
+    },
+    marketing: {
+      badge: "Homeschool",
+      details: ["Ages 4–11", "1–5 Days/Wk", "Flexible", "Max 16 Kids"],
+    },
+    eligibility: {
+      ageRange: "Ages 4–11",
+      capacity: 16,
+      waitlistEnabled: false,
+      waitlistCount: 0,
+    },
+    enrollment: {
+      applyFlowId: "flow-3",
+      registrationFee: 50,
+      checklistItems: [
+        "Drop-in agreement",
+        "Health & emergency form",
+        "Photo release",
+      ],
+      autoTag: "Homeschool",
+      websiteCta: "Apply Now",
+    },
+    pricing: {
+      billingModel: "per_day",
+      baseAmount: 85,
+      fees: [{ label: "Registration fee", amount: 50 }],
+      paymentSchedule: ["Billed per booked day"],
+      acceptsFinancialAid: false,
+      includes: ["Art studio", "Nature lab", "Group projects"],
+    },
+    schedule: {
+      startDate: "Rolling enrollment",
+      endDate: "No fixed end date",
+      registrationOpen: "Open year-round",
+      registrationClose: "—",
+      daysOfWeek: "1 – 5 days / week (family choice)",
+      dailyHours: {
+        dropOff: "8:30 – 9:00 AM",
+        core: "9:00 AM – 2:00 PM",
+        pickUp: "2:00 – 2:30 PM",
+      },
+      sessionNotes: "Book days at least 24 hours ahead",
+      minDaysPerWeek: 1,
+      maxDaysPerWeek: 5,
+      bookingCutoff: "24 hours before session",
+    },
+    stats: { leads: 6, revenue: 6120 },
     teachers: [
       {
         id: "t6",
@@ -2004,10 +2273,28 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
         initials: "CN",
         classroom: "Mixed Ages",
         studentIds: ["st3", "st5", "st7", "st8"],
+        capacity: 16,
       },
     ],
   },
 ];
+
+function getProgramEnrolledCount(prog: DemoProgram): number {
+  return prog.teachers.reduce((sum, t) => sum + t.studentIds.length, 0);
+}
+
+function formatBillingModel(model: DemoProgram["pricing"]["billingModel"]): string {
+  if (model === "monthly") return "Monthly";
+  if (model === "weekly") return "Weekly";
+  return "Per day";
+}
+
+function formatProgramPrice(prog: DemoProgram): string {
+  const { billingModel, baseAmount } = prog.pricing;
+  if (billingModel === "monthly") return `$${baseAmount.toLocaleString()}/mo`;
+  if (billingModel === "weekly") return `$${baseAmount}/wk`;
+  return `$${baseAmount}/day`;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -8307,10 +8594,792 @@ function StudentsPage() {
 
 // ─── Programs page ─────────────────────────────────────────────────────────────
 
+type ProgramTabId =
+  | "overview"
+  | "enrollment"
+  | "pricing"
+  | "schedule"
+  | "staff"
+  | "roster";
+
+const PROGRAM_TABS: { id: ProgramTabId; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "enrollment", label: "Enrollment" },
+  { id: "pricing", label: "Pricing" },
+  { id: "schedule", label: "Schedule" },
+  { id: "staff", label: "Staff" },
+  { id: "roster", label: "Roster" },
+];
+
+function ProgramInfoCard({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-sm p-4"
+      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+    >
+      <p
+        className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+        style={{ color: C.textTertiary }}
+      >
+        {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function ProgramFlowCard({
+  title,
+  flow,
+  role,
+}: {
+  title: string;
+  flow?: EnrollmentFlow;
+  role: string;
+}) {
+  return (
+    <div
+      className="rounded-sm p-4 flex flex-col gap-3"
+      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
+            {role}
+          </p>
+          <p className="text-sm font-semibold mt-1" style={{ color: C.textPrimary }}>
+            {flow?.name ?? title}
+          </p>
+        </div>
+        <GitBranch className="w-4 h-4 flex-shrink-0" style={{ color: C.accent }} />
+      </div>
+      {flow ? (
+        <>
+          <div className="flex flex-wrap gap-2">
+            <span
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: C.accentLight, color: C.accent }}
+            >
+              {flow.steps.length} step{flow.steps.length !== 1 ? "s" : ""}
+            </span>
+            <span
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: C.infoBg, color: C.info }}
+            >
+              {flow.actions.length} action{flow.actions.length !== 1 ? "s" : ""}
+            </span>
+            <span className="text-[10px]" style={{ color: C.textTertiary }}>
+              Updated {flow.updatedAt}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {flow.steps.map((step, i) => (
+              <div
+                key={step.id}
+                className="flex items-center gap-2 text-xs"
+                style={{ color: C.textSecondary }}
+              >
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                  style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+                >
+                  {i + 1}
+                </span>
+                {step.title}
+                <span style={{ color: C.textTertiary }}>
+                  · {step.fields.length} field{step.fields.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="text-xs" style={{ color: C.textTertiary }}>
+          No flow linked
+        </p>
+      )}
+      <button
+        type="button"
+        className="text-xs font-medium text-left flex items-center gap-1 mt-auto"
+        style={{ color: C.accent }}
+      >
+        Edit in Enrollment Flows
+        <ArrowRight className="w-3 h-3" />
+      </button>
+    </div>
+  );
+}
+
+function ProgramOverviewTab({ program }: { program: DemoProgram }) {
+  const enrolled = getProgramEnrolledCount(program);
+  const statusStyle = PROGRAM_STATUS_STYLES[program.status];
+
+  return (
+    <div className="space-y-4 overflow-y-auto pb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Enrolled", value: enrolled, sub: `of ${program.eligibility.capacity}` },
+          { label: "Waitlist", value: program.eligibility.waitlistCount, sub: program.eligibility.waitlistEnabled ? "active" : "off" },
+          { label: "Leads", value: program.stats.leads, sub: "this season" },
+          { label: "Revenue", value: `$${program.stats.revenue.toLocaleString()}`, sub: "YTD" },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-sm p-3"
+            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          >
+            <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: C.textTertiary }}>
+              {stat.label}
+            </p>
+            <p className="text-xl font-semibold mt-1 tabular-nums" style={{ color: C.textPrimary }}>
+              {stat.value}
+            </p>
+            <p className="text-[10px] mt-0.5" style={{ color: C.textTertiary }}>
+              {stat.sub}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ProgramInfoCard label="About">
+          <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
+            {program.description.short}
+          </p>
+          <p className="text-xs leading-relaxed" style={{ color: C.textSecondary }}>
+            {program.description.long}
+          </p>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {program.marketing.details.map((d) => (
+              <span
+                key={d}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: C.accentLight, color: C.accent }}
+              >
+                {d}
+              </span>
+            ))}
+          </div>
+        </ProgramInfoCard>
+
+        <ProgramInfoCard label="Eligibility & visibility">
+          <dl className="space-y-2 text-xs">
+            {[
+              ["Type", PROGRAM_TYPE_LABELS[program.type]],
+              ["Status", statusStyle.label],
+              ["Age range", program.eligibility.ageRange],
+              ...(program.eligibility.gradeRange
+                ? [["Grades", program.eligibility.gradeRange] as const]
+                : []),
+              ["Capacity", `${program.eligibility.capacity} students`],
+              ["Website", program.publicVisible ? "Public" : "Admin only"],
+              ["Badge", program.marketing.badge],
+              ["Billing ID", PROGRAM_ID_MAP[program.id] ?? program.id],
+            ].map(([k, v]) => (
+              <div key={k} className="flex justify-between gap-4">
+                <dt style={{ color: C.textTertiary }}>{k}</dt>
+                <dd className="font-medium text-right" style={{ color: C.textPrimary }}>
+                  {v}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {program.eligibility.tracks && (
+            <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${C.border}` }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+                Enrollment tracks
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {program.eligibility.tracks.map((t) => (
+                  <span
+                    key={t}
+                    className="text-[10px] px-2 py-0.5 rounded-sm"
+                    style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </ProgramInfoCard>
+      </div>
+    </div>
+  );
+}
+
+function ProgramEnrollmentTab({ program }: { program: DemoProgram }) {
+  const applyFlow = getFlowForLead(program.enrollment.applyFlowId);
+  const enrollFlow = program.enrollment.enrollFlowId
+    ? getFlowForLead(program.enrollment.enrollFlowId)
+    : undefined;
+
+  const funnelStages = [
+    { label: "Leads", count: program.stats.leads },
+    { label: "Applied", count: Math.max(1, Math.round(program.stats.leads * 0.7)) },
+    { label: "In review", count: Math.max(1, Math.round(program.stats.leads * 0.4)) },
+    { label: "Enrolling", count: Math.max(1, Math.round(program.stats.leads * 0.2)) },
+    { label: "Enrolled", count: getProgramEnrolledCount(program) },
+  ];
+
+  return (
+    <div className="space-y-4 overflow-y-auto pb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ProgramFlowCard title="Application" flow={applyFlow} role="Application flow" />
+        {enrollFlow && enrollFlow.id !== applyFlow?.id ? (
+          <ProgramFlowCard title="Enrollment" flow={enrollFlow} role="Enrollment flow" />
+        ) : (
+          <ProgramInfoCard label="Enrollment flow">
+            <p className="text-sm" style={{ color: C.textSecondary }}>
+              Same as application flow — families complete one form to apply and enroll.
+            </p>
+          </ProgramInfoCard>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ProgramInfoCard label="Onboarding checklist">
+          <ul className="space-y-2">
+            {program.enrollment.checklistItems.map((item) => (
+              <li key={item} className="flex items-center gap-2 text-xs" style={{ color: C.textSecondary }}>
+                <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.accent }} />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </ProgramInfoCard>
+
+        <ProgramInfoCard label="Fees & automation">
+          <dl className="space-y-2 text-xs mb-4">
+            {[
+              ["Registration fee", `$${program.enrollment.registrationFee}`],
+              ["Auto-tag on submit", program.enrollment.autoTag],
+              ["Website CTA", program.enrollment.websiteCta],
+              ["Financial aid", program.pricing.acceptsFinancialAid ? "Accepted" : "Not offered"],
+            ].map(([k, v]) => (
+              <div key={k} className="flex justify-between gap-4">
+                <dt style={{ color: C.textTertiary }}>{k}</dt>
+                <dd className="font-medium" style={{ color: C.textPrimary }}>
+                  {v}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
+            Pipeline
+          </p>
+          <div className="flex items-end gap-1 h-16">
+            {funnelStages.map((stage, i) => {
+              const max = funnelStages[0].count;
+              const h = max > 0 ? Math.max(12, (stage.count / max) * 100) : 12;
+              return (
+                <div key={stage.label} className="flex-1 flex flex-col items-center gap-1">
+                  <div
+                    className="w-full rounded-t-sm transition-all"
+                    style={{
+                      height: `${h}%`,
+                      backgroundColor: i === funnelStages.length - 1 ? C.accent : C.accentLight,
+                      minHeight: 8,
+                    }}
+                  />
+                  <span className="text-[9px] text-center leading-tight" style={{ color: C.textTertiary }}>
+                    {stage.label}
+                  </span>
+                  <span className="text-[10px] font-semibold tabular-nums" style={{ color: C.textSecondary }}>
+                    {stage.count}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </ProgramInfoCard>
+      </div>
+    </div>
+  );
+}
+
+function ProgramPricingTab({ program }: { program: DemoProgram }) {
+  return (
+    <div className="space-y-4 overflow-y-auto pb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ProgramInfoCard label="Billing model">
+          <p className="text-2xl font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+            {formatProgramPrice(program)}
+          </p>
+          <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+            {formatBillingModel(program.pricing.billingModel)} billing
+          </p>
+        </ProgramInfoCard>
+
+        <ProgramInfoCard label="Fees">
+          <ul className="space-y-2">
+            {program.pricing.fees.map((fee) => (
+              <li key={fee.label} className="flex justify-between text-xs">
+                <span style={{ color: C.textSecondary }}>
+                  {fee.label}
+                  {fee.refundable && (
+                    <span className="ml-1" style={{ color: C.textTertiary }}>
+                      (refundable)
+                    </span>
+                  )}
+                </span>
+                <span className="font-medium tabular-nums" style={{ color: C.textPrimary }}>
+                  ${fee.amount}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </ProgramInfoCard>
+
+        <ProgramInfoCard label="Included">
+          <ul className="space-y-1.5">
+            {program.pricing.includes.map((item) => (
+              <li key={item} className="flex items-center gap-2 text-xs" style={{ color: C.textSecondary }}>
+                <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: C.success }} />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </ProgramInfoCard>
+      </div>
+
+      <ProgramInfoCard label="Payment schedule preview">
+        <div className="flex flex-wrap gap-1.5">
+          {program.pricing.paymentSchedule.map((item, i) => (
+            <span
+              key={item}
+              className="text-[10px] font-medium px-2 py-1 rounded-sm tabular-nums"
+              style={{
+                backgroundColor: i === 0 ? C.accentLight : C.elevated,
+                color: i === 0 ? C.accent : C.textSecondary,
+                border: `1px solid ${i === 0 ? C.accent : C.border}`,
+              }}
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+        <p className="text-[10px] mt-3" style={{ color: C.textTertiary }}>
+          Families see this schedule in Billing → Tuition Checklist after enrollment.
+        </p>
+      </ProgramInfoCard>
+    </div>
+  );
+}
+
+function ProgramScheduleTab({ program }: { program: DemoProgram }) {
+  return (
+    <div className="space-y-4 overflow-y-auto pb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Starts", value: program.schedule.startDate },
+          { label: "Ends", value: program.schedule.endDate },
+          { label: "Registration opens", value: program.schedule.registrationOpen },
+          { label: "Registration closes", value: program.schedule.registrationClose },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="rounded-sm p-3"
+            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          >
+            <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: C.textTertiary }}>
+              {item.label}
+            </p>
+            <p className="text-sm font-medium mt-1" style={{ color: C.textPrimary }}>
+              {item.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ProgramInfoCard label="Weekly rhythm">
+          <p className="text-sm font-medium mb-3" style={{ color: C.textPrimary }}>
+            {program.schedule.daysOfWeek}
+          </p>
+          {program.schedule.sessionNotes && (
+            <p className="text-xs mb-4" style={{ color: C.textSecondary }}>
+              {program.schedule.sessionNotes}
+            </p>
+          )}
+          <div className="space-y-2">
+            {[
+              ["Drop-off", program.schedule.dailyHours.dropOff],
+              ["Core hours", program.schedule.dailyHours.core],
+              ["Pick-up", program.schedule.dailyHours.pickUp],
+              ...(program.schedule.dailyHours.afterCare
+                ? [["After care", program.schedule.dailyHours.afterCare] as const]
+                : []),
+            ].map(([label, time]) => (
+              <div
+                key={label}
+                className="flex items-center gap-3 text-xs py-2 px-3 rounded-sm"
+                style={{ backgroundColor: C.elevated }}
+              >
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.accent }} />
+                <span className="font-medium w-20" style={{ color: C.textSecondary }}>
+                  {label}
+                </span>
+                <span style={{ color: C.textPrimary }}>{time}</span>
+              </div>
+            ))}
+          </div>
+        </ProgramInfoCard>
+
+        <div className="space-y-4">
+          {(program.schedule.minDaysPerWeek !== undefined ||
+            program.schedule.bookingCutoff) && (
+            <ProgramInfoCard label="Drop-in rules">
+              <dl className="space-y-2 text-xs">
+                {program.schedule.minDaysPerWeek !== undefined && (
+                  <div className="flex justify-between">
+                    <dt style={{ color: C.textTertiary }}>Days per week</dt>
+                    <dd style={{ color: C.textPrimary }}>
+                      {program.schedule.minDaysPerWeek} – {program.schedule.maxDaysPerWeek}
+                    </dd>
+                  </div>
+                )}
+                {program.schedule.bookingCutoff && (
+                  <div className="flex justify-between">
+                    <dt style={{ color: C.textTertiary }}>Booking cutoff</dt>
+                    <dd style={{ color: C.textPrimary }}>{program.schedule.bookingCutoff}</dd>
+                  </div>
+                )}
+              </dl>
+            </ProgramInfoCard>
+          )}
+
+          {program.schedule.breaks && program.schedule.breaks.length > 0 && (
+            <ProgramInfoCard label="Breaks & no-school days">
+              <ul className="space-y-2">
+                {program.schedule.breaks.map((b) => (
+                  <li key={b} className="flex items-center gap-2 text-xs" style={{ color: C.textSecondary }}>
+                    <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.warning }} />
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            </ProgramInfoCard>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProgramStaffTab({ program }: { program: DemoProgram }) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-y-auto pb-4">
+      {program.teachers.map((teacher) => {
+        const pct = teacher.capacity
+          ? Math.round((teacher.studentIds.length / teacher.capacity) * 100)
+          : 0;
+        const isFull = teacher.capacity ? teacher.studentIds.length >= teacher.capacity : false;
+        return (
+          <div
+            key={teacher.id}
+            className="rounded-sm p-4"
+            style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                style={{ backgroundColor: C.accentLight, color: C.accent }}
+              >
+                {teacher.initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                  {teacher.name}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+                  {teacher.classroom}
+                </p>
+              </div>
+              <span
+                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: isFull ? C.warningBg : C.successBg,
+                  color: isFull ? C.warning : C.success,
+                }}
+              >
+                {teacher.studentIds.length}
+                {teacher.capacity ? ` / ${teacher.capacity}` : ""} students
+              </span>
+            </div>
+            {teacher.capacity && (
+              <div>
+                <div
+                  className="h-1.5 rounded-full overflow-hidden"
+                  style={{ backgroundColor: C.elevated }}
+                >
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(pct, 100)}%`,
+                      backgroundColor: isFull ? C.warning : C.accent,
+                    }}
+                  />
+                </div>
+                <p className="text-[10px] mt-1" style={{ color: C.textTertiary }}>
+                  {pct}% capacity
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProgramRosterTab({
+  program,
+  activeTeacherId,
+  onTeacherChange,
+  onSelectStudent,
+}: {
+  program: DemoProgram;
+  activeTeacherId: string;
+  onTeacherChange: (id: string) => void;
+  onSelectStudent: (student: DemoStudent) => void;
+}) {
+  const activeTeacher =
+    program.teachers.find((t) => t.id === activeTeacherId) ?? program.teachers[0];
+  const teacherStudents = activeTeacher.studentIds
+    .map((id) => DEMO_STUDENTS_P2.find((s) => s.id === id))
+    .filter(Boolean) as DemoStudent[];
+  const enrolled = getProgramEnrolledCount(program);
+
+  return (
+    <div className="flex flex-col min-h-0 flex-1">
+      <div className="flex items-center gap-2 mb-4 flex-wrap flex-shrink-0">
+        {[
+          { label: "Enrolled", value: enrolled, color: C.success },
+          {
+            label: "Waitlisted",
+            value: program.eligibility.waitlistCount,
+            color: C.warning,
+          },
+          {
+            label: "Capacity",
+            value: program.eligibility.capacity,
+            color: C.textTertiary,
+          },
+        ].map((chip) => (
+          <span
+            key={chip.label}
+            className="text-[10px] font-medium px-2.5 py-1 rounded-full"
+            style={{
+              backgroundColor: C.elevated,
+              color: chip.color,
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            {chip.label}: {chip.value}
+          </span>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 mb-4 flex-wrap flex-shrink-0">
+        {program.teachers.map((teacher) => {
+          const active = activeTeacherId === teacher.id;
+          return (
+            <button
+              key={teacher.id}
+              type="button"
+              onClick={() => onTeacherChange(teacher.id)}
+              className="flex items-center gap-2 px-3 py-2 rounded-sm text-xs font-medium transition-all"
+              style={{
+                backgroundColor: active ? C.accentLight : C.elevated,
+                border: `1px solid ${active ? C.accent : C.border}`,
+                color: active ? C.accent : C.textSecondary,
+              }}
+            >
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                style={{
+                  backgroundColor: active ? C.accent : C.border,
+                  color: active ? "#fff" : C.textTertiary,
+                }}
+              >
+                {teacher.initials}
+              </div>
+              <div className="text-left">
+                <p>{teacher.name}</p>
+                <p className="text-[10px] opacity-70">{teacher.classroom}</p>
+              </div>
+              <span
+                className="ml-1 tabular-nums"
+                style={{ color: active ? C.accentDark : C.textTertiary }}
+              >
+                {teacher.studentIds.length}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTeacherId}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="grid gap-3 overflow-y-auto pb-4"
+          style={{
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          }}
+        >
+          {teacherStudents.map((student, i) => (
+            <motion.div
+              key={student.id}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.05 }}
+              onClick={() => onSelectStudent(student)}
+              className="cursor-pointer rounded-sm p-4 flex flex-col items-center text-center transition-colors"
+              style={{
+                backgroundColor: C.surface,
+                border: `1px solid ${C.border}`,
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.borderColor = C.borderStrong)
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.borderColor = C.border)
+              }
+            >
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold mb-3"
+                style={{
+                  backgroundColor: student.color + "22",
+                  color: student.color,
+                }}
+              >
+                {student.initials}
+              </div>
+              <p
+                className="text-sm font-semibold leading-tight mb-1"
+                style={{ color: C.textPrimary }}
+              >
+                {student.name}
+              </p>
+              <p className="text-xs" style={{ color: C.textTertiary }}>
+                {student.grade}
+              </p>
+              <p
+                className="text-[10px] mt-0.5"
+                style={{ color: C.textTertiary }}
+              >
+                {student.dob}
+              </p>
+              {HEALTH_FLAGS.some((f) => student[f.key]) && (
+                <div className="flex items-center gap-1 mt-2">
+                  {HEALTH_FLAGS.filter((f) => student[f.key]).map((f) => (
+                    <span
+                      key={f.key}
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: f.color }}
+                      title={f.label}
+                    />
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          ))}
+          {teacherStudents.length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <p className="text-sm" style={{ color: C.textTertiary }}>
+                No students assigned
+              </p>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ProgramListRail({
+  activeProgramId,
+  onSelect,
+}: {
+  activeProgramId: string;
+  onSelect: (prog: DemoProgram) => void;
+}) {
+  return (
+    <div
+      className="w-[180px] flex-shrink-0 flex flex-col gap-1 pt-1 overflow-y-auto"
+      style={{ borderRight: `1px solid ${C.border}` }}
+    >
+      <p
+        className="text-[10px] font-semibold uppercase tracking-widest px-3 mb-2"
+        style={{ color: C.textTertiary }}
+      >
+        Programs
+      </p>
+      {DEMO_PROGRAMS_P2.map((prog) => {
+        const active = activeProgramId === prog.id;
+        const enrolled = getProgramEnrolledCount(prog);
+        const statusStyle = PROGRAM_STATUS_STYLES[prog.status];
+        const typeLabel = PROGRAM_TYPE_LABELS[prog.type];
+        return (
+          <button
+            key={prog.id}
+            type="button"
+            onClick={() => onSelect(prog)}
+            className="w-full text-left px-3 py-2.5 rounded-sm text-xs font-medium transition-all mx-1"
+            style={{
+              backgroundColor: active ? C.accentLight : "transparent",
+              color: active ? C.accent : C.textSecondary,
+              borderLeft: `2px solid ${active ? C.accent : "transparent"}`,
+            }}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <span
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: statusStyle.text }}
+                title={statusStyle.label}
+              />
+              <span className="truncate font-semibold">{prog.name}</span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap pl-3">
+              <span
+                className="text-[9px] font-medium px-1.5 py-0.5 rounded-full"
+                style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+              >
+                {typeLabel}
+              </span>
+              <span className="text-[10px] tabular-nums" style={{ color: C.textTertiary }}>
+                {enrolled}/{prog.eligibility.capacity}
+              </span>
+            </div>
+          </button>
+        );
+      })}
+      <div className="px-3 pt-2 mt-auto pb-3">
+        <DemoButton variant="ghost" className="w-full justify-center text-xs">
+          <Plus className="w-3.5 h-3.5" />
+          Add Program
+        </DemoButton>
+      </div>
+    </div>
+  );
+}
+
 function ProgramsPage() {
   const [activeProgram, setActiveProgram] = useState<DemoProgram>(
     DEMO_PROGRAMS_P2[0],
   );
+  const [activeTab, setActiveTab] = useState<ProgramTabId>("overview");
   const [activeTeacherId, setActiveTeacherId] = useState(
     DEMO_PROGRAMS_P2[0].teachers[0].id,
   );
@@ -8318,190 +9387,113 @@ function ProgramsPage() {
     null,
   );
 
-  const activeTeacher =
-    activeProgram.teachers.find((t) => t.id === activeTeacherId) ??
-    activeProgram.teachers[0];
-  const teacherStudents = activeTeacher.studentIds
-    .map((id) => DEMO_STUDENTS_P2.find((s) => s.id === id))
-    .filter(Boolean) as DemoStudent[];
-  const totalStudents = activeProgram.teachers.reduce(
-    (sum, t) => sum + t.studentIds.length,
-    0,
-  );
+  const enrolled = getProgramEnrolledCount(activeProgram);
+  const statusStyle = PROGRAM_STATUS_STYLES[activeProgram.status];
 
   const switchProgram = (prog: DemoProgram) => {
     setActiveProgram(prog);
     setActiveTeacherId(prog.teachers[0].id);
     setSelectedStudent(null);
+    setActiveTab("overview");
   };
 
   return (
-    <div className="h-full flex gap-4 relative">
-      {/* Left sub-nav */}
-      <div className="w-44 flex-shrink-0 flex flex-col gap-1 pt-1">
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest px-3 mb-2"
-          style={{ color: C.textTertiary }}
-        >
-          Programs
-        </p>
-        {DEMO_PROGRAMS_P2.map((prog) => {
-          const active = activeProgram.id === prog.id;
-          const count = prog.teachers.reduce(
-            (s, t) => s + t.studentIds.length,
-            0,
-          );
-          return (
-            <button
-              key={prog.id}
-              onClick={() => switchProgram(prog)}
-              className="w-full text-left px-3 py-2.5 rounded-sm text-xs font-medium transition-all"
-              style={{
-                backgroundColor: active ? C.accentLight : "transparent",
-                color: active ? C.accent : C.textSecondary,
-                borderLeft: `2px solid ${active ? C.accent : "transparent"}`,
-              }}
-            >
-              <span className="block truncate">{prog.name}</span>
-              <span
-                className="text-[10px]"
-                style={{ color: active ? C.accentDark : C.textTertiary }}
-              >
-                {count} students
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    <div className="h-full flex relative overflow-hidden">
+      <ProgramListRail
+        activeProgramId={activeProgram.id}
+        onSelect={switchProgram}
+      />
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 p-4">
-        <PageHeader
-          icon="📚"
-          title={activeProgram.name}
-          subtitle={`${totalStudents} students enrolled`}
-          tip="Group students by program and session. Switch programs on the left, then pick a teacher tab to see their class roster."
-          className="mb-4"
-        />
-
-        {/* Teacher tabs */}
-        <div className="flex items-center gap-2 mb-5 flex-wrap">
-          {activeProgram.teachers.map((teacher) => {
-            const active = activeTeacherId === teacher.id;
-            return (
-              <button
-                key={teacher.id}
-                onClick={() => setActiveTeacherId(teacher.id)}
-                className="flex items-center gap-2 px-3 py-2 rounded-sm text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: active ? C.accentLight : C.elevated,
-                  border: `1px solid ${active ? C.accent : C.border}`,
-                  color: active ? C.accent : C.textSecondary,
-                }}
-              >
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                  style={{
-                    backgroundColor: active ? C.accent : C.border,
-                    color: active ? "#fff" : C.textTertiary,
-                  }}
-                >
-                  {teacher.initials}
-                </div>
-                <div className="text-left">
-                  <p>{teacher.name}</p>
-                  <p className="text-[10px] opacity-70">{teacher.classroom}</p>
-                </div>
-                <span
-                  className="ml-1 tabular-nums"
-                  style={{ color: active ? C.accentDark : C.textTertiary }}
-                >
-                  {teacher.studentIds.length}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Student grid */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTeacherId}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="grid gap-3"
-            style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            }}
-          >
-            {teacherStudents.map((student, i) => (
-              <motion.div
-                key={student.id}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => setSelectedStudent(student)}
-                className="cursor-pointer rounded-sm p-4 flex flex-col items-center text-center transition-colors"
-                style={{
-                  backgroundColor: C.surface,
-                  border: `1px solid ${C.border}`,
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.borderColor = C.borderStrong)
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.borderColor = C.border)
-                }
-              >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold mb-3"
-                  style={{
-                    backgroundColor: student.color + "22",
-                    color: student.color,
-                  }}
-                >
-                  {student.initials}
-                </div>
-                <p
-                  className="text-sm font-semibold leading-tight mb-1"
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex-shrink-0 px-5 pt-4 pb-0">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1
+                  className="text-xl font-semibold tracking-tight"
                   style={{ color: C.textPrimary }}
                 >
-                  {student.name}
-                </p>
-                <p className="text-xs" style={{ color: C.textTertiary }}>
-                  {student.grade}
-                </p>
-                <p
-                  className="text-[10px] mt-0.5"
-                  style={{ color: C.textTertiary }}
+                  {activeProgram.name}
+                </h1>
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide"
+                  style={{
+                    backgroundColor: statusStyle.bg,
+                    color: statusStyle.text,
+                  }}
                 >
-                  {student.dob}
-                </p>
-                {HEALTH_FLAGS.some((f) => student[f.key]) && (
-                  <div className="flex items-center gap-1 mt-2">
-                    {HEALTH_FLAGS.filter((f) => student[f.key]).map((f) => (
-                      <span
-                        key={f.key}
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: f.color }}
-                        title={f.label}
-                      />
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            ))}
-            {teacherStudents.length === 0 && (
-              <div className="col-span-full text-center py-12">
-                <p className="text-sm" style={{ color: C.textTertiary }}>
-                  No students assigned
-                </p>
+                  {statusStyle.label}
+                </span>
+                <span
+                  className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: C.accentLight, color: C.accent }}
+                >
+                  {PROGRAM_TYPE_LABELS[activeProgram.type]}
+                </span>
               </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+              <p className="text-sm mt-1" style={{ color: C.textTertiary }}>
+                {enrolled} enrolled · {formatProgramPrice(activeProgram)} ·{" "}
+                {activeProgram.schedule.daysOfWeek}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <DemoButton variant="secondary" className="text-xs">
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </DemoButton>
+            </div>
+          </div>
+
+          <div
+            className="flex items-center gap-1 overflow-x-auto pb-0 -mb-px"
+            style={{ borderBottom: `1px solid ${C.border}` }}
+          >
+            {PROGRAM_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className="px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors"
+                  style={{
+                    color: isActive ? C.accent : C.textSecondary,
+                    borderBottom: isActive
+                      ? `2px solid ${C.accent}`
+                      : "2px solid transparent",
+                    marginBottom: -1,
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-hidden px-5 pt-4">
+          {activeTab === "overview" && (
+            <ProgramOverviewTab program={activeProgram} />
+          )}
+          {activeTab === "enrollment" && (
+            <ProgramEnrollmentTab program={activeProgram} />
+          )}
+          {activeTab === "pricing" && (
+            <ProgramPricingTab program={activeProgram} />
+          )}
+          {activeTab === "schedule" && (
+            <ProgramScheduleTab program={activeProgram} />
+          )}
+          {activeTab === "staff" && <ProgramStaffTab program={activeProgram} />}
+          {activeTab === "roster" && (
+            <ProgramRosterTab
+              program={activeProgram}
+              activeTeacherId={activeTeacherId}
+              onTeacherChange={setActiveTeacherId}
+              onSelectStudent={setSelectedStudent}
+            />
+          )}
+        </div>
       </div>
 
       <AnimatePresence>
