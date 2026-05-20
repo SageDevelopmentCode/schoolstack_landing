@@ -12493,6 +12493,8 @@ type AutomationPipeline = {
   audienceColor: string;
 };
 
+type AutomationFilter = "all" | AutomationPipeline["status"];
+
 type WizardState = {
   step: 1 | 2 | 3 | 4 | 5;
   templateId: string | null;
@@ -13902,21 +13904,25 @@ function TuitionPage({
               label: "Outstanding balance",
               value: fmt(kpis.outstandingBalance),
               color: kpis.outstandingBalance > 0 ? C.error : C.success,
+              icon: <DollarSign className="w-3.5 h-3.5" />,
             },
             {
               label: "Due this week",
               value: `${kpis.dueThisWeekCount} · ${fmt(kpis.dueThisWeekAmount)}`,
               color: C.warning,
+              icon: <CalendarDays className="w-3.5 h-3.5" />,
             },
             {
               label: "Collected this month",
               value: fmt(kpis.collectedThisMonth),
               color: C.success,
+              icon: <CheckCircle className="w-3.5 h-3.5" />,
             },
             {
               label: "At-risk families",
               value: String(kpis.atRiskFamilies),
               color: kpis.atRiskFamilies > 0 ? C.error : C.success,
+              icon: <AlertCircle className="w-3.5 h-3.5" />,
             },
           ].map((s) => (
             <div
@@ -13928,12 +13934,18 @@ function TuitionPage({
                 boxShadow: C.shadowCard,
               }}
             >
-              <p
-                className="text-[10px] font-medium mb-1"
-                style={{ color: C.textTertiary }}
+              <div
+                className="flex items-center gap-1.5 mb-1"
+                style={{ color: s.color }}
               >
-                {s.label}
-              </p>
+                {s.icon}
+                <p
+                  className="text-[10px] font-medium"
+                  style={{ color: C.textTertiary }}
+                >
+                  {s.label}
+                </p>
+              </div>
               <p
                 className="text-lg font-bold tabular-nums"
                 style={{ color: s.color }}
@@ -19216,10 +19228,30 @@ function BudgetPage({
           >
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                { label: "Total Revenue", value: "$47,320", color: C.success },
-                { label: "Total Expenses", value: "$31,840", color: C.error },
-                { label: "Net Profit", value: "$15,480", color: C.accent },
-                { label: "Burn Rate", value: "$2,653/mo", color: C.warning },
+                {
+                  label: "Total Revenue",
+                  value: "$47,320",
+                  color: C.success,
+                  icon: <DollarSign className="w-3.5 h-3.5" />,
+                },
+                {
+                  label: "Total Expenses",
+                  value: "$31,840",
+                  color: C.error,
+                  icon: <Wallet className="w-3.5 h-3.5" />,
+                },
+                {
+                  label: "Net Profit",
+                  value: "$15,480",
+                  color: C.accent,
+                  icon: <TrendingUp className="w-3.5 h-3.5" />,
+                },
+                {
+                  label: "Burn Rate",
+                  value: "$2,653/mo",
+                  color: C.warning,
+                  icon: <Timer className="w-3.5 h-3.5" />,
+                },
               ].map((s, i) => (
                 <motion.div
                   key={s.label}
@@ -19232,12 +19264,18 @@ function BudgetPage({
                     border: `1px solid ${C.border}`,
                   }}
                 >
-                  <p
-                    className="text-xs font-medium mb-2"
-                    style={{ color: C.textTertiary }}
+                  <div
+                    className="flex items-center gap-1.5 mb-2"
+                    style={{ color: s.color }}
                   >
-                    {s.label}
-                  </p>
+                    {s.icon}
+                    <p
+                      className="text-xs font-medium"
+                      style={{ color: C.textTertiary }}
+                    >
+                      {s.label}
+                    </p>
+                  </div>
                   <p
                     className="text-2xl font-bold tabular-nums"
                     style={{ color: s.color }}
@@ -20207,348 +20245,6 @@ const WIZARD_INITIAL_STATE: WizardState = {
   launched: false,
 };
 
-// ─── Marketplace page ──────────────────────────────────────────────────────────
-
-type MarketplaceCategory = "documents" | "curriculum" | "policies" | "communications" | "assessments";
-
-type MarketplaceListing = {
-  id: string;
-  title: string;
-  description: string;
-  school: string;
-  category: MarketplaceCategory;
-  rating: number;
-  uses: number;
-  free: boolean;
-  price?: number;
-  tags: string[];
-  formType: FormType;
-};
-
-const MARKETPLACE_CATEGORY_META: {
-  key: MarketplaceCategory | "all";
-  label: string;
-  icon: React.ReactNode;
-  color: string;
-}[] = [
-  { key: "all",            label: "All",              icon: <Layers className="w-3.5 h-3.5" />,       color: "#5E7C68" },
-  { key: "documents",      label: "Documents & Forms", icon: <ClipboardList className="w-3.5 h-3.5" />, color: "#38BDF8" },
-  { key: "curriculum",     label: "Curriculum",        icon: <BookOpen className="w-3.5 h-3.5" />,      color: "#8B5CF6" },
-  { key: "policies",       label: "Policies",          icon: <Shield className="w-3.5 h-3.5" />,        color: "#F59E0B" },
-  { key: "communications", label: "Communications",    icon: <Mail className="w-3.5 h-3.5" />,          color: "#EF4444" },
-  { key: "assessments",    label: "Assessments",       icon: <BarChart2 className="w-3.5 h-3.5" />,     color: "#22C55E" },
-];
-
-const CATEGORY_COLOR: Record<MarketplaceCategory, string> = {
-  documents:      "#38BDF8",
-  curriculum:     "#8B5CF6",
-  policies:       "#F59E0B",
-  communications: "#EF4444",
-  assessments:    "#22C55E",
-};
-
-const CATEGORY_FORM_TYPE: Record<MarketplaceCategory, FormType> = {
-  documents:      "enrollment",
-  curriculum:     "media",
-  policies:       "financial",
-  communications: "health",
-  assessments:    "permission",
-};
-
-const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
-  // Documents & Forms
-  {
-    id: "m1", title: "Enrollment Agreement 2025–26",
-    description: "Comprehensive enrollment contract covering tuition, schedule, policies, and guardian acknowledgment. Editable in Google Docs.",
-    school: "Acorn Microschool", category: "documents", rating: 4.9, uses: 134, free: true,
-    tags: ["enrollment", "contract", "editable"], formType: "enrollment",
-  },
-  {
-    id: "m2", title: "Health & Emergency Information Form",
-    description: "Complete health intake form with allergy fields, emergency contacts, medication authorization, and physician info.",
-    school: "Little Sprouts Academy", category: "documents", rating: 4.8, uses: 98, free: true,
-    tags: ["health", "emergency", "intake"], formType: "health",
-  },
-  {
-    id: "m3", title: "Field Trip Blanket Permission",
-    description: "A single blanket permission form covering all outings for the school year. Reduces paperwork per trip significantly.",
-    school: "Cedar Path School", category: "documents", rating: 4.7, uses: 87, free: true,
-    tags: ["permission", "field trips", "annual"], formType: "permission",
-  },
-  {
-    id: "m4", title: "Tuition Authorization & Payment Plan",
-    description: "ACH/card authorization form with monthly payment plan options, late fee disclosures, and refund policy.",
-    school: "Wildwood Learning Co.", category: "documents", rating: 4.6, uses: 61, free: false, price: 4,
-    tags: ["tuition", "billing", "payment"], formType: "financial",
-  },
-  {
-    id: "m5", title: "Media Release & Photo Consent",
-    description: "Covers photography, video, and social media use. Includes opt-out clause and internal-only vs. public-facing options.",
-    school: "Stonegate Learning", category: "documents", rating: 4.8, uses: 79, free: true,
-    tags: ["media", "consent", "photos"], formType: "media",
-  },
-
-  // Curriculum
-  {
-    id: "m6", title: "Montessori Nature Journaling Unit (6 Weeks)",
-    description: "Full 6-week outdoor science and writing unit for ages 5–10. Includes daily prompts, observation sheets, and family extensions.",
-    school: "Fern Valley Micro", category: "curriculum", rating: 4.9, uses: 56, free: false, price: 12,
-    tags: ["montessori", "science", "nature", "writing"], formType: "media",
-  },
-  {
-    id: "m7", title: "Community Helpers Project-Based Unit",
-    description: "3-week PBL unit exploring community roles. Includes field trip guides, interview templates, and a capstone presentation.",
-    school: "Meadow Path School", category: "curriculum", rating: 4.7, uses: 43, free: false, price: 8,
-    tags: ["PBL", "social studies", "K–3"], formType: "media",
-  },
-  {
-    id: "m8", title: "Seasonal Math Games Bundle (Fall)",
-    description: "15 hands-on math games for mixed ages 4–8. Covers counting, patterns, and early addition. Print-and-play format.",
-    school: "Acorn Microschool", category: "curriculum", rating: 4.8, uses: 72, free: false, price: 6,
-    tags: ["math", "games", "mixed-age"], formType: "media",
-  },
-
-  // Policies
-  {
-    id: "m9", title: "Parent Handbook Template (Fully Editable)",
-    description: "50-page editable handbook covering school philosophy, daily schedule, discipline, communication, and health policies.",
-    school: "Cedar Path School", category: "policies", rating: 4.9, uses: 118, free: false, price: 15,
-    tags: ["handbook", "policies", "editable"], formType: "financial",
-  },
-  {
-    id: "m10", title: "Technology & Screen Time Policy",
-    description: "Clear policy template covering personal devices, school technology use, and family screen agreements. One-page parent-facing version included.",
-    school: "Little Sprouts Academy", category: "policies", rating: 4.6, uses: 49, free: true,
-    tags: ["technology", "screens", "devices"], formType: "financial",
-  },
-  {
-    id: "m11", title: "Discipline & Conflict Resolution Framework",
-    description: "Restorative-practice-based discipline policy with language scripts for educators and family communication templates.",
-    school: "Wildwood Learning Co.", category: "policies", rating: 4.8, uses: 63, free: false, price: 9,
-    tags: ["discipline", "restorative", "behavior"], formType: "financial",
-  },
-
-  // Communications
-  {
-    id: "m12", title: "End-of-Week Family Update Template",
-    description: "Structured weekly newsletter format with sections for curriculum recap, upcoming dates, spotlight, and photos. Works in email or print.",
-    school: "Stonegate Learning", category: "communications", rating: 4.9, uses: 91, free: true,
-    tags: ["newsletter", "weekly", "template"], formType: "health",
-  },
-  {
-    id: "m13", title: "Difficult Conversation Script Kit",
-    description: "10 ready-to-use email + in-person scripts for: billing issues, behavioral concerns, learning struggles, and family conflicts.",
-    school: "Fern Valley Micro", category: "communications", rating: 4.8, uses: 55, free: false, price: 7,
-    tags: ["scripts", "email", "conflict"], formType: "health",
-  },
-  {
-    id: "m14", title: "Tour Follow-Up Email Sequence (3 Emails)",
-    description: "Conversion-focused 3-email sequence to send after a prospective family tour. Includes day-1, day-3, and day-7 versions.",
-    school: "Acorn Microschool", category: "communications", rating: 4.7, uses: 68, free: false, price: 5,
-    tags: ["leads", "email", "conversion"], formType: "health",
-  },
-
-  // Assessments
-  {
-    id: "m15", title: "Kindergarten Developmental Checklist",
-    description: "Comprehensive K readiness and ongoing development checklist aligned to developmental milestones. Includes teacher and parent versions.",
-    school: "Meadow Path School", category: "assessments", rating: 4.9, uses: 82, free: true,
-    tags: ["kindergarten", "development", "checklist"], formType: "permission",
-  },
-  {
-    id: "m16", title: "Student Portfolio Framework & Rubrics",
-    description: "Complete portfolio system with collection guides, reflection prompts, and presentation rubrics for ages 5–14.",
-    school: "Cedar Path School", category: "assessments", rating: 4.7, uses: 47, free: false, price: 10,
-    tags: ["portfolio", "rubrics", "reflection"], formType: "permission",
-  },
-  {
-    id: "m17", title: "Monthly Progress Report Template",
-    description: "Narrative-focused progress report replacing letter grades. Covers academic growth, social-emotional development, and goals.",
-    school: "Little Sprouts Academy", category: "assessments", rating: 4.8, uses: 74, free: false, price: 6,
-    tags: ["progress report", "narrative", "monthly"], formType: "permission",
-  },
-];
-
-function MarketplacePage() {
-  const [activeCategory, setActiveCategory] = useState<MarketplaceCategory | "all">("all");
-  const [search, setSearch] = useState("");
-
-  const filtered = MARKETPLACE_LISTINGS.filter((l) => {
-    const matchCat = activeCategory === "all" || l.category === activeCategory;
-    const q = search.toLowerCase();
-    const matchSearch = q === "" || l.title.toLowerCase().includes(q) || l.school.toLowerCase().includes(q) || l.tags.some((t) => t.includes(q));
-    return matchCat && matchSearch;
-  });
-
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
-        <PageHeader
-          icon="🛒"
-          title="Marketplace"
-          subtitle="Resources shared by the microschool community"
-          tip="Browse forms, templates, and guides from other schools. Search or filter by category, then click Use to add one to your school."
-          action={
-            <DemoButton variant="secondary">
-              <Plus className="w-4 h-4" />
-              Share a Resource
-            </DemoButton>
-          }
-          className="mb-0"
-        />
-      </div>
-
-      {/* Filters */}
-      <div
-        className="flex items-center gap-2 px-6 py-3 flex-shrink-0 flex-wrap"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        {/* Category pills */}
-        <div className="flex items-center gap-1.5 flex-wrap flex-1">
-          {MARKETPLACE_CATEGORY_META.map((cat) => {
-            const isActive = activeCategory === cat.key;
-            return (
-              <button
-                key={cat.key}
-                onClick={() => setActiveCategory(cat.key as MarketplaceCategory | "all")}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
-                style={{
-                  ...(isActive
-                    ? {
-                        backgroundColor: cat.color + "20",
-                        color: cat.color,
-                        border: `1px solid ${cat.color}60`,
-                      }
-                    : demoInactivePillStyle()),
-                }}
-              >
-                {cat.icon}
-                {cat.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Search */}
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-sm flex-shrink-0"
-          style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
-        >
-          <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search resources..."
-            className="bg-transparent border-none outline-none text-xs"
-            style={{ color: C.textPrimary, width: 160 }}
-          />
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 gap-2">
-            <p className="text-sm font-medium" style={{ color: C.textTertiary }}>No resources found</p>
-            <p className="text-xs" style={{ color: C.textQuaternary }}>Try adjusting your search or category</p>
-          </div>
-        ) : (
-          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
-            {filtered.map((listing, i) => {
-              const color = CATEGORY_COLOR[listing.category];
-              return (
-                <motion.div
-                  key={listing.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="rounded-sm overflow-hidden flex flex-col"
-                  style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
-                >
-                  {/* Doc preview area */}
-                  <div
-                    className="flex items-center justify-center py-4"
-                    style={{ backgroundColor: C.bg }}
-                  >
-                    <FormDocPreview formType={listing.formType} size="md" />
-                  </div>
-
-                  {/* Card body */}
-                  <div className="p-3 flex flex-col gap-2 flex-1">
-                    {/* Category badge */}
-                    <span
-                      className="self-start px-1.5 py-0.5 rounded-full text-[9px] font-semibold capitalize"
-                      style={{ backgroundColor: color + "18", color, border: `1px solid ${color}44` }}
-                    >
-                      {MARKETPLACE_CATEGORY_META.find((c) => c.key === listing.category)?.label ?? listing.category}
-                    </span>
-
-                    {/* Title */}
-                    <p className="text-xs font-semibold leading-tight" style={{ color: C.textPrimary }}>
-                      {listing.title}
-                    </p>
-
-                    {/* Description */}
-                    <p className="text-[10px] leading-relaxed line-clamp-2" style={{ color: C.textTertiary }}>
-                      {listing.description}
-                    </p>
-
-                    {/* School */}
-                    <p className="text-[10px]" style={{ color: C.textTertiary }}>
-                      by <span style={{ color: C.textSecondary }}>{listing.school}</span>
-                    </p>
-
-                    {/* Rating + uses */}
-                    <div className="flex items-center gap-1">
-                      <Star className="w-3 h-3" style={{ color: C.warning }} />
-                      <span className="text-[10px] font-medium" style={{ color: C.textSecondary }}>
-                        {listing.rating}
-                      </span>
-                      <span className="text-[10px]" style={{ color: C.textTertiary }}>
-                        · {listing.uses} uses
-                      </span>
-                    </div>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-1">
-                      {listing.tags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-1.5 py-0.5 rounded text-[8px] font-medium"
-                          style={{ backgroundColor: C.surface, color: C.textTertiary, border: `1px solid ${C.border}` }}
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Price + action */}
-                    <div className="flex items-center justify-between mt-auto pt-1">
-                      {listing.free ? (
-                        <span className="text-[10px] font-semibold" style={{ color: C.success }}>Free</span>
-                      ) : (
-                        <span className="text-[10px] font-semibold" style={{ color: C.textPrimary }}>
-                          ${listing.price}
-                        </span>
-                      )}
-                      <button
-                        className="px-2.5 py-1 rounded-sm text-[10px] font-semibold"
-                        style={{ backgroundColor: color + "20", color, border: `1px solid ${color}50` }}
-                      >
-                        {listing.free ? "Use Free" : "Get"}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function MarketingPage() {
   const [filter, setFilter] = useState<AutomationFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -20599,89 +20295,125 @@ function MarketingPage() {
   ];
 
   const KPI_STATS = [
-    { label: "Active Pipelines", value: totalActive, color: C.success },
-    { label: "Total Sent", value: totalSent.toLocaleString(), color: C.info },
-    { label: "Avg Open Rate", value: `${avgOpenRate}%`, color: C.accent },
+    {
+      label: "Active Pipelines",
+      value: totalActive,
+      color: C.success,
+      icon: <Zap className="w-3.5 h-3.5" />,
+    },
+    {
+      label: "Total Sent",
+      value: totalSent.toLocaleString(),
+      color: C.info,
+      icon: <Send className="w-3.5 h-3.5" />,
+    },
+    {
+      label: "Avg Open Rate",
+      value: `${avgOpenRate}%`,
+      color: C.accent,
+      icon: <Eye className="w-3.5 h-3.5" />,
+    },
     {
       label: "Conversions",
       value: totalConversions,
       color: C.purple,
+      icon: <TrendingUp className="w-3.5 h-3.5" />,
     },
   ];
 
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-5 pb-4 flex-shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
-        <PageHeader
-          icon="📣"
-          title="Automation Pipelines"
-          subtitle="Automated email & SMS sequences for leads and families"
-          tip="Set up once, runs while you teach — welcome emails, tour reminders, and follow-ups go out automatically. Click + New Automation to build your first sequence."
-          action={
-            <DemoButton onClick={() => { setWizardState(WIZARD_INITIAL_STATE); setIsCreating(true); }}>
-              <span className="text-base leading-none">+</span> New Automation
-            </DemoButton>
-          }
-          className="mb-0"
-        />
-      </div>
+  const openWizard = () => {
+    setWizardState(WIZARD_INITIAL_STATE);
+    setIsCreating(true);
+  };
 
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+  return (
+    <div
+      className="h-full flex flex-col overflow-hidden"
+      style={{ backgroundColor: C.bg }}
+    >
+      <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
         {/* KPI row — grid view only */}
         {!selected && (
           <>
-          <FeatureTip text="These numbers show how your automations are performing — open rates and conversions tell you what's working." />
-          <div className="grid grid-cols-4 gap-3">
-            {KPI_STATS.map((s) => (
-              <div
-                key={s.label}
-                className="rounded-md p-3"
-                style={{
-                  backgroundColor: C.surface,
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                <p
-                  className="text-xs font-medium mb-1.5"
-                  style={{ color: C.textTertiary }}
+            <div className="px-6 pt-5 pb-4 flex-shrink-0">
+              <FeatureTip text="These numbers show how your automations are performing — open rates and conversions tell you what's working." />
+            </div>
+            <div
+              className="flex flex-shrink-0"
+              style={{
+                borderTop: `1px solid ${C.border}`,
+                borderBottom: `1px solid ${C.border}`,
+              }}
+            >
+              {KPI_STATS.map((s, i) => (
+                <div
+                  key={s.label}
+                  className="flex-1 px-6 py-3"
+                  style={{
+                    borderRight:
+                      i < KPI_STATS.length - 1
+                        ? `1px solid ${C.border}`
+                        : undefined,
+                  }}
                 >
-                  {s.label}
-                </p>
-                <p
-                  className="text-2xl font-bold tabular-nums"
-                  style={{ color: s.color }}
-                >
-                  {s.value}
-                </p>
-              </div>
-            ))}
-          </div>
+                  <div
+                    className="flex items-center gap-1.5 mb-1"
+                    style={{ color: s.color }}
+                  >
+                    {s.icon}
+                    <p
+                      className="text-xs font-medium"
+                      style={{ color: C.textTertiary }}
+                    >
+                      {s.label}
+                    </p>
+                  </div>
+                  <p
+                    className="text-2xl font-bold tabular-nums"
+                    style={{ color: s.color }}
+                  >
+                    {s.value}
+                  </p>
+                </div>
+              ))}
+            </div>
           </>
         )}
 
-        {/* Filter chips — grid view only */}
+        {/* Filter toolbar — grid view only */}
         {!selected && (
-          <div className="flex items-center gap-2">
+          <div
+            className="sticky top-0 z-10 flex items-center gap-2 px-6 py-3 flex-shrink-0"
+            style={{
+              borderBottom: `1px solid ${C.border}`,
+              backgroundColor: C.bg,
+            }}
+          >
             {FILTER_OPTIONS.map((f) => (
               <button
                 key={f.key}
-                onClick={() => { setFilter(f.key); setSelectedId(null); }}
+                onClick={() => {
+                  setFilter(f.key);
+                  setSelectedId(null);
+                }}
                 className="px-3 py-1 text-xs font-medium rounded-full transition-all"
                 style={demoSolidPillStyle(filter === f.key)}
               >
                 {f.label}
               </button>
             ))}
-            <span
-              className="ml-auto text-xs"
-              style={{ color: C.textTertiary }}
-            >
-              {filtered.length} pipeline{filtered.length !== 1 ? "s" : ""}
-            </span>
+            <div className="ml-auto flex items-center gap-3">
+              <span className="text-xs" style={{ color: C.textTertiary }}>
+                {filtered.length} pipeline{filtered.length !== 1 ? "s" : ""}
+              </span>
+              <DemoButton onClick={openWizard}>
+                <span className="text-base leading-none">+</span> New Automation
+              </DemoButton>
+            </div>
           </div>
         )}
 
-        {/* Grid / Detail */}
+        {/* List / Detail */}
         <AnimatePresence mode="wait">
           {selected ? (
             /* ── Detail view ───────────────────────────────── */
@@ -20691,7 +20423,7 @@ function MarketingPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18 }}
-              className="space-y-4"
+              className="px-6 py-4 space-y-4"
             >
               {/* Back + title bar */}
               <div className="flex items-center gap-3">
@@ -20743,17 +20475,25 @@ function MarketingPage() {
               </div>
 
               {/* Detail KPIs */}
-              <div className="grid grid-cols-4 gap-3">
+              <div
+                className="flex"
+                style={{
+                  borderTop: `1px solid ${C.border}`,
+                  borderBottom: `1px solid ${C.border}`,
+                }}
+              >
                 {[
                   {
                     label: "Enrolled",
                     value: selected.stats.enrolled,
                     color: C.accent,
+                    icon: <Users className="w-3.5 h-3.5" />,
                   },
                   {
                     label: "Emails Sent",
                     value: selected.stats.sent.toLocaleString(),
                     color: C.info,
+                    icon: <Send className="w-3.5 h-3.5" />,
                   },
                   {
                     label: "Open Rate",
@@ -20762,6 +20502,7 @@ function MarketingPage() {
                         ? `${selected.stats.openRate}%`
                         : "—",
                     color: C.warning,
+                    icon: <Eye className="w-3.5 h-3.5" />,
                   },
                   {
                     label: "Conversions",
@@ -20770,22 +20511,31 @@ function MarketingPage() {
                         ? selected.stats.conversions
                         : "—",
                     color: C.purple,
+                    icon: <TrendingUp className="w-3.5 h-3.5" />,
                   },
-                ].map((s) => (
+                ].map((s, i, arr) => (
                   <div
                     key={s.label}
-                    className="rounded-md p-3"
+                    className="flex-1 px-4 py-3"
                     style={{
-                      backgroundColor: C.surface,
-                      border: `1px solid ${C.border}`,
+                      borderRight:
+                        i < arr.length - 1
+                          ? `1px solid ${C.border}`
+                          : undefined,
                     }}
                   >
-                    <p
-                      className="text-[10px] uppercase tracking-widest font-semibold mb-1.5"
-                      style={{ color: C.textTertiary }}
+                    <div
+                      className="flex items-center gap-1.5 mb-1.5"
+                      style={{ color: s.color }}
                     >
-                      {s.label}
-                    </p>
+                      {s.icon}
+                      <p
+                        className="text-[10px] uppercase tracking-widest font-semibold"
+                        style={{ color: C.textTertiary }}
+                      >
+                        {s.label}
+                      </p>
+                    </div>
                     <p
                       className="text-2xl font-bold tabular-nums"
                       style={{ color: s.color }}
@@ -21064,14 +20814,14 @@ function MarketingPage() {
               </div>
             </motion.div>
           ) : (
-            /* ── Grid view ─────────────────────────────────── */
+            /* ── List view ─────────────────────────────────── */
             <motion.div
               key="grid"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18 }}
-              className="grid grid-cols-2 gap-3"
+              className="flex flex-col flex-1"
             >
               {filtered.map((pipeline, idx) => {
                 const sb = statusBadge(pipeline.status);
@@ -21081,76 +20831,71 @@ function MarketingPage() {
                 return (
                   <motion.button
                     key={pipeline.id}
+                    type="button"
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.04 }}
                     onClick={() => setSelectedId(pipeline.id)}
-                    className="text-left rounded-sm p-4 transition-all duration-150"
+                    className="w-full text-left px-6 py-4 flex items-center gap-6 transition-colors duration-150"
                     style={{
-                      backgroundColor: C.surface,
-                      border: `1px solid ${C.border}`,
+                      borderBottom: `1px solid ${C.border}`,
+                      backgroundColor: "transparent",
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.borderColor =
-                        C.borderStrong;
                       (e.currentTarget as HTMLElement).style.backgroundColor =
                         C.elevated;
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.borderColor =
-                        C.border;
                       (e.currentTarget as HTMLElement).style.backgroundColor =
-                        C.surface;
+                        "transparent";
                     }}
                   >
-                    {/* Card header */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1 min-w-0">
+                    {/* Left: name, description, badges */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
                         <p
-                          className="text-sm font-semibold leading-tight"
+                          className="text-sm font-semibold leading-tight truncate"
                           style={{ color: C.textPrimary }}
                         >
                           {pipeline.name}
                         </p>
-                        <p
-                          className="text-[11px] mt-0.5 line-clamp-2 leading-relaxed"
-                          style={{ color: C.textTertiary }}
+                        <span
+                          className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
+                          style={{
+                            backgroundColor: sb.bg,
+                            color: sb.fg,
+                          }}
                         >
-                          {pipeline.description}
-                        </p>
+                          {sb.label}
+                        </span>
                       </div>
-                      <span
-                        className="px-2 py-0.5 text-[10px] font-semibold rounded-full flex-shrink-0"
-                        style={{
-                          backgroundColor: sb.bg,
-                          color: sb.fg,
-                        }}
+                      <p
+                        className="text-[11px] line-clamp-1 leading-relaxed mb-1.5"
+                        style={{ color: C.textTertiary }}
                       >
-                        {sb.label}
-                      </span>
+                        {pipeline.description}
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className="px-1.5 py-0.5 text-[10px] font-semibold rounded"
+                          style={{
+                            backgroundColor: pipeline.audienceColor + "18",
+                            color: pipeline.audienceColor,
+                          }}
+                        >
+                          {pipeline.audience}
+                        </span>
+                        <span
+                          className="text-[10px] truncate"
+                          style={{ color: C.textQuaternary }}
+                        >
+                          {pipeline.trigger}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Audience + trigger */}
-                    <div className="flex items-center gap-1.5 mb-3">
-                      <span
-                        className="px-1.5 py-0.5 text-[10px] font-semibold rounded"
-                        style={{
-                          backgroundColor: pipeline.audienceColor + "18",
-                          color: pipeline.audienceColor,
-                        }}
-                      >
-                        {pipeline.audience}
-                      </span>
-                      <span
-                        className="text-[10px] truncate"
-                        style={{ color: C.textQuaternary }}
-                      >
-                        {pipeline.trigger}
-                      </span>
-                    </div>
-
-                    {/* Step flow pills */}
-                    <div className="flex items-center gap-1 mb-3 flex-wrap">
+                    {/* Middle: step flow pills */}
+                    <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
                       {pipeline.steps.map((step, si) => {
                         const sc = stepColor(step.type);
                         return (
@@ -21174,7 +20919,7 @@ function MarketingPage() {
                         );
                       })}
                       <span
-                        className="ml-1 text-[10px]"
+                        className="ml-1 text-[10px] whitespace-nowrap"
                         style={{ color: C.textTertiary }}
                       >
                         {actionSteps.length} action
@@ -21182,14 +20927,11 @@ function MarketingPage() {
                       </span>
                     </div>
 
-                    {/* Metrics row */}
-                    <div
-                      className="flex items-center gap-4 pt-2.5"
-                      style={{ borderTop: `1px solid ${C.border}` }}
-                    >
+                    {/* Right: metrics */}
+                    <div className="flex items-center gap-4 flex-shrink-0">
                       {pipeline.stats.sent > 0 ? (
                         <>
-                          <div>
+                          <div className="text-right hidden sm:block">
                             <p
                               className="text-[10px]"
                               style={{ color: C.textTertiary }}
@@ -21203,7 +20945,7 @@ function MarketingPage() {
                               {pipeline.stats.sent.toLocaleString()}
                             </p>
                           </div>
-                          <div>
+                          <div className="text-right hidden sm:block">
                             <p
                               className="text-[10px]"
                               style={{ color: C.textTertiary }}
@@ -21217,7 +20959,7 @@ function MarketingPage() {
                               {pipeline.stats.openRate}%
                             </p>
                           </div>
-                          <div>
+                          <div className="text-right hidden md:block">
                             <p
                               className="text-[10px]"
                               style={{ color: C.textTertiary }}
@@ -21234,18 +20976,16 @@ function MarketingPage() {
                         </>
                       ) : (
                         <span
-                          className="text-[10px] italic"
+                          className="text-[10px] italic whitespace-nowrap"
                           style={{ color: C.textQuaternary }}
                         >
                           Draft — not yet sent
                         </span>
                       )}
-                      <div className="ml-auto">
-                        <ChevronRight
-                          className="w-3.5 h-3.5"
-                          style={{ color: C.textTertiary }}
-                        />
-                      </div>
+                      <ChevronRight
+                        className="w-3.5 h-3.5 flex-shrink-0"
+                        style={{ color: C.textTertiary }}
+                      />
                     </div>
                   </motion.button>
                 );
@@ -23122,8 +22862,7 @@ type ActivePage =
   | "myschool"
   | "budget"
   | "marketing"
-  | "impersonate"
-  | "marketplace";
+  | "impersonate";
 
 type MySchoolTab = "students" | "programs" | "staff" | "classrooms" | "tuition";
 
@@ -23205,12 +22944,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         key: "impersonate",
         name: "Impersonate",
         icon: <Eye className="w-4 h-4" />,
-        phase1: true,
-      },
-      {
-        key: "marketplace",
-        name: "Marketplace",
-        icon: <Layers className="w-4 h-4" />,
         phase1: true,
       },
     ],
@@ -24017,8 +23750,6 @@ export default function AdminDashboardDemo({
         return <MarketingPage />;
       case "impersonate":
         return <ImpersonatePage />;
-      case "marketplace":
-        return <MarketplacePage />;
       default:
         return <ComingSoonPage name={PAGE_NAMES[activePage] ?? activePage} />;
     }
