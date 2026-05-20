@@ -11030,6 +11030,9 @@ const DEMO_INCOME = [
     amount: 21600,
     date: "Apr 1, 2026",
     program: "school_year_26_27",
+    payer: "School year families (batch)",
+    paymentMethod: "ACH",
+    status: "pending" as const,
   },
   {
     id: "in2",
@@ -11038,6 +11041,9 @@ const DEMO_INCOME = [
     amount: 8100,
     date: "Apr 1, 2026",
     program: "summer_26",
+    payer: "Summer families (batch)",
+    paymentMethod: "ACH",
+    status: "received" as const,
   },
   {
     id: "in3",
@@ -11046,6 +11052,9 @@ const DEMO_INCOME = [
     amount: 21600,
     date: "Mar 1, 2026",
     program: "school_year_26_27",
+    payer: "School year families (batch)",
+    paymentMethod: "ACH",
+    status: "received" as const,
   },
   {
     id: "in4",
@@ -11054,6 +11063,9 @@ const DEMO_INCOME = [
     amount: 3500,
     date: "Mar 18, 2026",
     program: "both",
+    payer: "Multi-family (deposits)",
+    paymentMethod: "Card",
+    status: "received" as const,
   },
   {
     id: "in5",
@@ -11062,6 +11074,9 @@ const DEMO_INCOME = [
     amount: 19800,
     date: "Feb 1, 2026",
     program: "school_year_26_27",
+    payer: "School year families (batch)",
+    paymentMethod: "ACH",
+    status: "received" as const,
   },
   {
     id: "in6",
@@ -11070,6 +11085,9 @@ const DEMO_INCOME = [
     amount: 2500,
     date: "Mar 10, 2026",
     program: "",
+    payer: "Anonymous donor",
+    paymentMethod: "Check",
+    status: "received" as const,
   },
   {
     id: "in7",
@@ -11078,6 +11096,9 @@ const DEMO_INCOME = [
     amount: 19800,
     date: "Jan 1, 2026",
     program: "school_year_26_27",
+    payer: "School year families (batch)",
+    paymentMethod: "ACH",
+    status: "received" as const,
   },
   {
     id: "in8",
@@ -11086,8 +11107,28 @@ const DEMO_INCOME = [
     amount: 4200,
     date: "Feb 22, 2026",
     program: "",
+    payer: "PTA / Gala committee",
+    paymentMethod: "Card",
+    status: "received" as const,
   },
 ];
+
+const REV_STATUS_COLORS: Record<
+  (typeof DEMO_INCOME)[0]["status"],
+  { bg: string; border: string; text: string }
+> = {
+  received: { bg: C.successBg, border: C.successBorder, text: C.success },
+  pending: { bg: C.warningBg, border: C.warningBorder, text: C.warning },
+};
+
+const REVENUE_SOURCES = ["Tuition", "Deposit", "Donation"] as const;
+
+const REVENUE_PROGRAM_FILTERS = [
+  { key: "all", label: "All programs" },
+  { key: "summer_26", label: "Summer 2026" },
+  { key: "school_year_26_27", label: "School Year" },
+  { key: "both", label: "Both Programs" },
+] as const;
 
 type CalEvent = {
   id: string;
@@ -13342,6 +13383,559 @@ function BudgetExpensesTab() {
   );
 }
 
+function BudgetRevenueTab() {
+  const [selectedInc, setSelectedInc] = useState<
+    (typeof DEMO_INCOME)[0] | null
+  >(null);
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [programFilter, setProgramFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [pendingOnly, setPendingOnly] = useState(false);
+  const [dateFilter, setDateFilter] = useState<"all" | "mar" | "apr">("all");
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+
+  useEffect(() => {
+    if (selectedInc) openBackdrop(() => setSelectedInc(null));
+    else closeBackdrop();
+  }, [selectedInc, openBackdrop, closeBackdrop]);
+
+  const fmt = (n: number) => `$${n.toLocaleString()}`;
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return DEMO_INCOME.filter((inc) => {
+      const sourceMatch =
+        sourceFilter === "all" || inc.source === sourceFilter;
+      const programMatch =
+        programFilter === "all" || inc.program === programFilter;
+      const searchMatch =
+        !q ||
+        inc.description.toLowerCase().includes(q) ||
+        inc.payer.toLowerCase().includes(q);
+      const pendingMatch = !pendingOnly || inc.status === "pending";
+      const dateMatch =
+        dateFilter === "all" ||
+        (dateFilter === "mar" && inc.date.startsWith("Mar")) ||
+        (dateFilter === "apr" && inc.date.startsWith("Apr"));
+      return (
+        sourceMatch && programMatch && searchMatch && pendingMatch && dateMatch
+      );
+    });
+  }, [sourceFilter, programFilter, search, pendingOnly, dateFilter]);
+
+  const kpis = useMemo(() => {
+    const ytd = filtered.reduce((s, i) => s + i.amount, 0);
+    const monthTotal = filtered
+      .filter((i) => i.date.startsWith(DEMO_CURRENT_MONTH))
+      .reduce((s, i) => s + i.amount, 0);
+    const tuitionTotal = filtered
+      .filter((i) => i.source === "Tuition")
+      .reduce((s, i) => s + i.amount, 0);
+    const donationsTotal = filtered
+      .filter((i) => i.source === "Donation")
+      .reduce((s, i) => s + i.amount, 0);
+    const pendingCount = filtered.filter((i) => i.status === "pending").length;
+    return { ytd, monthTotal, tuitionTotal, donationsTotal, pendingCount };
+  }, [filtered]);
+
+  const hasActiveFilters = pendingOnly || dateFilter !== "all";
+
+  const sourceOptions = [
+    { key: "all", label: "All" },
+    ...REVENUE_SOURCES.map((s) => ({ key: s, label: s })),
+  ];
+
+  const detailNote =
+    selectedInc?.source === "Deposit"
+      ? "Applied toward enrollment when families start."
+      : selectedInc?.source === "Donation"
+        ? "Thank-you letter sent automatically."
+        : null;
+
+  return (
+    <div className="relative flex h-full flex-col">
+      <div
+        className="flex flex-shrink-0 flex-col gap-2 px-6 py-3"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            {sourceOptions.map((opt) => {
+              const isActive = sourceFilter === opt.key;
+              const count =
+                opt.key === "all"
+                  ? DEMO_INCOME.length
+                  : DEMO_INCOME.filter((i) => i.source === opt.key).length;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setSourceFilter(opt.key)}
+                  className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
+                  style={{
+                    backgroundColor: isActive ? C.accent : C.elevated,
+                    color: isActive ? "#fff" : C.textSecondary,
+                    border: `1px solid ${isActive ? C.accent : C.border}`,
+                  }}
+                >
+                  {opt.label}
+                  <span className="ml-1 text-[10px] font-bold opacity-70">
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <div className="relative flex items-center" style={{ minWidth: 160 }}>
+              <Search
+                className="absolute left-2.5 h-3.5 w-3.5"
+                style={{ color: C.textTertiary }}
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search revenue…"
+                className="w-full rounded-sm py-1.5 pl-8 pr-3 text-xs outline-none"
+                style={{
+                  backgroundColor: C.elevated,
+                  border: `1px solid ${C.border}`,
+                  color: C.textPrimary,
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setFilterPanelOpen(true)}
+              className="relative flex flex-shrink-0 items-center justify-center rounded-sm p-2 transition-all"
+              style={{
+                backgroundColor: hasActiveFilters ? C.accentLight : C.elevated,
+                color: hasActiveFilters ? C.accent : C.textSecondary,
+                border: `1px solid ${hasActiveFilters ? C.accent : C.border}`,
+              }}
+              aria-label="Filter revenue"
+            >
+              <ListFilter className="h-4 w-4" />
+              {hasActiveFilters && (
+                <span
+                  className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: C.accent }}
+                />
+              )}
+            </button>
+            <DemoButton variant="secondary">
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </DemoButton>
+            <DemoButton>
+              <Plus className="h-3.5 w-3.5" />
+              Record revenue
+            </DemoButton>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {REVENUE_PROGRAM_FILTERS.map((opt) => {
+            const isActive = programFilter === opt.key;
+            const count =
+              opt.key === "all"
+                ? DEMO_INCOME.length
+                : DEMO_INCOME.filter((i) => i.program === opt.key).length;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setProgramFilter(opt.key)}
+                className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
+                style={{
+                  backgroundColor: isActive ? C.accentLight : "transparent",
+                  color: isActive ? C.accent : C.textTertiary,
+                  border: `1px solid ${isActive ? C.accent : C.border}`,
+                }}
+              >
+                {opt.label}
+                {opt.key !== "all" && (
+                  <span className="ml-1 text-[10px] font-bold opacity-70">
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div
+        className="flex flex-shrink-0 flex-wrap items-center gap-x-6 gap-y-2 px-6 py-2.5 text-xs"
+        style={{
+          borderBottom: `1px solid ${C.border}`,
+          backgroundColor: C.surface,
+        }}
+      >
+        {[
+          { label: "YTD revenue", value: fmt(kpis.ytd) },
+          {
+            label: `${DEMO_CURRENT_MONTH} revenue`,
+            value: fmt(kpis.monthTotal),
+          },
+          {
+            label: "Tuition",
+            value: fmt(kpis.tuitionTotal),
+          },
+          {
+            label: "Donations",
+            value: fmt(kpis.donationsTotal),
+          },
+          {
+            label: "Pending",
+            value: String(kpis.pendingCount),
+            warn: kpis.pendingCount > 0,
+          },
+        ].map((k) => (
+          <div key={k.label} className="flex items-center gap-2">
+            <span style={{ color: C.textTertiary }}>{k.label}</span>
+            <span
+              className="font-semibold tabular-nums"
+              style={{ color: k.warn ? C.warning : C.textPrimary }}
+            >
+              {k.value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {filterPanelOpen && (
+          <>
+            <motion.div
+              key="revenue-filter-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0"
+              style={{ backgroundColor: "rgba(0,0,0,0.12)", zIndex: 11 }}
+              onClick={() => setFilterPanelOpen(false)}
+            />
+            <motion.div
+              key="revenue-filters-panel"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="absolute top-0 right-0 bottom-0 flex flex-col"
+              style={{
+                width: 280,
+                backgroundColor: C.surface,
+                borderLeft: `1px solid ${C.border}`,
+                zIndex: 12,
+              }}
+            >
+              <div
+                className="flex items-center justify-between px-5 py-4"
+                style={{ borderBottom: `1px solid ${C.border}` }}
+              >
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: C.textPrimary }}
+                >
+                  Filters
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setFilterPanelOpen(false)}
+                  style={{ color: C.textTertiary }}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex-1 space-y-5 overflow-y-auto p-5">
+                <div>
+                  <p
+                    className="mb-2 text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Date
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(
+                      [
+                        { key: "all", label: "All time" },
+                        { key: "mar", label: "March 2026" },
+                        { key: "apr", label: "April 2026" },
+                      ] as const
+                    ).map((d) => (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() => setDateFilter(d.key)}
+                        className="rounded-sm px-2.5 py-1 text-xs font-medium"
+                        style={{
+                          backgroundColor:
+                            dateFilter === d.key ? C.accent : C.elevated,
+                          color:
+                            dateFilter === d.key ? "#fff" : C.textSecondary,
+                          border: `1px solid ${dateFilter === d.key ? C.accent : C.border}`,
+                        }}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={pendingOnly}
+                    onChange={(e) => setPendingOnly(e.target.checked)}
+                    className="rounded-sm"
+                  />
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: C.textSecondary }}
+                  >
+                    Pending only
+                  </span>
+                </label>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead
+              className="sticky top-0 z-[1]"
+              style={{ backgroundColor: C.surface }}
+            >
+              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                {[
+                  "Date",
+                  "Source",
+                  "Description",
+                  "Payer",
+                  "Amount",
+                  "Program",
+                  "Payment",
+                  "Status",
+                ].map((col) => (
+                  <th
+                    key={col}
+                    className="text-left px-4 py-3 text-xs font-medium"
+                    style={{ color: C.textTertiary }}
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((inc, i) => {
+                const sc = REV_STATUS_COLORS[inc.status];
+                return (
+                  <motion.tr
+                    key={inc.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.02 }}
+                    onClick={() => setSelectedInc(inc)}
+                    className="cursor-pointer"
+                    style={{ borderBottom: `1px solid ${C.border}` }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = C.elevated)
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
+                  >
+                    <td
+                      className="px-4 py-3 text-xs whitespace-nowrap"
+                      style={{ color: C.textTertiary }}
+                    >
+                      {inc.date}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="text-xs font-medium px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: C.successBg,
+                          color: C.success,
+                        }}
+                      >
+                        {inc.source}
+                      </span>
+                    </td>
+                    <td
+                      className="px-4 py-3 text-xs max-w-[200px] truncate"
+                      style={{ color: C.textSecondary }}
+                    >
+                      {inc.description}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-xs whitespace-nowrap"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {inc.payer}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-sm font-bold tabular-nums whitespace-nowrap"
+                      style={{ color: C.success }}
+                    >
+                      {fmt(inc.amount)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {inc.program ? (
+                        <ProgramBadge program={inc.program} />
+                      ) : (
+                        <span style={{ color: C.textTertiary }}>—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
+                        style={{
+                          backgroundColor: C.elevated,
+                          color: C.textSecondary,
+                          border: `1px solid ${C.border}`,
+                        }}
+                      >
+                        {inc.paymentMethod}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
+                        style={{
+                          backgroundColor: sc.bg,
+                          border: `1px solid ${sc.border}`,
+                          color: sc.text,
+                        }}
+                      >
+                        {inc.status}
+                      </span>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filtered.length === 0 && (
+            <p
+              className="py-12 text-center text-sm"
+              style={{ color: C.textTertiary }}
+            >
+              No revenue matches your filters.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {selectedInc && (
+          <motion.div
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            className="absolute inset-y-0 right-0 flex flex-col shadow-lg"
+            style={{
+              width: 320,
+              backgroundColor: C.surface,
+              borderLeft: `1px solid ${C.border}`,
+              zIndex: 10,
+            }}
+          >
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: `1px solid ${C.border}` }}
+            >
+              <h3
+                className="text-sm font-semibold"
+                style={{ color: C.textPrimary }}
+              >
+                Revenue Detail
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedInc(null)}
+                style={{ color: C.textTertiary }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <div
+                className="rounded-sm p-4"
+                style={{
+                  backgroundColor: C.elevated,
+                  border: `1px solid ${C.border}`,
+                }}
+              >
+                <p
+                  className="text-2xl font-bold tabular-nums"
+                  style={{ color: C.success }}
+                >
+                  {fmt(selectedInc.amount)}
+                </p>
+                <p
+                  className="text-xs mt-1"
+                  style={{ color: C.textTertiary }}
+                >
+                  {selectedInc.source}
+                </p>
+                <span
+                  className="mt-2 inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
+                  style={{
+                    backgroundColor: REV_STATUS_COLORS[selectedInc.status].bg,
+                    border: `1px solid ${REV_STATUS_COLORS[selectedInc.status].border}`,
+                    color: REV_STATUS_COLORS[selectedInc.status].text,
+                  }}
+                >
+                  {selectedInc.status}
+                </span>
+              </div>
+              <DetailField
+                label="Description"
+                value={selectedInc.description}
+              />
+              <DetailField label="Payer" value={selectedInc.payer} />
+              <DetailField label="Date" value={selectedInc.date} />
+              <DetailField
+                label="Payment"
+                value={selectedInc.paymentMethod}
+              />
+              <DetailField
+                label="Program"
+                value={
+                  selectedInc.program ? (
+                    <ProgramBadge program={selectedInc.program} />
+                  ) : (
+                    "—"
+                  )
+                }
+              />
+              {detailNote && (
+                <p
+                  className="text-xs leading-relaxed rounded-sm px-3 py-2"
+                  style={{
+                    backgroundColor: C.accentLight,
+                    color: C.textSecondary,
+                    border: `1px solid ${C.border}`,
+                  }}
+                >
+                  {detailNote}
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function BudgetPage({ activeTab: tab }: { activeTab: BudgetTab; onTabChange: (tab: BudgetTab) => void }) {
   const fmt = (n: number) => `$${n.toLocaleString()}`;
 
@@ -13440,134 +14034,9 @@ function BudgetPage({ activeTab: tab }: { activeTab: BudgetTab; onTabChange: (ta
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 overflow-y-auto space-y-4 p-6"
+            className="flex-1 overflow-hidden"
           >
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                {
-                  label: "Summer Revenue",
-                  value:
-                    "$" +
-                    DEMO_INCOME.filter((i) => i.program === "summer_26")
-                      .reduce((s, i) => s + i.amount, 0)
-                      .toLocaleString(),
-                  color: C.warning,
-                },
-                {
-                  label: "School Year Revenue",
-                  value:
-                    "$" +
-                    DEMO_INCOME.filter((i) => i.program === "school_year_26_27")
-                      .reduce((s, i) => s + i.amount, 0)
-                      .toLocaleString(),
-                  color: C.info,
-                },
-                {
-                  label: "Donations",
-                  value:
-                    "$" +
-                    DEMO_INCOME.filter((i) => i.source === "Donation")
-                      .reduce((s, i) => s + i.amount, 0)
-                      .toLocaleString(),
-                  color: C.success,
-                },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  className="rounded-sm p-4"
-                  style={{
-                    backgroundColor: C.surface,
-                    border: `1px solid ${C.border}`,
-                  }}
-                >
-                  <p
-                    className="text-xs uppercase tracking-widest font-semibold mb-2"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {s.label}
-                  </p>
-                  <p
-                    className="text-2xl font-bold tabular-nums"
-                    style={{ color: s.color }}
-                  >
-                    {s.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <Card>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                    {["Source", "Description", "Amount", "Date", "Program"].map(
-                      (col) => (
-                        <th
-                          key={col}
-                          className="text-left px-4 py-3 text-xs font-medium"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {col}
-                        </th>
-                      ),
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {DEMO_INCOME.map((inc, i) => (
-                    <motion.tr
-                      key={inc.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: i * 0.03 }}
-                      style={{ borderBottom: `1px solid ${C.border}` }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = C.elevated)
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
-                      }
-                    >
-                      <td className="px-4 py-3">
-                        <span
-                          className="text-xs font-medium px-2 py-0.5 rounded-full"
-                          style={{
-                            backgroundColor: C.successBg,
-                            color: C.success,
-                          }}
-                        >
-                          {inc.source}
-                        </span>
-                      </td>
-                      <td
-                        className="px-4 py-3 text-xs"
-                        style={{ color: C.textSecondary }}
-                      >
-                        {inc.description}
-                      </td>
-                      <td
-                        className="px-4 py-3 text-sm font-bold tabular-nums"
-                        style={{ color: C.success }}
-                      >
-                        {fmt(inc.amount)}
-                      </td>
-                      <td
-                        className="px-4 py-3 text-xs"
-                        style={{ color: C.textTertiary }}
-                      >
-                        {inc.date}
-                      </td>
-                      <td className="px-4 py-3">
-                        {inc.program ? (
-                          <ProgramBadge program={inc.program} />
-                        ) : (
-                          <span style={{ color: C.textTertiary }}>—</span>
-                        )}
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
+            <BudgetRevenueTab />
           </motion.div>
         )}
 
