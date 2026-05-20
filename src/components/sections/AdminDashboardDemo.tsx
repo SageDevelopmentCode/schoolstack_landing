@@ -52,6 +52,7 @@ import {
   ListFilter,
   Lightbulb,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -2440,7 +2441,7 @@ const TEACHER_ACCESS_PERMISSIONS: DemoStaff["access"]["permissions"] = [
   { key: "billing", label: "View billing & invoices", enabled: false },
   { key: "enrollment", label: "Manage enrollment flows", enabled: false },
   { key: "staff", label: "Manage staff records", enabled: false },
-  { key: "budget", label: "View school budget", enabled: false },
+  { key: "budget", label: "View school finances", enabled: false },
   { key: "impersonate", label: "Impersonate users", enabled: false },
 ];
 
@@ -2451,7 +2452,7 @@ const ADMIN_ACCESS_PERMISSIONS: DemoStaff["access"]["permissions"] = [
   { key: "billing", label: "View billing & invoices", enabled: true },
   { key: "enrollment", label: "Manage enrollment flows", enabled: true },
   { key: "staff", label: "Manage staff records", enabled: true },
-  { key: "budget", label: "View school budget", enabled: true },
+  { key: "budget", label: "View school finances", enabled: true },
   { key: "impersonate", label: "Impersonate users", enabled: false },
 ];
 
@@ -2462,7 +2463,7 @@ const SUB_ACCESS_PERMISSIONS: DemoStaff["access"]["permissions"] = [
   { key: "billing", label: "View billing & invoices", enabled: false },
   { key: "enrollment", label: "Manage enrollment flows", enabled: false },
   { key: "staff", label: "Manage staff records", enabled: false },
-  { key: "budget", label: "View school budget", enabled: false },
+  { key: "budget", label: "View school finances", enabled: false },
   { key: "impersonate", label: "Impersonate users", enabled: false },
 ];
 
@@ -2816,6 +2817,116 @@ const DEMO_STAFF: DemoStaff[] = [
     ],
   },
 ];
+
+// ─── Payroll hub demo data ─────────────────────────────────────────────────────
+
+type PayrollReadinessStatus = "ready" | "paperwork" | "missing_rate";
+
+const PAYROLL_REQUIRED_FORMS = ["W-4 Tax Withholding", "Direct Deposit Authorization"];
+
+const DEMO_PAY_SCHEDULES = [
+  {
+    id: "ps-biweekly",
+    name: "Biweekly — All staff",
+    frequency: "Biweekly (every other week)",
+    nextPayDate: "May 23, 2026",
+  },
+  {
+    id: "ps-perdiem",
+    name: "Per diem — Substitutes",
+    frequency: "As worked",
+    nextPayDate: "—",
+  },
+];
+
+const DEMO_PAYROLL_RUNS = {
+  upcoming: {
+    id: "run-may-23",
+    payday: "May 23",
+    approvalDeadline: "May 20, 2026 · 3:00 PM CDT",
+    type: "Regular",
+    status: "not_started" as const,
+  },
+  recent: [] as { id: string; payday: string; type: string; total: string; status: string }[],
+};
+
+function isPayrollFormComplete(staff: DemoStaff, title: string): boolean {
+  const form = staff.paperwork.find((p) => p.title === title);
+  return form?.status === "signed";
+}
+
+function getStaffPayrollReadiness(staff: DemoStaff): PayrollReadinessStatus {
+  if (!staff.payroll.rate || staff.payroll.rate <= 0) return "missing_rate";
+  const missingPayrollForms = PAYROLL_REQUIRED_FORMS.filter(
+    (title) => !isPayrollFormComplete(staff, title),
+  );
+  if (missingPayrollForms.length > 0) return "paperwork";
+  return "ready";
+}
+
+function getPayrollReadinessLabel(status: PayrollReadinessStatus): string {
+  if (status === "ready") return "Ready";
+  if (status === "paperwork") return "Setup needed";
+  return "Missing rate";
+}
+
+function getPayrollHubSummary() {
+  const rows = DEMO_STAFF.map((staff) => ({
+    staff,
+    status: getStaffPayrollReadiness(staff),
+  }));
+  const needsSetup = rows.filter((r) => r.status !== "ready");
+  const missingRates = rows.filter((r) => r.status === "missing_rate");
+  const pendingForms = rows.filter((r) => r.status === "paperwork");
+  const ytdPayroll = DEMO_STAFF.reduce((sum, s) => sum + s.payroll.ytdGross, 0);
+  const personnelActual =
+    BUDGET_CATS.find((c) => c.name === "Personnel")?.actual ?? ytdPayroll;
+  return {
+    rows,
+    needsSetupCount: needsSetup.length,
+    missingRatesCount: missingRates.length,
+    pendingFormsCount: pendingForms.length,
+    ytdPayroll,
+    personnelActual,
+  };
+}
+
+const DEMO_PAY_PERIOD = {
+  label: "Apr 6 – Apr 19, 2026",
+  payday: "May 23, 2026",
+  paydayShort: "May 23",
+  approvalDeadline: "May 20, 2026 · 3:00 PM CDT",
+  scheduleName: "Biweekly — All staff",
+};
+
+type PayrollRunStatus = "not_started" | "in_review" | "approved";
+
+type PayrollRunWizardStep = 1 | 2 | 3 | 4;
+
+const PAYROLL_RUN_STEP_LABELS = ["Pay period", "Staff", "Amounts", "Confirm"] as const;
+
+function isStaffIncludedInPayrollRun(staff: DemoStaff): boolean {
+  return staff.status === "active";
+}
+
+function getDemoPeriodHours(staff: DemoStaff): number | null {
+  if (staff.payroll.payType === "salary") return null;
+  const hours = staff.schedule.recentTimeEntries.reduce((sum, e) => sum + e.hours, 0);
+  return hours > 0 ? Math.round(hours * 10) / 10 : 80;
+}
+
+function getDemoPeriodNet(staff: DemoStaff): number {
+  return staff.payroll.lastNet;
+}
+
+function getPayrollRunLineItems() {
+  return DEMO_STAFF.filter(isStaffIncludedInPayrollRun).map((staff) => ({
+    staff,
+    readiness: getStaffPayrollReadiness(staff),
+    hours: getDemoPeriodHours(staff),
+    net: getDemoPeriodNet(staff),
+  }));
+}
 
 function getStaffProgramAssignments(
   staff: DemoStaff,
@@ -11243,6 +11354,58 @@ function findFamilyByPayerName(name: string): DemoFamilyBilling | undefined {
   return DEMO_FAMILY_BILLING.find((f) => f.name === name);
 }
 
+type ReminderChannel = "email" | "sms";
+type ReminderTemplateId = "friendly" | "overdue" | "custom";
+
+function getReminderEligibleFamilies() {
+  return DEMO_FAMILY_BILLING.filter((f) => f.balanceDue > 0);
+}
+
+function getFamilyPhone(family: DemoFamilyBilling): string | null {
+  if (!family.parentId) return null;
+  const parent = DEMO_PARENTS.find((p) => p.id === family.parentId);
+  return parent?.g1Phone ?? null;
+}
+
+function familyFirstName(family: DemoFamilyBilling): string {
+  return family.name.split(" ")[0] ?? family.name;
+}
+
+function renderReminderPreview(text: string, family: DemoFamilyBilling): string {
+  const balance = `$${family.balanceDue.toLocaleString()}`;
+  const child = family.children[0]?.split(" ")[0] ?? "your child";
+  return text
+    .replace(/\[First Name\]/g, familyFirstName(family))
+    .replace(/\[Balance Due\]/g, balance)
+    .replace(/\[Next Due Date\]/g, family.nextDue?.date ?? "—")
+    .replace(/\[Child Name\]/g, child);
+}
+
+function applyReminderTemplate(
+  templateId: ReminderTemplateId,
+  family?: DemoFamilyBilling,
+): { emailSubject: string; emailBody: string; smsBody: string } {
+  if (templateId === "overdue") {
+    return {
+      emailSubject: "Action needed — overdue tuition balance",
+      emailBody:
+        "Hi [First Name],\n\nOur records show an outstanding balance of [Balance Due] on your account. The payment for [Next Due Date] was due and has not yet been received.\n\nPlease log in to your parent portal to pay now, or reply to this email if you need assistance.\n\nThank you,\nMud Kitchen",
+      smsBody:
+        "Hi [First Name], your Mud Kitchen tuition balance of [Balance Due] is overdue. Pay at your parent portal. Reply STOP to opt out.",
+    };
+  }
+  if (templateId === "custom") {
+    return { emailSubject: "", emailBody: "", smsBody: "" };
+  }
+  const dueHint = family?.nextDue ? ` on ${family.nextDue.date}` : "";
+  return {
+    emailSubject: "Friendly reminder — tuition payment due",
+    emailBody: `Hi [First Name],\n\nThis is a friendly reminder that your tuition payment of [Balance Due] for [Child Name] is coming up${dueHint}.\n\nYou can pay online in your parent portal at any time.\n\nThank you,\nMud Kitchen`,
+    smsBody:
+      "Hi [First Name], friendly reminder: tuition of [Balance Due] is due soon. Pay in your parent portal. Reply STOP to opt out.",
+  };
+}
+
 const BUDGET_CATS = [
   {
     name: "Personnel",
@@ -12849,6 +13012,699 @@ function TransactionDetailPanel({
   );
 }
 
+type ScheduleProgramKey = "summer" | "schoolYear";
+
+function PaymentScheduleSheet({
+  family,
+  programLabel,
+  items,
+  onClose,
+}: {
+  family: DemoFamilyBilling;
+  programLabel: string;
+  items: TuitionScheduleItem[];
+  onClose: () => void;
+}) {
+  const fmt = (n: number) => `$${n.toLocaleString()}`;
+  const paid = items.filter((i) => i.state === "paid").length;
+
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="absolute inset-y-0 right-0 flex flex-col overflow-hidden shadow-lg"
+      style={{
+        width: 380,
+        backgroundColor: C.surface,
+        borderLeft: `1px solid ${C.border}`,
+        zIndex: 20,
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>
+            {programLabel}
+          </h3>
+          <p className="text-xs mt-0.5 truncate" style={{ color: C.textTertiary }}>
+            {family.name} · {paid}/{items.length} paid
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-shrink-0 p-1 rounded-sm"
+          style={{ color: C.textTertiary }}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className="px-5 py-3"
+            style={{
+              borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none",
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                style={{
+                  backgroundColor:
+                    item.state === "paid"
+                      ? C.successBg
+                      : item.state === "sent" || item.state === "overdue"
+                        ? C.warningBg
+                        : "transparent",
+                  border: `2px solid ${
+                    item.state === "paid"
+                      ? C.success
+                      : item.state === "overdue"
+                        ? C.error
+                        : item.state === "sent"
+                          ? C.warning
+                          : C.border
+                  }`,
+                }}
+              >
+                {item.state === "paid" && (
+                  <CheckCircle className="w-3 h-3" style={{ color: C.success }} />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                    {item.label}
+                  </p>
+                  <p
+                    className="text-sm font-bold tabular-nums flex-shrink-0"
+                    style={{ color: C.textPrimary }}
+                  >
+                    {fmt(item.amount)}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <span
+                    className="text-[10px] font-semibold"
+                    style={{
+                      color:
+                        item.state === "paid"
+                          ? C.success
+                          : item.state === "overdue"
+                            ? C.error
+                            : item.state === "sent"
+                              ? C.warning
+                              : C.textTertiary,
+                    }}
+                  >
+                    {scheduleItemStateLabel(item.state)}
+                    {item.date ? ` · ${item.date}` : ""}
+                  </span>
+                  {(item.state === "unpaid" || item.state === "overdue") && (
+                    <button
+                      type="button"
+                      className="text-[10px] font-semibold px-2 py-1 rounded-sm flex-shrink-0"
+                      style={demoSecondaryButtonStyle()}
+                    >
+                      Send invoice
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function TuitionReminderModal({
+  initialFamilyIds,
+  onClose,
+}: {
+  initialFamilyIds?: string[];
+  onClose: () => void;
+}) {
+  const defaultSelected =
+    initialFamilyIds !== undefined
+      ? initialFamilyIds
+      : getReminderEligibleFamilies().map((f) => f.id);
+
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [selectedFamilyIds, setSelectedFamilyIds] =
+    useState<string[]>(defaultSelected);
+  const [recipientSearch, setRecipientSearch] = useState("");
+  const [channels, setChannels] = useState<ReminderChannel[]>(["email"]);
+  const [templateId, setTemplateId] = useState<ReminderTemplateId>("friendly");
+  const [emailSubject, setEmailSubject] = useState(
+    () => applyReminderTemplate("friendly").emailSubject,
+  );
+  const [emailBody, setEmailBody] = useState(
+    () => applyReminderTemplate("friendly").emailBody,
+  );
+  const [smsBody, setSmsBody] = useState(
+    () => applyReminderTemplate("friendly").smsBody,
+  );
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const selectedFamilies = DEMO_FAMILY_BILLING.filter((f) =>
+    selectedFamilyIds.includes(f.id),
+  );
+  const previewFamily = selectedFamilies[0] ?? DEMO_FAMILY_BILLING[0];
+
+  const filteredRecipients = DEMO_FAMILY_BILLING.filter((f) => {
+    const q = recipientSearch.toLowerCase();
+    if (q === "") return true;
+    return (
+      f.name.toLowerCase().includes(q) ||
+      f.email.toLowerCase().includes(q) ||
+      f.children.some((c) => c.toLowerCase().includes(q))
+    );
+  });
+
+  const smsReachCount = selectedFamilies.filter((f) => getFamilyPhone(f)).length;
+
+  useEffect(() => {
+    if (!sent) return;
+    const t = setTimeout(onClose, 1500);
+    return () => clearTimeout(t);
+  }, [sent, onClose]);
+
+  function toggleFamily(id: string) {
+    setSelectedFamilyIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  function selectAllWithBalance() {
+    setSelectedFamilyIds(getReminderEligibleFamilies().map((f) => f.id));
+  }
+
+  function toggleChannel(ch: ReminderChannel) {
+    setChannels((prev) =>
+      prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch],
+    );
+  }
+
+  function applyTemplate(id: ReminderTemplateId) {
+    setTemplateId(id);
+    const t = applyReminderTemplate(id, previewFamily);
+    setEmailSubject(t.emailSubject);
+    setEmailBody(t.emailBody);
+    setSmsBody(t.smsBody);
+  }
+
+  function handleSend() {
+    setSending(true);
+    setTimeout(() => {
+      setSending(false);
+      setSent(true);
+    }, 800);
+  }
+
+  const stepLabels = ["Recipients", "Channels", "Message"] as const;
+  const channelSummary =
+    channels.length === 2
+      ? "email and SMS"
+      : channels[0] === "sms"
+        ? "SMS"
+        : "email";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.35)", zIndex: 50 }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 12 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        onClick={(e) => e.stopPropagation()}
+        className="flex flex-col overflow-hidden w-full"
+        style={{
+          maxWidth: 520,
+          maxHeight: "min(90vh, 640px)",
+          backgroundColor: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: C.r.xl,
+          boxShadow: C.shadowMedium,
+        }}
+      >
+        <div
+          className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+              Send tuition reminders
+            </h3>
+            <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+              {sent
+                ? "Done"
+                : `Step ${step} of 3 · ${stepLabels[step - 1]}`}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} style={{ color: C.textTertiary }}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {!sent && (
+          <div
+            className="flex items-center gap-1 px-5 py-3 flex-shrink-0"
+            style={{ borderBottom: `1px solid ${C.border}` }}
+          >
+            {stepLabels.map((label, i) => {
+              const n = (i + 1) as 1 | 2 | 3;
+              const active = step === n;
+              const done = step > n;
+              return (
+                <div key={label} className="flex items-center gap-1 flex-1">
+                  <div
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-semibold w-full justify-center"
+                    style={{
+                      backgroundColor: active
+                        ? C.accentLight
+                        : done
+                          ? C.successBg
+                          : C.elevated,
+                      color: active ? C.accent : done ? C.success : C.textTertiary,
+                      border: `1px solid ${active ? C.accent + "44" : C.border}`,
+                    }}
+                  >
+                    {done ? (
+                      <CheckCircle className="w-3 h-3" />
+                    ) : (
+                      <span>{n}</span>
+                    )}
+                    {label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {sent ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <CheckCircle className="w-12 h-12 mb-4" style={{ color: C.success }} />
+              <p className="text-base font-semibold mb-1" style={{ color: C.textPrimary }}>
+                Reminders sent
+              </p>
+              <p className="text-sm" style={{ color: C.textSecondary }}>
+                Sent to {selectedFamilies.length}{" "}
+                {selectedFamilies.length === 1 ? "family" : "families"} via{" "}
+                {channelSummary}
+              </p>
+            </div>
+          ) : step === 1 ? (
+            <div className="p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
+                  style={{
+                    backgroundColor: C.input,
+                    border: `1px solid ${C.inputBorder}`,
+                  }}
+                >
+                  <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
+                  <input
+                    value={recipientSearch}
+                    onChange={(e) => setRecipientSearch(e.target.value)}
+                    placeholder="Search families..."
+                    className="bg-transparent border-none outline-none text-xs w-full"
+                    style={{ color: C.textPrimary }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={selectAllWithBalance}
+                  className="text-[10px] font-semibold px-2 py-1.5 rounded-sm whitespace-nowrap"
+                  style={demoSecondaryButtonStyle()}
+                >
+                  Select with balance
+                </button>
+              </div>
+              <p className="text-xs" style={{ color: C.textTertiary }}>
+                {selectedFamilyIds.length}{" "}
+                {selectedFamilyIds.length === 1 ? "family" : "families"} selected
+              </p>
+              <div
+                className="rounded-sm overflow-hidden"
+                style={{ border: `1px solid ${C.border}` }}
+              >
+                {filteredRecipients.map((family, i) => {
+                  const checked = selectedFamilyIds.includes(family.id);
+                  const sc = familyBillingStatusColors(family.status);
+                  return (
+                    <button
+                      key={family.id}
+                      type="button"
+                      onClick={() => toggleFamily(family.id)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+                      style={{
+                        borderBottom:
+                          i < filteredRecipients.length - 1
+                            ? `1px solid ${C.border}`
+                            : "none",
+                        backgroundColor: checked ? C.accentLight : C.surface,
+                      }}
+                    >
+                      <div
+                        className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                        style={{
+                          backgroundColor: checked ? C.accent : "transparent",
+                          border: `2px solid ${checked ? C.accent : C.border}`,
+                        }}
+                      >
+                        {checked && (
+                          <span className="text-white text-[10px] font-bold">✓</span>
+                        )}
+                      </div>
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                        style={{
+                          backgroundColor: family.color + "22",
+                          color: family.color,
+                        }}
+                      >
+                        {family.initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-sm font-medium truncate"
+                          style={{ color: C.textPrimary }}
+                        >
+                          {family.name}
+                        </p>
+                        <p className="text-[10px] truncate" style={{ color: C.textTertiary }}>
+                          {family.email}
+                        </p>
+                      </div>
+                      <span
+                        className="text-xs font-bold tabular-nums flex-shrink-0"
+                        style={{
+                          color: family.balanceDue > 0 ? C.error : C.textSecondary,
+                        }}
+                      >
+                        {family.balanceDue > 0
+                          ? `$${family.balanceDue.toLocaleString()}`
+                          : "Paid up"}
+                      </span>
+                      <span
+                        className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor: sc.bg,
+                          border: `1px solid ${sc.border}`,
+                          color: sc.text,
+                        }}
+                      >
+                        {familyBillingStatusLabel(family.status)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : step === 2 ? (
+            <div className="p-5 space-y-3">
+              <p className="text-xs" style={{ color: C.textSecondary }}>
+                Choose how to reach {selectedFamilies.length}{" "}
+                {selectedFamilies.length === 1 ? "family" : "families"}. At least
+                one channel is required.
+              </p>
+              {(
+                [
+                  {
+                    id: "email" as const,
+                    icon: <Mail className="w-4 h-4" />,
+                    label: "Email",
+                    detail: `${selectedFamilies.length} with email on file`,
+                  },
+                  {
+                    id: "sms" as const,
+                    icon: <MessageSquare className="w-4 h-4" />,
+                    label: "SMS",
+                    detail:
+                      smsReachCount > 0
+                        ? `${smsReachCount} with mobile on file`
+                        : "No mobile numbers on file for selected families",
+                  },
+                ] as const
+              ).map((ch) => {
+                const on = channels.includes(ch.id);
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => toggleChannel(ch.id)}
+                    className="w-full flex items-center gap-3 p-4 rounded-sm text-left transition-colors"
+                    style={{
+                      backgroundColor: on ? C.accentLight : C.surface,
+                      border: `1px solid ${on ? C.accent + "55" : C.border}`,
+                      boxShadow: on ? C.shadowCard : "none",
+                    }}
+                  >
+                    <div
+                      className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                      style={{
+                        backgroundColor: on ? C.accent : "transparent",
+                        border: `2px solid ${on ? C.accent : C.border}`,
+                      }}
+                    >
+                      {on && (
+                        <span className="text-white text-[10px] font-bold">✓</span>
+                      )}
+                    </div>
+                    <span style={{ color: on ? C.accent : C.textTertiary }}>
+                      {ch.icon}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                        {ch.label}
+                      </p>
+                      <p className="text-[10px] mt-0.5" style={{ color: C.textTertiary }}>
+                        {ch.detail}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+              {channels.includes("sms") && (
+                <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                  SMS includes opt-out language. Families without a mobile number
+                  will receive email only.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="p-5 space-y-4">
+              <div className="flex flex-wrap gap-1.5">
+                {(
+                  [
+                    ["friendly", "Friendly reminder"],
+                    ["overdue", "Overdue notice"],
+                    ["custom", "Custom"],
+                  ] as [ReminderTemplateId, string][]
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => applyTemplate(id)}
+                    className="px-2.5 py-1 text-[10px] font-semibold rounded-full"
+                    style={demoSolidPillStyle(templateId === id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {channels.includes("email") && (
+                <div className="space-y-2">
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-widest"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Email
+                  </p>
+                  <input
+                    value={emailSubject}
+                    onChange={(e) => {
+                      setTemplateId("custom");
+                      setEmailSubject(e.target.value);
+                    }}
+                    placeholder="Subject"
+                    className="w-full px-3 py-2 text-xs rounded-sm outline-none"
+                    style={demoInputStyle()}
+                  />
+                  <textarea
+                    value={emailBody}
+                    onChange={(e) => {
+                      setTemplateId("custom");
+                      setEmailBody(e.target.value);
+                    }}
+                    rows={5}
+                    placeholder="Email body..."
+                    className="w-full px-3 py-2 text-xs rounded-sm outline-none resize-none"
+                    style={demoInputStyle()}
+                  />
+                </div>
+              )}
+
+              {channels.includes("sms") && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-widest"
+                      style={{ color: C.textTertiary }}
+                    >
+                      SMS
+                    </p>
+                    <span className="text-[10px]" style={{ color: C.textTertiary }}>
+                      {smsBody.length}/160
+                    </span>
+                  </div>
+                  <textarea
+                    value={smsBody}
+                    onChange={(e) => {
+                      setTemplateId("custom");
+                      setSmsBody(e.target.value);
+                    }}
+                    rows={3}
+                    placeholder="SMS message..."
+                    className="w-full px-3 py-2 text-xs rounded-sm outline-none resize-none"
+                    style={demoInputStyle()}
+                  />
+                </div>
+              )}
+
+              <div
+                className="rounded-sm p-3 space-y-1"
+                style={{
+                  backgroundColor: C.bg,
+                  border: `1px solid ${C.border}`,
+                }}
+              >
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: C.textTertiary }}
+                >
+                  Preview · {previewFamily.name}
+                </p>
+                {channels.includes("email") && emailSubject && (
+                  <p className="text-xs font-medium" style={{ color: C.textPrimary }}>
+                    {renderReminderPreview(emailSubject, previewFamily)}
+                  </p>
+                )}
+                <p
+                  className="text-xs whitespace-pre-wrap"
+                  style={{ color: C.textSecondary }}
+                >
+                  {renderReminderPreview(
+                    channels.includes("email") ? emailBody : smsBody,
+                    previewFamily,
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {!sent && (
+          <div
+            className="flex items-center justify-between gap-2 px-5 py-4 flex-shrink-0"
+            style={{ borderTop: `1px solid ${C.border}` }}
+          >
+            <button
+              type="button"
+              onClick={() => (step === 1 ? onClose() : setStep((step - 1) as 1 | 2 | 3))}
+              className="px-3 py-2 text-xs font-semibold rounded-sm"
+              style={demoSecondaryButtonStyle()}
+            >
+              {step === 1 ? "Cancel" : "Back"}
+            </button>
+            {step < 3 ? (
+              <button
+                type="button"
+                disabled={
+                  (step === 1 && selectedFamilyIds.length === 0) ||
+                  (step === 2 && channels.length === 0)
+                }
+                onClick={() => setStep((step + 1) as 1 | 2 | 3)}
+                className="px-4 py-2 text-xs font-semibold rounded-sm disabled:opacity-40"
+                style={{
+                  backgroundColor: C.accent,
+                  color: "#fff",
+                  border: `1px solid ${C.accent}`,
+                }}
+              >
+                Continue
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={
+                  sending ||
+                  selectedFamilyIds.length === 0 ||
+                  channels.length === 0 ||
+                  (channels.includes("email") &&
+                    (!emailSubject.trim() || !emailBody.trim())) ||
+                  (channels.includes("sms") && !smsBody.trim())
+                }
+                onClick={handleSend}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-sm disabled:opacity-40"
+                style={{
+                  backgroundColor: C.accent,
+                  color: "#fff",
+                  border: `1px solid ${C.accent}`,
+                }}
+              >
+                {sending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    Send to {selectedFamilyIds.length}{" "}
+                    {selectedFamilyIds.length === 1 ? "family" : "families"}
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+
+        {step === 2 && channels.length === 0 && (
+          <p
+            className="text-[10px] text-center pb-3 px-5"
+            style={{ color: C.warning }}
+          >
+            Select at least one delivery channel to continue.
+          </p>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function TuitionPage({
   selectedFamilyId,
   initialFilter = "all",
@@ -12869,8 +13725,20 @@ function TuitionPage({
   const [selectedTx, setSelectedTx] = useState<
     (typeof DEMO_TRANSACTIONS)[0] | null
   >(null);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [openScheduleKey, setOpenScheduleKey] =
+    useState<ScheduleProgramKey | null>(null);
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [reminderInitialIds, setReminderInitialIds] = useState<
+    string[] | undefined
+  >(undefined);
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+
+  const openReminderModal = useCallback((familyIds?: string[]) => {
+    setSelectedTx(null);
+    setOpenScheduleKey(null);
+    setReminderInitialIds(familyIds);
+    setReminderModalOpen(true);
+  }, []);
 
   useEffect(() => {
     setFilter(initialFilter);
@@ -12879,14 +13747,31 @@ function TuitionPage({
   useEffect(() => {
     if (selectedFamilyId) {
       const match = DEMO_FAMILY_BILLING.find((f) => f.id === selectedFamilyId);
-      if (match) setSelectedFamily(match);
+      if (match) {
+        setSelectedFamily(match);
+        setOpenScheduleKey(null);
+      }
     }
   }, [selectedFamilyId]);
 
   useEffect(() => {
-    if (selectedTx) openBackdrop(() => setSelectedTx(null));
-    else closeBackdrop();
-  }, [selectedTx, openBackdrop, closeBackdrop]);
+    if (selectedTx || openScheduleKey) {
+      openBackdrop(() => {
+        setSelectedTx(null);
+        setOpenScheduleKey(null);
+      });
+    } else {
+      closeBackdrop();
+    }
+  }, [selectedTx, openScheduleKey, openBackdrop, closeBackdrop]);
+
+  useEffect(() => {
+    if (reminderModalOpen) {
+      setSelectedTx(null);
+      setOpenScheduleKey(null);
+      closeBackdrop();
+    }
+  }, [reminderModalOpen, closeBackdrop]);
 
   const fmt = (n: number) => `$${n.toLocaleString()}`;
 
@@ -12914,6 +13799,7 @@ function TuitionPage({
 
   const selectFamily = (family: DemoFamilyBilling) => {
     setSelectedFamily(family);
+    setOpenScheduleKey(null);
     onSelectFamily?.(family.id);
   };
 
@@ -12923,8 +13809,25 @@ function TuitionPage({
     (f) => f.balanceDue > 0,
   ).length;
 
+  const schedulePrograms: {
+    key: ScheduleProgramKey;
+    label: string;
+    items: TuitionScheduleItem[];
+  }[] = [
+    { key: "summer", label: "Summer 2026", items: selectedFamily.summer },
+    {
+      key: "schoolYear",
+      label: "School Year 26–27",
+      items: selectedFamily.schoolYear,
+    },
+  ].filter((p) => p.items.length > 0);
+
+  const openScheduleProgram = schedulePrograms.find(
+    (p) => p.key === openScheduleKey,
+  );
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden relative">
       <div
         className="flex-shrink-0 px-6 pt-6 pb-4 space-y-4"
         style={{
@@ -12945,17 +13848,18 @@ function TuitionPage({
               history
             </p>
           </div>
-          {remindersCount > 0 && (
-            <button
-              type="button"
-              data-tour-id="tuition-bulk-remind"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
-              style={{ backgroundColor: C.accent, color: "#fff" }}
-            >
-              <Send className="w-3.5 h-3.5" />
-              Send reminders to {remindersCount} families
-            </button>
-          )}
+          <button
+            type="button"
+            data-tour-id="tuition-bulk-remind"
+            onClick={() => openReminderModal()}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
+            style={{ backgroundColor: C.accent, color: "#fff" }}
+          >
+            <Send className="w-3.5 h-3.5" />
+            {remindersCount > 0
+              ? `Send reminders to ${remindersCount} families`
+              : "Send reminders"}
+          </button>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
@@ -13147,9 +14051,10 @@ function TuitionPage({
         </div>
 
         <div
-          className="flex-1 overflow-y-auto relative"
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
           style={{ backgroundColor: C.surface }}
         >
+          <div className="flex-1 overflow-y-auto">
           <div className="p-5 space-y-5">
             <div
               className="rounded-sm p-5"
@@ -13263,6 +14168,7 @@ function TuitionPage({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={() => openReminderModal([selectedFamily.id])}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
                   style={{ backgroundColor: C.accent, color: "#fff" }}
                 >
@@ -13412,7 +14318,10 @@ function TuitionPage({
                       <button
                         key={tx.id}
                         type="button"
-                        onClick={() => setSelectedTx(tx)}
+                        onClick={() => {
+                          setOpenScheduleKey(null);
+                          setSelectedTx(tx);
+                        }}
                         className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors"
                         style={{
                           borderBottom:
@@ -13465,155 +14374,120 @@ function TuitionPage({
             </div>
 
             <div>
-              <button
-                type="button"
-                onClick={() => setScheduleOpen((v) => !v)}
-                className="flex items-center gap-2 w-full text-left mb-2"
-              >
-                <SectionLabel>Payment schedule</SectionLabel>
-                <ChevronRight
-                  className="w-4 h-4 transition-transform"
-                  style={{
-                    color: C.textTertiary,
-                    transform: scheduleOpen ? "rotate(90deg)" : "none",
-                  }}
-                />
-              </button>
-              <AnimatePresence>
-                {scheduleOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="space-y-3 overflow-hidden"
-                  >
-                    {(
-                      [
-                        ["Summer 2026", selectedFamily.summer],
-                        ["School Year 26–27", selectedFamily.schoolYear],
-                      ] as [string, TuitionScheduleItem[]][]
-                    )
-                      .filter(([, items]) => items.length > 0)
-                      .map(([label, items]) => (
-                        <Card
-                          key={label}
-                          style={{
-                            overflow: "hidden",
-                          }}
+              <SectionLabel>Payment schedule</SectionLabel>
+              {schedulePrograms.length === 0 ? (
+                <p className="text-sm py-2" style={{ color: C.textTertiary }}>
+                  No payment schedule on file.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {schedulePrograms.map((program) => {
+                    const paid = program.items.filter(
+                      (i) => i.state === "paid",
+                    ).length;
+                    const pct =
+                      program.items.length > 0
+                        ? Math.round((paid / program.items.length) * 100)
+                        : 0;
+                    const isOpen = openScheduleKey === program.key;
+                    return (
+                      <button
+                        key={program.key}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTx(null);
+                          setOpenScheduleKey(program.key);
+                        }}
+                        className="w-full rounded-sm p-4 text-left transition-colors"
+                        style={{
+                          backgroundColor: isOpen ? C.accentLight : C.surface,
+                          border: `1px solid ${isOpen ? C.accent + "44" : C.border}`,
+                          boxShadow: C.shadowCard,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isOpen)
+                            e.currentTarget.style.backgroundColor = C.accentLight;
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isOpen)
+                            e.currentTarget.style.backgroundColor = C.surface;
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <p
+                            className="text-sm font-medium"
+                            style={{ color: C.textPrimary }}
+                          >
+                            {program.label}
+                          </p>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span
+                              className="text-xs tabular-nums"
+                              style={{ color: C.textTertiary }}
+                            >
+                              {paid}/{program.items.length} paid
+                            </span>
+                            <ChevronRight
+                              className="w-4 h-4"
+                              style={{ color: C.textTertiary }}
+                            />
+                          </div>
+                        </div>
+                        <div
+                          className="h-1.5 rounded-full overflow-hidden"
+                          style={{ backgroundColor: C.input }}
                         >
                           <div
-                            className="px-4 py-3"
-                            style={{ borderBottom: `1px solid ${C.border}` }}
-                          >
-                            <p
-                              className="text-sm font-semibold"
-                              style={{ color: C.textPrimary }}
-                            >
-                              {label}
-                            </p>
-                            <p className="text-xs" style={{ color: C.textTertiary }}>
-                              {items.filter((i) => i.state === "paid").length} /{" "}
-                              {items.length} paid
-                            </p>
-                          </div>
-                          <div className="px-4 py-2">
-                            {items.map((item, i) => (
-                              <div
-                                key={i}
-                                className="flex items-center gap-3 py-2"
-                                style={{
-                                  borderBottom:
-                                    i < items.length - 1
-                                      ? `1px solid ${C.border}`
-                                      : "none",
-                                }}
-                              >
-                                <div
-                                  className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                                  style={{
-                                    backgroundColor:
-                                      item.state === "paid"
-                                        ? C.successBg
-                                        : item.state === "sent" ||
-                                            item.state === "overdue"
-                                          ? C.warningBg
-                                          : "transparent",
-                                    border: `2px solid ${
-                                      item.state === "paid"
-                                        ? C.success
-                                        : item.state === "overdue"
-                                          ? C.error
-                                          : item.state === "sent"
-                                            ? C.warning
-                                            : C.border
-                                    }`,
-                                  }}
-                                >
-                                  {item.state === "paid" && (
-                                    <CheckCircle
-                                      className="w-2.5 h-2.5"
-                                      style={{ color: C.success }}
-                                    />
-                                  )}
-                                </div>
-                                <span
-                                  className="flex-1 text-xs"
-                                  style={{ color: C.textPrimary }}
-                                >
-                                  {item.label}
-                                </span>
-                                <span
-                                  className="text-xs tabular-nums"
-                                  style={{ color: C.textSecondary }}
-                                >
-                                  {fmt(item.amount)}
-                                </span>
-                                <span
-                                  className="text-[9px] font-semibold"
-                                  style={{
-                                    color:
-                                      item.state === "paid"
-                                        ? C.success
-                                        : item.state === "overdue"
-                                          ? C.error
-                                          : item.state === "sent"
-                                            ? C.warning
-                                            : C.textTertiary,
-                                  }}
-                                >
-                                  {scheduleItemStateLabel(item.state)}
-                                </span>
-                                {(item.state === "unpaid" ||
-                                  item.state === "overdue") && (
-                                  <button
-                                    type="button"
-                                    className="text-[9px] font-semibold px-2 py-0.5 rounded"
-                                    style={demoSecondaryButtonStyle()}
-                                  >
-                                    Send invoice
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </Card>
-                      ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: C.accent,
+                            }}
+                          />
+                        </div>
+                        <p
+                          className="text-[11px] font-medium mt-2"
+                          style={{ color: C.accent }}
+                        >
+                          View schedule
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
-
-          <AnimatePresence>
-            {selectedTx && (
-              <TransactionDetailPanel
-                tx={selectedTx}
-                onClose={() => setSelectedTx(null)}
-              />
-            )}
-          </AnimatePresence>
+          </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedTx && (
+          <TransactionDetailPanel
+            tx={selectedTx}
+            onClose={() => setSelectedTx(null)}
+          />
+        )}
+        {openScheduleProgram && (
+          <PaymentScheduleSheet
+            family={selectedFamily}
+            programLabel={openScheduleProgram.label}
+            items={openScheduleProgram.items}
+            onClose={() => setOpenScheduleKey(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {reminderModalOpen && (
+          <TuitionReminderModal
+            key={reminderInitialIds?.join(",") ?? "bulk"}
+            initialFamilyIds={reminderInitialIds}
+            onClose={() => setReminderModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -14043,7 +14917,8 @@ type BudgetTab =
   | "expenses"
   | "revenue"
   | "insights"
-  | "transactions";
+  | "transactions"
+  | "payroll";
 
 type BudgetNavigateOptions = {
   expenseCategory?: string;
@@ -17397,14 +18272,858 @@ function BudgetInsightsTab({
   );
 }
 
+const PAYROLL_READINESS_STYLES: Record<
+  PayrollReadinessStatus,
+  { bg: string; text: string }
+> = {
+  ready: { bg: C.successBg, text: C.success },
+  paperwork: { bg: C.warningBg, text: C.warning },
+  missing_rate: { bg: C.errorBg, text: C.error },
+};
+
+function RunPayrollWizard({
+  step,
+  onStepChange,
+  onClose,
+  onComplete,
+  onNavigateToStaff,
+}: {
+  step: PayrollRunWizardStep;
+  onStepChange: (step: PayrollRunWizardStep) => void;
+  onClose: () => void;
+  onComplete: () => void;
+  onNavigateToStaff?: (staffId: string) => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const lineItems = getPayrollRunLineItems();
+  const excluded = DEMO_STAFF.filter((s) => !isStaffIncludedInPayrollRun(s));
+  const totalNet = lineItems.reduce((sum, row) => sum + row.net, 0);
+  const needsAttention = lineItems.filter((r) => r.readiness !== "ready");
+
+  const handleNext = () => {
+    if (step < 4) onStepChange((step + 1) as PayrollRunWizardStep);
+  };
+  const handleBack = () => {
+    if (step > 1) onStepChange((step - 1) as PayrollRunWizardStep);
+  };
+
+  const handleSubmit = () => {
+    setSubmitting(true);
+    setTimeout(() => {
+      setSubmitting(false);
+      setComplete(true);
+      setTimeout(() => {
+        onComplete();
+        onClose();
+      }, 2200);
+    }, 1400);
+  };
+
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="absolute top-0 right-0 bottom-0 flex flex-col overflow-hidden"
+      style={{
+        width: 440,
+        maxWidth: "100%",
+        backgroundColor: C.surface,
+        borderLeft: `1px solid ${C.border}`,
+        zIndex: 20,
+        boxShadow: "-4px 0 24px rgba(0,0,0,0.08)",
+      }}
+    >
+      <div
+        className="flex-shrink-0 px-5 pt-4 pb-3"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+              Run payroll
+            </p>
+            <p className="text-[11px]" style={{ color: C.textTertiary }}>
+              {complete
+                ? "Payroll submitted!"
+                : `Step ${step} of 4 — ${PAYROLL_RUN_STEP_LABELS[step - 1]}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center justify-center rounded-md w-7 h-7"
+            style={demoSecondaryButtonStyle({ color: C.textTertiary })}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        {!complete && (
+          <div className="flex items-center gap-0">
+            {([1, 2, 3, 4] as const).map((n, i) => {
+              const isDone = step > n;
+              const isActive = step === n;
+              return (
+                <div key={n} className="flex items-center" style={{ flex: i < 3 ? 1 : "none" }}>
+                  <div
+                    className="flex items-center justify-center rounded-full flex-shrink-0 text-[10px] font-semibold"
+                    style={{
+                      width: 24,
+                      height: 24,
+                      backgroundColor: isDone ? C.accentLight : isActive ? C.accent : C.elevated,
+                      border: `2px solid ${isDone || isActive ? C.accent : C.border}`,
+                      color: isDone ? C.accent : isActive ? "#fff" : C.textTertiary,
+                    }}
+                  >
+                    {isDone ? <CheckCircle className="w-3 h-3" /> : n}
+                  </div>
+                  {i < 3 && (
+                    <div
+                      className="flex-1 h-px mx-1"
+                      style={{ backgroundColor: step > n + 1 ? C.accent : C.border }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-5">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={complete ? "done" : step}
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.18 }}
+            className="space-y-4"
+          >
+            {complete ? (
+              <div className="text-center py-10 px-4">
+                <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: C.success }} />
+                <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                  Payroll approved
+                </p>
+                <p className="text-[11px] mt-2 leading-relaxed" style={{ color: C.textSecondary }}>
+                  {formatUsd(totalNet)} will be deposited on {DEMO_PAY_PERIOD.payday}. Staff receive
+                  pay stubs by email.
+                </p>
+              </div>
+            ) : step === 1 ? (
+              <>
+                <p className="text-xs font-semibold" style={{ color: C.textSecondary }}>
+                  What you&apos;re paying for
+                </p>
+                <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+                  Review the pay period and schedule before including staff.
+                </p>
+                <div
+                  className="rounded-sm p-4 space-y-3"
+                  style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                >
+                  <DetailField label="Pay period" value={DEMO_PAY_PERIOD.label} />
+                  <DetailField label="Payday" value={DEMO_PAY_PERIOD.payday} />
+                  <DetailField label="Approve by" value={DEMO_PAY_PERIOD.approvalDeadline} />
+                  <DetailField label="Schedule" value={DEMO_PAY_PERIOD.scheduleName} />
+                  <DetailField label="Run type" value="Regular" />
+                </div>
+              </>
+            ) : step === 2 ? (
+              <>
+                <p className="text-xs font-semibold" style={{ color: C.textSecondary }}>
+                  Who gets paid
+                </p>
+                <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+                  {lineItems.length} active staff on this run
+                  {needsAttention.length > 0
+                    ? ` · ${needsAttention.length} need setup before deposit`
+                    : ""}
+                  .
+                </p>
+                {needsAttention.length > 0 && (
+                  <div
+                    className="rounded-sm px-3 py-2.5 text-[11px]"
+                    style={{
+                      backgroundColor: C.warningBg,
+                      border: `1px solid ${C.warningBorder}`,
+                      color: C.textSecondary,
+                    }}
+                  >
+                    Staff with missing forms can still be included, but deposits may fail until
+                    setup is complete.
+                  </div>
+                )}
+                <ul className="space-y-2">
+                  {lineItems.map(({ staff, readiness }) => {
+                    const style = PAYROLL_READINESS_STYLES[readiness];
+                    return (
+                      <li
+                        key={staff.id}
+                        className="flex items-center justify-between gap-2 rounded-sm px-3 py-2.5"
+                        style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
+                            {staff.name}
+                          </p>
+                          <p className="text-[10px] truncate" style={{ color: C.textTertiary }}>
+                            {staff.role}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[9px] font-semibold"
+                            style={{ backgroundColor: style.bg, color: style.text }}
+                          >
+                            {getPayrollReadinessLabel(readiness)}
+                          </span>
+                          {readiness !== "ready" && (
+                            <button
+                              type="button"
+                              onClick={() => onNavigateToStaff?.(staff.id)}
+                              className="text-[10px] font-semibold"
+                              style={{ color: C.accent }}
+                            >
+                              Fix
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {excluded.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: C.textTertiary }}>
+                      Not included
+                    </p>
+                    {excluded.map((staff) => (
+                      <p key={staff.id} className="text-[11px] py-1" style={{ color: C.textTertiary }}>
+                        {staff.name} — {staff.status === "on_leave" ? "On leave" : "Inactive"}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : step === 3 ? (
+              <>
+                <p className="text-xs font-semibold" style={{ color: C.textSecondary }}>
+                  Review amounts
+                </p>
+                <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+                  Estimated net pay per person for this period (taxes and deductions included).
+                </p>
+                <div className="overflow-x-auto rounded-sm" style={{ border: `1px solid ${C.border}` }}>
+                  <table className="w-full text-left text-[11px]">
+                    <thead>
+                      <tr style={{ backgroundColor: C.elevated, borderBottom: `1px solid ${C.border}` }}>
+                        {["Staff", "Hours", "Est. net"].map((h) => (
+                          <th key={h} className="px-3 py-2 font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lineItems.map(({ staff, hours, net }, i) => (
+                        <tr
+                          key={staff.id}
+                          style={{
+                            borderBottom: i < lineItems.length - 1 ? `1px solid ${C.border}` : "none",
+                            backgroundColor: C.surface,
+                          }}
+                        >
+                          <td className="px-3 py-2 font-medium" style={{ color: C.textPrimary }}>
+                            {staff.name.split(" ").slice(-1)[0]}
+                          </td>
+                          <td className="px-3 py-2 tabular-nums" style={{ color: C.textSecondary }}>
+                            {hours != null ? `${hours} hrs` : "Salary"}
+                          </td>
+                          <td className="px-3 py-2 tabular-nums font-semibold" style={{ color: C.textPrimary }}>
+                            {formatUsd(net)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ backgroundColor: C.accentLight, borderTop: `1px solid ${C.border}` }}>
+                        <td colSpan={2} className="px-3 py-2.5 font-semibold" style={{ color: C.textPrimary }}>
+                          Total net pay
+                        </td>
+                        <td className="px-3 py-2.5 font-bold tabular-nums" style={{ color: C.accent }}>
+                          {formatUsd(totalNet)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-semibold" style={{ color: C.textSecondary }}>
+                  Confirm and submit
+                </p>
+                <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+                  Once approved, payroll is queued for deposit on payday.
+                </p>
+                <div
+                  className="rounded-sm p-4 space-y-2"
+                  style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                >
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: C.textTertiary }}>Staff paid</span>
+                    <span className="font-semibold" style={{ color: C.textPrimary }}>
+                      {lineItems.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: C.textTertiary }}>Pay period</span>
+                    <span className="font-medium" style={{ color: C.textPrimary }}>
+                      {DEMO_PAY_PERIOD.label}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: C.textTertiary }}>Deposit date</span>
+                    <span className="font-medium" style={{ color: C.textPrimary }}>
+                      {DEMO_PAY_PERIOD.payday}
+                    </span>
+                  </div>
+                  <div
+                    className="flex justify-between pt-2 mt-2 text-sm"
+                    style={{ borderTop: `1px solid ${C.border}` }}
+                  >
+                    <span className="font-semibold" style={{ color: C.textPrimary }}>
+                      Total net pay
+                    </span>
+                    <span className="font-bold tabular-nums" style={{ color: C.accent }}>
+                      {formatUsd(totalNet)}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[10px] leading-relaxed" style={{ color: C.textTertiary }}>
+                  By approving, you authorize SchoolStack to process ACH deposits to staff on file.
+                </p>
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {!complete && (
+        <div
+          className="flex-shrink-0 flex items-center gap-2 px-5 py-4"
+          style={{ borderTop: `1px solid ${C.border}` }}
+        >
+          {step > 1 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={submitting}
+              className="text-xs font-medium rounded-sm px-4 py-2"
+              style={demoSecondaryButtonStyle()}
+            >
+              Back
+            </button>
+          )}
+          {step < 4 ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              className="ml-auto flex items-center gap-1.5 text-xs font-semibold rounded-sm px-4 py-2"
+              style={{ backgroundColor: C.accent, color: "#fff" }}
+            >
+              Continue <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex-1 flex items-center justify-center gap-2 text-xs font-semibold rounded-sm py-2.5"
+              style={{
+                backgroundColor: C.accent,
+                color: "#fff",
+                opacity: submitting ? 0.7 : 1,
+              }}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Processing…
+                </>
+              ) : (
+                <>
+                  Approve & run payroll <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function FinancesPayrollTab({
+  onNavigateExpenses,
+  onNavigateToStaff,
+}: {
+  onNavigateExpenses: () => void;
+  onNavigateToStaff?: (staffId: string) => void;
+}) {
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+  const summary = getPayrollHubSummary();
+  const [highlightStaffId, setHighlightStaffId] = useState<string | null>(null);
+  const [runWizardOpen, setRunWizardOpen] = useState(false);
+  const [runWizardStep, setRunWizardStep] = useState<PayrollRunWizardStep>(1);
+  const [runStatus, setRunStatus] = useState<PayrollRunStatus>("not_started");
+  const [recentRuns, setRecentRuns] = useState(DEMO_PAYROLL_RUNS.recent);
+  const [successBanner, setSuccessBanner] = useState(false);
+  const staffTableRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (runWizardOpen) openBackdrop(() => setRunWizardOpen(false));
+    else closeBackdrop();
+  }, [runWizardOpen, openBackdrop, closeBackdrop]);
+
+  const openRunWizard = () => {
+    setRunWizardStep(1);
+    setRunWizardOpen(true);
+  };
+
+  const handlePayrollComplete = () => {
+    const totalNet = getPayrollRunLineItems().reduce((sum, row) => sum + row.net, 0);
+    setRunStatus("in_review");
+    setRecentRuns([
+      {
+        id: "run-may-23-done",
+        payday: DEMO_PAY_PERIOD.paydayShort,
+        type: "Regular",
+        total: formatUsd(totalNet),
+        status: "In review",
+      },
+    ]);
+    setSuccessBanner(true);
+    setTimeout(() => setSuccessBanner(false), 5000);
+  };
+
+  const runStatusLabel =
+    runStatus === "not_started"
+      ? "Not started"
+      : runStatus === "in_review"
+        ? "In review"
+        : "Approved";
+  const runStatusStyle =
+    runStatus === "not_started"
+      ? { bg: C.errorBg, text: C.error }
+      : runStatus === "in_review"
+        ? { bg: C.warningBg, text: C.warning }
+        : { bg: C.successBg, text: C.success };
+
+  const actionItems = [
+    summary.needsSetupCount > 0 && {
+      id: "setup",
+      label: `Complete payroll setup for ${summary.needsSetupCount} staff member${summary.needsSetupCount !== 1 ? "s" : ""}`,
+      done: false,
+    },
+    summary.missingRatesCount > 0 && {
+      id: "rates",
+      label: `Missing pay rates (${summary.missingRatesCount})`,
+      done: false,
+    },
+    summary.pendingFormsCount > 0 && {
+      id: "forms",
+      label: `Pending tax or direct deposit forms (${summary.pendingFormsCount})`,
+      done: false,
+    },
+    {
+      id: "hours",
+      label: "Review time clock hours before next run",
+      done: false,
+    },
+  ].filter(Boolean) as { id: string; label: string; done: boolean }[];
+
+  const scrollToStaffTable = () => {
+    staffTableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <motion.div
+      key="payroll"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="relative flex-1 overflow-y-auto min-h-full p-6"
+      style={{ backgroundColor: C.bg }}
+    >
+      <AnimatePresence>
+        {runWizardOpen && (
+          <RunPayrollWizard
+            step={runWizardStep}
+            onStepChange={setRunWizardStep}
+            onClose={() => setRunWizardOpen(false)}
+            onComplete={handlePayrollComplete}
+            onNavigateToStaff={(id) => {
+              setRunWizardOpen(false);
+              onNavigateToStaff?.(id);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="flex flex-col lg:flex-row gap-5">
+        <div className="flex-1 min-w-0 space-y-5">
+          {successBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-sm px-4 py-3 flex items-center gap-2"
+              style={{
+                backgroundColor: C.successBg,
+                border: `1px solid ${C.successBorder}`,
+              }}
+            >
+              <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: C.success }} />
+              <p className="text-xs font-medium" style={{ color: C.textPrimary }}>
+                Payroll submitted for review — deposits scheduled for {DEMO_PAY_PERIOD.payday}.
+              </p>
+            </motion.div>
+          )}
+
+          {summary.needsSetupCount > 0 && (
+            <div
+              className="rounded-sm px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              style={{
+                backgroundColor: C.warningBg,
+                border: `1px solid ${C.warningBorder}`,
+              }}
+            >
+              <div>
+                <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+                  {summary.needsSetupCount} staff member
+                  {summary.needsSetupCount !== 1 ? "s need" : " needs"} payroll setup
+                </p>
+                <p className="text-[11px] mt-0.5" style={{ color: C.textSecondary }}>
+                  Complete pay rates and required forms before your next payroll run.
+                </p>
+              </div>
+              <DemoButton variant="primary" className="text-xs flex-shrink-0" onClick={scrollToStaffTable}>
+                Review
+              </DemoButton>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div
+              className="rounded-sm p-4"
+              style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+            >
+              <p className="text-[10px] font-medium uppercase tracking-wide mb-1" style={{ color: C.textTertiary }}>
+                YTD Payroll Spend
+              </p>
+              <p className="text-xl font-bold tabular-nums" style={{ color: C.textPrimary }}>
+                {formatUsd(summary.ytdPayroll)}
+              </p>
+              <p className="text-[10px] mt-1" style={{ color: C.textTertiary }}>
+                {formatUsd(summary.personnelActual)} in Personnel budget
+              </p>
+            </div>
+            <div
+              className="rounded-sm p-4 flex flex-col justify-between"
+              style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+            >
+              <p className="text-[10px] font-medium uppercase tracking-wide mb-1" style={{ color: C.textTertiary }}>
+                Next Payday
+              </p>
+              <p className="text-xl font-bold" style={{ color: C.accent }}>
+                {DEMO_PAY_PERIOD.paydayShort}
+              </p>
+              <button
+                type="button"
+                onClick={onNavigateExpenses}
+                className="text-[10px] font-medium mt-2 flex items-center gap-1 text-left"
+                style={{ color: C.accent }}
+              >
+                View in Expenses
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          <Card style={{ padding: "16px 18px" }}>
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>Upcoming payroll</SectionLabel>
+              <DemoButton
+                variant="primary"
+                className="text-[10px] px-2.5 py-1"
+                onClick={openRunWizard}
+                disabled={runWizardOpen}
+              >
+                Run payroll
+              </DemoButton>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    {["Payday", "Approval deadline", "Type", "Status"].map((h) => (
+                      <th
+                        key={h}
+                        className="pb-2 pr-4 font-semibold text-[10px] uppercase tracking-wide"
+                        style={{ color: C.textTertiary }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="py-2.5 pr-4 font-medium" style={{ color: C.textPrimary }}>
+                      {DEMO_PAY_PERIOD.paydayShort}
+                    </td>
+                    <td className="py-2.5 pr-4" style={{ color: C.textSecondary }}>
+                      {DEMO_PAY_PERIOD.approvalDeadline}
+                    </td>
+                    <td className="py-2.5 pr-4" style={{ color: C.textSecondary }}>
+                      Regular
+                    </td>
+                    <td className="py-2.5">
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[9px] font-semibold"
+                        style={{ backgroundColor: runStatusStyle.bg, color: runStatusStyle.text }}
+                      >
+                        {runStatusLabel}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          <Card style={{ padding: "16px 18px" }}>
+            <SectionLabel>Recent payroll</SectionLabel>
+            {recentRuns.length === 0 ? (
+              <p className="text-xs py-6 text-center" style={{ color: C.textTertiary }}>
+                No payroll history yet
+              </p>
+            ) : (
+              <div className="overflow-x-auto mt-2">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                      {["Payday", "Type", "Total", "Status"].map((h) => (
+                        <th
+                          key={h}
+                          className="pb-2 pr-4 font-semibold text-[10px] uppercase tracking-wide"
+                          style={{ color: C.textTertiary }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentRuns.map((run) => (
+                      <tr key={run.id}>
+                        <td className="py-2.5 pr-4 font-medium" style={{ color: C.textPrimary }}>
+                          {run.payday}
+                        </td>
+                        <td className="py-2.5 pr-4" style={{ color: C.textSecondary }}>
+                          {run.type}
+                        </td>
+                        <td className="py-2.5 pr-4 tabular-nums font-medium" style={{ color: C.textPrimary }}>
+                          {run.total}
+                        </td>
+                        <td className="py-2.5">
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[9px] font-semibold"
+                            style={{ backgroundColor: C.warningBg, color: C.warning }}
+                          >
+                            {run.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          <Card style={{ padding: "16px 18px" }}>
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>Pay schedules</SectionLabel>
+              <button
+                type="button"
+                className="text-[10px] font-semibold flex items-center gap-1"
+                style={{ color: C.accent }}
+              >
+                <Plus className="w-3 h-3" />
+                Add pay schedule
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    {["Name", "Pay frequency", "Next pay date"].map((h) => (
+                      <th
+                        key={h}
+                        className="pb-2 pr-4 font-semibold text-[10px] uppercase tracking-wide"
+                        style={{ color: C.textTertiary }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {DEMO_PAY_SCHEDULES.map((sched, i) => (
+                    <tr
+                      key={sched.id}
+                      style={{
+                        borderBottom:
+                          i < DEMO_PAY_SCHEDULES.length - 1 ? `1px solid ${C.border}` : "none",
+                      }}
+                    >
+                      <td className="py-2.5 pr-4 font-medium" style={{ color: C.textPrimary }}>
+                        {sched.name}
+                      </td>
+                      <td className="py-2.5 pr-4" style={{ color: C.textSecondary }}>
+                        {sched.frequency}
+                      </td>
+                      <td className="py-2.5 tabular-nums" style={{ color: C.textSecondary }}>
+                        {sched.nextPayDate}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          <div ref={staffTableRef}>
+            <Card style={{ padding: "16px 18px" }}>
+              <SectionLabel hint="Click a row to open that staff member's payroll profile.">
+                Staff payroll readiness
+              </SectionLabel>
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                      {["Staff", "Rate", "Schedule", "Last pay", "Status"].map((h) => (
+                        <th
+                          key={h}
+                          className="pb-2 pr-3 font-semibold text-[10px] uppercase tracking-wide"
+                          style={{ color: C.textTertiary }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.rows.map(({ staff, status }, i) => {
+                      const style = PAYROLL_READINESS_STYLES[status];
+                      const isHighlight = highlightStaffId === staff.id;
+                      return (
+                        <tr
+                          key={staff.id}
+                          className="cursor-pointer transition-colors"
+                          style={{
+                            borderBottom:
+                              i < summary.rows.length - 1 ? `1px solid ${C.border}` : "none",
+                            backgroundColor: isHighlight ? C.accentLight : "transparent",
+                          }}
+                          onClick={() => {
+                            setHighlightStaffId(staff.id);
+                            onNavigateToStaff?.(staff.id);
+                            setTimeout(() => setHighlightStaffId(null), 1200);
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isHighlight) e.currentTarget.style.backgroundColor = C.elevated;
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isHighlight) e.currentTarget.style.backgroundColor = "transparent";
+                          }}
+                        >
+                          <td className="py-2.5 pr-3">
+                            <p className="font-medium" style={{ color: C.textPrimary }}>
+                              {staff.name}
+                            </p>
+                            <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                              {staff.role}
+                            </p>
+                          </td>
+                          <td className="py-2.5 pr-3 tabular-nums" style={{ color: C.textSecondary }}>
+                            {formatStaffPayRate(staff)}
+                          </td>
+                          <td className="py-2.5 pr-3" style={{ color: C.textSecondary }}>
+                            {staff.payroll.schedule}
+                          </td>
+                          <td className="py-2.5 pr-3 tabular-nums" style={{ color: C.textSecondary }}>
+                            {formatUsd(staff.payroll.lastNet)}
+                          </td>
+                          <td className="py-2.5">
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[9px] font-semibold whitespace-nowrap"
+                              style={{ backgroundColor: style.bg, color: style.text }}
+                            >
+                              {getPayrollReadinessLabel(status)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        <div className="w-full lg:w-56 flex-shrink-0">
+          <Card style={{ padding: "14px 16px" }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
+              Actions needed
+            </p>
+            <ul className="space-y-2.5">
+              {actionItems.map((item) => (
+                <li key={item.id} className="flex items-start gap-2">
+                  <span
+                    className="w-3.5 h-3.5 rounded-full flex-shrink-0 mt-0.5 border"
+                    style={{ borderColor: C.border }}
+                  />
+                  <span className="text-[11px] leading-snug" style={{ color: C.textSecondary }}>
+                    {item.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function BudgetPage({
   activeTab: tab,
   onTabChange,
   onNavigateToTuition,
+  onNavigateToStaff,
 }: {
   activeTab: BudgetTab;
   onTabChange: (tab: BudgetTab) => void;
   onNavigateToTuition?: (opts?: TuitionNavigateOptions) => void;
+  onNavigateToStaff?: (staffId: string) => void;
 }) {
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("all");
   const [revenuePendingOnly, setRevenuePendingOnly] = useState(false);
@@ -17558,6 +19277,15 @@ function BudgetPage({
               }
             />
           </motion.div>
+        )}
+
+        {tab === "payroll" && (
+          <FinancesPayrollTab
+            onNavigateExpenses={() =>
+              handleNavigate("expenses", { expenseCategory: "Personnel" })
+            }
+            onNavigateToStaff={onNavigateToStaff}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -19793,8 +21521,19 @@ function StaffPaperworkCard({
   );
 }
 
-function StaffProfilePanel({ staff }: { staff: DemoStaff }) {
-  const [tab, setTab] = useState<StaffProfileTab>("profile");
+function StaffProfilePanel({
+  staff,
+  profileTab,
+  onProfileTabChange,
+  onNavigateToFinancesPayroll,
+}: {
+  staff: DemoStaff;
+  profileTab: StaffProfileTab;
+  onProfileTabChange: (tab: StaffProfileTab) => void;
+  onNavigateToFinancesPayroll?: () => void;
+}) {
+  const tab = profileTab;
+  const setTab = onProfileTabChange;
   const statusStyle = STAFF_STATUS_STYLES[staff.status];
   const compliance = getStaffComplianceSummary(staff);
   const assignments = getStaffProgramAssignments(staff);
@@ -20046,10 +21785,11 @@ function StaffProfilePanel({ staff }: { staff: DemoStaff }) {
             </div>
             <button
               type="button"
+              onClick={onNavigateToFinancesPayroll}
               className="text-[11px] font-medium flex items-center gap-1"
               style={{ color: C.accent }}
             >
-              View in Budget
+              View in Finances
               <ArrowRight className="w-3 h-3" />
             </button>
           </div>
@@ -20341,9 +22081,30 @@ function StaffProfilePanel({ staff }: { staff: DemoStaff }) {
   );
 }
 
-function StaffPage() {
+function StaffPage({
+  focusStaffId,
+  focusStaffTab,
+  onFocusConsumed,
+  onNavigateToFinancesPayroll,
+}: {
+  focusStaffId?: string | null;
+  focusStaffTab?: StaffProfileTab;
+  onFocusConsumed?: () => void;
+  onNavigateToFinancesPayroll?: () => void;
+}) {
   const [selectedStaff, setSelectedStaff] = useState<DemoStaff>(DEMO_STAFF[0]);
+  const [profileTab, setProfileTab] = useState<StaffProfileTab>("profile");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!focusStaffId) return;
+    const member = DEMO_STAFF.find((s) => s.id === focusStaffId);
+    if (member) {
+      setSelectedStaff(member);
+      setProfileTab(focusStaffTab ?? "payroll");
+    }
+    onFocusConsumed?.();
+  }, [focusStaffId, focusStaffTab, onFocusConsumed]);
 
   const filtered = DEMO_STAFF.filter(
     (s) =>
@@ -20446,7 +22207,13 @@ function StaffPage() {
       </div>
       <div className="flex-1 min-w-0 overflow-hidden">
         <AnimatePresence mode="wait">
-          <StaffProfilePanel key={selectedStaff.id} staff={selectedStaff} />
+          <StaffProfilePanel
+            key={selectedStaff.id}
+            staff={selectedStaff}
+            profileTab={profileTab}
+            onProfileTabChange={setProfileTab}
+            onNavigateToFinancesPayroll={onNavigateToFinancesPayroll}
+          />
         </AnimatePresence>
       </div>
     </div>
@@ -21226,12 +22993,20 @@ function MySchoolPage({
   selectedTuitionFamilyId,
   tuitionFilter,
   onSelectTuitionFamily,
+  focusStaffId,
+  focusStaffTab,
+  onStaffFocusConsumed,
+  onNavigateToFinancesPayroll,
 }: {
   activeTab: MySchoolTab;
   onTabChange: (tab: MySchoolTab) => void;
   selectedTuitionFamilyId?: string;
   tuitionFilter?: TuitionFilter;
   onSelectTuitionFamily?: (id: string) => void;
+  focusStaffId?: string | null;
+  focusStaffTab?: StaffProfileTab;
+  onStaffFocusConsumed?: () => void;
+  onNavigateToFinancesPayroll?: () => void;
 }) {
   return (
     <div className="h-full overflow-hidden">
@@ -21244,7 +23019,14 @@ function MySchoolPage({
         />
       )}
       {activeTab === "programs" && <ProgramsPage />}
-      {activeTab === "staff" && <StaffPage />}
+      {activeTab === "staff" && (
+        <StaffPage
+          focusStaffId={focusStaffId}
+          focusStaffTab={focusStaffTab}
+          onFocusConsumed={onStaffFocusConsumed}
+          onNavigateToFinancesPayroll={onNavigateToFinancesPayroll}
+        />
+      )}
       {activeTab === "classrooms" && <ClassroomsPage />}
       {activeTab === "tuition" && (
         <TuitionPage
@@ -21289,6 +23071,7 @@ const BUDGET_SUBTABS: SubtabItem<BudgetTab>[] = [
   { key: "revenue", label: "Revenue", icon: <TrendingUp className="w-3.5 h-3.5" /> },
   { key: "insights", label: "Insights", icon: <Lightbulb className="w-3.5 h-3.5" /> },
   { key: "transactions", label: "Transactions", icon: <ListFilter className="w-3.5 h-3.5" /> },
+  { key: "payroll", label: "Payroll", icon: <Wallet className="w-3.5 h-3.5" /> },
 ];
 
 const MYSCHOOL_SUBTABS: SubtabItem<MySchoolTab>[] = [
@@ -21335,7 +23118,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       {
         key: "budget",
-        name: "Budget",
+        name: "Finances",
         icon: <DollarSign className="w-4 h-4" />,
         phase1: true,
       },
@@ -22066,6 +23849,8 @@ export default function AdminDashboardDemo({
   const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>("flows");
   const [budgetTab, setBudgetTab] = useState<BudgetTab>("overview");
   const [mySchoolTab, setMySchoolTab] = useState<MySchoolTab>("students");
+  const [focusStaffId, setFocusStaffId] = useState<string | null>(null);
+  const [focusStaffTab, setFocusStaffTab] = useState<StaffProfileTab>("payroll");
   const [selectedTuitionFamilyId, setSelectedTuitionFamilyId] = useState<
     string | undefined
   >(undefined);
@@ -22100,8 +23885,24 @@ export default function AdminDashboardDemo({
     if (opts?.filter) setTuitionFilter(opts.filter);
   }, []);
 
+  const navigateToFinancesPayroll = useCallback(() => {
+    setActivePage("budget");
+    setBudgetTab("payroll");
+  }, []);
+
+  const navigateToStaffPayroll = useCallback((staffId: string) => {
+    setFocusStaffTab("payroll");
+    setFocusStaffId(staffId);
+    setActivePage("myschool");
+    setMySchoolTab("staff");
+  }, []);
+
+  const clearStaffFocus = useCallback(() => {
+    setFocusStaffId(null);
+  }, []);
+
   const PAGE_NAMES: Record<string, string> = {
-    budget: "Budget",
+    budget: "Finances",
     marketing: "Marketing",
     teacher: "Teacher View",
   };
@@ -22124,6 +23925,10 @@ export default function AdminDashboardDemo({
             selectedTuitionFamilyId={selectedTuitionFamilyId}
             tuitionFilter={tuitionFilter}
             onSelectTuitionFamily={setSelectedTuitionFamilyId}
+            focusStaffId={focusStaffId}
+            focusStaffTab={focusStaffTab}
+            onStaffFocusConsumed={clearStaffFocus}
+            onNavigateToFinancesPayroll={navigateToFinancesPayroll}
           />
         );
       case "budget":
@@ -22132,6 +23937,7 @@ export default function AdminDashboardDemo({
             activeTab={budgetTab}
             onTabChange={setBudgetTab}
             onNavigateToTuition={navigateToTuition}
+            onNavigateToStaff={navigateToStaffPayroll}
           />
         );
       case "marketing":
