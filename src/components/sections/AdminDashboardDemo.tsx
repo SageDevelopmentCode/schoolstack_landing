@@ -8611,30 +8611,105 @@ const PROGRAM_TABS: { id: ProgramTabId; label: string }[] = [
   { id: "roster", label: "Roster" },
 ];
 
-function ProgramInfoCard({
-  label,
+function ProgramSection({
+  title,
   children,
+  action,
 }: {
-  label: string;
+  title: string;
   children: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
-    <div
-      className="rounded-sm p-4"
-      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-    >
-      <p
-        className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-        style={{ color: C.textTertiary }}
-      >
-        {label}
-      </p>
+    <section>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h3
+          className="text-[10px] font-semibold uppercase tracking-widest"
+          style={{ color: C.textTertiary }}
+        >
+          {title}
+        </h3>
+        {action}
+      </div>
       {children}
+    </section>
+  );
+}
+
+function ProgramDivider() {
+  return (
+    <hr
+      className="my-6 border-0"
+      style={{ borderTop: `1px solid ${C.border}` }}
+    />
+  );
+}
+
+function ProgramStatStrip({
+  stats,
+}: {
+  stats: { label: string; value: string | number; sub?: string }[];
+}) {
+  return (
+    <div className="flex flex-wrap">
+      {stats.map((stat, i) => (
+        <div
+          key={stat.label}
+          className="flex-1 min-w-[6.5rem] py-1 pr-6"
+          style={{
+            borderLeft: i > 0 ? `1px solid ${C.border}` : undefined,
+            paddingLeft: i > 0 ? "1.25rem" : undefined,
+          }}
+        >
+          <p
+            className="text-[10px] font-medium uppercase tracking-wide"
+            style={{ color: C.textTertiary }}
+          >
+            {stat.label}
+          </p>
+          <p
+            className="text-xl font-semibold mt-0.5 tabular-nums leading-none"
+            style={{ color: C.textPrimary }}
+          >
+            {stat.value}
+          </p>
+          {stat.sub && (
+            <p className="text-[10px] mt-1" style={{ color: C.textTertiary }}>
+              {stat.sub}
+            </p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
 
-function ProgramFlowCard({
+function ProgramDetailRows({
+  rows,
+}: {
+  rows: [string, React.ReactNode][];
+}) {
+  return (
+    <dl>
+      {rows.map(([k, v], i) => (
+        <div
+          key={k}
+          className="flex justify-between gap-6 py-2.5 text-xs"
+          style={{
+            borderTop: i > 0 ? `1px solid ${C.border}` : undefined,
+          }}
+        >
+          <dt style={{ color: C.textTertiary }}>{k}</dt>
+          <dd className="font-medium text-right" style={{ color: C.textPrimary }}>
+            {v}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function ProgramFlowSection({
   title,
   flow,
   role,
@@ -8644,75 +8719,68 @@ function ProgramFlowCard({
   role: string;
 }) {
   return (
-    <div
-      className="rounded-sm p-4 flex flex-col gap-3"
-      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+    <ProgramSection
+      title={role}
+      action={
+        <button
+          type="button"
+          className="text-[10px] font-medium flex items-center gap-1"
+          style={{ color: C.accent }}
+        >
+          Edit in Enrollment Flows
+          <ArrowRight className="w-3 h-3" />
+        </button>
+      }
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: C.textTertiary }}>
-            {role}
-          </p>
-          <p className="text-sm font-semibold mt-1" style={{ color: C.textPrimary }}>
+      <div className="flex items-start gap-3">
+        <GitBranch className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: C.accent }} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
             {flow?.name ?? title}
           </p>
-        </div>
-        <GitBranch className="w-4 h-4 flex-shrink-0" style={{ color: C.accent }} />
-      </div>
-      {flow ? (
-        <>
-          <div className="flex flex-wrap gap-2">
-            <span
-              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: C.accentLight, color: C.accent }}
-            >
-              {flow.steps.length} step{flow.steps.length !== 1 ? "s" : ""}
-            </span>
-            <span
-              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: C.infoBg, color: C.info }}
-            >
-              {flow.actions.length} action{flow.actions.length !== 1 ? "s" : ""}
-            </span>
-            <span className="text-[10px]" style={{ color: C.textTertiary }}>
-              Updated {flow.updatedAt}
-            </span>
-          </div>
-          <div className="space-y-1.5">
-            {flow.steps.map((step, i) => (
-              <div
-                key={step.id}
-                className="flex items-center gap-2 text-xs"
-                style={{ color: C.textSecondary }}
-              >
-                <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                  style={{ backgroundColor: C.elevated, color: C.textTertiary }}
-                >
-                  {i + 1}
-                </span>
-                {step.title}
-                <span style={{ color: C.textTertiary }}>
-                  · {step.fields.length} field{step.fields.length !== 1 ? "s" : ""}
-                </span>
+          {flow ? (
+            <>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[10px]" style={{ color: C.textTertiary }}>
+                <span>{flow.steps.length} step{flow.steps.length !== 1 ? "s" : ""}</span>
+                <span>·</span>
+                <span>{flow.actions.length} action{flow.actions.length !== 1 ? "s" : ""}</span>
+                <span>·</span>
+                <span>Updated {flow.updatedAt}</span>
               </div>
-            ))}
-          </div>
-        </>
-      ) : (
-        <p className="text-xs" style={{ color: C.textTertiary }}>
-          No flow linked
-        </p>
-      )}
-      <button
-        type="button"
-        className="text-xs font-medium text-left flex items-center gap-1 mt-auto"
-        style={{ color: C.accent }}
-      >
-        Edit in Enrollment Flows
-        <ArrowRight className="w-3 h-3" />
-      </button>
-    </div>
+              <div className="mt-3 space-y-0">
+                {flow.steps.map((step, i) => (
+                  <div
+                    key={step.id}
+                    className="flex items-center gap-3 py-2 text-xs"
+                    style={{
+                      color: C.textSecondary,
+                      borderTop: i > 0 ? `1px solid ${C.border}` : undefined,
+                    }}
+                  >
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 tabular-nums"
+                      style={{ color: C.textTertiary }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="font-medium" style={{ color: C.textPrimary }}>
+                      {step.title}
+                    </span>
+                    <span style={{ color: C.textTertiary }}>
+                      {step.fields.length} field{step.fields.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
+              No flow linked
+            </p>
+          )}
+        </div>
+      </div>
+    </ProgramSection>
   );
 }
 
@@ -8721,94 +8789,65 @@ function ProgramOverviewTab({ program }: { program: DemoProgram }) {
   const statusStyle = PROGRAM_STATUS_STYLES[program.status];
 
   return (
-    <div className="space-y-4 overflow-y-auto pb-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
+    <div className="overflow-y-auto pb-6">
+      <ProgramStatStrip
+        stats={[
           { label: "Enrolled", value: enrolled, sub: `of ${program.eligibility.capacity}` },
-          { label: "Waitlist", value: program.eligibility.waitlistCount, sub: program.eligibility.waitlistEnabled ? "active" : "off" },
+          {
+            label: "Waitlist",
+            value: program.eligibility.waitlistCount,
+            sub: program.eligibility.waitlistEnabled ? "active" : "off",
+          },
           { label: "Leads", value: program.stats.leads, sub: "this season" },
           { label: "Revenue", value: `$${program.stats.revenue.toLocaleString()}`, sub: "YTD" },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-sm p-3"
-            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
-          >
-            <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: C.textTertiary }}>
-              {stat.label}
-            </p>
-            <p className="text-xl font-semibold mt-1 tabular-nums" style={{ color: C.textPrimary }}>
-              {stat.value}
-            </p>
-            <p className="text-[10px] mt-0.5" style={{ color: C.textTertiary }}>
-              {stat.sub}
-            </p>
-          </div>
-        ))}
-      </div>
+        ]}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ProgramInfoCard label="About">
+      <ProgramDivider />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-8">
+        <ProgramSection title="About">
           <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
             {program.description.short}
           </p>
-          <p className="text-xs leading-relaxed" style={{ color: C.textSecondary }}>
+          <p className="text-sm leading-relaxed max-w-prose" style={{ color: C.textSecondary }}>
             {program.description.long}
           </p>
-          <div className="flex flex-wrap gap-1.5 mt-3">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-4 text-xs" style={{ color: C.textTertiary }}>
             {program.marketing.details.map((d) => (
-              <span
-                key={d}
-                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: C.accentLight, color: C.accent }}
-              >
-                {d}
-              </span>
+              <span key={d}>{d}</span>
             ))}
           </div>
-        </ProgramInfoCard>
+        </ProgramSection>
 
-        <ProgramInfoCard label="Eligibility & visibility">
-          <dl className="space-y-2 text-xs">
-            {[
+        <ProgramSection title="Eligibility & visibility">
+          <ProgramDetailRows
+            rows={[
               ["Type", PROGRAM_TYPE_LABELS[program.type]],
               ["Status", statusStyle.label],
               ["Age range", program.eligibility.ageRange],
               ...(program.eligibility.gradeRange
-                ? [["Grades", program.eligibility.gradeRange] as const]
+                ? [["Grades", program.eligibility.gradeRange] as [string, React.ReactNode]]
                 : []),
               ["Capacity", `${program.eligibility.capacity} students`],
               ["Website", program.publicVisible ? "Public" : "Admin only"],
               ["Badge", program.marketing.badge],
               ["Billing ID", PROGRAM_ID_MAP[program.id] ?? program.id],
-            ].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-4">
-                <dt style={{ color: C.textTertiary }}>{k}</dt>
-                <dd className="font-medium text-right" style={{ color: C.textPrimary }}>
-                  {v}
-                </dd>
-              </div>
-            ))}
-          </dl>
+            ]}
+          />
           {program.eligibility.tracks && (
-            <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${C.border}` }}>
+            <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
               <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
                 Enrollment tracks
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs" style={{ color: C.textSecondary }}>
                 {program.eligibility.tracks.map((t) => (
-                  <span
-                    key={t}
-                    className="text-[10px] px-2 py-0.5 rounded-sm"
-                    style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
-                  >
-                    {t}
-                  </span>
+                  <span key={t}>{t}</span>
                 ))}
               </div>
             </div>
           )}
-        </ProgramInfoCard>
+        </ProgramSection>
       </div>
     </div>
   );
@@ -8829,76 +8868,85 @@ function ProgramEnrollmentTab({ program }: { program: DemoProgram }) {
   ];
 
   return (
-    <div className="space-y-4 overflow-y-auto pb-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ProgramFlowCard title="Application" flow={applyFlow} role="Application flow" />
-        {enrollFlow && enrollFlow.id !== applyFlow?.id ? (
-          <ProgramFlowCard title="Enrollment" flow={enrollFlow} role="Enrollment flow" />
-        ) : (
-          <ProgramInfoCard label="Enrollment flow">
+    <div className="overflow-y-auto pb-6">
+      <ProgramFlowSection title="Application" flow={applyFlow} role="Application flow" />
+
+      {enrollFlow && enrollFlow.id !== applyFlow?.id ? (
+        <>
+          <ProgramDivider />
+          <ProgramFlowSection title="Enrollment" flow={enrollFlow} role="Enrollment flow" />
+        </>
+      ) : (
+        <>
+          <ProgramDivider />
+          <ProgramSection title="Enrollment flow">
             <p className="text-sm" style={{ color: C.textSecondary }}>
               Same as application flow — families complete one form to apply and enroll.
             </p>
-          </ProgramInfoCard>
-        )}
-      </div>
+          </ProgramSection>
+        </>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ProgramInfoCard label="Onboarding checklist">
-          <ul className="space-y-2">
-            {program.enrollment.checklistItems.map((item) => (
-              <li key={item} className="flex items-center gap-2 text-xs" style={{ color: C.textSecondary }}>
+      <ProgramDivider />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-8">
+        <ProgramSection title="Onboarding checklist">
+          <ul>
+            {program.enrollment.checklistItems.map((item, i) => (
+              <li
+                key={item}
+                className="flex items-center gap-2.5 py-2.5 text-sm"
+                style={{
+                  color: C.textSecondary,
+                  borderTop: i > 0 ? `1px solid ${C.border}` : undefined,
+                }}
+              >
                 <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.accent }} />
                 {item}
               </li>
             ))}
           </ul>
-        </ProgramInfoCard>
+        </ProgramSection>
 
-        <ProgramInfoCard label="Fees & automation">
-          <dl className="space-y-2 text-xs mb-4">
-            {[
-              ["Registration fee", `$${program.enrollment.registrationFee}`],
-              ["Auto-tag on submit", program.enrollment.autoTag],
-              ["Website CTA", program.enrollment.websiteCta],
-              ["Financial aid", program.pricing.acceptsFinancialAid ? "Accepted" : "Not offered"],
-            ].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-4">
-                <dt style={{ color: C.textTertiary }}>{k}</dt>
-                <dd className="font-medium" style={{ color: C.textPrimary }}>
-                  {v}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: C.textTertiary }}>
-            Pipeline
-          </p>
-          <div className="flex items-end gap-1 h-16">
-            {funnelStages.map((stage, i) => {
-              const max = funnelStages[0].count;
-              const h = max > 0 ? Math.max(12, (stage.count / max) * 100) : 12;
-              return (
-                <div key={stage.label} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-t-sm transition-all"
-                    style={{
-                      height: `${h}%`,
-                      backgroundColor: i === funnelStages.length - 1 ? C.accent : C.accentLight,
-                      minHeight: 8,
-                    }}
-                  />
-                  <span className="text-[9px] text-center leading-tight" style={{ color: C.textTertiary }}>
-                    {stage.label}
-                  </span>
-                  <span className="text-[10px] font-semibold tabular-nums" style={{ color: C.textSecondary }}>
-                    {stage.count}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </ProgramInfoCard>
+        <div>
+          <ProgramSection title="Fees & automation">
+            <ProgramDetailRows
+              rows={[
+                ["Registration fee", `$${program.enrollment.registrationFee}`],
+                ["Auto-tag on submit", program.enrollment.autoTag],
+                ["Website CTA", program.enrollment.websiteCta],
+                ["Financial aid", program.pricing.acceptsFinancialAid ? "Accepted" : "Not offered"],
+              ]}
+            />
+          </ProgramSection>
+
+          <ProgramSection title="Pipeline">
+            <div className="flex items-end gap-2 h-20 mt-1">
+              {funnelStages.map((stage, i) => {
+                const max = funnelStages[0].count;
+                const h = max > 0 ? Math.max(16, (stage.count / max) * 100) : 16;
+                return (
+                  <div key={stage.label} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
+                    <span className="text-[10px] font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+                      {stage.count}
+                    </span>
+                    <div
+                      className="w-full rounded-t-sm"
+                      style={{
+                        height: `${h}%`,
+                        backgroundColor: i === funnelStages.length - 1 ? C.accent : C.accentLight,
+                        minHeight: 12,
+                      }}
+                    />
+                    <span className="text-[9px] text-center leading-tight truncate w-full" style={{ color: C.textTertiary }}>
+                      {stage.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </ProgramSection>
+        </div>
       </div>
     </div>
   );
@@ -8906,109 +8954,91 @@ function ProgramEnrollmentTab({ program }: { program: DemoProgram }) {
 
 function ProgramPricingTab({ program }: { program: DemoProgram }) {
   return (
-    <div className="space-y-4 overflow-y-auto pb-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <ProgramInfoCard label="Billing model">
-          <p className="text-2xl font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+    <div className="overflow-y-auto pb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-10 gap-y-8">
+        <ProgramSection title="Billing">
+          <p className="text-3xl font-semibold tabular-nums leading-none" style={{ color: C.textPrimary }}>
             {formatProgramPrice(program)}
           </p>
-          <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+          <p className="text-sm mt-2" style={{ color: C.textTertiary }}>
             {formatBillingModel(program.pricing.billingModel)} billing
           </p>
-        </ProgramInfoCard>
+        </ProgramSection>
 
-        <ProgramInfoCard label="Fees">
-          <ul className="space-y-2">
-            {program.pricing.fees.map((fee) => (
-              <li key={fee.label} className="flex justify-between text-xs">
-                <span style={{ color: C.textSecondary }}>
-                  {fee.label}
-                  {fee.refundable && (
-                    <span className="ml-1" style={{ color: C.textTertiary }}>
-                      (refundable)
-                    </span>
-                  )}
-                </span>
-                <span className="font-medium tabular-nums" style={{ color: C.textPrimary }}>
-                  ${fee.amount}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </ProgramInfoCard>
+        <ProgramSection title="Fees">
+          <ProgramDetailRows
+            rows={program.pricing.fees.map((fee) => [
+              fee.label + (fee.refundable ? " (refundable)" : ""),
+              `$${fee.amount}`,
+            ])}
+          />
+        </ProgramSection>
 
-        <ProgramInfoCard label="Included">
-          <ul className="space-y-1.5">
-            {program.pricing.includes.map((item) => (
-              <li key={item} className="flex items-center gap-2 text-xs" style={{ color: C.textSecondary }}>
-                <CheckCircle className="w-3 h-3 flex-shrink-0" style={{ color: C.success }} />
+        <ProgramSection title="Included">
+          <ul>
+            {program.pricing.includes.map((item, i) => (
+              <li
+                key={item}
+                className="flex items-center gap-2.5 py-2 text-sm"
+                style={{
+                  color: C.textSecondary,
+                  borderTop: i > 0 ? `1px solid ${C.border}` : undefined,
+                }}
+              >
+                <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.success }} />
                 {item}
               </li>
             ))}
           </ul>
-        </ProgramInfoCard>
+        </ProgramSection>
       </div>
 
-      <ProgramInfoCard label="Payment schedule preview">
-        <div className="flex flex-wrap gap-1.5">
+      <ProgramDivider />
+
+      <ProgramSection title="Payment schedule">
+        <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
           {program.pricing.paymentSchedule.map((item, i) => (
-            <span
-              key={item}
-              className="text-[10px] font-medium px-2 py-1 rounded-sm tabular-nums"
-              style={{
-                backgroundColor: i === 0 ? C.accentLight : C.elevated,
-                color: i === 0 ? C.accent : C.textSecondary,
-                border: `1px solid ${i === 0 ? C.accent : C.border}`,
-              }}
-            >
-              {item}
+            <span key={item}>
+              {i > 0 && <span style={{ color: C.textTertiary }}> · </span>}
+              <span style={{ color: i === 0 ? C.accent : undefined, fontWeight: i === 0 ? 500 : undefined }}>
+                {item}
+              </span>
             </span>
           ))}
-        </div>
-        <p className="text-[10px] mt-3" style={{ color: C.textTertiary }}>
+        </p>
+        <p className="text-xs mt-4" style={{ color: C.textTertiary }}>
           Families see this schedule in Billing → Tuition Checklist after enrollment.
         </p>
-      </ProgramInfoCard>
+      </ProgramSection>
     </div>
   );
 }
 
 function ProgramScheduleTab({ program }: { program: DemoProgram }) {
   return (
-    <div className="space-y-4 overflow-y-auto pb-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
+    <div className="overflow-y-auto pb-6">
+      <ProgramStatStrip
+        stats={[
           { label: "Starts", value: program.schedule.startDate },
           { label: "Ends", value: program.schedule.endDate },
           { label: "Registration opens", value: program.schedule.registrationOpen },
           { label: "Registration closes", value: program.schedule.registrationClose },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className="rounded-sm p-3"
-            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
-          >
-            <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: C.textTertiary }}>
-              {item.label}
-            </p>
-            <p className="text-sm font-medium mt-1" style={{ color: C.textPrimary }}>
-              {item.value}
-            </p>
-          </div>
-        ))}
-      </div>
+        ]}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ProgramInfoCard label="Weekly rhythm">
-          <p className="text-sm font-medium mb-3" style={{ color: C.textPrimary }}>
+      <ProgramDivider />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-8">
+        <ProgramSection title="Weekly rhythm">
+          <p className="text-base font-medium mb-1" style={{ color: C.textPrimary }}>
             {program.schedule.daysOfWeek}
           </p>
           {program.schedule.sessionNotes && (
-            <p className="text-xs mb-4" style={{ color: C.textSecondary }}>
+            <p className="text-sm mb-4 max-w-prose" style={{ color: C.textSecondary }}>
               {program.schedule.sessionNotes}
             </p>
           )}
-          <div className="space-y-2">
+          <div>
             {[
               ["Drop-off", program.schedule.dailyHours.dropOff],
               ["Core hours", program.schedule.dailyHours.core],
@@ -9016,56 +9046,62 @@ function ProgramScheduleTab({ program }: { program: DemoProgram }) {
               ...(program.schedule.dailyHours.afterCare
                 ? [["After care", program.schedule.dailyHours.afterCare] as const]
                 : []),
-            ].map(([label, time]) => (
+            ].map(([label, time], i) => (
               <div
                 key={label}
-                className="flex items-center gap-3 text-xs py-2 px-3 rounded-sm"
-                style={{ backgroundColor: C.elevated }}
+                className="flex items-center gap-3 py-2.5 text-sm"
+                style={{
+                  borderTop: i > 0 ? `1px solid ${C.border}` : undefined,
+                }}
               >
                 <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.accent }} />
-                <span className="font-medium w-20" style={{ color: C.textSecondary }}>
+                <span className="font-medium w-24 flex-shrink-0" style={{ color: C.textSecondary }}>
                   {label}
                 </span>
                 <span style={{ color: C.textPrimary }}>{time}</span>
               </div>
             ))}
           </div>
-        </ProgramInfoCard>
+        </ProgramSection>
 
-        <div className="space-y-4">
+        <div className="space-y-8">
           {(program.schedule.minDaysPerWeek !== undefined ||
             program.schedule.bookingCutoff) && (
-            <ProgramInfoCard label="Drop-in rules">
-              <dl className="space-y-2 text-xs">
-                {program.schedule.minDaysPerWeek !== undefined && (
-                  <div className="flex justify-between">
-                    <dt style={{ color: C.textTertiary }}>Days per week</dt>
-                    <dd style={{ color: C.textPrimary }}>
-                      {program.schedule.minDaysPerWeek} – {program.schedule.maxDaysPerWeek}
-                    </dd>
-                  </div>
-                )}
-                {program.schedule.bookingCutoff && (
-                  <div className="flex justify-between">
-                    <dt style={{ color: C.textTertiary }}>Booking cutoff</dt>
-                    <dd style={{ color: C.textPrimary }}>{program.schedule.bookingCutoff}</dd>
-                  </div>
-                )}
-              </dl>
-            </ProgramInfoCard>
+            <ProgramSection title="Drop-in rules">
+              <ProgramDetailRows
+                rows={[
+                  ...(program.schedule.minDaysPerWeek !== undefined
+                    ? [[
+                        "Days per week",
+                        `${program.schedule.minDaysPerWeek} – ${program.schedule.maxDaysPerWeek}`,
+                      ] as [string, React.ReactNode]]
+                    : []),
+                  ...(program.schedule.bookingCutoff
+                    ? [["Booking cutoff", program.schedule.bookingCutoff] as [string, React.ReactNode]]
+                    : []),
+                ]}
+              />
+            </ProgramSection>
           )}
 
           {program.schedule.breaks && program.schedule.breaks.length > 0 && (
-            <ProgramInfoCard label="Breaks & no-school days">
-              <ul className="space-y-2">
-                {program.schedule.breaks.map((b) => (
-                  <li key={b} className="flex items-center gap-2 text-xs" style={{ color: C.textSecondary }}>
+            <ProgramSection title="Breaks & no-school days">
+              <ul>
+                {program.schedule.breaks.map((b, i) => (
+                  <li
+                    key={b}
+                    className="flex items-center gap-2.5 py-2.5 text-sm"
+                    style={{
+                      color: C.textSecondary,
+                      borderTop: i > 0 ? `1px solid ${C.border}` : undefined,
+                    }}
+                  >
                     <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.warning }} />
                     {b}
                   </li>
                 ))}
               </ul>
-            </ProgramInfoCard>
+            </ProgramSection>
           )}
         </div>
       </div>
@@ -9075,8 +9111,17 @@ function ProgramScheduleTab({ program }: { program: DemoProgram }) {
 
 function ProgramStaffTab({ program }: { program: DemoProgram }) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-y-auto pb-4">
-      {program.teachers.map((teacher) => {
+    <div className="overflow-y-auto pb-6">
+      <div
+        className="hidden sm:grid grid-cols-[auto_1fr_auto_auto] gap-x-4 gap-y-0 text-[10px] font-semibold uppercase tracking-widest pb-2"
+        style={{ color: C.textTertiary, borderBottom: `1px solid ${C.border}` }}
+      >
+        <span className="w-10" />
+        <span>Teacher</span>
+        <span>Students</span>
+        <span className="w-24 text-right">Capacity</span>
+      </div>
+      {program.teachers.map((teacher, i) => {
         const pct = teacher.capacity
           ? Math.round((teacher.studentIds.length / teacher.capacity) * 100)
           : 0;
@@ -9084,53 +9129,50 @@ function ProgramStaffTab({ program }: { program: DemoProgram }) {
         return (
           <div
             key={teacher.id}
-            className="rounded-sm p-4"
-            style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+            className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto_auto] gap-x-4 gap-y-2 items-center py-4"
+            style={{
+              borderBottom: `1px solid ${C.border}`,
+              borderTop: i === 0 ? undefined : undefined,
+            }}
           >
-            <div className="flex items-start gap-3 mb-4">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                style={{ backgroundColor: C.accentLight, color: C.accent }}
-              >
-                {teacher.initials}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                  {teacher.name}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-                  {teacher.classroom}
-                </p>
-              </div>
-              <span
-                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                style={{
-                  backgroundColor: isFull ? C.warningBg : C.successBg,
-                  color: isFull ? C.warning : C.success,
-                }}
-              >
-                {teacher.studentIds.length}
-                {teacher.capacity ? ` / ${teacher.capacity}` : ""} students
-              </span>
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+              style={{ backgroundColor: C.accentLight, color: C.accent }}
+            >
+              {teacher.initials}
             </div>
-            {teacher.capacity && (
-              <div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                {teacher.name}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+                {teacher.classroom}
+              </p>
+            </div>
+            <span className="text-sm tabular-nums font-medium" style={{ color: C.textPrimary }}>
+              {teacher.studentIds.length}
+              {teacher.capacity ? ` / ${teacher.capacity}` : ""}
+            </span>
+            {teacher.capacity ? (
+              <div className="w-full sm:w-24">
                 <div
-                  className="h-1.5 rounded-full overflow-hidden"
+                  className="h-1 rounded-full overflow-hidden"
                   style={{ backgroundColor: C.elevated }}
                 >
                   <div
-                    className="h-full rounded-full transition-all"
+                    className="h-full rounded-full"
                     style={{
                       width: `${Math.min(pct, 100)}%`,
                       backgroundColor: isFull ? C.warning : C.accent,
                     }}
                   />
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: C.textTertiary }}>
-                  {pct}% capacity
+                <p className="text-[10px] mt-1 text-right sm:text-right" style={{ color: C.textTertiary }}>
+                  {pct}%
                 </p>
               </div>
+            ) : (
+              <span />
             )}
           </div>
         );
@@ -9158,36 +9200,26 @@ function ProgramRosterTab({
   const enrolled = getProgramEnrolledCount(program);
 
   return (
-    <div className="flex flex-col min-h-0 flex-1">
-      <div className="flex items-center gap-2 mb-4 flex-wrap flex-shrink-0">
-        {[
-          { label: "Enrolled", value: enrolled, color: C.success },
-          {
-            label: "Waitlisted",
-            value: program.eligibility.waitlistCount,
-            color: C.warning,
-          },
-          {
-            label: "Capacity",
-            value: program.eligibility.capacity,
-            color: C.textTertiary,
-          },
-        ].map((chip) => (
-          <span
-            key={chip.label}
-            className="text-[10px] font-medium px-2.5 py-1 rounded-full"
-            style={{
-              backgroundColor: C.elevated,
-              color: chip.color,
-              border: `1px solid ${C.border}`,
-            }}
-          >
-            {chip.label}: {chip.value}
-          </span>
-        ))}
-      </div>
+    <div className="flex flex-col min-h-0 flex-1 overflow-y-auto pb-6">
+      <p className="text-sm mb-4 flex-shrink-0" style={{ color: C.textTertiary }}>
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {enrolled}
+        </span>{" "}
+        enrolled ·{" "}
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {program.eligibility.waitlistCount}
+        </span>{" "}
+        waitlisted ·{" "}
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {program.eligibility.capacity}
+        </span>{" "}
+        capacity
+      </p>
 
-      <div className="flex items-center gap-2 mb-4 flex-wrap flex-shrink-0">
+      <div
+        className="flex items-center gap-1 mb-5 flex-wrap flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
         {program.teachers.map((teacher) => {
           const active = activeTeacherId === teacher.id;
           return (
@@ -9195,30 +9227,24 @@ function ProgramRosterTab({
               key={teacher.id}
               type="button"
               onClick={() => onTeacherChange(teacher.id)}
-              className="flex items-center gap-2 px-3 py-2 rounded-sm text-xs font-medium transition-all"
+              className="flex items-center gap-2 px-2 py-2.5 -mb-px text-xs font-medium transition-colors"
               style={{
-                backgroundColor: active ? C.accentLight : C.elevated,
-                border: `1px solid ${active ? C.accent : C.border}`,
                 color: active ? C.accent : C.textSecondary,
+                borderBottom: active ? `2px solid ${C.accent}` : "2px solid transparent",
               }}
             >
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
                 style={{
-                  backgroundColor: active ? C.accent : C.border,
+                  backgroundColor: active ? C.accent : "transparent",
                   color: active ? "#fff" : C.textTertiary,
+                  border: active ? "none" : `1px solid ${C.border}`,
                 }}
               >
                 {teacher.initials}
               </div>
-              <div className="text-left">
-                <p>{teacher.name}</p>
-                <p className="text-[10px] opacity-70">{teacher.classroom}</p>
-              </div>
-              <span
-                className="ml-1 tabular-nums"
-                style={{ color: active ? C.accentDark : C.textTertiary }}
-              >
+              <span>{teacher.name}</span>
+              <span className="tabular-nums" style={{ color: C.textTertiary }}>
                 {teacher.studentIds.length}
               </span>
             </button>
@@ -9233,9 +9259,9 @@ function ProgramRosterTab({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="grid gap-3 overflow-y-auto pb-4"
+          className="grid gap-2"
           style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
           }}
         >
           {teacherStudents.map((student, i) => (
@@ -9245,17 +9271,14 @@ function ProgramRosterTab({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.05 }}
               onClick={() => onSelectStudent(student)}
-              className="cursor-pointer rounded-sm p-4 flex flex-col items-center text-center transition-colors"
-              style={{
-                backgroundColor: C.surface,
-                border: `1px solid ${C.border}`,
+              className="cursor-pointer rounded-sm p-3 flex flex-col items-center text-center transition-colors"
+              style={{ backgroundColor: C.surface }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = C.accentLight;
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.borderColor = C.borderStrong)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.borderColor = C.border)
-              }
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = C.surface;
+              }}
             >
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold mb-3"
@@ -9308,6 +9331,21 @@ function ProgramRosterTab({
   );
 }
 
+function getProgramSidebarMeta(prog: DemoProgram) {
+  const badge = PROGRAM_LABELS[prog.id] ?? {
+    label: prog.name,
+    bg: C.accentLight,
+    text: C.accent,
+  };
+  const initials =
+    prog.type === "summer"
+      ? "SU"
+      : prog.type === "school_year"
+        ? "SY"
+        : "HI";
+  return { badge, initials };
+}
+
 function ProgramListRail({
   activeProgramId,
   onSelect,
@@ -9315,57 +9353,123 @@ function ProgramListRail({
   activeProgramId: string;
   onSelect: (prog: DemoProgram) => void;
 }) {
+  const [search, setSearch] = useState("");
+
+  const filtered = DEMO_PROGRAMS_P2.filter((prog) => {
+    if (search === "") return true;
+    const q = search.toLowerCase();
+    return (
+      prog.name.toLowerCase().includes(q) ||
+      PROGRAM_TYPE_LABELS[prog.type].toLowerCase().includes(q) ||
+      prog.marketing.badge.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div
-      className="w-[180px] flex-shrink-0 flex flex-col gap-1 pt-1 overflow-y-auto"
-      style={{ borderRight: `1px solid ${C.border}` }}
+      className="w-64 flex-shrink-0 flex flex-col overflow-hidden"
+      style={{ borderRight: `1px solid ${C.border}`, backgroundColor: C.bg }}
     >
-      <p
-        className="text-[10px] font-semibold uppercase tracking-widest px-3 mb-2"
-        style={{ color: C.textTertiary }}
+      <div
+        className="px-3 py-2 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        Programs
-      </p>
-      {DEMO_PROGRAMS_P2.map((prog) => {
-        const active = activeProgramId === prog.id;
-        const enrolled = getProgramEnrolledCount(prog);
-        const statusStyle = PROGRAM_STATUS_STYLES[prog.status];
-        const typeLabel = PROGRAM_TYPE_LABELS[prog.type];
-        return (
-          <button
-            key={prog.id}
-            type="button"
-            onClick={() => onSelect(prog)}
-            className="w-full text-left px-3 py-2.5 rounded-sm text-xs font-medium transition-all mx-1"
-            style={{
-              backgroundColor: active ? C.accentLight : "transparent",
-              color: active ? C.accent : C.textSecondary,
-              borderLeft: `2px solid ${active ? C.accent : "transparent"}`,
-            }}
-          >
-            <div className="flex items-center gap-1.5 mb-1">
-              <span
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: statusStyle.text }}
-                title={statusStyle.label}
-              />
-              <span className="truncate font-semibold">{prog.name}</span>
-            </div>
-            <div className="flex items-center gap-1.5 flex-wrap pl-3">
-              <span
-                className="text-[9px] font-medium px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: C.elevated, color: C.textTertiary }}
-              >
-                {typeLabel}
-              </span>
-              <span className="text-[10px] tabular-nums" style={{ color: C.textTertiary }}>
-                {enrolled}/{prog.eligibility.capacity}
-              </span>
-            </div>
-          </button>
-        );
-      })}
-      <div className="px-3 pt-2 mt-auto pb-3">
+        <div
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
+          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+        >
+          <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search programs..."
+            className="bg-transparent border-none outline-none text-sm w-full"
+            style={{ color: C.textPrimary }}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {filtered.map((prog, i) => {
+          const isActive = activeProgramId === prog.id;
+          const enrolled = getProgramEnrolledCount(prog);
+          const statusStyle = PROGRAM_STATUS_STYLES[prog.status];
+          const typeLabel = PROGRAM_TYPE_LABELS[prog.type];
+          const { badge, initials } = getProgramSidebarMeta(prog);
+
+          return (
+            <motion.button
+              key={prog.id}
+              type="button"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.02 }}
+              onClick={() => onSelect(prog)}
+              className="w-full text-left px-3 py-2.5"
+              style={{
+                borderBottom: `1px solid ${C.border}`,
+                borderLeft: `2px solid ${isActive ? C.accent : "transparent"}`,
+                backgroundColor: isActive ? C.accentLight : "transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) e.currentTarget.style.backgroundColor = C.elevated;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = isActive ? C.accentLight : "transparent";
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                  style={{ backgroundColor: badge.bg, color: badge.text }}
+                >
+                  {initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-xs font-semibold truncate"
+                    style={{ color: C.textPrimary }}
+                  >
+                    {prog.name}
+                  </p>
+                  <p className="text-[10px] truncate" style={{ color: C.textTertiary }}>
+                    {typeLabel} · {enrolled}/{prog.eligibility.capacity} enrolled
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-1.5 pl-9 flex-wrap">
+                <span
+                  className="text-[8px] px-1 py-0.5 rounded font-semibold"
+                  style={{
+                    backgroundColor: statusStyle.bg,
+                    color: statusStyle.text,
+                  }}
+                >
+                  {statusStyle.label}
+                </span>
+                {prog.eligibility.waitlistCount > 0 && (
+                  <span
+                    className="text-[8px] px-1 py-0.5 rounded font-semibold"
+                    style={{ backgroundColor: C.warningBg, color: C.warning }}
+                  >
+                    {prog.eligibility.waitlistCount} waitlist
+                  </span>
+                )}
+              </div>
+            </motion.button>
+          );
+        })}
+        {filtered.length === 0 && (
+          <p className="px-3 py-6 text-xs text-center" style={{ color: C.textTertiary }}>
+            No programs match your search
+          </p>
+        )}
+      </div>
+
+      <div
+        className="px-3 py-2 flex-shrink-0"
+        style={{ borderTop: `1px solid ${C.border}` }}
+      >
         <DemoButton variant="ghost" className="w-full justify-center text-xs">
           <Plus className="w-3.5 h-3.5" />
           Add Program
@@ -9398,14 +9502,17 @@ function ProgramsPage() {
   };
 
   return (
-    <div className="h-full flex relative overflow-hidden">
+    <div className="h-full flex relative overflow-hidden" style={{ backgroundColor: C.bg }}>
       <ProgramListRail
         activeProgramId={activeProgram.id}
         onSelect={switchProgram}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex-shrink-0 px-5 pt-4 pb-0">
+      <div
+        className="flex-1 flex flex-col min-w-0 overflow-hidden"
+        style={{ backgroundColor: C.surface }}
+      >
+        <div className="flex-shrink-0 px-6 pt-4 pb-0">
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -9471,7 +9578,7 @@ function ProgramsPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden px-5 pt-4">
+        <div className="flex-1 overflow-y-auto px-6 pt-5 pb-2">
           {activeTab === "overview" && (
             <ProgramOverviewTab program={activeProgram} />
           )}
