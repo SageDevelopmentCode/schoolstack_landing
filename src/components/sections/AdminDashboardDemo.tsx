@@ -50,6 +50,8 @@ import {
   Tag,
   Bell,
   ListFilter,
+  Lightbulb,
+  Sparkles,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -10917,7 +10919,7 @@ const BUDGET_CATS = [
   {
     name: "Program Supplies",
     emoji: "📚",
-    planned: 3200,
+    planned: 2600,
     actual: 2912,
     color: C.warning,
   },
@@ -10943,6 +10945,89 @@ const BUDGET_CATS = [
     color: C.textTertiary,
   },
 ];
+
+type BudgetPeriod = "mtd" | "qtd" | "ytd" | "year";
+
+const PERIOD_MULTIPLIERS: Record<BudgetPeriod, number> = {
+  mtd: 0.12,
+  qtd: 0.32,
+  ytd: 0.72,
+  year: 1,
+};
+
+const PERIOD_LABELS: Record<BudgetPeriod, string> = {
+  mtd: "MTD",
+  qtd: "QTD",
+  ytd: "YTD",
+  year: "School Year",
+};
+
+function sumByCategory(
+  expenses: DemoExpenseItem[],
+): Record<string, number> {
+  return expenses.reduce<Record<string, number>>((acc, e) => {
+    acc[e.category] = (acc[e.category] ?? 0) + e.amount;
+    return acc;
+  }, {});
+}
+
+function revenueMixFromIncome(income: DemoIncomeItem[]) {
+  const bySource = income.reduce<Record<string, number>>((acc, item) => {
+    acc[item.source] = (acc[item.source] ?? 0) + item.amount;
+    return acc;
+  }, {});
+  const total = Object.values(bySource).reduce((s, v) => s + v, 0);
+  const colors: Record<string, string> = {
+    Tuition: C.accent,
+    Deposit: C.info,
+    Donation: C.warning,
+  };
+  return REVENUE_SOURCES.map((label) => ({
+    label,
+    amount: bySource[label] ?? 0,
+    pct: total > 0 ? Math.round(((bySource[label] ?? 0) / total) * 100) : 0,
+    color: colors[label] ?? C.textTertiary,
+  })).filter((s) => s.amount > 0);
+}
+
+function budgetHealth(cats: typeof BUDGET_CATS) {
+  const totalPlanned = cats.reduce((s, c) => s + c.planned, 0);
+  const totalActual = cats.reduce((s, c) => s + c.actual, 0);
+  const totalVariance = totalPlanned - totalActual;
+  const overCount = cats.filter((c) => c.actual > c.planned).length;
+  const pctUsed = Math.round((totalActual / totalPlanned) * 100);
+  let score = 100;
+  score -= overCount * 8;
+  score -= Math.max(0, pctUsed - 85) * 0.5;
+  score = Math.min(100, Math.max(40, Math.round(score)));
+  const under = totalVariance >= 0;
+  const summary = under
+    ? `You're $${Math.abs(totalVariance).toLocaleString()} under annual plan${overCount > 0 ? ` — ${overCount} categor${overCount === 1 ? "y needs" : "ies need"} attention` : ""}.`
+    : `You're $${Math.abs(totalVariance).toLocaleString()} over annual plan across ${overCount} categor${overCount === 1 ? "y" : "ies"}.`;
+  return {
+    score,
+    summary,
+    totalVariance,
+    totalPlanned,
+    totalActual,
+    overCount,
+    pctUsed,
+    under,
+  };
+}
+
+function countOutstandingTuition(): number {
+  let count = 0;
+  for (const parent of DEMO_CHECKLIST) {
+    for (const item of [...parent.summer, ...parent.schoolYear]) {
+      if (item.state === "unpaid" || item.state === "sent") count++;
+    }
+  }
+  return count;
+}
+
+const DEMO_NET_PROFIT = 15480;
+const DEMO_BURN_RATE = 2653;
 
 type DemoExpenseItem = {
   id: string;
@@ -12324,8 +12409,13 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
 
 // ─── Transactions page ─────────────────────────────────────────────────────────
 
-function TransactionsPage() {
-  const [tab, setTab] = useState<"all" | "checklist">("all");
+function TransactionsPage({
+  activeTab: tab,
+  onTabChange: setTab,
+}: {
+  activeTab: "all" | "checklist";
+  onTabChange: (tab: "all" | "checklist") => void;
+}) {
   const [selectedTx, setSelectedTx] = useState<
     (typeof DEMO_TRANSACTIONS)[0] | null
   >(null);
@@ -12847,7 +12937,18 @@ function TransactionsPage() {
 
 // ─── Budget page ───────────────────────────────────────────────────────────────
 
-type BudgetTab = "overview" | "expenses" | "revenue" | "analysis" | "transactions";
+type BudgetTab =
+  | "overview"
+  | "expenses"
+  | "revenue"
+  | "insights"
+  | "transactions";
+
+type BudgetNavigateOptions = {
+  expenseCategory?: string;
+  revenuePendingOnly?: boolean;
+  transactionsTab?: "all" | "checklist";
+};
 
 function BudgetRing({
   cat,
@@ -12930,12 +13031,17 @@ function BudgetRing({
 
 const DEMO_CURRENT_MONTH = "Apr";
 
-function BudgetExpensesTab() {
+function BudgetExpensesTab({
+  categoryFilter,
+  onCategoryFilterChange,
+}: {
+  categoryFilter: string;
+  onCategoryFilterChange: (category: string) => void;
+}) {
   const [expenses, setExpenses] =
     useState<DemoExpenseItem[]>(INITIAL_DEMO_EXPENSES);
   const [selectedExp, setSelectedExp] = useState<DemoExpenseItem | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [missingReceiptOnly, setMissingReceiptOnly] = useState(false);
@@ -13026,7 +13132,7 @@ function BudgetExpensesTab() {
               <button
                 key={opt.key}
                 type="button"
-                onClick={() => setCategoryFilter(opt.key)}
+                onClick={() => onCategoryFilterChange(opt.key)}
                 className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
                 style={demoSolidPillStyle(isActive)}
               >
@@ -14827,7 +14933,13 @@ function RecordExpensePanel({
   );
 }
 
-function BudgetRevenueTab() {
+function BudgetRevenueTab({
+  pendingOnly,
+  onPendingOnlyChange,
+}: {
+  pendingOnly: boolean;
+  onPendingOnlyChange: (v: boolean) => void;
+}) {
   const [income, setIncome] = useState<DemoIncomeItem[]>(INITIAL_DEMO_INCOME);
   const [selectedInc, setSelectedInc] = useState<DemoIncomeItem | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -14835,7 +14947,6 @@ function BudgetRevenueTab() {
   const [programFilter, setProgramFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
-  const [pendingOnly, setPendingOnly] = useState(false);
   const [dateFilter, setDateFilter] = useState<"all" | "mar" | "apr">("all");
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
@@ -15136,7 +15247,7 @@ function BudgetRevenueTab() {
                   <input
                     type="checkbox"
                     checked={pendingOnly}
-                    onChange={(e) => setPendingOnly(e.target.checked)}
+                    onChange={(e) => onPendingOnlyChange(e.target.checked)}
                     className="rounded-sm"
                   />
                   <span
@@ -15432,8 +15543,774 @@ function BudgetRevenueTab() {
   );
 }
 
-function BudgetPage({ activeTab: tab }: { activeTab: BudgetTab; onTabChange: (tab: BudgetTab) => void }) {
-  const fmt = (n: number) => `$${n.toLocaleString()}`;
+function RevenueMixChart({
+  segments,
+}: {
+  segments: { label: string; amount: number; pct: number; color: string }[];
+}) {
+  return (
+    <div className="space-y-4">
+      <div
+        className="flex h-3 rounded-full overflow-hidden"
+        style={{ backgroundColor: C.border }}
+      >
+        {segments.map((seg, i) => (
+          <motion.div
+            key={seg.label}
+            className="h-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${seg.pct}%` }}
+            transition={{ duration: 0.7, delay: i * 0.08 }}
+            style={{ backgroundColor: seg.color }}
+            title={`${seg.label}: ${seg.pct}%`}
+          />
+        ))}
+      </div>
+      <div className="space-y-2">
+        {segments.map((seg) => (
+          <div
+            key={seg.label}
+            className="flex items-center justify-between gap-2"
+          >
+            <span className="flex items-center gap-2 text-xs font-medium min-w-0">
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: seg.color }}
+              />
+              <span style={{ color: C.textSecondary }}>{seg.label}</span>
+            </span>
+            <span
+              className="text-xs tabular-nums font-semibold flex-shrink-0"
+              style={{ color: C.textPrimary }}
+            >
+              {seg.pct}% · ${seg.amount.toLocaleString()}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type InsightsSubTab = "summary" | "actions" | "breakdown";
+
+const INSIGHTS_SUBTABS: {
+  key: InsightsSubTab;
+  label: string;
+  description: string;
+}[] = [
+  {
+    key: "summary",
+    label: "Summary",
+    description:
+      "Start here — your health score and cash runway tell you if the school is on track.",
+  },
+  {
+    key: "actions",
+    label: "Action items",
+    description:
+      "Items flagged from expenses, revenue, and tuition — tap any row to fix it in the right tab.",
+  },
+  {
+    key: "breakdown",
+    label: "Breakdown",
+    description:
+      "See where money comes from, how each budget category compares to plan, and monthly net trend.",
+  },
+];
+
+function insightsCardStyle(): React.CSSProperties {
+  return {
+    backgroundColor: "#FFFFFF",
+    border: `1px solid ${C.border}`,
+    boxShadow: C.shadowCard,
+    borderRadius: C.r.lg,
+  };
+}
+
+function InsightsCard({
+  children,
+  className,
+  style,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div className={className} style={{ ...insightsCardStyle(), ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function InsightsIntro({ text }: { text: string }) {
+  return (
+    <p
+      className="text-sm leading-relaxed rounded-sm px-3.5 py-2.5"
+      style={{
+        backgroundColor: C.accentLight,
+        border: `1px solid ${C.secondaryBtnBorder}`,
+        color: C.textSecondary,
+      }}
+    >
+      {text}
+    </p>
+  );
+}
+
+function BudgetInsightsTab({
+  onNavigateTab,
+}: {
+  onNavigateTab: (tab: BudgetTab, opts?: BudgetNavigateOptions) => void;
+}) {
+  const [insightsTab, setInsightsTab] = useState<InsightsSubTab>("summary");
+  const [period, setPeriod] = useState<BudgetPeriod>("ytd");
+  const periodMultiplier = PERIOD_MULTIPLIERS[period];
+  const fmt = (n: number) =>
+    `$${Math.round(n * periodMultiplier).toLocaleString()}`;
+  const health = budgetHealth(BUDGET_CATS);
+  const mix = revenueMixFromIncome(INITIAL_DEMO_INCOME);
+  const pendingIncome = INITIAL_DEMO_INCOME.filter((i) => i.status === "pending");
+  const pendingAmount = pendingIncome.reduce((s, i) => s + i.amount, 0);
+  const missingReceipts = INITIAL_DEMO_EXPENSES.filter(
+    (e) => e.receipt === null,
+  ).length;
+  const outstandingTuition = countOutstandingTuition();
+  const overCats = BUDGET_CATS.filter((c) => c.actual > c.planned);
+  const runwayMonths = (DEMO_NET_PROFIT / DEMO_BURN_RATE).toFixed(1);
+  const monthlyNet = DEMO_MONTHLY_REVENUE.map(
+    (m) => m.revenue - m.expenses,
+  );
+  const maxNet = Math.max(...monthlyNet, 1);
+
+  const sortedCats = [...BUDGET_CATS].sort(
+    (a, b) => b.actual / b.planned - a.actual / a.planned,
+  );
+
+  const alerts: {
+    id: string;
+    title: string;
+    detail: string;
+    tone: "error" | "warning" | "success" | "info";
+    tab: BudgetTab;
+    opts?: BudgetNavigateOptions;
+  }[] = [];
+
+  if (overCats.length > 0) {
+    alerts.push({
+      id: "over-budget",
+      title: `${overCats.length} over budget`,
+      detail: `${overCats.map((c) => c.name).join(", ")} — tap to review`,
+      tone: "error",
+      tab: "expenses",
+      opts: { expenseCategory: overCats[0].name },
+    });
+  }
+  if (pendingIncome.length > 0) {
+    alerts.push({
+      id: "pending-revenue",
+      title: `${pendingIncome.length} pending payment${pendingIncome.length > 1 ? "s" : ""}`,
+      detail: `${fmt(pendingAmount)} awaiting collection`,
+      tone: "warning",
+      tab: "revenue",
+      opts: { revenuePendingOnly: true },
+    });
+  }
+  if (missingReceipts > 0) {
+    alerts.push({
+      id: "receipts",
+      title: `${missingReceipts} missing receipts`,
+      detail: "Expenses need documentation",
+      tone: "warning",
+      tab: "expenses",
+    });
+  }
+  if (outstandingTuition > 0) {
+    alerts.push({
+      id: "tuition",
+      title: `${outstandingTuition} tuition items outstanding`,
+      detail: "Families with unpaid or sent invoices",
+      tone: "warning",
+      tab: "transactions",
+      opts: { transactionsTab: "checklist" },
+    });
+  }
+  if (alerts.length === 0) {
+    alerts.push({
+      id: "all-clear",
+      title: "All clear",
+      detail: "No urgent financial actions",
+      tone: "success",
+      tab: "overview",
+    });
+  }
+
+  const scoreColor =
+    health.score >= 80 ? C.success : health.score >= 60 ? C.warning : C.error;
+  const scoreSize = 88;
+  const scoreR = (scoreSize - 8) / 2;
+  const scoreCirc = 2 * Math.PI * scoreR;
+  const scoreOffset = scoreCirc * (1 - health.score / 100);
+
+  const actionableCount = alerts.filter((a) => a.id !== "all-clear").length;
+  const activeSubtab = INSIGHTS_SUBTABS.find((t) => t.key === insightsTab)!;
+
+  return (
+    <div
+      className="flex-1 flex flex-col min-h-0"
+      style={{ backgroundColor: C.surface }}
+    >
+      <div
+        className="flex-shrink-0 px-6 pt-5 pb-4 space-y-4"
+        style={{
+          backgroundColor: C.surface,
+          borderBottom: `1px solid ${C.border}`,
+        }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2
+              className="text-lg font-semibold tracking-tight flex items-center gap-2"
+              style={{ color: C.textPrimary }}
+            >
+              <Sparkles className="w-4 h-4" style={{ color: C.accent }} />
+              Financial Insights
+            </h2>
+            <p className="text-xs mt-0.5 max-w-md" style={{ color: C.textTertiary }}>
+              Use the tabs below — Summary for the big picture, Action items for
+              fixes, Breakdown for where money flows.
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1.5">
+            <span
+              className="text-[10px] font-medium uppercase tracking-wide"
+              style={{ color: C.textTertiary }}
+            >
+              Time period
+            </span>
+            <div className="flex flex-wrap gap-1 justify-end">
+              {(Object.keys(PERIOD_LABELS) as BudgetPeriod[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPeriod(p)}
+                  className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
+                  style={demoSolidPillStyle(period === p)}
+                  title={`Show amounts for ${PERIOD_LABELS[p]}`}
+                >
+                  {PERIOD_LABELS[p]}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="flex items-center gap-1 p-1 rounded-sm w-fit max-w-full overflow-x-auto"
+          style={{
+            backgroundColor: C.input,
+            border: `1px solid ${C.inputBorder}`,
+          }}
+        >
+          {INSIGHTS_SUBTABS.map((t) => {
+            const isActive = insightsTab === t.key;
+            const badge =
+              t.key === "actions" && actionableCount > 0
+                ? actionableCount
+                : null;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setInsightsTab(t.key)}
+                className="px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap flex items-center gap-1.5"
+                style={{
+                  backgroundColor: isActive ? C.surface : "transparent",
+                  color: isActive ? C.textPrimary : C.textTertiary,
+                  boxShadow: isActive ? C.shadowCard : "none",
+                }}
+              >
+                {t.label}
+                {badge != null && (
+                  <span
+                    className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[9px] font-bold"
+                    style={{
+                      backgroundColor: isActive ? C.warning : C.warningBg,
+                      color: isActive ? "#fff" : C.warning,
+                    }}
+                  >
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div
+        className="flex-1 overflow-y-auto p-6 space-y-4"
+        style={{ backgroundColor: C.surface }}
+      >
+        <InsightsIntro text={activeSubtab.description} />
+
+        <AnimatePresence mode="wait">
+          {insightsTab === "summary" && (
+            <motion.div
+              key="summary"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-4"
+            >
+              {actionableCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setInsightsTab("actions")}
+                  className="w-full flex items-center justify-between gap-3 rounded-sm px-4 py-3 text-left transition-colors"
+                  style={{
+                    backgroundColor: C.warningBg,
+                    border: `1px solid ${C.warningBorder}`,
+                  }}
+                >
+                  <div>
+                    <p
+                      className="text-xs font-bold"
+                      style={{ color: C.warning }}
+                    >
+                      {actionableCount} item{actionableCount !== 1 ? "s" : ""}{" "}
+                      need attention
+                    </p>
+                    <p
+                      className="text-[11px] mt-0.5"
+                      style={{ color: C.textSecondary }}
+                    >
+                      Review budgets, pending payments, receipts, or tuition —
+                      open Action items to see the list.
+                    </p>
+                  </div>
+                  <ChevronRight
+                    className="w-4 h-4 flex-shrink-0"
+                    style={{ color: C.warning }}
+                  />
+                </button>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-5"
+          style={insightsCardStyle()}
+        >
+          <SectionLabel hint="Higher is healthier — based on budget adherence and overspend risk.">
+            Financial Health
+          </SectionLabel>
+          <div className="flex items-center gap-5 mt-4">
+            <div
+              className="relative flex-shrink-0"
+              style={{ width: scoreSize, height: scoreSize }}
+            >
+              <svg width={scoreSize} height={scoreSize}>
+                <circle
+                  cx={scoreSize / 2}
+                  cy={scoreSize / 2}
+                  r={scoreR}
+                  fill="none"
+                  stroke={C.border}
+                  strokeWidth={8}
+                />
+                <motion.circle
+                  cx={scoreSize / 2}
+                  cy={scoreSize / 2}
+                  r={scoreR}
+                  fill="none"
+                  stroke={scoreColor}
+                  strokeWidth={8}
+                  strokeLinecap="round"
+                  strokeDasharray={scoreCirc}
+                  initial={{ strokeDashoffset: scoreCirc }}
+                  animate={{ strokeDashoffset: scoreOffset }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  transform={`rotate(-90 ${scoreSize / 2} ${scoreSize / 2})`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span
+                  className="text-2xl font-bold tabular-nums"
+                  style={{ color: scoreColor }}
+                >
+                  {health.score}
+                </span>
+                <span className="text-[9px]" style={{ color: C.textTertiary }}>
+                  / 100
+                </span>
+              </div>
+            </div>
+            <div className="min-w-0">
+              <p
+                className="text-sm font-medium leading-relaxed"
+                style={{ color: C.textPrimary }}
+              >
+                {health.summary}
+              </p>
+              <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
+                {PERIOD_LABELS[period]} · {health.pctUsed}% of annual plan used
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="p-5"
+          style={insightsCardStyle()}
+        >
+          <SectionLabel hint="Months of runway at current net burn if revenue holds steady.">
+            Cash Runway
+          </SectionLabel>
+          <div className="mt-4 space-y-4">
+            <div>
+              <p
+                className="text-3xl font-bold tabular-nums"
+                style={{ color: C.accent }}
+              >
+                {runwayMonths}
+                <span
+                  className="text-base font-medium ml-1"
+                  style={{ color: C.textTertiary }}
+                >
+                  months
+                </span>
+              </p>
+              <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+                At ${DEMO_BURN_RATE.toLocaleString()}/mo burn ·{" "}
+                {fmt(DEMO_NET_PROFIT)} net profit ({PERIOD_LABELS[period]})
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {
+                  label: "Monthly burn",
+                  value: `$${DEMO_BURN_RATE.toLocaleString()}`,
+                  color: C.warning,
+                },
+                {
+                  label: "Net profit",
+                  value: fmt(DEMO_NET_PROFIT),
+                  color: C.success,
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="px-3 py-2 rounded-sm"
+                  style={{
+                    backgroundColor: C.accentLight,
+                    border: `1px solid ${C.secondaryBtnBorder}`,
+                  }}
+                >
+                  <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                    {item.label}
+                  </p>
+                  <p
+                    className="text-sm font-bold tabular-nums mt-0.5"
+                    style={{ color: item.color }}
+                  >
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+              </div>
+            </motion.div>
+          )}
+
+          {insightsTab === "actions" && (
+            <motion.div
+              key="actions"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3"
+            >
+              <FeatureTip text="Each row opens the right place to fix it — Expenses for spend and receipts, Revenue for pending payments, Transactions for family tuition." />
+              <div className="space-y-2">
+                {alerts.map((alert, i) => {
+                  const tones = {
+                    error: {
+                      bg: C.errorBg,
+                      border: C.errorBorder,
+                      text: C.error,
+                    },
+                    warning: {
+                      bg: C.warningBg,
+                      border: C.warningBorder,
+                      text: C.warning,
+                    },
+                    success: {
+                      bg: C.successBg,
+                      border: C.successBorder,
+                      text: C.success,
+                    },
+                    info: { bg: C.infoBg, border: C.infoBorder, text: C.info },
+                  };
+                  const helpers: Record<string, string> = {
+                    "over-budget":
+                      "Spending in this category exceeded what you planned — review line items before the gap grows.",
+                    "pending-revenue":
+                      "Money marked received in your books but not collected yet — follow up with families or banks.",
+                    receipts:
+                      "Paid expenses without a receipt can cause audit issues — upload or attach documentation.",
+                    tuition:
+                      "Unpaid or invoice-sent tuition on the family checklist — open Transactions to chase payment.",
+                    "all-clear":
+                      "Nothing urgent right now. Check Breakdown if you want a deeper look at trends.",
+                  };
+                  const t = tones[alert.tone];
+                  return (
+                    <motion.button
+                      key={alert.id}
+                      type="button"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      onClick={() => onNavigateTab(alert.tab, alert.opts)}
+                      className="w-full text-left rounded-sm p-4 transition-all group flex items-start gap-3"
+                      style={{
+                        backgroundColor: t.bg,
+                        border: `1px solid ${t.border}`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = t.text;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = t.border;
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-sm font-semibold"
+                          style={{ color: t.text }}
+                        >
+                          {alert.title}
+                        </p>
+                        <p
+                          className="text-xs mt-1"
+                          style={{ color: C.textPrimary }}
+                        >
+                          {alert.detail}
+                        </p>
+                        <p
+                          className="text-[11px] mt-2 leading-relaxed"
+                          style={{ color: C.textTertiary }}
+                        >
+                          {helpers[alert.id]}
+                        </p>
+                      </div>
+                      <ChevronRight
+                        className="w-4 h-4 flex-shrink-0 mt-0.5 opacity-40 group-hover:opacity-100 transition-opacity"
+                        style={{ color: t.text }}
+                      />
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {insightsTab === "breakdown" && (
+            <motion.div
+              key="breakdown"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <InsightsCard style={{ padding: "20px" }}>
+          <SectionLabel hint="Where your income comes from — tuition vs deposits vs donations.">
+            Revenue Mix
+          </SectionLabel>
+          <div className="mt-4">
+            <RevenueMixChart segments={mix} />
+          </div>
+        </InsightsCard>
+
+        <InsightsCard style={{ padding: "20px" }}>
+          <SectionLabel hint="Ranked by % of plan used — click a row to see expenses.">
+            Budget Variance
+          </SectionLabel>
+          <div className="mt-3 space-y-2">
+            {sortedCats.map((cat, i) => {
+              const pct = Math.round((cat.actual / cat.planned) * 100);
+              const over = cat.actual > cat.planned;
+              const diff = cat.actual - cat.planned;
+              return (
+                <motion.button
+                  key={cat.name}
+                  type="button"
+                  initial={{ opacity: 0, x: -4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  onClick={() =>
+                    onNavigateTab("expenses", {
+                      expenseCategory: cat.name,
+                    })
+                  }
+                  className="w-full flex items-center gap-3 px-1 py-2.5 text-left transition-colors group"
+                  style={{
+                    backgroundColor: "transparent",
+                    borderBottom:
+                      i < sortedCats.length - 1
+                        ? `1px solid ${C.border}`
+                        : "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = C.accentLight;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                >
+                  <span className="text-base flex-shrink-0">{cat.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span
+                        className="text-xs font-semibold truncate"
+                        style={{ color: C.textPrimary }}
+                      >
+                        {cat.name}
+                      </span>
+                      <span
+                        className="text-[10px] font-bold tabular-nums flex-shrink-0"
+                        style={{ color: over ? C.error : C.success }}
+                      >
+                        {over ? "+" : "-"}$
+                        {Math.abs(diff).toLocaleString()}
+                      </span>
+                    </div>
+                    <div
+                      className="h-1.5 rounded-full overflow-hidden"
+                      style={{ backgroundColor: C.border }}
+                    >
+                      <motion.div
+                        className="h-full rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(pct, 100)}%` }}
+                        transition={{ duration: 0.6, delay: i * 0.05 }}
+                        style={{
+                          backgroundColor: over ? C.error : cat.color,
+                        }}
+                      />
+                    </div>
+                    <p className="text-[10px] mt-1" style={{ color: C.textTertiary }}>
+                      {pct}% of plan · ${cat.actual.toLocaleString()} / $
+                      {cat.planned.toLocaleString()}
+                    </p>
+                  </div>
+                  <ChevronRight
+                    className="w-3.5 h-3.5 flex-shrink-0 opacity-0 group-hover:opacity-60"
+                    style={{ color: C.textTertiary }}
+                  />
+                </motion.button>
+              );
+            })}
+          </div>
+        </InsightsCard>
+      </div>
+
+      <InsightsCard style={{ padding: "20px" }}>
+        <div className="flex items-center justify-between mb-4">
+          <SectionLabel hint="Monthly net (revenue minus expenses) — green bars mean you kept more.">
+            Net Trend
+          </SectionLabel>
+          <span className="text-[10px]" style={{ color: C.textTertiary }}>
+            Last 12 months
+          </span>
+        </div>
+        <div className="flex items-end gap-1" style={{ height: 64 }}>
+          {DEMO_MONTHLY_REVENUE.map((m, i) => {
+            const net = m.revenue - m.expenses;
+            const barPx = Math.max(
+              4,
+              Math.round((Math.abs(net) / maxNet) * 56),
+            );
+            const positive = net >= 0;
+            return (
+              <div
+                key={m.month}
+                className="flex-1 flex flex-col items-center justify-end gap-1 min-w-0 h-full"
+              >
+                <motion.div
+                  className="w-full rounded-t-sm"
+                  initial={{ height: 0 }}
+                  animate={{ height: barPx }}
+                  transition={{ duration: 0.5, delay: i * 0.03 }}
+                  style={{
+                    backgroundColor: positive ? C.success : C.error,
+                    opacity: 0.85,
+                  }}
+                  title={`${m.month}: ${positive ? "+" : "-"}$${Math.abs(net).toLocaleString()}`}
+                />
+                <span
+                  className="text-[8px] truncate w-full text-center"
+                  style={{ color: C.textTertiary }}
+                >
+                  {m.month.slice(0, 1)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p
+          className="text-[11px] mt-3 leading-relaxed"
+          style={{ color: C.textTertiary }}
+        >
+          Hover a bar for that month&apos;s net. Green means revenue beat expenses;
+          red means you spent more than you brought in.
+        </p>
+      </InsightsCard>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function BudgetPage({
+  activeTab: tab,
+  onTabChange,
+}: {
+  activeTab: BudgetTab;
+  onTabChange: (tab: BudgetTab) => void;
+}) {
+  const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("all");
+  const [revenuePendingOnly, setRevenuePendingOnly] = useState(false);
+  const [transactionsTab, setTransactionsTab] = useState<"all" | "checklist">(
+    "all",
+  );
+
+  const handleNavigate = useCallback(
+    (target: BudgetTab, opts?: BudgetNavigateOptions) => {
+      if (opts?.expenseCategory) {
+        setExpenseCategoryFilter(opts.expenseCategory);
+      }
+      if (opts?.revenuePendingOnly !== undefined) {
+        setRevenuePendingOnly(opts.revenuePendingOnly);
+      }
+      if (opts?.transactionsTab) {
+        setTransactionsTab(opts.transactionsTab);
+      }
+      onTabChange(target);
+    },
+    [onTabChange],
+  );
 
   return (
     <div className="h-full flex flex-col">
@@ -15520,7 +16397,10 @@ function BudgetPage({ activeTab: tab }: { activeTab: BudgetTab; onTabChange: (ta
             exit={{ opacity: 0 }}
             className="flex-1 overflow-hidden"
           >
-            <BudgetExpensesTab />
+            <BudgetExpensesTab
+              categoryFilter={expenseCategoryFilter}
+              onCategoryFilterChange={setExpenseCategoryFilter}
+            />
           </motion.div>
         )}
 
@@ -15532,190 +16412,22 @@ function BudgetPage({ activeTab: tab }: { activeTab: BudgetTab; onTabChange: (ta
             exit={{ opacity: 0 }}
             className="flex-1 overflow-hidden"
           >
-            <BudgetRevenueTab />
+            <BudgetRevenueTab
+              pendingOnly={revenuePendingOnly}
+              onPendingOnlyChange={setRevenuePendingOnly}
+            />
           </motion.div>
         )}
 
-        {tab === "analysis" && (
+        {tab === "insights" && (
           <motion.div
-            key="analysis"
+            key="insights"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex-1 overflow-y-auto space-y-5 p-6"
+            className="flex-1 overflow-hidden flex flex-col"
           >
-            <Card style={{ padding: "24px" }}>
-              <SectionLabel>Planned vs Actual by Category</SectionLabel>
-              <div className="space-y-4 mt-2">
-                {BUDGET_CATS.map((cat, i) => {
-                  const maxVal = Math.max(...BUDGET_CATS.map((c) => c.planned));
-                  const pPct = (cat.planned / maxVal) * 100;
-                  const aPct = (cat.actual / maxVal) * 100;
-                  const over = cat.actual > cat.planned;
-                  return (
-                    <div key={cat.name}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span
-                          className="text-xs font-semibold"
-                          style={{ color: C.textSecondary }}
-                        >
-                          {cat.emoji} {cat.name}
-                        </span>
-                        <span
-                          className="text-xs"
-                          style={{ color: over ? C.error : C.success }}
-                        >
-                          {over ? "▲" : "▼"} $
-                          {Math.abs(cat.planned - cat.actual).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="text-[10px] w-14 text-right"
-                            style={{ color: C.textTertiary }}
-                          >
-                            Planned
-                          </span>
-                          <div
-                            className="flex-1 h-2 rounded-full overflow-hidden"
-                            style={{ backgroundColor: C.border }}
-                          >
-                            <motion.div
-                              className="h-full rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${pPct}%` }}
-                              transition={{ duration: 0.8, delay: i * 0.1 }}
-                              style={{
-                                backgroundColor: C.border,
-                                opacity: 0.6,
-                                border: `1px solid ${cat.color}`,
-                              }}
-                            />
-                          </div>
-                          <span
-                            className="text-[10px] w-16 tabular-nums"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {fmt(cat.planned)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="text-[10px] w-14 text-right"
-                            style={{ color: C.textTertiary }}
-                          >
-                            Actual
-                          </span>
-                          <div
-                            className="flex-1 h-2 rounded-full overflow-hidden"
-                            style={{ backgroundColor: C.border }}
-                          >
-                            <motion.div
-                              className="h-full rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${aPct}%` }}
-                              transition={{
-                                duration: 0.8,
-                                delay: i * 0.1 + 0.1,
-                              }}
-                              style={{
-                                backgroundColor: over ? C.error : cat.color,
-                              }}
-                            />
-                          </div>
-                          <span
-                            className="text-[10px] w-16 tabular-nums"
-                            style={{ color: over ? C.error : C.textPrimary }}
-                          >
-                            {fmt(cat.actual)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-            <Card>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                    {[
-                      "Category",
-                      "Planned",
-                      "Actual",
-                      "Variance",
-                      "Status",
-                    ].map((col) => (
-                      <th
-                        key={col}
-                        className="text-left px-4 py-3 text-xs font-medium"
-                        style={{ color: C.textTertiary }}
-                      >
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {BUDGET_CATS.map((cat) => {
-                    const over = cat.actual > cat.planned;
-                    const diff = cat.actual - cat.planned;
-                    return (
-                      <tr
-                        key={cat.name}
-                        style={{ borderBottom: `1px solid ${C.border}` }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = C.elevated)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            "transparent")
-                        }
-                      >
-                        <td
-                          className="px-4 py-3 text-sm font-medium"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {cat.emoji} {cat.name}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-sm tabular-nums"
-                          style={{ color: C.textSecondary }}
-                        >
-                          {fmt(cat.planned)}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-sm tabular-nums"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {fmt(cat.actual)}
-                        </td>
-                        <td
-                          className="px-4 py-3 text-sm tabular-nums font-semibold"
-                          style={{ color: over ? C.error : C.success }}
-                        >
-                          {over ? "+" : "-"}
-                          {fmt(Math.abs(diff))}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
-                            style={{
-                              backgroundColor: over ? C.errorBg : C.successBg,
-                              color: over ? C.error : C.success,
-                            }}
-                          >
-                            {over ? "Over budget" : "Under budget"}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </Card>
+            <BudgetInsightsTab onNavigateTab={handleNavigate} />
           </motion.div>
         )}
 
@@ -15727,7 +16439,10 @@ function BudgetPage({ activeTab: tab }: { activeTab: BudgetTab; onTabChange: (ta
             exit={{ opacity: 0 }}
             className="flex-1 overflow-hidden"
           >
-            <TransactionsPage />
+            <TransactionsPage
+              activeTab={transactionsTab}
+              onTabChange={setTransactionsTab}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -19432,7 +20147,7 @@ const BUDGET_SUBTABS: SubtabItem<BudgetTab>[] = [
   { key: "overview", label: "Overview", icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
   { key: "expenses", label: "Expenses", icon: <CreditCard className="w-3.5 h-3.5" /> },
   { key: "revenue", label: "Revenue", icon: <TrendingUp className="w-3.5 h-3.5" /> },
-  { key: "analysis", label: "Analysis", icon: <BarChart2 className="w-3.5 h-3.5" /> },
+  { key: "insights", label: "Insights", icon: <Lightbulb className="w-3.5 h-3.5" /> },
   { key: "transactions", label: "Transactions", icon: <ListFilter className="w-3.5 h-3.5" /> },
 ];
 
@@ -20337,11 +21052,11 @@ export default function AdminDashboardDemo({
       {
         action: () => {
           const el = containerRef.current?.querySelector(
-            '[data-tour-id="budget-tab-analysis"]',
+            '[data-tour-id="budget-tab-insights"]',
           );
           (el as HTMLElement)?.click();
         },
-        targetId: "budget-tab-analysis",
+        targetId: "budget-tab-insights",
         holdMs: 1800,
         clickAnimation: true,
       },
