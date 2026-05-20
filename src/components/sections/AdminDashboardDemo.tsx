@@ -18832,7 +18832,7 @@ function FinancesPayrollTab({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       className="relative flex-1 overflow-y-auto min-h-full p-6"
-      style={{ backgroundColor: C.bg }}
+      style={{ backgroundColor: C.surface }}
     >
       <AnimatePresence>
         {runWizardOpen && (
@@ -18895,7 +18895,7 @@ function FinancesPayrollTab({
           <div className="grid grid-cols-2 gap-3">
             <div
               className="rounded-sm p-4"
-              style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+              style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
             >
               <p className="text-[10px] font-medium uppercase tracking-wide mb-1" style={{ color: C.textTertiary }}>
                 YTD Payroll Spend
@@ -18909,7 +18909,7 @@ function FinancesPayrollTab({
             </div>
             <div
               className="rounded-sm p-4 flex flex-col justify-between"
-              style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+              style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
             >
               <p className="text-[10px] font-medium uppercase tracking-wide mb-1" style={{ color: C.textTertiary }}>
                 Next Payday
