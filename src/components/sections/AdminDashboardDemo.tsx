@@ -63,11 +63,14 @@ const C_DARK = {
   bg: "#0A0E1A",
   surface: "#111827",
   elevated: "#1F2937",
+  input: "#2A3038",
+  inputBorder: "#3D4554",
   border: "#2D3748",
   borderStrong: "#4B5563",
   accent: "#5E7C68",
   accentBright: "#6E9478",
   accentLight: "rgba(94, 124, 104, 0.15)",
+  secondaryBtnBorder: "rgba(94, 124, 104, 0.35)",
   accentGlow: "rgba(94, 124, 104, 0.15)",
   accentMid: "#BFD8C0",
   accentDark: "#4A6354",
@@ -102,11 +105,14 @@ const C_LIGHT = {
   bg: "#F7F1E7",
   surface: "#FFFAF4",
   elevated: "#EDE0CE",
+  input: "#F4F4F5",
+  inputBorder: "#E4E4E7",
   border: "#DDD0BE",
   borderStrong: "#B8A898",
   accent: "#2E4A3C",
   accentBright: "#4a7c59",
   accentLight: "rgba(46, 74, 60, 0.10)",
+  secondaryBtnBorder: "rgba(46, 74, 60, 0.22)",
   accentGlow: "rgba(74, 124, 89, 0.12)",
   accentMid: "#4a7c59",
   accentDark: "#233B2F",
@@ -139,6 +145,60 @@ const C_LIGHT = {
 
 // mutable — set by AdminDashboardDemo before each render so all sub-components pick it up
 let C = C_DARK;
+
+function demoInputStyle(
+  extra?: React.CSSProperties,
+): React.CSSProperties {
+  return {
+    backgroundColor: C.input,
+    border: `1px solid ${C.inputBorder}`,
+    color: C.textPrimary,
+    outline: "none",
+    ...extra,
+  };
+}
+
+function demoSecondaryButtonStyle(
+  extra?: React.CSSProperties,
+): React.CSSProperties {
+  return {
+    backgroundColor: C.accentLight,
+    border: `1px solid ${C.secondaryBtnBorder}`,
+    color: C.accent,
+    ...extra,
+  };
+}
+
+function demoInactivePillStyle(
+  extra?: React.CSSProperties,
+): React.CSSProperties {
+  return demoSecondaryButtonStyle(extra);
+}
+
+function demoSolidPillStyle(
+  isActive: boolean,
+  extra?: React.CSSProperties,
+): React.CSSProperties {
+  return isActive
+    ? {
+        backgroundColor: C.accent,
+        color: "#fff",
+        border: `1px solid ${C.accent}`,
+        ...extra,
+      }
+    : demoInactivePillStyle(extra);
+}
+
+function demoLightPillStyle(
+  isActive: boolean,
+  extra?: React.CSSProperties,
+): React.CSSProperties {
+  return {
+    ...demoInactivePillStyle(),
+    border: `1px solid ${isActive ? C.accent : C.secondaryBtnBorder}`,
+    ...extra,
+  };
+}
 
 const TOUR_MOVE_MS = 950;
 const TOUR_RESUME_MS = 1500;
@@ -3509,12 +3569,12 @@ function DemoButton({
     secondary: {
       backgroundColor: C.accentLight,
       color: C.accent,
-      border: `1px solid ${C.clayBorder}`,
+      border: `1px solid ${C.secondaryBtnBorder}`,
     },
     ghost: {
-      backgroundColor: C.elevated,
+      backgroundColor: C.surface,
       color: C.textSecondary,
-      border: `1px solid ${C.border}`,
+      border: `1px solid ${C.inputBorder}`,
     },
   };
   const v = variants[variant];
@@ -4227,11 +4287,7 @@ function LeadsFiltersPanel({
                 type="button"
                 onClick={() => onChange(f.key)}
                 className="flex w-full items-center justify-between gap-2 rounded-sm px-3 py-2 text-left text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: isActive ? C.accentLight : "transparent",
-                  color: isActive ? C.accent : C.textSecondary,
-                  border: `1px solid ${isActive ? C.accent : C.border}`,
-                }}
+                style={demoLightPillStyle(isActive)}
               >
                 <span>{f.label}</span>
                 <span className="text-[10px] font-bold opacity-70">{f.count}</span>
@@ -4264,7 +4320,10 @@ function LeadsListTab({
   const hasActiveStatusFilter = activeFilter !== "all";
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div
+      className="relative flex h-full flex-col"
+      style={{ backgroundColor: C.surface }}
+    >
       {/* Form toolbar + filter icon */}
       <div
         className="flex flex-shrink-0 items-center gap-2 px-6 py-3"
@@ -4279,11 +4338,7 @@ function LeadsListTab({
                 type="button"
                 onClick={() => setActiveFlowFilter(f.id)}
                 className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: isActive ? C.accent : C.elevated,
-                  color: isActive ? "#fff" : C.textSecondary,
-                  border: `1px solid ${isActive ? C.accent : C.border}`,
-                }}
+                style={demoSolidPillStyle(isActive)}
               >
                 {f.label}
                 {f.id !== "all" && (
@@ -4300,7 +4355,7 @@ function LeadsListTab({
           onClick={() => setFilterPanelOpen(true)}
           className="relative ml-auto flex flex-shrink-0 items-center justify-center rounded-sm p-2 transition-all"
           style={{
-            backgroundColor: hasActiveStatusFilter ? C.accentLight : C.elevated,
+            backgroundColor: hasActiveStatusFilter ? C.accentLight : C.input,
             color: hasActiveStatusFilter ? C.accent : C.textSecondary,
             border: `1px solid ${hasActiveStatusFilter ? C.accent : C.border}`,
           }}
@@ -4346,11 +4401,13 @@ function LeadsListTab({
         )}
       </AnimatePresence>
 
-      {/* Table */}
-      <div className="flex-1 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead
+              className="sticky top-0 z-[1]"
+              style={{ backgroundColor: C.surface }}
+            >
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                 {[
                   "Form",
@@ -5122,11 +5179,15 @@ function LeadDetailPanel({
                           aria-selected={isActive}
                           onClick={() => onStatusChange(key)}
                           className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs font-medium transition-all"
-                          style={{
-                            backgroundColor: isActive ? statusStyle.bg : "transparent",
-                            color: isActive ? statusStyle.text : C.textSecondary,
-                            border: `1px solid ${isActive ? statusStyle.border : C.border}`,
-                          }}
+                          style={
+                            isActive
+                              ? {
+                                  backgroundColor: statusStyle.bg,
+                                  color: statusStyle.text,
+                                  border: `1px solid ${statusStyle.border}`,
+                                }
+                              : demoInactivePillStyle()
+                          }
                         >
                           <span
                             className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
@@ -5149,8 +5210,8 @@ function LeadDetailPanel({
                   <div
                     className="flex min-h-[36px] flex-wrap items-center gap-1.5 rounded-sm border px-2 py-1.5"
                     style={{
-                      backgroundColor: C.surface,
-                      borderColor: C.border,
+                      backgroundColor: C.input,
+                      borderColor: C.inputBorder,
                     }}
                   >
                     {leadTags.map((tag) => (
@@ -5311,13 +5372,11 @@ function LeadDetailPanel({
                   onChange={(e) => setAdminNotes(e.target.value)}
                   rows={6}
                   placeholder="Add a note…"
-                  className="w-full resize-y rounded-sm border px-3 py-2.5 text-sm outline-none"
-                  style={{
-                    backgroundColor: C.surface,
-                    borderColor: C.border,
-                    color: C.textPrimary,
+                  className="w-full resize-y rounded-sm px-3 py-2.5 text-sm outline-none"
+                  style={demoInputStyle({
+                    borderRadius: C.r.sm,
                     boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
-                  }}
+                  })}
                 />
               </div>
             )}
@@ -5551,8 +5610,8 @@ function EnrollmentFlowEditReorderField({
   const dragControls = useDragControls();
 
   const controlStyle: React.CSSProperties = {
-    backgroundColor: C.surface,
-    border: `1px solid ${C.borderStrong}`,
+    backgroundColor: C.input,
+    border: `1px solid ${C.inputBorder}`,
     color: C.textPrimary,
     borderRadius: "5px",
     fontSize: "13px",
@@ -6449,40 +6508,28 @@ function EnrollmentFlowsTab() {
     setTimeout(() => setSavedPulse(false), 1500);
   };
 
-  const inputStyle = {
-    backgroundColor: C.elevated,
-    border: `1px solid ${C.border}`,
-    color: C.textPrimary,
+  const inputStyle = demoInputStyle({
     borderRadius: C.r.md,
     fontSize: "12px",
     padding: "4px 8px",
-    outline: "none",
     width: "100%",
-  } as React.CSSProperties;
+  });
 
-  const fieldInputStyle = {
-    backgroundColor: C.surface,
-    border: `1px solid ${C.borderStrong}`,
-    color: C.textPrimary,
+  const fieldInputStyle = demoInputStyle({
     borderRadius: "5px",
     fontSize: "12px",
     padding: "6px 10px",
-    outline: "none",
     width: "100%",
     boxSizing: "border-box",
-  } as React.CSSProperties;
+  });
 
-  const postSubmitInputStyle = {
-    backgroundColor: C.surface,
-    border: `1px solid ${C.borderStrong}`,
-    color: C.textPrimary,
+  const postSubmitInputStyle = demoInputStyle({
     borderRadius: "5px",
     fontSize: "12px",
     padding: "6px 10px",
-    outline: "none",
     width: "100%",
-    boxSizing: "border-box" as const,
-  } as React.CSSProperties;
+    boxSizing: "border-box",
+  });
 
   return (
     <div className="flex h-full" style={{ overflow: "hidden", backgroundColor: C.bg }}>
@@ -7442,7 +7489,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                   <div
                     key={child.name}
                     className="flex items-center gap-3 p-3 rounded-sm"
-                    style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                    style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                   >
                     {child.photo ? (
                       <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
@@ -7475,7 +7522,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                   <div
                     key={i}
                     className="p-3 rounded-sm"
-                    style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                    style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                   >
                     <p className="text-xs font-semibold mb-2" style={{ color: C.textPrimary }}>{app.childName}</p>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -7515,7 +7562,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                 <button
                   onClick={() => setShowStore(true)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-semibold"
-                  style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
+                  style={demoSecondaryButtonStyle()}
                 >
                   <Plus className="w-3 h-3" />
                   New Form
@@ -7531,7 +7578,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                   <div
                     key={form.id}
                     className="rounded-sm overflow-hidden flex flex-col"
-                    style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                    style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                   >
                     {/* Doc preview */}
                     <div
@@ -7629,7 +7676,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                     <div
                       key={tmpl.id}
                       className="flex items-center gap-3 p-2.5 rounded-sm"
-                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                      style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                     >
                       <div className="flex-shrink-0">
                         <FormDocPreview formType={tmpl.category} size="sm" />
@@ -7697,9 +7744,13 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                     onClick={() => setStoreCategory(cat)}
                     className="px-2.5 py-1 rounded-full text-[10px] font-semibold flex-shrink-0 capitalize"
                     style={{
-                      backgroundColor: isActive ? color + "20" : C.elevated,
-                      color: isActive ? color : C.textTertiary,
-                      border: `1px solid ${isActive ? color + "60" : C.border}`,
+                      ...(isActive
+                        ? {
+                            backgroundColor: color + "20",
+                            color,
+                            border: `1px solid ${color}60`,
+                          }
+                        : demoInactivePillStyle()),
                     }}
                   >
                     {cat === "all" ? "All" : cat === "media" ? "Media" : cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -7719,7 +7770,7 @@ function ParentDetailPanel({ parent }: { parent: DemoParent }) {
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="rounded-sm overflow-hidden flex flex-col"
-                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                      style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                     >
                       {/* Doc preview */}
                       <div
@@ -7882,11 +7933,7 @@ function ParentsPageInner() {
                     <button
                       onClick={() => setSelected(p)}
                       className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md"
-                      style={{
-                        backgroundColor: C.elevated,
-                        color: C.textSecondary,
-                        border: `1px solid ${C.border}`,
-                      }}
+                      style={demoSecondaryButtonStyle()}
                     >
                       <Eye className="w-3 h-3" /> View
                     </button>
@@ -8353,11 +8400,7 @@ function StudentsPageInner() {
                       <button
                         onClick={() => setSelected(s)}
                         className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-md"
-                        style={{
-                          backgroundColor: C.elevated,
-                          color: C.textSecondary,
-                          border: `1px solid ${C.border}`,
-                        }}
+                        style={demoSecondaryButtonStyle()}
                       >
                         <Eye className="w-3 h-3" /> View
                       </button>
@@ -8418,7 +8461,7 @@ function PeoplePage() {
           </div>
           <div
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
-            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+            style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
           >
             <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
             <input
@@ -8778,7 +8821,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                     <div
                       key={i}
                       className="p-3 rounded-sm"
-                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                      style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
@@ -9295,7 +9338,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                           <div
                             key={sibling.name}
                             className="flex items-center gap-3 p-3 rounded-sm"
-                            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                            style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                           >
                             {sibling.photo ? (
                               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
@@ -9347,7 +9390,7 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
                         <div
                           key={i}
                           className="p-3 rounded-sm"
-                          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                          style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                         >
                           <p
                             className="text-xs font-semibold mb-2"
@@ -9412,7 +9455,7 @@ function StudentsPage() {
         >
           <div
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
-            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+            style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
           >
             <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
             <input
@@ -10287,7 +10330,7 @@ function ProgramListRail({
       >
         <div
           className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
-          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
         >
           <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
           <input
@@ -10901,7 +10944,21 @@ const BUDGET_CATS = [
   },
 ];
 
-const DEMO_EXPENSES = [
+type DemoExpenseItem = {
+  id: string;
+  category: (typeof BUDGET_CATS)[number]["name"];
+  description: string;
+  amount: number;
+  date: string;
+  receipt: string | null;
+  vendor: string;
+  paymentMethod: (typeof REVENUE_PAYMENT_METHODS)[number];
+  status: "paid" | "pending";
+  reference?: string | null;
+  notes?: string;
+};
+
+const INITIAL_DEMO_EXPENSES: DemoExpenseItem[] = [
   {
     id: "ex1",
     category: "Personnel",
@@ -10912,6 +10969,7 @@ const DEMO_EXPENSES = [
     vendor: "Sunshine Montessori LLC",
     paymentMethod: "ACH",
     status: "paid" as const,
+    reference: "ACH-PAYROLL-MAR",
   },
   {
     id: "ex2",
@@ -11015,7 +11073,7 @@ const DEMO_EXPENSES = [
 ];
 
 const EXP_STATUS_COLORS: Record<
-  (typeof DEMO_EXPENSES)[0]["status"],
+  DemoExpenseItem["status"],
   { bg: string; border: string; text: string }
 > = {
   paid: { bg: C.successBg, border: C.successBorder, text: C.success },
@@ -12873,9 +12931,10 @@ function BudgetRing({
 const DEMO_CURRENT_MONTH = "Apr";
 
 function BudgetExpensesTab() {
-  const [selectedExp, setSelectedExp] = useState<
-    (typeof DEMO_EXPENSES)[0] | null
-  >(null);
+  const [expenses, setExpenses] =
+    useState<DemoExpenseItem[]>(INITIAL_DEMO_EXPENSES);
+  const [selectedExp, setSelectedExp] = useState<DemoExpenseItem | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -12884,21 +12943,33 @@ function BudgetExpensesTab() {
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
   useEffect(() => {
-    if (selectedExp) openBackdrop(() => setSelectedExp(null));
-    else closeBackdrop();
-  }, [selectedExp, openBackdrop, closeBackdrop]);
+    if (isAdding) {
+      openBackdrop(() => setIsAdding(false));
+    } else if (selectedExp) {
+      openBackdrop(() => setSelectedExp(null));
+    } else {
+      closeBackdrop();
+    }
+  }, [isAdding, selectedExp, openBackdrop, closeBackdrop]);
+
+  const handleAddSave = (item: DemoExpenseItem) => {
+    setExpenses((prev) => [item, ...prev]);
+    setIsAdding(false);
+    setSelectedExp(item);
+  };
 
   const fmt = (n: number) => `$${n.toLocaleString()}`;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return DEMO_EXPENSES.filter((exp) => {
+    return expenses.filter((exp) => {
       const catMatch =
         categoryFilter === "all" || exp.category === categoryFilter;
       const searchMatch =
         !q ||
         exp.description.toLowerCase().includes(q) ||
-        exp.vendor.toLowerCase().includes(q);
+        exp.vendor.toLowerCase().includes(q) ||
+        (exp.reference?.toLowerCase().includes(q) ?? false);
       const receiptMatch = !missingReceiptOnly || exp.receipt === null;
       const dateMatch =
         dateFilter === "all" ||
@@ -12906,7 +12977,7 @@ function BudgetExpensesTab() {
         (dateFilter === "apr" && exp.date.startsWith("Apr"));
       return catMatch && searchMatch && receiptMatch && dateMatch;
     });
-  }, [categoryFilter, search, missingReceiptOnly, dateFilter]);
+  }, [expenses, categoryFilter, search, missingReceiptOnly, dateFilter]);
 
   const kpis = useMemo(() => {
     const ytd = filtered.reduce((s, e) => s + e.amount, 0);
@@ -12936,7 +13007,10 @@ function BudgetExpensesTab() {
   ];
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div
+      className="relative flex h-full flex-col"
+      style={{ backgroundColor: C.surface }}
+    >
       <div
         className="flex flex-shrink-0 flex-wrap items-center gap-2 px-6 py-3"
         style={{ borderBottom: `1px solid ${C.border}` }}
@@ -12946,19 +13020,15 @@ function BudgetExpensesTab() {
             const isActive = categoryFilter === opt.key;
             const count =
               opt.key === "all"
-                ? DEMO_EXPENSES.length
-                : DEMO_EXPENSES.filter((e) => e.category === opt.key).length;
+                ? expenses.length
+                : expenses.filter((e) => e.category === opt.key).length;
             return (
               <button
                 key={opt.key}
                 type="button"
                 onClick={() => setCategoryFilter(opt.key)}
                 className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: isActive ? C.accent : C.elevated,
-                  color: isActive ? "#fff" : C.textSecondary,
-                  border: `1px solid ${isActive ? C.accent : C.border}`,
-                }}
+                style={demoSolidPillStyle(isActive)}
               >
                 {opt.label}
                 <span className="ml-1 text-[10px] font-bold opacity-70">
@@ -12987,8 +13057,8 @@ function BudgetExpensesTab() {
               placeholder="Search expenses…"
               className="w-full rounded-sm py-1.5 pl-8 pr-3 text-xs outline-none"
               style={{
-                backgroundColor: C.elevated,
-                border: `1px solid ${C.border}`,
+                backgroundColor: C.input,
+                border: `1px solid ${C.inputBorder}`,
                 color: C.textPrimary,
               }}
             />
@@ -12998,7 +13068,7 @@ function BudgetExpensesTab() {
             onClick={() => setFilterPanelOpen(true)}
             className="relative flex flex-shrink-0 items-center justify-center rounded-sm p-2 transition-all"
             style={{
-              backgroundColor: hasActiveFilters ? C.accentLight : C.elevated,
+              backgroundColor: hasActiveFilters ? C.accentLight : C.input,
               color: hasActiveFilters ? C.accent : C.textSecondary,
               border: `1px solid ${hasActiveFilters ? C.accent : C.border}`,
             }}
@@ -13016,7 +13086,12 @@ function BudgetExpensesTab() {
             <Download className="h-3.5 w-3.5" />
             Export
           </DemoButton>
-          <DemoButton>
+          <DemoButton
+            onClick={() => {
+              setSelectedExp(null);
+              setIsAdding(true);
+            }}
+          >
             <Plus className="h-3.5 w-3.5" />
             Add expense
           </DemoButton>
@@ -13128,13 +13203,7 @@ function BudgetExpensesTab() {
                         type="button"
                         onClick={() => setDateFilter(d.key)}
                         className="rounded-sm px-2.5 py-1 text-xs font-medium"
-                        style={{
-                          backgroundColor:
-                            dateFilter === d.key ? C.accent : C.elevated,
-                          color:
-                            dateFilter === d.key ? "#fff" : C.textSecondary,
-                          border: `1px solid ${dateFilter === d.key ? C.accent : C.border}`,
-                        }}
+                        style={demoSolidPillStyle(dateFilter === d.key)}
                       >
                         {d.label}
                       </button>
@@ -13176,6 +13245,7 @@ function BudgetExpensesTab() {
                   "Vendor",
                   "Amount",
                   "Payment",
+                  "Reference",
                   "Status",
                   "Receipt",
                 ].map((col) => (
@@ -13255,6 +13325,14 @@ function BudgetExpensesTab() {
                         {exp.paymentMethod}
                       </span>
                     </td>
+                    <td
+                      className="px-4 py-3 text-xs max-w-[120px] truncate"
+                      style={{
+                        color: exp.reference ? C.textSecondary : C.textTertiary,
+                      }}
+                    >
+                      {exp.reference ?? "—"}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
@@ -13307,7 +13385,17 @@ function BudgetExpensesTab() {
       </div>
 
       <AnimatePresence>
-        {selectedExp && (
+        {isAdding && (
+          <RecordExpensePanel
+            key="add-expense"
+            onClose={() => setIsAdding(false)}
+            onSave={handleAddSave}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedExp && !isAdding && (
           <motion.div
             initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -13380,6 +13468,13 @@ function BudgetExpensesTab() {
                 label="Payment"
                 value={selectedExp.paymentMethod}
               />
+              <DetailField
+                label="Reference"
+                value={selectedExp.reference ?? "—"}
+              />
+              {selectedExp.notes ? (
+                <DetailField label="Notes" value={selectedExp.notes} />
+              ) : null}
               <DetailField
                 label="Receipt"
                 value={
@@ -13806,12 +13901,9 @@ function RecordRevenuePanel({
     onSave(item);
   };
 
-  const inputStyle: React.CSSProperties = {
-    backgroundColor: C.elevated,
-    border: `1px solid ${C.border}`,
-    color: C.textPrimary,
+  const inputStyle: React.CSSProperties = demoInputStyle({
     borderRadius: C.r.sm,
-  };
+  });
 
   const fmtAmount = (n: number) => `$${n.toLocaleString()}`;
 
@@ -13855,7 +13947,7 @@ function RecordRevenuePanel({
             type="button"
             onClick={onClose}
             className="flex items-center justify-center rounded-md w-7 h-7"
-            style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+            style={demoSecondaryButtonStyle({ color: C.textTertiary })}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -13882,8 +13974,8 @@ function RecordRevenuePanel({
                       ? C.accentLight
                       : isActive
                         ? C.accent
-                        : C.elevated,
-                    border: `2px solid ${isDone || isActive ? C.accent : C.border}`,
+                        : C.input,
+                    border: `2px solid ${isDone || isActive ? C.accent : C.inputBorder}`,
                     color: isDone ? C.accent : isActive ? "#fff" : C.textTertiary,
                     fontSize: 11,
                     fontWeight: 600,
@@ -13927,11 +14019,7 @@ function RecordRevenuePanel({
                         type="button"
                         onClick={() => handleSourceChange(s)}
                         className="rounded-sm px-2.5 py-1 text-xs font-medium"
-                        style={{
-                          backgroundColor: active ? C.accent : C.elevated,
-                          color: active ? "#fff" : C.textSecondary,
-                          border: `1px solid ${active ? C.accent : C.border}`,
-                        }}
+                        style={demoSolidPillStyle(active)}
                       >
                         {s}
                       </button>
@@ -13981,11 +14069,7 @@ function RecordRevenuePanel({
                         type="button"
                         onClick={() => patch({ status: s.key })}
                         className="flex-1 rounded-sm py-1.5 text-xs font-medium"
-                        style={{
-                          backgroundColor: active ? C.accentLight : C.elevated,
-                          color: active ? C.accent : C.textSecondary,
-                          border: `1px solid ${active ? C.accent : C.border}`,
-                        }}
+                        style={demoLightPillStyle(active)}
                       >
                         {s.label}
                       </button>
@@ -14048,11 +14132,7 @@ function RecordRevenuePanel({
                             type="button"
                             onClick={() => patch({ program: p.key })}
                             className="rounded-sm px-2.5 py-1 text-xs font-medium"
-                            style={{
-                              backgroundColor: active ? C.accentLight : C.elevated,
-                              color: active ? C.accent : C.textSecondary,
-                              border: `1px solid ${active ? C.accent : C.border}`,
-                            }}
+                            style={demoLightPillStyle(active)}
                           >
                             {p.label}
                           </button>
@@ -14139,11 +14219,7 @@ function RecordRevenuePanel({
                         type="button"
                         onClick={() => patch({ paymentMethod: m })}
                         className="rounded-sm px-2.5 py-1 text-xs font-medium"
-                        style={{
-                          backgroundColor: active ? C.accent : C.elevated,
-                          color: active ? "#fff" : C.textSecondary,
-                          border: `1px solid ${active ? C.accent : C.border}`,
-                        }}
+                        style={demoSolidPillStyle(active)}
                       >
                         {m}
                       </button>
@@ -14260,6 +14336,497 @@ function RecordRevenuePanel({
   );
 }
 
+function descriptionPlaceholderForCategory(
+  category: DemoExpenseItem["category"],
+): string {
+  if (category === "Personnel") return "e.g. Teacher salaries — April";
+  if (category === "Facilities") return "e.g. Monthly rent";
+  if (category === "Program Supplies") return "e.g. Art & craft materials Q2";
+  if (category === "Operations") return "e.g. Liability insurance — Q2";
+  if (category === "Marketing") return "e.g. Spring flyer printing";
+  return "e.g. Miscellaneous supply purchase";
+}
+
+type RecordExpenseForm = {
+  category: DemoExpenseItem["category"];
+  amount: string;
+  dateIso: string;
+  status: DemoExpenseItem["status"];
+  vendor: string;
+  description: string;
+  paymentMethod: (typeof REVENUE_PAYMENT_METHODS)[number];
+  reference: string;
+  notes: string;
+  receipt: string | null;
+};
+
+const RECORD_EXPENSE_INITIAL: RecordExpenseForm = {
+  category: "Operations",
+  amount: "",
+  dateIso: DEMO_REVENUE_TODAY_ISO,
+  status: "paid",
+  vendor: "",
+  description: "",
+  paymentMethod: "Card",
+  reference: "",
+  notes: "",
+  receipt: null,
+};
+
+const RECORD_EXPENSE_STEPS = [
+  "Expense",
+  "Vendor & details",
+  "Payment & docs",
+] as const;
+
+function RecordExpensePanel({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void;
+  onSave: (item: DemoExpenseItem) => void;
+}) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [form, setForm] = useState<RecordExpenseForm>(RECORD_EXPENSE_INITIAL);
+  const amountInputRef = useRef<HTMLInputElement>(null);
+
+  const patch = (p: Partial<RecordExpenseForm>) =>
+    setForm((prev) => ({ ...prev, ...p }));
+
+  const amountNum = parseFloat(form.amount) || 0;
+  const canContinueStep1 = amountNum > 0;
+  const canContinueStep2 = form.vendor.trim().length > 0;
+  const canSave = canContinueStep1 && canContinueStep2;
+
+  useEffect(() => {
+    if (step === 1) {
+      const t = setTimeout(() => amountInputRef.current?.focus(), 120);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
+
+  const handleNext = () => {
+    if (step === 1 && canContinueStep1) setStep(2);
+    else if (step === 2 && canContinueStep2) setStep(3);
+  };
+
+  const handleBack = () => {
+    if (step === 2) setStep(1);
+    else if (step === 3) setStep(2);
+  };
+
+  const handleSave = () => {
+    if (!canSave) return;
+    const item: DemoExpenseItem = {
+      id: `ex-${Date.now()}`,
+      category: form.category,
+      amount: amountNum,
+      date: formatIncomeDateFromIso(form.dateIso),
+      status: form.status,
+      vendor: form.vendor.trim(),
+      paymentMethod: form.paymentMethod,
+      description:
+        form.description.trim() ||
+        descriptionPlaceholderForCategory(form.category).replace(/^e\.g\. /, ""),
+      reference: form.reference.trim() || null,
+      notes: form.notes.trim() || undefined,
+      receipt: form.receipt,
+    };
+    onSave(item);
+  };
+
+  const inputStyle: React.CSSProperties = demoInputStyle({
+    borderRadius: C.r.sm,
+  });
+
+  const fmtAmount = (n: number) => `$${n.toLocaleString()}`;
+
+  const disabledStyle = {
+    opacity: 0.45,
+    pointerEvents: "none" as const,
+  };
+
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="absolute inset-y-0 right-0 flex flex-col overflow-hidden"
+      style={{
+        width: 420,
+        backgroundColor: C.surface,
+        borderLeft: `1px solid ${C.border}`,
+        zIndex: 20,
+        boxShadow: "-4px 0 24px rgba(0,0,0,0.08)",
+      }}
+    >
+      <div
+        className="flex-shrink-0 px-5 pt-4 pb-3"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3
+              className="text-sm font-semibold"
+              style={{ color: C.textPrimary }}
+            >
+              Add expense
+            </h3>
+            <p className="text-[11px] mt-0.5" style={{ color: C.textTertiary }}>
+              Step {step} of 3 — {RECORD_EXPENSE_STEPS[step - 1]}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center justify-center rounded-md w-7 h-7"
+            style={demoSecondaryButtonStyle({ color: C.textTertiary })}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-0">
+          {([1, 2, 3] as const).map((n, i) => {
+            const isDone = step > n;
+            const isActive = step === n;
+            return (
+              <div
+                key={n}
+                className="flex items-center"
+                style={{ flex: i < 2 ? 1 : "none" }}
+              >
+                <motion.div
+                  animate={{ scale: isActive ? 1.12 : 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center justify-center rounded-full flex-shrink-0"
+                  style={{
+                    width: 26,
+                    height: 26,
+                    backgroundColor: isDone
+                      ? C.accentLight
+                      : isActive
+                        ? C.accent
+                        : C.input,
+                    border: `2px solid ${isDone || isActive ? C.accent : C.inputBorder}`,
+                    color: isDone ? C.accent : isActive ? "#fff" : C.textTertiary,
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}
+                >
+                  {isDone ? <CheckCircle className="w-3 h-3" /> : n}
+                </motion.div>
+                {i < 2 && (
+                  <div
+                    className="flex-1 h-0.5 mx-1"
+                    style={{
+                      backgroundColor: step > n ? C.accent : C.border,
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div
+              key="exp-step-1"
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-5"
+            >
+              <div>
+                <RevenueFormLabel required>Category</RevenueFormLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {BUDGET_CATS.map((c) => {
+                    const active = form.category === c.name;
+                    return (
+                      <button
+                        key={c.name}
+                        type="button"
+                        onClick={() => patch({ category: c.name })}
+                        className="rounded-sm px-2.5 py-1 text-xs font-medium"
+                        style={demoSolidPillStyle(active)}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <RevenueFormLabel required>Amount</RevenueFormLabel>
+                  <input
+                    ref={amountInputRef}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.amount}
+                    onChange={(e) => patch({ amount: e.target.value })}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 text-sm outline-none [appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <RevenueFormLabel required>Date</RevenueFormLabel>
+                  <RevenueDatePicker
+                    value={form.dateIso}
+                    onChange={(iso) => patch({ dateIso: iso })}
+                    inputStyle={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <RevenueFormLabel required>Status</RevenueFormLabel>
+                <div className="flex gap-1.5">
+                  {(
+                    [
+                      { key: "paid", label: "Paid" },
+                      { key: "pending", label: "Pending" },
+                    ] as const
+                  ).map((s) => {
+                    const active = form.status === s.key;
+                    return (
+                      <button
+                        key={s.key}
+                        type="button"
+                        onClick={() => patch({ status: s.key })}
+                        className="flex-1 rounded-sm py-1.5 text-xs font-medium"
+                        style={demoLightPillStyle(active)}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div
+              key="exp-step-2"
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-5"
+            >
+              <div>
+                <RevenueFormLabel required>Vendor</RevenueFormLabel>
+                <input
+                  type="text"
+                  value={form.vendor}
+                  onChange={(e) => patch({ vendor: e.target.value })}
+                  placeholder="Company or payee name"
+                  className="w-full px-3 py-2 text-sm outline-none"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <RevenueFormLabel>Description</RevenueFormLabel>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={(e) => patch({ description: e.target.value })}
+                  placeholder={descriptionPlaceholderForCategory(form.category)}
+                  className="w-full px-3 py-2 text-sm outline-none"
+                  style={inputStyle}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div
+              key="exp-step-3"
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-5"
+            >
+              <motion.div
+                initial={{ scale: 0.98, opacity: 0.85 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.25 }}
+                className="rounded-sm p-4"
+                style={{
+                  backgroundColor: C.elevated,
+                  border: `1px solid ${C.border}`,
+                }}
+              >
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-wider mb-2"
+                  style={{ color: C.textTertiary }}
+                >
+                  Summary
+                </p>
+                <p
+                  className="text-2xl font-bold tabular-nums"
+                  style={{ color: C.error }}
+                >
+                  {fmtAmount(amountNum)}
+                </p>
+                <div className="mt-2 space-y-1 text-xs">
+                  <p style={{ color: C.textSecondary }}>
+                    <span style={{ color: C.textTertiary }}>Category: </span>
+                    {form.category}
+                  </p>
+                  <p style={{ color: C.textSecondary }}>
+                    <span style={{ color: C.textTertiary }}>Vendor: </span>
+                    {form.vendor.trim() || "—"}
+                  </p>
+                  <p style={{ color: C.textSecondary }}>
+                    <span style={{ color: C.textTertiary }}>Date: </span>
+                    {formatIncomeDateFromIso(form.dateIso)}
+                  </p>
+                  <p style={{ color: C.textSecondary }}>
+                    <span style={{ color: C.textTertiary }}>Status: </span>
+                    <span className="capitalize">{form.status}</span>
+                  </p>
+                </div>
+              </motion.div>
+
+              <div>
+                <RevenueFormLabel required>Payment method</RevenueFormLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {REVENUE_PAYMENT_METHODS.map((m) => {
+                    const active = form.paymentMethod === m;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => patch({ paymentMethod: m })}
+                        className="rounded-sm px-2.5 py-1 text-xs font-medium"
+                        style={demoSolidPillStyle(active)}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <RevenueFormLabel>Reference #</RevenueFormLabel>
+                <input
+                  type="text"
+                  value={form.reference}
+                  onChange={(e) => patch({ reference: e.target.value })}
+                  placeholder="Invoice no., check no., transaction ID"
+                  className="w-full px-3 py-2 text-sm outline-none"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <RevenueFormLabel>Internal notes</RevenueFormLabel>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => patch({ notes: e.target.value })}
+                  rows={2}
+                  placeholder="Optional note for your team"
+                  className="w-full resize-none px-3 py-2 text-sm outline-none"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <RevenueFormLabel>Receipt</RevenueFormLabel>
+                {form.receipt ? (
+                  <div
+                    className="flex items-center justify-between rounded-sm px-3 py-2 text-xs"
+                    style={{
+                      backgroundColor: C.infoBg,
+                      border: `1px solid ${C.infoBorder}`,
+                      color: C.info,
+                    }}
+                  >
+                    <span className="truncate">{form.receipt}</span>
+                    <button
+                      type="button"
+                      onClick={() => patch({ receipt: null })}
+                      className="ml-2 flex-shrink-0"
+                      style={{ color: C.textTertiary }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <DemoButton
+                    variant="ghost"
+                    className="w-full justify-center"
+                    onClick={() => patch({ receipt: "receipt_upload.pdf" })}
+                  >
+                    Attach receipt
+                  </DemoButton>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div
+        className="flex flex-shrink-0 gap-2 px-5 py-4"
+        style={{ borderTop: `1px solid ${C.border}` }}
+      >
+        {step === 1 ? (
+          <>
+            <DemoButton variant="ghost" className="flex-1" onClick={onClose}>
+              Cancel
+            </DemoButton>
+            <DemoButton
+              className="flex-1"
+              onClick={handleNext}
+              style={!canContinueStep1 ? disabledStyle : undefined}
+            >
+              Continue
+              <ArrowRight className="h-3.5 w-3.5" />
+            </DemoButton>
+          </>
+        ) : step === 2 ? (
+          <>
+            <DemoButton variant="ghost" className="flex-1" onClick={handleBack}>
+              Back
+            </DemoButton>
+            <DemoButton
+              className="flex-1"
+              onClick={handleNext}
+              style={!canContinueStep2 ? disabledStyle : undefined}
+            >
+              Continue
+              <ArrowRight className="h-3.5 w-3.5" />
+            </DemoButton>
+          </>
+        ) : (
+          <>
+            <DemoButton variant="ghost" className="flex-1" onClick={handleBack}>
+              Back
+            </DemoButton>
+            <DemoButton
+              className="flex-1"
+              onClick={handleSave}
+              style={!canSave ? disabledStyle : undefined}
+            >
+              Save expense
+            </DemoButton>
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 function BudgetRevenueTab() {
   const [income, setIncome] = useState<DemoIncomeItem[]>(INITIAL_DEMO_INCOME);
   const [selectedInc, setSelectedInc] = useState<DemoIncomeItem | null>(null);
@@ -14342,7 +14909,10 @@ function BudgetRevenueTab() {
         : null;
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div
+      className="relative flex h-full flex-col"
+      style={{ backgroundColor: C.surface }}
+    >
       <div
         className="flex flex-shrink-0 flex-col gap-2 px-6 py-3"
         style={{ borderBottom: `1px solid ${C.border}` }}
@@ -14361,11 +14931,7 @@ function BudgetRevenueTab() {
                   type="button"
                   onClick={() => setSourceFilter(opt.key)}
                   className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
-                  style={{
-                    backgroundColor: isActive ? C.accent : C.elevated,
-                    color: isActive ? "#fff" : C.textSecondary,
-                    border: `1px solid ${isActive ? C.accent : C.border}`,
-                  }}
+                  style={demoSolidPillStyle(isActive)}
                 >
                   {opt.label}
                   <span className="ml-1 text-[10px] font-bold opacity-70">
@@ -14388,8 +14954,8 @@ function BudgetRevenueTab() {
                 placeholder="Search revenue…"
                 className="w-full rounded-sm py-1.5 pl-8 pr-3 text-xs outline-none"
                 style={{
-                  backgroundColor: C.elevated,
-                  border: `1px solid ${C.border}`,
+                  backgroundColor: C.input,
+                  border: `1px solid ${C.inputBorder}`,
                   color: C.textPrimary,
                 }}
               />
@@ -14399,7 +14965,7 @@ function BudgetRevenueTab() {
               onClick={() => setFilterPanelOpen(true)}
               className="relative flex flex-shrink-0 items-center justify-center rounded-sm p-2 transition-all"
               style={{
-                backgroundColor: hasActiveFilters ? C.accentLight : C.elevated,
+                backgroundColor: hasActiveFilters ? C.accentLight : C.input,
                 color: hasActiveFilters ? C.accent : C.textSecondary,
                 border: `1px solid ${hasActiveFilters ? C.accent : C.border}`,
               }}
@@ -14441,11 +15007,7 @@ function BudgetRevenueTab() {
                 type="button"
                 onClick={() => setProgramFilter(opt.key)}
                 className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: isActive ? C.accentLight : "transparent",
-                  color: isActive ? C.accent : C.textTertiary,
-                  border: `1px solid ${isActive ? C.accent : C.border}`,
-                }}
+                style={demoLightPillStyle(isActive)}
               >
                 {opt.label}
                 {opt.key !== "all" && (
@@ -14563,13 +15125,7 @@ function BudgetRevenueTab() {
                         type="button"
                         onClick={() => setDateFilter(d.key)}
                         className="rounded-sm px-2.5 py-1 text-xs font-medium"
-                        style={{
-                          backgroundColor:
-                            dateFilter === d.key ? C.accent : C.elevated,
-                          color:
-                            dateFilter === d.key ? "#fff" : C.textSecondary,
-                          border: `1px solid ${dateFilter === d.key ? C.accent : C.border}`,
-                        }}
+                        style={demoSolidPillStyle(dateFilter === d.key)}
                       >
                         {d.label}
                       </button>
@@ -15387,7 +15943,7 @@ function NewAutomationWizard({
           <button
             onClick={onClose}
             className="flex items-center justify-center rounded-md w-7 h-7"
-            style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+            style={demoSecondaryButtonStyle({ color: C.textTertiary })}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -15630,11 +16186,9 @@ function NewAutomationWizard({
                           onChange({ programFilters: next });
                         }}
                         className="text-[11px] rounded-full px-3 py-1 transition-all duration-150"
-                        style={{
-                          border: `1.5px solid ${sel ? C.accent : C.border}`,
-                          backgroundColor: sel ? C.accentLight : "transparent",
-                          color: sel ? C.accent : C.textTertiary,
-                        }}
+                        style={demoLightPillStyle(sel, {
+                          border: `1.5px solid ${sel ? C.accent : C.secondaryBtnBorder}`,
+                        })}
                       >
                         {p}
                       </button>
@@ -15658,11 +16212,9 @@ function NewAutomationWizard({
                           onChange({ ageFilters: next });
                         }}
                         className="text-[11px] rounded-full px-3 py-1 transition-all duration-150"
-                        style={{
-                          border: `1.5px solid ${sel ? C.accent : C.border}`,
-                          backgroundColor: sel ? C.accentLight : "transparent",
-                          color: sel ? C.accent : C.textTertiary,
-                        }}
+                        style={demoLightPillStyle(sel, {
+                          border: `1.5px solid ${sel ? C.accent : C.secondaryBtnBorder}`,
+                        })}
                       >
                         {a}
                       </button>
@@ -15672,7 +16224,7 @@ function NewAutomationWizard({
 
                 <div
                   className="rounded-sm p-3"
-                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                 >
                   <div className="text-[11px] mb-1.5" style={{ color: C.textSecondary }}>
                     <span className="font-bold" style={{ color: C.accent }}>{audienceCount}</span>{" "}
@@ -15713,7 +16265,7 @@ function NewAutomationWizard({
                     <button
                       onClick={() => setAddPickerIndex(0)}
                       className="flex items-center gap-1 text-[11px] font-medium rounded-sm px-3 py-1.5"
-                      style={{ backgroundColor: C.elevated, color: C.textSecondary, border: `1px solid ${C.border}` }}
+                      style={demoSecondaryButtonStyle()}
                     >
                       <Plus className="w-3 h-3" /> Add first step
                     </button>
@@ -15731,7 +16283,7 @@ function NewAutomationWizard({
                         >
                           <div
                             className="flex gap-1.5 p-2 rounded-sm"
-                            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                            style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                           >
                             {WIZARD_STEP_TYPES.map((st) => (
                               <button
@@ -15777,7 +16329,7 @@ function NewAutomationWizard({
                               {step.delay && (
                                 <span
                                   className="text-[9px] rounded-full px-1.5 py-0.5"
-                                  style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+                                  style={demoSecondaryButtonStyle({ color: C.textTertiary })}
                                 >
                                   {step.delay}
                                 </span>
@@ -15800,10 +16352,9 @@ function NewAutomationWizard({
                               onClick={() => setAddPickerIndex(addPickerIndex === i + 1 ? null : i + 1)}
                               className="flex items-center justify-center rounded-full transition-all"
                               style={{
-                                width: 22, height: 22,
-                                backgroundColor: C.elevated,
-                                border: `1px solid ${C.border}`,
-                                color: C.textTertiary,
+                                width: 22,
+                                height: 22,
+                                ...demoSecondaryButtonStyle({ color: C.textTertiary }),
                               }}
                             >
                               <Plus className="w-3 h-3" />
@@ -15820,7 +16371,7 @@ function NewAutomationWizard({
                               >
                                 <div
                                   className="flex gap-1.5 p-2 rounded-sm"
-                                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                                  style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                                 >
                                   {WIZARD_STEP_TYPES.map((st) => (
                                     <button
@@ -15910,10 +16461,8 @@ function NewAutomationWizard({
                       onChange={(e) => onChange({ automationName: e.target.value })}
                       className="w-full text-sm font-semibold rounded-sm px-3.5 py-2.5 mb-4 outline-none"
                       style={{
-                        backgroundColor: C.elevated,
-                        border: `1px solid ${C.border}`,
+                        ...demoInputStyle(),
                         borderLeft: `3px solid ${C.accent}`,
-                        color: C.textPrimary,
                         fontSize: 15,
                       }}
                       placeholder="Automation name…"
@@ -15922,7 +16471,7 @@ function NewAutomationWizard({
                     {/* Launch mode toggle */}
                     <div
                       className="flex p-1 rounded-sm mb-4"
-                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                      style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                     >
                       {(["live", "draft"] as const).map((mode) => {
                         const active = state.launchMode === mode;
@@ -15946,7 +16495,7 @@ function NewAutomationWizard({
                     {/* Summary card */}
                     <div
                       className="rounded-sm p-4"
-                      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                      style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                     >
                       <div className="text-[10px] font-semibold uppercase tracking-wide mb-3" style={{ color: C.textTertiary }}>
                         Summary
@@ -15991,7 +16540,7 @@ function NewAutomationWizard({
             <button
               onClick={handleBack}
               className="text-xs font-medium rounded-sm px-4 py-2"
-              style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}`, color: C.textSecondary }}
+              style={demoSecondaryButtonStyle()}
             >
               Back
             </button>
@@ -16245,9 +16794,13 @@ function MarketplacePage() {
                 onClick={() => setActiveCategory(cat.key as MarketplaceCategory | "all")}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
                 style={{
-                  backgroundColor: isActive ? cat.color + "20" : C.elevated,
-                  color: isActive ? cat.color : C.textTertiary,
-                  border: `1px solid ${isActive ? cat.color + "60" : C.border}`,
+                  ...(isActive
+                    ? {
+                        backgroundColor: cat.color + "20",
+                        color: cat.color,
+                        border: `1px solid ${cat.color}60`,
+                      }
+                    : demoInactivePillStyle()),
                 }}
               >
                 {cat.icon}
@@ -16260,7 +16813,7 @@ function MarketplacePage() {
         {/* Search */}
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-sm flex-shrink-0"
-          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
         >
           <Search className="w-3 h-3 flex-shrink-0" style={{ color: C.textTertiary }} />
           <input
@@ -16291,7 +16844,7 @@ function MarketplacePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   className="rounded-sm overflow-hidden flex flex-col"
-                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                 >
                   {/* Doc preview area */}
                   <div
@@ -16495,12 +17048,7 @@ function MarketingPage() {
                 key={f.key}
                 onClick={() => { setFilter(f.key); setSelectedId(null); }}
                 className="px-3 py-1 text-xs font-medium rounded-full transition-all"
-                style={{
-                  backgroundColor:
-                    filter === f.key ? C.accent : C.elevated,
-                  color: filter === f.key ? "#fff" : C.textSecondary,
-                  border: `1px solid ${filter === f.key ? C.accent : C.border}`,
-                }}
+                style={demoSolidPillStyle(filter === f.key)}
               >
                 {f.label}
               </button>
@@ -16531,11 +17079,7 @@ function MarketingPage() {
                 <button
                   onClick={() => setSelectedId(null)}
                   className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-sm"
-                  style={{
-                    color: C.textSecondary,
-                    backgroundColor: C.elevated,
-                    border: `1px solid ${C.border}`,
-                  }}
+                  style={demoSecondaryButtonStyle()}
                 >
                   <ChevronRight
                     className="w-3 h-3"
@@ -17323,11 +17867,7 @@ function ImpersonatePage() {
               <button
                 onClick={() => setSelected(null)}
                 className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-sm transition-colors"
-                style={{
-                  color: C.textSecondary,
-                  backgroundColor: C.elevated,
-                  border: `1px solid ${C.border}`,
-                }}
+                style={demoSecondaryButtonStyle()}
               >
                 <X className="w-3 h-3" /> Exit
               </button>
@@ -17996,7 +18536,7 @@ function StaffPage() {
         >
           <div
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
-            style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+            style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
           >
             <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
             <input
@@ -18185,7 +18725,7 @@ function ClassroomHealthSafetyTab({
                   key={student.id}
                   onClick={() => onSelectStudent(student)}
                   className="cursor-pointer rounded-sm p-3 transition-colors"
-                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = C.accentLight;
                   }}
@@ -18487,7 +19027,7 @@ function ClassroomScheduleTab({ classroom }: { classroom: DemoClassroom }) {
                 <div
                   key={prog.id}
                   className="p-3 rounded-sm"
-                  style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+                  style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
                 >
                   <p className="text-xs font-semibold mb-1" style={{ color: C.textPrimary }}>
                     {prog.name}
@@ -18625,7 +19165,7 @@ function ClassroomListRail({
       >
         <div
           className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
-          style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+          style={{ backgroundColor: C.input, border: `1px solid ${C.inputBorder}` }}
         >
           <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
           <input
@@ -19142,15 +19682,12 @@ function SupportModal({ onClose }: { onClose: () => void }) {
               placeholder="Describe your issue or question…"
               rows={3}
               style={{
+                ...demoInputStyle(),
                 width: "100%",
                 resize: "none",
                 padding: "8px 10px",
                 borderRadius: C.r.md,
-                border: `1px solid ${C.border}`,
-                backgroundColor: C.elevated,
-                color: C.textPrimary,
                 fontSize: 12,
-                outline: "none",
                 fontFamily: "inherit",
                 boxSizing: "border-box",
               }}
@@ -19162,8 +19699,8 @@ function SupportModal({ onClose }: { onClose: () => void }) {
                 width: "100%",
                 padding: "7px 12px",
                 borderRadius: C.r.sm,
-                backgroundColor: message.trim() ? C.accent : C.elevated,
-                border: `1px solid ${message.trim() ? C.accent : C.border}`,
+                backgroundColor: message.trim() ? C.accent : C.input,
+                border: `1px solid ${message.trim() ? C.accent : C.inputBorder}`,
                 color: message.trim() ? "#fff" : C.textQuaternary,
                 fontSize: 12,
                 fontWeight: 600,
@@ -19645,11 +20182,7 @@ function Sidebar({
         {isExpanded && (
           <button
             className="w-full text-left px-3 py-2 text-xs font-medium rounded-sm mt-3 transition-colors"
-            style={{
-              color: C.textSecondary,
-              backgroundColor: C.elevated,
-              border: `1px solid ${C.border}`,
-            }}
+            style={demoSecondaryButtonStyle()}
           >
             Sign out
           </button>
