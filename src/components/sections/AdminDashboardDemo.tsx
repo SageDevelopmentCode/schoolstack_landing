@@ -11022,7 +11022,26 @@ const EXP_STATUS_COLORS: Record<
   pending: { bg: C.warningBg, border: C.warningBorder, text: C.warning },
 };
 
-const DEMO_INCOME = [
+const REVENUE_SOURCES = ["Tuition", "Deposit", "Donation"] as const;
+const REVENUE_PAYMENT_METHODS = ["ACH", "Check", "Card"] as const;
+
+type DemoIncomeItem = {
+  id: string;
+  source: (typeof REVENUE_SOURCES)[number];
+  description: string;
+  amount: number;
+  date: string;
+  program: string;
+  payer: string;
+  paymentMethod: "ACH" | "Check" | "Card";
+  status: "received" | "pending";
+  reference?: string | null;
+  notes?: string;
+  receipt?: string | null;
+  familyId?: string;
+};
+
+const INITIAL_DEMO_INCOME: DemoIncomeItem[] = [
   {
     id: "in1",
     source: "Tuition",
@@ -11032,7 +11051,8 @@ const DEMO_INCOME = [
     program: "school_year_26_27",
     payer: "School year families (batch)",
     paymentMethod: "ACH",
-    status: "pending" as const,
+    status: "pending",
+    reference: "ACH-BATCH-APR-SY",
   },
   {
     id: "in2",
@@ -11043,7 +11063,7 @@ const DEMO_INCOME = [
     program: "summer_26",
     payer: "Summer families (batch)",
     paymentMethod: "ACH",
-    status: "received" as const,
+    status: "received",
   },
   {
     id: "in3",
@@ -11054,7 +11074,7 @@ const DEMO_INCOME = [
     program: "school_year_26_27",
     payer: "School year families (batch)",
     paymentMethod: "ACH",
-    status: "received" as const,
+    status: "received",
   },
   {
     id: "in4",
@@ -11065,7 +11085,9 @@ const DEMO_INCOME = [
     program: "both",
     payer: "Multi-family (deposits)",
     paymentMethod: "Card",
-    status: "received" as const,
+    status: "received",
+    reference: "DEP-SPRING-2026",
+    notes: "Held until enrollment start dates.",
   },
   {
     id: "in5",
@@ -11076,7 +11098,7 @@ const DEMO_INCOME = [
     program: "school_year_26_27",
     payer: "School year families (batch)",
     paymentMethod: "ACH",
-    status: "received" as const,
+    status: "received",
   },
   {
     id: "in6",
@@ -11087,7 +11109,8 @@ const DEMO_INCOME = [
     program: "",
     payer: "Anonymous donor",
     paymentMethod: "Check",
-    status: "received" as const,
+    status: "received",
+    receipt: "donation_mar10.pdf",
   },
   {
     id: "in7",
@@ -11098,7 +11121,7 @@ const DEMO_INCOME = [
     program: "school_year_26_27",
     payer: "School year families (batch)",
     paymentMethod: "ACH",
-    status: "received" as const,
+    status: "received",
   },
   {
     id: "in8",
@@ -11109,19 +11132,18 @@ const DEMO_INCOME = [
     program: "",
     payer: "PTA / Gala committee",
     paymentMethod: "Card",
-    status: "received" as const,
+    status: "received",
+    receipt: "gala_proceeds.pdf",
   },
 ];
 
 const REV_STATUS_COLORS: Record<
-  (typeof DEMO_INCOME)[0]["status"],
+  DemoIncomeItem["status"],
   { bg: string; border: string; text: string }
 > = {
   received: { bg: C.successBg, border: C.successBorder, text: C.success },
   pending: { bg: C.warningBg, border: C.warningBorder, text: C.warning },
 };
-
-const REVENUE_SOURCES = ["Tuition", "Deposit", "Donation"] as const;
 
 const REVENUE_PROGRAM_FILTERS = [
   { key: "all", label: "All programs" },
@@ -13383,10 +13405,865 @@ function BudgetExpensesTab() {
   );
 }
 
+const DEMO_REVENUE_TODAY_ISO = "2026-04-22";
+
+function formatIncomeDateFromIso(isoDate: string): string {
+  const d = new Date(`${isoDate}T12:00:00`);
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function isoToDate(iso: string): Date {
+  return new Date(`${iso}T12:00:00`);
+}
+
+function dateToIso(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+function RevenueDatePicker({
+  value,
+  onChange,
+  inputStyle,
+}: {
+  value: string;
+  onChange: (iso: string) => void;
+  inputStyle: React.CSSProperties;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = isoToDate(value);
+  const [viewYear, setViewYear] = useState(selected.getFullYear());
+  const [viewMonth, setViewMonth] = useState(selected.getMonth());
+
+  useEffect(() => {
+    if (!open) return;
+    const sel = isoToDate(value);
+    setViewYear(sel.getFullYear());
+    setViewMonth(sel.getMonth());
+  }, [open, value]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString(
+    "en-US",
+    { month: "long", year: "numeric" },
+  );
+
+  const firstDow = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const cells: (number | null)[] = [
+    ...Array(firstDow).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const prevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else setViewMonth((m) => m - 1);
+  };
+
+  const nextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else setViewMonth((m) => m + 1);
+  };
+
+  const pickDay = (day: number) => {
+    onChange(dateToIso(new Date(viewYear, viewMonth, day)));
+    setOpen(false);
+  };
+
+  const isSelected = (day: number) =>
+    selected.getFullYear() === viewYear &&
+    selected.getMonth() === viewMonth &&
+    selected.getDate() === day;
+
+  const isToday = (day: number) => {
+    const t = isoToDate(DEMO_REVENUE_TODAY_ISO);
+    return (
+      t.getFullYear() === viewYear &&
+      t.getMonth() === viewMonth &&
+      t.getDate() === day
+    );
+  };
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm outline-none transition-colors"
+        style={{
+          ...inputStyle,
+          color: C.textPrimary,
+        }}
+      >
+        <span>{formatIncomeDateFromIso(value)}</span>
+        <CalendarDays
+          className="h-4 w-4 flex-shrink-0"
+          style={{ color: open ? C.accent : C.textTertiary }}
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 z-30 mt-1 w-[300px] max-w-[calc(100vw-2rem)] rounded-sm p-4 shadow-lg"
+            style={{
+              backgroundColor: C.surface,
+              border: `1px solid ${C.border}`,
+              boxShadow: C.shadowMedium,
+            }}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={prevMonth}
+                className="flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
+                style={{ color: C.textSecondary }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = C.elevated)
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "transparent")
+                }
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span
+                className="text-xs font-semibold"
+                style={{ color: C.textPrimary }}
+              >
+                {monthLabel}
+              </span>
+              <button
+                type="button"
+                onClick={nextMonth}
+                className="flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
+                style={{ color: C.textSecondary }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = C.elevated)
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "transparent")
+                }
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mb-2 grid grid-cols-7 gap-1">
+              {WEEKDAY_LABELS.map((wd) => (
+                <div
+                  key={wd}
+                  className="py-1 text-center text-[11px] font-medium"
+                  style={{ color: C.textTertiary }}
+                >
+                  {wd}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {cells.map((day, i) =>
+                day === null ? (
+                  <div key={`empty-${i}`} className="h-9" />
+                ) : (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => pickDay(day)}
+                    className="flex h-9 w-full items-center justify-center rounded-sm text-sm font-medium transition-colors"
+                    style={{
+                      backgroundColor: isSelected(day)
+                        ? C.accent
+                        : isToday(day)
+                          ? C.accentLight
+                          : "transparent",
+                      color: isSelected(day)
+                        ? "#fff"
+                        : isToday(day)
+                          ? C.accent
+                          : C.textSecondary,
+                      border: isToday(day) && !isSelected(day)
+                        ? `1px solid ${C.accent}`
+                        : "1px solid transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected(day))
+                        e.currentTarget.style.backgroundColor = C.elevated;
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected(day))
+                        e.currentTarget.style.backgroundColor = isToday(day)
+                          ? C.accentLight
+                          : "transparent";
+                    }}
+                  >
+                    {day}
+                  </button>
+                ),
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                onChange(DEMO_REVENUE_TODAY_ISO);
+                setOpen(false);
+              }}
+              className="mt-2 w-full rounded-sm py-1.5 text-[11px] font-medium transition-colors"
+              style={{
+                color: C.accent,
+                backgroundColor: C.accentLight,
+                border: `1px solid ${C.border}`,
+              }}
+            >
+              Today
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function descriptionPlaceholderForSource(
+  source: (typeof REVENUE_SOURCES)[number],
+): string {
+  if (source === "Tuition") return "e.g. April tuition payment";
+  if (source === "Deposit") return "e.g. Enrollment deposit — spring cycle";
+  return "e.g. Annual fund gift";
+}
+
+type RecordRevenueForm = {
+  source: (typeof REVENUE_SOURCES)[number];
+  amount: string;
+  dateIso: string;
+  status: DemoIncomeItem["status"];
+  familyId: string;
+  payer: string;
+  program: string;
+  paymentMethod: (typeof REVENUE_PAYMENT_METHODS)[number];
+  description: string;
+  reference: string;
+  notes: string;
+  receipt: string | null;
+};
+
+const RECORD_REVENUE_INITIAL: RecordRevenueForm = {
+  source: "Tuition",
+  amount: "",
+  dateIso: DEMO_REVENUE_TODAY_ISO,
+  status: "received",
+  familyId: "",
+  payer: "",
+  program: "school_year_26_27",
+  paymentMethod: "ACH",
+  description: "",
+  reference: "",
+  notes: "",
+  receipt: null,
+};
+
+function RevenueFormLabel({
+  children,
+  required,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+}) {
+  return (
+    <p
+      className="mb-1.5 text-xs font-semibold"
+      style={{ color: C.textSecondary }}
+    >
+      {children}
+      {required && (
+        <span style={{ color: C.error }} className="ml-0.5">
+          *
+        </span>
+      )}
+    </p>
+  );
+}
+
+const RECORD_REVENUE_STEPS = ["Payment", "Who paid", "Details"] as const;
+
+function RecordRevenuePanel({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void;
+  onSave: (item: DemoIncomeItem) => void;
+}) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [form, setForm] = useState<RecordRevenueForm>(RECORD_REVENUE_INITIAL);
+  const amountInputRef = useRef<HTMLInputElement>(null);
+
+  const patch = (p: Partial<RecordRevenueForm>) =>
+    setForm((prev) => ({ ...prev, ...p }));
+
+  const programRequired =
+    form.source === "Tuition" || form.source === "Deposit";
+
+  const amountNum = parseFloat(form.amount) || 0;
+  const canContinueStep1 = amountNum > 0;
+  const canContinueStep2 =
+    form.payer.trim().length > 0 &&
+    (!programRequired || form.program.length > 0);
+  const canSave = canContinueStep1 && canContinueStep2;
+
+  useEffect(() => {
+    if (step === 1) {
+      const t = setTimeout(() => amountInputRef.current?.focus(), 120);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
+
+  const handleFamilyChange = (familyId: string) => {
+    if (!familyId) {
+      patch({ familyId: "", payer: "" });
+      return;
+    }
+    const parent = DEMO_PARENTS.find((p) => p.id === familyId);
+    if (!parent) return;
+    const enrolled = parent.applications.find((a) => a.status === "enrolled");
+    patch({
+      familyId,
+      payer: parent.name,
+      program:
+        form.source !== "Donation" && enrolled
+          ? enrolled.program
+          : form.program,
+    });
+  };
+
+  const handleSourceChange = (source: (typeof REVENUE_SOURCES)[number]) => {
+    patch({
+      source,
+      program:
+        source === "Donation"
+          ? ""
+          : form.program || "school_year_26_27",
+    });
+  };
+
+  const handleNext = () => {
+    if (step === 1 && canContinueStep1) setStep(2);
+    else if (step === 2 && canContinueStep2) setStep(3);
+  };
+
+  const handleBack = () => {
+    if (step === 2) setStep(1);
+    else if (step === 3) setStep(2);
+  };
+
+  const handleSave = () => {
+    if (!canSave) return;
+    const item: DemoIncomeItem = {
+      id: `in-${Date.now()}`,
+      source: form.source,
+      amount: amountNum,
+      date: formatIncomeDateFromIso(form.dateIso),
+      status: form.status,
+      payer: form.payer.trim(),
+      paymentMethod: form.paymentMethod,
+      description:
+        form.description.trim() ||
+        descriptionPlaceholderForSource(form.source).replace(/^e\.g\. /, ""),
+      program: form.source === "Donation" ? "" : form.program,
+      reference: form.reference.trim() || null,
+      notes: form.notes.trim() || undefined,
+      receipt: form.receipt,
+      familyId: form.familyId || undefined,
+    };
+    onSave(item);
+  };
+
+  const inputStyle: React.CSSProperties = {
+    backgroundColor: C.elevated,
+    border: `1px solid ${C.border}`,
+    color: C.textPrimary,
+    borderRadius: C.r.sm,
+  };
+
+  const fmtAmount = (n: number) => `$${n.toLocaleString()}`;
+
+  const disabledStyle = {
+    opacity: 0.45,
+    pointerEvents: "none" as const,
+  };
+
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="absolute inset-y-0 right-0 flex flex-col overflow-hidden"
+      style={{
+        width: 420,
+        backgroundColor: C.surface,
+        borderLeft: `1px solid ${C.border}`,
+        zIndex: 20,
+        boxShadow: "-4px 0 24px rgba(0,0,0,0.08)",
+      }}
+    >
+      <div
+        className="flex-shrink-0 px-5 pt-4 pb-3"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3
+              className="text-sm font-semibold"
+              style={{ color: C.textPrimary }}
+            >
+              Record revenue
+            </h3>
+            <p className="text-[11px] mt-0.5" style={{ color: C.textTertiary }}>
+              Step {step} of 3 — {RECORD_REVENUE_STEPS[step - 1]}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center justify-center rounded-md w-7 h-7"
+            style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-0">
+          {([1, 2, 3] as const).map((n, i) => {
+            const isDone = step > n;
+            const isActive = step === n;
+            return (
+              <div
+                key={n}
+                className="flex items-center"
+                style={{ flex: i < 2 ? 1 : "none" }}
+              >
+                <motion.div
+                  animate={{ scale: isActive ? 1.12 : 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center justify-center rounded-full flex-shrink-0"
+                  style={{
+                    width: 26,
+                    height: 26,
+                    backgroundColor: isDone
+                      ? C.accentLight
+                      : isActive
+                        ? C.accent
+                        : C.elevated,
+                    border: `2px solid ${isDone || isActive ? C.accent : C.border}`,
+                    color: isDone ? C.accent : isActive ? "#fff" : C.textTertiary,
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}
+                >
+                  {isDone ? <CheckCircle className="w-3 h-3" /> : n}
+                </motion.div>
+                {i < 2 && (
+                  <div
+                    className="flex-1 h-0.5 mx-1"
+                    style={{
+                      backgroundColor: step > n ? C.accent : C.border,
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div
+              key="rev-step-1"
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-5"
+            >
+              <div>
+                <RevenueFormLabel required>Source</RevenueFormLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {REVENUE_SOURCES.map((s) => {
+                    const active = form.source === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => handleSourceChange(s)}
+                        className="rounded-sm px-2.5 py-1 text-xs font-medium"
+                        style={{
+                          backgroundColor: active ? C.accent : C.elevated,
+                          color: active ? "#fff" : C.textSecondary,
+                          border: `1px solid ${active ? C.accent : C.border}`,
+                        }}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <RevenueFormLabel required>Amount</RevenueFormLabel>
+                  <input
+                    ref={amountInputRef}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.amount}
+                    onChange={(e) => patch({ amount: e.target.value })}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 text-sm outline-none [appearance:textfield] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <RevenueFormLabel required>Date received</RevenueFormLabel>
+                  <RevenueDatePicker
+                    value={form.dateIso}
+                    onChange={(iso) => patch({ dateIso: iso })}
+                    inputStyle={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <RevenueFormLabel required>Status</RevenueFormLabel>
+                <div className="flex gap-1.5">
+                  {(
+                    [
+                      { key: "received", label: "Received" },
+                      { key: "pending", label: "Pending" },
+                    ] as const
+                  ).map((s) => {
+                    const active = form.status === s.key;
+                    return (
+                      <button
+                        key={s.key}
+                        type="button"
+                        onClick={() => patch({ status: s.key })}
+                        className="flex-1 rounded-sm py-1.5 text-xs font-medium"
+                        style={{
+                          backgroundColor: active ? C.accentLight : C.elevated,
+                          color: active ? C.accent : C.textSecondary,
+                          border: `1px solid ${active ? C.accent : C.border}`,
+                        }}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div
+              key="rev-step-2"
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-5"
+            >
+              <div>
+                <RevenueFormLabel>Family</RevenueFormLabel>
+                <select
+                  value={form.familyId}
+                  onChange={(e) => handleFamilyChange(e.target.value)}
+                  className="w-full px-3 py-2 text-sm outline-none"
+                  style={inputStyle}
+                >
+                  <option value="">Custom / other</option>
+                  {DEMO_PARENTS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <RevenueFormLabel required>Payer name</RevenueFormLabel>
+                <input
+                  type="text"
+                  value={form.payer}
+                  onChange={(e) =>
+                    patch({ payer: e.target.value, familyId: "" })
+                  }
+                  placeholder="Family or payer name"
+                  className="w-full px-3 py-2 text-sm outline-none"
+                  style={inputStyle}
+                />
+              </div>
+
+              {programRequired && (
+                <div>
+                  <RevenueFormLabel required>Program</RevenueFormLabel>
+                  <div className="flex flex-wrap gap-1.5">
+                    {REVENUE_PROGRAM_FILTERS.filter((p) => p.key !== "all").map(
+                      (p) => {
+                        const active = form.program === p.key;
+                        return (
+                          <button
+                            key={p.key}
+                            type="button"
+                            onClick={() => patch({ program: p.key })}
+                            className="rounded-sm px-2.5 py-1 text-xs font-medium"
+                            style={{
+                              backgroundColor: active ? C.accentLight : C.elevated,
+                              color: active ? C.accent : C.textSecondary,
+                              border: `1px solid ${active ? C.accent : C.border}`,
+                            }}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <RevenueFormLabel>Description</RevenueFormLabel>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={(e) => patch({ description: e.target.value })}
+                  placeholder={descriptionPlaceholderForSource(form.source)}
+                  className="w-full px-3 py-2 text-sm outline-none"
+                  style={inputStyle}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div
+              key="rev-step-3"
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.18 }}
+              className="space-y-5"
+            >
+              <motion.div
+                initial={{ scale: 0.98, opacity: 0.85 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.25 }}
+                className="rounded-sm p-4"
+                style={{
+                  backgroundColor: C.elevated,
+                  border: `1px solid ${C.border}`,
+                }}
+              >
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-wider mb-2"
+                  style={{ color: C.textTertiary }}
+                >
+                  Summary
+                </p>
+                <p
+                  className="text-2xl font-bold tabular-nums"
+                  style={{ color: C.success }}
+                >
+                  {fmtAmount(amountNum)}
+                </p>
+                <div className="mt-2 space-y-1 text-xs">
+                  <p style={{ color: C.textSecondary }}>
+                    <span style={{ color: C.textTertiary }}>Source: </span>
+                    {form.source}
+                  </p>
+                  <p style={{ color: C.textSecondary }}>
+                    <span style={{ color: C.textTertiary }}>Payer: </span>
+                    {form.payer.trim() || "—"}
+                  </p>
+                  <p style={{ color: C.textSecondary }}>
+                    <span style={{ color: C.textTertiary }}>Date: </span>
+                    {formatIncomeDateFromIso(form.dateIso)}
+                  </p>
+                  <p style={{ color: C.textSecondary }}>
+                    <span style={{ color: C.textTertiary }}>Status: </span>
+                    <span className="capitalize">{form.status}</span>
+                  </p>
+                </div>
+              </motion.div>
+
+              <div>
+                <RevenueFormLabel required>Payment method</RevenueFormLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {REVENUE_PAYMENT_METHODS.map((m) => {
+                    const active = form.paymentMethod === m;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => patch({ paymentMethod: m })}
+                        className="rounded-sm px-2.5 py-1 text-xs font-medium"
+                        style={{
+                          backgroundColor: active ? C.accent : C.elevated,
+                          color: active ? "#fff" : C.textSecondary,
+                          border: `1px solid ${active ? C.accent : C.border}`,
+                        }}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <RevenueFormLabel>Reference #</RevenueFormLabel>
+                <input
+                  type="text"
+                  value={form.reference}
+                  onChange={(e) => patch({ reference: e.target.value })}
+                  placeholder="Check no., transaction ID"
+                  className="w-full px-3 py-2 text-sm outline-none"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <RevenueFormLabel>Internal notes</RevenueFormLabel>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => patch({ notes: e.target.value })}
+                  rows={2}
+                  placeholder="Optional note for your team"
+                  className="w-full resize-none px-3 py-2 text-sm outline-none"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <RevenueFormLabel>Receipt</RevenueFormLabel>
+                {form.receipt ? (
+                  <div
+                    className="flex items-center justify-between rounded-sm px-3 py-2 text-xs"
+                    style={{
+                      backgroundColor: C.infoBg,
+                      border: `1px solid ${C.infoBorder}`,
+                      color: C.info,
+                    }}
+                  >
+                    <span className="truncate">{form.receipt}</span>
+                    <button
+                      type="button"
+                      onClick={() => patch({ receipt: null })}
+                      className="ml-2 flex-shrink-0"
+                      style={{ color: C.textTertiary }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <DemoButton
+                    variant="ghost"
+                    className="w-full justify-center"
+                    onClick={() => patch({ receipt: "receipt_upload.pdf" })}
+                  >
+                    Attach receipt
+                  </DemoButton>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div
+        className="flex flex-shrink-0 gap-2 px-5 py-4"
+        style={{ borderTop: `1px solid ${C.border}` }}
+      >
+        {step === 1 ? (
+          <>
+            <DemoButton variant="ghost" className="flex-1" onClick={onClose}>
+              Cancel
+            </DemoButton>
+            <DemoButton
+              className="flex-1"
+              onClick={handleNext}
+              style={!canContinueStep1 ? disabledStyle : undefined}
+            >
+              Continue
+              <ArrowRight className="h-3.5 w-3.5" />
+            </DemoButton>
+          </>
+        ) : step === 2 ? (
+          <>
+            <DemoButton variant="ghost" className="flex-1" onClick={handleBack}>
+              Back
+            </DemoButton>
+            <DemoButton
+              className="flex-1"
+              onClick={handleNext}
+              style={!canContinueStep2 ? disabledStyle : undefined}
+            >
+              Continue
+              <ArrowRight className="h-3.5 w-3.5" />
+            </DemoButton>
+          </>
+        ) : (
+          <>
+            <DemoButton variant="ghost" className="flex-1" onClick={handleBack}>
+              Back
+            </DemoButton>
+            <DemoButton
+              className="flex-1"
+              onClick={handleSave}
+              style={!canSave ? disabledStyle : undefined}
+            >
+              Save revenue
+            </DemoButton>
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 function BudgetRevenueTab() {
-  const [selectedInc, setSelectedInc] = useState<
-    (typeof DEMO_INCOME)[0] | null
-  >(null);
+  const [income, setIncome] = useState<DemoIncomeItem[]>(INITIAL_DEMO_INCOME);
+  const [selectedInc, setSelectedInc] = useState<DemoIncomeItem | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
   const [sourceFilter, setSourceFilter] = useState("all");
   const [programFilter, setProgramFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -13396,15 +14273,26 @@ function BudgetRevenueTab() {
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
   useEffect(() => {
-    if (selectedInc) openBackdrop(() => setSelectedInc(null));
-    else closeBackdrop();
-  }, [selectedInc, openBackdrop, closeBackdrop]);
+    if (isRecording) {
+      openBackdrop(() => setIsRecording(false));
+    } else if (selectedInc) {
+      openBackdrop(() => setSelectedInc(null));
+    } else {
+      closeBackdrop();
+    }
+  }, [isRecording, selectedInc, openBackdrop, closeBackdrop]);
 
   const fmt = (n: number) => `$${n.toLocaleString()}`;
 
+  const handleRecordSave = (item: DemoIncomeItem) => {
+    setIncome((prev) => [item, ...prev]);
+    setIsRecording(false);
+    setSelectedInc(item);
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return DEMO_INCOME.filter((inc) => {
+    return income.filter((inc) => {
       const sourceMatch =
         sourceFilter === "all" || inc.source === sourceFilter;
       const programMatch =
@@ -13422,7 +14310,7 @@ function BudgetRevenueTab() {
         sourceMatch && programMatch && searchMatch && pendingMatch && dateMatch
       );
     });
-  }, [sourceFilter, programFilter, search, pendingOnly, dateFilter]);
+  }, [income, sourceFilter, programFilter, search, pendingOnly, dateFilter]);
 
   const kpis = useMemo(() => {
     const ytd = filtered.reduce((s, i) => s + i.amount, 0);
@@ -13465,8 +14353,8 @@ function BudgetRevenueTab() {
               const isActive = sourceFilter === opt.key;
               const count =
                 opt.key === "all"
-                  ? DEMO_INCOME.length
-                  : DEMO_INCOME.filter((i) => i.source === opt.key).length;
+                  ? income.length
+                  : income.filter((i) => i.source === opt.key).length;
               return (
                 <button
                   key={opt.key}
@@ -13529,7 +14417,12 @@ function BudgetRevenueTab() {
               <Download className="h-3.5 w-3.5" />
               Export
             </DemoButton>
-            <DemoButton>
+            <DemoButton
+              onClick={() => {
+                setSelectedInc(null);
+                setIsRecording(true);
+              }}
+            >
               <Plus className="h-3.5 w-3.5" />
               Record revenue
             </DemoButton>
@@ -13540,8 +14433,8 @@ function BudgetRevenueTab() {
             const isActive = programFilter === opt.key;
             const count =
               opt.key === "all"
-                ? DEMO_INCOME.length
-                : DEMO_INCOME.filter((i) => i.program === opt.key).length;
+                ? income.length
+                : income.filter((i) => i.program === opt.key).length;
             return (
               <button
                 key={opt.key}
@@ -13833,7 +14726,17 @@ function BudgetRevenueTab() {
       </div>
 
       <AnimatePresence>
-        {selectedInc && (
+        {isRecording && (
+          <RecordRevenuePanel
+            key="record-revenue"
+            onClose={() => setIsRecording(false)}
+            onSave={handleRecordSave}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedInc && !isRecording && (
           <motion.div
             initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -13913,6 +14816,43 @@ function BudgetRevenueTab() {
                     <ProgramBadge program={selectedInc.program} />
                   ) : (
                     "—"
+                  )
+                }
+              />
+              {selectedInc.familyId && (
+                <DetailField
+                  label="Family"
+                  value={
+                    <span style={{ color: C.accent }}>
+                      {DEMO_PARENTS.find((p) => p.id === selectedInc.familyId)
+                        ?.name ?? "—"}
+                    </span>
+                  }
+                />
+              )}
+              {selectedInc.reference && (
+                <DetailField
+                  label="Reference"
+                  value={selectedInc.reference}
+                />
+              )}
+              {selectedInc.notes && (
+                <DetailField label="Notes" value={selectedInc.notes} />
+              )}
+              <DetailField
+                label="Receipt"
+                value={
+                  selectedInc.receipt ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
+                      style={{ color: C.info }}
+                    >
+                      <Download className="h-3 w-3" />
+                      {selectedInc.receipt}
+                    </button>
+                  ) : (
+                    <span style={{ color: C.warning }}>Missing</span>
                   )
                 }
               />
