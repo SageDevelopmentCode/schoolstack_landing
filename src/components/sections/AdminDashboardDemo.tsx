@@ -106,7 +106,7 @@ const C_DARK = {
 const C_LIGHT = {
   bg: "#F7F1E7",
   surface: "#FFFAF4",
-  elevated: "#EDE0CE",
+  elevated: "#FAF7F2",
   input: "#F4F4F5",
   inputBorder: "#E4E4E7",
   border: "#DDD0BE",
@@ -3973,7 +3973,7 @@ function UpcomingEventsWidget() {
               <div
                 className="flex-shrink-0 w-10 h-10 rounded-sm flex flex-col items-center justify-center"
                 style={{
-                  backgroundColor: C.elevated,
+                  backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
                 }}
               >
@@ -5936,7 +5936,7 @@ function EnrollmentFlowStepReorderItem({
                   className="space-y-4 px-3 pb-3 pt-2"
                   style={{
                     borderTop: `1px solid ${C.border}`,
-                    backgroundColor: C.elevated,
+                    backgroundColor: C.surface,
                   }}
                 >
                   <PostSubmitLabeledField label="Page title families see">
@@ -6209,7 +6209,7 @@ function EnrollmentPostSubmitReorderItem({
                   className="space-y-3 px-3 pb-3 pt-2"
                   style={{
                     borderTop: `1px solid ${C.border}`,
-                    backgroundColor: C.elevated,
+                    backgroundColor: C.surface,
                   }}
                 >
                   {action.type === "email" && (
@@ -6963,7 +6963,7 @@ function EnrollmentFlowsTab() {
                     <div
                       className="grid grid-cols-2 gap-1.5 rounded-sm p-2 sm:grid-cols-3"
                       style={{
-                        backgroundColor: C.elevated,
+                        backgroundColor: C.surface,
                         border: `1px solid ${C.border}`,
                       }}
                     >
@@ -7227,7 +7227,7 @@ function PaperworkFormCard({ form }: { form: PaperworkForm }) {
       </p>
       <div
         className="flex-1 rounded-sm p-2 mb-2 space-y-1.5"
-        style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
       >
         <div className="h-1 rounded-full" style={{ width: "88%", backgroundColor: C.border }} />
         <div className="h-1 rounded-full" style={{ width: "72%", backgroundColor: C.border }} />
@@ -8078,7 +8078,7 @@ function StudentDetailPanel({
                       key={f}
                       className="flex items-center justify-between px-3 py-2 rounded-sm text-xs"
                       style={{
-                        backgroundColor: C.elevated,
+                        backgroundColor: C.surface,
                         border: `1px solid ${C.border}`,
                       }}
                     >
@@ -8100,7 +8100,7 @@ function StudentDetailPanel({
                         key={m.name}
                         className="p-3 rounded-sm"
                         style={{
-                          backgroundColor: C.elevated,
+                          backgroundColor: C.surface,
                           border: `1px solid ${C.border}`,
                         }}
                       >
@@ -8150,7 +8150,7 @@ function StudentDetailPanel({
                       key={p.name}
                       className="p-3 rounded-sm"
                       style={{
-                        backgroundColor: C.elevated,
+                        backgroundColor: C.surface,
                         border: `1px solid ${C.border}`,
                       }}
                     >
@@ -8278,7 +8278,7 @@ function StudentDetailPanel({
               key={card.title}
               className="rounded-sm p-4"
               style={{
-                backgroundColor: C.elevated,
+                backgroundColor: C.surface,
                 border: `1px solid ${C.border}`,
               }}
             >
@@ -8566,7 +8566,13 @@ function formatUsd(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
 
-function StudentProfilePanel({ student }: { student: DemoStudent }) {
+function StudentProfilePanel({
+  student,
+  onNavigateToTuition,
+}: {
+  student: DemoStudent;
+  onNavigateToTuition?: (familyId: string) => void;
+}) {
   const [tab, setTab] = useState<StudentProfileTab>("profile");
   const flags = HEALTH_FLAGS.filter((f) => student[f.key]);
   const matchedParent = DEMO_PARENTS.find((p) => p.name === student.parent) ?? null;
@@ -9035,6 +9041,20 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
         {/* ── Billing tab ── */}
         {tab === "billing" && (
           <div className="p-5 space-y-5">
+            {(() => {
+              const family = findFamilyByPayerName(student.parent);
+              return family && onNavigateToTuition ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigateToTuition(family.id)}
+                  className="flex items-center gap-1 text-[11px] font-semibold"
+                  style={{ color: C.accent }}
+                >
+                  View family tuition
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              ) : null;
+            })()}
             {student.billing.kind === "full_time" ? (
               <>
                 <div>
@@ -9429,7 +9449,11 @@ function StudentProfilePanel({ student }: { student: DemoStudent }) {
   );
 }
 
-function StudentsPage() {
+function StudentsPage({
+  onNavigateToTuition,
+}: {
+  onNavigateToTuition?: (familyId: string) => void;
+}) {
   const [selectedStudent, setSelectedStudent] = useState<DemoStudent>(DEMO_STUDENTS_P2[0]);
   const [search, setSearch] = useState("");
 
@@ -9541,7 +9565,11 @@ function StudentsPage() {
       {/* ── Right panel: student profile ── */}
       <div className="flex-1 min-w-0 overflow-hidden">
         <AnimatePresence mode="wait">
-          <StudentProfilePanel key={selectedStudent.id} student={selectedStudent} />
+          <StudentProfilePanel
+            key={selectedStudent.id}
+            student={selectedStudent}
+            onNavigateToTuition={onNavigateToTuition}
+          />
         </AnimatePresence>
       </div>
     </div>
@@ -9963,7 +9991,7 @@ function ProgramPricingTab({ program }: { program: DemoProgram }) {
           ))}
         </p>
         <p className="text-xs mt-4" style={{ color: C.textTertiary }}>
-          Families see this schedule in Billing → Tuition Checklist after enrollment.
+          Families see this schedule in My School → Tuition after enrollment.
         </p>
       </ProgramSection>
     </div>
@@ -10113,7 +10141,7 @@ function ProgramStaffTab({ program }: { program: DemoProgram }) {
               <div className="w-full sm:w-24">
                 <div
                   className="h-1 rounded-full overflow-hidden"
-                  style={{ backgroundColor: C.elevated }}
+                  style={{ backgroundColor: C.input }}
                 >
                   <div
                     className="h-full rounded-full"
@@ -10746,160 +10774,474 @@ const TX_STATUS_COLORS: Record<
   failed: { bg: C.errorBg, border: C.errorBorder, text: C.error },
 };
 
-type TuitionItem = {
+type TuitionScheduleItem = {
   label: string;
-  state: "paid" | "sent" | "unpaid";
+  amount: number;
+  state: "paid" | "sent" | "unpaid" | "overdue";
   date?: string;
-};
-type ChecklistParent = {
-  id: string;
-  name: string;
-  initials: string;
-  color: string;
-  upToDate: boolean;
-  summer: TuitionItem[];
-  schoolYear: TuitionItem[];
+  dueDate?: string;
 };
 
-const DEMO_CHECKLIST: ChecklistParent[] = [
+type UpcomingCharge = {
+  id: string;
+  label: string;
+  amount: number;
+  dueDate: string;
+  program: string;
+  status: "scheduled" | "sent" | "overdue";
+};
+
+type FamilyBillingStatus =
+  | "current"
+  | "invoice_sent"
+  | "overdue"
+  | "failed_payment";
+
+type DemoFamilyBilling = {
+  id: string;
+  parentId?: string;
+  name: string;
+  email: string;
+  initials: string;
+  color: string;
+  children: string[];
+  programs: string[];
+  balanceDue: number;
+  paidYtd: number;
+  nextDue?: { date: string; amount: number; label: string };
+  autopayOn: boolean;
+  paymentMethod?: string;
+  status: FamilyBillingStatus;
+  hasFailedPayment?: boolean;
+  summer: TuitionScheduleItem[];
+  schoolYear: TuitionScheduleItem[];
+  upcoming: UpcomingCharge[];
+};
+
+const SUMMER_WEEK_AMOUNT = 900;
+const SCHOOL_YEAR_MONTHLY = 1800;
+const REG_FEE = 500;
+const SUPPLY_FEE = 250;
+
+function buildSummerWeeks(
+  paidCount: number,
+  sentIndex?: number,
+): TuitionScheduleItem[] {
+  return [
+    { label: "Registration Fee", amount: REG_FEE, state: "paid", date: "Jan 15" },
+    ...Array.from({ length: 12 }, (_, i) => ({
+      label: `Week ${i + 1}`,
+      amount: SUMMER_WEEK_AMOUNT,
+      state:
+        i < paidCount
+          ? ("paid" as const)
+          : i === sentIndex
+            ? ("sent" as const)
+            : i < paidCount + 2 && sentIndex === undefined
+              ? ("unpaid" as const)
+              : ("unpaid" as const),
+      date: i < paidCount ? `May ${10 + i * 7}` : undefined,
+      dueDate: i >= paidCount ? `May ${10 + i * 7}` : undefined,
+    })),
+  ];
+}
+
+function buildSchoolYearMonths(
+  paidCount: number,
+  sentIndex?: number,
+  overdueIndex?: number,
+): TuitionScheduleItem[] {
+  const months = [
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+  ];
+  return [
+    { label: "Registration Fee", amount: REG_FEE, state: "paid", date: "Nov 1" },
+    { label: "Supply Fee", amount: SUPPLY_FEE, state: "paid", date: "Nov 1" },
+    ...months.map((m, i) => ({
+      label: `${m} Tuition`,
+      amount: SCHOOL_YEAR_MONTHLY,
+      state:
+        i < paidCount
+          ? ("paid" as const)
+          : i === overdueIndex
+            ? ("overdue" as const)
+            : i === sentIndex
+              ? ("sent" as const)
+              : ("unpaid" as const),
+      date: i < paidCount ? `${m} 1` : undefined,
+      dueDate: i >= paidCount ? `${m} 1, 2026` : undefined,
+    })),
+  ];
+}
+
+const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
   {
-    id: "cp1",
+    id: "fb1",
+    parentId: "p1",
     name: "Sarah Richardson",
+    email: "sarah.r@email.com",
     initials: "SR",
     color: "#5E7C68",
-    upToDate: true,
-    summer: [
-      { label: "Registration Fee", state: "paid", date: "Jan 15" },
-      ...Array.from({ length: 12 }, (_, i) => ({
-        label: `Week ${i + 1}`,
-        state: i < 8 ? ("paid" as const) : ("unpaid" as const),
-        date:
-          i < 8
-            ? `May ${10 + i * 7 > 31 ? 10 + i * 7 - 31 : 10 + i * 7}`
-            : undefined,
-      })),
-    ],
-    schoolYear: [
-      { label: "Registration Fee", state: "paid", date: "Nov 1" },
-      { label: "Supply Fee", state: "paid", date: "Nov 1" },
-      ...[
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-      ].map((m, i) => ({
-        label: `${m} Tuition`,
-        state:
-          i < 6
-            ? ("paid" as const)
-            : i === 6
-              ? ("sent" as const)
-              : ("unpaid" as const),
-        date: i < 6 ? `${m} 1` : undefined,
-      })),
+    children: ["Emma Richardson"],
+    programs: ["Summer 2026", "School Year 26–27"],
+    balanceDue: 1800,
+    paidYtd: 16250,
+    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
+    autopayOn: true,
+    paymentMethod: "Visa ·••• 4242",
+    status: "current",
+    summer: buildSummerWeeks(8),
+    schoolYear: buildSchoolYearMonths(6, 6),
+    upcoming: [
+      {
+        id: "u1",
+        label: "Feb Tuition",
+        amount: 1800,
+        dueDate: "Apr 1, 2026",
+        program: "School Year 26–27",
+        status: "sent",
+      },
+      {
+        id: "u2",
+        label: "Week 9",
+        amount: 900,
+        dueDate: "May 24, 2026",
+        program: "Summer 2026",
+        status: "scheduled",
+      },
     ],
   },
   {
-    id: "cp2",
+    id: "fb2",
+    parentId: "p2",
     name: "Miguel Torres",
+    email: "mig.t@email.com",
     initials: "MT",
     color: "#38BDF8",
-    upToDate: false,
-    summer: [
-      { label: "Registration Fee", state: "paid", date: "Dec 20" },
-      ...Array.from({ length: 12 }, (_, i) => ({
-        label: `Week ${i + 1}`,
-        state:
-          i < 5
-            ? ("paid" as const)
-            : i === 5
-              ? ("sent" as const)
-              : ("unpaid" as const),
-        date: i < 5 ? `May ${10 + i * 7}` : undefined,
-      })),
-    ],
-    schoolYear: [
-      { label: "Registration Fee", state: "paid", date: "Dec 1" },
-      { label: "Supply Fee", state: "paid", date: "Dec 1" },
-      ...[
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-      ].map((m, i) => ({
-        label: `${m} Tuition`,
-        state: i < 5 ? ("paid" as const) : ("unpaid" as const),
-        date: i < 5 ? `${m} 1` : undefined,
-      })),
+    children: ["Liam Torres"],
+    programs: ["Summer 2026", "School Year 26–27"],
+    balanceDue: 4500,
+    paidYtd: 11700,
+    nextDue: { date: "May 17, 2026", amount: 900, label: "Week 6" },
+    autopayOn: true,
+    paymentMethod: "Visa ·••• 8812",
+    status: "overdue",
+    summer: buildSummerWeeks(5, 5),
+    schoolYear: buildSchoolYearMonths(5),
+    upcoming: [
+      {
+        id: "u3",
+        label: "Week 6",
+        amount: 900,
+        dueDate: "May 17, 2026",
+        program: "Summer 2026",
+        status: "overdue",
+      },
+      {
+        id: "u4",
+        label: "Feb Tuition",
+        amount: 1800,
+        dueDate: "Apr 1, 2026",
+        program: "School Year 26–27",
+        status: "sent",
+      },
     ],
   },
   {
-    id: "cp3",
+    id: "fb3",
+    parentId: "p3",
     name: "Diana Foster",
+    email: "diana@email.com",
     initials: "DF",
     color: "#F59E0B",
-    upToDate: true,
-    summer: [
-      { label: "Registration Fee", state: "paid", date: "Jan 15" },
-      ...Array.from({ length: 12 }, (_, i) => ({
-        label: `Week ${i + 1}`,
-        state: i < 10 ? ("paid" as const) : ("unpaid" as const),
-        date:
-          i < 10
-            ? `May ${10 + i * 7 > 62 ? 10 + i * 7 - 62 : 10 + i * 7}`
-            : undefined,
-      })),
-    ],
+    children: ["Noah Foster"],
+    programs: ["Summer 2026"],
+    balanceDue: 1800,
+    paidYtd: 9950,
+    nextDue: { date: "Jun 7, 2026", amount: 900, label: "Week 11" },
+    autopayOn: true,
+    paymentMethod: "Mastercard ·••• 3341",
+    status: "current",
+    summer: buildSummerWeeks(10),
     schoolYear: [],
+    upcoming: [
+      {
+        id: "u5",
+        label: "Week 11",
+        amount: 900,
+        dueDate: "Jun 7, 2026",
+        program: "Summer 2026",
+        status: "scheduled",
+      },
+    ],
   },
   {
-    id: "cp4",
+    id: "fb4",
     name: "Jerome Watkins",
+    email: "jwatkins@email.com",
     initials: "JW",
     color: "#22C55E",
-    upToDate: true,
-    summer: [
-      { label: "Registration Fee", state: "paid", date: "Feb 10" },
-      ...Array.from({ length: 12 }, (_, i) => ({
-        label: `Week ${i + 1}`,
-        state: "paid" as const,
-        date: `May ${10 + i * 7 > 62 ? "Jun" : "May"} ${(10 + i * 7) % 31 || 31}`,
-      })),
+    children: ["Tyler Watkins"],
+    programs: ["Summer 2026", "School Year 26–27"],
+    balanceDue: 0,
+    paidYtd: 24100,
+    autopayOn: true,
+    paymentMethod: "Visa ·••• 9921",
+    status: "current",
+    summer: buildSummerWeeks(12).map((w) => ({ ...w, state: "paid" as const })),
+    schoolYear: buildSchoolYearMonths(10).map((m) => ({
+      ...m,
+      state: "paid" as const,
+    })),
+    upcoming: [],
+  },
+  {
+    id: "fb5",
+    parentId: "p7",
+    name: "David Webb",
+    email: "monica.w@email.com",
+    initials: "DW",
+    color: "#F97316",
+    children: ["Marcus Webb"],
+    programs: ["School Year 26–27"],
+    balanceDue: 0,
+    paidYtd: 12850,
+    nextDue: { date: "May 1, 2026", amount: 1800, label: "Apr Tuition" },
+    autopayOn: true,
+    paymentMethod: "ACH ·••• 7721",
+    status: "current",
+    summer: [],
+    schoolYear: buildSchoolYearMonths(8),
+    upcoming: [
+      {
+        id: "u6",
+        label: "Apr Tuition",
+        amount: 1800,
+        dueDate: "May 1, 2026",
+        program: "School Year 26–27",
+        status: "scheduled",
+      },
     ],
-    schoolYear: [
-      { label: "Registration Fee", state: "paid", date: "Feb 10" },
-      { label: "Supply Fee", state: "paid", date: "Feb 10" },
-      ...[
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-      ].map((m, i) => ({
-        label: `${m} Tuition`,
-        state: "paid" as const,
-        date: `${m} 1`,
-      })),
+  },
+  {
+    id: "fb6",
+    parentId: "p8",
+    name: "Yuki Nakamura",
+    email: "kenji.n@email.com",
+    initials: "YN",
+    color: "#06B6D4",
+    children: ["Lily Nakamura"],
+    programs: ["Summer 2026", "School Year 26–27"],
+    balanceDue: 900,
+    paidYtd: 15400,
+    nextDue: { date: "Apr 15, 2026", amount: 900, label: "Week 4" },
+    autopayOn: false,
+    paymentMethod: "Visa ·••• 5510",
+    status: "invoice_sent",
+    summer: buildSummerWeeks(3, 3),
+    schoolYear: buildSchoolYearMonths(7),
+    upcoming: [
+      {
+        id: "u7",
+        label: "Week 4",
+        amount: 900,
+        dueDate: "Apr 15, 2026",
+        program: "Summer 2026",
+        status: "sent",
+      },
+    ],
+  },
+  {
+    id: "fb7",
+    name: "Angela Lee",
+    email: "alee@email.com",
+    initials: "AL",
+    color: "#EF4444",
+    children: ["Sebastian Lee"],
+    programs: ["Summer 2026", "School Year 26–27"],
+    balanceDue: 3600,
+    paidYtd: 8900,
+    nextDue: { date: "Apr 2, 2026", amount: 1800, label: "Feb Tuition (failed)" },
+    autopayOn: true,
+    paymentMethod: "Visa ·••• 1102",
+    status: "failed_payment",
+    hasFailedPayment: true,
+    summer: buildSummerWeeks(4),
+    schoolYear: buildSchoolYearMonths(4, undefined, 5),
+    upcoming: [
+      {
+        id: "u8",
+        label: "Feb Tuition (retry)",
+        amount: 1800,
+        dueDate: "Apr 8, 2026",
+        program: "School Year 26–27",
+        status: "overdue",
+      },
+    ],
+  },
+  {
+    id: "fb8",
+    name: "David Wright",
+    email: "dwright@email.com",
+    initials: "DW",
+    color: "#8B5CF6",
+    children: ["Mason Wright"],
+    programs: ["Summer 2026", "School Year 26–27"],
+    balanceDue: 900,
+    paidYtd: 7200,
+    nextDue: { date: "Apr 5, 2026", amount: 900, label: "Week 3 (processing)" },
+    autopayOn: false,
+    paymentMethod: "ACH ·••• 3390",
+    status: "invoice_sent",
+    summer: buildSummerWeeks(2),
+    schoolYear: buildSchoolYearMonths(3),
+    upcoming: [
+      {
+        id: "u9",
+        label: "Week 3",
+        amount: 900,
+        dueDate: "Apr 5, 2026",
+        program: "Summer 2026",
+        status: "sent",
+      },
+    ],
+  },
+  {
+    id: "fb9",
+    name: "Jennifer Chen",
+    email: "jchen@email.com",
+    initials: "JC",
+    color: "#A855F7",
+    children: ["Ava Chen"],
+    programs: ["Summer 2026"],
+    balanceDue: 0,
+    paidYtd: 5900,
+    nextDue: { date: "May 3, 2026", amount: 900, label: "Week 5" },
+    autopayOn: true,
+    paymentMethod: "Visa ·••• 6677",
+    status: "current",
+    summer: buildSummerWeeks(4),
+    schoolYear: [],
+    upcoming: [
+      {
+        id: "u10",
+        label: "Week 5",
+        amount: 900,
+        dueDate: "May 3, 2026",
+        program: "Summer 2026",
+        status: "scheduled",
+      },
+    ],
+  },
+  {
+    id: "fb10",
+    name: "Priya Patel",
+    email: "ppatel@email.com",
+    initials: "PP",
+    color: "#14B8A6",
+    children: ["Raj Patel"],
+    programs: ["School Year 26–27"],
+    balanceDue: 1800,
+    paidYtd: 11100,
+    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
+    autopayOn: true,
+    paymentMethod: "ACH ·••• 4488",
+    status: "invoice_sent",
+    summer: [],
+    schoolYear: buildSchoolYearMonths(5, 5),
+    upcoming: [
+      {
+        id: "u11",
+        label: "Feb Tuition",
+        amount: 1800,
+        dueDate: "Apr 1, 2026",
+        program: "School Year 26–27",
+        status: "sent",
+      },
     ],
   },
 ];
+
+type TuitionFilter = "all" | "overdue" | "upcoming" | "autopay_off" | "at_risk";
+
+function getFamilyTransactions(payerName: string) {
+  return DEMO_TRANSACTIONS.filter((tx) => tx.payerName === payerName);
+}
+
+function countOutstandingTuition(): number {
+  let count = 0;
+  for (const family of DEMO_FAMILY_BILLING) {
+    for (const item of [...family.summer, ...family.schoolYear]) {
+      if (
+        item.state === "unpaid" ||
+        item.state === "sent" ||
+        item.state === "overdue"
+      ) {
+        count++;
+      }
+    }
+  }
+  return count;
+}
+
+function computeTuitionKPIs() {
+  const outstandingBalance = DEMO_FAMILY_BILLING.reduce(
+    (s, f) => s + f.balanceDue,
+    0,
+  );
+  const dueThisWeek = DEMO_FAMILY_BILLING.flatMap((f) => f.upcoming).filter(
+    (u) => u.status === "sent" || u.status === "overdue",
+  );
+  const dueThisWeekAmount = dueThisWeek.reduce((s, u) => s + u.amount, 0);
+  const collectedThisMonth = DEMO_TRANSACTIONS.filter(
+    (tx) => tx.status === "succeeded" && tx.date.includes("Apr"),
+  ).reduce((s, tx) => s + tx.amount, 0);
+  const atRiskFamilies = DEMO_FAMILY_BILLING.filter(
+    (f) =>
+      f.hasFailedPayment ||
+      f.status === "overdue" ||
+      f.status === "failed_payment" ||
+      (!f.autopayOn && f.balanceDue > 0),
+  ).length;
+  return {
+    outstandingBalance,
+    dueThisWeekCount: dueThisWeek.length,
+    dueThisWeekAmount,
+    collectedThisMonth,
+    atRiskFamilies,
+  };
+}
+
+function familyBillingStatusLabel(status: FamilyBillingStatus): string {
+  if (status === "current") return "Current";
+  if (status === "invoice_sent") return "Invoice sent";
+  if (status === "overdue") return "Overdue";
+  if (status === "failed_payment") return "Failed payment";
+  return status;
+}
+
+function familyBillingStatusColors(status: FamilyBillingStatus) {
+  if (status === "current")
+    return { bg: C.successBg, border: C.successBorder, text: C.success };
+  if (status === "invoice_sent")
+    return { bg: C.warningBg, border: C.warningBorder, text: C.warning };
+  if (status === "overdue")
+    return { bg: C.errorBg, border: C.errorBorder, text: C.error };
+  return { bg: C.errorBg, border: C.errorBorder, text: C.error };
+}
+
+function findFamilyByPayerName(name: string): DemoFamilyBilling | undefined {
+  return DEMO_FAMILY_BILLING.find((f) => f.name === name);
+}
 
 const BUDGET_CATS = [
   {
@@ -11014,16 +11356,6 @@ function budgetHealth(cats: typeof BUDGET_CATS) {
     pctUsed,
     under,
   };
-}
-
-function countOutstandingTuition(): number {
-  let count = 0;
-  for (const parent of DEMO_CHECKLIST) {
-    for (const item of [...parent.summer, ...parent.schoolYear]) {
-      if (item.state === "unpaid" || item.state === "sent") count++;
-    }
-  }
-  return count;
 }
 
 const DEMO_NET_PROFIT = 15480;
@@ -12407,35 +12739,952 @@ const DEMO_AUTOMATION_PIPELINES: AutomationPipeline[] = [
   },
 ];
 
+// ─── Tuition page ──────────────────────────────────────────────────────────────
+
+function scheduleItemStateLabel(state: TuitionScheduleItem["state"]) {
+  if (state === "paid") return "Paid";
+  if (state === "sent") return "Invoice sent";
+  if (state === "overdue") return "Overdue";
+  return "Due";
+}
+
+function TransactionDetailPanel({
+  tx,
+  onClose,
+}: {
+  tx: (typeof DEMO_TRANSACTIONS)[0];
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 300 }}
+      className="absolute top-0 right-0 bottom-0 flex flex-col overflow-hidden"
+      style={{
+        width: 320,
+        backgroundColor: C.surface,
+        borderLeft: `1px solid ${C.border}`,
+        zIndex: 10,
+      }}
+    >
+      <div
+        className="flex items-center justify-between px-5 py-4"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+          Transaction Detail
+        </h3>
+        <button onClick={onClose} style={{ color: C.textTertiary }}>
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div
+          className="rounded-sm p-4"
+          style={{
+            backgroundColor: C.surface,
+            border: `1px solid ${C.border}`,
+          }}
+        >
+          <p
+            className="text-2xl font-bold tabular-nums mb-1"
+            style={{ color: C.textPrimary }}
+          >
+            ${tx.amount.toLocaleString()}
+          </p>
+          <div className="flex items-center gap-2">
+            <span
+              className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
+              style={{
+                backgroundColor: TX_TYPE_COLORS[tx.type]?.bg,
+                color: TX_TYPE_COLORS[tx.type]?.text,
+              }}
+            >
+              {tx.type}
+            </span>
+            <span
+              className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
+              style={{
+                backgroundColor: TX_STATUS_COLORS[tx.status]?.bg,
+                border: `1px solid ${TX_STATUS_COLORS[tx.status]?.border}`,
+                color: TX_STATUS_COLORS[tx.status]?.text,
+              }}
+            >
+              {tx.status}
+            </span>
+          </div>
+        </div>
+        <div>
+          <DetailField label="Payer" value={tx.payerName} />
+          <DetailField label="Email" value={tx.payerEmail} />
+          <DetailField label="Child" value={tx.childName} />
+          <DetailField label="Program" value={tx.program} />
+          <DetailField
+            label="Method"
+            value={<span className="uppercase">{tx.method}</span>}
+          />
+          <DetailField label="Date" value={tx.date} />
+        </div>
+        <div
+          className="rounded-sm p-3"
+          style={{
+            backgroundColor: C.surface,
+            border: `1px solid ${C.border}`,
+          }}
+        >
+          <p
+            className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+            style={{ color: C.textTertiary }}
+          >
+            Stripe ID
+          </p>
+          <p className="text-xs font-mono" style={{ color: C.textSecondary }}>
+            {tx.stripeId}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function TuitionPage({
+  selectedFamilyId,
+  initialFilter = "all",
+  onSelectFamily,
+}: {
+  selectedFamilyId?: string;
+  initialFilter?: TuitionFilter;
+  onSelectFamily?: (id: string) => void;
+}) {
+  const kpis = computeTuitionKPIs();
+  const [filter, setFilter] = useState<TuitionFilter>(initialFilter);
+  const [search, setSearch] = useState("");
+  const [selectedFamily, setSelectedFamily] = useState<DemoFamilyBilling>(
+    () =>
+      DEMO_FAMILY_BILLING.find((f) => f.id === selectedFamilyId) ??
+      DEMO_FAMILY_BILLING[0],
+  );
+  const [selectedTx, setSelectedTx] = useState<
+    (typeof DEMO_TRANSACTIONS)[0] | null
+  >(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+
+  useEffect(() => {
+    setFilter(initialFilter);
+  }, [initialFilter]);
+
+  useEffect(() => {
+    if (selectedFamilyId) {
+      const match = DEMO_FAMILY_BILLING.find((f) => f.id === selectedFamilyId);
+      if (match) setSelectedFamily(match);
+    }
+  }, [selectedFamilyId]);
+
+  useEffect(() => {
+    if (selectedTx) openBackdrop(() => setSelectedTx(null));
+    else closeBackdrop();
+  }, [selectedTx, openBackdrop, closeBackdrop]);
+
+  const fmt = (n: number) => `$${n.toLocaleString()}`;
+
+  const filteredFamilies = DEMO_FAMILY_BILLING.filter((f) => {
+    const q = search.toLowerCase();
+    const matchesSearch =
+      q === "" ||
+      f.name.toLowerCase().includes(q) ||
+      f.children.some((c) => c.toLowerCase().includes(q));
+    if (!matchesSearch) return false;
+    if (filter === "all") return true;
+    if (filter === "overdue")
+      return f.status === "overdue" || f.status === "failed_payment";
+    if (filter === "upcoming") return f.upcoming.length > 0;
+    if (filter === "autopay_off") return !f.autopayOn;
+    if (filter === "at_risk")
+      return (
+        f.hasFailedPayment ||
+        f.status === "overdue" ||
+        f.status === "failed_payment" ||
+        (!f.autopayOn && f.balanceDue > 0)
+      );
+    return true;
+  });
+
+  const selectFamily = (family: DemoFamilyBilling) => {
+    setSelectedFamily(family);
+    onSelectFamily?.(family.id);
+  };
+
+  const familyTx = getFamilyTransactions(selectedFamily.name);
+  const statusColors = familyBillingStatusColors(selectedFamily.status);
+  const remindersCount = DEMO_FAMILY_BILLING.filter(
+    (f) => f.balanceDue > 0,
+  ).length;
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      <div
+        className="flex-shrink-0 px-6 pt-6 pb-4 space-y-4"
+        style={{
+          borderBottom: `1px solid ${C.border}`,
+          backgroundColor: C.surface,
+        }}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1
+              className="text-xl font-semibold tracking-tight"
+              style={{ color: C.textPrimary }}
+            >
+              Tuition
+            </h1>
+            <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
+              {DEMO_FAMILY_BILLING.length} enrolled families · payment status &
+              history
+            </p>
+          </div>
+          {remindersCount > 0 && (
+            <button
+              type="button"
+              data-tour-id="tuition-bulk-remind"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
+              style={{ backgroundColor: C.accent, color: "#fff" }}
+            >
+              <Send className="w-3.5 h-3.5" />
+              Send reminders to {remindersCount} families
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            {
+              label: "Outstanding balance",
+              value: fmt(kpis.outstandingBalance),
+              color: kpis.outstandingBalance > 0 ? C.error : C.success,
+            },
+            {
+              label: "Due this week",
+              value: `${kpis.dueThisWeekCount} · ${fmt(kpis.dueThisWeekAmount)}`,
+              color: C.warning,
+            },
+            {
+              label: "Collected this month",
+              value: fmt(kpis.collectedThisMonth),
+              color: C.success,
+            },
+            {
+              label: "At-risk families",
+              value: String(kpis.atRiskFamilies),
+              color: kpis.atRiskFamilies > 0 ? C.error : C.success,
+            },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="rounded-sm p-3"
+              style={{
+                backgroundColor: C.surface,
+                border: `1px solid ${C.border}`,
+                boxShadow: C.shadowCard,
+              }}
+            >
+              <p
+                className="text-[10px] font-medium mb-1"
+                style={{ color: C.textTertiary }}
+              >
+                {s.label}
+              </p>
+              <p
+                className="text-lg font-bold tabular-nums"
+                style={{ color: s.color }}
+              >
+                {s.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        <div
+          className="w-72 flex-shrink-0 flex flex-col overflow-hidden"
+          style={{ borderRight: `1px solid ${C.border}` }}
+        >
+          <div
+            className="px-4 py-3 space-y-2 flex-shrink-0"
+            style={{ borderBottom: `1px solid ${C.border}` }}
+          >
+            <div className="flex flex-wrap gap-1">
+              {(
+                [
+                  ["all", "All"],
+                  ["overdue", "Overdue"],
+                  ["upcoming", "Upcoming"],
+                  ["autopay_off", "Autopay off"],
+                  ["at_risk", "At risk"],
+                ] as [TuitionFilter, string][]
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilter(key)}
+                  className="px-2 py-1 text-[10px] font-semibold rounded-full transition-colors"
+                  style={{
+                    backgroundColor: filter === key ? C.accentLight : C.elevated,
+                    color: filter === key ? C.accent : C.textTertiary,
+                    border: `1px solid ${filter === key ? C.accent + "44" : C.border}`,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm"
+              style={{
+                backgroundColor: C.input,
+                border: `1px solid ${C.inputBorder}`,
+              }}
+            >
+              <Search
+                className="w-3 h-3 flex-shrink-0"
+                style={{ color: C.textTertiary }}
+              />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search families..."
+                className="bg-transparent border-none outline-none text-xs w-full"
+                style={{ color: C.textPrimary }}
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto" data-tour-id="tuition-family-list">
+            {filteredFamilies.map((family) => {
+              const isActive = selectedFamily.id === family.id;
+              const sc = familyBillingStatusColors(family.status);
+              return (
+                <button
+                  key={family.id}
+                  type="button"
+                  onClick={() => selectFamily(family)}
+                  className="w-full text-left px-3 py-3 transition-colors"
+                  style={{
+                    borderBottom: `1px solid ${C.border}`,
+                    borderLeft: `2px solid ${isActive ? C.accent : "transparent"}`,
+                    backgroundColor: isActive ? C.accentLight : "transparent",
+                  }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                      style={{
+                        backgroundColor: family.color + "22",
+                        color: family.color,
+                      }}
+                    >
+                      {family.initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-sm font-medium truncate"
+                        style={{ color: C.textPrimary }}
+                      >
+                        {family.name}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {family.children.map((child) => (
+                          <span
+                            key={child}
+                            className="text-[9px] px-1.5 py-0.5 rounded"
+                            style={{
+                              backgroundColor: C.surface,
+                              color: C.textSecondary,
+                            }}
+                          >
+                            {child.split(" ")[0]}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5 gap-2">
+                        <span
+                          className="text-xs font-bold tabular-nums"
+                          style={{
+                            color:
+                              family.balanceDue > 0 ? C.error : C.textSecondary,
+                          }}
+                        >
+                          {family.balanceDue > 0
+                            ? fmt(family.balanceDue)
+                            : "Paid up"}
+                        </span>
+                        <span
+                          className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: sc.bg,
+                            border: `1px solid ${sc.border}`,
+                            color: sc.text,
+                          }}
+                        >
+                          {familyBillingStatusLabel(family.status)}
+                        </span>
+                      </div>
+                      <p
+                        className="text-[9px] mt-1"
+                        style={{
+                          color: family.autopayOn ? C.success : C.warning,
+                        }}
+                      >
+                        Autopay {family.autopayOn ? "on" : "off"}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div
+          className="flex-1 overflow-y-auto relative"
+          style={{ backgroundColor: C.surface }}
+        >
+          <div className="p-5 space-y-5">
+            <div
+              className="rounded-sm p-5"
+              style={{
+                backgroundColor: C.surface,
+                border: `1px solid ${C.border}`,
+                boxShadow: C.shadowCard,
+              }}
+            >
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-widest mb-1"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Account summary
+                  </p>
+                  <h2
+                    className="text-lg font-semibold"
+                    style={{ color: C.textPrimary }}
+                  >
+                    {selectedFamily.name}
+                  </h2>
+                  <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+                    {selectedFamily.email} · {selectedFamily.programs.join(" · ")}
+                  </p>
+                </div>
+                <span
+                  className="text-[10px] font-semibold px-2 py-1 rounded-full"
+                  style={{
+                    backgroundColor: statusColors.bg,
+                    border: `1px solid ${statusColors.border}`,
+                    color: statusColors.text,
+                  }}
+                >
+                  {familyBillingStatusLabel(selectedFamily.status)}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                  <p
+                    className="text-[10px] uppercase tracking-wide mb-1"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Balance due
+                  </p>
+                  <p
+                    className="text-2xl font-bold tabular-nums"
+                    style={{
+                      color:
+                        selectedFamily.balanceDue > 0 ? C.error : C.success,
+                    }}
+                  >
+                    {fmt(selectedFamily.balanceDue)}
+                  </p>
+                </div>
+                <div>
+                  <p
+                    className="text-[10px] uppercase tracking-wide mb-1"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Paid YTD
+                  </p>
+                  <p
+                    className="text-2xl font-bold tabular-nums"
+                    style={{ color: C.textPrimary }}
+                  >
+                    {fmt(selectedFamily.paidYtd)}
+                  </p>
+                </div>
+                <div>
+                  <p
+                    className="text-[10px] uppercase tracking-wide mb-1"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Next due
+                  </p>
+                  {selectedFamily.nextDue ? (
+                    <>
+                      <p
+                        className="text-sm font-semibold tabular-nums"
+                        style={{ color: C.textPrimary }}
+                      >
+                        {fmt(selectedFamily.nextDue.amount)}
+                      </p>
+                      <p className="text-xs" style={{ color: C.textTertiary }}>
+                        {selectedFamily.nextDue.label} ·{" "}
+                        {selectedFamily.nextDue.date}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm" style={{ color: C.success }}>
+                      All clear
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs mb-4">
+                <span style={{ color: C.textSecondary }}>
+                  Autopay:{" "}
+                  <strong style={{ color: C.textPrimary }}>
+                    {selectedFamily.autopayOn ? "On" : "Off"}
+                  </strong>
+                </span>
+                {selectedFamily.paymentMethod && (
+                  <span style={{ color: C.textTertiary }}>
+                    · {selectedFamily.paymentMethod}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
+                  style={{ backgroundColor: C.accent, color: "#fff" }}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Send reminder
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
+                  style={demoSecondaryButtonStyle()}
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  Record payment
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
+                  style={demoSecondaryButtonStyle()}
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  Send invoice
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <SectionLabel>Upcoming</SectionLabel>
+              {selectedFamily.upcoming.length === 0 ? (
+                <p className="text-sm py-2" style={{ color: C.textTertiary }}>
+                  No upcoming charges in the next 60 days.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {selectedFamily.upcoming.map((item) => {
+                    const paidSummer = selectedFamily.summer.filter(
+                      (s) => s.state === "paid",
+                    ).length;
+                    const totalSummer = selectedFamily.summer.length;
+                    const paidSchool = selectedFamily.schoolYear.filter(
+                      (s) => s.state === "paid",
+                    ).length;
+                    const totalSchool = selectedFamily.schoolYear.length;
+                    const isSummer = item.program.includes("Summer");
+                    const paid = isSummer ? paidSummer : paidSchool;
+                    const total = isSummer ? totalSummer : totalSchool;
+                    const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-sm p-3"
+                        style={{
+                          backgroundColor: C.surface,
+                          border: `1px solid ${C.border}`,
+                          boxShadow: C.shadowCard,
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <div>
+                            <p
+                              className="text-sm font-medium"
+                              style={{ color: C.textPrimary }}
+                            >
+                              {item.label}
+                            </p>
+                            <p
+                              className="text-xs"
+                              style={{ color: C.textTertiary }}
+                            >
+                              {item.program} · Due {item.dueDate}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p
+                              className="text-sm font-bold tabular-nums"
+                              style={{ color: C.textPrimary }}
+                            >
+                              {fmt(item.amount)}
+                            </p>
+                            <span
+                              className="text-[9px] font-semibold capitalize"
+                              style={{
+                                color:
+                                  item.status === "overdue"
+                                    ? C.error
+                                    : item.status === "sent"
+                                      ? C.warning
+                                      : C.textTertiary,
+                              }}
+                            >
+                              {item.status}
+                            </span>
+                          </div>
+                        </div>
+                        {total > 0 && (
+                          <div>
+                            <div className="flex justify-between text-[10px] mb-1">
+                              <span style={{ color: C.textTertiary }}>
+                                {item.program} progress
+                              </span>
+                              <span style={{ color: C.textSecondary }}>
+                                {paid}/{total} paid
+                              </span>
+                            </div>
+                            <div
+                              className="h-1.5 rounded-full overflow-hidden"
+                              style={{ backgroundColor: C.input }}
+                            >
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${pct}%`,
+                                  backgroundColor: C.accent,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <SectionLabel>Payment history</SectionLabel>
+              {familyTx.length === 0 ? (
+                <p className="text-sm py-2" style={{ color: C.textTertiary }}>
+                  No payments recorded yet.
+                </p>
+              ) : (
+                <div
+                  className="rounded-sm overflow-hidden"
+                  style={{
+                    border: `1px solid ${C.border}`,
+                    backgroundColor: C.surface,
+                    boxShadow: C.shadowCard,
+                  }}
+                >
+                  {familyTx.map((tx, i) => {
+                    const sc = TX_STATUS_COLORS[tx.status] ?? {
+                      bg: C.input,
+                      border: C.border,
+                      text: C.textTertiary,
+                    };
+                    return (
+                      <button
+                        key={tx.id}
+                        type="button"
+                        onClick={() => setSelectedTx(tx)}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors"
+                        style={{
+                          borderBottom:
+                            i < familyTx.length - 1
+                              ? `1px solid ${C.border}`
+                              : "none",
+                          backgroundColor: C.surface,
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = C.accentLight)
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor = C.surface)
+                        }
+                      >
+                        <div className="min-w-0">
+                          <p
+                            className="text-sm font-medium capitalize truncate"
+                            style={{ color: C.textPrimary }}
+                          >
+                            {tx.type} · {tx.childName}
+                          </p>
+                          <p className="text-xs" style={{ color: C.textTertiary }}>
+                            {tx.date}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span
+                            className="text-sm font-bold tabular-nums"
+                            style={{ color: C.textPrimary }}
+                          >
+                            {fmt(tx.amount)}
+                          </span>
+                          <span
+                            className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full capitalize"
+                            style={{
+                              backgroundColor: sc.bg,
+                              border: `1px solid ${sc.border}`,
+                              color: sc.text,
+                            }}
+                          >
+                            {tx.status}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setScheduleOpen((v) => !v)}
+                className="flex items-center gap-2 w-full text-left mb-2"
+              >
+                <SectionLabel>Payment schedule</SectionLabel>
+                <ChevronRight
+                  className="w-4 h-4 transition-transform"
+                  style={{
+                    color: C.textTertiary,
+                    transform: scheduleOpen ? "rotate(90deg)" : "none",
+                  }}
+                />
+              </button>
+              <AnimatePresence>
+                {scheduleOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="space-y-3 overflow-hidden"
+                  >
+                    {(
+                      [
+                        ["Summer 2026", selectedFamily.summer],
+                        ["School Year 26–27", selectedFamily.schoolYear],
+                      ] as [string, TuitionScheduleItem[]][]
+                    )
+                      .filter(([, items]) => items.length > 0)
+                      .map(([label, items]) => (
+                        <Card
+                          key={label}
+                          style={{
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            className="px-4 py-3"
+                            style={{ borderBottom: `1px solid ${C.border}` }}
+                          >
+                            <p
+                              className="text-sm font-semibold"
+                              style={{ color: C.textPrimary }}
+                            >
+                              {label}
+                            </p>
+                            <p className="text-xs" style={{ color: C.textTertiary }}>
+                              {items.filter((i) => i.state === "paid").length} /{" "}
+                              {items.length} paid
+                            </p>
+                          </div>
+                          <div className="px-4 py-2">
+                            {items.map((item, i) => (
+                              <div
+                                key={i}
+                                className="flex items-center gap-3 py-2"
+                                style={{
+                                  borderBottom:
+                                    i < items.length - 1
+                                      ? `1px solid ${C.border}`
+                                      : "none",
+                                }}
+                              >
+                                <div
+                                  className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                                  style={{
+                                    backgroundColor:
+                                      item.state === "paid"
+                                        ? C.successBg
+                                        : item.state === "sent" ||
+                                            item.state === "overdue"
+                                          ? C.warningBg
+                                          : "transparent",
+                                    border: `2px solid ${
+                                      item.state === "paid"
+                                        ? C.success
+                                        : item.state === "overdue"
+                                          ? C.error
+                                          : item.state === "sent"
+                                            ? C.warning
+                                            : C.border
+                                    }`,
+                                  }}
+                                >
+                                  {item.state === "paid" && (
+                                    <CheckCircle
+                                      className="w-2.5 h-2.5"
+                                      style={{ color: C.success }}
+                                    />
+                                  )}
+                                </div>
+                                <span
+                                  className="flex-1 text-xs"
+                                  style={{ color: C.textPrimary }}
+                                >
+                                  {item.label}
+                                </span>
+                                <span
+                                  className="text-xs tabular-nums"
+                                  style={{ color: C.textSecondary }}
+                                >
+                                  {fmt(item.amount)}
+                                </span>
+                                <span
+                                  className="text-[9px] font-semibold"
+                                  style={{
+                                    color:
+                                      item.state === "paid"
+                                        ? C.success
+                                        : item.state === "overdue"
+                                          ? C.error
+                                          : item.state === "sent"
+                                            ? C.warning
+                                            : C.textTertiary,
+                                  }}
+                                >
+                                  {scheduleItemStateLabel(item.state)}
+                                </span>
+                                {(item.state === "unpaid" ||
+                                  item.state === "overdue") && (
+                                  <button
+                                    type="button"
+                                    className="text-[9px] font-semibold px-2 py-0.5 rounded"
+                                    style={demoSecondaryButtonStyle()}
+                                  >
+                                    Send invoice
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </Card>
+                      ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {selectedTx && (
+              <TransactionDetailPanel
+                tx={selectedTx}
+                onClose={() => setSelectedTx(null)}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Transactions page ─────────────────────────────────────────────────────────
 
+function formatTxProgram(program: string) {
+  if (program === "school_year") return "School Year";
+  if (program === "summer") return "Summer";
+  if (program === "both") return "Both";
+  return program;
+}
+
 function TransactionsPage({
-  activeTab: tab,
-  onTabChange: setTab,
+  onNavigateToTuition,
 }: {
-  activeTab: "all" | "checklist";
-  onTabChange: (tab: "all" | "checklist") => void;
+  onNavigateToTuition?: (familyId: string) => void;
 }) {
   const [selectedTx, setSelectedTx] = useState<
     (typeof DEMO_TRANSACTIONS)[0] | null
   >(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [programFilter, setProgramFilter] = useState("all");
+  const [attentionOnly, setAttentionOnly] = useState(false);
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+
   useEffect(() => {
     if (selectedTx) openBackdrop(() => setSelectedTx(null));
     else closeBackdrop();
-  }, [selectedTx]);
-  const [selectedParent, setSelectedParent] = useState<ChecklistParent>(
-    DEMO_CHECKLIST[0],
-  );
-  const [openSection, setOpenSection] = useState<"summer" | "schoolYear">(
-    "summer",
-  );
+  }, [selectedTx, openBackdrop, closeBackdrop]);
 
-  const fmt = (cents: number) => `$${cents.toLocaleString()}`;
+  const fmt = (n: number) => `$${n.toLocaleString()}`;
+
+  const collectedThisMonth = DEMO_TRANSACTIONS.filter(
+    (tx) => tx.status === "succeeded" && tx.date.includes("Apr"),
+  ).reduce((s, tx) => s + tx.amount, 0);
+  const processingTx = DEMO_TRANSACTIONS.filter(
+    (tx) => tx.status === "processing",
+  );
+  const failedTx = DEMO_TRANSACTIONS.filter((tx) => tx.status === "failed");
+  const processingAmount = processingTx.reduce((s, tx) => s + tx.amount, 0);
+  const attentionCount = processingTx.length + failedTx.length;
+
+  const filteredTx = DEMO_TRANSACTIONS.filter((tx) => {
+    const q = search.toLowerCase();
+    if (
+      q &&
+      !tx.payerName.toLowerCase().includes(q) &&
+      !tx.payerEmail.toLowerCase().includes(q) &&
+      !tx.childName.toLowerCase().includes(q)
+    ) {
+      return false;
+    }
+    if (typeFilter !== "all" && tx.type !== typeFilter) return false;
+    if (statusFilter !== "all" && tx.status !== statusFilter) return false;
+    if (programFilter !== "all" && tx.program !== programFilter) return false;
+    if (
+      attentionOnly &&
+      tx.status !== "processing" &&
+      tx.status !== "failed"
+    ) {
+      return false;
+    }
+    return true;
+  });
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-start justify-between px-6 pt-6 mb-5">
+    <div className="h-full flex flex-col relative">
+      <div className="flex-shrink-0 px-6 pt-6 pb-4 space-y-4">
         <div>
           <h1
             className="text-xl font-semibold tracking-tight"
@@ -12444,491 +13693,343 @@ function TransactionsPage({
             Transactions
           </h1>
           <p className="text-sm mt-0.5" style={{ color: C.textTertiary }}>
-            {DEMO_TRANSACTIONS.length} total payments
+            School-wide payment ledger · {DEMO_TRANSACTIONS.length} records
           </p>
         </div>
-        <div
-          className="flex items-center gap-1 p-1 rounded-sm"
-          style={{
-            backgroundColor: C.elevated,
-            border: `1px solid ${C.border}`,
-          }}
-        >
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { key: "all", label: "All Transactions" },
-            { key: "checklist", label: "Tuition Checklist" },
-          ].map((t) => (
-            <button
-              key={t.key}
-              data-tour-id={`tx-tab-${t.key}`}
-              onClick={() => setTab(t.key as "all" | "checklist")}
-              className="px-3 py-1.5 text-xs font-medium rounded-md transition-all"
+            {
+              label: "Collected this month",
+              value: fmt(collectedThisMonth),
+              color: C.success,
+            },
+            {
+              label: "Processing",
+              value: `${processingTx.length} · ${fmt(processingAmount)}`,
+              color: C.warning,
+            },
+            {
+              label: "Failed",
+              value: String(failedTx.length),
+              color: failedTx.length > 0 ? C.error : C.textSecondary,
+            },
+            {
+              label: "Refunds",
+              value: "0",
+              color: C.textSecondary,
+            },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="rounded-sm p-3"
               style={{
-                backgroundColor: tab === t.key ? C.surface : "transparent",
-                color: tab === t.key ? C.textPrimary : C.textTertiary,
-                boxShadow: tab === t.key ? C.shadowCard : "none",
+                backgroundColor: C.surface,
+                border: `1px solid ${C.border}`,
               }}
             >
-              {t.label}
-            </button>
+              <p
+                className="text-[10px] font-medium mb-1"
+                style={{ color: C.textTertiary }}
+              >
+                {s.label}
+              </p>
+              <p
+                className="text-lg font-bold tabular-nums"
+                style={{ color: s.color }}
+              >
+                {s.value}
+              </p>
+            </div>
           ))}
+        </div>
+
+        {attentionCount > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setAttentionOnly(true);
+              setStatusFilter("all");
+            }}
+            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-sm text-xs font-medium text-left"
+            style={{
+              backgroundColor: C.warningBg,
+              border: `1px solid ${C.warningBorder}`,
+              color: C.warning,
+            }}
+          >
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {attentionCount} payment{attentionCount > 1 ? "s" : ""} need
+            attention — tap to filter
+          </button>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-sm min-w-[180px]"
+            style={{
+              backgroundColor: C.input,
+              border: `1px solid ${C.inputBorder}`,
+            }}
+          >
+            <Search
+              className="w-3 h-3 flex-shrink-0"
+              style={{ color: C.textTertiary }}
+            />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search payer, child..."
+              className="bg-transparent border-none outline-none text-xs w-full"
+              style={{ color: C.textPrimary }}
+            />
+          </div>
+          {[
+            {
+              id: "type",
+              value: typeFilter,
+              set: setTypeFilter,
+              options: [
+                ["all", "All types"],
+                ["tuition", "Tuition"],
+                ["deposit", "Deposit"],
+                ["registration", "Registration"],
+              ],
+            },
+            {
+              id: "status",
+              value: statusFilter,
+              set: setStatusFilter,
+              options: [
+                ["all", "All status"],
+                ["succeeded", "Succeeded"],
+                ["processing", "Processing"],
+                ["failed", "Failed"],
+              ],
+            },
+            {
+              id: "program",
+              value: programFilter,
+              set: setProgramFilter,
+              options: [
+                ["all", "All programs"],
+                ["summer", "Summer"],
+                ["school_year", "School Year"],
+                ["both", "Both"],
+              ],
+            },
+          ].map((f) => (
+            <select
+              key={f.id}
+              value={f.value}
+              onChange={(e) => {
+                f.set(e.target.value);
+                setAttentionOnly(false);
+              }}
+              className="text-xs px-2 py-1.5 rounded-sm outline-none"
+              style={{
+                backgroundColor: C.surface,
+                border: `1px solid ${C.border}`,
+                color: C.textPrimary,
+              }}
+            >
+              {f.options.map(([val, label]) => (
+                <option key={val} value={val}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          ))}
+          {attentionOnly && (
+            <button
+              type="button"
+              onClick={() => setAttentionOnly(false)}
+              className="text-[10px] font-semibold px-2 py-1 rounded"
+              style={demoSecondaryButtonStyle()}
+            >
+              Clear attention filter
+            </button>
+          )}
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {tab === "all" && (
-          <motion.div
-            key="all"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 overflow-hidden"
-            style={{ borderTop: `1px solid ${C.border}` }}
-          >
-            <div className="h-full overflow-hidden">
-              <div className="overflow-x-auto h-full">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                      {[
-                        "Type",
-                        "Status",
-                        "Payer",
-                        "Child",
-                        "Amount",
-                        "Method",
-                        "Date",
-                      ].map((col) => (
-                        <th
-                          key={col}
-                          className="text-left px-4 py-3 text-xs font-medium"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {DEMO_TRANSACTIONS.map((tx, i) => {
-                      const tc = TX_TYPE_COLORS[tx.type] ?? {
-                        bg: C.elevated,
-                        text: C.textTertiary,
-                      };
-                      const sc = TX_STATUS_COLORS[tx.status] ?? {
-                        bg: C.elevated,
-                        border: C.border,
-                        text: C.textTertiary,
-                      };
-                      return (
-                        <motion.tr
-                          key={tx.id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: i * 0.03 }}
-                          onClick={() => setSelectedTx(tx)}
-                          className="cursor-pointer"
-                          style={{ borderBottom: `1px solid ${C.border}` }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.backgroundColor = C.elevated)
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.backgroundColor =
-                              "transparent")
-                          }
-                        >
-                          <td className="px-4 py-3">
-                            <span
-                              className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
-                              style={{ backgroundColor: tc.bg, color: tc.text }}
-                            >
-                              {tx.type}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
-                              style={{
-                                backgroundColor: sc.bg,
-                                border: `1px solid ${sc.border}`,
-                                color: sc.text,
-                              }}
-                            >
-                              {tx.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <p
-                              className="font-medium text-sm"
-                              style={{ color: C.textPrimary }}
-                            >
-                              {tx.payerName}
-                            </p>
-                            <p
-                              className="text-xs"
-                              style={{ color: C.textTertiary }}
-                            >
-                              {tx.payerEmail}
-                            </p>
-                          </td>
-                          <td
-                            className="px-4 py-3 text-xs"
-                            style={{ color: C.textSecondary }}
-                          >
-                            {tx.childName}
-                          </td>
-                          <td
-                            className="px-4 py-3 text-sm font-bold tabular-nums"
-                            style={{ color: C.textPrimary }}
-                          >
-                            {fmt(tx.amount)}
-                          </td>
-                          <td
-                            className="px-4 py-3 text-xs uppercase"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {tx.method}
-                          </td>
-                          <td
-                            className="px-4 py-3 text-xs"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {tx.date}
-                          </td>
-                        </motion.tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            {/* Transaction detail panel */}
-            <AnimatePresence>
-              {selectedTx && (
-                <>
-                  <motion.div
-                    initial={{ x: "100%", opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: "100%", opacity: 0 }}
-                    transition={{ type: "spring", damping: 28, stiffness: 300 }}
-                    className="absolute top-0 right-0 bottom-0 flex flex-col overflow-hidden"
+      <div
+        className="flex-1 overflow-hidden"
+        style={{ borderTop: `1px solid ${C.border}` }}
+      >
+        <div className="overflow-x-auto h-full">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                {[
+                  "Type",
+                  "Status",
+                  "Payer",
+                  "Child",
+                  "Program",
+                  "Amount",
+                  "Method",
+                  "Date",
+                ].map((col) => (
+                  <th
+                    key={col}
+                    className="text-left px-4 py-3 text-xs font-medium"
+                    style={{ color: C.textTertiary }}
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTx.map((tx, i) => {
+                const tc = TX_TYPE_COLORS[tx.type] ?? {
+                  bg: C.elevated,
+                  text: C.textTertiary,
+                };
+                const sc = TX_STATUS_COLORS[tx.status] ?? {
+                  bg: C.elevated,
+                  border: C.border,
+                  text: C.textTertiary,
+                };
+                const family = findFamilyByPayerName(tx.payerName);
+                const needsAttention =
+                  tx.status === "processing" || tx.status === "failed";
+                return (
+                  <motion.tr
+                    key={tx.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.03 }}
+                    onClick={() => setSelectedTx(tx)}
+                    className="cursor-pointer"
                     style={{
-                      width: 320,
-                      backgroundColor: C.surface,
-                      borderLeft: `1px solid ${C.border}`,
-                      zIndex: 10,
-                    }}
-                  >
-                  <div
-                    className="flex items-center justify-between px-5 py-4"
-                    style={{ borderBottom: `1px solid ${C.border}` }}
-                  >
-                    <h3
-                      className="text-sm font-semibold"
-                      style={{ color: C.textPrimary }}
-                    >
-                      Transaction Detail
-                    </h3>
-                    <button
-                      onClick={() => setSelectedTx(null)}
-                      style={{ color: C.textTertiary }}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                    <div
-                      className="rounded-sm p-4"
-                      style={{
-                        backgroundColor: C.elevated,
-                        border: `1px solid ${C.border}`,
-                      }}
-                    >
-                      <p
-                        className="text-2xl font-bold tabular-nums mb-1"
-                        style={{ color: C.textPrimary }}
-                      >
-                        ${selectedTx.amount.toLocaleString()}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
-                          style={{
-                            backgroundColor:
-                              TX_TYPE_COLORS[selectedTx.type]?.bg,
-                            color: TX_TYPE_COLORS[selectedTx.type]?.text,
-                          }}
-                        >
-                          {selectedTx.type}
-                        </span>
-                        <span
-                          className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
-                          style={{
-                            backgroundColor:
-                              TX_STATUS_COLORS[selectedTx.status]?.bg,
-                            border: `1px solid ${TX_STATUS_COLORS[selectedTx.status]?.border}`,
-                            color: TX_STATUS_COLORS[selectedTx.status]?.text,
-                          }}
-                        >
-                          {selectedTx.status}
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <DetailField label="Payer" value={selectedTx.payerName} />
-                      <DetailField
-                        label="Email"
-                        value={selectedTx.payerEmail}
-                      />
-                      <DetailField label="Child" value={selectedTx.childName} />
-                      <DetailField label="Program" value={selectedTx.program} />
-                      <DetailField
-                        label="Method"
-                        value={
-                          <span className="uppercase">{selectedTx.method}</span>
-                        }
-                      />
-                      <DetailField label="Date" value={selectedTx.date} />
-                    </div>
-                    <div
-                      className="rounded-sm p-3"
-                      style={{
-                        backgroundColor: C.elevated,
-                        border: `1px solid ${C.border}`,
-                      }}
-                    >
-                      <p
-                        className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-                        style={{ color: C.textTertiary }}
-                      >
-                        Stripe ID
-                      </p>
-                      <p
-                        className="text-xs font-mono"
-                        style={{ color: C.textSecondary }}
-                      >
-                        {selectedTx.stripeId}
-                      </p>
-                    </div>
-                  </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-
-        {tab === "checklist" && (
-          <motion.div
-            key="checklist"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 flex gap-4 overflow-hidden"
-          >
-            {/* Parent list */}
-            <Card className="w-64 flex-shrink-0 overflow-y-auto">
-              {DEMO_CHECKLIST.map((parent) => (
-                <button
-                  key={parent.id}
-                  onClick={() => setSelectedParent(parent)}
-                  className="w-full flex items-center gap-3 p-4 text-left transition-colors"
-                  style={{
-                    borderBottom: `1px solid ${C.border}`,
-                    backgroundColor:
-                      selectedParent.id === parent.id
-                        ? C.elevated
+                      borderBottom: `1px solid ${C.border}`,
+                      backgroundColor: needsAttention
+                        ? tx.status === "failed"
+                          ? C.errorBg
+                          : C.warningBg
                         : "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedParent.id !== parent.id)
-                      e.currentTarget.style.backgroundColor = C.elevated;
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedParent.id !== parent.id)
-                      e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style={{
-                      backgroundColor: parent.color + "22",
-                      color: parent.color,
                     }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = needsAttention
+                        ? tx.status === "failed"
+                          ? C.errorBg
+                          : C.warningBg
+                        : C.elevated)
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = needsAttention
+                        ? tx.status === "failed"
+                          ? C.errorBg
+                          : C.warningBg
+                        : "transparent")
+                    }
                   >
-                    {parent.initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-sm font-medium truncate"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {parent.name}
-                    </p>
-                    <span
-                      className="text-[10px] font-semibold"
-                      style={{ color: parent.upToDate ? C.success : C.warning }}
-                    >
-                      {parent.upToDate ? "✓ Up to date" : "⚠ Awaiting"}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </Card>
-
-            {/* Checklist */}
-            <div className="flex-1 overflow-y-auto space-y-4">
-              {(
-                [
-                  ["summer", "Summer 2026", selectedParent.summer],
-                  [
-                    "schoolYear",
-                    "School Year 26–27",
-                    selectedParent.schoolYear,
-                  ],
-                ] as [string, string, TuitionItem[]][]
-              )
-                .filter(([, , items]) => items.length > 0)
-                .map(([key, label, items]) => {
-                  const paid = items.filter((i) => i.state === "paid").length;
-                  const isOpen = openSection === key;
-                  return (
-                    <Card key={key} style={{ overflow: "hidden" }}>
-                      <button
-                        className="w-full flex items-center justify-between px-5 py-4 transition-colors"
-                        onClick={() =>
-                          setOpenSection(
-                            isOpen
-                              ? ("schoolYear" as "summer" | "schoolYear")
-                              : (key as "summer" | "schoolYear"),
-                          )
-                        }
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor = C.elevated)
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            "transparent")
-                        }
+                    <td className="px-4 py-3">
+                      <span
+                        className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
+                        style={{ backgroundColor: tc.bg, color: tc.text }}
                       >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="text-sm font-semibold"
-                            style={{ color: C.textPrimary }}
+                        {tx.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
+                        style={{
+                          backgroundColor: sc.bg,
+                          border: `1px solid ${sc.border}`,
+                          color: sc.text,
+                        }}
+                      >
+                        {tx.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {family && onNavigateToTuition ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigateToTuition(family.id);
+                          }}
+                          className="text-left"
+                        >
+                          <p
+                            className="font-medium text-sm underline-offset-2 hover:underline"
+                            style={{ color: C.accent }}
                           >
-                            {label}
-                          </span>
-                          <span
+                            {tx.payerName}
+                          </p>
+                          <p
                             className="text-xs"
                             style={{ color: C.textTertiary }}
                           >
-                            {paid} / {items.length} paid
-                          </span>
-                        </div>
-                        <ChevronRight
-                          className="w-4 h-4 transition-transform"
-                          style={{
-                            color: C.textTertiary,
-                            transform: isOpen ? "rotate(90deg)" : "none",
-                          }}
-                        />
-                      </button>
-                      <AnimatePresence>
-                        {isOpen && (
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: "auto" }}
-                            exit={{ height: 0 }}
-                            style={{ overflow: "hidden" }}
+                            {tx.payerEmail}
+                          </p>
+                        </button>
+                      ) : (
+                        <>
+                          <p
+                            className="font-medium text-sm"
+                            style={{ color: C.textPrimary }}
                           >
-                            <div className="px-5 pb-4 space-y-2">
-                              {items.map((item, i) => (
-                                <div
-                                  key={i}
-                                  className="flex items-center gap-3 py-2"
-                                  style={{
-                                    borderBottom:
-                                      i < items.length - 1
-                                        ? `1px solid ${C.border}`
-                                        : "none",
-                                  }}
-                                >
-                                  <div
-                                    className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                                    style={{
-                                      backgroundColor:
-                                        item.state === "paid"
-                                          ? C.successBg
-                                          : item.state === "sent"
-                                            ? C.warningBg
-                                            : "transparent",
-                                      border: `2px solid ${item.state === "paid" ? C.success : item.state === "sent" ? C.warning : C.border}`,
-                                    }}
-                                  >
-                                    {item.state === "paid" && (
-                                      <span
-                                        style={{
-                                          color: C.success,
-                                          fontSize: 10,
-                                          fontWeight: 700,
-                                        }}
-                                      >
-                                        ✓
-                                      </span>
-                                    )}
-                                    {item.state === "sent" && (
-                                      <span
-                                        style={{
-                                          color: C.warning,
-                                          fontSize: 8,
-                                        }}
-                                      >
-                                        ●
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span
-                                    className="flex-1 text-sm"
-                                    style={{
-                                      color:
-                                        item.state === "paid"
-                                          ? C.textSecondary
-                                          : C.textPrimary,
-                                    }}
-                                  >
-                                    {item.label}
-                                  </span>
-                                  {item.date && (
-                                    <span
-                                      className="text-xs"
-                                      style={{ color: C.textTertiary }}
-                                    >
-                                      {item.date}
-                                    </span>
-                                  )}
-                                  {item.state === "unpaid" && (
-                                    <span
-                                      className="text-[10px] font-semibold px-2 py-0.5 rounded"
-                                      style={{
-                                        backgroundColor: C.elevated,
-                                        color: C.textTertiary,
-                                        border: `1px solid ${C.border}`,
-                                      }}
-                                    >
-                                      Send
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </Card>
-                  );
-                })}
-            </div>
-          </motion.div>
+                            {tx.payerName}
+                          </p>
+                          <p
+                            className="text-xs"
+                            style={{ color: C.textTertiary }}
+                          >
+                            {tx.payerEmail}
+                          </p>
+                        </>
+                      )}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-xs"
+                      style={{ color: C.textSecondary }}
+                    >
+                      {tx.childName}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-xs"
+                      style={{ color: C.textSecondary }}
+                    >
+                      {formatTxProgram(tx.program)}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-sm font-bold tabular-nums"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {fmt(tx.amount)}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-xs uppercase"
+                      style={{ color: C.textTertiary }}
+                    >
+                      {tx.method}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-xs"
+                      style={{ color: C.textTertiary }}
+                    >
+                      {tx.date}
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {selectedTx && (
+          <TransactionDetailPanel
+            tx={selectedTx}
+            onClose={() => setSelectedTx(null)}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -12947,7 +14048,11 @@ type BudgetTab =
 type BudgetNavigateOptions = {
   expenseCategory?: string;
   revenuePendingOnly?: boolean;
-  transactionsTab?: "all" | "checklist";
+};
+
+type TuitionNavigateOptions = {
+  familyId?: string;
+  filter?: TuitionFilter;
 };
 
 function BudgetRing({
@@ -13423,7 +14528,7 @@ function BudgetExpensesTab({
                       <span
                         className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
                         style={{
-                          backgroundColor: C.elevated,
+                          backgroundColor: C.surface,
                           color: C.textSecondary,
                           border: `1px solid ${C.border}`,
                         }}
@@ -13537,7 +14642,7 @@ function BudgetExpensesTab({
               <div
                 className="rounded-sm p-4"
                 style={{
-                  backgroundColor: C.elevated,
+                  backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
                 }}
               >
@@ -14278,7 +15383,7 @@ function RecordRevenuePanel({
                 transition={{ duration: 0.25 }}
                 className="rounded-sm p-4"
                 style={{
-                  backgroundColor: C.elevated,
+                  backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
                 }}
               >
@@ -14769,7 +15874,7 @@ function RecordExpensePanel({
                 transition={{ duration: 0.25 }}
                 className="rounded-sm p-4"
                 style={{
-                  backgroundColor: C.elevated,
+                  backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
                 }}
               >
@@ -15356,7 +16461,7 @@ function BudgetRevenueTab({
                       <span
                         className="px-2 py-0.5 text-[10px] font-semibold rounded-full"
                         style={{
-                          backgroundColor: C.elevated,
+                          backgroundColor: C.surface,
                           color: C.textSecondary,
                           border: `1px solid ${C.border}`,
                         }}
@@ -15439,7 +16544,7 @@ function BudgetRevenueTab({
               <div
                 className="rounded-sm p-4"
                 style={{
-                  backgroundColor: C.elevated,
+                  backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
                 }}
               >
@@ -15661,8 +16766,10 @@ function InsightsIntro({ text }: { text: string }) {
 
 function BudgetInsightsTab({
   onNavigateTab,
+  onNavigateTuition,
 }: {
   onNavigateTab: (tab: BudgetTab, opts?: BudgetNavigateOptions) => void;
+  onNavigateTuition?: (opts?: TuitionNavigateOptions) => void;
 }) {
   const [insightsTab, setInsightsTab] = useState<InsightsSubTab>("summary");
   const [period, setPeriod] = useState<BudgetPeriod>("ytd");
@@ -15695,6 +16802,7 @@ function BudgetInsightsTab({
     tone: "error" | "warning" | "success" | "info";
     tab: BudgetTab;
     opts?: BudgetNavigateOptions;
+    tuitionNav?: TuitionNavigateOptions;
   }[] = [];
 
   if (overCats.length > 0) {
@@ -15732,8 +16840,8 @@ function BudgetInsightsTab({
       title: `${outstandingTuition} tuition items outstanding`,
       detail: "Families with unpaid or sent invoices",
       tone: "warning",
-      tab: "transactions",
-      opts: { transactionsTab: "checklist" },
+      tab: "overview",
+      tuitionNav: { filter: "overdue" },
     });
   }
   if (alerts.length === 0) {
@@ -16038,7 +17146,7 @@ function BudgetInsightsTab({
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
-              <FeatureTip text="Each row opens the right place to fix it — Expenses for spend and receipts, Revenue for pending payments, Transactions for family tuition." />
+              <FeatureTip text="Each row opens the right place to fix it — Expenses for spend and receipts, Revenue for pending payments, My School → Tuition for family billing." />
               <div className="space-y-2">
                 {alerts.map((alert, i) => {
                   const tones = {
@@ -16067,7 +17175,7 @@ function BudgetInsightsTab({
                     receipts:
                       "Paid expenses without a receipt can cause audit issues — upload or attach documentation.",
                     tuition:
-                      "Unpaid or invoice-sent tuition on the family checklist — open Transactions to chase payment.",
+                      "Unpaid or invoice-sent tuition — open My School → Tuition to review balances and send reminders.",
                     "all-clear":
                       "Nothing urgent right now. Check Breakdown if you want a deeper look at trends.",
                   };
@@ -16079,7 +17187,13 @@ function BudgetInsightsTab({
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      onClick={() => onNavigateTab(alert.tab, alert.opts)}
+                      onClick={() => {
+                        if (alert.tuitionNav) {
+                          onNavigateTuition?.(alert.tuitionNav);
+                        } else {
+                          onNavigateTab(alert.tab, alert.opts);
+                        }
+                      }}
                       className="w-full text-left rounded-sm p-4 transition-all group flex items-start gap-3"
                       style={{
                         backgroundColor: t.bg,
@@ -16286,15 +17400,14 @@ function BudgetInsightsTab({
 function BudgetPage({
   activeTab: tab,
   onTabChange,
+  onNavigateToTuition,
 }: {
   activeTab: BudgetTab;
   onTabChange: (tab: BudgetTab) => void;
+  onNavigateToTuition?: (opts?: TuitionNavigateOptions) => void;
 }) {
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("all");
   const [revenuePendingOnly, setRevenuePendingOnly] = useState(false);
-  const [transactionsTab, setTransactionsTab] = useState<"all" | "checklist">(
-    "all",
-  );
 
   const handleNavigate = useCallback(
     (target: BudgetTab, opts?: BudgetNavigateOptions) => {
@@ -16303,9 +17416,6 @@ function BudgetPage({
       }
       if (opts?.revenuePendingOnly !== undefined) {
         setRevenuePendingOnly(opts.revenuePendingOnly);
-      }
-      if (opts?.transactionsTab) {
-        setTransactionsTab(opts.transactionsTab);
       }
       onTabChange(target);
     },
@@ -16427,7 +17537,10 @@ function BudgetPage({
             exit={{ opacity: 0 }}
             className="flex-1 overflow-hidden flex flex-col"
           >
-            <BudgetInsightsTab onNavigateTab={handleNavigate} />
+            <BudgetInsightsTab
+              onNavigateTab={handleNavigate}
+              onNavigateTuition={onNavigateToTuition}
+            />
           </motion.div>
         )}
 
@@ -16440,8 +17553,9 @@ function BudgetPage({
             className="flex-1 overflow-hidden"
           >
             <TransactionsPage
-              activeTab={transactionsTab}
-              onTabChange={setTransactionsTab}
+              onNavigateToTuition={(familyId) =>
+                onNavigateToTuition?.({ familyId })
+              }
             />
           </motion.div>
         )}
@@ -16764,7 +17878,7 @@ function NewAutomationWizard({
                           {tmpl.description}
                         </div>
                         <div className="flex gap-1 flex-wrap">
-                          <span className="text-[9px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: C.elevated, color: C.textSecondary }}>
+                          <span className="text-[9px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: C.surface, color: C.textSecondary }}>
                             {tmpl.steps} steps
                           </span>
                           <span className="text-[9px] rounded-full px-1.5 py-0.5" style={{ backgroundColor: C.successBg, color: C.success }}>
@@ -16817,7 +17931,7 @@ function NewAutomationWizard({
                       >
                         <div
                           className="flex items-center justify-center rounded-sm flex-shrink-0"
-                          style={{ width: 36, height: 36, backgroundColor: C.elevated, color: sel ? C.accent : C.textSecondary }}
+                          style={{ width: 36, height: 36, backgroundColor: C.surface, color: sel ? C.accent : C.textSecondary }}
                         >
                           <TriggerIcon id={trig.id} />
                         </div>
@@ -16876,7 +17990,7 @@ function NewAutomationWizard({
                         </div>
                         <div
                           className="text-[11px] font-bold rounded-full px-2 py-0.5"
-                          style={{ backgroundColor: C.elevated, color: C.textSecondary }}
+                          style={{ backgroundColor: C.surface, color: C.textSecondary }}
                         >
                           {seg.count}
                         </div>
@@ -17898,7 +19012,7 @@ function MarketingPage() {
                 style={{
                   backgroundImage: `radial-gradient(circle, ${C.border} 1px, transparent 1px)`,
                   backgroundSize: "20px 20px",
-                  backgroundColor: C.elevated,
+                  backgroundColor: C.surface,
                   border: `1px solid ${C.border}`,
                 }}
               >
@@ -17947,7 +19061,7 @@ function MarketingPage() {
                             <div
                               className="flex flex-col items-center gap-1.5 px-3 py-2 rounded mx-1"
                               style={{
-                                backgroundColor: C.elevated,
+                                backgroundColor: C.surface,
                                 border: `1px dashed ${C.border}`,
                                 minWidth: 72,
                               }}
@@ -18013,7 +19127,7 @@ function MarketingPage() {
                                     <span
                                       className="ml-auto text-[9px] px-1 py-0.5 rounded"
                                       style={{
-                                        backgroundColor: C.elevated,
+                                        backgroundColor: C.surface,
                                         color: C.textTertiary,
                                       }}
                                     >
@@ -18660,7 +19774,7 @@ function StaffPaperworkCard({
   return (
     <div
       className="flex flex-col rounded-sm p-3 min-h-[120px]"
-      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
+      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <p className="text-xs font-semibold leading-snug" style={{ color: C.textPrimary }}>
@@ -19135,7 +20249,7 @@ function StaffProfilePanel({ staff }: { staff: DemoStaff }) {
                           <div className="w-24 flex-shrink-0">
                             <div
                               className="h-1 rounded-full overflow-hidden"
-                              style={{ backgroundColor: C.elevated }}
+                              style={{ backgroundColor: C.input }}
                             >
                               <div
                                 className="h-full rounded-full"
@@ -20106,13 +21220,39 @@ function ClassroomsPage() {
   );
 }
 
-function MySchoolPage({ activeTab, onTabChange }: { activeTab: MySchoolTab; onTabChange: (tab: MySchoolTab) => void }) {
+function MySchoolPage({
+  activeTab,
+  onTabChange,
+  selectedTuitionFamilyId,
+  tuitionFilter,
+  onSelectTuitionFamily,
+}: {
+  activeTab: MySchoolTab;
+  onTabChange: (tab: MySchoolTab) => void;
+  selectedTuitionFamilyId?: string;
+  tuitionFilter?: TuitionFilter;
+  onSelectTuitionFamily?: (id: string) => void;
+}) {
   return (
     <div className="h-full overflow-hidden">
-      {activeTab === "students" && <StudentsPage />}
+      {activeTab === "students" && (
+        <StudentsPage
+          onNavigateToTuition={(familyId) => {
+            onSelectTuitionFamily?.(familyId);
+            onTabChange("tuition");
+          }}
+        />
+      )}
       {activeTab === "programs" && <ProgramsPage />}
       {activeTab === "staff" && <StaffPage />}
       {activeTab === "classrooms" && <ClassroomsPage />}
+      {activeTab === "tuition" && (
+        <TuitionPage
+          selectedFamilyId={selectedTuitionFamilyId}
+          initialFilter={tuitionFilter}
+          onSelectFamily={onSelectTuitionFamily}
+        />
+      )}
     </div>
   );
 }
@@ -20130,7 +21270,7 @@ type ActivePage =
   | "impersonate"
   | "marketplace";
 
-type MySchoolTab = "students" | "programs" | "staff" | "classrooms";
+type MySchoolTab = "students" | "programs" | "staff" | "classrooms" | "tuition";
 
 type SubtabItem<T extends string> = {
   key: T;
@@ -20156,6 +21296,7 @@ const MYSCHOOL_SUBTABS: SubtabItem<MySchoolTab>[] = [
   { key: "programs", label: "Programs", icon: <BookOpen className="w-3.5 h-3.5" /> },
   { key: "staff", label: "Staff", icon: <UserCheck className="w-3.5 h-3.5" /> },
   { key: "classrooms", label: "Classrooms", icon: <Home className="w-3.5 h-3.5" /> },
+  { key: "tuition", label: "Tuition", icon: <DollarSign className="w-3.5 h-3.5" /> },
 ];
 
 interface NavItem {
@@ -20327,7 +21468,7 @@ function SupportModal({ onClose }: { onClose: () => void }) {
                     gap: 10,
                     padding: "8px 10px",
                     borderRadius: C.r.md,
-                    backgroundColor: C.elevated,
+                    backgroundColor: C.surface,
                     border: `1px solid ${C.border}`,
                     cursor: "pointer",
                   }}
@@ -20377,7 +21518,7 @@ function SupportModal({ onClose }: { onClose: () => void }) {
                   padding: "8px 10px",
                   borderRadius: C.r.md,
                   border: `1px solid ${C.border}`,
-                  backgroundColor: C.elevated,
+                  backgroundColor: C.surface,
                 }}
               >
                 <Mail className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.textTertiary }} />
@@ -20594,7 +21735,7 @@ function Sidebar({
                             <span
                               className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
                               style={{
-                                backgroundColor: C.elevated,
+                                backgroundColor: C.surface,
                                 color: C.textQuaternary,
                               }}
                             >
@@ -20808,6 +21949,7 @@ function Sidebar({
                                 return (
                                   <button
                                     key={sub.key}
+                                    data-tour-id={`myschool-tab-${sub.key}`}
                                     onClick={() => {
                                       onNavigate("myschool");
                                       onMySchoolSubtab(sub.key);
@@ -20924,6 +22066,10 @@ export default function AdminDashboardDemo({
   const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>("flows");
   const [budgetTab, setBudgetTab] = useState<BudgetTab>("overview");
   const [mySchoolTab, setMySchoolTab] = useState<MySchoolTab>("students");
+  const [selectedTuitionFamilyId, setSelectedTuitionFamilyId] = useState<
+    string | undefined
+  >(undefined);
+  const [tuitionFilter, setTuitionFilter] = useState<TuitionFilter>("all");
   const [isExpanded, setIsExpanded] = useState(
     defaultSidebarExpanded !== undefined ? defaultSidebarExpanded : !disableTour
   );
@@ -20947,6 +22093,13 @@ export default function AdminDashboardDemo({
   const tourTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const navigateToTuition = useCallback((opts?: TuitionNavigateOptions) => {
+    setActivePage("myschool");
+    setMySchoolTab("tuition");
+    if (opts?.familyId) setSelectedTuitionFamilyId(opts.familyId);
+    if (opts?.filter) setTuitionFilter(opts.filter);
+  }, []);
+
   const PAGE_NAMES: Record<string, string> = {
     budget: "Budget",
     marketing: "Marketing",
@@ -20964,9 +22117,23 @@ export default function AdminDashboardDemo({
       case "programs":
         return <ProgramsPage />;
       case "myschool":
-        return <MySchoolPage activeTab={mySchoolTab} onTabChange={setMySchoolTab} />;
+        return (
+          <MySchoolPage
+            activeTab={mySchoolTab}
+            onTabChange={setMySchoolTab}
+            selectedTuitionFamilyId={selectedTuitionFamilyId}
+            tuitionFilter={tuitionFilter}
+            onSelectTuitionFamily={setSelectedTuitionFamilyId}
+          />
+        );
       case "budget":
-        return <BudgetPage activeTab={budgetTab} onTabChange={setBudgetTab} />;
+        return (
+          <BudgetPage
+            activeTab={budgetTab}
+            onTabChange={setBudgetTab}
+            onNavigateToTuition={navigateToTuition}
+          />
+        );
       case "marketing":
         return <MarketingPage />;
       case "impersonate":
@@ -21062,26 +22229,34 @@ export default function AdminDashboardDemo({
       },
 
       {
-        action: () => setActivePage("transactions"),
-        targetId: "nav-transactions",
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="budget-tab-transactions"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "budget-tab-transactions",
         holdMs: 1600,
         clickAnimation: true,
       },
       {
         action: () => {
-          const el = containerRef.current?.querySelector(
-            '[data-tour-id="tx-tab-checklist"]',
-          );
-          (el as HTMLElement)?.click();
+          setActivePage("myschool");
+          setMySchoolTab("tuition");
         },
-        targetId: "tx-tab-checklist",
-        holdMs: 2000,
+        targetId: "nav-myschool",
+        holdMs: 1800,
         clickAnimation: true,
       },
       {
-        action: () => setActivePage("myschool"),
-        targetId: "nav-myschool",
-        holdMs: 1800,
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="myschool-tab-tuition"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "myschool-tab-tuition",
+        holdMs: 2000,
         clickAnimation: true,
       },
       {
