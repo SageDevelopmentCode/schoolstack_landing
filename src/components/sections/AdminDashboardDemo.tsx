@@ -53,6 +53,10 @@ import {
   Lightbulb,
   Sparkles,
   Wallet,
+  UserCircle,
+  HeartPulse,
+  Car,
+  Syringe,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -105,10 +109,10 @@ const C_DARK = {
 };
 
 const C_LIGHT = {
-  bg: "#F7F1E7",
-  surface: "#FFFAF4",
-  elevated: "#FAF7F2",
-  input: "#F4F4F5",
+  bg: "#FCFAF7",
+  surface: "#FFFFFF",
+  elevated: "#FDFCFB",
+  input: "#FAFAFA",
   inputBorder: "#E4E4E7",
   border: "#DDD0BE",
   borderStrong: "#B8A898",
@@ -3035,12 +3039,17 @@ const ROOM_TYPE_LABELS: Record<DemoClassroom["roomType"], string> = {
   shared: "Shared space",
 };
 
-const CLASSROOM_TABS: { id: ClassroomTabId; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "health_safety", label: "Health & Safety" },
-  { id: "staff", label: "Staff" },
-  { id: "schedule", label: "Schedule" },
-  { id: "roster", label: "Roster" },
+const CLASSROOM_TABS: {
+  id: ClassroomTabId;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+}[] = [
+  { id: "overview", label: "Overview", icon: <LayoutDashboard className="w-3 h-3" />, color: "#5E7C68" },
+  { id: "health_safety", label: "Health & Safety", icon: <Shield className="w-3 h-3" />, color: "#EF4444" },
+  { id: "staff", label: "Staff", icon: <UserCheck className="w-3 h-3" />, color: "#F97316" },
+  { id: "schedule", label: "Schedule", icon: <CalendarDays className="w-3 h-3" />, color: "#8B5CF6" },
+  { id: "roster", label: "Roster", icon: <Users className="w-3 h-3" />, color: "#38BDF8" },
 ];
 
 const SUPPLY_STATUS_STYLES: Record<
@@ -3577,18 +3586,28 @@ function Card({
 function SectionLabel({
   children,
   hint,
+  icon,
+  iconColor,
+  className,
 }: {
   children: React.ReactNode;
   hint?: string;
+  icon?: React.ReactNode;
+  iconColor?: string;
+  className?: string;
 }) {
   return (
-    <div className="mb-4">
-      <p
-        className="text-sm font-medium"
-        style={{ color: C.textSecondary }}
-      >
-        {children}
-      </p>
+    <div className={className ?? "mb-4"}>
+      <div className="flex items-center gap-2">
+        {icon != null && (
+          <span className="flex-shrink-0" style={{ color: iconColor }} aria-hidden>
+            {icon}
+          </span>
+        )}
+        <p className="text-sm font-medium" style={{ color: C.textSecondary }}>
+          {children}
+        </p>
+      </div>
       {hint && (
         <p className="text-xs mt-1 leading-relaxed" style={{ color: C.textTertiary }}>
           {hint}
@@ -8673,6 +8692,22 @@ function PeoplePage() {
 
 type StudentProfileTab = "profile" | "health" | "pickup" | "immunizations" | "emergency" | "paperwork" | "billing" | "family";
 
+const STUDENT_PROFILE_TABS: {
+  key: StudentProfileTab;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+}[] = [
+  { key: "profile", label: "Profile", icon: <UserCircle className="w-3 h-3" />, color: "#5E7C68" },
+  { key: "health", label: "Health", icon: <HeartPulse className="w-3 h-3" />, color: "#EF4444" },
+  { key: "pickup", label: "Pickup", icon: <Car className="w-3 h-3" />, color: "#F59E0B" },
+  { key: "immunizations", label: "Immunizations", icon: <Syringe className="w-3 h-3" />, color: "#8B5CF6" },
+  { key: "emergency", label: "Emergency", icon: <PhoneCall className="w-3 h-3" />, color: "#F97316" },
+  { key: "paperwork", label: "Paperwork", icon: <ClipboardList className="w-3 h-3" />, color: "#38BDF8" },
+  { key: "billing", label: "Billing", icon: <CreditCard className="w-3 h-3" />, color: "#22C55E" },
+  { key: "family", label: "Family", icon: <Users className="w-3 h-3" />, color: "#EC4899" },
+];
+
 function formatUsd(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
@@ -8692,17 +8727,6 @@ function StudentProfilePanel({
     : [];
   const paperworkSigned = studentPaperwork.filter((f) => f.status === "signed").length;
   const paperworkPending = studentPaperwork.filter((f) => f.status !== "signed");
-
-  const PROFILE_TABS: { key: StudentProfileTab; label: string }[] = [
-    { key: "profile", label: "Profile" },
-    { key: "health", label: "Health" },
-    { key: "pickup", label: "Pickup" },
-    { key: "immunizations", label: "Immunizations" },
-    { key: "emergency", label: "Emergency" },
-    { key: "paperwork", label: "Paperwork" },
-    { key: "billing", label: "Billing" },
-    { key: "family", label: "Family" },
-  ];
 
   return (
     <motion.div
@@ -8759,13 +8783,16 @@ function StudentProfilePanel({
         className="flex items-center px-4 pt-2.5 pb-0 flex-shrink-0 overflow-x-auto"
         style={{ borderBottom: `1px solid ${C.border}`, gap: 0 }}
       >
-        {PROFILE_TABS.map((t) => (
+        {STUDENT_PROFILE_TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className="flex-shrink-0 px-2.5 pb-2.5 text-[11px] font-medium relative whitespace-nowrap"
+            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 pb-2.5 text-[11px] font-medium relative whitespace-nowrap"
             style={{ color: tab === t.key ? C.accent : C.textTertiary }}
           >
+            <span className="flex-shrink-0" style={{ color: t.color }} aria-hidden>
+              {t.icon}
+            </span>
             {t.label}
             {tab === t.key && (
               <span
@@ -9697,13 +9724,18 @@ type ProgramTabId =
   | "staff"
   | "roster";
 
-const PROGRAM_TABS: { id: ProgramTabId; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "enrollment", label: "Enrollment" },
-  { id: "pricing", label: "Pricing" },
-  { id: "schedule", label: "Schedule" },
-  { id: "staff", label: "Staff" },
-  { id: "roster", label: "Roster" },
+const PROGRAM_TABS: {
+  id: ProgramTabId;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+}[] = [
+  { id: "overview", label: "Overview", icon: <LayoutDashboard className="w-3 h-3" />, color: "#5E7C68" },
+  { id: "enrollment", label: "Enrollment", icon: <GitBranch className="w-3 h-3" />, color: "#22C55E" },
+  { id: "pricing", label: "Pricing", icon: <Tag className="w-3 h-3" />, color: "#F59E0B" },
+  { id: "schedule", label: "Schedule", icon: <CalendarDays className="w-3 h-3" />, color: "#8B5CF6" },
+  { id: "staff", label: "Staff", icon: <UserCheck className="w-3 h-3" />, color: "#EF4444" },
+  { id: "roster", label: "Roster", icon: <Users className="w-3 h-3" />, color: "#38BDF8" },
 ];
 
 function ProgramSection({
@@ -10657,7 +10689,7 @@ function ProgramsPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className="px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors"
                   style={{
                     color: isActive ? C.accent : C.textSecondary,
                     borderBottom: isActive
@@ -10666,6 +10698,9 @@ function ProgramsPage() {
                     marginBottom: -1,
                   }}
                 >
+                  <span className="flex-shrink-0" style={{ color: tab.color }} aria-hidden>
+                    {tab.icon}
+                  </span>
                   {tab.label}
                 </button>
               );
@@ -14557,7 +14592,10 @@ function TransactionsPage({
   });
 
   return (
-    <div className="h-full flex flex-col relative">
+    <div
+      className="relative flex h-full flex-col"
+      style={{ backgroundColor: C.surface }}
+    >
       <div className="flex-shrink-0 px-6 pt-6 pb-4 space-y-4">
         <div>
           <h1
@@ -14598,7 +14636,7 @@ function TransactionsPage({
               key={s.label}
               className="rounded-sm p-3"
               style={{
-                backgroundColor: C.surface,
+                backgroundColor: C.elevated,
                 border: `1px solid ${C.border}`,
               }}
             >
@@ -14702,8 +14740,8 @@ function TransactionsPage({
               }}
               className="text-xs px-2 py-1.5 rounded-sm outline-none"
               style={{
-                backgroundColor: C.surface,
-                border: `1px solid ${C.border}`,
+                backgroundColor: C.input,
+                border: `1px solid ${C.inputBorder}`,
                 color: C.textPrimary,
               }}
             >
@@ -14728,12 +14766,15 @@ function TransactionsPage({
       </div>
 
       <div
-        className="flex-1 overflow-hidden"
+        className="relative min-h-0 flex-1 overflow-hidden"
         style={{ borderTop: `1px solid ${C.border}` }}
       >
-        <div className="overflow-x-auto h-full">
+        <div className="h-full overflow-y-auto overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead
+              className="sticky top-0 z-[1]"
+              style={{ backgroundColor: C.surface }}
+            >
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                 {[
                   "Type",
@@ -17887,7 +17928,11 @@ function BudgetInsightsTab({
           className="p-5"
           style={insightsCardStyle()}
         >
-          <SectionLabel hint="Higher is healthier — based on budget adherence and overspend risk.">
+          <SectionLabel
+            hint="Higher is healthier — based on budget adherence and overspend risk."
+            icon={<HeartPulse className="w-3.5 h-3.5" />}
+            iconColor="#22C55E"
+          >
             Financial Health
           </SectionLabel>
           <div className="flex items-center gap-5 mt-4">
@@ -17952,7 +17997,11 @@ function BudgetInsightsTab({
           className="p-5"
           style={insightsCardStyle()}
         >
-          <SectionLabel hint="Months of runway at current net burn if revenue holds steady.">
+          <SectionLabel
+            hint="Months of runway at current net burn if revenue holds steady."
+            icon={<Wallet className="w-3.5 h-3.5" />}
+            iconColor="#5E7C68"
+          >
             Cash Runway
           </SectionLabel>
           <div className="mt-4 space-y-4">
@@ -18122,7 +18171,11 @@ function BudgetInsightsTab({
             >
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <InsightsCard style={{ padding: "20px" }}>
-          <SectionLabel hint="Where your income comes from — tuition vs deposits vs donations.">
+          <SectionLabel
+            hint="Where your income comes from — tuition vs deposits vs donations."
+            icon={<DollarSign className="w-3.5 h-3.5" />}
+            iconColor="#F59E0B"
+          >
             Revenue Mix
           </SectionLabel>
           <div className="mt-4">
@@ -18131,7 +18184,11 @@ function BudgetInsightsTab({
         </InsightsCard>
 
         <InsightsCard style={{ padding: "20px" }}>
-          <SectionLabel hint="Ranked by % of plan used — click a row to see expenses.">
+          <SectionLabel
+            hint="Ranked by % of plan used — click a row to see expenses."
+            icon={<BarChart2 className="w-3.5 h-3.5" />}
+            iconColor="#8B5CF6"
+          >
             Budget Variance
           </SectionLabel>
           <div className="mt-3 space-y-2">
@@ -18215,7 +18272,12 @@ function BudgetInsightsTab({
 
       <InsightsCard style={{ padding: "20px" }}>
         <div className="flex items-center justify-between mb-4">
-          <SectionLabel hint="Monthly net (revenue minus expenses) — green bars mean you kept more.">
+          <SectionLabel
+            hint="Monthly net (revenue minus expenses) — green bars mean you kept more."
+            icon={<TrendingUp className="w-3.5 h-3.5" />}
+            iconColor="#38BDF8"
+            className="mb-0"
+          >
             Net Trend
           </SectionLabel>
           <span className="text-[10px]" style={{ color: C.textTertiary }}>
@@ -18247,10 +18309,10 @@ function BudgetInsightsTab({
                   title={`${m.month}: ${positive ? "+" : "-"}$${Math.abs(net).toLocaleString()}`}
                 />
                 <span
-                  className="text-[8px] truncate w-full text-center"
+                  className="text-[9px] truncate w-full text-center"
                   style={{ color: C.textTertiary }}
                 >
-                  {m.month.slice(0, 1)}
+                  {m.month}
                 </span>
               </div>
             );
@@ -21471,16 +21533,21 @@ function ComingSoonPage({ name }: { name: string }) {
 
 // ─── My School sub-pages ──────────────────────────────────────────────────────
 
-const STAFF_PROFILE_TABS: { key: StaffProfileTab; label: string }[] = [
-  { key: "profile", label: "Profile" },
-  { key: "paperwork", label: "Paperwork" },
-  { key: "credentials", label: "Credentials" },
-  { key: "payroll", label: "Payroll" },
-  { key: "compensation", label: "Compensation" },
-  { key: "schedule", label: "Schedule" },
-  { key: "classes", label: "Classes" },
-  { key: "access", label: "Access" },
-  { key: "activity", label: "Activity" },
+const STAFF_PROFILE_TABS: {
+  key: StaffProfileTab;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+}[] = [
+  { key: "profile", label: "Profile", icon: <UserCircle className="w-3 h-3" />, color: "#5E7C68" },
+  { key: "paperwork", label: "Paperwork", icon: <ClipboardList className="w-3 h-3" />, color: "#38BDF8" },
+  { key: "credentials", label: "Credentials", icon: <GraduationCap className="w-3 h-3" />, color: "#8B5CF6" },
+  { key: "payroll", label: "Payroll", icon: <Wallet className="w-3 h-3" />, color: "#22C55E" },
+  { key: "compensation", label: "Compensation", icon: <DollarSign className="w-3 h-3" />, color: "#F59E0B" },
+  { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-3 h-3" />, color: "#F97316" },
+  { key: "classes", label: "Classes", icon: <BookOpen className="w-3 h-3" />, color: "#EC4899" },
+  { key: "access", label: "Access", icon: <Eye className="w-3 h-3" />, color: "#6366F1" },
+  { key: "activity", label: "Activity", icon: <Clock className="w-3 h-3" />, color: "#64748B" },
 ];
 
 function StaffPaperworkCard({
@@ -21609,9 +21676,12 @@ function StaffProfilePanel({
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className="flex-shrink-0 px-2.5 pb-2.5 text-[11px] font-medium relative whitespace-nowrap"
+            className="flex-shrink-0 flex items-center gap-1.5 px-2.5 pb-2.5 text-[11px] font-medium relative whitespace-nowrap"
             style={{ color: tab === t.key ? C.accent : C.textTertiary }}
           >
+            <span className="flex-shrink-0" style={{ color: t.color }} aria-hidden>
+              {t.icon}
+            </span>
             {t.label}
             {tab === t.key && (
               <span
@@ -22936,7 +23006,7 @@ function ClassroomsPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className="px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors"
                   style={{
                     color: isActive ? C.accent : C.textSecondary,
                     borderBottom: isActive
@@ -22945,6 +23015,9 @@ function ClassroomsPage() {
                     marginBottom: -1,
                   }}
                 >
+                  <span className="flex-shrink-0" style={{ color: tab.color }} aria-hidden>
+                    {tab.icon}
+                  </span>
                   {tabLabel}
                 </button>
               );
