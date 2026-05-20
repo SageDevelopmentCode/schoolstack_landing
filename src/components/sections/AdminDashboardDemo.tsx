@@ -13241,103 +13241,103 @@ function BudgetExpensesTab() {
             </p>
           )}
         </div>
+      </div>
 
-        <AnimatePresence>
-          {selectedExp && (
-            <motion.div
-              initial={{ x: "100%", opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="absolute top-0 right-0 bottom-0 flex flex-col shadow-lg"
-              style={{
-                width: 320,
-                backgroundColor: C.surface,
-                borderLeft: `1px solid ${C.border}`,
-                zIndex: 10,
-              }}
+      <AnimatePresence>
+        {selectedExp && (
+          <motion.div
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            className="absolute inset-y-0 right-0 flex flex-col shadow-lg"
+            style={{
+              width: 320,
+              backgroundColor: C.surface,
+              borderLeft: `1px solid ${C.border}`,
+              zIndex: 10,
+            }}
+          >
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: `1px solid ${C.border}` }}
             >
-              <div
-                className="flex items-center justify-between px-5 py-4"
-                style={{ borderBottom: `1px solid ${C.border}` }}
+              <h3
+                className="text-sm font-semibold"
+                style={{ color: C.textPrimary }}
               >
-                <h3
-                  className="text-sm font-semibold"
-                  style={{ color: C.textPrimary }}
+                Expense Detail
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedExp(null)}
+                style={{ color: C.textTertiary }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <div
+                className="rounded-sm p-4"
+                style={{
+                  backgroundColor: C.elevated,
+                  border: `1px solid ${C.border}`,
+                }}
+              >
+                <p
+                  className="text-2xl font-bold tabular-nums"
+                  style={{ color: C.error }}
                 >
-                  Expense Detail
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setSelectedExp(null)}
+                  {fmt(selectedExp.amount)}
+                </p>
+                <p
+                  className="text-xs mt-1"
                   style={{ color: C.textTertiary }}
                 >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                <div
-                  className="rounded-sm p-4"
+                  {selectedExp.category}
+                </p>
+                <span
+                  className="mt-2 inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
                   style={{
-                    backgroundColor: C.elevated,
-                    border: `1px solid ${C.border}`,
+                    backgroundColor: EXP_STATUS_COLORS[selectedExp.status].bg,
+                    border: `1px solid ${EXP_STATUS_COLORS[selectedExp.status].border}`,
+                    color: EXP_STATUS_COLORS[selectedExp.status].text,
                   }}
                 >
-                  <p
-                    className="text-2xl font-bold tabular-nums"
-                    style={{ color: C.error }}
-                  >
-                    {fmt(selectedExp.amount)}
-                  </p>
-                  <p
-                    className="text-xs mt-1"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {selectedExp.category}
-                  </p>
-                  <span
-                    className="mt-2 inline-block px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize"
-                    style={{
-                      backgroundColor: EXP_STATUS_COLORS[selectedExp.status].bg,
-                      border: `1px solid ${EXP_STATUS_COLORS[selectedExp.status].border}`,
-                      color: EXP_STATUS_COLORS[selectedExp.status].text,
-                    }}
-                  >
-                    {selectedExp.status}
-                  </span>
-                </div>
-                <DetailField
-                  label="Description"
-                  value={selectedExp.description}
-                />
-                <DetailField label="Vendor" value={selectedExp.vendor} />
-                <DetailField label="Date" value={selectedExp.date} />
-                <DetailField
-                  label="Payment"
-                  value={selectedExp.paymentMethod}
-                />
-                <DetailField
-                  label="Receipt"
-                  value={
-                    selectedExp.receipt ? (
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
-                        style={{ color: C.info }}
-                      >
-                        <Download className="h-3 w-3" />
-                        {selectedExp.receipt}
-                      </button>
-                    ) : (
-                      <span style={{ color: C.warning }}>Missing</span>
-                    )
-                  }
-                />
+                  {selectedExp.status}
+                </span>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              <DetailField
+                label="Description"
+                value={selectedExp.description}
+              />
+              <DetailField label="Vendor" value={selectedExp.vendor} />
+              <DetailField label="Date" value={selectedExp.date} />
+              <DetailField
+                label="Payment"
+                value={selectedExp.paymentMethod}
+              />
+              <DetailField
+                label="Receipt"
+                value={
+                  selectedExp.receipt ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-xs font-medium underline-offset-2 hover:underline"
+                      style={{ color: C.info }}
+                    >
+                      <Download className="h-3 w-3" />
+                      {selectedExp.receipt}
+                    </button>
+                  ) : (
+                    <span style={{ color: C.warning }}>Missing</span>
+                  )
+                }
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
