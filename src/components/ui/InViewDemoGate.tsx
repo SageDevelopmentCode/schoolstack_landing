@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { DemoSkeleton } from '@/components/ui/DemoSkeleton'
 import { useInViewOnRestore } from '@/hooks/useInViewOnRestore'
 import { useHydrated } from '@/hooks/useHydrated'
+import { useEntranceAnimation } from '@/hooks/useEntranceAnimation'
 
 interface InViewDemoGateProps {
   children: React.ReactNode
@@ -15,24 +15,14 @@ interface InViewDemoGateProps {
 export function InViewDemoGate({ children, className = '', style }: InViewDemoGateProps) {
   const pathname = usePathname()
   const hydrated = useHydrated()
-  const [forceShow, setForceShow] = useState(false)
+  const { skip } = useEntranceAnimation()
   const [ref, inView] = useInViewOnRestore<HTMLDivElement>({
     threshold: 0,
     rootMargin: '200px 0px 200px 0px',
     resetKey: pathname,
   })
 
-  useEffect(() => {
-    if (!hydrated) return
-
-    const timeoutId = window.setTimeout(() => {
-      setForceShow(true)
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [pathname, hydrated])
-
-  const show = hydrated && (inView || forceShow)
+  const show = hydrated && (inView || skip)
 
   return (
     <div ref={ref} className={className} style={style}>

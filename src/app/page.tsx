@@ -3,6 +3,7 @@ import Navbar from '@/components/sections/Navbar'
 import HeroSection from '@/components/sections/HeroSection'
 import ProductPreviewSkeleton from '@/components/sections/ProductPreviewSkeleton'
 import SectionFallback from '@/components/ui/SectionFallback'
+import { DeferredSection } from '@/components/ui/DeferredSection'
 
 const ProductPreviewSection = dynamic(
   () => import('@/components/sections/ProductPreviewSection'),
@@ -60,21 +61,45 @@ export default function Home() {
       <Navbar />
       <main>
         <HeroSection />
-        <ProductPreviewSection />
-        <PainSection />
-        <FamilyClaritySection />
-        <AdminGrowthSection />
-        <TeacherSupportSection />
+        <DeferredSection fallback={<ProductPreviewSkeleton />}>
+          <ProductPreviewSection />
+        </DeferredSection>
+        <DeferredSection minHeight="28rem">
+          <PainSection />
+        </DeferredSection>
+        <DeferredSection minHeight="24rem">
+          <FamilyClaritySection />
+        </DeferredSection>
+        <DeferredSection minHeight="24rem">
+          <AdminGrowthSection />
+        </DeferredSection>
+        <DeferredSection minHeight="24rem">
+          <TeacherSupportSection />
+        </DeferredSection>
         {/* <RightSizedSection /> */}
-        <WorkflowSection />
-        <StacksSection />
+        <DeferredSection minHeight="32rem">
+          <WorkflowSection />
+        </DeferredSection>
+        <DeferredSection minHeight="20rem">
+          <StacksSection />
+        </DeferredSection>
         {/* <MicroschoolsSection /> */}
-        <FounderStorySection />
-        <CustomSection />
-        <FinalCTASection />
+        <DeferredSection minHeight="28rem">
+          <FounderStorySection />
+        </DeferredSection>
+        <DeferredSection minHeight="20rem">
+          <CustomSection />
+        </DeferredSection>
+        <DeferredSection minHeight="16rem">
+          <FinalCTASection />
+        </DeferredSection>
       </main>
-      <Footer />
-      <FloatingQuestionButton />
+      <DeferredSection minHeight="12rem">
+        <Footer />
+      </DeferredSection>
+      <DeferredSection minHeight="0" fallback={null}>
+        <FloatingQuestionButton />
+      </DeferredSection>
     </>
   )
 }
