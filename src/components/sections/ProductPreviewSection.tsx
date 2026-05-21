@@ -164,16 +164,22 @@ export default function ProductPreviewSection() {
     }
   }
 
+  function illMotionProps(delay: number, dir: 1 | -1) {
+    return {
+      initial: false as const,
+      whileInView: 'visible' as const,
+      viewport: { once: true },
+      variants: illVariant(dir, delay),
+    }
+  }
+
   return (
     <section id="product" className="relative overflow-hidden bg-surface py-24">
 
       {/* ── Left cluster ── */}
       {/* Notebook — top-left */}
       <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={illVariant(-1, 0.2)}
+        {...illMotionProps(0.2, -1)}
         className="absolute top-6 left-[-150px] z-0 pointer-events-none select-none hidden lg:block"
       >
         <Image src="/images/illustrations/Notebook.png" alt="" aria-hidden width={340} height={340} style={{ opacity: 0.88 }} />
@@ -181,10 +187,7 @@ export default function ProductPreviewSection() {
 
       {/* Backpack — mid-left, lower and pulled in a bit more */}
       <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={illVariant(-1, 0.38)}
+        {...illMotionProps(0.38, -1)}
         className="absolute top-[310px] left-[-100px] z-0 pointer-events-none select-none hidden lg:block"
       >
         <Image src="/images/illustrations/Backpack.png" alt="" aria-hidden width={240} height={240} style={{ opacity: 0.82 }} />
@@ -193,10 +196,7 @@ export default function ProductPreviewSection() {
       {/* ── Frame-level cluster ── */}
       {/* Letters — bottom-left corner */}
       <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={illVariant(-1, 0.55)}
+        {...illMotionProps(0.55, -1)}
         className="absolute bottom-[80px] left-[-70px] z-0 pointer-events-none select-none hidden lg:block"
         style={{ rotate: '-8deg' }}
       >
@@ -205,10 +205,7 @@ export default function ProductPreviewSection() {
 
       {/* Pastel — bottom-right corner */}
       <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={illVariant(1, 0.65)}
+        {...illMotionProps(0.65, 1)}
         className="absolute bottom-0 right-[-80px] z-0 pointer-events-none select-none hidden lg:block"
         style={{ rotate: '7deg' }}
       >

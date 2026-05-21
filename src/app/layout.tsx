@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Lora, Fragment_Mono, Delicious_Handrawn, Poppins } from "next/font/google";
+import NavigationRestoreInit from "@/components/NavigationRestoreInit";
 import "./globals.css";
 
 const geist = Geist({
@@ -50,7 +51,10 @@ export default function RootLayout({
 }) {
   return (
       <html lang="en" className={`${geist.variable} ${lora.variable} ${fragmentMono.variable} ${deliciousHandrawn.variable} ${poppins.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <NavigationRestoreInit />
+        {children}
+      </body>
     </html>
   );
 }

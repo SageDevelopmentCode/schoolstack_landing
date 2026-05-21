@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Info, Layers, Users } from "lucide-react";
+import { useEntranceAnimation } from "@/hooks/useEntranceAnimation";
 
 const NAV_LINKS = [
   { label: "About",   href: "#about",   icon: Info },
@@ -10,6 +11,7 @@ const NAV_LINKS = [
 ];
 
 export default function Navbar() {
+  const { skip } = useEntranceAnimation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function Navbar() {
       <header className="fixed left-0 right-0 z-[200] flex justify-center pt-[10px] font-secondary">
         <motion.div
           className="flex items-center justify-between w-full gap-8 max-w-[860px] h-14 px-7 rounded-[18px] bg-white shadow-[0_4px_28px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.07)]"
-          initial={{ opacity: 0, y: -8 }}
+          initial={skip ? false : { opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         >

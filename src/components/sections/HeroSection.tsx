@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Users, BookOpen, LayoutDashboard } from 'lucide-react'
@@ -12,6 +12,7 @@ import {
   prefetchTeacherDemo,
   prefetchParentDemo,
 } from './lazyDemos'
+import { useEntranceAnimation } from '@/hooks/useEntranceAnimation'
 
 type HeroDemoTab = 'parent' | 'teacher' | 'admin'
 
@@ -56,13 +57,19 @@ const heroFrameVariant = {
 }
 
 export default function HeroSection() {
+  const { skip } = useEntranceAnimation()
   const [demoTab, setDemoTab] = useState<HeroDemoTab>('parent')
   const [loadedTabs, setLoadedTabs] = useState<Set<HeroDemoTab>>(() => new Set(['parent']))
   const t = demoTab === 'parent'
+  const motionInitial = skip ? false : 'hidden'
 
   const handleDemoTabChange = useCallback((id: HeroDemoTab) => {
     setDemoTab(id)
     setLoadedTabs((prev) => new Set(prev).add(id))
+  }, [])
+
+  useEffect(() => {
+    prefetchParentDemo()
   }, [])
 
   return (
@@ -77,7 +84,7 @@ export default function HeroSection() {
 
         {/* Decorative illustration — upper-right of hero */}
         <motion.div
-          initial="hidden"
+          initial={motionInitial}
           animate="visible"
           variants={illustrationVariant(1)}
           className="absolute top-[-20px] right-[-200px] z-0 pointer-events-none select-none"
@@ -93,7 +100,7 @@ export default function HeroSection() {
 
         {/* Decorative illustration — upper-left of hero */}
         <motion.div
-          initial="hidden"
+          initial={motionInitial}
           animate="visible"
           variants={illustrationVariant(-1)}
           className="absolute top-[-20px] left-[-200px] z-0 pointer-events-none select-none"
@@ -109,14 +116,14 @@ export default function HeroSection() {
 
         {/* Centered text block */}
         <div className="max-w-[680px] mx-auto text-center">
-          <motion.div initial="hidden" animate="visible" variants={makeVariant(0)}>
+          <motion.div initial={motionInitial} animate="visible" variants={makeVariant(0)}>
             <span className={`inline-flex items-center gap-1.5 rounded-pill text-[11px] font-bold uppercase tracking-widest px-3.5 py-1.5 transition-colors duration-500 ${t ? 'bg-[#E2EDD9] text-[#4A6B52]' : 'bg-white/10 text-white/75'}`}>
               🌿 Built for Microschools
             </span>
           </motion.div>
 
           <motion.h1
-            initial="hidden"
+            initial={motionInitial}
             animate="visible"
             variants={makeVariant(0.08)}
             className={`font-display font-medium text-[clamp(2.6rem,5.2vw,4.75rem)] leading-[1.04] tracking-tight mt-6 transition-colors duration-500 ${t ? 'text-[#2E4A3C]' : 'text-white'}`}
@@ -126,7 +133,7 @@ export default function HeroSection() {
           </motion.h1>
 
           <motion.p
-            initial="hidden"
+            initial={motionInitial}
             animate="visible"
             variants={makeVariant(0.18)}
             className={`text-[17px] md:text-[18px] leading-relaxed mt-6 transition-colors duration-500 ${t ? 'text-[#2E4A3C]/65' : 'text-white/65'}`}
@@ -135,7 +142,7 @@ export default function HeroSection() {
           </motion.p>
 
           <motion.div
-            initial="hidden"
+            initial={motionInitial}
             animate="visible"
             variants={makeVariant(0.28)}
             className="flex justify-center items-center gap-4 mt-8"
@@ -163,7 +170,7 @@ export default function HeroSection() {
 
         {/* Tab switcher + live indicator */}
         <motion.div
-          initial="hidden"
+          initial={motionInitial}
           animate="visible"
           variants={makeVariant(0.36)}
           className="grid grid-cols-3 items-center mt-14 px-1"
@@ -198,7 +205,7 @@ export default function HeroSection() {
 
         {/* Interactive parent dashboard demo */}
         <motion.div
-          initial="hidden"
+          initial={motionInitial}
           animate="visible"
           variants={heroFrameVariant}
           className="relative max-w-[1100px] mx-auto mt-4"
