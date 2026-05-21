@@ -137,7 +137,7 @@ const DEMO_EVENTS: DemoCalendarEvent[] = [
   },
 ];
 
-// Mon–Sun for a realistic week (today = Sunday Apr 20)
+// Mon–Sun for a realistic week (demo today = Mon Apr 20, 2026)
 const DEMO_WEEKLY_HOURS = [4.5, 6.0, 5.5, 7.0, 4.0, 0, 0]; // Mon–Sun
 
 type DemoSession = {
@@ -147,21 +147,41 @@ type DemoSession = {
   note: string;
 };
 
-// Preload today with 4.5h already logged
-const TODAY = new Date();
-const todayKey = (d: Date) => d.toISOString().slice(0, 10);
+// Fixed reference date for demo session data (avoids SSR/hydration mismatches)
+const DEMO_TODAY = new Date(2026, 3, 20); // Mon Apr 20, 2026
+
+function todayKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Map current wall-clock time onto the fixed demo calendar date */
+function getDemoNow(): Date {
+  const now = new Date();
+  return new Date(
+    DEMO_TODAY.getFullYear(),
+    DEMO_TODAY.getMonth(),
+    DEMO_TODAY.getDate(),
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds(),
+  );
+}
 
 function buildInitialSessions(): Record<string, DemoSession[]> {
   const sessions: Record<string, DemoSession[]> = {};
   // Add Mon–Fri sessions for the current week
-  const monday = getMondayOfWeek(TODAY);
+  const monday = getMondayOfWeek(DEMO_TODAY);
   const dayHours = DEMO_WEEKLY_HOURS;
   for (let i = 0; i < 5; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const key = todayKey(d);
     const hrs = dayHours[i];
-    if (hrs > 0 && todayKey(d) !== todayKey(TODAY)) {
+    if (hrs > 0 && todayKey(d) !== todayKey(DEMO_TODAY)) {
       const clockIn = new Date(d);
       clockIn.setHours(8, 0, 0, 0);
       const clockOut = new Date(clockIn);
@@ -172,11 +192,11 @@ function buildInitialSessions(): Record<string, DemoSession[]> {
     }
   }
   // Today has 4.5h logged but no active session
-  const todayClockIn = new Date(TODAY);
+  const todayClockIn = new Date(DEMO_TODAY);
   todayClockIn.setHours(8, 0, 0, 0);
   const todayClockOut = new Date(todayClockIn);
   todayClockOut.setTime(todayClockIn.getTime() + 4.5 * 3600 * 1000);
-  sessions[todayKey(TODAY)] = [
+  sessions[todayKey(DEMO_TODAY)] = [
     {
       id: "s-today",
       clockInAt: todayClockIn,
@@ -1165,7 +1185,7 @@ function getMonthDays(year: number, month: number): (Date | null)[] {
 
 function buildHoursInitialSessions(): Record<string, DemoSession[]> {
   const sessions: Record<string, DemoSession[]> = {};
-  const today = new Date();
+  const today = DEMO_TODAY;
   const notes = [
     "Curriculum planning",
     "Student assessments",
@@ -4017,7 +4037,7 @@ function ClockWidget({
   onClockIn: () => void;
   onClockOut: () => void;
 }) {
-  const today = new Date();
+  const today = DEMO_TODAY;
   const todaySessions = sessionsByDay[todayKey(today)] ?? [];
   const activeSession =
     Object.values(sessionsByDay)
@@ -4242,7 +4262,7 @@ function WeeklyHoursChart({
 }: {
   sessionsByDay: Record<string, DemoSession[]>;
 }) {
-  const today = new Date();
+  const today = DEMO_TODAY;
   const currentTodayKey = todayKey(today);
   const monday = getMondayOfWeek(today);
   const weekDays = getWeekDays(monday);
@@ -4497,7 +4517,7 @@ export default function TeacherDashboardDemo({
   const [hoursView, setHoursView] = useState<ViewMode>("day");
   const [hoursSessionsByDay, setHoursSessionsByDay] = useState<Record<string, DemoSession[]>>(buildHoursInitialSessions);
   const [hoursSelectedDate, setHoursSelectedDate] = useState<Date>(() => {
-    const today = new Date();
+    const today = DEMO_TODAY;
     const day = today.getDay();
     if (day === 6) { const d = new Date(today); d.setDate(today.getDate() - 1); return d; }
     if (day === 0) { const d = new Date(today); d.setDate(today.getDate() - 2); return d; }
@@ -4540,7 +4560,7 @@ export default function TeacherDashboardDemo({
   }, []);
 
   function handleClockIn() {
-    const now = new Date();
+    const now = getDemoNow();
     const key = todayKey(now);
     const newSession: DemoSession = {
       id: `demo-${Date.now()}`,
@@ -4560,7 +4580,7 @@ export default function TeacherDashboardDemo({
       .find((s) => !s.clockOutAt);
     if (!activeSession) return;
     const key = todayKey(activeSession.clockInAt);
-    const clockOutAt = new Date();
+    const clockOutAt = getDemoNow();
     setSessionsByDay((prev) => ({
       ...prev,
       [key]: (prev[key] ?? []).map((s) =>
@@ -4577,7 +4597,7 @@ export default function TeacherDashboardDemo({
       .find((s) => !s.clockOutAt) ?? null;
 
   function handleHoursClockIn() {
-    const now = new Date();
+    const now = getDemoNow();
     const key = todayKey(now);
     setHoursSessionsByDay((prev) => ({
       ...prev,
@@ -4591,7 +4611,7 @@ export default function TeacherDashboardDemo({
   function handleHoursClockOut() {
     if (!hoursActiveSession) return;
     const key = todayKey(hoursActiveSession.clockInAt);
-    const clockOutAt = new Date();
+    const clockOutAt = getDemoNow();
     setHoursSessionsByDay((prev) => ({
       ...prev,
       [key]: (prev[key] ?? []).map((s) =>
@@ -5148,7 +5168,7 @@ export default function TeacherDashboardDemo({
                   transition={{ duration: 0.3, delay: 0.15 }}
                   className="text-white/70 text-sm font-body mb-1"
                 >
-                  {new Date().toLocaleDateString("en-US", {
+                  {DEMO_TODAY.toLocaleDateString("en-US", {
                     weekday: "long",
                     month: "long",
                     day: "numeric",

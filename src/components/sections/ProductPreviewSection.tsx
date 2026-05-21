@@ -1,15 +1,21 @@
 'use client'
 
-import { useState, useRef, useEffect, Fragment } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useEffect, Fragment, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { LucideIcon, Globe, ClipboardList, CreditCard, CalendarCheck, Clock, Megaphone, LayoutDashboard } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { FadeInView } from '@/components/ui/FadeInView'
-import AdminDashboardDemo from './AdminDashboardDemo'
-import ParentDashboardDemo from './ParentDashboardDemo'
-import TeacherDashboardDemo from './TeacherDashboardDemo'
-import WebsiteDashboardDemo from './WebsiteDashboardDemo'
+import {
+  LazyAdminDashboardDemo,
+  LazyParentDashboardDemo,
+  LazyTeacherDashboardDemo,
+  LazyWebsiteDashboardDemo,
+  prefetchAdminDemo,
+  prefetchParentDemo,
+  prefetchTeacherDemo,
+  prefetchWebsiteDemo,
+} from './lazyDemos'
 
 type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'marketing' | 'timeclock'
 
@@ -104,18 +110,38 @@ const GROUPS = GROUP_META.map((g) => ({
 
 export default function ProductPreviewSection() {
   const [activeTab, setActiveTab] = useState<TabId>('website')
+  const [loadedTabs, setLoadedTabs] = useState<Set<TabId>>(() => new Set(['website']))
   const tabBarRef = useRef<HTMLDivElement>(null)
   const tabRefs = useRef<Map<TabId, HTMLButtonElement>>(new Map())
 
-  const currentTab = TABS.find((t) => t.id === activeTab)!
+  function prefetchTab(id: TabId) {
+    switch (id) {
+      case 'website':
+        prefetchWebsiteDemo()
+        break
+      case 'enrollment':
+      case 'parents':
+        prefetchParentDemo()
+        break
+      case 'teachers':
+      case 'timeclock':
+        prefetchTeacherDemo()
+        break
+      case 'admin':
+      case 'marketing':
+        prefetchAdminDemo()
+        break
+    }
+  }
 
-  function handleTabChange(id: TabId) {
+  const handleTabChange = useCallback((id: TabId) => {
     setActiveTab(id)
+    setLoadedTabs((prev) => new Set(prev).add(id))
     const el = tabRefs.current.get(id)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
     }
-  }
+  }, [])
 
   function handleKeyDown(e: React.KeyboardEvent, index: number) {
     if (e.key === 'ArrowRight') {
@@ -276,6 +302,7 @@ export default function ProductPreviewSection() {
                           aria-selected={activeTab === tab.id}
                           aria-controls={`tabpanel-${tab.id}`}
                           onClick={() => handleTabChange(tab.id)}
+                          onMouseEnter={() => prefetchTab(tab.id)}
                           onKeyDown={(e) => handleKeyDown(e, flatIndex)}
                           className={`flex items-center gap-1.5 px-4 h-9 rounded-pill text-sm whitespace-nowrap transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent ${
                             activeTab === tab.id
@@ -300,21 +327,43 @@ export default function ProductPreviewSection() {
 
           {/* Product frame */}
           <div className="mt-6 w-full h-[420px] md:h-[600px] lg:h-[700px] rounded-xl shadow-lg overflow-hidden relative bg-surface">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                id={`tabpanel-${activeTab}`}
-                role="tabpanel"
-                aria-label={currentTab.caption}
-                className="absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <TabContent tabId={activeTab} />
-              </motion.div>
-            </AnimatePresence>
+            <div className="absolute inset-0">
+              {loadedTabs.has('admin') && (
+                <TabPanel visible={activeTab === 'admin'} id="admin" caption={TABS.find((t) => t.id === 'admin')!.caption}>
+                  <AdminTab />
+                </TabPanel>
+              )}
+              {loadedTabs.has('website') && (
+                <TabPanel visible={activeTab === 'website'} id="website" caption={TABS.find((t) => t.id === 'website')!.caption}>
+                  <WebsiteTab />
+                </TabPanel>
+              )}
+              {loadedTabs.has('enrollment') && (
+                <TabPanel visible={activeTab === 'enrollment'} id="enrollment" caption={TABS.find((t) => t.id === 'enrollment')!.caption}>
+                  <EnrollmentTab />
+                </TabPanel>
+              )}
+              {loadedTabs.has('parents') && (
+                <TabPanel visible={activeTab === 'parents'} id="parents" caption={TABS.find((t) => t.id === 'parents')!.caption}>
+                  <ParentsTab />
+                </TabPanel>
+              )}
+              {loadedTabs.has('teachers') && (
+                <TabPanel visible={activeTab === 'teachers'} id="teachers" caption={TABS.find((t) => t.id === 'teachers')!.caption}>
+                  <TeachersTab />
+                </TabPanel>
+              )}
+              {loadedTabs.has('marketing') && (
+                <TabPanel visible={activeTab === 'marketing'} id="marketing" caption={TABS.find((t) => t.id === 'marketing')!.caption}>
+                  <MarketingTab />
+                </TabPanel>
+              )}
+              {loadedTabs.has('timeclock') && (
+                <TabPanel visible={activeTab === 'timeclock'} id="timeclock" caption={TABS.find((t) => t.id === 'timeclock')!.caption}>
+                  <TimeclockTab />
+                </TabPanel>
+              )}
+            </div>
           </div>
         </FadeInView>
 
@@ -323,22 +372,36 @@ export default function ProductPreviewSection() {
   )
 }
 
-function TabContent({ tabId }: { tabId: TabId }) {
-  switch (tabId) {
-    case 'admin':    return <AdminTab />
-    case 'website':  return <WebsiteTab />
-    case 'enrollment': return <EnrollmentTab />
-    case 'parents':  return <ParentsTab />
-    case 'teachers': return <TeachersTab />
-    case 'marketing': return <MarketingTab />
-    case 'timeclock': return <TimeclockTab />
-  }
+function TabPanel({
+  visible,
+  id,
+  caption,
+  children,
+}: {
+  visible: boolean
+  id: TabId
+  caption: string
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      id={`tabpanel-${id}`}
+      role="tabpanel"
+      aria-label={caption}
+      aria-hidden={!visible}
+      className={`absolute inset-0 transition-opacity duration-200 ${
+        visible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+      }`}
+    >
+      {children}
+    </div>
+  )
 }
 
 /* ─── Tab mockups ────────────────────────────────────────────────────── */
 
 function AdminTab() {
-  return <AdminDashboardDemo disableTour />
+  return <LazyAdminDashboardDemo disableTour />
 }
 
 function WebsiteTab() {
@@ -365,28 +428,28 @@ function WebsiteTab() {
           transformOrigin: 'top left',
         }}
       >
-        <WebsiteDashboardDemo disableTour />
+        <LazyWebsiteDashboardDemo disableTour />
       </div>
     </div>
   )
 }
 
 function EnrollmentTab() {
-  return <ParentDashboardDemo initialTab="enrollment" disableTour hideNav />
+  return <LazyParentDashboardDemo initialTab="enrollment" disableTour hideNav />
 }
 
 function ParentsTab() {
-  return <ParentDashboardDemo initialTab="billing" disableTour hideNav />
+  return <LazyParentDashboardDemo initialTab="billing" disableTour hideNav />
 }
 
 function TeachersTab() {
-  return <TeacherDashboardDemo initialTab="attendance" disableTour hideNav />
+  return <LazyTeacherDashboardDemo initialTab="attendance" disableTour hideNav />
 }
 
 function MarketingTab() {
-  return <AdminDashboardDemo initialPage="marketing" disableTour hideNav />
+  return <LazyAdminDashboardDemo initialPage="marketing" disableTour hideNav />
 }
 
 function TimeclockTab() {
-  return <TeacherDashboardDemo initialTab="hours" disableTour hideNav />
+  return <LazyTeacherDashboardDemo initialTab="hours" disableTour hideNav />
 }

@@ -1,12 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Image from 'next/image'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Users, BookOpen, LayoutDashboard } from 'lucide-react'
-import ParentDashboardDemo from './ParentDashboardDemo'
-import TeacherDashboardDemo from './TeacherDashboardDemo'
-import AdminDashboardDemo from './AdminDashboardDemo'
+import {
+  LazyAdminDashboardDemo,
+  LazyTeacherDashboardDemo,
+  LazyParentDashboardDemo,
+  prefetchAdminDemo,
+  prefetchTeacherDemo,
+  prefetchParentDemo,
+} from './lazyDemos'
+
+type HeroDemoTab = 'parent' | 'teacher' | 'admin'
 
 const ease = [0.16, 1, 0.3, 1] as const
 
@@ -49,8 +56,14 @@ const heroFrameVariant = {
 }
 
 export default function HeroSection() {
-  const [demoTab, setDemoTab] = useState<'parent' | 'teacher' | 'admin'>('parent')
+  const [demoTab, setDemoTab] = useState<HeroDemoTab>('parent')
+  const [loadedTabs, setLoadedTabs] = useState<Set<HeroDemoTab>>(() => new Set(['parent']))
   const t = demoTab === 'parent'
+
+  const handleDemoTabChange = useCallback((id: HeroDemoTab) => {
+    setDemoTab(id)
+    setLoadedTabs((prev) => new Set(prev).add(id))
+  }, [])
 
   return (
     <section
@@ -161,7 +174,12 @@ export default function HeroSection() {
             {DEMO_TABS.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setDemoTab(tab.id)}
+                onClick={() => handleDemoTabChange(tab.id)}
+                onMouseEnter={() => {
+                  if (tab.id === 'admin') prefetchAdminDemo()
+                  else if (tab.id === 'teacher') prefetchTeacherDemo()
+                  else prefetchParentDemo()
+                }}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   demoTab === tab.id
                     ? t ? 'bg-[#2E4A3C] text-white shadow-sm' : 'bg-white text-[#2E4A3C] shadow-sm'
@@ -194,42 +212,38 @@ export default function HeroSection() {
             }}
             transition={{ duration: 0.6, ease }}
           >
-            <AnimatePresence mode="wait">
-              {demoTab === 'parent' ? (
-                <motion.div
-                  key="parent"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full h-full"
+            <div className="relative w-full h-full">
+              {loadedTabs.has('parent') && (
+                <div
+                  className={`absolute inset-0 transition-opacity duration-200 ${
+                    demoTab === 'parent' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                  }`}
+                  aria-hidden={demoTab !== 'parent'}
                 >
-                  <ParentDashboardDemo />
-                </motion.div>
-              ) : demoTab === 'teacher' ? (
-                <motion.div
-                  key="teacher"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full h-full"
-                >
-                  <TeacherDashboardDemo />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="admin"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full h-full"
-                >
-                  <AdminDashboardDemo />
-                </motion.div>
+                  <LazyParentDashboardDemo />
+                </div>
               )}
-            </AnimatePresence>
+              {loadedTabs.has('teacher') && (
+                <div
+                  className={`absolute inset-0 transition-opacity duration-200 ${
+                    demoTab === 'teacher' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                  }`}
+                  aria-hidden={demoTab !== 'teacher'}
+                >
+                  <LazyTeacherDashboardDemo />
+                </div>
+              )}
+              {loadedTabs.has('admin') && (
+                <div
+                  className={`absolute inset-0 transition-opacity duration-200 ${
+                    demoTab === 'admin' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                  }`}
+                  aria-hidden={demoTab !== 'admin'}
+                >
+                  <LazyAdminDashboardDemo />
+                </div>
+              )}
+            </div>
           </motion.div>
         </motion.div>
 

@@ -1,7 +1,12 @@
 import dynamic from 'next/dynamic'
 import Navbar from '@/components/sections/Navbar'
 import HeroSection from '@/components/sections/HeroSection'
-import ProductPreviewSection from '@/components/sections/ProductPreviewSection'
+import ProductPreviewSkeleton from '@/components/sections/ProductPreviewSkeleton'
+
+const ProductPreviewSection = dynamic(
+  () => import('@/components/sections/ProductPreviewSection'),
+  { loading: () => <ProductPreviewSkeleton /> }
+)
 
 const PainSection = dynamic(() => import('@/components/sections/PainSection'))
 const FamilyClaritySection = dynamic(() => import('@/components/sections/FamilyClaritySection'))

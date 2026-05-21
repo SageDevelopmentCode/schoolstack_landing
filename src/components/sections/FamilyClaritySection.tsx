@@ -1,7 +1,8 @@
 "use client";
 
 import { FadeInView } from "@/components/ui/FadeInView";
-import ParentDashboardDemo from "@/components/sections/ParentDashboardDemo";
+import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
+import { LazyParentDashboardDemo } from "@/components/sections/lazyDemos";
 
 export default function FamilyClaritySection() {
   return (
@@ -66,7 +67,7 @@ export default function FamilyClaritySection() {
           {/* Right — ParentDashboardDemo, scaled down with fixed height + internal scroll */}
           {/* Visible height = 430px → inner unscaled height = 430 / 0.72 ≈ 597px */}
           <FadeInView delay={0.1}>
-            <div className="relative w-full" style={{ height: "430px" }}>
+            <InViewDemoGate className="relative w-full" style={{ height: "430px" }}>
               <div
                 className="absolute top-0 left-0 rounded-2xl border border-border shadow-lg overflow-y-auto overflow-x-hidden"
                 style={{
@@ -76,9 +77,9 @@ export default function FamilyClaritySection() {
                   transformOrigin: "top left",
                 }}
               >
-                <ParentDashboardDemo disableTour={true} />
+                <LazyParentDashboardDemo disableTour={true} />
               </div>
-            </div>
+            </InViewDemoGate>
           </FadeInView>
 
         </div>
