@@ -16,7 +16,7 @@ export function InViewDemoGate({ children, className = '', style }: InViewDemoGa
 
   return (
     <div ref={ref} className={className} style={style}>
-      {inView ? children : <DemoSkeleton className="rounded-2xl border border-border" />}
+      {inView ? children : <DemoSkeleton className="rounded-2xl border border-gray-200" />}
     </div>
   )
 }
