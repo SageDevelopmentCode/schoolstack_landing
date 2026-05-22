@@ -1,6 +1,5 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
 import { useInViewOnRestore } from '@/hooks/useInViewOnRestore'
 import { useEntranceAnimation } from '@/hooks/useEntranceAnimation'
 import SectionFallback from '@/components/ui/SectionFallback'
@@ -16,12 +15,10 @@ export function DeferredSection({
   fallback,
   minHeight = '16rem',
 }: DeferredSectionProps) {
-  const pathname = usePathname()
   const { skip } = useEntranceAnimation()
   const [ref, inView] = useInViewOnRestore<HTMLDivElement>({
     threshold: 0,
     rootMargin: '200px 0px',
-    resetKey: pathname,
   })
 
   const show = skip || inView

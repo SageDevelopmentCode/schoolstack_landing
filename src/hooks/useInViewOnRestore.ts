@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type RefObject } from 'react'
+import { isNavigationRestored, shouldSkipEntranceAnimation } from '@/lib/navigationRestore'
 
 interface UseInViewOnRestoreOptions {
   threshold?: number
@@ -18,7 +19,7 @@ export function useInViewOnRestore<T extends Element = HTMLElement>(
 ): [RefObject<T | null>, boolean] {
   const { threshold = 0.15, rootMargin = '0px', resetKey } = options
   const ref = useRef<T | null>(null)
-  const [inView, setInView] = useState(false)
+  const [inView, setInView] = useState(() => isNavigationRestored())
 
   useEffect(() => {
     const el = ref.current
@@ -73,7 +74,10 @@ export function useInViewOnRestore<T extends Element = HTMLElement>(
       scheduleChecks()
     }
 
-    setInView(false)
+    if (shouldSkipEntranceAnimation()) {
+      setInView(true)
+      return () => { timeoutIds.forEach((id) => clearTimeout(id)) }
+    }
 
     if (checkInView()) {
       return () => {

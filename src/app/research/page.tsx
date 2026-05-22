@@ -67,15 +67,56 @@ const P_LABEL: Record<number, string> = {
   5: "Hot Lead", 4: "Strong Fit", 3: "Moderate", 2: "Low", 1: "Closing",
 };
 
+function statePillClass(state: string, active: boolean): string {
+  if (!active) return "bg-gray-100 text-gray-400 hover:bg-gray-200";
+  if (state === "TX") return "bg-sky-100 text-sky-700";
+  if (state === "CA") return "bg-violet-100 text-violet-700";
+  return "bg-gray-200 text-gray-700";
+}
+
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
 function hostname(url: string) {
   try { return new URL(url).hostname.replace("www.", ""); } catch { return url; }
 }
 
-function fmtDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function parseLines(raw: string): string[] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function sourceLabel(sourceFile: string): { label: string; cardClass: string; labelClass: string; valueClass: string } {
+  if (sourceFile === "texas") {
+    return {
+      label: "TX Research",
+      cardClass: "bg-sky-50 border-sky-200",
+      labelClass: "text-sky-500",
+      valueClass: "text-sky-700",
+    };
+  }
+  if (sourceFile === "manual") {
+    return {
+      label: "Manual",
+      cardClass: "bg-orange-50 border-orange-200",
+      labelClass: "text-orange-500",
+      valueClass: "text-orange-700",
+    };
+  }
+  return {
+    label: "Expanded",
+    cardClass: "bg-violet-50 border-violet-200",
+    labelClass: "text-violet-500",
+    valueClass: "text-violet-700",
+  };
 }
 
 // ── Left Panel — School Row ───────────────────────────────────────────────────
@@ -131,19 +172,41 @@ function SchoolRow({ school, selected, onClick }: { school: School; selected: bo
 // ── Right Panel — Field Inputs ────────────────────────────────────────────────
 
 function Field({
-  label, value, onChange, placeholder, type = "text",
+  label, value, onChange, placeholder, type = "text", required,
 }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{label}</label>
+      <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+        {label}{required && <span className="text-clay ml-0.5">*</span>}
+      </label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        required={required}
         className="h-9 px-3 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-clay/40 focus:ring-2 focus:ring-clay/10 transition-all bg-white"
+      />
+    </div>
+  );
+}
+
+function TextAreaField({
+  label, value, onChange, placeholder, rows = 3,
+}: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        placeholder={placeholder}
+        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-clay/40 focus:ring-2 focus:ring-clay/10 resize-none transition-all bg-white"
       />
     </div>
   );
@@ -393,10 +456,10 @@ function ResearchPanel({ school }: { school: School }) {
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Confidence</p>
               <p className="text-xs font-medium text-gray-700 leading-snug">{school.confidence || "—"}</p>
             </div>
-            <div className={`rounded-xl border px-3.5 py-3 ${school.source_file === "texas" ? "bg-sky-50 border-sky-200" : "bg-violet-50 border-violet-200"}`}>
-              <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${school.source_file === "texas" ? "text-sky-500" : "text-violet-500"}`}>Source</p>
-              <p className={`text-xs font-semibold ${school.source_file === "texas" ? "text-sky-700" : "text-violet-700"}`}>
-                {school.source_file === "texas" ? "TX Research" : "Expanded"}
+            <div className={`rounded-xl border px-3.5 py-3 ${sourceLabel(school.source_file).cardClass}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${sourceLabel(school.source_file).labelClass}`}>Source</p>
+              <p className={`text-xs font-semibold ${sourceLabel(school.source_file).valueClass}`}>
+                {sourceLabel(school.source_file).label}
               </p>
             </div>
           </div>
@@ -474,6 +537,257 @@ function StatBadge({ icon, label, value }: { icon: string; label: string; value:
   );
 }
 
+// ── Add School Sidebar ────────────────────────────────────────────────────────
+
+type NewSchoolForm = {
+  name: string;
+  state: string;
+  location: string;
+  website: string;
+  schoolModel: string;
+  grades: string;
+  estimatedSize: string;
+  tuitionSchedule: string;
+  strengths: string;
+  painPoints: string;
+  softwareFitReason: string;
+  priorityScore: number;
+  confidence: string;
+  isClosing: boolean;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  notes: string;
+};
+
+const EMPTY_FORM: NewSchoolForm = {
+  name: "",
+  state: "",
+  location: "",
+  website: "",
+  schoolModel: "",
+  grades: "",
+  estimatedSize: "",
+  tuitionSchedule: "",
+  strengths: "",
+  painPoints: "",
+  softwareFitReason: "",
+  priorityScore: 4,
+  confidence: "",
+  isClosing: false,
+  contactName: "",
+  contactEmail: "",
+  contactPhone: "",
+  notes: "",
+};
+
+function AddSchoolSidebar({
+  open,
+  onClose,
+  onSave,
+  existingSchoolIds,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (school: School) => void;
+  existingSchoolIds: Set<string>;
+}) {
+  const supabase = createClient();
+  const [form, setForm] = useState<NewSchoolForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setForm(EMPTY_FORM);
+      setError(null);
+    }
+  }, [open]);
+
+  function setField<K extends keyof NewSchoolForm>(key: K, value: NewSchoolForm[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.state.trim() || !form.location.trim() || !form.website.trim() || !form.schoolModel.trim()) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    let schoolId = slugify(form.name.trim());
+    if (!schoolId) schoolId = `school-${Date.now()}`;
+    if (existingSchoolIds.has(schoolId)) {
+      schoolId = `${schoolId}-${Date.now()}`;
+    }
+
+    const row = {
+      school_id: schoolId,
+      name: form.name.trim(),
+      state: form.state.trim().toUpperCase(),
+      location: form.location.trim(),
+      website: form.website.trim(),
+      school_model: form.schoolModel.trim(),
+      grades: form.grades.trim(),
+      estimated_size: form.estimatedSize.trim(),
+      tuition_schedule: form.tuitionSchedule.trim(),
+      strengths: parseLines(form.strengths),
+      pain_points: parseLines(form.painPoints),
+      software_fit_reason: form.softwareFitReason.trim(),
+      priority_score: form.priorityScore,
+      confidence: form.confidence.trim(),
+      is_closing: form.isClosing,
+      source_file: "manual",
+      crm_status: "not_contacted" as CrmStatus,
+      contact_name: form.contactName.trim(),
+      contact_email: form.contactEmail.trim(),
+      contact_phone: form.contactPhone.trim(),
+      notes: form.notes.trim(),
+      last_contacted_at: null,
+    };
+
+    const { data, error: insertError } = await supabase
+      .from("schools")
+      .insert(row)
+      .select("*")
+      .single();
+
+    setSaving(false);
+
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+
+    onSave(data as School);
+    onClose();
+  }
+
+  if (!open) return null;
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/20 z-40"
+        onClick={onClose}
+      />
+      <aside className="fixed top-0 right-0 h-full w-full max-w-md bg-white border-l border-gray-200 shadow-2xl z-50 flex flex-col">
+        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Add School</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Manually add a prospect to the CRM</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+          <div className="px-6 py-5 flex flex-col gap-6">
+            <div>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Basic Info</p>
+              <div className="flex flex-col gap-2.5">
+                <Field label="School Name" value={form.name} onChange={(v) => setField("name", v)} placeholder="Ascend Micro School" required />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Field label="State" value={form.state} onChange={(v) => setField("state", v)} placeholder="CO" required />
+                  <Field label="Location" value={form.location} onChange={(v) => setField("location", v)} placeholder="Colorado Springs, CO" required />
+                </div>
+                <Field label="Website" value={form.website} onChange={(v) => setField("website", v)} placeholder="https://example.org" required />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Research Data</p>
+              <div className="flex flex-col gap-2.5">
+                <Field label="School Model" value={form.schoolModel} onChange={(v) => setField("schoolModel", v)} placeholder="Private microschool / hybrid" required />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Field label="Grades" value={form.grades} onChange={(v) => setField("grades", v)} placeholder="K-8" />
+                  <Field label="Estimated Size" value={form.estimatedSize} onChange={(v) => setField("estimatedSize", v)} placeholder="~30 students" />
+                </div>
+                <Field label="Tuition / Schedule" value={form.tuitionSchedule} onChange={(v) => setField("tuitionSchedule", v)} placeholder="$3,500/year; 2 days/week" />
+                <TextAreaField label="Strengths" value={form.strengths} onChange={(v) => setField("strengths", v)} placeholder="One item per line" rows={3} />
+                <TextAreaField label="Pain Points" value={form.painPoints} onChange={(v) => setField("painPoints", v)} placeholder="One item per line" rows={3} />
+                <TextAreaField label="Why SchoolStack Fits" value={form.softwareFitReason} onChange={(v) => setField("softwareFitReason", v)} placeholder="Brief fit rationale…" rows={3} />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Priority</label>
+                    <select
+                      value={form.priorityScore}
+                      onChange={(e) => setField("priorityScore", parseInt(e.target.value, 10))}
+                      className="h-9 px-3 rounded-lg border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-clay/40 focus:ring-2 focus:ring-clay/10 bg-white"
+                    >
+                      {[5, 4, 3, 2, 1].map((p) => (
+                        <option key={p} value={p}>P{p} · {P_LABEL[p]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Field label="Confidence" value={form.confidence} onChange={(v) => setField("confidence", v)} placeholder="High" />
+                </div>
+                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.isClosing}
+                    onChange={(e) => setField("isClosing", e.target.checked)}
+                    className="rounded border-gray-300 text-clay focus:ring-clay/20"
+                  />
+                  Mark as closing / winding down
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">Contact (optional)</p>
+              <div className="flex flex-col gap-2.5">
+                <Field label="Contact Name" value={form.contactName} onChange={(v) => setField("contactName", v)} placeholder="Sarah Johnson" />
+                <Field label="Email" value={form.contactEmail} onChange={(v) => setField("contactEmail", v)} placeholder="sarah@school.org" type="email" />
+                <Field label="Phone" value={form.contactPhone} onChange={(v) => setField("contactPhone", v)} placeholder="+1 (555) 000-0000" type="tel" />
+                <TextAreaField label="Notes" value={form.notes} onChange={(v) => setField("notes", v)} placeholder="Any initial context…" rows={3} />
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
+            )}
+          </div>
+
+          <div className="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 h-10 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 h-10 rounded-xl text-sm font-semibold bg-clay text-white hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+                    <path d="M8 2a6 6 0 016 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  Saving…
+                </>
+              ) : "Add School"}
+            </button>
+          </div>
+        </form>
+      </aside>
+    </>
+  );
+}
+
 // ── Empty State ───────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -505,8 +819,9 @@ export default function ResearchPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CrmStatus | "">("");
   const [priorityFilter, setPriorityFilter] = useState<number | 0>(0);
-  const [stateFilter, setStateFilter] = useState<"" | "TX" | "CA">("");
+  const [stateFilter, setStateFilter] = useState("");
   const [showClosing, setShowClosing] = useState(false);
+  const [showAddSidebar, setShowAddSidebar] = useState(false);
 
   // Load schools
   useEffect(() => {
@@ -530,6 +845,23 @@ export default function ResearchPage() {
     setSchools((prev) => prev.map((s) => s.id === schoolId ? { ...s, ...updates } : s));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const existingSchoolIds = useMemo(
+    () => new Set(schools.map((s) => s.school_id)),
+    [schools]
+  );
+
+  const handleAddSchool = useCallback((school: School) => {
+    setSchools((prev) =>
+      [school, ...prev].sort((a, b) => b.priority_score - a.priority_score)
+    );
+    setSelectedId(school.id);
+  }, []);
+
+  const availableStates = useMemo(() => {
+    const states = [...new Set(schools.map((s) => s.state))];
+    return states.sort((a, b) => a.localeCompare(b));
+  }, [schools]);
 
   // Filter list
   const filtered = useMemo(() => {
@@ -595,6 +927,15 @@ export default function ResearchPage() {
         )}
 
         <div className="ml-auto flex items-center gap-3">
+          <button
+            onClick={() => setShowAddSidebar(true)}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-clay text-white text-xs font-semibold hover:opacity-90 transition-opacity"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            Add School
+          </button>
           {!loading && (
             <span className="text-xs text-gray-400">{schools.length} schools</span>
           )}
@@ -642,15 +983,11 @@ export default function ResearchPage() {
                 </button>
               ))}
               {/* State */}
-              {(["TX", "CA"] as const).map((st) => (
+              {availableStates.map((st) => (
                 <button
                   key={st}
                   onClick={() => setStateFilter(stateFilter === st ? "" : st)}
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all ${
-                    stateFilter === st
-                      ? st === "TX" ? "bg-sky-100 text-sky-700" : "bg-violet-100 text-violet-700"
-                      : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                  }`}
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all ${statePillClass(st, stateFilter === st)}`}
                 >
                   {st}
                 </button>
@@ -738,11 +1075,18 @@ export default function ResearchPage() {
 
         {/* ── Right panel — Research ───────────────────────────────────────── */}
         {selectedSchool && (
-          <aside className="w-72 xl:w-80 shrink-0 overflow-hidden flex flex-col">
+          <aside className="w-96 xl:w-[28rem] shrink-0 overflow-hidden flex flex-col">
             <ResearchPanel school={selectedSchool} />
           </aside>
         )}
       </div>
+
+      <AddSchoolSidebar
+        open={showAddSidebar}
+        onClose={() => setShowAddSidebar(false)}
+        onSave={handleAddSchool}
+        existingSchoolIds={existingSchoolIds}
+      />
     </div>
   );
 }

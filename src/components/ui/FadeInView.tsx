@@ -1,6 +1,5 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { fadeUp } from '@/lib/motion'
 import { useInViewOnRestore } from '@/hooks/useInViewOnRestore'
@@ -20,18 +19,16 @@ export function FadeInView({
   className,
   variants = fadeUp,
 }: FadeInViewProps) {
-  const pathname = usePathname()
   const { skip } = useEntranceAnimation()
   const [ref, entered] = useInViewOnRestore<HTMLDivElement>({
     threshold: 0,
-    resetKey: pathname,
   })
   const visible = skip || entered
 
   return (
     <motion.div
       ref={ref}
-      initial={skip ? false : 'hidden'}
+      initial={visible ? false : 'hidden'}
       animate={visible ? 'visible' : 'hidden'}
       variants={variants}
       transition={{ delay }}

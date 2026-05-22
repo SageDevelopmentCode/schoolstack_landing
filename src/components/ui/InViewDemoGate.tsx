@@ -1,6 +1,5 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
 import { DemoSkeleton } from '@/components/ui/DemoSkeleton'
 import { useInViewOnRestore } from '@/hooks/useInViewOnRestore'
 import { useHydrated } from '@/hooks/useHydrated'
@@ -13,13 +12,11 @@ interface InViewDemoGateProps {
 }
 
 export function InViewDemoGate({ children, className = '', style }: InViewDemoGateProps) {
-  const pathname = usePathname()
   const hydrated = useHydrated()
   const { skip } = useEntranceAnimation()
   const [ref, inView] = useInViewOnRestore<HTMLDivElement>({
     threshold: 0,
     rootMargin: '200px 0px 200px 0px',
-    resetKey: pathname,
   })
 
   const show = hydrated && (inView || skip)

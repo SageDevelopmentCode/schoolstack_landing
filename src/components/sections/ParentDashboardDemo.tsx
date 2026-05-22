@@ -136,6 +136,7 @@ interface DemoTransaction {
   date: string;
   status: "paid" | "pending";
   childId: ChildId;
+  scheduleNote?: string;
 }
 interface DemoContact {
   label: string;
@@ -590,6 +591,33 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
     date: "Apr 10, 2026",
     status: "pending",
     childId: "jake",
+  },
+  {
+    id: "t6",
+    desc: "Homeschool Drop-In — Week of Apr 21",
+    amount: "$100.00",
+    date: "Apr 18, 2026",
+    status: "pending",
+    childId: "jake",
+    scheduleNote: "1 day/week · Wed",
+  },
+  {
+    id: "t7",
+    desc: "Homeschool Drop-In — Week of Apr 28",
+    amount: "$200.00",
+    date: "Apr 25, 2026",
+    status: "pending",
+    childId: "jake",
+    scheduleNote: "2 days/week · Tue & Thu",
+  },
+  {
+    id: "t8",
+    desc: "Homeschool Drop-In — Week of May 5",
+    amount: "$300.00",
+    date: "May 2, 2026",
+    status: "pending",
+    childId: "jake",
+    scheduleNote: "3 days/week · Mon, Wed & Fri",
   },
 ];
 
@@ -2591,6 +2619,7 @@ function BillingPage({
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     Due {t.date} · {childMeta[t.childId].name}
+                    {t.scheduleNote ? ` · ${t.scheduleNote}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
@@ -2706,6 +2735,7 @@ function BillingPage({
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {t.date} · {childMeta[t.childId].name}
+                    {t.scheduleNote ? ` · ${t.scheduleNote}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
