@@ -160,7 +160,7 @@ export default function HeroSection() {
               href="#product"
               className={`inline-flex items-center gap-1.5 text-sm font-secondary transition-colors duration-500 ${t ? 'text-[#2E4A3C]/50 hover:text-[#2E4A3C]/80' : 'text-white/50 hover:text-white/80'}`}
             >
-              See the product
+              Try the product
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M7 2.5V11.5M7 11.5L3 7.5M7 11.5L11 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -203,7 +203,7 @@ export default function HeroSection() {
           <div />
         </motion.div>
 
-        {/* Interactive parent dashboard demo */}
+        {/* Autoplay tour demo (non-interactive) */}
         <motion.div
           initial={motionInitial}
           animate="visible"
@@ -222,6 +222,7 @@ export default function HeroSection() {
             <div className="relative w-full h-full">
               {loadedTabs.has('parent') && (
                 <div
+                  inert
                   className={`absolute inset-0 transition-opacity duration-200 ${
                     demoTab === 'parent' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                   }`}
@@ -232,6 +233,7 @@ export default function HeroSection() {
               )}
               {loadedTabs.has('teacher') && (
                 <div
+                  inert
                   className={`absolute inset-0 transition-opacity duration-200 ${
                     demoTab === 'teacher' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                   }`}
@@ -242,6 +244,7 @@ export default function HeroSection() {
               )}
               {loadedTabs.has('admin') && (
                 <div
+                  inert
                   className={`absolute inset-0 transition-opacity duration-200 ${
                     demoTab === 'admin' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                   }`}
@@ -250,6 +253,10 @@ export default function HeroSection() {
                   <LazyAdminDashboardDemo />
                 </div>
               )}
+              <div
+                className="absolute inset-0 z-20 cursor-default"
+                aria-hidden="true"
+              />
             </div>
           </motion.div>
         </motion.div>
