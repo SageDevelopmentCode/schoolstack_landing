@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -242,6 +242,10 @@ function CrmPanel({
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [priority, setPriority] = useState(school.priority_score);
+  const [prioritySaving, setPrioritySaving] = useState(false);
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const priorityRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setStatus(school.crm_status);
@@ -250,14 +254,46 @@ function CrmPanel({
     setContactPhone(school.contact_phone);
     setNotes(school.notes);
     setLastContacted(school.last_contacted_at ? school.last_contacted_at.split("T")[0] : "");
+    setPriority(school.priority_score);
+    setPriorityOpen(false);
     setSavedMsg(false);
   }, [school.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!priorityOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (priorityRef.current && !priorityRef.current.contains(e.target as Node)) {
+        setPriorityOpen(false);
+      }
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setPriorityOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [priorityOpen]);
 
   async function handleStatusChange(s: CrmStatus) {
     setStatus(s);
     setStatusSaving(true);
     await onSave(school.id, { crm_status: s });
     setStatusSaving(false);
+  }
+
+  async function handlePriorityChange(score: number) {
+    if (score === priority) {
+      setPriorityOpen(false);
+      return;
+    }
+    setPriority(score);
+    setPrioritySaving(true);
+    await onSave(school.id, { priority_score: score });
+    setPrioritySaving(false);
+    setPriorityOpen(false);
   }
 
   async function handleSave() {
@@ -281,9 +317,51 @@ function CrmPanel({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${P_PILL[school.priority_score]}`}>
-                P{school.priority_score} · {P_LABEL[school.priority_score]}
-              </span>
+              <div className="relative" ref={priorityRef}>
+                <button
+                  type="button"
+                  onClick={() => setPriorityOpen(!priorityOpen)}
+                  disabled={prioritySaving}
+                  className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full transition-all hover:opacity-80 disabled:opacity-60 ${P_PILL[priority]}`}
+                >
+                  P{priority} · {P_LABEL[priority]}
+                  {prioritySaving ? (
+                    <svg className="animate-spin w-3 h-3 shrink-0" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+                      <path d="M8 2a6 6 0 016 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="shrink-0 opacity-60">
+                      <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
+                {priorityOpen && (
+                  <div className="absolute top-full left-0 mt-1 z-30 min-w-[168px] bg-white rounded-xl border border-gray-200 shadow-lg py-1">
+                    {[5, 4, 3, 2, 1].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handlePriorityChange(p)}
+                        disabled={prioritySaving}
+                        className={`w-full flex items-center gap-2 text-xs font-medium px-3 py-2 transition-colors text-left disabled:opacity-60 ${
+                          priority === p ? "bg-gray-50" : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${P_PILL[p]}`}>
+                          P{p}
+                        </span>
+                        <span className="text-gray-700">{P_LABEL[p]}</span>
+                        {priority === p && (
+                          <svg className="ml-auto shrink-0" width="12" height="12" viewBox="0 0 14 14" fill="none">
+                            <path d="M2.5 7l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                 {school.state}
               </span>
@@ -842,7 +920,13 @@ export default function ResearchPage() {
   const handleSave = useCallback(async (schoolId: string, updates: Partial<School>) => {
     const { error } = await supabase.from("schools").update(updates).eq("id", schoolId);
     if (error) { alert("Save failed: " + error.message); return; }
-    setSchools((prev) => prev.map((s) => s.id === schoolId ? { ...s, ...updates } : s));
+    setSchools((prev) => {
+      const updated = prev.map((s) => s.id === schoolId ? { ...s, ...updates } : s);
+      if ("priority_score" in updates) {
+        return updated.sort((a, b) => b.priority_score - a.priority_score);
+      }
+      return updated;
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
