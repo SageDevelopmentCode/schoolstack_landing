@@ -18,190 +18,71 @@ import {
   TreePine,
   ArrowRight,
   Leaf,
+  GraduationCap,
+  Users,
+  Compass,
+  BookOpen,
+  Shield,
+  Award,
+  Sparkles,
 } from "lucide-react";
+import { defaultWebsiteDemoConfig } from "@/data/school-demos/default";
+import type {
+  DemoIconName,
+  DemoTheme,
+  DemoTimelineStep,
+  SchoolWebsiteDemoConfig,
+} from "@/data/school-demos/types";
 
-// ─── Static Data ─────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const STATS = [
-  { value: "Ages 4–11", label: "All Elementary Ages" },
-  { value: "12 Max", label: "Students Per Class" },
-  { value: "3 Methods", label: "Montessori · Waldorf · Reggio" },
-  { value: "5 Days", label: "Per Week Available" },
-];
+const ICON_MAP = {
+  sprout: Sprout,
+  heart: Heart,
+  palette: Palette,
+  treePine: TreePine,
+  leaf: Leaf,
+  graduationCap: GraduationCap,
+  users: Users,
+  compass: Compass,
+  bookOpen: BookOpen,
+  shield: Shield,
+  award: Award,
+  sparkles: Sparkles,
+} as const;
 
-const PROGRAMS = [
-  {
-    badge: "Summer Program",
-    title: "Summer Adventures",
-    teaser: "12 weeks of outdoor projects & enrichment",
-    desc: "Twelve weeks of themed adventures, hands-on projects, nature play, art, and academic enrichment in a small, nurturing group. Every day feels like a discovery.",
-    details: ["Ages 4–11", "Mon–Thu", "12 Weeks", "Max 12 Kids"],
-    image: "/images/stock/ImageFive.jpg",
-    accent: "text-amber-600",
-    accentBg: "bg-amber-50",
-  },
-  {
-    badge: "School Year",
-    title: "Full School Year",
-    teaser: "A complete microschool year, ability-paced",
-    desc: "A full microschool year blending Montessori, Waldorf, and Reggio-inspired methods with TEKS-aligned academics. Individualized pacing. Genuine community.",
-    details: ["Ages 4–11", "Mon–Fri", "6-Month Term", "Max 12 Kids"],
-    image: "/images/stock/ImageTwo.jpg",
-    accent: "text-sage-700",
-    accentBg: "bg-sage-50",
-  },
-  {
-    badge: "Homeschool",
-    title: "Homeschool Drop-In",
-    teaser: "1–5 flexible days for homeschool families",
-    desc: "Flexible enrichment for families who want structure without losing autonomy. Choose 1 to 5 days — adjust as your family's rhythm evolves. All enrichments included.",
-    details: ["Ages 4–11", "1–5 Days/Wk", "Flexible", "Max 12 Kids"],
-    image: "/images/stock/Homeschool3.jpg",
-    accent: "text-emerald-700",
-    accentBg: "bg-emerald-50",
-  },
-];
+function DemoIcon({ name, className }: { name: DemoIconName; className?: string }) {
+  const Icon = ICON_MAP[name];
+  return <Icon className={className} />;
+}
 
-const MARQUEE_ITEMS = [
-  "Montessori",
-  "Waldorf",
-  "Reggio Emilia",
-  "Outdoor Learning",
-  "TEKS-Aligned",
-  "Small Groups",
-  "Nature Play",
-  "Hands-On Art",
-  "Emotional Regulation",
-  "Mixed Ages",
-  "Portfolio-Based",
-  "Ability-Paced",
-];
-
-const TIMELINE = [
-  {
-    time: "8:30 AM",
-    activity: "Morning Circle",
-    desc: "Grounding songs, weather, setting intentions — the nervous system settles before learning begins.",
-    image: "/images/stock/ImageEleven.jpg",
-  },
-  {
-    time: "9:00 AM",
-    activity: "Core Academics",
-    desc: "Reading, writing, and math — at each child's exact ability level, not where their birthday says they should be.",
-    image: "/images/stock/ImageTwo.jpg",
-  },
-  {
-    time: "10:30 AM",
-    activity: "Outdoor Exploration",
-    desc: "Nature walks, gardening, science observation. The outdoors is a classroom, not a break from one.",
-    image: "/images/stock/ImageFour.jpg",
-  },
-  {
-    time: "12:00 PM",
-    activity: "Lunch & Rest",
-    desc: "Family-style eating, quiet reading, restorative downtime. Rest is part of the curriculum.",
-    image: "/images/stock/Homeschool3.jpg",
-  },
-  {
-    time: "1:00 PM",
-    activity: "Creative Projects",
-    desc: "Art, music, collaborative builds, maker-space. The afternoon belongs to curiosity and expression.",
-    image: "/images/stock/ImageFive.jpg",
-  },
-];
-
-const TESTIMONIALS = [
-  {
-    quote:
-      "My daughter was anxious about school until she found a place this small and warm. She asks to go on weekends now.",
-    name: "Rachel M.",
-    detail: "Parent of a 7-year-old",
-    stars: 5,
-    avatar: "/images/stock/ImageSix.jpg",
-  },
-  {
-    quote:
-      "The teachers actually know my son — not just his name, but his learning style, what frustrates him, what sparks him.",
-    name: "David K.",
-    detail: "Parent of a 9-year-old",
-    stars: 5,
-    avatar: "/images/stock/ImageSeven.jpg",
-  },
-  {
-    quote:
-      "We tried three schools before this one. Nothing compared to the calm, intentional pace of a true microschool.",
-    name: "Priya S.",
-    detail: "Parent of twin 6-year-olds",
-    stars: 5,
-    avatar: "/images/stock/ImageEight.jpg",
-  },
-];
-
-const PILLARS = [
-  {
-    icon: Sprout,
-    title: "Hands-On Learning",
-    desc: "Experiential projects that connect academic skills to real-world discovery and wonder.",
-  },
-  {
-    icon: Heart,
-    title: "Emotional Safety",
-    desc: "A regulated, relationship-first environment where every child feels seen and genuinely known.",
-  },
-  {
-    icon: Palette,
-    title: "Creative Expression",
-    desc: "Daily art, music, and maker-space time that builds confidence and divergent thinking.",
-  },
-  {
-    icon: TreePine,
-    title: "Nature & Movement",
-    desc: "Outdoor learning woven into every day — a core curriculum pillar, not a recess afterthought.",
-  },
-];
-
-const FAQS = [
-  {
-    q: "What is a microschool?",
-    a: "A microschool is a small, independent private school — typically under 15 students — that prioritizes personalized pacing, mixed-age groups, and innovative approaches to learning over traditional one-size-fits-all schooling.",
-  },
-  {
-    q: "What ages and group sizes do you serve?",
-    a: "We serve children ages 4–11. Classes are intentionally capped at 12 students so every child receives genuine attention, and educators can stay closely attuned to individual needs.",
-  },
-  {
-    q: "What does a typical day look like?",
-    a: "Mornings focus on individualized academics — reading, writing, and math at each child's ability level. Afternoons shift into nature exploration, art, music, movement, and social-emotional learning. The rhythm is calm, predictable, and alive with curiosity.",
-  },
-  {
-    q: "Do you follow a standard curriculum?",
-    a: "We draw from Montessori, Waldorf, and Reggio Emilia methods with broadly TEKS-aligned academics. Learning is comprehensive and structured — we are a school, not a childcare center.",
-  },
-  {
-    q: "How do I get started?",
-    a: "Fill out the interest form below. We'll reach out within 48 hours to schedule a private tour. Spots are limited each semester — early applications receive priority.",
-  },
-];
-
-const STRIP_IMAGES = [
-  "/images/stock/ImageEleven.jpg",
-  "/images/stock/ImageTwelve.jpg",
-  "/images/stock/ImageThirteen.jpg",
-  "/images/stock/ImageFourteen.jpg",
-  "/images/stock/ImageNine.jpg",
-  "/images/stock/ImageTen.jpg",
-];
+function getThemeVars(theme: DemoTheme): React.CSSProperties {
+  return {
+    "--demo-primary": theme.primary,
+    "--demo-primary-hover": theme.primaryHover,
+    "--demo-dark": theme.dark,
+    "--demo-dark-hover": theme.darkHover,
+    "--demo-light-bg": theme.lightBg,
+    "--demo-light-border": theme.lightBorder,
+    "--demo-muted": theme.muted,
+    "--demo-badge-bg": theme.badgeBg,
+    "--demo-accent-text": theme.accentText,
+    "--demo-page-bg": theme.pageBg ?? "#ffffff",
+  } as React.CSSProperties;
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function TimelineStep({
   step,
   index,
+  stepCount,
   isActive,
   onClick,
 }: {
-  step: (typeof TIMELINE)[0];
+  step: DemoTimelineStep;
   index: number;
+  stepCount: number;
   isActive: boolean;
   onClick: () => void;
 }) {
@@ -219,7 +100,7 @@ function TimelineStep({
       onClick={onClick}
       className="flex gap-6 relative cursor-pointer group"
     >
-      {index < TIMELINE.length - 1 && (
+      {index < stepCount - 1 && (
         <div className="absolute left-5 top-10 w-px h-full bg-white/15 z-0" />
       )}
       <div
@@ -233,7 +114,7 @@ function TimelineStep({
       </div>
       <div className="pb-10">
         <p
-          className={`text-xs font-secondary font-semibold uppercase tracking-widest mb-1 transition-colors duration-300 ${isActive ? "text-primary" : "text-white/35"}`}
+          className={`text-xs font-secondary font-semibold uppercase tracking-widest mb-1 transition-colors duration-300 ${isActive ? "text-[var(--demo-primary)]" : "text-white/35"}`}
         >
           {step.time}
         </p>
@@ -252,19 +133,85 @@ function TimelineStep({
   );
 }
 
+function WelcomeImages({
+  mainImage,
+  secondaryImage,
+  statBadge,
+  floatBadge,
+}: {
+  mainImage: string;
+  secondaryImage: string;
+  statBadge?: { value: string; label: string };
+  floatBadge?: { title: string; subtitle: string; icon: DemoIconName };
+}) {
+  return (
+    <motion.div
+      className="w-full lg:w-7/12 relative overflow-hidden lg:overflow-visible"
+      initial={{ opacity: 0, x: 30 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" as const }}
+    >
+      <div className="relative h-[460px] rounded-3xl overflow-hidden shadow-2xl">
+        <Image src={mainImage} fill className="object-cover" alt="Students learning" />
+      </div>
+
+      <motion.div
+        className="absolute -bottom-8 -left-6 w-44 h-52 rounded-2xl overflow-hidden shadow-xl border-4 border-white z-10"
+        style={{ rotate: -4 }}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.5, duration: 0.7, ease: "easeOut" as const }}
+      >
+        <Image src={secondaryImage} fill className="object-cover" alt="School community" />
+      </motion.div>
+
+      {statBadge && (
+        <div className="absolute top-7 right-7 bg-white/95 backdrop-blur-sm rounded-2xl px-5 py-4 shadow-lg z-10">
+          <p className="text-2xl font-bold text-[var(--demo-dark)] font-heading leading-none">
+            {statBadge.value}
+          </p>
+          <p className="text-xs text-[var(--demo-muted)] font-secondary font-semibold uppercase tracking-wider mt-1">
+            {statBadge.label}
+          </p>
+        </div>
+      )}
+
+      {floatBadge && (
+        <div className="absolute bottom-5 right-6 bg-white/95 backdrop-blur-sm rounded-xl px-5 py-3.5 shadow-lg z-10 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-[var(--demo-light-bg)] flex items-center justify-center flex-shrink-0">
+            <DemoIcon name={floatBadge.icon} className="w-4 h-4 text-[var(--demo-accent-text)]" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-[var(--demo-dark)] font-heading leading-none">
+              {floatBadge.title}
+            </p>
+            <p className="text-xs text-[var(--demo-muted)] font-secondary mt-0.5">
+              {floatBadge.subtitle}
+            </p>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface Props {
   disableTour?: boolean;
+  standalone?: boolean;
+  config?: SchoolWebsiteDemoConfig;
 }
 
-export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Props) {
+export default function WebsiteDashboardDemo({
+  disableTour: _disableTour,
+  standalone,
+  config = defaultWebsiteDemoConfig,
+}: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    program: "",
-  });
+  const [formData, setFormData] = useState({ name: "", email: "", program: "" });
   const [formSuccess, setFormSuccess] = useState(false);
   const [marqueePaused, setMarqueePaused] = useState(false);
   const [activeProgram, setActiveProgram] = useState(0);
@@ -273,73 +220,70 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
   const statsRef = useRef(null);
   const statsInView = useInView(statsRef, { once: true, margin: "-80px" });
 
+  const { theme, hero, welcome, timeline } = config;
+  const activeProgramData = config.programs.items[activeProgram];
+  const activeTimelineStep = timeline.steps[activeStep];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormSuccess(true);
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-white">
+    <div
+      className={standalone ? "min-h-screen w-full" : "h-full overflow-y-auto"}
+      style={{ ...getThemeVars(theme), backgroundColor: "var(--demo-page-bg)" }}
+    >
       {/* ─── 1. HERO ───────────────────────────────────────────────────────── */}
       <section className="relative h-[600px] overflow-hidden">
-        {/* Background image (no parallax in embedded demo) */}
         <div className="absolute inset-0 scale-[1.05]">
           <Image
-            src="/images/stock/ImageOne.jpg"
+            src={hero.backgroundImage}
             fill
             className="object-cover"
-            alt="Children learning outdoors"
+            alt={hero.imageAlt}
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/25 to-black/75" />
         </div>
 
-        {/* Floating photo card — top right */}
-        <motion.div
-          className="absolute top-24 right-6 md:right-16 w-40 md:w-52 h-52 md:h-72 rounded-2xl overflow-hidden shadow-2xl hidden sm:block"
-          style={{ rotate: 3 }}
-          initial={{ opacity: 0, x: 40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.1, duration: 0.8, ease: "easeOut" as const }}
-        >
-          <Image
-            src="/images/stock/Homeschool2.jpg"
-            fill
-            className="object-cover"
-            alt=""
-          />
-          <div className="absolute inset-0 ring-1 ring-white/20 rounded-2xl" />
-        </motion.div>
+        {hero.floatingImages[0] && (
+          <motion.div
+            className="absolute top-24 right-6 md:right-16 w-40 md:w-52 h-52 md:h-72 rounded-2xl overflow-hidden shadow-2xl hidden sm:block"
+            style={{ rotate: 3 }}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 1.1, duration: 0.8, ease: "easeOut" as const }}
+          >
+            <Image src={hero.floatingImages[0]} fill className="object-cover" alt="" />
+            <div className="absolute inset-0 ring-1 ring-white/20 rounded-2xl" />
+          </motion.div>
+        )}
 
-        {/* Second floating card */}
-        <motion.div
-          className="absolute top-52 right-40 md:right-64 w-28 md:w-36 h-36 md:h-44 rounded-xl overflow-hidden shadow-xl hidden md:block"
-          style={{ rotate: -2 }}
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 1.4, duration: 0.7, ease: "easeOut" as const }}
-        >
-          <Image
-            src="/images/stock/ImageThree.jpg"
-            fill
-            className="object-cover"
-            alt=""
-          />
-        </motion.div>
+        {hero.floatingImages[1] && (
+          <motion.div
+            className="absolute top-52 right-40 md:right-64 w-28 md:w-36 h-36 md:h-44 rounded-xl overflow-hidden shadow-xl hidden md:block"
+            style={{ rotate: -2 }}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 1.4, duration: 0.7, ease: "easeOut" as const }}
+          >
+            <Image src={hero.floatingImages[1]} fill className="object-cover" alt="" />
+          </motion.div>
+        )}
 
-        {/* Navbar */}
         <div className="relative z-20 flex items-center justify-between px-8 sm:px-12 pt-7">
           <div className="flex items-center gap-2">
             <Image
-              src="/images/Logo.png"
-              alt="MudKitchen"
-              width={120}
-              height={32}
+              src={config.logo.src}
+              alt={config.logo.alt}
+              width={config.logo.width ?? 120}
+              height={config.logo.height ?? 32}
               className="h-8 w-auto object-contain"
             />
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            {["Programs", "Philosophy", "Team", "FAQ"].map((item) => (
+            {hero.navLinks.map((item) => (
               <button
                 key={item}
                 className="text-white/65 hover:text-white font-secondary text-sm font-semibold transition-colors duration-200 cursor-pointer"
@@ -348,12 +292,11 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               </button>
             ))}
           </nav>
-          <button className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg cursor-pointer">
-            Enroll Now
+          <button className="px-5 py-2.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white text-sm font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg cursor-pointer">
+            {hero.navCta}
           </button>
         </div>
 
-        {/* Hero text */}
         <div className="absolute bottom-0 left-0 z-10 px-8 sm:px-14 pb-14 max-w-2xl">
           <motion.span
             className="inline-block px-5 py-2 bg-white/15 backdrop-blur-sm text-white text-sm font-semibold rounded-full font-secondary mb-6 border border-white/25"
@@ -361,7 +304,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" as const }}
           >
-            Now Enrolling — Fall 2026
+            {hero.eyebrow}
           </motion.span>
 
           <motion.h1
@@ -370,9 +313,19 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55, duration: 0.85, ease: "easeOut" as const }}
           >
-            Where Children
-            <br />
-            <span className="text-primary">Grow Wise.</span>
+            {hero.headline.map((line, i) => (
+              <span
+                key={line}
+                className={
+                  hero.headlineAccentLine === i
+                    ? "text-[var(--demo-primary)]"
+                    : "text-white"
+                }
+              >
+                {line}
+                {i < hero.headline.length - 1 && <br />}
+              </span>
+            ))}
           </motion.h1>
 
           <motion.p
@@ -381,8 +334,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.75, duration: 0.7, ease: "easeOut" as const }}
           >
-            A small, outdoor-focused private microschool for ages 4–11. Up to 12
-            students. Montessori, Waldorf, and Reggio Emilia — woven together.
+            {hero.subheadline}
           </motion.p>
 
           <motion.div
@@ -391,17 +343,16 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, duration: 0.7, ease: "easeOut" as const }}
           >
-            <button className="px-7 py-3.5 bg-primary hover:bg-primary-hover text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
-              Apply for a Spot
+            <button className="px-7 py-3.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
+              {hero.primaryCta}
               <ArrowRight className="w-4 h-4" />
             </button>
             <button className="px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg font-secondary transition-all duration-200 border border-white/25 backdrop-blur-sm cursor-pointer">
-              See Our Programs
+              {hero.secondaryCta}
             </button>
           </motion.div>
         </div>
 
-        {/* Scroll cue */}
         <motion.div
           className="absolute bottom-7 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1"
           animate={{ y: [0, 7, 0] }}
@@ -417,21 +368,21 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       {/* ─── 2. STAT BAND ─────────────────────────────────────────────────── */}
       <section
         ref={statsRef}
-        className="bg-sage-50 border-b border-sage-100 py-12 px-8"
+        className="bg-[var(--demo-light-bg)] border-b border-[var(--demo-light-border)] py-12 px-8"
       >
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4">
-          {STATS.map((stat, i) => (
+          {config.stats.map((stat, i) => (
             <motion.div
               key={stat.value}
-              className="text-center px-4 md:px-8 border-r border-sage-200 last:border-0 py-4"
+              className="text-center px-4 md:px-8 border-r border-[var(--demo-light-border)] last:border-0 py-4"
               initial={{ opacity: 0, y: 18 }}
               animate={statsInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.55, delay: i * 0.1, ease: "easeOut" as const }}
             >
-              <p className="text-2xl md:text-3xl font-bold text-sage-900 font-heading mb-1.5">
+              <p className="text-2xl md:text-3xl font-bold text-[var(--demo-dark)] font-heading mb-1.5">
                 {stat.value}
               </p>
-              <p className="text-xs font-semibold text-sage-500 font-secondary uppercase tracking-wider">
+              <p className="text-xs font-semibold text-[var(--demo-muted)] font-secondary uppercase tracking-wider">
                 {stat.label}
               </p>
             </motion.div>
@@ -439,106 +390,95 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
         </div>
       </section>
 
-      {/* ─── 3. WELCOME ───────────────────────────────────────────────────── */}
-      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: '#1a3327' }}>
+      {/* ─── 3. WELCOME / PARENT FIT ──────────────────────────────────────── */}
+      <section
+        className="py-24 px-8 sm:px-12 lg:px-16"
+        style={{ backgroundColor: "var(--demo-dark)" }}
+      >
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
-          <motion.div
-            className="w-full lg:w-5/12"
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, ease: "easeOut" as const }}
-          >
-            <span className="inline-block px-5 py-2 bg-white/15 text-white text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider">
-              Our Mission
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-5 leading-tight">
-              Learning that
-              <br />
-              <em className="text-primary not-italic">feels like living.</em>
-            </h2>
-            <p className="text-base text-white/70 leading-relaxed font-secondary mb-5">
-              We believe children thrive when they're trusted, known, and given
-              room to wonder. MudKitchen Microschool is built on the idea that the
-              best education doesn't separate curiosity from content — it weaves
-              them together.
-            </p>
-            <p className="text-base text-white/70 leading-relaxed font-secondary mb-8">
-              Every child here is more than a grade level. They're a whole
-              person with a unique rhythm — and our role is to meet them exactly
-              where they are.
-            </p>
-            <div className="p-6 bg-sage-50 rounded-2xl border-l-4 border-sage-400">
-              <p className="text-sm font-medium text-sage-800 font-secondary leading-relaxed">
-                &ldquo;Wisdom is knowledge transformed by experience — and that
-                transformation is what we're here to nurture.&rdquo;
-              </p>
-              <p className="text-xs text-sage-400 font-secondary mt-3 uppercase tracking-wider">
-                — School Founder
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="w-full lg:w-7/12 relative overflow-hidden lg:overflow-visible"
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" as const }}
-          >
-            <div className="relative h-[460px] rounded-3xl overflow-hidden shadow-2xl">
-              <Image
-                src="/images/stock/ImageThree.jpg"
-                fill
-                className="object-cover"
-                alt="Children exploring outdoors"
+          {welcome.type === "mission" ? (
+            <>
+              <motion.div
+                className="w-full lg:w-5/12"
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, ease: "easeOut" as const }}
+              >
+                <span className="inline-block px-5 py-2 bg-white/15 text-white text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider">
+                  {welcome.eyebrow}
+                </span>
+                <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-5 leading-tight">
+                  {welcome.heading}
+                  <br />
+                  <em className="text-[var(--demo-primary)] not-italic">{welcome.headingAccent}</em>
+                </h2>
+                {welcome.paragraphs.map((p) => (
+                  <p
+                    key={p.slice(0, 40)}
+                    className="text-base text-white/70 leading-relaxed font-secondary mb-5 last:mb-8"
+                  >
+                    {p}
+                  </p>
+                ))}
+                <div className="p-6 bg-[var(--demo-light-bg)] rounded-2xl border-l-4 border-[var(--demo-primary)]">
+                  <p className="text-sm font-medium text-[var(--demo-dark)] font-secondary leading-relaxed">
+                    &ldquo;{welcome.quote}&rdquo;
+                  </p>
+                  <p className="text-xs text-[var(--demo-muted)] font-secondary mt-3 uppercase tracking-wider">
+                    {welcome.quoteAttribution}
+                  </p>
+                </div>
+              </motion.div>
+              <WelcomeImages
+                mainImage={welcome.mainImage}
+                secondaryImage={welcome.secondaryImage}
+                statBadge={welcome.statBadge}
+                floatBadge={welcome.floatBadge}
               />
-            </div>
-
-            <motion.div
-              className="absolute -bottom-8 -left-6 w-44 h-52 rounded-2xl overflow-hidden shadow-xl border-4 border-white z-10"
-              style={{ rotate: -4 }}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.5, duration: 0.7, ease: "easeOut" as const }}
-            >
-              <Image
-                src="/images/stock/ImageFour.jpg"
-                fill
-                className="object-cover"
-                alt="Students learning"
+            </>
+          ) : (
+            <>
+              <motion.div
+                className="w-full lg:w-5/12"
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, ease: "easeOut" as const }}
+              >
+                <span className="inline-block px-5 py-2 bg-white/15 text-white text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider">
+                  {welcome.eyebrow}
+                </span>
+                <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-8 leading-tight">
+                  {welcome.heading}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {welcome.cards.map((card) => (
+                    <div
+                      key={card.title}
+                      className="p-5 bg-white/8 rounded-2xl border border-white/15"
+                    >
+                      <h3 className="text-base font-bold text-white font-heading mb-2">
+                        {card.title}
+                      </h3>
+                      <p className="text-sm text-white/65 font-secondary leading-relaxed">
+                        {card.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+              <WelcomeImages
+                mainImage={welcome.mainImage}
+                secondaryImage={welcome.secondaryImage}
               />
-            </motion.div>
-
-            <div className="absolute top-7 right-7 bg-white/95 backdrop-blur-sm rounded-2xl px-5 py-4 shadow-lg z-10">
-              <p className="text-2xl font-bold text-sage-900 font-heading leading-none">
-                98%
-              </p>
-              <p className="text-xs text-sage-500 font-secondary font-semibold uppercase tracking-wider mt-1">
-                Parent Satisfaction
-              </p>
-            </div>
-
-            <div className="absolute bottom-5 right-6 bg-white/95 backdrop-blur-sm rounded-xl px-5 py-3.5 shadow-lg z-10 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center flex-shrink-0">
-                <Leaf className="w-4 h-4 text-sage-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-sage-900 font-heading leading-none">
-                  12 students max
-                </p>
-                <p className="text-xs text-sage-400 font-secondary mt-0.5">
-                  Always. No exceptions.
-                </p>
-              </div>
-            </div>
-          </motion.div>
+            </>
+          )}
         </div>
       </section>
 
       {/* ─── 4. MARQUEE ───────────────────────────────────────────────────── */}
-      <section className="bg-sage-100 py-4 overflow-hidden border-y border-sage-200">
+      <section className="bg-[var(--demo-light-bg)] py-4 overflow-hidden border-y border-[var(--demo-light-border)]">
         <style>{`
           @keyframes marquee-website-demo {
             0%   { transform: translateX(0); }
@@ -554,20 +494,20 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           onMouseEnter={() => setMarqueePaused(true)}
           onMouseLeave={() => setMarqueePaused(false)}
         >
-          {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
+          {[...config.marquee, ...config.marquee].map((item, i) => (
             <span
-              key={i}
-              className="inline-flex items-center gap-5 mx-7 text-sage-700 font-semibold font-secondary text-sm uppercase tracking-wider"
+              key={`${item}-${i}`}
+              className="inline-flex items-center gap-5 mx-7 text-[var(--demo-accent-text)] font-semibold font-secondary text-sm uppercase tracking-wider"
             >
               {item}
-              <span className="w-1.5 h-1.5 rounded-full bg-sage-300 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--demo-primary)] flex-shrink-0 opacity-60" />
             </span>
           ))}
         </div>
       </section>
 
       {/* ─── 5. PROGRAMS ──────────────────────────────────────────────────── */}
-      <section className="bg-white py-24 px-8 sm:px-12 lg:px-16">
+      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-page-bg)" }}>
         <div className="max-w-7xl mx-auto">
           <motion.div
             className="mb-14"
@@ -576,33 +516,33 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
-              What We Offer
+            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
+              {config.programs.eyebrow}
             </span>
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading leading-tight">
-                A program for every family
+                {config.programs.heading}
               </h2>
               <p className="text-gray-500 font-secondary text-base max-w-sm md:text-right">
-                Click each program to explore what a semester looks like.
+                {config.programs.subtitle}
               </p>
             </div>
           </motion.div>
 
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
             <div className="w-full lg:w-[340px] flex flex-col sm:grid sm:grid-cols-3 lg:flex lg:flex-col gap-3 flex-shrink-0">
-              {PROGRAMS.map((p, i) => (
+              {config.programs.items.map((p, i) => (
                 <button
                   key={p.title}
                   onClick={() => setActiveProgram(i)}
                   className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-250 cursor-pointer ${
                     activeProgram === i
-                      ? "border-primary bg-primary/5 shadow-sm"
+                      ? "border-[var(--demo-primary)] bg-[color-mix(in_srgb,var(--demo-primary)_8%,transparent)] shadow-sm"
                       : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
                   }`}
                 >
                   <span
-                    className={`text-xs font-semibold uppercase tracking-wider font-secondary block mb-2 ${activeProgram === i ? "text-primary" : "text-gray-400"}`}
+                    className={`text-xs font-semibold uppercase tracking-wider font-secondary block mb-2 ${activeProgram === i ? "text-[var(--demo-primary)]" : "text-gray-400"}`}
                   >
                     {p.badge}
                   </span>
@@ -625,28 +565,28 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                 >
                   <div className="relative h-64 md:h-80 rounded-2xl overflow-hidden mb-7 shadow-lg">
                     <Image
-                      src={PROGRAMS[activeProgram].image}
+                      src={activeProgramData.image}
                       fill
                       className="object-cover"
-                      alt={PROGRAMS[activeProgram].title}
+                      alt={activeProgramData.title}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     <span
-                      className={`absolute top-5 left-5 px-4 py-1.5 text-xs font-bold rounded-full font-secondary ${PROGRAMS[activeProgram].accentBg} ${PROGRAMS[activeProgram].accent}`}
+                      className={`absolute top-5 left-5 px-4 py-1.5 text-xs font-bold rounded-full font-secondary ${activeProgramData.accentBg} ${activeProgramData.accent}`}
                     >
-                      {PROGRAMS[activeProgram].badge}
+                      {activeProgramData.badge}
                     </span>
                   </div>
 
                   <h3 className="text-3xl font-bold text-gray-900 font-heading mb-4">
-                    {PROGRAMS[activeProgram].title}
+                    {activeProgramData.title}
                   </h3>
                   <p className="text-base text-gray-600 font-secondary leading-relaxed mb-6">
-                    {PROGRAMS[activeProgram].desc}
+                    {activeProgramData.desc}
                   </p>
 
                   <div className="flex flex-wrap gap-2 mb-7">
-                    {PROGRAMS[activeProgram].details.map((d) => (
+                    {activeProgramData.details.map((d) => (
                       <span
                         key={d}
                         className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-full text-xs font-semibold font-secondary"
@@ -656,8 +596,8 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                     ))}
                   </div>
 
-                  <button className="px-8 py-3.5 bg-sage-900 hover:bg-sage-800 text-white rounded-xl font-semibold font-secondary transition-colors duration-200 flex items-center gap-2 cursor-pointer">
-                    Learn More
+                  <button className="px-8 py-3.5 bg-[var(--demo-dark)] hover:bg-[var(--demo-dark-hover)] text-white rounded-xl font-semibold font-secondary transition-colors duration-200 flex items-center gap-2 cursor-pointer">
+                    {config.programs.ctaLabel}
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </motion.div>
@@ -668,7 +608,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       </section>
 
       {/* ─── 6. PHOTO MOSAIC ──────────────────────────────────────────────── */}
-      <section className="bg-white px-4 pb-4">
+      <section className="px-4 pb-4" style={{ backgroundColor: "var(--demo-page-bg)" }}>
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 grid-rows-2 gap-3 h-[280px] sm:h-[340px] md:h-[480px]">
           <motion.div
             className="col-span-1 row-span-2 relative rounded-2xl overflow-hidden"
@@ -678,7 +618,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             transition={{ duration: 0.7, ease: "easeOut" as const }}
           >
             <Image
-              src="/images/stock/ImageSix.jpg"
+              src={config.mosaicImages[0]}
               fill
               className="object-cover hover:scale-105 transition-transform duration-700"
               alt="School life"
@@ -692,10 +632,10 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" as const }}
           >
             <Image
-              src="/images/stock/ImageSeven.jpg"
+              src={config.mosaicImages[1]}
               fill
               className="object-cover hover:scale-105 transition-transform duration-700"
-              alt="Children learning"
+              alt="Students learning"
             />
           </motion.div>
           <motion.div
@@ -706,10 +646,10 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" as const }}
           >
             <Image
-              src="/images/stock/ImageEight.jpg"
+              src={config.mosaicImages[2]}
               fill
               className="object-cover hover:scale-105 transition-transform duration-700"
-              alt="Outdoor activities"
+              alt="Campus activities"
             />
           </motion.div>
         </div>
@@ -718,12 +658,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       {/* ─── 7. PHILOSOPHY QUOTE ──────────────────────────────────────────── */}
       <section className="relative py-28 px-8 overflow-hidden">
         <div className="absolute inset-0">
-          <Image
-            src="/images/stock/ImageNine.jpg"
-            fill
-            className="object-cover"
-            alt=""
-          />
+          <Image src={config.quote.backgroundImage} fill className="object-cover" alt="" />
           <div className="absolute inset-0 bg-white/90 backdrop-blur-[2px]" />
         </div>
         <div className="relative z-10 max-w-4xl mx-auto text-center">
@@ -733,24 +668,27 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.9, ease: "easeOut" as const }}
           >
-            <span className="block text-7xl md:text-8xl text-primary/25 font-heading leading-none mb-2 select-none">
+            <span className="block text-7xl md:text-8xl text-[color-mix(in_srgb,var(--demo-primary)_25%,transparent)] font-heading leading-none mb-2 select-none">
               &ldquo;
             </span>
             <blockquote className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-gray-900 leading-tight italic mb-10">
-              The child is not a vessel to be filled,
-              <br />
-              but a fire to be kindled.
+              {config.quote.text.map((line, i) => (
+                <span key={line}>
+                  {line}
+                  {i < config.quote.text.length - 1 && <br />}
+                </span>
+              ))}
             </blockquote>
             <p className="text-sm text-gray-400 font-secondary uppercase tracking-widest mb-8">
-              François Rabelais · Our guiding belief
+              {config.quote.attribution}
             </p>
-            <div className="mx-auto w-20 h-1 bg-primary rounded-full" />
+            <div className="mx-auto w-20 h-1 bg-[var(--demo-primary)] rounded-full" />
           </motion.div>
         </div>
       </section>
 
       {/* ─── 8. PHOTO STRIP ───────────────────────────────────────────────── */}
-      <section className="bg-sage-50 py-10 overflow-hidden border-t border-sage-100">
+      <section className="bg-[var(--demo-light-bg)] py-10 overflow-hidden border-t border-[var(--demo-light-border)]">
         <style>{`
           @keyframes strip-scroll-website-demo {
             0%   { transform: translateX(0); }
@@ -764,9 +702,9 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             width: "max-content",
           }}
         >
-          {[...STRIP_IMAGES, ...STRIP_IMAGES].map((src, i) => (
+          {[...config.stripImages, ...config.stripImages].map((src, i) => (
             <motion.div
-              key={i}
+              key={`${src}-${i}`}
               className="relative w-48 sm:w-64 h-36 sm:h-44 flex-shrink-0 rounded-2xl overflow-hidden shadow-sm"
               whileHover={{ scale: 1.03 }}
               transition={{ duration: 0.25 }}
@@ -778,7 +716,10 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       </section>
 
       {/* ─── 9. DAY IN LIFE ───────────────────────────────────────────────── */}
-      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: '#1a3327' }}>
+      <section
+        className="py-24 px-8 sm:px-12 lg:px-16"
+        style={{ backgroundColor: "var(--demo-dark)" }}
+      >
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 items-start">
           <div className="w-full lg:w-7/12">
             <motion.span
@@ -788,7 +729,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               viewport={{ once: true }}
               transition={{ duration: 0.6, ease: "easeOut" as const }}
             >
-              A Day at MudKitchen
+              {timeline.eyebrow}
             </motion.span>
 
             <motion.h2
@@ -798,17 +739,18 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" as const }}
             >
-              Calm. Structured.
+              {timeline.heading}
               <br />
-              <span className="text-white/60">Alive with curiosity.</span>
+              <span className="text-white/60">{timeline.headingSub}</span>
             </motion.h2>
 
             <div className="relative">
-              {TIMELINE.map((step, i) => (
+              {timeline.steps.map((step, i) => (
                 <TimelineStep
-                  key={step.time}
+                  key={step.activity}
                   step={step}
                   index={i}
+                  stepCount={timeline.steps.length}
                   isActive={activeStep === i}
                   onClick={() => setActiveStep(i)}
                 />
@@ -827,25 +769,25 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                 className="relative h-[280px] sm:h-[420px] md:h-[520px] rounded-3xl overflow-hidden shadow-2xl"
               >
                 <Image
-                  src={TIMELINE[activeStep].image}
+                  src={activeTimelineStep.image}
                   fill
                   className="object-cover"
-                  alt={TIMELINE[activeStep].activity}
+                  alt={activeTimelineStep.activity}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-7">
-                  <p className="text-primary font-secondary text-xs font-semibold uppercase tracking-widest mb-1.5">
-                    {TIMELINE[activeStep].time}
+                  <p className="text-[var(--demo-primary)] font-secondary text-xs font-semibold uppercase tracking-widest mb-1.5">
+                    {activeTimelineStep.time}
                   </p>
                   <p className="text-white font-heading font-bold text-xl">
-                    {TIMELINE[activeStep].activity}
+                    {activeTimelineStep.activity}
                   </p>
                 </div>
               </motion.div>
             </AnimatePresence>
 
             <div className="flex justify-center gap-2 mt-5">
-              {TIMELINE.map((_, i) => (
+              {timeline.steps.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveStep(i)}
@@ -861,8 +803,8 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
         </div>
       </section>
 
-      {/* ─── 10. TESTIMONIALS ─────────────────────────────────────────────── */}
-      <section className="bg-sage-50 py-24 px-8 sm:px-12 lg:px-16">
+      {/* ─── 10. TESTIMONIALS / TRUST ──────────────────────────────────────── */}
+      <section className="bg-[var(--demo-light-bg)] py-24 px-8 sm:px-12 lg:px-16">
         <div className="max-w-7xl mx-auto">
           <motion.div
             className="text-center mb-14"
@@ -871,56 +813,79 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
-              Parent Stories
+            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
+              {config.socialProof.eyebrow}
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-4">
-              Families who found their fit
+              {config.socialProof.heading}
             </h2>
             <p className="text-gray-500 font-secondary text-lg max-w-lg mx-auto">
-              From anxious starters to thriving explorers — one semester changed
-              everything.
+              {config.socialProof.subtitle}
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t, i) => (
-              <motion.div
-                key={t.name}
-                className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm flex flex-col"
-                initial={{ opacity: 0, y: 25 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: i * 0.12, ease: "easeOut" as const }}
-                whileHover={{ y: -4, boxShadow: "0 16px 40px rgba(0,0,0,0.08)" }}
-              >
-                <div className="flex gap-1 mb-5">
-                  {Array.from({ length: t.stars }).map((_, j) => (
-                    <Star key={j} className="w-3.5 h-3.5 fill-primary text-primary" />
-                  ))}
-                </div>
-                <blockquote className="text-base text-gray-700 font-secondary leading-relaxed italic mb-7 flex-1">
-                  &ldquo;{t.quote}&rdquo;
-                </blockquote>
-                <div className="flex items-center gap-3">
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-sage-100">
-                    <Image src={t.avatar} fill className="object-cover" alt="" />
+          {config.socialProof.type === "testimonials" ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {config.socialProof.items.map((t, i) => (
+                <motion.div
+                  key={t.name}
+                  className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm flex flex-col"
+                  initial={{ opacity: 0, y: 25 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: i * 0.12, ease: "easeOut" as const }}
+                  whileHover={{ y: -4, boxShadow: "0 16px 40px rgba(0,0,0,0.08)" }}
+                >
+                  <div className="flex gap-1 mb-5">
+                    {Array.from({ length: t.stars }).map((_, j) => (
+                      <Star key={j} className="w-3.5 h-3.5 fill-[var(--demo-primary)] text-[var(--demo-primary)]" />
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 font-heading">
-                      {t.name}
-                    </p>
-                    <p className="text-xs text-gray-400 font-secondary">{t.detail}</p>
+                  <blockquote className="text-base text-gray-700 font-secondary leading-relaxed italic mb-7 flex-1">
+                    &ldquo;{t.quote}&rdquo;
+                  </blockquote>
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-[var(--demo-light-bg)]">
+                      <Image src={t.avatar} fill className="object-cover" alt="" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 font-heading">{t.name}</p>
+                      <p className="text-xs text-gray-400 font-secondary">{t.detail}</p>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {config.socialProof.items.map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm flex flex-col"
+                  initial={{ opacity: 0, y: 25 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: i * 0.12, ease: "easeOut" as const }}
+                  whileHover={{ y: -4, boxShadow: "0 16px 40px rgba(0,0,0,0.08)" }}
+                >
+                  {item.icon && (
+                    <div className="w-12 h-12 rounded-xl bg-[var(--demo-light-bg)] flex items-center justify-center mb-5">
+                      <DemoIcon name={item.icon} className="w-6 h-6 text-[var(--demo-accent-text)]" />
+                    </div>
+                  )}
+                  <h3 className="text-lg font-bold text-gray-900 font-heading mb-3">{item.title}</h3>
+                  <p className="text-sm text-gray-500 font-secondary leading-relaxed flex-1">
+                    {item.desc}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ─── 11. TEACHING TEAM ────────────────────────────────────────────── */}
-      <section className="bg-white py-24 px-8 sm:px-12 lg:px-16">
+      {/* ─── 11. FOUNDER ──────────────────────────────────────────────────── */}
+      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-page-bg)" }}>
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 lg:gap-24 items-center">
           <motion.div
             className="w-full lg:w-5/12"
@@ -931,27 +896,23 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           >
             <div className="relative h-[380px] lg:h-[520px] rounded-3xl overflow-hidden shadow-2xl">
               <Image
-                src="/images/stock/ImageTen.jpg"
+                src={config.founder.image}
                 fill
                 className="object-cover"
-                alt="Lead Teacher"
+                alt={config.founder.name}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
               <div className="absolute top-7 right-7 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg">
                 <p className="text-xs text-gray-400 font-secondary font-semibold uppercase tracking-wider">
-                  Certified
+                  {config.founder.imageBadge.label}
                 </p>
                 <p className="text-sm font-bold text-gray-900 font-heading mt-0.5">
-                  Montessori AMI
+                  {config.founder.imageBadge.value}
                 </p>
               </div>
               <div className="absolute bottom-0 left-0 right-0 px-8 pb-8 pt-16">
-                <p className="text-white font-heading font-bold text-xl">
-                  Sarah Chen
-                </p>
-                <p className="text-white/60 font-secondary text-sm mt-1">
-                  Lead Teacher & School Director
-                </p>
+                <p className="text-white font-heading font-bold text-xl">{config.founder.name}</p>
+                <p className="text-white/60 font-secondary text-sm mt-1">{config.founder.title}</p>
               </div>
             </div>
           </motion.div>
@@ -963,46 +924,35 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary uppercase tracking-wider">
-              Meet the Team
+            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary uppercase tracking-wider">
+              {config.founder.eyebrow}
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading leading-tight">
-              Teachers who actually
+              {config.founder.heading}
               <br />
-              <em className="text-primary not-italic">know your child.</em>
+              <em className="text-[var(--demo-primary)] not-italic">{config.founder.headingAccent}</em>
             </h2>
-            <p className="text-base text-gray-600 leading-relaxed font-secondary">
-              Sarah holds an AMI Montessori certification and has spent 11 years
-              in mixed-age classrooms. She founded MudKitchen after watching
-              bright children wilt under the pressure of traditional schooling.
-            </p>
-            <p className="text-base text-gray-600 leading-relaxed font-secondary">
-              Our teacher-to-student ratio never exceeds 1:6. Every adult in the
-              building knows every child — their interests, their frustrations,
-              their spark.
-            </p>
+            {config.founder.paragraphs.map((p) => (
+              <p key={p.slice(0, 40)} className="text-base text-gray-600 leading-relaxed font-secondary">
+                {p}
+              </p>
+            ))}
             <div className="flex flex-wrap gap-2.5 pt-1">
-              {[
-                "AMI Montessori Certified",
-                "Waldorf Foundation Training",
-                "Trauma-Informed Care",
-                "11 Years Experience",
-              ].map((cred) => (
+              {config.founder.credentials.map((cred) => (
                 <span
                   key={cred}
-                  className="bg-sage-50 text-sage-700 px-4 py-2 rounded-full text-sm font-semibold font-secondary border border-sage-100"
+                  className="bg-[var(--demo-light-bg)] text-[var(--demo-accent-text)] px-4 py-2 rounded-full text-sm font-semibold font-secondary border border-[var(--demo-light-border)]"
                 >
                   {cred}
                 </span>
               ))}
             </div>
-            <div className="bg-primary/8 rounded-2xl border-l-4 border-primary p-6">
+            <div className="bg-[color-mix(in_srgb,var(--demo-primary)_8%,transparent)] rounded-2xl border-l-4 border-[var(--demo-primary)] p-6">
               <p className="text-sm text-gray-700 font-secondary leading-relaxed">
-                &ldquo;I don&apos;t teach subjects. I teach children. The
-                subjects are just the vehicle.&rdquo;
+                &ldquo;{config.founder.quote}&rdquo;
               </p>
               <p className="text-xs text-gray-400 font-secondary mt-2 uppercase tracking-wider">
-                — Sarah Chen, Director
+                {config.founder.quoteAttribution}
               </p>
             </div>
           </motion.div>
@@ -1012,13 +962,11 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       {/* ─── 12. FULL-BLEED BAND ──────────────────────────────────────────── */}
       <section className="relative min-h-[75vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 scale-[1.05]">
-          <Image
-            src="/images/stock/ImageNine.jpg"
-            fill
-            className="object-cover"
-            alt=""
+          <Image src={config.parallax.backgroundImage} fill className="object-cover" alt="" />
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: "color-mix(in srgb, var(--demo-dark) 75%, transparent)" }}
           />
-          <div className="absolute inset-0 bg-sage-900/75" />
         </div>
 
         <motion.div
@@ -1028,33 +976,34 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           viewport={{ once: true }}
           transition={{ duration: 0.9, ease: "easeOut" as const }}
         >
-          <p className="text-primary/80 font-semibold text-xs uppercase tracking-widest font-secondary mb-7">
-            Our Vision
+          <p className="text-[color-mix(in_srgb,var(--demo-primary)_80%,transparent)] font-semibold text-xs uppercase tracking-widest font-secondary mb-7">
+            {config.parallax.eyebrow}
           </p>
           <h2 className="text-5xl md:text-6xl lg:text-7xl font-heading font-bold text-white leading-tight mb-8">
-            Where Children Grow
-            <br />
-            Into Their Wisest Selves
+            {config.parallax.heading.map((line, i) => (
+              <span key={line}>
+                {line}
+                {i < config.parallax.heading.length - 1 && <br />}
+              </span>
+            ))}
           </h2>
           <p className="text-lg text-white/55 font-secondary max-w-2xl mx-auto mb-12 leading-relaxed">
-            Every child arrives as a seed of endless possibility. We are the
-            field — the safe, nourishing ground where they root, reach, and
-            bloom.
+            {config.parallax.subtitle}
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            <button className="px-8 py-4 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
-              Schedule a Tour
+            <button className="px-8 py-4 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
+              {config.parallax.primaryCta}
               <ArrowRight className="w-4 h-4" />
             </button>
             <button className="px-8 py-4 bg-white/10 hover:bg-white/18 text-white font-semibold rounded-xl font-secondary transition-all duration-200 border border-white/25 cursor-pointer">
-              Read Our Philosophy
+              {config.parallax.secondaryCta}
             </button>
           </div>
         </motion.div>
       </section>
 
-      {/* ─── 13. CURRICULUM PILLARS ───────────────────────────────────────── */}
-      <section className="bg-sage-50 py-24 px-8 sm:px-12 lg:px-16">
+      {/* ─── 13. PILLARS ──────────────────────────────────────────────────── */}
+      <section className="bg-[var(--demo-light-bg)] py-24 px-8 sm:px-12 lg:px-16">
         <div className="max-w-5xl mx-auto">
           <motion.div
             className="text-center mb-14"
@@ -1063,20 +1012,19 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
-              Our Curriculum
+            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
+              {config.pillars.eyebrow}
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-4">
-              Four pillars. One whole child.
+              {config.pillars.heading}
             </h2>
             <p className="text-gray-500 font-secondary text-lg max-w-xl mx-auto">
-              We take what works best from each method — and weave it into a
-              coherent, joyful day.
+              {config.pillars.subtitle}
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {PILLARS.map((pillar, i) => (
+            {config.pillars.items.map((pillar, i) => (
               <motion.div
                 key={pillar.title}
                 className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 group cursor-default"
@@ -1086,15 +1034,11 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                 transition={{ duration: 0.6, delay: i * 0.1, ease: "easeOut" as const }}
                 whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.07)" }}
               >
-                <div className="w-12 h-12 rounded-xl bg-sage-100 group-hover:bg-sage-200 transition-colors flex items-center justify-center mb-6">
-                  <pillar.icon className="w-6 h-6 text-sage-700" />
+                <div className="w-12 h-12 rounded-xl bg-[var(--demo-light-bg)] group-hover:bg-[var(--demo-light-border)] transition-colors flex items-center justify-center mb-6">
+                  <DemoIcon name={pillar.icon} className="w-6 h-6 text-[var(--demo-accent-text)]" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 font-heading mb-3">
-                  {pillar.title}
-                </h3>
-                <p className="text-sm text-gray-500 font-secondary leading-relaxed">
-                  {pillar.desc}
-                </p>
+                <h3 className="text-xl font-bold text-gray-900 font-heading mb-3">{pillar.title}</h3>
+                <p className="text-sm text-gray-500 font-secondary leading-relaxed">{pillar.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -1102,7 +1046,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       </section>
 
       {/* ─── 14. ENROLLMENT FORM ──────────────────────────────────────────── */}
-      <section className="py-0 overflow-hidden" style={{ backgroundColor: '#1a3327' }}>
+      <section className="py-0 overflow-hidden" style={{ backgroundColor: "var(--demo-dark)" }}>
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row">
           <motion.div
             className="hidden lg:block lg:w-1/2 relative min-h-[640px]"
@@ -1111,22 +1055,20 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.8, ease: "easeOut" as const }}
           >
-            <Image
-              src="/images/stock/ImageThree.jpg"
-              fill
-              className="object-cover"
-              alt=""
+            <Image src={config.form.sidebarImage} fill className="object-cover" alt="" />
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: "color-mix(in srgb, var(--demo-dark) 60%, transparent)" }}
             />
-            <div className="absolute inset-0 bg-sage-900/60" />
             <div className="absolute inset-0 flex items-center justify-center p-14">
               <div className="text-center">
-                <span className="block text-5xl text-primary/40 font-heading mb-4 select-none">
+                <span className="block text-5xl text-[color-mix(in_srgb,var(--demo-primary)_40%,transparent)] font-heading mb-4 select-none">
                   &ldquo;
                 </span>
                 <p className="text-white text-2xl md:text-3xl font-heading font-bold leading-snug italic">
-                  Every child deserves to be known — not just numbered.
+                  {config.form.sidebarQuote}
                 </p>
-                <div className="w-12 h-0.5 bg-primary/50 mx-auto mt-6" />
+                <div className="w-12 h-0.5 bg-[color-mix(in_srgb,var(--demo-primary)_50%,transparent)] mx-auto mt-6" />
               </div>
             </div>
           </motion.div>
@@ -1138,15 +1080,14 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-primary/20 text-primary text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider self-start">
-              Enrollment Open
+            <span className="inline-block px-5 py-2 bg-[color-mix(in_srgb,var(--demo-primary)_20%,transparent)] text-[var(--demo-primary)] text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider self-start">
+              {config.form.eyebrow}
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-4 leading-tight">
-              Claim your child&apos;s spot.
+              {config.form.heading}
             </h2>
             <p className="text-white/55 font-secondary text-base mb-10 leading-relaxed">
-              We keep classes at 12 students maximum. Fill out the form — we
-              respond within 48 hours to schedule your private tour.
+              {config.form.description}
             </p>
 
             <AnimatePresence mode="wait">
@@ -1159,13 +1100,11 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                   transition={{ duration: 0.4 }}
                   className="text-center py-10"
                 >
-                  <div className="text-5xl mb-5">🌱</div>
+                  <div className="text-5xl mb-5">{config.form.successEmoji}</div>
                   <p className="text-white text-2xl font-heading font-bold mb-3">
-                    We&apos;ll be in touch!
+                    {config.form.successTitle}
                   </p>
-                  <p className="text-white/50 font-secondary">
-                    Expect a reply within 48 hours to schedule your tour.
-                  </p>
+                  <p className="text-white/50 font-secondary">{config.form.successMessage}</p>
                 </motion.div>
               ) : (
                 <motion.form
@@ -1180,45 +1119,42 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                     type="text"
                     placeholder="Parent / Guardian Name"
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, name: e.target.value }))
-                    }
+                    onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
                     required
-                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-primary transition-colors duration-200 text-base"
+                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 text-base"
                   />
                   <input
                     type="email"
                     placeholder="Email address"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, email: e.target.value }))
-                    }
+                    onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
                     required
-                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-primary transition-colors duration-200 text-base"
+                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 text-base"
                   />
                   <select
                     value={formData.program}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, program: e.target.value }))
-                    }
+                    onChange={(e) => setFormData((p) => ({ ...p, program: e.target.value }))}
                     required
-                    className="w-full px-5 py-4 rounded-xl bg-sage-800 border border-white/15 text-white font-secondary focus:outline-none focus:border-primary transition-colors duration-200 appearance-none cursor-pointer text-base"
+                    className="w-full px-5 py-4 rounded-xl border border-white/15 text-white font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 appearance-none cursor-pointer text-base"
+                    style={{ backgroundColor: "var(--demo-dark-hover)" }}
                   >
                     <option value="" disabled>
                       Select a program...
                     </option>
-                    <option value="summer">Summer Program</option>
-                    <option value="school-year">School Year 2026–2027</option>
-                    <option value="homeschool">Homeschool Drop-In</option>
+                    {config.form.programOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                   <button
                     type="submit"
-                    className="w-full py-4 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl text-base cursor-pointer mt-2"
+                    className="w-full py-4 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-bold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl text-base cursor-pointer mt-2"
                   >
-                    Submit Interest Form
+                    {config.form.submitLabel}
                   </button>
                   <p className="text-center text-white/25 font-secondary text-xs pt-1">
-                    No commitment. We&apos;ll reach out within 48 hours.
+                    {config.form.disclaimer}
                   </p>
                 </motion.form>
               )}
@@ -1228,7 +1164,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       </section>
 
       {/* ─── 15. FAQ ──────────────────────────────────────────────────────── */}
-      <section className="bg-white py-24 px-8 sm:px-12 lg:px-16">
+      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-page-bg)" }}>
         <div className="max-w-3xl mx-auto">
           <motion.div
             className="mb-12"
@@ -1237,22 +1173,19 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
-              FAQ
+            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
+              {config.faq.eyebrow}
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-4">
-              Questions parents ask
+              {config.faq.heading}
             </h2>
-            <p className="text-gray-500 font-secondary text-lg max-w-lg">
-              Considering microschool for the first time? These are the most
-              common things families want to know.
-            </p>
+            <p className="text-gray-500 font-secondary text-lg max-w-lg">{config.faq.subtitle}</p>
           </motion.div>
 
           <div>
-            {FAQS.map((faq, i) => (
+            {config.faq.items.map((faq, i) => (
               <motion.div
-                key={i}
+                key={faq.q}
                 className="border-b border-gray-100 last:border-0"
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -1263,18 +1196,16 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   className={`w-full flex items-center justify-between py-6 text-left group cursor-pointer transition-colors duration-200 ${
                     openFaq === i
-                      ? "text-sage-800"
-                      : "text-gray-700 hover:text-sage-700"
+                      ? "text-[var(--demo-dark)]"
+                      : "text-gray-700 hover:text-[var(--demo-accent-text)]"
                   }`}
                 >
-                  <span className="text-base md:text-lg font-semibold font-heading pr-6">
-                    {faq.q}
-                  </span>
+                  <span className="text-base md:text-lg font-semibold font-heading pr-6">{faq.q}</span>
                   <motion.span
                     animate={{ rotate: openFaq === i ? 45 : 0 }}
                     transition={{ duration: 0.2 }}
                     className={`text-2xl font-light flex-shrink-0 w-7 text-center leading-none transition-colors ${
-                      openFaq === i ? "text-primary" : "text-gray-300"
+                      openFaq === i ? "text-[var(--demo-primary)]" : "text-gray-300"
                     }`}
                   >
                     +
@@ -1303,7 +1234,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
       </section>
 
       {/* ─── 15.5. CLOSING CTA ────────────────────────────────────────────── */}
-      <section className="bg-sage-50 py-20 px-8 sm:px-12 lg:px-16 border-t border-sage-100">
+      <section className="bg-[var(--demo-light-bg)] py-20 px-8 sm:px-12 lg:px-16 border-t border-[var(--demo-light-border)]">
         <motion.div
           className="max-w-2xl mx-auto text-center"
           initial={{ opacity: 0, y: 20 }}
@@ -1311,60 +1242,59 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: "easeOut" as const }}
         >
-          <span className="inline-block px-5 py-2 bg-badge-bg text-black text-xs font-semibold rounded-full font-secondary mb-6 uppercase tracking-wider">
-            Limited Spots Available
+          <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-6 uppercase tracking-wider">
+            {config.closingCta.eyebrow}
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-5 leading-tight">
-            Ready to find your
+            {config.closingCta.heading}
             <br />
-            <em className="text-primary not-italic">family&apos;s fit?</em>
+            <em className="text-[var(--demo-primary)] not-italic">{config.closingCta.headingAccent}</em>
           </h2>
           <p className="text-base text-gray-500 font-secondary leading-relaxed mb-10 max-w-lg mx-auto">
-            Classes fill quickly each semester. Submit your interest form and we&apos;ll respond within 48 hours to schedule a private tour — no commitment required.
+            {config.closingCta.description}
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            <button className="px-8 py-3.5 text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer" style={{ backgroundColor: '#1a3327' }}>
-              Apply for a Spot
+            <button
+              className="px-8 py-3.5 text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
+              style={{ backgroundColor: "var(--demo-dark)" }}
+            >
+              {config.closingCta.primaryCta}
               <ArrowRight className="w-4 h-4" />
             </button>
-            <button className="px-8 py-3.5 border border-sage-300 text-sage-700 hover:bg-sage-100 font-semibold rounded-lg font-secondary transition-all duration-200 cursor-pointer">
-              Schedule a Tour
+            <button className="px-8 py-3.5 border border-[var(--demo-light-border)] text-[var(--demo-accent-text)] hover:bg-[var(--demo-light-bg)] font-semibold rounded-lg font-secondary transition-all duration-200 cursor-pointer">
+              {config.closingCta.secondaryCta}
             </button>
           </div>
         </motion.div>
       </section>
 
       {/* ─── 16. FOOTER ───────────────────────────────────────────────────── */}
-      <footer className="py-16 px-8" style={{ backgroundColor: '#1a3327', color: 'white' }}>
+      <footer className="py-16 px-8 text-white" style={{ backgroundColor: "var(--demo-dark)" }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-3">
               <Image
-                src="/images/Logo.png"
-                alt="MudKitchen"
-                width={140}
-                height={36}
+                src={config.logo.src}
+                alt={config.logo.alt}
+                width={config.logo.width ?? 140}
+                height={config.logo.height ?? 36}
                 className="h-9 w-auto object-contain"
               />
             </div>
-            <p className="text-white/35 font-secondary text-sm">
-              A microschool for curious, growing minds.
-            </p>
+            <p className="text-white/35 font-secondary text-sm">{config.footer.tagline}</p>
           </div>
 
           <div className="w-14 h-px bg-white/10 mx-auto mb-8" />
 
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-8">
-            {["Programs", "Our Philosophy", "The Team", "FAQ", "Enroll"].map(
-              (link) => (
-                <button
-                  key={link}
-                  className="text-white/40 hover:text-white font-secondary text-sm transition-colors duration-200 cursor-pointer"
-                >
-                  {link}
-                </button>
-              ),
-            )}
+            {config.footer.links.map((link) => (
+              <button
+                key={link}
+                className="text-white/40 hover:text-white font-secondary text-sm transition-colors duration-200 cursor-pointer"
+              >
+                {link}
+              </button>
+            ))}
           </div>
 
           <div className="flex justify-center gap-5 mb-10">
@@ -1377,7 +1307,7 @@ export default function WebsiteDashboardDemo({ disableTour: _disableTour }: Prop
           </div>
 
           <p className="text-center text-white/20 font-secondary text-xs">
-            © 2026 MudKitchen Microschool Demo &nbsp;·&nbsp; Powered by MudKitchen
+            {config.footer.copyright} &nbsp;·&nbsp; {config.footer.poweredBy}
           </p>
         </div>
       </footer>
