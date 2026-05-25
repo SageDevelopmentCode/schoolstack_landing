@@ -23,6 +23,7 @@ export const athenaMicroacademyConfig: SchoolWebsiteDemoConfig = {
   },
   hero: {
     eyebrow: "Launching Fall 2026 · South Austin · Grades 6–12",
+    eyebrowPlacement: "announcementBar",
     headline: ["A smaller, wiser way to do", "middle and high school."],
     subheadline:
       "Athena Micro-academy of Austin is a relationship-centered microschool for grades 6–12, designed for students who thrive with personalized learning, close community, and room to grow.",

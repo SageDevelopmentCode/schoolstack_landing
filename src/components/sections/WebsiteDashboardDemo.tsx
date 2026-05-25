@@ -203,12 +203,16 @@ interface Props {
   disableTour?: boolean;
   standalone?: boolean;
   config?: SchoolWebsiteDemoConfig;
+  scrollRequest?: { target: "top" | "form"; nonce: number } | null;
+  onDiscoveryCallClick?: () => void;
 }
 
 export default function WebsiteDashboardDemo({
   disableTour: _disableTour,
   standalone,
   config = defaultWebsiteDemoConfig,
+  scrollRequest,
+  onDiscoveryCallClick,
 }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: "", email: "", program: "" });
@@ -217,6 +221,8 @@ export default function WebsiteDashboardDemo({
   const [activeProgram, setActiveProgram] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const formSectionRef = useRef<HTMLElement>(null);
   const statsRef = useRef(null);
   const statsInView = useInView(statsRef, { once: true, margin: "-80px" });
 
@@ -224,16 +230,50 @@ export default function WebsiteDashboardDemo({
   const activeProgramData = config.programs.items[activeProgram];
   const activeTimelineStep = timeline.steps[activeStep];
 
+  const scrollToTop = () => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const scrollToForm = () => {
+    formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleDiscoveryCallClick = () => {
+    if (onDiscoveryCallClick) {
+      onDiscoveryCallClick();
+    } else {
+      scrollToForm();
+    }
+  };
+
+  useEffect(() => {
+    if (!scrollRequest) return;
+    if (scrollRequest.target === "top") scrollToTop();
+    else scrollToForm();
+  }, [scrollRequest]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormSuccess(true);
   };
 
+  const showAnnouncementBar = hero.eyebrowPlacement === "announcementBar" && hero.eyebrow;
+
   return (
     <div
+      ref={scrollContainerRef}
       className={standalone ? "min-h-screen w-full" : "h-full overflow-y-auto"}
       style={{ ...getThemeVars(theme), backgroundColor: "var(--demo-page-bg)" }}
     >
+      {showAnnouncementBar && (
+        <div
+          className="relative z-30 w-full py-2.5 px-4 text-center text-[11px] sm:text-xs font-secondary font-semibold uppercase tracking-[0.12em] text-[var(--demo-dark)]"
+          style={{ backgroundColor: "var(--demo-light-bg)" }}
+        >
+          {hero.eyebrow}
+        </div>
+      )}
+
       {/* ─── 1. HERO ───────────────────────────────────────────────────────── */}
       <section className="relative h-[600px] overflow-hidden">
         <div className="absolute inset-0 scale-[1.05]">
@@ -292,20 +332,26 @@ export default function WebsiteDashboardDemo({
               </button>
             ))}
           </nav>
-          <button className="px-5 py-2.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white text-sm font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg cursor-pointer">
+          <button
+            type="button"
+            onClick={handleDiscoveryCallClick}
+            className="px-5 py-2.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white text-sm font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg cursor-pointer"
+          >
             {hero.navCta}
           </button>
         </div>
 
         <div className="absolute bottom-0 left-0 z-10 px-8 sm:px-14 pb-14 max-w-2xl">
-          <motion.span
-            className="inline-block px-5 py-2 bg-white/15 backdrop-blur-sm text-white text-sm font-semibold rounded-full font-secondary mb-6 border border-white/25"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" as const }}
-          >
-            {hero.eyebrow}
-          </motion.span>
+          {!showAnnouncementBar && (
+            <motion.span
+              className="inline-block px-5 py-2 bg-white/15 backdrop-blur-sm text-white text-sm font-semibold rounded-full font-secondary mb-6 border border-white/25"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" as const }}
+            >
+              {hero.eyebrow}
+            </motion.span>
+          )}
 
           <motion.h1
             className="text-5xl md:text-6xl font-bold text-white font-heading leading-[1.05] mb-6"
@@ -343,7 +389,11 @@ export default function WebsiteDashboardDemo({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, duration: 0.7, ease: "easeOut" as const }}
           >
-            <button className="px-7 py-3.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
+            <button
+              type="button"
+              onClick={handleDiscoveryCallClick}
+              className="px-7 py-3.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer"
+            >
               {hero.primaryCta}
               <ArrowRight className="w-4 h-4" />
             </button>
@@ -991,7 +1041,11 @@ export default function WebsiteDashboardDemo({
             {config.parallax.subtitle}
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            <button className="px-8 py-4 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer">
+            <button
+              type="button"
+              onClick={handleDiscoveryCallClick}
+              className="px-8 py-4 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer"
+            >
               {config.parallax.primaryCta}
               <ArrowRight className="w-4 h-4" />
             </button>
@@ -1046,7 +1100,11 @@ export default function WebsiteDashboardDemo({
       </section>
 
       {/* ─── 14. ENROLLMENT FORM ──────────────────────────────────────────── */}
-      <section className="py-0 overflow-hidden" style={{ backgroundColor: "var(--demo-dark)" }}>
+      <section
+        ref={formSectionRef}
+        className="py-0 overflow-hidden"
+        style={{ backgroundColor: "var(--demo-dark)" }}
+      >
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row">
           <motion.div
             className="hidden lg:block lg:w-1/2 relative min-h-[640px]"
@@ -1255,6 +1313,8 @@ export default function WebsiteDashboardDemo({
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <button
+              type="button"
+              onClick={handleDiscoveryCallClick}
               className="px-8 py-3.5 text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
               style={{ backgroundColor: "var(--demo-dark)" }}
             >

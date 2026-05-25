@@ -129,6 +129,8 @@ export interface SchoolWebsiteDemoConfig {
   logo: { src: string; alt: string; width?: number; height?: number };
   hero: {
     eyebrow: string;
+    /** When "announcementBar", eyebrow renders as a full-width top bar instead of a hero badge. */
+    eyebrowPlacement?: "hero" | "announcementBar";
     headline: string[];
     headlineAccentLine?: number;
     subheadline: string;

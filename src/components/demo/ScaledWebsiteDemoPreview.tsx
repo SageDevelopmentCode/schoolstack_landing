@@ -8,9 +8,15 @@ const DESIGN_WIDTH = 1440;
 
 interface Props {
   config: SchoolWebsiteDemoConfig;
+  scrollRequest?: { target: "top" | "form"; nonce: number } | null;
+  onDiscoveryCallClick?: () => void;
 }
 
-export default function ScaledWebsiteDemoPreview({ config }: Props) {
+export default function ScaledWebsiteDemoPreview({
+  config,
+  scrollRequest,
+  onDiscoveryCallClick,
+}: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
 
@@ -38,7 +44,12 @@ export default function ScaledWebsiteDemoPreview({ config }: Props) {
               transformOrigin: "top left",
             }}
           >
-            <LazyWebsiteDashboardDemo config={config} disableTour />
+            <LazyWebsiteDashboardDemo
+              config={config}
+              disableTour
+              scrollRequest={scrollRequest}
+              onDiscoveryCallClick={onDiscoveryCallClick}
+            />
           </div>
         </div>
       </div>
