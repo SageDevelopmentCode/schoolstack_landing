@@ -1,4 +1,6 @@
-export type DemoWalkthroughIcon = "globe" | "calendarDays";
+export type DemoWalkthroughIcon = "globe" | "calendarDays" | "layoutDashboard";
+
+export type DemoWalkthroughPreview = "website" | "admin";
 
 export interface DemoWalkthroughStepTheme {
   bg: string;
@@ -17,6 +19,7 @@ export interface DemoWalkthroughStep {
   title: string;
   description: string;
   talkingPoint?: string;
+  preview?: DemoWalkthroughPreview;
   scrollTarget?: "top" | "form";
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
@@ -57,6 +60,24 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
       titleColor: "#5C4A2A",
       descColor: "#7A6848",
       connector: "#C1A367",
+    },
+  },
+  {
+    id: "view-lead",
+    title: "View the lead in your admin",
+    description: "The inquiry appears in your admin dashboard so you can follow up.",
+    preview: "admin",
+    icon: "layoutDashboard",
+    theme: {
+      bg: "#EEF4F8",
+      bgHover: "#E4EDF4",
+      bgActive: "#E4EDF4",
+      border: "#C5D9E8",
+      iconBg: "#173B5C",
+      iconColor: "#FFFFFF",
+      titleColor: "#173B5C",
+      descColor: "#4A6578",
+      connector: "#173B5C",
     },
   },
 ];

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Globe, MousePointerClick } from "lucide-react";
+import { CalendarDays, Globe, LayoutDashboard, MousePointerClick } from "lucide-react";
 import Image from "next/image";
 import type { ComponentType, CSSProperties } from "react";
 import type {
@@ -11,6 +11,7 @@ import type {
 const STEP_ICONS: Record<DemoWalkthroughIcon, ComponentType<{ className?: string }>> = {
   globe: Globe,
   calendarDays: CalendarDays,
+  layoutDashboard: LayoutDashboard,
 };
 
 interface Props {
@@ -42,6 +43,13 @@ export default function DemoWalkthroughPanel({
   activeStep = 0,
   onStepSelect,
 }: Props) {
+  const activeStepConfig = steps[activeStep];
+  const activePreview = activeStepConfig?.preview ?? "website";
+  const hintText =
+    activePreview === "admin"
+      ? "Now viewing your admin dashboard concept."
+      : "Click a step to jump the website preview.";
+
   return (
     <aside className="hidden lg:flex flex-col h-screen w-[20%] min-w-[280px] shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
       <div className="flex flex-col flex-1 px-6 py-8">
@@ -72,7 +80,7 @@ export default function DemoWalkthroughPanel({
 
         <div className="mb-6">
           <p className="text-[11px] font-secondary font-semibold uppercase tracking-widest text-gray-400 mb-2">
-            Website concept
+            Platform concept
           </p>
           <h1 className="font-display text-xl font-medium leading-snug text-gray-900">
             {schoolName}
@@ -80,7 +88,7 @@ export default function DemoWalkthroughPanel({
           <div className="mt-4 flex items-center gap-2 rounded-md border px-3 py-2.5 bg-[#EEF4F8] border-[#C5D9E8]">
             <MousePointerClick className="h-3.5 w-3.5 shrink-0 text-[#173B5C]" aria-hidden />
             <p className="text-xs font-secondary font-medium leading-snug text-[#173B5C]">
-              Click a step to jump the website preview.
+              {hintText}
             </p>
           </div>
           <p className="mt-3 text-[11px] font-secondary font-semibold uppercase tracking-wider text-gray-400">

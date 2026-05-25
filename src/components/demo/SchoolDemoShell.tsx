@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import DemoWalkthroughPanel from "@/components/demo/DemoWalkthroughPanel";
+import ScaledAdminDemoPreview from "@/components/demo/ScaledAdminDemoPreview";
 import ScaledWebsiteDemoPreview from "@/components/demo/ScaledWebsiteDemoPreview";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
@@ -23,10 +24,15 @@ export default function SchoolDemoShell({
     nonce: number;
   } | null>(null);
 
+  const activePreview = steps[activeStep]?.preview ?? "website";
+
   const handleStepSelect = useCallback(
     (index: number) => {
       setActiveStep(index);
-      const target = steps[index]?.scrollTarget ?? (index === 0 ? "top" : "form");
+      const step = steps[index];
+      if ((step?.preview ?? "website") !== "website") return;
+
+      const target = step?.scrollTarget ?? (index === 0 ? "top" : "form");
       setScrollRequest({ target, nonce: Date.now() });
     },
     [steps],
@@ -47,11 +53,14 @@ export default function SchoolDemoShell({
         onStepSelect={handleStepSelect}
       />
       <div className="flex-1 h-screen min-w-0">
-        <ScaledWebsiteDemoPreview
-          config={config}
-          scrollRequest={scrollRequest}
-          onDiscoveryCallClick={handleDiscoveryCallClick}
-        />
+        {activePreview === "admin" ? (
+          <ScaledAdminDemoPreview />
+        ) : (
+          <ScaledWebsiteDemoPreview
+            scrollRequest={scrollRequest}
+            onDiscoveryCallClick={handleDiscoveryCallClick}
+          />
+        )}
       </div>
     </div>
   );

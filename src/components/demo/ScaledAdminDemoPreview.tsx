@@ -2,26 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  LazyAthenaWebsiteDashboardDemo,
-  prefetchAthenaWebsiteDemo,
+  LazyAthenaAdminDashboardDemo,
+  prefetchAthenaAdminDemo,
 } from "@/components/demo/athena/lazyAthenaDemos";
 
 const DESIGN_WIDTH = 1440;
 
-interface Props {
-  scrollRequest?: { target: "top" | "form"; nonce: number } | null;
-  onDiscoveryCallClick?: () => void;
-}
-
-export default function ScaledWebsiteDemoPreview({
-  scrollRequest,
-  onDiscoveryCallClick,
-}: Props) {
+export default function ScaledAdminDemoPreview() {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
 
   useEffect(() => {
-    prefetchAthenaWebsiteDemo();
+    prefetchAthenaAdminDemo();
   }, []);
 
   useEffect(() => {
@@ -48,10 +40,7 @@ export default function ScaledWebsiteDemoPreview({
               transformOrigin: "top left",
             }}
           >
-            <LazyAthenaWebsiteDashboardDemo
-              scrollRequest={scrollRequest}
-              onDiscoveryCallClick={onDiscoveryCallClick}
-            />
+            <LazyAthenaAdminDashboardDemo />
           </div>
         </div>
       </div>
