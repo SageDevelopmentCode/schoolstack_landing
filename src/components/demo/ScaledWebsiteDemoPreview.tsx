@@ -27,11 +27,8 @@ export default function ScaledWebsiteDemoPreview({ config }: Props) {
   }, []);
 
   return (
-    <div
-      className="flex-1 h-full overflow-hidden p-4 lg:p-8"
-      style={{ backgroundColor: "#EDE8DF" }}
-    >
-      <div className="h-full rounded-2xl shadow-xl border border-black/8 overflow-hidden bg-white">
+    <div className="flex-1 h-full overflow-hidden p-4 lg:p-8 bg-gray-50">
+      <div className="h-full rounded-2xl shadow-lg border border-gray-200 overflow-hidden bg-white">
         <div ref={outerRef} className="relative h-full overflow-hidden">
           <div
             style={{
