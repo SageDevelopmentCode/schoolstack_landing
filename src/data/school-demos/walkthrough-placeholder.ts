@@ -1,4 +1,11 @@
-export type DemoWalkthroughIcon = "globe" | "calendarDays" | "layoutDashboard" | "link";
+export type DemoWalkthroughIcon =
+  | "globe"
+  | "calendarDays"
+  | "layoutDashboard"
+  | "gitBranch"
+  | "link";
+
+export type DemoWalkthroughAdmissionsTab = "flows" | "submissions";
 
 export type DemoWalkthroughPreview = "website" | "admin";
 
@@ -21,7 +28,9 @@ export interface DemoWalkthroughStep {
   talkingPoint?: string;
   preview?: DemoWalkthroughPreview;
   scrollTarget?: "top" | "form";
+  initialAdmissionsTab?: DemoWalkthroughAdmissionsTab;
   initialSelectedLeadId?: string;
+  initialSelectedFlowId?: string;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -79,6 +88,26 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
       titleColor: "#173B5C",
       descColor: "#4A6578",
       connector: "#173B5C",
+    },
+  },
+  {
+    id: "enrollment-checklist-flow",
+    title: "View your enrollment checklist flow",
+    description: "See the checklist families complete when they enroll.",
+    preview: "admin",
+    initialAdmissionsTab: "flows",
+    initialSelectedFlowId: "flow-2",
+    icon: "gitBranch",
+    theme: {
+      bg: "#F2E7D1",
+      bgHover: "#EBDFC4",
+      bgActive: "#EBDFC4",
+      border: "#D9C9A3",
+      iconBg: "#C1A367",
+      iconColor: "#FFFFFF",
+      titleColor: "#5C4A2A",
+      descColor: "#7A6848",
+      connector: "#C1A367",
     },
   },
   {

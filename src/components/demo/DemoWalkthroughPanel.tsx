@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Globe, LayoutDashboard, Link2, MousePointerClick } from "lucide-react";
+import { CalendarDays, GitBranch, Globe, LayoutDashboard, Link2, MousePointerClick } from "lucide-react";
 import Image from "next/image";
 import type { ComponentType, CSSProperties } from "react";
 import type {
@@ -12,6 +12,7 @@ const STEP_ICONS: Record<DemoWalkthroughIcon, ComponentType<{ className?: string
   globe: Globe,
   calendarDays: CalendarDays,
   layoutDashboard: LayoutDashboard,
+  gitBranch: GitBranch,
   link: Link2,
 };
 

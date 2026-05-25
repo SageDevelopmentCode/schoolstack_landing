@@ -10,9 +10,13 @@ import {
 const DESIGN_WIDTH = 1440;
 
 export default function ScaledAdminDemoPreview({
+  initialAdmissionsTab = "submissions",
   initialSelectedLeadId,
+  initialSelectedFlowId,
 }: {
+  initialAdmissionsTab?: "flows" | "submissions";
   initialSelectedLeadId?: string;
+  initialSelectedFlowId?: string;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
@@ -46,8 +50,9 @@ export default function ScaledAdminDemoPreview({
         >
           <LazyAthenaAdminDashboardDemo
             initialPage="leads"
-            initialAdmissionsTab="submissions"
+            initialAdmissionsTab={initialAdmissionsTab}
             initialSelectedLeadId={initialSelectedLeadId}
+            initialSelectedFlowId={initialSelectedFlowId}
           />
         </div>
       </div>

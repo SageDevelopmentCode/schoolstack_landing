@@ -4930,7 +4930,7 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
     actions: [
       { id: "a3", type: "email", config: { to: "{{parent_email}}", subject: "Summer Program — You're on the list!", body: "" } },
       { id: "a4", type: "sms", config: { message: "Hi! You've successfully signed up for our summer program." } },
-      { id: "a5", type: "redirect", config: { url: "https://schoolstack.io/thank-you" } },
+      { id: "a5", type: "redirect", config: { url: "https://www.trymudkitchen.com/thank-you" } },
     ],
   },
   {
@@ -6713,9 +6713,15 @@ function EnrollmentPostSubmitReorderItem({
   );
 }
 
-function EnrollmentFlowsTab() {
+function EnrollmentFlowsTab({
+  initialSelectedFlowId,
+}: {
+  initialSelectedFlowId?: string;
+}) {
   const [flows, setFlows] = useState<EnrollmentFlow[]>(INITIAL_DEMO_FLOWS);
-  const [selectedFlowId, setSelectedFlowId] = useState<string>("flow-1");
+  const [selectedFlowId, setSelectedFlowId] = useState<string>(
+    initialSelectedFlowId ?? "flow-1",
+  );
   const [expandedStepId, setExpandedStepId] = useState<string | null>("s1");
   const [savedPulse, setSavedPulse] = useState(false);
   const [previewStep, setPreviewStep] = useState<FlowStep | null>(null);
@@ -7456,9 +7462,11 @@ type AdmissionsTab = "flows" | "submissions";
 function AdmissionsPage({
   activeTab,
   initialLeadId,
+  initialSelectedFlowId,
 }: {
   activeTab: AdmissionsTab;
   initialLeadId?: string;
+  initialSelectedFlowId?: string;
 }) {
   const [selectedLead, setSelectedLead] = useState<DemoLead | null>(() =>
     initialLeadId ? DEMO_LEADS.find((l) => l.id === initialLeadId) ?? null : null,
@@ -7480,7 +7488,7 @@ function AdmissionsPage({
       <AnimatePresence mode="wait">
         {activeTab === "flows" && (
           <motion.div key="flows" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-            <EnrollmentFlowsTab />
+            <EnrollmentFlowsTab initialSelectedFlowId={initialSelectedFlowId} />
           </motion.div>
         )}
         {activeTab === "submissions" && (
@@ -23907,6 +23915,7 @@ export default function AthenaAdminDashboardDemo({
   initialPage = "dashboard",
   initialAdmissionsTab = "flows",
   initialSelectedLeadId,
+  initialSelectedFlowId,
   hideNav = false,
   defaultSidebarExpanded = true,
 }: {
@@ -23914,6 +23923,7 @@ export default function AthenaAdminDashboardDemo({
   initialPage?: ActivePage
   initialAdmissionsTab?: AdmissionsTab
   initialSelectedLeadId?: string
+  initialSelectedFlowId?: string
   hideNav?: boolean
   defaultSidebarExpanded?: boolean
 }) {
@@ -23988,6 +23998,7 @@ export default function AthenaAdminDashboardDemo({
           <AdmissionsPage
             activeTab={admissionsTab}
             initialLeadId={initialSelectedLeadId}
+            initialSelectedFlowId={initialSelectedFlowId}
           />
         );
       case "people":

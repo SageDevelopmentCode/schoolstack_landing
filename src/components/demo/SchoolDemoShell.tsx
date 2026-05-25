@@ -56,7 +56,9 @@ export default function SchoolDemoShell({
         {activePreview === "admin" ? (
           <ScaledAdminDemoPreview
             key={steps[activeStep].id}
+            initialAdmissionsTab={steps[activeStep].initialAdmissionsTab ?? "submissions"}
             initialSelectedLeadId={steps[activeStep].initialSelectedLeadId}
+            initialSelectedFlowId={steps[activeStep].initialSelectedFlowId}
           />
         ) : (
           <ScaledWebsiteDemoPreview
