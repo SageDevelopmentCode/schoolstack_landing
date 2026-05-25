@@ -83,8 +83,8 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "send-application-link",
-    title: "Send application link",
-    description: "After the discovery call, you can send the application link.",
+    title: "Send enrollment link",
+    description: "After the discovery call, you can send the enrollment link.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",

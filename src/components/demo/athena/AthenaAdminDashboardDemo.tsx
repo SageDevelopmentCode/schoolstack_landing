@@ -62,6 +62,13 @@ import {
   HeartPulse,
   Car,
   Syringe,
+  FileText,
+  Heart,
+  Pill,
+  ShieldCheck,
+  Camera,
+  AlertTriangle,
+  UserPlus,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -367,13 +374,12 @@ const DEMO_LEADS = [
     tags: ["Summer 2026"],
     date: "18 minutes ago",
     message: null,
-    flowId: "flow-2",
+    flowId: "flow-3",
     responses: {
-      f11: "Diana Foster",
-      f12: "diana@email.com",
-      f13: "(512) 555-0142",
-      f14: "Noah Foster",
-      f15: "5",
+      f16: "Diana Foster",
+      f17: "diana@email.com",
+      f18: "Noah Foster",
+      f19: false,
     },
   },
   {
@@ -440,13 +446,12 @@ const DEMO_LEADS = [
     tags: ["Summer 2026"],
     date: "3 hours ago",
     message: "Looking for summer options for twin boys, ages 7.",
-    flowId: "flow-2",
+    flowId: "flow-3",
     responses: {
-      f11: "Mark Sullivan",
-      f12: "msullivan@email.com",
-      f13: "(737) 555-0477",
-      f14: "Alex & Ben Sullivan (twins)",
-      f15: "7",
+      f16: "Mark Sullivan",
+      f17: "msullivan@email.com",
+      f18: "Alex & Ben Sullivan (twins)",
+      f19: false,
     },
   },
   {
@@ -2234,7 +2239,7 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
     },
     enrollment: {
       applyFlowId: "flow-1",
-      enrollFlowId: "flow-1",
+      enrollFlowId: "flow-2",
       registrationFee: 150,
       checklistItems: [
         "Enrollment contract",
@@ -4374,7 +4379,7 @@ const FLOW_FILTER_OPTIONS = [
   { id: "all", label: "All Forms" },
   { id: "flow-5", label: "Discovery Call" },
   { id: "flow-1", label: "Apply Now Form" },
-  { id: "flow-2", label: "Summer Program Enrollment" },
+  { id: "flow-2", label: "Enrollment Checklist" },
   { id: "flow-3", label: "Waitlist Signup" },
   { id: "flow-4", label: "Book a Campus Tour" },
 ];
@@ -4738,10 +4743,42 @@ interface FlowField {
   options?: string[];
 }
 
+type ChecklistStepIconKey =
+  | "fileText"
+  | "users"
+  | "heart"
+  | "pill"
+  | "shieldCheck"
+  | "clipboardList"
+  | "camera"
+  | "alertTriangle"
+  | "userPlus"
+  | "creditCard";
+
+const CHECKLIST_STEP_ICON_MAP: Record<
+  ChecklistStepIconKey,
+  React.ComponentType<{ className?: string }>
+> = {
+  fileText: FileText,
+  users: Users,
+  heart: Heart,
+  pill: Pill,
+  shieldCheck: ShieldCheck,
+  clipboardList: ClipboardList,
+  camera: Camera,
+  alertTriangle: AlertTriangle,
+  userPlus: UserPlus,
+  creditCard: CreditCard,
+};
+
 interface FlowStep {
   id: string;
   title: string;
   fields: FlowField[];
+  optional?: boolean;
+  icon?: ChecklistStepIconKey;
+  iconBg?: string;
+  iconColor?: string;
 }
 
 type FlowActionType = "email" | "sms" | "redirect" | "tag" | "notify_admin";
@@ -4758,6 +4795,7 @@ interface EnrollmentFlow {
   steps: FlowStep[];
   actions: FlowAction[];
   updatedAt: string;
+  kind?: "form" | "checklist";
 }
 
 const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
@@ -4802,25 +4840,91 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
   },
   {
     id: "flow-2",
-    name: "Summer Program Enrollment",
-    updatedAt: "May 8, 2026",
+    name: "Enrollment Checklist",
+    kind: "checklist",
+    updatedAt: "May 20, 2026",
     steps: [
       {
-        id: "s4",
-        title: "Contact Info",
-        fields: [
-          { id: "f11", label: "Parent Name", type: "text", required: true },
-          { id: "f12", label: "Email", type: "email", required: true },
-          { id: "f13", label: "Phone", type: "phone", required: true },
-        ],
+        id: "s-cl-1",
+        title: "Program Description & Key Policies",
+        fields: [],
+        icon: "fileText",
+        iconBg: "#EEF4F8",
+        iconColor: "#173B5C",
       },
       {
-        id: "s5",
-        title: "Child Info",
-        fields: [
-          { id: "f14", label: "Child's Name", type: "text", required: true },
-          { id: "f15", label: "Age", type: "text", required: true },
-        ],
+        id: "s-cl-2",
+        title: "Community Agreement",
+        fields: [],
+        icon: "users",
+        iconBg: "#F2E7D1",
+        iconColor: "#5C4A2A",
+      },
+      {
+        id: "s-cl-3",
+        title: "Emergency Contact, Health & Immunization Form",
+        fields: [],
+        icon: "heart",
+        iconBg: "#FEE2E2",
+        iconColor: "#B91C1C",
+      },
+      {
+        id: "s-cl-4",
+        title: "Emergency Medication Plan",
+        fields: [],
+        optional: true,
+        icon: "pill",
+        iconBg: "#EDE9FE",
+        iconColor: "#6D28D9",
+      },
+      {
+        id: "s-cl-5",
+        title: "Proof of Immunizations",
+        fields: [],
+        icon: "shieldCheck",
+        iconBg: "#D1FAE5",
+        iconColor: "#047857",
+      },
+      {
+        id: "s-cl-6",
+        title: "Health Information Form",
+        fields: [],
+        icon: "clipboardList",
+        iconBg: "#CFFAFE",
+        iconColor: "#0E7490",
+      },
+      {
+        id: "s-cl-7",
+        title: "Photo Release Form",
+        fields: [],
+        icon: "camera",
+        iconBg: "#E0E7FF",
+        iconColor: "#4338CA",
+      },
+      {
+        id: "s-cl-8",
+        title: "Assumption of Risk",
+        fields: [],
+        icon: "alertTriangle",
+        iconBg: "#FFEDD5",
+        iconColor: "#C2410C",
+      },
+      {
+        id: "s-cl-9",
+        title: "Additional Authorized Pickup",
+        fields: [],
+        optional: true,
+        icon: "userPlus",
+        iconBg: "#F3E8FF",
+        iconColor: "#7C3AED",
+      },
+      {
+        id: "s-cl-10",
+        title: "Pay Registration Fee",
+        fields: [],
+        icon: "creditCard",
+        iconBg: "#DCFCE7",
+        iconColor: "#15803D",
       },
     ],
     actions: [
@@ -5644,7 +5748,7 @@ function LeadDetailPanel({
           className="w-full rounded-sm py-2 text-sm font-semibold transition-colors"
           style={{ backgroundColor: C.accentLight, color: C.accent }}
         >
-          Send Application Link
+          Send Enrollment Link
         </button>
       </div>
     </motion.div>
@@ -5724,9 +5828,12 @@ function getFieldTypeOwnerLabel(type: FlowFieldType): string {
   return FIELD_TYPE_OWNER_LABELS[type] ?? type;
 }
 
-function getStepSummary(step: FlowStep): string {
+function getStepSummary(step: FlowStep, isChecklistFlow?: boolean): string {
   const count = step.fields.length;
-  if (count === 0) return "No questions yet";
+  if (count === 0) {
+    if (isChecklistFlow) return step.optional ? "Optional item" : "Required item";
+    return "No questions yet";
+  }
   const noun = count === 1 ? "question" : "questions";
   const labels = step.fields.slice(0, 3).map((f) => f.label);
   const preview = labels.join(", ");
@@ -6010,6 +6117,7 @@ function EnrollmentFlowStepReorderItem({
   stepIdx,
   totalSteps,
   isExpanded,
+  isChecklistFlow,
   onToggleExpand,
   setPreviewStep,
   updateStepTitle,
@@ -6025,6 +6133,7 @@ function EnrollmentFlowStepReorderItem({
   stepIdx: number;
   totalSteps: number;
   isExpanded: boolean;
+  isChecklistFlow?: boolean;
   onToggleExpand: () => void;
   setPreviewStep: (s: FlowStep | null) => void;
   updateStepTitle: (stepId: string, title: string) => void;
@@ -6038,8 +6147,16 @@ function EnrollmentFlowStepReorderItem({
 }) {
   const [hovered, setHovered] = useState(false);
   const dragControls = useDragControls();
-  const summary = getStepSummary(step);
+  const summary = getStepSummary(step, isChecklistFlow);
   const isLast = stepIdx === totalSteps - 1;
+  const stepIconBg =
+    isChecklistFlow && step.iconBg ? step.iconBg : C.accentLight;
+  const stepIconColor =
+    isChecklistFlow && step.iconColor ? step.iconColor : C.accent;
+  const StepIcon =
+    isChecklistFlow && step.icon
+      ? CHECKLIST_STEP_ICON_MAP[step.icon]
+      : Layers;
 
   return (
     <Reorder.Item
@@ -6088,16 +6205,30 @@ function EnrollmentFlowStepReorderItem({
             >
               <div
                 className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-sm"
-                style={{ backgroundColor: C.accentLight, color: C.accent }}
+                style={{ backgroundColor: stepIconBg, color: stepIconColor }}
               >
-                <Layers className="h-4 w-4" />
+                <StepIcon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div
-                  className="text-[11px] font-semibold"
-                  style={{ color: C.textPrimary }}
-                >
-                  {step.title}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <div
+                    className="text-[11px] font-semibold"
+                    style={{ color: C.textPrimary }}
+                  >
+                    {step.title}
+                  </div>
+                  {step.optional && (
+                    <span
+                      className="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                      style={{
+                        backgroundColor: C.surface,
+                        color: C.textTertiary,
+                        border: `1px solid ${C.border}`,
+                      }}
+                    >
+                      Optional
+                    </span>
+                  )}
                 </div>
                 {!isExpanded && (
                   <div
@@ -6164,23 +6295,34 @@ function EnrollmentFlowStepReorderItem({
                     backgroundColor: C.surface,
                   }}
                 >
-                  <PostSubmitLabeledField label="Page title families see">
+                  <PostSubmitLabeledField
+                    label={isChecklistFlow ? "Checklist item title" : "Page title families see"}
+                  >
                     <input
                       value={step.title}
                       onChange={(e) => updateStepTitle(step.id, e.target.value)}
-                      placeholder="e.g. Parent Info"
+                      placeholder={isChecklistFlow ? "e.g. Photo Release Form" : "e.g. Parent Info"}
                       style={fieldInputStyle}
                     />
                   </PostSubmitLabeledField>
 
                   <div>
-                    <p
-                      className="mb-2 text-[11px] font-semibold"
-                      style={{ color: C.textSecondary }}
-                    >
-                      Questions on this page
-                    </p>
-                    {step.fields.length === 0 ? (
+                    {isChecklistFlow ? (
+                      <p
+                        className="mb-2 text-[11px] leading-relaxed"
+                        style={{ color: C.textTertiary }}
+                      >
+                        Families complete this item inline on the enrollment page.
+                      </p>
+                    ) : (
+                      <p
+                        className="mb-2 text-[11px] font-semibold"
+                        style={{ color: C.textSecondary }}
+                      >
+                        Questions on this page
+                      </p>
+                    )}
+                    {!isChecklistFlow && step.fields.length === 0 ? (
                       <div
                         className="rounded-md px-3 py-4 text-center text-[11px] leading-relaxed"
                         style={{
@@ -6191,7 +6333,7 @@ function EnrollmentFlowStepReorderItem({
                       >
                         Add questions below or pick from suggestions.
                       </div>
-                    ) : (
+                    ) : step.fields.length > 0 ? (
                       <Reorder.Group
                         axis="y"
                         values={step.fields}
@@ -6209,7 +6351,8 @@ function EnrollmentFlowStepReorderItem({
                           />
                         ))}
                       </Reorder.Group>
-                    )}
+                    ) : null}
+                    {!isChecklistFlow && (
                     <button
                       type="button"
                       onClick={() => addField(step.id)}
@@ -6223,8 +6366,10 @@ function EnrollmentFlowStepReorderItem({
                       <Plus className="h-3.5 w-3.5" />
                       Add custom question
                     </button>
+                    )}
                   </div>
 
+                  {!isChecklistFlow && (
                   <div>
                     <p
                       className="mb-1 text-[11px] font-semibold"
@@ -6265,7 +6410,9 @@ function EnrollmentFlowStepReorderItem({
                       ))}
                     </div>
                   </div>
+                  )}
 
+                  {!isChecklistFlow && (
                   <button
                     type="button"
                     onClick={() => setPreviewStep(step)}
@@ -6275,6 +6422,7 @@ function EnrollmentFlowStepReorderItem({
                     <Eye className="h-3.5 w-3.5" />
                     Preview this page
                   </button>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -6583,6 +6731,7 @@ function EnrollmentFlowsTab() {
   const ACTION_META = getActionMeta();
 
   const selectedFlow = flows.find((f) => f.id === selectedFlowId) ?? null;
+  const isChecklistFlow = selectedFlow?.kind === "checklist";
 
   useEffect(() => {
     if (
@@ -6826,12 +6975,12 @@ function EnrollmentFlowsTab() {
           {/* Scrollable editor body */}
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
-            {/* Form Steps — vertical timeline */}
+            {/* Form Steps / Checklist Items — vertical timeline */}
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <Layers className="h-4 w-4" style={{ color: C.accent }} />
                 <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                  Form Steps
+                  {isChecklistFlow ? "Checklist Items" : "Form Steps"}
                 </span>
                 <span
                   className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
@@ -6841,7 +6990,9 @@ function EnrollmentFlowsTab() {
                 </span>
               </div>
               <p className="mb-4 text-[11px] leading-snug" style={{ color: C.textTertiary }}>
-                Families complete these pages in order. Each step is one screen of questions.
+                {isChecklistFlow
+                  ? "Families complete this checklist on a single enrollment page. Each step is an item they open and finish from the list."
+                  : "Families complete these pages in order. Each step is one screen of questions."}
               </p>
 
               {selectedFlow.steps.length === 0 ? (
@@ -6850,7 +7001,9 @@ function EnrollmentFlowsTab() {
                   style={{ border: `2px dashed ${C.border}`, color: C.textTertiary }}
                 >
                   <Layers className="mb-2 h-6 w-6 opacity-40" />
-                  <p className="mb-3 text-[11px]">No form pages yet.</p>
+                  <p className="mb-3 text-[11px]">
+                    {isChecklistFlow ? "No checklist items yet." : "No form pages yet."}
+                  </p>
                   <button
                     type="button"
                     onClick={addStep}
@@ -6862,7 +7015,7 @@ function EnrollmentFlowsTab() {
                     }}
                   >
                     <Plus className="h-3 w-3" />
-                    Add your first page
+                    {isChecklistFlow ? "Add your first item" : "Add your first page"}
                   </button>
                 </div>
               ) : (
@@ -6880,6 +7033,7 @@ function EnrollmentFlowsTab() {
                       stepIdx={stepIdx}
                       totalSteps={selectedFlow.steps.length}
                       isExpanded={expandedStepId === step.id}
+                      isChecklistFlow={isChecklistFlow}
                       onToggleExpand={() =>
                         setExpandedStepId((prev) =>
                           prev === step.id ? null : step.id
