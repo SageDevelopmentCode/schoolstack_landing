@@ -7299,8 +7299,16 @@ function EnrollmentFlowsTab() {
 
 type AdmissionsTab = "flows" | "submissions";
 
-function AdmissionsPage({ activeTab }: { activeTab: AdmissionsTab }) {
-  const [selectedLead, setSelectedLead] = useState<DemoLead | null>(null);
+function AdmissionsPage({
+  activeTab,
+  initialLeadId,
+}: {
+  activeTab: AdmissionsTab;
+  initialLeadId?: string;
+}) {
+  const [selectedLead, setSelectedLead] = useState<DemoLead | null>(() =>
+    initialLeadId ? DEMO_LEADS.find((l) => l.id === initialLeadId) ?? null : null,
+  );
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
   useEffect(() => {
@@ -23744,12 +23752,14 @@ export default function AthenaAdminDashboardDemo({
   disableTour = true,
   initialPage = "dashboard",
   initialAdmissionsTab = "flows",
+  initialSelectedLeadId,
   hideNav = false,
   defaultSidebarExpanded = true,
 }: {
   disableTour?: boolean
   initialPage?: ActivePage
   initialAdmissionsTab?: AdmissionsTab
+  initialSelectedLeadId?: string
   hideNav?: boolean
   defaultSidebarExpanded?: boolean
 }) {
@@ -23820,7 +23830,12 @@ export default function AthenaAdminDashboardDemo({
       case "dashboard":
         return <DashboardPage />;
       case "leads":
-        return <AdmissionsPage activeTab={admissionsTab} />;
+        return (
+          <AdmissionsPage
+            activeTab={admissionsTab}
+            initialLeadId={initialSelectedLeadId}
+          />
+        );
       case "people":
         return <PeoplePage />;
       case "programs":

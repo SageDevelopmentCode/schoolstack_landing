@@ -1,4 +1,4 @@
-export type DemoWalkthroughIcon = "globe" | "calendarDays" | "layoutDashboard";
+export type DemoWalkthroughIcon = "globe" | "calendarDays" | "layoutDashboard" | "link";
 
 export type DemoWalkthroughPreview = "website" | "admin";
 
@@ -21,6 +21,7 @@ export interface DemoWalkthroughStep {
   talkingPoint?: string;
   preview?: DemoWalkthroughPreview;
   scrollTarget?: "top" | "form";
+  initialSelectedLeadId?: string;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -46,7 +47,7 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "discovery-call",
-    title: "Schedule a discovery call",
+    title: "Parents schedule a discovery call",
     description: "Parents submit the inquiry form to book a call.",
     icon: "calendarDays",
     scrollTarget: "form",
@@ -78,6 +79,25 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
       titleColor: "#173B5C",
       descColor: "#4A6578",
       connector: "#173B5C",
+    },
+  },
+  {
+    id: "send-application-link",
+    title: "Send application link",
+    description: "After the discovery call, you can send the application link.",
+    preview: "admin",
+    icon: "link",
+    initialSelectedLeadId: "l0",
+    theme: {
+      bg: "#F2E7D1",
+      bgHover: "#EBDFC4",
+      bgActive: "#EBDFC4",
+      border: "#D9C9A3",
+      iconBg: "#C1A367",
+      iconColor: "#FFFFFF",
+      titleColor: "#5C4A2A",
+      descColor: "#7A6848",
+      connector: "#C1A367",
     },
   },
 ];

@@ -54,7 +54,10 @@ export default function SchoolDemoShell({
       />
       <div className="flex-1 h-screen min-w-0">
         {activePreview === "admin" ? (
-          <ScaledAdminDemoPreview />
+          <ScaledAdminDemoPreview
+            key={steps[activeStep].id}
+            initialSelectedLeadId={steps[activeStep].initialSelectedLeadId}
+          />
         ) : (
           <ScaledWebsiteDemoPreview
             scrollRequest={scrollRequest}

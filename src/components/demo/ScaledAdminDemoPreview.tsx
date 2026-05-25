@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
 import {
   LazyAthenaAdminDashboardDemo,
   prefetchAthenaAdminDemo,
@@ -8,7 +9,11 @@ import {
 
 const DESIGN_WIDTH = 1440;
 
-export default function ScaledAdminDemoPreview() {
+export default function ScaledAdminDemoPreview({
+  initialSelectedLeadId,
+}: {
+  initialSelectedLeadId?: string;
+}) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
 
@@ -29,24 +34,23 @@ export default function ScaledAdminDemoPreview() {
   }, []);
 
   return (
-    <div className="flex-1 h-full overflow-hidden p-4 lg:p-8 bg-gray-50">
-      <div className="h-full rounded-2xl shadow-lg border border-gray-200 overflow-hidden bg-white">
-        <div ref={outerRef} className="relative h-full overflow-hidden">
-          <div
-            style={{
-              width: DESIGN_WIDTH,
-              height: scale > 0 ? `${100 / scale}%` : "100%",
-              transform: `scale(${scale})`,
-              transformOrigin: "top left",
-            }}
-          >
-            <LazyAthenaAdminDashboardDemo
-              initialPage="leads"
-              initialAdmissionsTab="submissions"
-            />
-          </div>
+    <DemoPreviewFrame variant="admin">
+      <div ref={outerRef} className="relative h-full overflow-hidden">
+        <div
+          style={{
+            width: DESIGN_WIDTH,
+            height: scale > 0 ? `${100 / scale}%` : "100%",
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        >
+          <LazyAthenaAdminDashboardDemo
+            initialPage="leads"
+            initialAdmissionsTab="submissions"
+            initialSelectedLeadId={initialSelectedLeadId}
+          />
         </div>
       </div>
-    </div>
+    </DemoPreviewFrame>
   );
 }
