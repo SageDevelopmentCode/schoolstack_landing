@@ -205,6 +205,11 @@ export interface SchoolWebsiteDemoConfig {
     successTitle: string;
     successMessage: string;
     programOptions: DemoFormOption[];
+    studentFields?: {
+      namePlaceholder: string;
+      gradePlaceholder: string;
+      gradeOptions: DemoFormOption[];
+    };
   };
   faq: {
     eyebrow: string;

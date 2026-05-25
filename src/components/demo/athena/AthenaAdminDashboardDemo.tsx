@@ -334,6 +334,28 @@ const FUNNEL_STAGES = [
 
 const DEMO_LEADS = [
   {
+    id: "l0",
+    type: "contact",
+    name: "Jennifer Walsh",
+    email: "jwalsh@email.com",
+    phone: "(512) 555-0198",
+    childName: "Ethan Walsh",
+    childAge: null,
+    status: "new",
+    tags: ["Discovery Call", "Fall 2026"],
+    date: "12 minutes ago",
+    message:
+      "Full-Time Program — looking for a smaller school environment.",
+    flowId: "flow-5",
+    responses: {
+      f29: "Jennifer Walsh",
+      f30: "jwalsh@email.com",
+      f31: "Full-Time Program",
+      f32: "Ethan Walsh",
+      f33: "8th Grade",
+    },
+  },
+  {
     id: "l1",
     type: "waitlist",
     name: "Diana Foster",
@@ -4331,8 +4353,8 @@ function DashboardPage() {
 // ─── Admissions page ──────────────────────────────────────────────────────────
 
 const LEAD_FILTERS = [
-  { key: "all", label: "All", count: 16 },
-  { key: "new", label: "New", count: 2 },
+  { key: "all", label: "All", count: 17 },
+  { key: "new", label: "New", count: 3 },
   { key: "contacted", label: "Contacted", count: 2 },
   { key: "application_sent", label: "App Sent", count: 1 },
   { key: "enrolled", label: "Enrolled", count: 1 },
@@ -4350,6 +4372,7 @@ const LEAD_TAGS = [
 
 const FLOW_FILTER_OPTIONS = [
   { id: "all", label: "All Forms" },
+  { id: "flow-5", label: "Discovery Call" },
   { id: "flow-1", label: "Apply Now Form" },
   { id: "flow-2", label: "Summer Program Enrollment" },
   { id: "flow-3", label: "Waitlist Signup" },
@@ -4636,14 +4659,23 @@ function LeadsListTab({
                           >
                             {lead.childName}
                           </p>
-                          {lead.childAge != null && (
+                          {lead.flowId === "flow-5" &&
+                          lead.responses.f33 != null &&
+                          String(lead.responses.f33).trim() !== "" ? (
+                            <p
+                              className="text-xs"
+                              style={{ color: C.textTertiary }}
+                            >
+                              {String(lead.responses.f33)}
+                            </p>
+                          ) : lead.childAge != null ? (
                             <p
                               className="text-xs"
                               style={{ color: C.textTertiary }}
                             >
                               Age {lead.childAge}
                             </p>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     ) : (
@@ -4878,6 +4910,62 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
       },
       { id: "a9", type: "notify_admin", config: {} },
       { id: "a10", type: "tag", config: { tag: "Tour Request" } },
+    ],
+  },
+  {
+    id: "flow-5",
+    name: "Discovery Call",
+    updatedAt: "May 20, 2026",
+    steps: [
+      {
+        id: "s9",
+        title: "Inquiry",
+        fields: [
+          { id: "f29", label: "Parent / Guardian Name", type: "text", required: true },
+          { id: "f30", label: "Email", type: "email", required: true },
+          { id: "f32", label: "Student's Name", type: "text", required: true },
+          {
+            id: "f33",
+            label: "Grade Level",
+            type: "select",
+            required: true,
+            options: [
+              "6th Grade",
+              "7th Grade",
+              "8th Grade",
+              "9th Grade",
+              "10th Grade",
+              "11th Grade",
+              "12th Grade",
+            ],
+          },
+          {
+            id: "f31",
+            label: "Program Interest",
+            type: "select",
+            required: true,
+            options: [
+              "Full-Time Program",
+              "Part-Time · 5 Days",
+              "Part-Time · 4 Days",
+              "Not sure yet — let's talk",
+            ],
+          },
+        ],
+      },
+    ],
+    actions: [
+      {
+        id: "a11",
+        type: "email",
+        config: {
+          to: "{{parent_email}}",
+          subject: "We received your inquiry — Athena Micro-academy",
+          body: "Thank you for reaching out. We'll be in touch within 48 hours to schedule your discovery call.",
+        },
+      },
+      { id: "a12", type: "notify_admin", config: {} },
+      { id: "a13", type: "tag", config: { tag: "Discovery Call" } },
     ],
   },
 ];
@@ -23204,7 +23292,7 @@ function Sidebar({
   mySchoolTab: MySchoolTab;
   onMySchoolSubtab: (tab: MySchoolTab) => void;
 }) {
-  const [admissionsOpen, setAdmissionsOpen] = useState(false);
+  const [admissionsOpen, setAdmissionsOpen] = useState(activePage === "leads");
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [mySchoolOpen, setMySchoolOpen] = useState(false);
   return (
@@ -23655,16 +23743,18 @@ function Sidebar({
 export default function AthenaAdminDashboardDemo({
   disableTour = true,
   initialPage = "dashboard",
+  initialAdmissionsTab = "flows",
   hideNav = false,
   defaultSidebarExpanded = true,
 }: {
   disableTour?: boolean
   initialPage?: ActivePage
+  initialAdmissionsTab?: AdmissionsTab
   hideNav?: boolean
   defaultSidebarExpanded?: boolean
 }) {
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
-  const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>("flows");
+  const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>(initialAdmissionsTab);
   const [budgetTab, setBudgetTab] = useState<BudgetTab>("overview");
   const [mySchoolTab, setMySchoolTab] = useState<MySchoolTab>("students");
   const [focusStaffId, setFocusStaffId] = useState<string | null>(null);

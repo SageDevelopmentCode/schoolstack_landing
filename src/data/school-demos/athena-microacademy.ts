@@ -279,6 +279,19 @@ export const athenaMicroacademyConfig: SchoolWebsiteDemoConfig = {
       { value: "part-time-4", label: "Part-Time · 4 Days" },
       { value: "unsure", label: "Not sure yet — let's talk" },
     ],
+    studentFields: {
+      namePlaceholder: "Student's Name",
+      gradePlaceholder: "Select grade level...",
+      gradeOptions: [
+        { value: "6", label: "6th Grade" },
+        { value: "7", label: "7th Grade" },
+        { value: "8", label: "8th Grade" },
+        { value: "9", label: "9th Grade" },
+        { value: "10", label: "10th Grade" },
+        { value: "11", label: "11th Grade" },
+        { value: "12", label: "12th Grade" },
+      ],
+    },
   },
   faq: {
     eyebrow: "FAQ",

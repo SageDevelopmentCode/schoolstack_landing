@@ -172,7 +172,7 @@ export default function DemoWalkthroughPanel({
                             color: theme.iconColor,
                           }}
                         >
-                          Now viewing
+                          Viewing
                         </span>
                       ) : (
                         <span className="shrink-0 text-[10px] font-secondary text-gray-400 group-hover:text-gray-500">

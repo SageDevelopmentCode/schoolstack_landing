@@ -40,7 +40,10 @@ export default function ScaledAdminDemoPreview() {
               transformOrigin: "top left",
             }}
           >
-            <LazyAthenaAdminDashboardDemo />
+            <LazyAthenaAdminDashboardDemo
+              initialPage="leads"
+              initialAdmissionsTab="submissions"
+            />
           </div>
         </div>
       </div>

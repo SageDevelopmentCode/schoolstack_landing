@@ -215,7 +215,13 @@ export default function WebsiteDashboardDemo({
   onDiscoveryCallClick,
 }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ name: "", email: "", program: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    studentName: "",
+    grade: "",
+    program: "",
+  });
   const [formSuccess, setFormSuccess] = useState(false);
   const [marqueePaused, setMarqueePaused] = useState(false);
   const [activeProgram, setActiveProgram] = useState(0);
@@ -1189,6 +1195,36 @@ export default function WebsiteDashboardDemo({
                     required
                     className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 text-base"
                   />
+                  {config.form.studentFields && (
+                    <>
+                      <input
+                        type="text"
+                        placeholder={config.form.studentFields.namePlaceholder}
+                        value={formData.studentName}
+                        onChange={(e) =>
+                          setFormData((p) => ({ ...p, studentName: e.target.value }))
+                        }
+                        required
+                        className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 text-base"
+                      />
+                      <select
+                        value={formData.grade}
+                        onChange={(e) => setFormData((p) => ({ ...p, grade: e.target.value }))}
+                        required
+                        className="w-full px-5 py-4 rounded-xl border border-white/15 text-white font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 appearance-none cursor-pointer text-base"
+                        style={{ backgroundColor: "var(--demo-dark-hover)" }}
+                      >
+                        <option value="" disabled>
+                          {config.form.studentFields.gradePlaceholder}
+                        </option>
+                        {config.form.studentFields.gradeOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  )}
                   <select
                     value={formData.program}
                     onChange={(e) => setFormData((p) => ({ ...p, program: e.target.value }))}
