@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import DemoWalkthroughPanel from "@/components/demo/DemoWalkthroughPanel";
 import ScaledAdminDemoPreview from "@/components/demo/ScaledAdminDemoPreview";
+import ScaledParentDemoPreview from "@/components/demo/ScaledParentDemoPreview";
 import ScaledWebsiteDemoPreview from "@/components/demo/ScaledWebsiteDemoPreview";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
@@ -59,6 +60,11 @@ export default function SchoolDemoShell({
             initialAdmissionsTab={steps[activeStep].initialAdmissionsTab ?? "submissions"}
             initialSelectedLeadId={steps[activeStep].initialSelectedLeadId}
             initialSelectedFlowId={steps[activeStep].initialSelectedFlowId}
+          />
+        ) : activePreview === "parent" ? (
+          <ScaledParentDemoPreview
+            key={steps[activeStep].id}
+            initialParentTab={steps[activeStep].initialParentTab ?? "enrollment"}
           />
         ) : (
           <ScaledWebsiteDemoPreview

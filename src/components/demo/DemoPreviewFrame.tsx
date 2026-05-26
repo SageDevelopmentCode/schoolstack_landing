@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-type DemoPreviewVariant = "website" | "admin";
+type DemoPreviewVariant = "website" | "admin" | "parent";
 
 const VARIANT_CONFIG: Record<
   DemoPreviewVariant,
@@ -17,7 +17,7 @@ const VARIANT_CONFIG: Record<
   }
 > = {
   website: {
-    label: "Parent view",
+    label: "Website",
     emoji: "🌐",
     outerBg: "#F9FAFB",
     cardBorder: "#E5E7EB",
@@ -33,6 +33,15 @@ const VARIANT_CONFIG: Record<
     pillBg: "#E4EDF4",
     pillText: "#173B5C",
     pillBorder: "#C5D9E8",
+  },
+  parent: {
+    label: "Parent portal",
+    emoji: "👨‍👩‍👧",
+    outerBg: "#FBFAF6",
+    cardBorder: "#E8D9BC",
+    pillBg: "#F2E7D1",
+    pillText: "#173B5C",
+    pillBorder: "#E8D9BC",
   },
 };
 

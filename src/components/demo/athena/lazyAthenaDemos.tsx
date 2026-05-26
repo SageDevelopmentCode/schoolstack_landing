@@ -7,12 +7,16 @@ const importAthenaAdmin = () =>
   import('@/components/demo/athena/AthenaAdminDashboardDemo')
 const importAthenaWebsite = () =>
   import('@/components/demo/athena/AthenaWebsiteDashboardDemo')
+const importAthenaParent = () =>
+  import('@/components/demo/athena/AthenaParentDashboardDemo')
 
 type AthenaAdminModule = Awaited<ReturnType<typeof importAthenaAdmin>>
 type AthenaWebsiteModule = Awaited<ReturnType<typeof importAthenaWebsite>>
+type AthenaParentModule = Awaited<ReturnType<typeof importAthenaParent>>
 
 let athenaAdminPromise: Promise<AthenaAdminModule> | null = null
 let athenaWebsitePromise: Promise<AthenaWebsiteModule> | null = null
+let athenaParentPromise: Promise<AthenaParentModule> | null = null
 
 function loadAthenaAdminCached() {
   if (!athenaAdminPromise) {
@@ -36,10 +40,24 @@ function loadAthenaWebsiteCached() {
   return athenaWebsitePromise
 }
 
+function loadAthenaParentCached() {
+  if (!athenaParentPromise) {
+    athenaParentPromise = importAthenaParent().catch((error) => {
+      athenaParentPromise = null
+      console.error('Failed to load demo "athena-parent":', error)
+      throw error
+    })
+  }
+  return athenaParentPromise
+}
+
 const AthenaAdminDashboardDemo = dynamic(() => loadAthenaAdminCached(), {
   ssr: false,
 })
 const AthenaWebsiteDashboardDemo = dynamic(() => loadAthenaWebsiteCached(), {
+  ssr: false,
+})
+const AthenaParentDashboardDemo = dynamic(() => loadAthenaParentCached(), {
   ssr: false,
 })
 
@@ -55,10 +73,20 @@ export function LazyAthenaWebsiteDashboardDemo(
   return <AthenaWebsiteDashboardDemo {...props} />
 }
 
+export function LazyAthenaParentDashboardDemo(
+  props: ComponentProps<typeof AthenaParentDashboardDemo>,
+) {
+  return <AthenaParentDashboardDemo {...props} />
+}
+
 export function prefetchAthenaAdminDemo() {
   void loadAthenaAdminCached()
 }
 
 export function prefetchAthenaWebsiteDemo() {
   void loadAthenaWebsiteCached()
+}
+
+export function prefetchAthenaParentDemo() {
+  void loadAthenaParentCached()
 }

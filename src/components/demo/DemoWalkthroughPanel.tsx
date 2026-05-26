@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, GitBranch, Globe, LayoutDashboard, Link2, MousePointerClick } from "lucide-react";
+import { CalendarDays, ClipboardCheck, GitBranch, Globe, LayoutDashboard, Link2, MousePointerClick } from "lucide-react";
 import Image from "next/image";
 import type { ComponentType, CSSProperties } from "react";
 import type {
@@ -14,6 +14,7 @@ const STEP_ICONS: Record<DemoWalkthroughIcon, ComponentType<{ className?: string
   layoutDashboard: LayoutDashboard,
   gitBranch: GitBranch,
   link: Link2,
+  clipboardCheck: ClipboardCheck,
 };
 
 interface Props {
@@ -50,7 +51,9 @@ export default function DemoWalkthroughPanel({
   const hintText =
     activePreview === "admin"
       ? "Now viewing your admin dashboard concept."
-      : "Click a step to jump the website preview.";
+      : activePreview === "parent"
+        ? "Now viewing the parent portal concept."
+        : "Click a step to jump the website preview.";
 
   return (
     <aside className="hidden lg:flex flex-col h-screen w-[20%] min-w-[280px] shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
@@ -108,10 +111,10 @@ export default function DemoWalkthroughPanel({
               const stepNum = i + 1;
 
               return (
-                <li key={step.id} className="flex gap-3">
-                  <div className="flex w-9 shrink-0 flex-col items-center pt-1">
+                <li key={step.id} className="flex gap-2">
+                  <div className="flex w-7 shrink-0 flex-col items-center pt-1">
                     <div
-                      className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ring-4 ring-white transition-transform duration-200 ${
+                      className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-2 ring-white transition-transform duration-200 ${
                         isActive ? "scale-105" : ""
                       }`}
                       style={{
@@ -119,10 +122,10 @@ export default function DemoWalkthroughPanel({
                         color: theme.iconColor,
                       }}
                     >
-                      <Icon className="h-4 w-4" aria-hidden />
+                      <Icon className="h-3.5 w-3.5" aria-hidden />
                     </div>
                     <span
-                      className="mt-1 text-[10px] font-bold font-secondary leading-none"
+                      className="mt-0.5 text-[9px] font-bold font-secondary leading-none"
                       style={{ color: theme.iconBg }}
                       aria-hidden
                     >

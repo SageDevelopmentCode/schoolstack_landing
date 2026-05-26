@@ -3,11 +3,14 @@ export type DemoWalkthroughIcon =
   | "calendarDays"
   | "layoutDashboard"
   | "gitBranch"
-  | "link";
+  | "link"
+  | "clipboardCheck";
 
 export type DemoWalkthroughAdmissionsTab = "flows" | "submissions";
 
-export type DemoWalkthroughPreview = "website" | "admin";
+export type DemoWalkthroughParentTab = "enrollment" | "home";
+
+export type DemoWalkthroughPreview = "website" | "admin" | "parent";
 
 export interface DemoWalkthroughStepTheme {
   bg: string;
@@ -31,6 +34,7 @@ export interface DemoWalkthroughStep {
   initialAdmissionsTab?: DemoWalkthroughAdmissionsTab;
   initialSelectedLeadId?: string;
   initialSelectedFlowId?: string;
+  initialParentTab?: DemoWalkthroughParentTab;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -127,6 +131,25 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
       titleColor: "#5C4A2A",
       descColor: "#7A6848",
       connector: "#C1A367",
+    },
+  },
+  {
+    id: "parent-enrollment",
+    title: "Parents go through the enrollment",
+    description: "Families complete the enrollment checklist from their parent portal.",
+    preview: "parent",
+    initialParentTab: "enrollment",
+    icon: "clipboardCheck",
+    theme: {
+      bg: "#EEF4F8",
+      bgHover: "#E4EDF4",
+      bgActive: "#E4EDF4",
+      border: "#C5D9E8",
+      iconBg: "#173B5C",
+      iconColor: "#FFFFFF",
+      titleColor: "#173B5C",
+      descColor: "#4A6578",
+      connector: "#173B5C",
     },
   },
 ];
