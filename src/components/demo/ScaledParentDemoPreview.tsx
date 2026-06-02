@@ -6,15 +6,14 @@ import {
   LazyAthenaParentDashboardDemo,
   prefetchAthenaParentDemo,
 } from "@/components/demo/athena/lazyAthenaDemos";
+import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
-
-type ParentTab = "enrollment" | "home";
 
 export default function ScaledParentDemoPreview({
   initialParentTab = "enrollment",
 }: {
-  initialParentTab?: ParentTab;
+  initialParentTab?: DemoWalkthroughParentTab;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);

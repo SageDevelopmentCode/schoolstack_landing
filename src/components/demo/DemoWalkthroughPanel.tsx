@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ClipboardCheck, GitBranch, Globe, LayoutDashboard, Link2, MousePointerClick } from "lucide-react";
+import { CalendarDays, ClipboardCheck, CreditCard, GitBranch, Globe, LayoutDashboard, Link2, MousePointerClick } from "lucide-react";
 import Image from "next/image";
 import type { ComponentType, CSSProperties } from "react";
 import type {
@@ -15,6 +15,7 @@ const STEP_ICONS: Record<DemoWalkthroughIcon, ComponentType<{ className?: string
   gitBranch: GitBranch,
   link: Link2,
   clipboardCheck: ClipboardCheck,
+  creditCard: CreditCard,
 };
 
 interface Props {

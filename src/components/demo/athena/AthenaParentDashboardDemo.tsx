@@ -130,6 +130,75 @@ interface DemoPost {
   color: string;
   attachments?: { type: "image"; src: string; name?: string }[];
 }
+type Weekday = "Mon" | "Tue" | "Wed" | "Thu" | "Fri";
+
+const WEEKDAYS: Weekday[] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+interface HomeschoolDropInWeek {
+  id: string;
+  weekLabel: string;
+  dateRange: string;
+  defaultDays: Weekday[];
+}
+
+const JAKE_HOMESCHOOL_DROPIN_TX_ID = "jake-homeschool-dropin";
+
+const HOMESCHOOL_DROPIN_RATE_PER_DAY = 100;
+
+const HOMESCHOOL_DROPIN_WEEKS: HomeschoolDropInWeek[] = [
+  {
+    id: "apr-21",
+    weekLabel: "Week of Apr 21",
+    dateRange: "Apr 21–25, 2026",
+    defaultDays: ["Wed"],
+  },
+  {
+    id: "apr-28",
+    weekLabel: "Week of Apr 28",
+    dateRange: "Apr 28 – May 2, 2026",
+    defaultDays: ["Tue", "Thu"],
+  },
+  {
+    id: "may-5",
+    weekLabel: "Week of May 5",
+    dateRange: "May 5–9, 2026",
+    defaultDays: ["Mon", "Wed", "Fri"],
+  },
+];
+
+function isHomeschoolDropIn(t: DemoTransaction): boolean {
+  return t.kind === "homeschool_dropin";
+}
+
+function totalHomeschoolAmount(
+  selections: Record<string, Weekday[]>,
+): number {
+  return HOMESCHOOL_DROPIN_WEEKS.reduce(
+    (sum, w) => sum + homeschoolAmountForDays(selections[w.id] ?? []),
+    0,
+  );
+}
+
+function formatMoney(amount: number): string {
+  return `$${amount.toFixed(2)}`;
+}
+
+function homeschoolAmountForDays(days: Weekday[]): number {
+  return days.length * HOMESCHOOL_DROPIN_RATE_PER_DAY;
+}
+
+function scheduleNoteFromDays(days: Weekday[]): string {
+  if (days.length === 0) return "Select drop-in days";
+  const dayLabel = days.length === 1 ? "day" : "days";
+  return `${days.length} ${dayLabel}/week · ${days.join(", ")}`;
+}
+
+function initialHomeschoolSelections(): Record<string, Weekday[]> {
+  return Object.fromEntries(
+    HOMESCHOOL_DROPIN_WEEKS.map((w) => [w.id, [...w.defaultDays]]),
+  );
+}
+
 interface DemoTransaction {
   id: string;
   desc: string;
@@ -137,6 +206,7 @@ interface DemoTransaction {
   date: string;
   status: "paid" | "pending";
   childId: ChildId;
+  kind?: "standard" | "homeschool_dropin";
   scheduleNote?: string;
 }
 interface DemoContact {
@@ -586,39 +656,13 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
     childId: "emma",
   },
   {
-    id: "t5",
-    desc: "Registration Fee — Jake Mitchell",
-    amount: "$75.00",
-    date: "Apr 10, 2026",
-    status: "pending",
-    childId: "jake",
-  },
-  {
-    id: "t6",
-    desc: "Homeschool Drop-In — Week of Apr 21",
-    amount: "$100.00",
+    id: JAKE_HOMESCHOOL_DROPIN_TX_ID,
+    desc: "Homeschool Drop-In",
+    amount: "$0.00",
     date: "Apr 18, 2026",
     status: "pending",
     childId: "jake",
-    scheduleNote: "1 day/week · Wed",
-  },
-  {
-    id: "t7",
-    desc: "Homeschool Drop-In — Week of Apr 28",
-    amount: "$200.00",
-    date: "Apr 25, 2026",
-    status: "pending",
-    childId: "jake",
-    scheduleNote: "2 days/week · Tue & Thu",
-  },
-  {
-    id: "t8",
-    desc: "Homeschool Drop-In — Week of May 5",
-    amount: "$300.00",
-    date: "May 2, 2026",
-    status: "pending",
-    childId: "jake",
-    scheduleNote: "3 days/week · Mon, Wed & Fri",
+    kind: "homeschool_dropin",
   },
 ];
 
@@ -2331,6 +2375,149 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
   );
 }
 
+function HomeschoolDropInPaySidebar({
+  childName,
+  weeks,
+  selections,
+  onToggleDay,
+  onClose,
+  onConfirm,
+}: {
+  childName: string;
+  weeks: HomeschoolDropInWeek[];
+  selections: Record<string, Weekday[]>;
+  onToggleDay: (weekId: string, day: Weekday) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [paid, setPaid] = useState(false);
+  const total = weeks.reduce(
+    (sum, w) => sum + homeschoolAmountForDays(selections[w.id] ?? []),
+    0,
+  );
+  const hasSelection = weeks.some((w) => (selections[w.id] ?? []).length > 0);
+
+  return (
+    <>
+      <motion.div
+        key="homeschool-pay-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/20 z-40"
+        onClick={onClose}
+      />
+      <motion.div
+        key="homeschool-pay-panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 280 }}
+        className="absolute inset-y-0 right-0 w-[380px] bg-white shadow-2xl z-50 flex flex-col"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+          <h2 className="font-semibold text-gray-800 text-base">
+            Homeschool Drop-In
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {!paid ? (
+          <>
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              <p className="text-sm text-gray-500">
+                Select the days {childName} will attend each week. Tuition is{" "}
+                <span className="font-medium text-gray-700">
+                  {formatMoney(HOMESCHOOL_DROPIN_RATE_PER_DAY)}
+                </span>{" "}
+                per day.
+              </p>
+              {weeks.map((week) => {
+                const days = selections[week.id] ?? [];
+                const weekTotal = homeschoolAmountForDays(days);
+                return (
+                  <div
+                    key={week.id}
+                    className="rounded-xl border border-gray-100 bg-gray-50/80 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {week.weekLabel}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {week.dateRange}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-800 tabular-nums shrink-0">
+                        {formatMoney(weekTotal)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {WEEKDAYS.map((day) => {
+                        const selected = days.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => onToggleDay(week.id, day)}
+                            className={`min-w-[2.75rem] px-2.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer border ${
+                              selected
+                                ? "bg-[#173B5C] text-white border-[#173B5C]"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-[#173B5C]/40 hover:text-[#173B5C]"
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="shrink-0 px-5 py-4 border-t border-gray-100 bg-white">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-gray-600">Total due</span>
+                <span className="text-xl font-bold text-gray-900 tabular-nums">
+                  {formatMoney(total)}
+                </span>
+              </div>
+              <button
+                type="button"
+                disabled={!hasSelection}
+                onClick={() => {
+                  setPaid(true);
+                  setTimeout(onConfirm, 800);
+                }}
+                className="w-full py-2.5 rounded-xl bg-[#173B5C] text-white text-sm font-medium cursor-pointer hover:bg-[#122D47] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Pay {formatMoney(total)}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 text-center">
+            <CheckCircle className="w-12 h-12 text-emerald-500 mb-3" />
+            <p className="font-semibold text-gray-800">Payment Successful!</p>
+            <p className="text-sm text-gray-400 mt-1">
+              {formatMoney(total)} processed for {childName}&apos;s drop-in days.
+            </p>
+          </div>
+        )}
+      </motion.div>
+    </>
+  );
+}
+
 function InvoiceSidebar({ onClose }: { onClose: () => void }) {
   return (
     <>
@@ -2447,12 +2634,18 @@ function BillingPage({
   onPay,
   onPayAll,
   onOpenInvoice,
+  homeschoolSelections,
+  paidHomeschoolDetails,
+  onOpenHomeschoolPay,
 }: {
   activeChildId: ChildId;
   paidInvoices: Set<string>;
   onPay: (id: string) => void;
   onPayAll: (ids: string[]) => void;
   onOpenInvoice: () => void;
+  homeschoolSelections: Record<string, Weekday[]>;
+  paidHomeschoolDetails: Record<string, { amount: string; scheduleNote: string }>;
+  onOpenHomeschoolPay: (childId: ChildId) => void;
 }) {
   const [childFilter, setChildFilter] = useState<ChildId | "all">("all");
   const [autopay, setAutopay] = useState(false);
@@ -2462,6 +2655,30 @@ function BillingPage({
     emma: { name: "Emma", initials: "EM", color: DEMO_CHILDREN.emma.color },
     jake: { name: "Jake", initials: "JM", color: DEMO_CHILDREN.jake.color },
     liam: { name: "Liam", initials: "LM", color: DEMO_CHILDREN.liam.color },
+  };
+
+  const getDisplayAmount = (t: DemoTransaction): string => {
+    if (paidHomeschoolDetails[t.id]) return paidHomeschoolDetails[t.id].amount;
+    if (isHomeschoolDropIn(t)) {
+      return formatMoney(totalHomeschoolAmount(homeschoolSelections));
+    }
+    return t.amount;
+  };
+
+  const getListScheduleNote = (t: DemoTransaction): string | undefined => {
+    if (isHomeschoolDropIn(t)) return undefined;
+    return t.scheduleNote;
+  };
+
+  const parseAmount = (amount: string) =>
+    parseFloat(amount.replace("$", "").replace(",", ""));
+
+  const handlePayClick = (t: DemoTransaction) => {
+    if (isHomeschoolDropIn(t)) {
+      onOpenHomeschoolPay(t.childId);
+      return;
+    }
+    onPay(t.id);
   };
 
   const filteredTx =
@@ -2479,9 +2696,11 @@ function BillingPage({
   const allPending = DEMO_TRANSACTIONS.filter(
     (t) => t.status === "pending" && !paidInvoices.has(t.id),
   );
-  const totalDue = allPending.reduce((sum, t) => {
-    return sum + parseFloat(t.amount.replace("$", "").replace(",", ""));
-  }, 0);
+  const standardPending = allPending.filter((t) => !isHomeschoolDropIn(t));
+  const totalDue = allPending.reduce(
+    (sum, t) => sum + parseAmount(getDisplayAmount(t)),
+    0,
+  );
   const nextDue = allPending.length > 0 ? allPending[0].date : null;
 
   const weeksPayable = SUMMER_WEEKS.length;
@@ -2514,7 +2733,17 @@ function BillingPage({
         </div>
         {allPending.length > 0 ? (
           <button
-            onClick={() => onPayAll(allPending.map((t) => t.id))}
+            onClick={() => {
+              const jakeHomeschoolPending = allPending.filter(
+                (t) => isHomeschoolDropIn(t) && t.childId === "jake",
+              );
+              if (jakeHomeschoolPending.length > 0) {
+                onOpenHomeschoolPay("jake");
+              }
+              if (standardPending.length > 0) {
+                onPayAll(standardPending.map((t) => t.id));
+              }
+            }}
             className="px-4 py-2 rounded-xl bg-[#173B5C] text-white text-sm font-semibold hover:bg-[#122D47] transition-colors cursor-pointer shadow-sm"
           >
             Pay All
@@ -2604,41 +2833,53 @@ function BillingPage({
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {pending.map((t, tIdx) => (
-              <div
-                key={t.id}
-                data-tour-id={
-                  tIdx === 0 ? "billing-pending-invoice" : undefined
-                }
-                onClick={tIdx === 0 ? onOpenInvoice : undefined}
-                className="flex items-center gap-4 py-3 cursor-pointer group"
-              >
-                <div className="w-1 h-10 rounded-full bg-amber-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors truncate">
-                    {t.desc}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Due {t.date} · {childMeta[t.childId].name}
-                    {t.scheduleNote ? ` · ${t.scheduleNote}` : ""}
-                  </p>
+            {pending.map((t, tIdx) => {
+              const isHomeschool = isHomeschoolDropIn(t);
+
+              return (
+                <div
+                  key={t.id}
+                  data-tour-id={
+                    tIdx === 0 ? "billing-pending-invoice" : undefined
+                  }
+                  onClick={tIdx === 0 && !isHomeschool ? onOpenInvoice : undefined}
+                  className={`flex items-center gap-4 py-3 ${tIdx === 0 && !isHomeschool ? "cursor-pointer group" : ""}`}
+                >
+                  <div className="w-1 h-10 rounded-full bg-amber-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={`text-sm font-medium text-gray-700 truncate ${
+                        tIdx === 0 && !isHomeschool
+                          ? "group-hover:text-gray-900 transition-colors"
+                          : ""
+                      }`}
+                    >
+                      {t.desc}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Due {t.date} · {childMeta[t.childId].name}
+                      {getListScheduleNote(t)
+                        ? ` · ${getListScheduleNote(t)}`
+                        : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="font-semibold text-gray-800 text-sm tabular-nums">
+                      {getDisplayAmount(t)}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePayClick(t);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-[#173B5C] text-white text-xs font-medium cursor-pointer hover:bg-[#122D47] transition-colors"
+                    >
+                      {isHomeschool ? "Select days" : "Pay"}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="font-semibold text-gray-800 text-sm">
-                    {t.amount}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPay(t.id);
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-[#173B5C] text-white text-xs font-medium cursor-pointer hover:bg-[#122D47] transition-colors"
-                  >
-                    Pay
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
@@ -2736,12 +2977,12 @@ function BillingPage({
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {t.date} · {childMeta[t.childId].name}
-                    {t.scheduleNote ? ` · ${t.scheduleNote}` : ""}
+                    {getListScheduleNote(t) ? ` · ${getListScheduleNote(t)}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="font-semibold text-gray-800 text-sm">
-                    {t.amount}
+                  <span className="font-semibold text-gray-800 text-sm tabular-nums">
+                    {getDisplayAmount(t)}
                   </span>
                   <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
                     Paid
@@ -4103,6 +4344,63 @@ export default function AthenaParentDashboardDemo({ initialTab = "home", disable
   // Billing
   const [paidInvoices, setPaidInvoices] = useState<Set<string>>(new Set());
   const [billingInvoiceSidebarOpen, setBillingInvoiceSidebarOpen] = useState(false);
+  const [homeschoolSelections, setHomeschoolSelections] = useState(
+    initialHomeschoolSelections,
+  );
+  const [paidHomeschoolDetails, setPaidHomeschoolDetails] = useState<
+    Record<string, { amount: string; scheduleNote: string }>
+  >({});
+  const [homeschoolPayModal, setHomeschoolPayModal] = useState<{
+    childId: ChildId;
+    weeks: HomeschoolDropInWeek[];
+  } | null>(null);
+
+  const billingChildNames: Record<ChildId, string> = {
+    emma: "Emma",
+    jake: "Jake",
+    liam: "Liam",
+  };
+
+  const toggleHomeschoolDay = useCallback((weekId: string, day: Weekday) => {
+    setHomeschoolSelections((prev) => {
+      const current = prev[weekId] ?? [];
+      const next = current.includes(day)
+        ? current.filter((d) => d !== day)
+        : [...current, day].sort(
+            (a, b) => WEEKDAYS.indexOf(a) - WEEKDAYS.indexOf(b),
+          );
+      return { ...prev, [weekId]: next };
+    });
+  }, []);
+
+  const openHomeschoolPay = useCallback(
+    (childId: ChildId) => {
+      const bundlePending = DEMO_TRANSACTIONS.some(
+        (t) =>
+          t.id === JAKE_HOMESCHOOL_DROPIN_TX_ID &&
+          t.childId === childId &&
+          t.status === "pending" &&
+          !paidInvoices.has(t.id),
+      );
+      if (!bundlePending) return;
+      setHomeschoolPayModal({ childId, weeks: HOMESCHOOL_DROPIN_WEEKS });
+    },
+    [paidInvoices],
+  );
+
+  const handleHomeschoolPayConfirm = useCallback(() => {
+    if (!homeschoolPayModal) return;
+    const total = totalHomeschoolAmount(homeschoolSelections);
+    setPaidHomeschoolDetails((prev) => ({
+      ...prev,
+      [JAKE_HOMESCHOOL_DROPIN_TX_ID]: {
+        amount: formatMoney(total),
+        scheduleNote: `${HOMESCHOOL_DROPIN_WEEKS.length} weeks selected`,
+      },
+    }));
+    setPaidInvoices((prev) => new Set([...prev, JAKE_HOMESCHOOL_DROPIN_TX_ID]));
+    setHomeschoolPayModal(null);
+  }, [homeschoolPayModal, homeschoolSelections]);
 
   // Calendar event sidebar
   const [calendarSidebarEvent, setCalendarSidebarEvent] = useState<DemoEvent | null>(null);
@@ -4889,6 +5187,9 @@ export default function AthenaParentDashboardDemo({ initialTab = "home", disable
                         )
                       }
                       onOpenInvoice={() => setBillingInvoiceSidebarOpen(true)}
+                      homeschoolSelections={homeschoolSelections}
+                      paidHomeschoolDetails={paidHomeschoolDetails}
+                      onOpenHomeschoolPay={openHomeschoolPay}
                     />
                   )}
 
@@ -5035,6 +5336,17 @@ export default function AthenaParentDashboardDemo({ initialTab = "home", disable
           <InvoiceSidebar
             key="invoice-sidebar"
             onClose={() => setBillingInvoiceSidebarOpen(false)}
+          />
+        )}
+        {homeschoolPayModal && (
+          <HomeschoolDropInPaySidebar
+            key="homeschool-pay-sidebar"
+            childName={billingChildNames[homeschoolPayModal.childId]}
+            weeks={homeschoolPayModal.weeks}
+            selections={homeschoolSelections}
+            onToggleDay={toggleHomeschoolDay}
+            onClose={() => setHomeschoolPayModal(null)}
+            onConfirm={handleHomeschoolPayConfirm}
           />
         )}
         {calendarSidebarEvent && (
