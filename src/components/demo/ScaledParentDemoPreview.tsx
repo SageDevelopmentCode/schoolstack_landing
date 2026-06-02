@@ -38,6 +38,7 @@ export default function ScaledParentDemoPreview({
     <DemoPreviewFrame variant="parent">
       <div ref={outerRef} className="relative h-full overflow-hidden">
         <div
+          className="h-full"
           style={{
             width: DESIGN_WIDTH,
             height: scale > 0 ? `${100 / scale}%` : "100%",
