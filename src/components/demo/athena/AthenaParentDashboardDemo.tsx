@@ -2412,7 +2412,13 @@ function ChecklistView({
 
 // ─── OTHER PAGE VIEWS ────────────────────────────────────────────────────────
 
-function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
+function ChildrenPage({
+  activeChildId,
+  onSwitchChild,
+}: {
+  activeChildId: ChildId;
+  onSwitchChild: (id: ChildId) => void;
+}) {
   const [detailTab, setDetailTab] = useState<ChildDetailTab>("teacher");
   const child = DEMO_CHILDREN[activeChildId];
   const tabs: { id: ChildDetailTab; label: string }[] = [
@@ -2422,7 +2428,14 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
     { id: "profile", label: "Profile" },
   ];
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0 h-full">
+      <div className="flex flex-1 min-h-0">
+        <ChildTabStrip
+          layout="sidebar"
+          activeChildId={activeChildId}
+          onSwitch={onSwitchChild}
+        />
+        <div className="flex-1 min-w-0 overflow-y-auto px-6 py-5">
       <div className="flex border-b border-gray-100">
         {tabs.map((t) => (
           <button
@@ -2529,6 +2542,8 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
             ))}
           </div>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );
@@ -3212,10 +3227,10 @@ function BillingPage({
 
       <div className="flex flex-1 min-h-0">
         {/* ── Child filter sidebar ─────────────────────────────────────── */}
-        <aside className="w-44 shrink-0 border-r border-gray-100 flex flex-col py-2">
+        <aside className="w-44 shrink-0 border-r border-gray-100 flex flex-col py-2 px-2 overflow-hidden">
           <button
             onClick={() => setChildFilter("all")}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer mx-1.5 ${
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
               childFilter === "all"
                 ? "bg-[#173B5C]/8 text-gray-800"
                 : "text-gray-500 hover:bg-gray-50"
@@ -3239,7 +3254,7 @@ function BillingPage({
               <button
                 key={cid}
                 onClick={() => setChildFilter(cid)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer mx-1.5 ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
                   active
                     ? "bg-[#173B5C]/8 text-gray-800"
                     : "text-gray-500 hover:bg-gray-50"
@@ -4784,30 +4799,65 @@ function DemoHeader({
 function ChildTabStrip({
   activeChildId,
   onSwitch,
+  layout = "horizontal",
 }: {
   activeChildId: ChildId;
   onSwitch: (id: ChildId) => void;
+  layout?: "horizontal" | "sidebar";
 }) {
+  const children = Object.values(DEMO_CHILDREN) as (typeof DEMO_CHILDREN)[ChildId][];
+
+  if (layout === "sidebar") {
+    return (
+      <aside className="w-56 shrink-0 border-r border-gray-100 flex flex-col py-2 px-2 overflow-hidden">
+        {children.map((child) => {
+          const active = activeChildId === child.id;
+          return (
+            <button
+              key={child.id}
+              data-tour-id={`child-tab-${child.id}`}
+              onClick={() => onSwitch(child.id)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
+                active
+                  ? "bg-[#173B5C]/8 text-gray-800"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              <Avatar
+                initials={child.initials}
+                color={child.color}
+                size="sm"
+                src={child.image}
+              />
+              <span className="truncate flex-1 min-w-0">{child.name}</span>
+            </button>
+          );
+        })}
+        <button className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[#173B5C] font-medium border border-dashed border-[#173B5C]/30 hover:bg-[#173B5C]/5 transition-colors cursor-pointer mt-1">
+          <Plus className="w-3.5 h-3.5 shrink-0" /> New Application
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <div className="flex gap-2 mb-5">
-      {(Object.values(DEMO_CHILDREN) as (typeof DEMO_CHILDREN)[ChildId][]).map(
-        (child) => (
-          <button
-            key={child.id}
-            data-tour-id={`child-tab-${child.id}`}
-            onClick={() => onSwitch(child.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer border ${activeChildId === child.id ? "bg-white border-gray-200 text-gray-800 shadow-sm" : "border-transparent text-gray-400 hover:text-gray-600"}`}
-          >
-            <Avatar
-              initials={child.initials}
-              color={child.color}
-              size="sm"
-              src={child.image}
-            />
-            {child.name}
-          </button>
-        ),
-      )}
+      {children.map((child) => (
+        <button
+          key={child.id}
+          data-tour-id={`child-tab-${child.id}`}
+          onClick={() => onSwitch(child.id)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer border ${activeChildId === child.id ? "bg-white border-gray-200 text-gray-800 shadow-sm" : "border-transparent text-gray-400 hover:text-gray-600"}`}
+        >
+          <Avatar
+            initials={child.initials}
+            color={child.color}
+            size="sm"
+            src={child.image}
+          />
+          {child.name}
+        </button>
+      ))}
       <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-[#173B5C] font-medium border border-dashed border-[#173B5C]/30 hover:bg-[#173B5C]/5 transition-colors cursor-pointer">
         <Plus className="w-3.5 h-3.5" /> New Application
       </button>
@@ -5741,7 +5791,9 @@ export default function AthenaParentDashboardDemo({ initialTab = "home", disable
                     {pageTitle[activeNavTab]}
                   </h1>
                 </div>
-                {activeNavTab !== "volunteer" && activeNavTab !== "billing" && (
+                {activeNavTab !== "volunteer" &&
+                  activeNavTab !== "billing" &&
+                  activeNavTab !== "children" && (
                   <ChildTabStrip
                     activeChildId={activeChildId}
                     onSwitch={setActiveChildId}
@@ -5753,7 +5805,7 @@ export default function AthenaParentDashboardDemo({ initialTab = "home", disable
             {/* Animated page content */}
             <div
               className={
-                activeNavTab === "billing"
+                activeNavTab === "billing" || activeNavTab === "children"
                   ? "flex-1 min-h-0 overflow-hidden"
                   : "flex-1 overflow-y-auto"
               }
@@ -5762,7 +5814,7 @@ export default function AthenaParentDashboardDemo({ initialTab = "home", disable
                 <motion.div
                   key={activeNavTab + activeChildId}
                   className={
-                    activeNavTab === "billing"
+                    activeNavTab === "billing" || activeNavTab === "children"
                       ? "flex flex-col flex-1 min-h-0 h-full"
                       : "px-6 py-5"
                   }
@@ -5772,7 +5824,10 @@ export default function AthenaParentDashboardDemo({ initialTab = "home", disable
                   transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                 >
                   {activeNavTab === "children" && (
-                    <ChildrenPage activeChildId={activeChildId} />
+                    <ChildrenPage
+                      activeChildId={activeChildId}
+                      onSwitchChild={setActiveChildId}
+                    />
                   )}
 
                   {activeNavTab === "billing" && (
