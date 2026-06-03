@@ -13,10 +13,12 @@ export default function ScaledAdminDemoPreview({
   initialAdmissionsTab = "submissions",
   initialSelectedLeadId,
   initialSelectedFlowId,
+  animateNewSubmission,
 }: {
   initialAdmissionsTab?: "flows" | "submissions";
   initialSelectedLeadId?: string;
   initialSelectedFlowId?: string;
+  animateNewSubmission?: boolean;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
@@ -53,6 +55,7 @@ export default function ScaledAdminDemoPreview({
             initialAdmissionsTab={initialAdmissionsTab}
             initialSelectedLeadId={initialSelectedLeadId}
             initialSelectedFlowId={initialSelectedFlowId}
+            animateNewSubmission={animateNewSubmission}
           />
         </div>
       </div>

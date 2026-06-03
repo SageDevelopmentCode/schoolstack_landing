@@ -60,6 +60,7 @@ export default function SchoolDemoShell({
             initialAdmissionsTab={steps[activeStep].initialAdmissionsTab ?? "submissions"}
             initialSelectedLeadId={steps[activeStep].initialSelectedLeadId}
             initialSelectedFlowId={steps[activeStep].initialSelectedFlowId}
+            animateNewSubmission={steps[activeStep].animateNewSubmission}
           />
         ) : activePreview === "parent" ? (
           <ScaledParentDemoPreview

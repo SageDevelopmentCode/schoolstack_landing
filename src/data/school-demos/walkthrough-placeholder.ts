@@ -36,6 +36,7 @@ export interface DemoWalkthroughStep {
   initialSelectedLeadId?: string;
   initialSelectedFlowId?: string;
   initialParentTab?: DemoWalkthroughParentTab;
+  animateNewSubmission?: boolean;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -82,6 +83,8 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
     title: "View the lead in your admin",
     description: "The inquiry appears in your admin dashboard so you can follow up.",
     preview: "admin",
+    initialAdmissionsTab: "submissions",
+    animateNewSubmission: true,
     icon: "layoutDashboard",
     theme: {
       bg: "#EEF4F8",
