@@ -137,9 +137,14 @@ export default function ProductPreviewSection() {
   const handleTabChange = useCallback((id: TabId) => {
     setActiveTab(id)
     setLoadedTabs((prev) => new Set(prev).add(id))
+    const bar = tabBarRef.current
     const el = tabRefs.current.get(id)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    if (bar && el) {
+      const elRect = el.getBoundingClientRect()
+      const barRect = bar.getBoundingClientRect()
+      const targetLeft =
+        bar.scrollLeft + (elRect.left - barRect.left) - (barRect.width - elRect.width) / 2
+      bar.scrollTo({ left: targetLeft, behavior: 'smooth' })
     }
   }, [])
 
@@ -174,7 +179,7 @@ export default function ProductPreviewSection() {
   }
 
   return (
-    <section id="product" className="relative overflow-hidden bg-surface py-24">
+    <section id="product" className="relative w-full overflow-x-clip overflow-hidden bg-surface py-24">
 
       {/* ── Left cluster ── */}
       {/* Notebook — top-left */}
@@ -212,7 +217,7 @@ export default function ProductPreviewSection() {
         <Image src="/images/illustrations/Pastel.png" alt="" aria-hidden width={260} height={260} style={{ opacity: 0.82 }} />
       </motion.div>
 
-      <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
+      <div className="w-full max-w-[1200px] mx-auto px-6 lg:px-16 overflow-x-hidden">
 
         {/* Top content */}
         <div className="max-w-[720px] mx-auto text-center mb-16">
@@ -323,8 +328,8 @@ export default function ProductPreviewSection() {
           </div>
 
           {/* Product frame */}
-          <div className="mt-6 w-full h-[420px] md:h-[600px] lg:h-[700px] rounded-xl shadow-lg overflow-hidden relative bg-surface">
-            <div className="absolute inset-0">
+          <div className="mt-6 w-full h-[420px] md:h-[600px] lg:h-[700px] rounded-xl shadow-lg overflow-hidden relative isolate bg-surface">
+            <div className="absolute inset-0 overflow-hidden">
               {loadedTabs.has('admin') && (
                 <TabPanel visible={activeTab === 'admin'} id="admin" caption={TABS.find((t) => t.id === 'admin')!.caption}>
                   <AdminTab />
@@ -397,18 +402,24 @@ function TabPanel({
 
 /* ─── Tab mockups ────────────────────────────────────────────────────── */
 
-function AdminTab() {
-  return <LazyAdminDashboardDemo disableTour />
+const DESIGN_WIDTH = 1440
+
+function DemoTabShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {children}
+    </div>
+  )
 }
 
-function WebsiteTab() {
+function ScaledDemoContainer({ children }: { children: React.ReactNode }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.81)
 
   useEffect(() => {
     const el = outerRef.current
     if (!el) return
-    const update = () => setScale(el.offsetWidth / 1440)
+    const update = () => setScale(el.offsetWidth / DESIGN_WIDTH)
     update()
     const ro = new ResizeObserver(update)
     ro.observe(el)
@@ -416,37 +427,78 @@ function WebsiteTab() {
   }, [])
 
   return (
-    <div ref={outerRef} className="absolute inset-0 overflow-hidden">
+    <div
+      ref={outerRef}
+      className="absolute inset-0 overflow-hidden flex justify-center"
+      style={{ contain: 'paint' }}
+    >
       <div
+        className="shrink-0"
         style={{
-          width: 1440,
+          width: DESIGN_WIDTH,
           height: scale > 0 ? `${100 / scale}%` : '100%',
           transform: `scale(${scale})`,
-          transformOrigin: 'top left',
+          transformOrigin: 'top center',
         }}
       >
-        <LazyWebsiteDashboardDemo disableTour />
+        {children}
       </div>
     </div>
   )
 }
 
+function AdminTab() {
+  return (
+    <ScaledDemoContainer>
+      <LazyAdminDashboardDemo disableTour />
+    </ScaledDemoContainer>
+  )
+}
+
+function WebsiteTab() {
+  return (
+    <ScaledDemoContainer>
+      <LazyWebsiteDashboardDemo disableTour />
+    </ScaledDemoContainer>
+  )
+}
+
 function EnrollmentTab() {
-  return <LazyParentDashboardDemo initialTab="enrollment" disableTour hideNav />
+  return (
+    <DemoTabShell>
+      <LazyParentDashboardDemo initialTab="enrollment" disableTour hideNav />
+    </DemoTabShell>
+  )
 }
 
 function ParentsTab() {
-  return <LazyParentDashboardDemo initialTab="billing" disableTour hideNav />
+  return (
+    <DemoTabShell>
+      <LazyParentDashboardDemo initialTab="billing" disableTour hideNav />
+    </DemoTabShell>
+  )
 }
 
 function TeachersTab() {
-  return <LazyTeacherDashboardDemo initialTab="attendance" disableTour hideNav />
+  return (
+    <DemoTabShell>
+      <LazyTeacherDashboardDemo initialTab="attendance" disableTour hideNav />
+    </DemoTabShell>
+  )
 }
 
 function MarketingTab() {
-  return <LazyAdminDashboardDemo initialPage="marketing" disableTour hideNav />
+  return (
+    <ScaledDemoContainer>
+      <LazyAdminDashboardDemo initialPage="marketing" disableTour hideNav />
+    </ScaledDemoContainer>
+  )
 }
 
 function TimeclockTab() {
-  return <LazyTeacherDashboardDemo initialTab="hours" disableTour hideNav />
+  return (
+    <ScaledDemoContainer>
+      <LazyTeacherDashboardDemo initialTab="hours" disableTour hideNav />
+    </ScaledDemoContainer>
+  )
 }
