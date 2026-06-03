@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-type DemoPreviewVariant = "website" | "admin" | "parent" | "teacher";
+type DemoPreviewVariant = "website" | "admin" | "parent" | "teacher" | "contact";
 
 const VARIANT_CONFIG: Record<
   DemoPreviewVariant,
@@ -51,6 +51,15 @@ const VARIANT_CONFIG: Record<
     pillBg: "#E4EDF4",
     pillText: "#173B5C",
     pillBorder: "#C5D9E8",
+  },
+  contact: {
+    label: "Get in touch",
+    emoji: "✉️",
+    outerBg: "#F7F1E7",
+    cardBorder: "#D9C9A3",
+    pillBg: "#F2E7D1",
+    pillText: "#2E4A3C",
+    pillBorder: "#D9C9A3",
   },
 };
 

@@ -6,7 +6,8 @@ export type DemoWalkthroughIcon =
   | "link"
   | "clipboardCheck"
   | "creditCard"
-  | "clipboardList";
+  | "clipboardList"
+  | "messageCircle";
 
 export type DemoWalkthroughAdmissionsTab = "flows" | "submissions";
 
@@ -23,7 +24,12 @@ export type DemoWalkthroughTeacherTab =
   | "payroll"
   | "forms";
 
-export type DemoWalkthroughPreview = "website" | "admin" | "parent" | "teacher";
+export type DemoWalkthroughPreview =
+  | "website"
+  | "admin"
+  | "parent"
+  | "teacher"
+  | "contact";
 
 export interface DemoWalkthroughStepTheme {
   bg: string;
@@ -188,6 +194,26 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
       titleColor: "#173B5C",
       descColor: "#4A6578",
       connector: "#173B5C",
+    },
+  },
+  {
+    id: "get-in-touch",
+    title: "Questions? Let's connect",
+    description: "Share feedback or ask about anything you saw in this concept.",
+    talkingPoint:
+      "We'd love to hear what resonated — or what you'd want to change.",
+    preview: "contact",
+    icon: "messageCircle",
+    theme: {
+      bg: "#F2E7D1",
+      bgHover: "#EBDFC4",
+      bgActive: "#EBDFC4",
+      border: "#D9C9A3",
+      iconBg: "#C1A367",
+      iconColor: "#FFFFFF",
+      titleColor: "#5C4A2A",
+      descColor: "#7A6848",
+      connector: "#C1A367",
     },
   },
 ];

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ClipboardCheck, ClipboardList, CreditCard, GitBranch, Globe, LayoutDashboard, Link2, MousePointerClick } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ClipboardList, CreditCard, GitBranch, Globe, LayoutDashboard, Link2, MessageCircle, MousePointerClick } from "lucide-react";
 import Image from "next/image";
 import type { ComponentType, CSSProperties } from "react";
 import type {
@@ -17,6 +17,7 @@ const STEP_ICONS: Record<DemoWalkthroughIcon, ComponentType<{ className?: string
   clipboardCheck: ClipboardCheck,
   creditCard: CreditCard,
   clipboardList: ClipboardList,
+  messageCircle: MessageCircle,
 };
 
 interface Props {
@@ -57,7 +58,9 @@ export default function DemoWalkthroughPanel({
         ? "Now viewing the parent portal concept."
         : activePreview === "teacher"
           ? "Now viewing the teacher portal concept."
-          : "Click a step to jump the website preview.";
+          : activePreview === "contact"
+            ? "Share a question or note for the MudKitchen team."
+            : "Click a step to jump the website preview.";
 
   return (
     <aside className="hidden lg:flex flex-col h-screen w-[20%] min-w-[280px] shrink-0 overflow-y-auto border-r border-gray-200 bg-white">

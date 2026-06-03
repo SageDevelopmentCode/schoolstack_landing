@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import DemoContactPanel from "@/components/demo/DemoContactPanel";
 import DemoWalkthroughPanel from "@/components/demo/DemoWalkthroughPanel";
 import ScaledAdminDemoPreview from "@/components/demo/ScaledAdminDemoPreview";
 import ScaledParentDemoPreview from "@/components/demo/ScaledParentDemoPreview";
@@ -74,6 +75,8 @@ export default function SchoolDemoShell({
             key={steps[activeStep].id}
             initialParentTab={steps[activeStep].initialParentTab ?? "enrollment"}
           />
+        ) : activePreview === "contact" ? (
+          <DemoContactPanel />
         ) : (
           <ScaledWebsiteDemoPreview
             scrollRequest={scrollRequest}
