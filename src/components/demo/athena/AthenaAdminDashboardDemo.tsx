@@ -4478,9 +4478,14 @@ function LeadTableRow({
 }: {
   lead: DemoLead;
   onSelectLead: (lead: DemoLead) => void;
-  initial?: { opacity: number; y?: number };
-  animate?: { opacity: number; y?: number; backgroundColor?: string | string[] };
-  transition?: { delay?: number; duration?: number; ease?: [number, number, number, number] };
+  initial?: { opacity: number; x?: number; y?: number };
+  animate?: { opacity: number; x?: number; y?: number; backgroundColor?: string | string[] };
+  transition?: {
+    delay?: number;
+    duration?: number;
+    ease?: [number, number, number, number];
+    backgroundColor?: { duration?: number; ease?: string };
+  };
 }) {
   const rowProps = {
     onClick: () => onSelectLead(lead),
@@ -4647,7 +4652,7 @@ function LeadsListTab({
       return;
     }
     setNewSubmissionRevealed(false);
-    const timer = setTimeout(() => setNewSubmissionRevealed(true), 400);
+    const timer = setTimeout(() => setNewSubmissionRevealed(true), 700);
     return () => clearTimeout(timer);
   }, [animateNewSubmission]);
 
@@ -4752,7 +4757,7 @@ function LeadsListTab({
       </AnimatePresence>
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto overflow-x-auto">
+        <div className="h-full overflow-y-auto overflow-x-hidden">
           <table className="w-full text-sm">
             <thead
               className="sticky top-0 z-[1]"
@@ -4788,15 +4793,16 @@ function LeadsListTab({
                         key={newLead.id}
                         lead={newLead}
                         onSelectLead={onSelectLead}
-                        initial={{ opacity: 0, y: -14 }}
+                        initial={{ opacity: 0, x: 56 }}
                         animate={{
                           opacity: 1,
-                          y: 0,
+                          x: 0,
                           backgroundColor: [C.accentLight, "transparent"],
                         }}
                         transition={{
-                          duration: 0.35,
+                          duration: 0.65,
                           ease: [0.22, 1, 0.36, 1],
+                          backgroundColor: { duration: 1.2, ease: "easeOut" },
                         }}
                       />
                     )}
