@@ -57,6 +57,13 @@ import {
   HeartPulse,
   Car,
   Syringe,
+  FileText,
+  Heart,
+  Pill,
+  ShieldCheck,
+  Camera,
+  AlertTriangle,
+  UserPlus,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -329,6 +336,28 @@ const FUNNEL_STAGES = [
 
 const DEMO_LEADS = [
   {
+    id: "l0",
+    type: "contact",
+    name: "Jennifer Walsh",
+    email: "jwalsh@email.com",
+    phone: "(512) 555-0198",
+    childName: "Ethan Walsh",
+    childAge: null,
+    status: "new",
+    tags: ["Discovery Call", "Fall 2026"],
+    date: "12 minutes ago",
+    message:
+      "Full-Time Program — looking for a smaller school environment.",
+    flowId: "flow-5",
+    responses: {
+      f29: "Jennifer Walsh",
+      f30: "jwalsh@email.com",
+      f31: "Full-Time Program",
+      f32: "Ethan Walsh",
+      f33: "8th Grade",
+    },
+  },
+  {
     id: "l1",
     type: "waitlist",
     name: "Diana Foster",
@@ -340,13 +369,12 @@ const DEMO_LEADS = [
     tags: ["Summer 2026"],
     date: "18 minutes ago",
     message: null,
-    flowId: "flow-2",
+    flowId: "flow-3",
     responses: {
-      f11: "Diana Foster",
-      f12: "diana@email.com",
-      f13: "(512) 555-0142",
-      f14: "Noah Foster",
-      f15: "5",
+      f16: "Diana Foster",
+      f17: "diana@email.com",
+      f18: "Noah Foster",
+      f19: false,
     },
   },
   {
@@ -413,13 +441,12 @@ const DEMO_LEADS = [
     tags: ["Summer 2026"],
     date: "3 hours ago",
     message: "Looking for summer options for twin boys, ages 7.",
-    flowId: "flow-2",
+    flowId: "flow-3",
     responses: {
-      f11: "Mark Sullivan",
-      f12: "msullivan@email.com",
-      f13: "(737) 555-0477",
-      f14: "Alex & Ben Sullivan (twins)",
-      f15: "7",
+      f16: "Mark Sullivan",
+      f17: "msullivan@email.com",
+      f18: "Alex & Ben Sullivan (twins)",
+      f19: false,
     },
   },
   {
@@ -721,6 +748,8 @@ const DEMO_LEADS = [
     },
   },
 ];
+
+type DemoLead = (typeof DEMO_LEADS)[number];
 
 const STATUS_COLORS: Record<
   string,
@@ -2205,7 +2234,7 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
     },
     enrollment: {
       applyFlowId: "flow-1",
-      enrollFlowId: "flow-1",
+      enrollFlowId: "flow-2",
       registrationFee: 150,
       checklistItems: [
         "Enrollment contract",
@@ -4324,8 +4353,8 @@ function DashboardPage() {
 // ─── Admissions page ──────────────────────────────────────────────────────────
 
 const LEAD_FILTERS = [
-  { key: "all", label: "All", count: 16 },
-  { key: "new", label: "New", count: 2 },
+  { key: "all", label: "All", count: 17 },
+  { key: "new", label: "New", count: 3 },
   { key: "contacted", label: "Contacted", count: 2 },
   { key: "application_sent", label: "App Sent", count: 1 },
   { key: "enrolled", label: "Enrolled", count: 1 },
@@ -4343,8 +4372,9 @@ const LEAD_TAGS = [
 
 const FLOW_FILTER_OPTIONS = [
   { id: "all", label: "All Forms" },
+  { id: "flow-5", label: "Discovery Call" },
   { id: "flow-1", label: "Apply Now Form" },
-  { id: "flow-2", label: "Summer Program Enrollment" },
+  { id: "flow-2", label: "Enrollment Checklist" },
   { id: "flow-3", label: "Waitlist Signup" },
   { id: "flow-4", label: "Book a Campus Tour" },
 ];
@@ -4432,20 +4462,208 @@ function LeadsFiltersPanel({
   );
 }
 
+const NEW_SUBMISSION_LEAD_ID = "l0";
+
+function LeadTableRow({
+  lead,
+  onSelectLead,
+  initial,
+  animate,
+  transition,
+}: {
+  lead: DemoLead;
+  onSelectLead: (lead: DemoLead) => void;
+  initial?: { opacity: number; x?: number; y?: number };
+  animate?: { opacity: number; x?: number; y?: number; backgroundColor?: string | string[] };
+  transition?: {
+    delay?: number;
+    duration?: number;
+    ease?: [number, number, number, number];
+    backgroundColor?: { duration?: number; ease?: string };
+  };
+}) {
+  const rowProps = {
+    onClick: () => onSelectLead(lead),
+    className: "cursor-pointer transition-colors",
+    style: { borderBottom: `1px solid ${C.border}` },
+    onMouseEnter: (e: { currentTarget: HTMLTableRowElement }) => {
+      e.currentTarget.style.backgroundColor = C.elevated;
+    },
+    onMouseLeave: (e: { currentTarget: HTMLTableRowElement }) => {
+      e.currentTarget.style.backgroundColor = "transparent";
+    },
+  };
+
+  const cells = (
+    <>
+      <td className="px-4 py-3 max-w-[140px]">
+        <p className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
+          {FLOW_FILTER_OPTIONS.find((f) => f.id === lead.flowId)?.label ?? "—"}
+        </p>
+      </td>
+      <td className="px-4 py-3">
+        <p className="font-medium" style={{ color: C.textPrimary }}>
+          {lead.name}
+        </p>
+      </td>
+      <td className="px-4 py-3">
+        <p style={{ color: C.textSecondary }}>{lead.email}</p>
+        <p className="text-xs" style={{ color: C.textTertiary }}>
+          {lead.phone}
+        </p>
+      </td>
+      <td className="px-4 py-3">
+        {lead.childName ? (
+          <div className="flex min-w-0 items-center gap-2.5">
+            {LEAD_CHILD_PHOTOS[lead.childName] ? (
+              <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
+                <Image
+                  src={LEAD_CHILD_PHOTOS[lead.childName]}
+                  alt={lead.childName}
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                style={{
+                  backgroundColor: C.accentLight,
+                  color: C.accent,
+                }}
+              >
+                {lead.childName
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p
+                className="truncate text-sm"
+                style={{ color: C.textSecondary }}
+              >
+                {lead.childName}
+              </p>
+              {lead.flowId === "flow-5" &&
+              lead.responses.f33 != null &&
+              String(lead.responses.f33).trim() !== "" ? (
+                <p
+                  className="text-xs"
+                  style={{ color: C.textTertiary }}
+                >
+                  {String(lead.responses.f33)}
+                </p>
+              ) : lead.childAge != null ? (
+                <p
+                  className="text-xs"
+                  style={{ color: C.textTertiary }}
+                >
+                  Age {lead.childAge}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <span style={{ color: C.textTertiary }}>—</span>
+        )}
+      </td>
+      <td className="px-4 py-3 max-w-[180px]">
+        <p
+          className="truncate text-xs"
+          style={{ color: C.textTertiary }}
+        >
+          {lead.message ?? "—"}
+        </p>
+      </td>
+      <td className="px-4 py-3">
+        <StatusBadge status={lead.status} />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap gap-1">
+          {lead.tags.map((tag) => (
+            <span
+              key={tag}
+              className="px-1.5 py-0.5 text-[9px] font-medium rounded-full"
+              style={{
+                backgroundColor: C.accentLight,
+                color: C.accent,
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      </td>
+      <td
+        className="px-4 py-3 text-xs"
+        style={{ color: C.textTertiary }}
+      >
+        {lead.date}
+      </td>
+    </>
+  );
+
+  if (initial != null || animate != null || transition != null) {
+    return (
+      <motion.tr
+        key={lead.id}
+        initial={initial}
+        animate={animate}
+        transition={transition}
+        {...rowProps}
+      >
+        {cells}
+      </motion.tr>
+    );
+  }
+
+  return (
+    <tr key={lead.id} {...rowProps}>
+      {cells}
+    </tr>
+  );
+}
+
 function LeadsListTab({
   onSelectLead,
+  animateNewSubmission = false,
 }: {
-  onSelectLead: (lead: (typeof DEMO_LEADS)[0]) => void;
+  onSelectLead: (lead: DemoLead) => void;
+  animateNewSubmission?: boolean;
 }) {
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeFlowFilter, setActiveFlowFilter] = useState("all");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [newSubmissionRevealed, setNewSubmissionRevealed] = useState(
+    !animateNewSubmission,
+  );
+
+  useEffect(() => {
+    if (!animateNewSubmission) {
+      setNewSubmissionRevealed(true);
+      return;
+    }
+    setNewSubmissionRevealed(false);
+    const timer = setTimeout(() => setNewSubmissionRevealed(true), 700);
+    return () => clearTimeout(timer);
+  }, [animateNewSubmission]);
 
   const filtered = DEMO_LEADS.filter((l) => {
     const statusMatch = activeFilter === "all" || l.status === activeFilter;
     const flowMatch = activeFlowFilter === "all" || l.flowId === activeFlowFilter;
     return statusMatch && flowMatch;
   });
+
+  const newLead = animateNewSubmission
+    ? filtered.find((l) => l.id === NEW_SUBMISSION_LEAD_ID)
+    : undefined;
+  const existingLeads = animateNewSubmission && newLead
+    ? filtered.filter((l) => l.id !== NEW_SUBMISSION_LEAD_ID)
+    : filtered;
+  const useNewSubmissionAnimation = animateNewSubmission && !!newLead;
 
   const activeStatusLabel =
     LEAD_FILTERS.find((f) => f.key === activeFilter)?.label ?? "All";
@@ -4534,7 +4752,7 @@ function LeadsListTab({
       </AnimatePresence>
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto overflow-x-auto">
+        <div className="h-full overflow-y-auto overflow-x-hidden">
           <table className="w-full text-sm">
             <thead
               className="sticky top-0 z-[1]"
@@ -4562,122 +4780,48 @@ function LeadsListTab({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((lead, i) => (
-                <motion.tr
-                  key={lead.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.03 }}
-                  onClick={() => onSelectLead(lead)}
-                  className="cursor-pointer transition-colors"
-                  style={{ borderBottom: `1px solid ${C.border}` }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = C.elevated)
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "transparent")
-                  }
-                >
-                  <td className="px-4 py-3 max-w-[140px]">
-                    <p className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
-                      {FLOW_FILTER_OPTIONS.find((f) => f.id === lead.flowId)?.label ?? "—"}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium" style={{ color: C.textPrimary }}>
-                      {lead.name}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p style={{ color: C.textSecondary }}>{lead.email}</p>
-                    <p className="text-xs" style={{ color: C.textTertiary }}>
-                      {lead.phone}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    {lead.childName ? (
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        {LEAD_CHILD_PHOTOS[lead.childName] ? (
-                          <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                            <Image
-                              src={LEAD_CHILD_PHOTOS[lead.childName]}
-                              alt={lead.childName}
-                              width={32}
-                              height={32}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div
-                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                            style={{
-                              backgroundColor: C.accentLight,
-                              color: C.accent,
-                            }}
-                          >
-                            {lead.childName
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .slice(0, 2)}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p
-                            className="truncate text-sm"
-                            style={{ color: C.textSecondary }}
-                          >
-                            {lead.childName}
-                          </p>
-                          {lead.childAge != null && (
-                            <p
-                              className="text-xs"
-                              style={{ color: C.textTertiary }}
-                            >
-                              Age {lead.childAge}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <span style={{ color: C.textTertiary }}>—</span>
+              {useNewSubmissionAnimation ? (
+                <>
+                  <AnimatePresence>
+                    {newSubmissionRevealed && newLead && (
+                      <LeadTableRow
+                        key={newLead.id}
+                        lead={newLead}
+                        onSelectLead={onSelectLead}
+                        initial={{ opacity: 0, x: 56 }}
+                        animate={{
+                          opacity: 1,
+                          x: 0,
+                          backgroundColor: [C.accentLight, "transparent"],
+                        }}
+                        transition={{
+                          duration: 0.65,
+                          ease: [0.22, 1, 0.36, 1],
+                          backgroundColor: { duration: 1.2, ease: "easeOut" },
+                        }}
+                      />
                     )}
-                  </td>
-                  <td className="px-4 py-3 max-w-[180px]">
-                    <p
-                      className="truncate text-xs"
-                      style={{ color: C.textTertiary }}
-                    >
-                      {lead.message ?? "—"}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={lead.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {lead.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-1.5 py-0.5 text-[9px] font-medium rounded-full"
-                          style={{
-                            backgroundColor: C.accentLight,
-                            color: C.accent,
-                          }}
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td
-                    className="px-4 py-3 text-xs"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {lead.date}
-                  </td>
-                </motion.tr>
-              ))}
+                  </AnimatePresence>
+                  {existingLeads.map((lead) => (
+                    <LeadTableRow
+                      key={lead.id}
+                      lead={lead}
+                      onSelectLead={onSelectLead}
+                    />
+                  ))}
+                </>
+              ) : (
+                filtered.map((lead, i) => (
+                  <LeadTableRow
+                    key={lead.id}
+                    lead={lead}
+                    onSelectLead={onSelectLead}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.03 }}
+                  />
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -4685,7 +4829,6 @@ function LeadsListTab({
     </div>
   );
 }
-
 
 // ─── Enrollment Flow types & demo data ────────────────────────────────────────
 
@@ -4699,10 +4842,42 @@ interface FlowField {
   options?: string[];
 }
 
+type ChecklistStepIconKey =
+  | "fileText"
+  | "users"
+  | "heart"
+  | "pill"
+  | "shieldCheck"
+  | "clipboardList"
+  | "camera"
+  | "alertTriangle"
+  | "userPlus"
+  | "creditCard";
+
+const CHECKLIST_STEP_ICON_MAP: Record<
+  ChecklistStepIconKey,
+  React.ComponentType<{ className?: string }>
+> = {
+  fileText: FileText,
+  users: Users,
+  heart: Heart,
+  pill: Pill,
+  shieldCheck: ShieldCheck,
+  clipboardList: ClipboardList,
+  camera: Camera,
+  alertTriangle: AlertTriangle,
+  userPlus: UserPlus,
+  creditCard: CreditCard,
+};
+
 interface FlowStep {
   id: string;
   title: string;
   fields: FlowField[];
+  optional?: boolean;
+  icon?: ChecklistStepIconKey;
+  iconBg?: string;
+  iconColor?: string;
 }
 
 type FlowActionType = "email" | "sms" | "redirect" | "tag" | "notify_admin";
@@ -4719,6 +4894,7 @@ interface EnrollmentFlow {
   steps: FlowStep[];
   actions: FlowAction[];
   updatedAt: string;
+  kind?: "form" | "checklist";
 }
 
 const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
@@ -4763,31 +4939,97 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
   },
   {
     id: "flow-2",
-    name: "Summer Program Enrollment",
-    updatedAt: "May 8, 2026",
+    name: "Enrollment Checklist",
+    kind: "checklist",
+    updatedAt: "May 20, 2026",
     steps: [
       {
-        id: "s4",
-        title: "Contact Info",
-        fields: [
-          { id: "f11", label: "Parent Name", type: "text", required: true },
-          { id: "f12", label: "Email", type: "email", required: true },
-          { id: "f13", label: "Phone", type: "phone", required: true },
-        ],
+        id: "s-cl-1",
+        title: "Program Description & Key Policies",
+        fields: [],
+        icon: "fileText",
+        iconBg: "#EEF4F8",
+        iconColor: "#4a7c59",
       },
       {
-        id: "s5",
-        title: "Child Info",
-        fields: [
-          { id: "f14", label: "Child's Name", type: "text", required: true },
-          { id: "f15", label: "Age", type: "text", required: true },
-        ],
+        id: "s-cl-2",
+        title: "Community Agreement",
+        fields: [],
+        icon: "users",
+        iconBg: "#F2E7D1",
+        iconColor: "#5C4A2A",
+      },
+      {
+        id: "s-cl-3",
+        title: "Emergency Contact, Health & Immunization Form",
+        fields: [],
+        icon: "heart",
+        iconBg: "#FEE2E2",
+        iconColor: "#B91C1C",
+      },
+      {
+        id: "s-cl-4",
+        title: "Emergency Medication Plan",
+        fields: [],
+        optional: true,
+        icon: "pill",
+        iconBg: "#EDE9FE",
+        iconColor: "#6D28D9",
+      },
+      {
+        id: "s-cl-5",
+        title: "Proof of Immunizations",
+        fields: [],
+        icon: "shieldCheck",
+        iconBg: "#D1FAE5",
+        iconColor: "#047857",
+      },
+      {
+        id: "s-cl-6",
+        title: "Health Information Form",
+        fields: [],
+        icon: "clipboardList",
+        iconBg: "#CFFAFE",
+        iconColor: "#0E7490",
+      },
+      {
+        id: "s-cl-7",
+        title: "Photo Release Form",
+        fields: [],
+        icon: "camera",
+        iconBg: "#E0E7FF",
+        iconColor: "#4338CA",
+      },
+      {
+        id: "s-cl-8",
+        title: "Assumption of Risk",
+        fields: [],
+        icon: "alertTriangle",
+        iconBg: "#FFEDD5",
+        iconColor: "#C2410C",
+      },
+      {
+        id: "s-cl-9",
+        title: "Additional Authorized Pickup",
+        fields: [],
+        optional: true,
+        icon: "userPlus",
+        iconBg: "#F3E8FF",
+        iconColor: "#7C3AED",
+      },
+      {
+        id: "s-cl-10",
+        title: "Pay Registration Fee",
+        fields: [],
+        icon: "creditCard",
+        iconBg: "#DCFCE7",
+        iconColor: "#15803D",
       },
     ],
     actions: [
       { id: "a3", type: "email", config: { to: "{{parent_email}}", subject: "Summer Program — You're on the list!", body: "" } },
       { id: "a4", type: "sms", config: { message: "Hi! You've successfully signed up for our summer program." } },
-      { id: "a5", type: "redirect", config: { url: "https://schoolstack.io/thank-you" } },
+      { id: "a5", type: "redirect", config: { url: "https://www.trymudkitchen.com/thank-you" } },
     ],
   },
   {
@@ -4871,6 +5113,62 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
       },
       { id: "a9", type: "notify_admin", config: {} },
       { id: "a10", type: "tag", config: { tag: "Tour Request" } },
+    ],
+  },
+  {
+    id: "flow-5",
+    name: "Discovery Call",
+    updatedAt: "May 20, 2026",
+    steps: [
+      {
+        id: "s9",
+        title: "Inquiry",
+        fields: [
+          { id: "f29", label: "Parent / Guardian Name", type: "text", required: true },
+          { id: "f30", label: "Email", type: "email", required: true },
+          { id: "f32", label: "Student's Name", type: "text", required: true },
+          {
+            id: "f33",
+            label: "Grade Level",
+            type: "select",
+            required: true,
+            options: [
+              "6th Grade",
+              "7th Grade",
+              "8th Grade",
+              "9th Grade",
+              "10th Grade",
+              "11th Grade",
+              "12th Grade",
+            ],
+          },
+          {
+            id: "f31",
+            label: "Program Interest",
+            type: "select",
+            required: true,
+            options: [
+              "Full-Time Program",
+              "Part-Time · 5 Days",
+              "Part-Time · 4 Days",
+              "Not sure yet — let's talk",
+            ],
+          },
+        ],
+      },
+    ],
+    actions: [
+      {
+        id: "a11",
+        type: "email",
+        config: {
+          to: "{{parent_email}}",
+          subject: "We received your inquiry — Mud Kitchen",
+          body: "Thank you for reaching out. We'll be in touch within 48 hours to schedule your discovery call.",
+        },
+      },
+      { id: "a12", type: "notify_admin", config: {} },
+      { id: "a13", type: "tag", config: { tag: "Discovery Call" } },
     ],
   },
 ];
@@ -5048,9 +5346,11 @@ function DemoActivityTimelineRow({
 function LeadDetailPanel({
   lead,
   onClose,
+  autoSendEnrollmentLink = false,
 }: {
-  lead: (typeof DEMO_LEADS)[0];
+  lead: DemoLead;
   onClose: () => void;
+  autoSendEnrollmentLink?: boolean;
 }) {
   const flow = getFlowForLead(lead.flowId);
   const responseMap = lead.responses as unknown as Record<string, string | boolean>;
@@ -5080,10 +5380,23 @@ function LeadDetailPanel({
   const [tagDraft, setTagDraft] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [activity, setActivity] = useState<LeadActivityEntry[]>([]);
+  const [enrollmentLinkSent, setEnrollmentLinkSent] = useState(
+    !autoSendEnrollmentLink,
+  );
 
   useEffect(() => {
     setActiveTab(defaultTab);
   }, [defaultTab, lead.id]);
+
+  useEffect(() => {
+    if (!autoSendEnrollmentLink) {
+      setEnrollmentLinkSent(false);
+      return;
+    }
+    setEnrollmentLinkSent(false);
+    const timer = setTimeout(() => setEnrollmentLinkSent(true), 1000);
+    return () => clearTimeout(timer);
+  }, [autoSendEnrollmentLink, lead.id]);
 
   useEffect(() => {
     setLeadStatus(lead.status);
@@ -5544,13 +5857,45 @@ function LeadDetailPanel({
         className="flex-shrink-0 px-4 py-3 sm:px-5"
         style={{ borderTop: `1px solid ${C.border}` }}
       >
-        <button
+        <motion.button
           type="button"
-          className="w-full rounded-sm py-2 text-sm font-semibold transition-colors"
-          style={{ backgroundColor: C.accentLight, color: C.accent }}
+          disabled={enrollmentLinkSent}
+          className="w-full rounded-sm py-2 text-sm font-semibold"
+          animate={{
+            backgroundColor: enrollmentLinkSent ? C.successBg : C.accentLight,
+            color: enrollmentLinkSent ? C.success : C.accent,
+          }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            cursor: enrollmentLinkSent ? "default" : "pointer",
+          }}
         >
-          Send Application Link
-        </button>
+          <AnimatePresence mode="wait" initial={false}>
+            {enrollmentLinkSent ? (
+              <motion.span
+                key="sent"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center justify-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4" aria-hidden />
+                Sent
+              </motion.span>
+            ) : (
+              <motion.span
+                key="send"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                Send Enrollment Link
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </div>
     </motion.div>
   );
@@ -5571,6 +5916,7 @@ const FLOW_ACTION_TYPES: FlowActionType[] = [
   "tag",
   "notify_admin",
 ];
+
 
 function getActionMeta(): Record<FlowActionType, PostSubmitActionMeta> {
   return {
@@ -5629,9 +5975,12 @@ function getFieldTypeOwnerLabel(type: FlowFieldType): string {
   return FIELD_TYPE_OWNER_LABELS[type] ?? type;
 }
 
-function getStepSummary(step: FlowStep): string {
+function getStepSummary(step: FlowStep, isChecklistFlow?: boolean): string {
   const count = step.fields.length;
-  if (count === 0) return "No questions yet";
+  if (count === 0) {
+    if (isChecklistFlow) return step.optional ? "Optional item" : "Required item";
+    return "No questions yet";
+  }
   const noun = count === 1 ? "question" : "questions";
   const labels = step.fields.slice(0, 3).map((f) => f.label);
   const preview = labels.join(", ");
@@ -5915,6 +6264,7 @@ function EnrollmentFlowStepReorderItem({
   stepIdx,
   totalSteps,
   isExpanded,
+  isChecklistFlow,
   onToggleExpand,
   setPreviewStep,
   updateStepTitle,
@@ -5930,6 +6280,7 @@ function EnrollmentFlowStepReorderItem({
   stepIdx: number;
   totalSteps: number;
   isExpanded: boolean;
+  isChecklistFlow?: boolean;
   onToggleExpand: () => void;
   setPreviewStep: (s: FlowStep | null) => void;
   updateStepTitle: (stepId: string, title: string) => void;
@@ -5943,8 +6294,16 @@ function EnrollmentFlowStepReorderItem({
 }) {
   const [hovered, setHovered] = useState(false);
   const dragControls = useDragControls();
-  const summary = getStepSummary(step);
+  const summary = getStepSummary(step, isChecklistFlow);
   const isLast = stepIdx === totalSteps - 1;
+  const stepIconBg =
+    isChecklistFlow && step.iconBg ? step.iconBg : C.accentLight;
+  const stepIconColor =
+    isChecklistFlow && step.iconColor ? step.iconColor : C.accent;
+  const StepIcon =
+    isChecklistFlow && step.icon
+      ? CHECKLIST_STEP_ICON_MAP[step.icon]
+      : Layers;
 
   return (
     <Reorder.Item
@@ -5993,16 +6352,30 @@ function EnrollmentFlowStepReorderItem({
             >
               <div
                 className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-sm"
-                style={{ backgroundColor: C.accentLight, color: C.accent }}
+                style={{ backgroundColor: stepIconBg, color: stepIconColor }}
               >
-                <Layers className="h-4 w-4" />
+                <StepIcon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div
-                  className="text-[11px] font-semibold"
-                  style={{ color: C.textPrimary }}
-                >
-                  {step.title}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <div
+                    className="text-[11px] font-semibold"
+                    style={{ color: C.textPrimary }}
+                  >
+                    {step.title}
+                  </div>
+                  {step.optional && (
+                    <span
+                      className="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                      style={{
+                        backgroundColor: C.surface,
+                        color: C.textTertiary,
+                        border: `1px solid ${C.border}`,
+                      }}
+                    >
+                      Optional
+                    </span>
+                  )}
                 </div>
                 {!isExpanded && (
                   <div
@@ -6069,23 +6442,34 @@ function EnrollmentFlowStepReorderItem({
                     backgroundColor: C.surface,
                   }}
                 >
-                  <PostSubmitLabeledField label="Page title families see">
+                  <PostSubmitLabeledField
+                    label={isChecklistFlow ? "Checklist item title" : "Page title families see"}
+                  >
                     <input
                       value={step.title}
                       onChange={(e) => updateStepTitle(step.id, e.target.value)}
-                      placeholder="e.g. Parent Info"
+                      placeholder={isChecklistFlow ? "e.g. Photo Release Form" : "e.g. Parent Info"}
                       style={fieldInputStyle}
                     />
                   </PostSubmitLabeledField>
 
                   <div>
-                    <p
-                      className="mb-2 text-[11px] font-semibold"
-                      style={{ color: C.textSecondary }}
-                    >
-                      Questions on this page
-                    </p>
-                    {step.fields.length === 0 ? (
+                    {isChecklistFlow ? (
+                      <p
+                        className="mb-2 text-[11px] leading-relaxed"
+                        style={{ color: C.textTertiary }}
+                      >
+                        Families complete this item inline on the enrollment page.
+                      </p>
+                    ) : (
+                      <p
+                        className="mb-2 text-[11px] font-semibold"
+                        style={{ color: C.textSecondary }}
+                      >
+                        Questions on this page
+                      </p>
+                    )}
+                    {!isChecklistFlow && step.fields.length === 0 ? (
                       <div
                         className="rounded-md px-3 py-4 text-center text-[11px] leading-relaxed"
                         style={{
@@ -6096,7 +6480,7 @@ function EnrollmentFlowStepReorderItem({
                       >
                         Add questions below or pick from suggestions.
                       </div>
-                    ) : (
+                    ) : step.fields.length > 0 ? (
                       <Reorder.Group
                         axis="y"
                         values={step.fields}
@@ -6114,7 +6498,8 @@ function EnrollmentFlowStepReorderItem({
                           />
                         ))}
                       </Reorder.Group>
-                    )}
+                    ) : null}
+                    {!isChecklistFlow && (
                     <button
                       type="button"
                       onClick={() => addField(step.id)}
@@ -6128,8 +6513,10 @@ function EnrollmentFlowStepReorderItem({
                       <Plus className="h-3.5 w-3.5" />
                       Add custom question
                     </button>
+                    )}
                   </div>
 
+                  {!isChecklistFlow && (
                   <div>
                     <p
                       className="mb-1 text-[11px] font-semibold"
@@ -6170,7 +6557,9 @@ function EnrollmentFlowStepReorderItem({
                       ))}
                     </div>
                   </div>
+                  )}
 
+                  {!isChecklistFlow && (
                   <button
                     type="button"
                     onClick={() => setPreviewStep(step)}
@@ -6180,6 +6569,7 @@ function EnrollmentFlowStepReorderItem({
                     <Eye className="h-3.5 w-3.5" />
                     Preview this page
                   </button>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -6470,9 +6860,16 @@ function EnrollmentPostSubmitReorderItem({
   );
 }
 
-function EnrollmentFlowsTab() {
+
+function EnrollmentFlowsTab({
+  initialSelectedFlowId,
+}: {
+  initialSelectedFlowId?: string;
+}) {
   const [flows, setFlows] = useState<EnrollmentFlow[]>(INITIAL_DEMO_FLOWS);
-  const [selectedFlowId, setSelectedFlowId] = useState<string>("flow-1");
+  const [selectedFlowId, setSelectedFlowId] = useState<string>(
+    initialSelectedFlowId ?? "flow-1",
+  );
   const [expandedStepId, setExpandedStepId] = useState<string | null>("s1");
   const [savedPulse, setSavedPulse] = useState(false);
   const [previewStep, setPreviewStep] = useState<FlowStep | null>(null);
@@ -6488,6 +6885,7 @@ function EnrollmentFlowsTab() {
   const ACTION_META = getActionMeta();
 
   const selectedFlow = flows.find((f) => f.id === selectedFlowId) ?? null;
+  const isChecklistFlow = selectedFlow?.kind === "checklist";
 
   useEffect(() => {
     if (
@@ -6731,12 +7129,12 @@ function EnrollmentFlowsTab() {
           {/* Scrollable editor body */}
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
-            {/* Form Steps — vertical timeline */}
+            {/* Form Steps / Checklist Items — vertical timeline */}
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <Layers className="h-4 w-4" style={{ color: C.accent }} />
                 <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                  Form Steps
+                  {isChecklistFlow ? "Checklist Items" : "Form Steps"}
                 </span>
                 <span
                   className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
@@ -6746,7 +7144,9 @@ function EnrollmentFlowsTab() {
                 </span>
               </div>
               <p className="mb-4 text-[11px] leading-snug" style={{ color: C.textTertiary }}>
-                Families complete these pages in order. Each step is one screen of questions.
+                {isChecklistFlow
+                  ? "Families complete this checklist on a single enrollment page. Each step is an item they open and finish from the list."
+                  : "Families complete these pages in order. Each step is one screen of questions."}
               </p>
 
               {selectedFlow.steps.length === 0 ? (
@@ -6755,7 +7155,9 @@ function EnrollmentFlowsTab() {
                   style={{ border: `2px dashed ${C.border}`, color: C.textTertiary }}
                 >
                   <Layers className="mb-2 h-6 w-6 opacity-40" />
-                  <p className="mb-3 text-[11px]">No form pages yet.</p>
+                  <p className="mb-3 text-[11px]">
+                    {isChecklistFlow ? "No checklist items yet." : "No form pages yet."}
+                  </p>
                   <button
                     type="button"
                     onClick={addStep}
@@ -6767,7 +7169,7 @@ function EnrollmentFlowsTab() {
                     }}
                   >
                     <Plus className="h-3 w-3" />
-                    Add your first page
+                    {isChecklistFlow ? "Add your first item" : "Add your first page"}
                   </button>
                 </div>
               ) : (
@@ -6785,6 +7187,7 @@ function EnrollmentFlowsTab() {
                       stepIdx={stepIdx}
                       totalSteps={selectedFlow.steps.length}
                       isExpanded={expandedStepId === step.id}
+                      isChecklistFlow={isChecklistFlow}
                       onToggleExpand={() =>
                         setExpandedStepId((prev) =>
                           prev === step.id ? null : step.id
@@ -7204,8 +7607,22 @@ function EnrollmentFlowsTab() {
 
 type AdmissionsTab = "flows" | "submissions";
 
-function AdmissionsPage({ activeTab }: { activeTab: AdmissionsTab }) {
-  const [selectedLead, setSelectedLead] = useState<(typeof DEMO_LEADS)[0] | null>(null);
+function AdmissionsPage({
+  activeTab,
+  initialLeadId,
+  initialSelectedFlowId,
+  animateNewSubmission,
+  autoSendEnrollmentLink,
+}: {
+  activeTab: AdmissionsTab;
+  initialLeadId?: string;
+  initialSelectedFlowId?: string;
+  animateNewSubmission?: boolean;
+  autoSendEnrollmentLink?: boolean;
+}) {
+  const [selectedLead, setSelectedLead] = useState<DemoLead | null>(() =>
+    initialLeadId ? DEMO_LEADS.find((l) => l.id === initialLeadId) ?? null : null,
+  );
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
   useEffect(() => {
@@ -7223,12 +7640,15 @@ function AdmissionsPage({ activeTab }: { activeTab: AdmissionsTab }) {
       <AnimatePresence mode="wait">
         {activeTab === "flows" && (
           <motion.div key="flows" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-            <EnrollmentFlowsTab />
+            <EnrollmentFlowsTab initialSelectedFlowId={initialSelectedFlowId} />
           </motion.div>
         )}
         {activeTab === "submissions" && (
           <motion.div key="submissions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-            <LeadsListTab onSelectLead={setSelectedLead} />
+            <LeadsListTab
+              onSelectLead={setSelectedLead}
+              animateNewSubmission={animateNewSubmission}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -7238,6 +7658,7 @@ function AdmissionsPage({ activeTab }: { activeTab: AdmissionsTab }) {
             key={selectedLead.id}
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
+            autoSendEnrollmentLink={autoSendEnrollmentLink}
           />
         )}
       </AnimatePresence>
@@ -23419,6 +23840,7 @@ function Sidebar({
                                 return (
                                   <button
                                     key={sub.key}
+                                    data-tour-id={`admissions-tab-${sub.key}`}
                                     onClick={() => {
                                       onNavigate("leads");
                                       onAdmissionsSubtab(sub.key);
@@ -23643,16 +24065,26 @@ function Sidebar({
 export default function AdminDashboardDemo({
   disableTour = false,
   initialPage = "dashboard",
+  initialAdmissionsTab = "flows",
+  initialSelectedLeadId,
+  initialSelectedFlowId,
+  animateNewSubmission,
+  autoSendEnrollmentLink,
   hideNav = false,
-  defaultSidebarExpanded,
+  defaultSidebarExpanded = true,
 }: {
   disableTour?: boolean
   initialPage?: ActivePage
+  initialAdmissionsTab?: AdmissionsTab
+  initialSelectedLeadId?: string
+  initialSelectedFlowId?: string
+  animateNewSubmission?: boolean
+  autoSendEnrollmentLink?: boolean
   hideNav?: boolean
   defaultSidebarExpanded?: boolean
 }) {
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
-  const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>("flows");
+  const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>(initialAdmissionsTab);
   const [budgetTab, setBudgetTab] = useState<BudgetTab>("overview");
   const [mySchoolTab, setMySchoolTab] = useState<MySchoolTab>("students");
   const [focusStaffId, setFocusStaffId] = useState<string | null>(null);
@@ -23661,9 +24093,7 @@ export default function AdminDashboardDemo({
     string | undefined
   >(undefined);
   const [tuitionFilter, setTuitionFilter] = useState<TuitionFilter>("all");
-  const [isExpanded, setIsExpanded] = useState(
-    defaultSidebarExpanded !== undefined ? defaultSidebarExpanded : !disableTour
-  );
+  const [isExpanded, setIsExpanded] = useState(defaultSidebarExpanded);
   const [isDark] = useState(false);
   C = isDark ? C_DARK : C_LIGHT;
 
@@ -23718,7 +24148,15 @@ export default function AdminDashboardDemo({
       case "dashboard":
         return <DashboardPage />;
       case "leads":
-        return <AdmissionsPage activeTab={admissionsTab} />;
+        return (
+          <AdmissionsPage
+            activeTab={admissionsTab}
+            initialLeadId={initialSelectedLeadId}
+            initialSelectedFlowId={initialSelectedFlowId}
+            animateNewSubmission={animateNewSubmission}
+            autoSendEnrollmentLink={autoSendEnrollmentLink}
+          />
+        );
       case "people":
         return <PeoplePage />;
       case "programs":
@@ -23775,31 +24213,67 @@ export default function AdminDashboardDemo({
   const tourSteps = useMemo(
     () => [
       {
-        action: () => setActivePage("dashboard"),
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-dashboard"]',
+          );
+          (el as HTMLElement)?.click();
+        },
         targetId: "nav-dashboard",
         holdMs: 2000,
         clickAnimation: true,
       },
       {
-        action: () => setActivePage("leads"),
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-leads"]',
+          );
+          (el as HTMLElement)?.click();
+        },
         targetId: "nav-leads",
         holdMs: 1800,
         clickAnimation: true,
       },
       {
-        action: () => setActivePage("myschool"),
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="admissions-tab-flows"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "admissions-tab-flows",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="admissions-tab-submissions"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "admissions-tab-submissions",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-myschool"]',
+          );
+          (el as HTMLElement)?.click();
+        },
         targetId: "nav-myschool",
         holdMs: 1800,
         clickAnimation: true,
       },
       {
-        action: () => setActivePage("messages"),
-        targetId: "nav-messages",
-        holdMs: 1800,
-        clickAnimation: true,
-      },
-      {
-        action: () => setActivePage("budget"),
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-budget"]',
+          );
+          (el as HTMLElement)?.click();
+        },
         targetId: "nav-budget",
         holdMs: 1600,
         clickAnimation: true,
@@ -23837,25 +24311,37 @@ export default function AdminDashboardDemo({
         holdMs: 1800,
         clickAnimation: true,
       },
-
       {
         action: () => {
           const el = containerRef.current?.querySelector(
-            '[data-tour-id="budget-tab-transactions"]',
+            '[data-tour-id="budget-tab-payroll"]',
           );
           (el as HTMLElement)?.click();
         },
-        targetId: "budget-tab-transactions",
+        targetId: "budget-tab-payroll",
         holdMs: 1600,
         clickAnimation: true,
       },
       {
         action: () => {
-          setActivePage("myschool");
-          setMySchoolTab("tuition");
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-marketing"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-marketing",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-myschool"]',
+          );
+          (el as HTMLElement)?.click();
         },
         targetId: "nav-myschool",
-        holdMs: 1800,
+        holdMs: 1600,
         clickAnimation: true,
       },
       {
@@ -23870,13 +24356,12 @@ export default function AdminDashboardDemo({
         clickAnimation: true,
       },
       {
-        action: () => setActivePage("calendar"),
-        targetId: "nav-calendar",
-        holdMs: 1800,
-        clickAnimation: true,
-      },
-      {
-        action: () => setActivePage("dashboard"),
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-dashboard"]',
+          );
+          (el as HTMLElement)?.click();
+        },
         targetId: "nav-dashboard",
         holdMs: 2000,
         clickAnimation: true,
