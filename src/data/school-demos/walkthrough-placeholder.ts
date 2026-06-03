@@ -5,13 +5,25 @@ export type DemoWalkthroughIcon =
   | "gitBranch"
   | "link"
   | "clipboardCheck"
-  | "creditCard";
+  | "creditCard"
+  | "clipboardList";
 
 export type DemoWalkthroughAdmissionsTab = "flows" | "submissions";
 
 export type DemoWalkthroughParentTab = "enrollment" | "home" | "billing";
 
-export type DemoWalkthroughPreview = "website" | "admin" | "parent";
+export type DemoWalkthroughTeacherTab =
+  | "dashboard"
+  | "students"
+  | "hours"
+  | "messages"
+  | "calendar"
+  | "feed"
+  | "attendance"
+  | "payroll"
+  | "forms";
+
+export type DemoWalkthroughPreview = "website" | "admin" | "parent" | "teacher";
 
 export interface DemoWalkthroughStepTheme {
   bg: string;
@@ -36,6 +48,7 @@ export interface DemoWalkthroughStep {
   initialSelectedLeadId?: string;
   initialSelectedFlowId?: string;
   initialParentTab?: DemoWalkthroughParentTab;
+  initialTeacherTab?: DemoWalkthroughTeacherTab;
   animateNewSubmission?: boolean;
   autoSendEnrollmentLink?: boolean;
   icon: DemoWalkthroughIcon;
@@ -156,6 +169,25 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
       titleColor: "#5C4A2A",
       descColor: "#7A6848",
       connector: "#C1A367",
+    },
+  },
+  {
+    id: "teacher-attendance",
+    title: "Teachers take attendance",
+    description: "Staff track daily attendance from the teacher portal.",
+    preview: "teacher",
+    initialTeacherTab: "attendance",
+    icon: "clipboardList",
+    theme: {
+      bg: "#EEF4F8",
+      bgHover: "#E4EDF4",
+      bgActive: "#E4EDF4",
+      border: "#C5D9E8",
+      iconBg: "#173B5C",
+      iconColor: "#FFFFFF",
+      titleColor: "#173B5C",
+      descColor: "#4A6578",
+      connector: "#173B5C",
     },
   },
 ];

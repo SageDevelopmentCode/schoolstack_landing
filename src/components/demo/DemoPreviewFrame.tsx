@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-type DemoPreviewVariant = "website" | "admin" | "parent";
+type DemoPreviewVariant = "website" | "admin" | "parent" | "teacher";
 
 const VARIANT_CONFIG: Record<
   DemoPreviewVariant,
@@ -42,6 +42,15 @@ const VARIANT_CONFIG: Record<
     pillBg: "#F2E7D1",
     pillText: "#173B5C",
     pillBorder: "#E8D9BC",
+  },
+  teacher: {
+    label: "Teacher view",
+    emoji: "📋",
+    outerBg: "#EEF4F8",
+    cardBorder: "#C5D9E8",
+    pillBg: "#E4EDF4",
+    pillText: "#173B5C",
+    pillBorder: "#C5D9E8",
   },
 };
 
