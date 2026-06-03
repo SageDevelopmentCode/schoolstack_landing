@@ -47,6 +47,8 @@ import {
   CalendarClock,
   ArrowRight,
   Smartphone,
+  Landmark,
+  Banknote,
 } from "lucide-react";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -129,6 +131,71 @@ interface DemoPost {
   color: string;
   attachments?: { type: "image"; src: string; name?: string }[];
 }
+type Weekday = "Mon" | "Tue" | "Wed" | "Thu" | "Fri";
+
+const WEEKDAYS: Weekday[] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+interface HomeschoolDropInWeek {
+  id: string;
+  weekLabel: string;
+  dateRange: string;
+  defaultDays: Weekday[];
+}
+
+const JAKE_HOMESCHOOL_DROPIN_TX_ID = "jake-homeschool-dropin";
+
+const HOMESCHOOL_DROPIN_RATE_PER_DAY = 100;
+
+const HOMESCHOOL_DROPIN_WEEKS: HomeschoolDropInWeek[] = [
+  {
+    id: "apr-21",
+    weekLabel: "Week of Apr 21",
+    dateRange: "Apr 21–25, 2026",
+    defaultDays: ["Wed"],
+  },
+  {
+    id: "apr-28",
+    weekLabel: "Week of Apr 28",
+    dateRange: "Apr 28 – May 2, 2026",
+    defaultDays: ["Tue", "Thu"],
+  },
+  {
+    id: "may-5",
+    weekLabel: "Week of May 5",
+    dateRange: "May 5–9, 2026",
+    defaultDays: ["Mon", "Wed", "Fri"],
+  },
+];
+
+type PaymentPlan = "monthly" | "upfront";
+type PaymentMethod = "card" | "ach" | "check";
+
+const CARD_FEE_RATE = 0.029;
+const ACH_FEE_RATE = 0.008;
+
+const SCHOOL_YEAR_LABEL = "School Year 2026–27";
+const BILLING_BANNER_SCHOOL_YEAR = "/images/stock/ImageFive.jpg";
+const BILLING_BANNER_HOMESCHOOL = "/images/stock/Homeschool2.jpg";
+const SCHOOL_YEAR_MONTHLY_TUITION = 1700;
+const SCHOOL_YEAR_UPFRONT_TUITION = 17000;
+const EMMA_SCHOOL_YEAR_TX_ID = "emma-school-year-tuition";
+const LIAM_SCHOOL_YEAR_TX_ID = "liam-school-year-tuition";
+
+const SCHOOL_YEAR_MONTHS = [
+  { id: "aug-2026", label: "August 2026", short: "Aug" },
+  { id: "sep-2026", label: "September 2026", short: "Sep" },
+  { id: "oct-2026", label: "October 2026", short: "Oct" },
+  { id: "nov-2026", label: "November 2026", short: "Nov" },
+  { id: "dec-2026", label: "December 2026", short: "Dec" },
+  { id: "jan-2027", label: "January 2027", short: "Jan" },
+  { id: "feb-2027", label: "February 2027", short: "Feb" },
+  { id: "mar-2027", label: "March 2027", short: "Mar" },
+  { id: "apr-2027", label: "April 2027", short: "Apr" },
+  { id: "may-2027", label: "May 2027", short: "May" },
+];
+
+const DEMO_SCHOOL_YEAR_MONTHS_PAID = 4;
+
 interface DemoTransaction {
   id: string;
   desc: string;
@@ -136,8 +203,99 @@ interface DemoTransaction {
   date: string;
   status: "paid" | "pending";
   childId: ChildId;
+  kind?: "standard" | "homeschool_dropin" | "school_year_tuition";
   scheduleNote?: string;
+  schoolYearMonthId?: string;
 }
+
+function isHomeschoolDropIn(t: DemoTransaction): boolean {
+  return t.kind === "homeschool_dropin";
+}
+
+function totalHomeschoolAmount(
+  selections: Record<string, Weekday[]>,
+): number {
+  return HOMESCHOOL_DROPIN_WEEKS.reduce(
+    (sum, w) => sum + homeschoolAmountForDays(selections[w.id] ?? []),
+    0,
+  );
+}
+
+function formatMoney(amount: number): string {
+  return `$${amount.toFixed(2)}`;
+}
+
+function homeschoolAmountForDays(days: Weekday[]): number {
+  return days.length * HOMESCHOOL_DROPIN_RATE_PER_DAY;
+}
+
+function initialHomeschoolSelections(): Record<string, Weekday[]> {
+  return Object.fromEntries(
+    HOMESCHOOL_DROPIN_WEEKS.map((w) => [w.id, [...w.defaultDays]]),
+  );
+}
+
+function isSchoolYearTuition(t: DemoTransaction): boolean {
+  return t.kind === "school_year_tuition";
+}
+
+function getSchoolYearAmount(plan: PaymentPlan): number {
+  return plan === "monthly"
+    ? SCHOOL_YEAR_MONTHLY_TUITION
+    : SCHOOL_YEAR_UPFRONT_TUITION;
+}
+
+function getSchoolYearDescription(plan: PaymentPlan): string {
+  return plan === "monthly"
+    ? "May 2026 Tuition"
+    : `${SCHOOL_YEAR_LABEL} Tuition`;
+}
+
+function getTxCheckoutAmount(
+  t: DemoTransaction,
+  plan: PaymentPlan,
+  selections: Record<string, Weekday[]>,
+): number {
+  if (isHomeschoolDropIn(t)) return totalHomeschoolAmount(selections);
+  if (isSchoolYearTuition(t)) return getSchoolYearAmount(plan);
+  return parseFloat(t.amount.replace("$", "").replace(",", ""));
+}
+
+function getTxCheckoutDescription(
+  t: DemoTransaction,
+  plan: PaymentPlan,
+): string {
+  if (isSchoolYearTuition(t)) return getSchoolYearDescription(plan);
+  return t.desc;
+}
+
+function getPaidTransactionsForMonth(
+  paid: DemoTransaction[],
+  monthId: string,
+  checkoutMonthId?: string,
+): DemoTransaction[] {
+  return paid.filter((t) => {
+    if (t.schoolYearMonthId === monthId) return true;
+    if (
+      checkoutMonthId &&
+      monthId === checkoutMonthId &&
+      isSchoolYearTuition(t) &&
+      !t.schoolYearMonthId
+    ) {
+      return true;
+    }
+    return false;
+  });
+}
+
+function getOtherPaidTransactions(paid: DemoTransaction[]): DemoTransaction[] {
+  return paid.filter((t) => !t.schoolYearMonthId);
+}
+
+function getPendingBanner(t: DemoTransaction): string {
+  return isHomeschoolDropIn(t) ? BILLING_BANNER_HOMESCHOOL : BILLING_BANNER_SCHOOL_YEAR;
+}
+
 interface DemoContact {
   label: string;
   name: string;
@@ -220,6 +378,15 @@ const DEMO_CHILDREN = {
       },
     ],
   },
+};
+
+const CHILD_BILLING_META: Record<
+  ChildId,
+  { name: string; initials: string; color: string }
+> = {
+  emma: { name: "Emma", initials: "EM", color: DEMO_CHILDREN.emma.color },
+  jake: { name: "Jake", initials: "JM", color: DEMO_CHILDREN.jake.color },
+  liam: { name: "Liam", initials: "LM", color: DEMO_CHILDREN.liam.color },
 };
 
 const ATTENDANCE_DATA: DemoAttendance[] = [
@@ -561,20 +728,31 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
     childId: "emma",
   },
   {
-    id: "t2",
-    desc: "Summer Tuition — Week 1 (Jun 15–19)",
-    amount: "$375.00",
-    date: "Jun 1, 2026",
+    id: EMMA_SCHOOL_YEAR_TX_ID,
+    desc: "May 2026 Tuition",
+    amount: "$0.00",
+    date: "May 1, 2026",
     status: "pending",
     childId: "emma",
+    kind: "school_year_tuition",
   },
   {
-    id: "t3",
-    desc: "Summer Tuition — Week 2 (Jun 22–26)",
-    amount: "$375.00",
-    date: "Jun 8, 2026",
+    id: LIAM_SCHOOL_YEAR_TX_ID,
+    desc: "May 2026 Tuition",
+    amount: "$0.00",
+    date: "May 1, 2026",
     status: "pending",
-    childId: "emma",
+    childId: "liam",
+    kind: "school_year_tuition",
+  },
+  {
+    id: JAKE_HOMESCHOOL_DROPIN_TX_ID,
+    desc: "Homeschool Drop-In",
+    amount: "$0.00",
+    date: "Apr 18, 2026",
+    status: "pending",
+    childId: "jake",
+    kind: "homeschool_dropin",
   },
   {
     id: "t4",
@@ -585,49 +763,75 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
     childId: "emma",
   },
   {
-    id: "t5",
-    desc: "Registration Fee — Jake Mitchell",
-    amount: "$75.00",
-    date: "Apr 10, 2026",
-    status: "pending",
-    childId: "jake",
+    id: "t-paid-nov-emma",
+    desc: "November 2026 Tuition",
+    amount: "$1,700.00",
+    date: "Nov 1, 2026",
+    status: "paid",
+    childId: "emma",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "nov-2026",
   },
   {
-    id: "t6",
-    desc: "Homeschool Drop-In — Week of Apr 21",
-    amount: "$100.00",
-    date: "Apr 18, 2026",
-    status: "pending",
-    childId: "jake",
-    scheduleNote: "1 day/week · Wed",
+    id: "t-paid-nov-liam",
+    desc: "November 2026 Tuition",
+    amount: "$1,700.00",
+    date: "Nov 1, 2026",
+    status: "paid",
+    childId: "liam",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "nov-2026",
   },
   {
-    id: "t7",
-    desc: "Homeschool Drop-In — Week of Apr 28",
-    amount: "$200.00",
-    date: "Apr 25, 2026",
-    status: "pending",
-    childId: "jake",
-    scheduleNote: "2 days/week · Tue & Thu",
+    id: "t-paid-oct-emma",
+    desc: "October 2026 Tuition",
+    amount: "$1,700.00",
+    date: "Oct 1, 2026",
+    status: "paid",
+    childId: "emma",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "oct-2026",
   },
   {
-    id: "t8",
-    desc: "Homeschool Drop-In — Week of May 5",
-    amount: "$300.00",
-    date: "May 2, 2026",
-    status: "pending",
-    childId: "jake",
-    scheduleNote: "3 days/week · Mon, Wed & Fri",
+    id: "t-paid-oct-liam",
+    desc: "October 2026 Tuition",
+    amount: "$1,700.00",
+    date: "Oct 1, 2026",
+    status: "paid",
+    childId: "liam",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "oct-2026",
   },
-];
-
-const SUMMER_WEEKS = [
-  { week: 1, dates: "Jun 15–19", theme: "Plants & Growing Things" },
-  { week: 2, dates: "Jun 22–26", theme: "Water & Weather" },
-  { week: 3, dates: "Jun 29–Jul 3", theme: "Community Helpers" },
-  { week: 4, dates: "Jul 7–11", theme: "Animals & Habitats" },
-  { week: 5, dates: "Jul 14–18", theme: "Art & Expression" },
-  { week: 6, dates: "Jul 21–25", theme: "Space & Stars" },
+  {
+    id: "t-paid-sep-emma",
+    desc: "September 2026 Tuition",
+    amount: "$1,700.00",
+    date: "Sep 1, 2026",
+    status: "paid",
+    childId: "emma",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "sep-2026",
+  },
+  {
+    id: "t-paid-aug-emma",
+    desc: "August 2026 Tuition",
+    amount: "$1,700.00",
+    date: "Aug 1, 2026",
+    status: "paid",
+    childId: "emma",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "aug-2026",
+  },
+  {
+    id: "t-paid-aug-liam",
+    desc: "August 2026 Tuition",
+    amount: "$1,700.00",
+    date: "Aug 1, 2026",
+    status: "paid",
+    childId: "liam",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "aug-2026",
+  },
 ];
 
 const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
@@ -2208,7 +2412,13 @@ function ChecklistView({
 
 // ─── OTHER PAGE VIEWS ────────────────────────────────────────────────────────
 
-function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
+function ChildrenPage({
+  activeChildId,
+  onSwitchChild,
+}: {
+  activeChildId: ChildId;
+  onSwitchChild: (id: ChildId) => void;
+}) {
   const [detailTab, setDetailTab] = useState<ChildDetailTab>("teacher");
   const child = DEMO_CHILDREN[activeChildId];
   const tabs: { id: ChildDetailTab; label: string }[] = [
@@ -2218,7 +2428,14 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
     { id: "profile", label: "Profile" },
   ];
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0 h-full">
+      <div className="flex flex-1 min-h-0">
+        <ChildTabStrip
+          layout="sidebar"
+          activeChildId={activeChildId}
+          onSwitch={onSwitchChild}
+        />
+        <div className="flex-1 min-w-0 overflow-y-auto px-6 py-5">
       <div className="flex border-b border-gray-100">
         {tabs.map((t) => (
           <button
@@ -2326,7 +2543,160 @@ function ChildrenPage({ activeChildId }: { activeChildId: ChildId }) {
           </div>
         )}
       </div>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function HomeschoolDropInPaySidebar({
+  childName,
+  weeks,
+  selections,
+  onToggleDay,
+  onClose,
+  onConfirm,
+  selectionOnly = false,
+}: {
+  childName: string;
+  weeks: HomeschoolDropInWeek[];
+  selections: Record<string, Weekday[]>;
+  onToggleDay: (weekId: string, day: Weekday) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+  selectionOnly?: boolean;
+}) {
+  const [paid, setPaid] = useState(false);
+  const total = weeks.reduce(
+    (sum, w) => sum + homeschoolAmountForDays(selections[w.id] ?? []),
+    0,
+  );
+  const hasSelection = weeks.some((w) => (selections[w.id] ?? []).length > 0);
+  const overlayZ = selectionOnly ? "z-[60]" : "z-40";
+  const panelZ = selectionOnly ? "z-[70]" : "z-50";
+
+  return (
+    <>
+      <motion.div
+        key="homeschool-pay-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className={`absolute inset-0 bg-black/20 ${overlayZ}`}
+        onClick={onClose}
+      />
+      <motion.div
+        key="homeschool-pay-panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 280 }}
+        className={`absolute inset-y-0 right-0 w-[380px] bg-white shadow-2xl ${panelZ} flex flex-col`}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+          <h2 className="font-semibold text-gray-800 text-base">
+            Homeschool Drop-In
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {!paid ? (
+          <>
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              <p className="text-sm text-gray-500">
+                Select the days {childName} will attend each week. Tuition is{" "}
+                <span className="font-medium text-gray-700">
+                  {formatMoney(HOMESCHOOL_DROPIN_RATE_PER_DAY)}
+                </span>{" "}
+                per day.
+              </p>
+              {weeks.map((week) => {
+                const days = selections[week.id] ?? [];
+                const weekTotal = homeschoolAmountForDays(days);
+                return (
+                  <div
+                    key={week.id}
+                    className="rounded-xl border border-gray-100 bg-gray-50/80 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {week.weekLabel}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {week.dateRange}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-800 tabular-nums shrink-0">
+                        {formatMoney(weekTotal)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {WEEKDAYS.map((day) => {
+                        const selected = days.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => onToggleDay(week.id, day)}
+                            className={`min-w-[2.75rem] px-2.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer border ${
+                              selected
+                                ? "bg-[#4a7c59] text-white border-[#4a7c59]"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-[#4a7c59]/40 hover:text-[#4a7c59]"
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="shrink-0 px-5 py-4 border-t border-gray-100 bg-white">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-medium text-gray-600">Total due</span>
+                <span className="text-xl font-bold text-gray-900 tabular-nums">
+                  {formatMoney(total)}
+                </span>
+              </div>
+              <button
+                type="button"
+                disabled={!hasSelection}
+                onClick={() => {
+                  setPaid(true);
+                  setTimeout(onConfirm, 800);
+                }}
+                className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {selectionOnly ? "Save selection" : `Pay ${formatMoney(total)}`}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 text-center">
+            <CheckCircle className="w-12 h-12 text-emerald-500 mb-3" />
+            <p className="font-semibold text-gray-800">
+              {selectionOnly ? "Days saved" : "Payment Successful!"}
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              {selectionOnly
+                ? `${formatMoney(total)} added to your checkout total.`
+                : `${formatMoney(total)} processed for ${childName}&apos;s drop-in days.`}
+            </p>
+          </div>
+        )}
+      </motion.div>
+    </>
   );
 }
 
@@ -2370,9 +2740,9 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
             <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">
               Pending
             </span>
-            <p className="text-2xl font-bold text-gray-900">$375.00</p>
+            <p className="text-2xl font-bold text-gray-900">$1,700.00</p>
           </div>
-          <p className="text-xs text-amber-700 mt-2">Due Jun 1, 2026</p>
+          <p className="text-xs text-amber-700 mt-2">Due May 1, 2026</p>
         </div>
 
         {/* Details */}
@@ -2380,36 +2750,32 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
           <div>
             <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">For</p>
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-[#f29a8f] flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-[#7FA888] flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
                 EM
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Emma Mitchell</p>
-                <p className="text-xs text-gray-400">Kindergarten</p>
+                <p className="text-xs text-gray-400">Elementary</p>
               </div>
             </div>
           </div>
 
           <div>
             <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">Program</p>
-            <p className="text-sm text-gray-700 font-medium">Summer 2026 — Week 1</p>
-            <p className="text-xs text-gray-400 mt-0.5">June 15–19, 2026</p>
+            <p className="text-sm text-gray-700 font-medium">School Year 2026–27 — May Tuition</p>
+            <p className="text-xs text-gray-400 mt-0.5">Full-Time Program</p>
           </div>
 
           <div>
             <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">Line Items</p>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Weekly Tuition</span>
-                <span className="font-medium text-gray-800">$350.00</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Materials Fee</span>
-                <span className="font-medium text-gray-800">$25.00</span>
+                <span className="text-gray-600">Monthly Tuition</span>
+                <span className="font-medium text-gray-800">$1,700.00</span>
               </div>
               <div className="border-t border-gray-100 pt-2 flex justify-between text-sm font-semibold">
                 <span className="text-gray-800">Total</span>
-                <span className="text-gray-900">$375.00</span>
+                <span className="text-gray-900">$1,700.00</span>
               </div>
             </div>
           </div>
@@ -2427,7 +2793,7 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
             onClick={onClose}
             className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium hover:bg-[#3d6b4f] transition-colors cursor-pointer"
           >
-            Pay Now — $375.00
+            Pay Now — $1,700.00
           </button>
           <button
             onClick={onClose}
@@ -2441,26 +2807,362 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
   );
 }
 
+function BillingCheckoutSidebar({
+  txIds,
+  initialPaymentPlan,
+  homeschoolSelections,
+  onClose,
+  onConfirm,
+  onOpenHomeschoolPay,
+}: {
+  txIds: string[];
+  initialPaymentPlan: PaymentPlan;
+  homeschoolSelections: Record<string, Weekday[]>;
+  onClose: () => void;
+  onConfirm: (plan: PaymentPlan, txIds: string[]) => void;
+  onOpenHomeschoolPay: () => void;
+}) {
+  const [checkoutPlan, setCheckoutPlan] = useState<PaymentPlan>(initialPaymentPlan);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  const [paid, setPaid] = useState(false);
+
+  const lineItems = txIds
+    .map((id) => DEMO_TRANSACTIONS.find((t) => t.id === id))
+    .filter((t): t is DemoTransaction => !!t);
+
+  const subtotal = lineItems.reduce(
+    (sum, t) => sum + getTxCheckoutAmount(t, checkoutPlan, homeschoolSelections),
+    0,
+  );
+
+  const processingFee =
+    paymentMethod === "card"
+      ? subtotal * CARD_FEE_RATE
+      : paymentMethod === "ach"
+        ? subtotal * ACH_FEE_RATE
+        : 0;
+
+  const total = subtotal + processingFee;
+
+  const homeschoolItem = lineItems.find(isHomeschoolDropIn);
+  const homeschoolAmount = homeschoolItem
+    ? getTxCheckoutAmount(homeschoolItem, checkoutPlan, homeschoolSelections)
+    : 0;
+  const canPay = !homeschoolItem || homeschoolAmount > 0;
+
+  const feeLabel =
+    paymentMethod === "card"
+      ? `Card processing (${(CARD_FEE_RATE * 100).toFixed(1)}%)`
+      : paymentMethod === "ach"
+        ? `ACH processing (${(ACH_FEE_RATE * 100).toFixed(1)}%)`
+        : null;
+
+  return (
+    <>
+      <motion.div
+        key="checkout-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/20 z-40"
+        onClick={onClose}
+      />
+      <motion.div
+        key="checkout-panel"
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 280 }}
+        className="absolute inset-y-0 right-0 w-[400px] bg-white shadow-2xl z-50 flex flex-col"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+          <h2 className="font-semibold text-gray-800 text-base">Review &amp; Pay</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {!paid ? (
+          <>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <div className="border-b border-gray-100 pb-5 mb-5">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                  Payment Plan
+                </h3>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutPlan("monthly")}
+                    className={`w-full text-left py-3 px-4 transition-colors cursor-pointer ${
+                      checkoutPlan === "monthly"
+                        ? "border-l-2 border-l-[#4a7c59] bg-[#4a7c59]/5"
+                        : "hover:bg-gray-50/80"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-gray-800">
+                      Monthly with Autopay
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {formatMoney(SCHOOL_YEAR_MONTHLY_TUITION)}/mo per child · charged
+                      on the 1st
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutPlan("upfront")}
+                    className={`w-full text-left py-3 px-4 transition-colors cursor-pointer ${
+                      checkoutPlan === "upfront"
+                        ? "border-l-2 border-l-[#4a7c59] bg-[#4a7c59]/5"
+                        : "hover:bg-gray-50/80"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-gray-800">Pay in Full</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {formatMoney(SCHOOL_YEAR_UPFRONT_TUITION)} per child ·{" "}
+                      {SCHOOL_YEAR_LABEL}
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-b border-gray-100 pb-5 mb-5">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                  Receipt
+                </h3>
+                <div>
+                  {lineItems.map((t, idx) => {
+                    const meta = CHILD_BILLING_META[t.childId];
+                    const amount = getTxCheckoutAmount(
+                      t,
+                      checkoutPlan,
+                      homeschoolSelections,
+                    );
+                    const isHomeschool = isHomeschoolDropIn(t);
+                    return (
+                      <div
+                        key={t.id}
+                        className={`flex items-start gap-3 py-3 ${
+                          idx > 0 ? "border-t border-gray-100" : ""
+                        }`}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                          style={{ backgroundColor: meta.color }}
+                        >
+                          {meta.initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800">
+                            {meta.name}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {getTxCheckoutDescription(t, checkoutPlan)}
+                          </p>
+                          {isHomeschool && amount === 0 && (
+                            <button
+                              type="button"
+                              onClick={onOpenHomeschoolPay}
+                              className="mt-2 text-xs font-semibold text-[#4a7c59] hover:underline cursor-pointer"
+                            >
+                              Select days
+                            </button>
+                          )}
+                        </div>
+                        <span className="text-sm font-semibold text-gray-800 tabular-nums shrink-0">
+                          {formatMoney(amount)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <div className="flex justify-between py-3 border-t border-gray-100">
+                    <span className="text-sm font-medium text-gray-600">Subtotal</span>
+                    <span className="text-sm font-semibold text-gray-800 tabular-nums">
+                      {formatMoney(subtotal)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pb-4">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                  Payment Method
+                </h3>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {(
+                    [
+                      { id: "card" as const, label: "Card", icon: CreditCard },
+                      { id: "ach" as const, label: "ACH", icon: Landmark },
+                      { id: "check" as const, label: "Check", icon: Banknote },
+                    ] as const
+                  ).map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setPaymentMethod(id)}
+                      className={`flex flex-col items-center gap-1.5 rounded-md border p-3 transition-all cursor-pointer ${
+                        paymentMethod === id
+                          ? "border-[#4a7c59] bg-[#4a7c59]/5"
+                          : "border-gray-100 hover:border-gray-200"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 text-gray-600" />
+                      <span className="text-xs font-semibold text-gray-700">{label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {paymentMethod === "check" && (
+                  <div className="pt-4 border-l-2 border-gray-200 pl-4 mt-4 space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                      Check instructions
+                    </p>
+                    <ul className="text-xs text-gray-600 space-y-1.5 list-disc pl-4">
+                      <li>
+                        Make check payable to{" "}
+                        <span className="font-medium">Mud Kitchen</span>
+                      </li>
+                      <li>
+                        Mail to: 1234 South Lamar Blvd, Austin, TX 78704 · Attn: Billing
+                      </li>
+                      <li>Include student name(s) and parent phone in the memo line</li>
+                      <li>Please allow 5–7 business days for processing</li>
+                    </ul>
+                  </div>
+                )}
+
+                <div className="mt-5 space-y-2">
+                  {feeLabel && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">{feeLabel}</span>
+                      <span className="font-medium text-gray-700 tabular-nums">
+                        {formatMoney(processingFee)}
+                      </span>
+                    </div>
+                  )}
+                  {paymentMethod === "check" && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Processing fee</span>
+                      <span className="font-medium text-gray-700 tabular-nums">
+                        {formatMoney(0)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-semibold pt-3 border-t border-gray-100">
+                    <span className="text-gray-800">Total</span>
+                    <span className="text-gray-900 tabular-nums">{formatMoney(total)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 px-5 py-4 border-t border-gray-100 bg-white">
+              <button
+                type="button"
+                disabled={!canPay}
+                onClick={() => {
+                  setPaid(true);
+                  setTimeout(() => onConfirm(checkoutPlan, txIds), 800);
+                }}
+                className="w-full py-2.5 rounded-lg bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Pay {formatMoney(total)}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full mt-2 py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 text-center">
+            <CheckCircle className="w-12 h-12 text-emerald-500 mb-3" />
+            <p className="font-semibold text-gray-800">Payment Successful!</p>
+            <p className="text-sm text-gray-400 mt-1">
+              {formatMoney(total)} processed successfully.
+            </p>
+          </div>
+        )}
+      </motion.div>
+    </>
+  );
+}
+
 function BillingPage({
   paidInvoices,
-  onPay,
-  onPayAll,
+  paymentPlan,
+  onOpenCheckout,
   onOpenInvoice,
+  homeschoolSelections,
+  paidHomeschoolDetails,
+  onOpenHomeschoolPay,
 }: {
   activeChildId: ChildId;
   paidInvoices: Set<string>;
-  onPay: (id: string) => void;
-  onPayAll: (ids: string[]) => void;
+  paymentPlan: PaymentPlan;
+  onOpenCheckout: (txIds: string[]) => void;
   onOpenInvoice: () => void;
+  homeschoolSelections: Record<string, Weekday[]>;
+  paidHomeschoolDetails: Record<string, { amount: string; scheduleNote: string }>;
+  onOpenHomeschoolPay: (childId: ChildId) => void;
 }) {
   const [childFilter, setChildFilter] = useState<ChildId | "all">("all");
-  const [autopay, setAutopay] = useState(false);
+  const [selectedHistoryMonthId, setSelectedHistoryMonthId] = useState(
+    SCHOOL_YEAR_MONTHS[DEMO_SCHOOL_YEAR_MONTHS_PAID - 1].id,
+  );
 
   const CHILD_IDS: ChildId[] = ["emma", "jake", "liam"];
   const childMeta: Record<ChildId, { name: string; initials: string; color: string }> = {
     emma: { name: "Emma", initials: "EM", color: DEMO_CHILDREN.emma.color },
     jake: { name: "Jake", initials: "JM", color: DEMO_CHILDREN.jake.color },
     liam: { name: "Liam", initials: "LM", color: DEMO_CHILDREN.liam.color },
+  };
+
+  const emmaTuitionPaid = paidInvoices.has(EMMA_SCHOOL_YEAR_TX_ID);
+  const liamTuitionPaid = paidInvoices.has(LIAM_SCHOOL_YEAR_TX_ID);
+  const fullTimeTuitionPaid = emmaTuitionPaid && liamTuitionPaid;
+
+  const getDisplayAmount = (t: DemoTransaction): string => {
+    if (paidHomeschoolDetails[t.id]) return paidHomeschoolDetails[t.id].amount;
+    if (isHomeschoolDropIn(t)) {
+      return formatMoney(totalHomeschoolAmount(homeschoolSelections));
+    }
+    if (isSchoolYearTuition(t)) {
+      if (t.status === "paid") return t.amount;
+      return formatMoney(getSchoolYearAmount(paymentPlan));
+    }
+    return t.amount;
+  };
+
+  const getDisplayDescription = (t: DemoTransaction): string => {
+    if (isSchoolYearTuition(t) && t.status === "pending") {
+      return getSchoolYearDescription(paymentPlan);
+    }
+    if (isSchoolYearTuition(t)) return t.desc;
+    return t.desc;
+  };
+
+  const getListScheduleNote = (t: DemoTransaction): string | undefined => {
+    if (isHomeschoolDropIn(t) || isSchoolYearTuition(t)) return undefined;
+    return t.scheduleNote;
+  };
+
+  const parseAmount = (amount: string) =>
+    parseFloat(amount.replace("$", "").replace(",", ""));
+
+  const handlePayClick = (t: DemoTransaction) => {
+    if (isHomeschoolDropIn(t)) {
+      onOpenHomeschoolPay(t.childId);
+      return;
+    }
+    onOpenCheckout([t.id]);
   };
 
   const filteredTx =
@@ -2475,108 +3177,143 @@ function BillingPage({
     (t) => t.status === "paid" || paidInvoices.has(t.id),
   );
 
-  const allPending = DEMO_TRANSACTIONS.filter(
-    (t) => t.status === "pending" && !paidInvoices.has(t.id),
+  const totalDue = pending.reduce(
+    (sum, t) => sum + parseAmount(getDisplayAmount(t)),
+    0,
   );
-  const totalDue = allPending.reduce((sum, t) => {
-    return sum + parseFloat(t.amount.replace("$", "").replace(",", ""));
-  }, 0);
-  const nextDue = allPending.length > 0 ? allPending[0].date : null;
+  const nextDue = pending.length > 0 ? pending[0].date : null;
 
-  const weeksPayable = SUMMER_WEEKS.length;
-  const weeksPaid = 0;
+  const monthsPaidCount =
+    DEMO_SCHOOL_YEAR_MONTHS_PAID + (fullTimeTuitionPaid ? 1 : 0);
+
+  const getMonthStatus = (
+    monthIndex: number,
+  ): "paid" | "current" | "upcoming" => {
+    if (monthIndex < monthsPaidCount) return "paid";
+    if (monthIndex === monthsPaidCount) return "current";
+    return "upcoming";
+  };
+
+  const selectedHistoryMonth = SCHOOL_YEAR_MONTHS.find(
+    (m) => m.id === selectedHistoryMonthId,
+  );
+  const checkoutPaidMonthId =
+    fullTimeTuitionPaid && monthsPaidCount > 0
+      ? SCHOOL_YEAR_MONTHS[monthsPaidCount - 1].id
+      : undefined;
+  const monthFilteredPaid = getPaidTransactionsForMonth(
+    paid,
+    selectedHistoryMonthId,
+    checkoutPaidMonthId,
+  );
+  const otherPaid = getOtherPaidTransactions(paid);
+
+  const firstSchoolYearPendingIdx = pending.findIndex(
+    (tx) => !isHomeschoolDropIn(tx),
+  );
+
+  const prevMonthsPaidRef = useRef(monthsPaidCount);
+  useEffect(() => {
+    if (monthsPaidCount > prevMonthsPaidRef.current) {
+      setSelectedHistoryMonthId(
+        SCHOOL_YEAR_MONTHS[monthsPaidCount - 1].id,
+      );
+    }
+    prevMonthsPaidRef.current = monthsPaidCount;
+  }, [monthsPaidCount]);
 
   return (
-    <div className="space-y-5 pb-4">
+    <div className="flex flex-col flex-1 min-h-0 h-full">
 
-      {/* ── Balance summary ──────────────────────────────────────────── */}
-      <div className="flex items-start justify-between pt-1 pb-4 border-b border-gray-100">
-        <div>
-          <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
-            Total Balance Due
-          </p>
-          <p className="text-3xl font-bold text-gray-900 leading-none">
-            ${totalDue.toFixed(2)}
-          </p>
-          {nextDue && (
-            <span className="inline-flex items-center gap-1 mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full font-medium">
-              <Clock className="w-3 h-3" />
-              Next due {nextDue}
-            </span>
-          )}
-          {totalDue === 0 && (
-            <span className="inline-flex items-center gap-1 mt-2 text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
-              <CheckCircle className="w-3 h-3" />
-              All paid
-            </span>
-          )}
-        </div>
-        {allPending.length > 0 ? (
+      <div className="flex flex-1 min-h-0">
+        {/* ── Child filter sidebar ─────────────────────────────────────── */}
+        <aside className="w-44 shrink-0 border-r border-gray-100 flex flex-col py-2 px-2 overflow-hidden">
           <button
-            onClick={() => onPayAll(allPending.map((t) => t.id))}
-            className="px-4 py-2 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4f] transition-colors cursor-pointer shadow-sm"
+            onClick={() => setChildFilter("all")}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
+              childFilter === "all"
+                ? "bg-[#4a7c59]/8 text-gray-800"
+                : "text-gray-500 hover:bg-gray-50"
+            }`}
           >
-            Pay All
+            <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+              <span className="text-[10px] text-gray-500 font-bold">All</span>
+            </div>
+            <span className="truncate">All children</span>
           </button>
-        ) : (
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl">
-            <CheckCircle className="w-3.5 h-3.5" />
-            All clear
-          </span>
-        )}
-      </div>
-
-      {/* ── Child filter tabs ────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={() => setChildFilter("all")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-            childFilter === "all"
-              ? "bg-gray-800 text-white"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-          }`}
-        >
-          All children
-        </button>
-        {CHILD_IDS.map((cid) => {
-          const meta = childMeta[cid];
-          const childPendingCount = DEMO_TRANSACTIONS.filter(
-            (t) =>
-              t.childId === cid &&
-              t.status === "pending" &&
-              !paidInvoices.has(t.id),
-          ).length;
-          const active = childFilter === cid;
-          return (
-            <button
-              key={cid}
-              onClick={() => setChildFilter(cid)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-                active
-                  ? "bg-gray-800 text-white"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-              }`}
-            >
-              <span
-                className="w-4 h-4 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-                style={{ fontSize: 8, backgroundColor: meta.color }}
+          {CHILD_IDS.map((cid) => {
+            const meta = childMeta[cid];
+            const childPendingCount = DEMO_TRANSACTIONS.filter(
+              (t) =>
+                t.childId === cid &&
+                t.status === "pending" &&
+                !paidInvoices.has(t.id),
+            ).length;
+            const active = childFilter === cid;
+            return (
+              <button
+                key={cid}
+                onClick={() => setChildFilter(cid)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
+                  active
+                    ? "bg-[#4a7c59]/8 text-gray-800"
+                    : "text-gray-500 hover:bg-gray-50"
+                }`}
               >
-                {meta.initials[0]}
-              </span>
-              {meta.name}
-              {childPendingCount > 0 && (
                 <span
-                  className={`text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    active ? "bg-white text-gray-800" : "bg-amber-400 text-white"
-                  }`}
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold shrink-0"
+                  style={{ fontSize: 9, backgroundColor: meta.color }}
                 >
-                  {childPendingCount}
+                  {meta.initials[0]}
+                </span>
+                <span className="truncate flex-1 min-w-0">{meta.name}</span>
+                {childPendingCount > 0 && (
+                  <span className="text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-amber-400 text-white">
+                    {childPendingCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </aside>
+
+        <div className="flex-1 min-w-0 overflow-y-auto px-6 py-5 space-y-5 pb-4">
+          {/* ── Balance summary ──────────────────────────────────────────── */}
+          <div className="flex items-start justify-between pb-4 border-b border-gray-100">
+            <div>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
+                Total Balance Due
+              </p>
+              <p className="text-3xl font-bold text-gray-900 leading-none">
+                ${totalDue.toFixed(2)}
+              </p>
+              {nextDue && (
+                <span className="inline-flex items-center gap-1 mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full font-medium">
+                  <Clock className="w-3 h-3" />
+                  Next due {nextDue}
                 </span>
               )}
-            </button>
-          );
-        })}
-      </div>
+              {totalDue === 0 && (
+                <span className="inline-flex items-center gap-1 mt-2 text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                  <CheckCircle className="w-3 h-3" />
+                  All paid
+                </span>
+              )}
+            </div>
+            {childFilter === "all" && pending.length > 0 ? (
+              <button
+                onClick={() => onOpenCheckout(pending.map((t) => t.id))}
+                className="px-4 py-2 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4f] transition-colors cursor-pointer shadow-sm"
+              >
+                Pay All
+              </button>
+            ) : totalDue === 0 ? (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl">
+                <CheckCircle className="w-3.5 h-3.5" />
+                All clear
+              </span>
+            ) : null}
+          </div>
 
       {/* ── Pending invoices ─────────────────────────────────────────── */}
       <section>
@@ -2602,119 +3339,143 @@ function BillingPage({
             </span>
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
-            {pending.map((t, tIdx) => (
-              <div
-                key={t.id}
-                data-tour-id={
-                  tIdx === 0 ? "billing-pending-invoice" : undefined
-                }
-                onClick={tIdx === 0 ? onOpenInvoice : undefined}
-                className="flex items-center gap-4 py-3 cursor-pointer group"
-              >
-                <div className="w-1 h-10 rounded-full bg-amber-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors truncate">
-                    {t.desc}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Due {t.date} · {childMeta[t.childId].name}
-                    {t.scheduleNote ? ` · ${t.scheduleNote}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="font-semibold text-gray-800 text-sm">
-                    {t.amount}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPay(t.id);
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-[#4a7c59] text-white text-xs font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors"
-                  >
-                    Pay
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-[repeat(3,300px)] gap-4">
+            {pending.map((t, tIdx) => {
+              const isHomeschool = isHomeschoolDropIn(t);
+              const meta = childMeta[t.childId];
+              const isTourTarget =
+                !isHomeschool && tIdx === firstSchoolYearPendingIdx;
+              const isInvoiceClickable = isTourTarget;
+
+              return (
+                <article
+                  key={t.id}
+                  data-tour-id={
+                    isTourTarget ? "billing-pending-invoice" : undefined
+                  }
+                  onClick={isInvoiceClickable ? onOpenInvoice : undefined}
+                  className={`flex flex-col w-full rounded-md overflow-hidden border border-gray-100 bg-white shadow-sm ${
+                    isInvoiceClickable ? "cursor-pointer group" : ""
+                  }`}
+                >
+                  <div className="relative h-32 overflow-hidden shrink-0">
+                    <img
+                      src={getPendingBanner(t)}
+                      alt=""
+                      className={`w-full h-full object-cover ${
+                        isInvoiceClickable
+                          ? "transition-transform duration-500 group-hover:scale-105"
+                          : ""
+                      }`}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <span className="absolute bottom-2.5 left-3 text-xs font-semibold text-white/90">
+                      {isHomeschool ? "Homeschool Drop-In" : "Full-Time Program"}
+                    </span>
+                  </div>
+                  <div className="p-4 flex flex-col gap-3 flex-1">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                        style={{ backgroundColor: meta.color }}
+                      >
+                        {meta.initials}
+                      </div>
+                      <div className="min-w-0">
+                        <p
+                          className={`text-base font-medium text-gray-800 leading-snug ${
+                            isInvoiceClickable
+                              ? "group-hover:text-gray-900 transition-colors"
+                              : ""
+                          }`}
+                        >
+                          {getDisplayDescription(t)}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1 leading-snug">
+                          Due {t.date} · {meta.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+                      <span className="font-semibold text-gray-800 text-base tabular-nums">
+                        {getDisplayAmount(t)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePayClick(t);
+                        }}
+                        className="px-3.5 py-2 rounded-md bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors shrink-0"
+                      >
+                        {isHomeschool ? "Select days" : "Pay"}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
 
-      {/* ── Autopay + payment method ─────────────────────────────────── */}
-      <div className="flex items-center justify-between py-3.5 border-t border-b border-gray-100">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setAutopay((a) => !a)}
-            style={{ backgroundColor: autopay ? "#4a7c59" : "#d1d5db" }}
-            className="relative w-9 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 focus:outline-none"
-            aria-label="Toggle autopay"
-          >
-            <span
-              style={{ transform: autopay ? "translateX(18px)" : "translateX(2px)" }}
-              className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform"
-            />
-          </button>
-          <div>
-            <p className="text-sm font-medium text-gray-700">Autopay</p>
-            <p className="text-xs text-gray-400">
-              {autopay ? "On — charged on due date" : "Off — pay manually each invoice"}
-            </p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-400 mb-0.5">Card on file</p>
-          <div className="flex items-center gap-1.5 justify-end">
-            <CreditCard className="w-3.5 h-3.5 text-gray-400" />
-            <span className="text-sm text-gray-700 font-medium">Visa ····4242</span>
-            <button className="text-xs text-[#4a7c59] hover:underline cursor-pointer">
-              Update
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Summer 2026 schedule ─────────────────────────────────────── */}
+      {/* ── School year schedule ─────────────────────────────────────── */}
       <section>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-            Summer 2026 — Schedule
+            {SCHOOL_YEAR_LABEL}
           </h3>
           <span className="text-xs text-gray-400">
-            {weeksPaid} of {weeksPayable} weeks paid
+            {`${monthsPaidCount} of ${SCHOOL_YEAR_MONTHS.length} months paid`}
           </span>
         </div>
-        <div className="h-1.5 bg-gray-100 rounded-full mb-4 overflow-hidden">
-          <div
-            className="h-full bg-emerald-400 rounded-full transition-all duration-500"
-            style={{ width: `${(weeksPaid / weeksPayable) * 100}%` }}
-          />
-        </div>
-        <div className="divide-y divide-gray-50">
-          {SUMMER_WEEKS.map((w) => {
-            const isPaid = false;
+        <div className="flex flex-wrap gap-2.5 mt-4">
+          {SCHOOL_YEAR_MONTHS.map((m, monthIndex) => {
+            const status = getMonthStatus(monthIndex);
+            const isSelected = m.id === selectedHistoryMonthId;
             return (
-              <div key={w.week} className="flex items-center gap-3 py-2.5">
-                <span className="text-xs font-semibold text-gray-400 w-10 flex-shrink-0">
-                  Wk {w.week}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-600 truncate">
-                    {w.theme}
-                  </p>
-                  <p className="text-xs text-gray-400">{w.dates}</p>
-                </div>
+              <button
+                key={m.id}
+                type="button"
+                title={m.label}
+                onClick={() => setSelectedHistoryMonthId(m.id)}
+                className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border px-3.5 py-3 min-w-[68px] min-h-[64px] cursor-pointer transition-all ${
+                  isSelected ? "ring-2 ring-[#4a7c59] ring-offset-1" : ""
+                } ${
+                  status === "paid"
+                    ? "border-emerald-100 bg-emerald-50"
+                    : status === "current"
+                      ? "border-amber-100 bg-amber-50"
+                      : "border-gray-100 bg-gray-50"
+                }`}
+              >
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                    isPaid
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-gray-100 text-gray-400"
+                  className={`text-sm font-semibold leading-none ${
+                    status === "paid"
+                      ? "text-emerald-700"
+                      : status === "current"
+                        ? "text-amber-700"
+                        : "text-gray-400"
                   }`}
                 >
-                  {isPaid ? "Paid" : "Upcoming"}
+                  {m.short}
                 </span>
-              </div>
+                <span
+                  className={`text-[10px] font-medium px-2 py-0.5 rounded-full leading-none ${
+                    status === "paid"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : status === "current"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-gray-100 text-gray-400"
+                  }`}
+                >
+                  {status === "paid"
+                    ? "Paid"
+                    : status === "current"
+                      ? "Current"
+                      : "Upcoming"}
+                </span>
+              </button>
             );
           })}
         </div>
@@ -2725,38 +3486,85 @@ function BillingPage({
         <section>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
             Payment History
+            {selectedHistoryMonth ? ` — ${selectedHistoryMonth.label}` : ""}
           </h3>
-          <div className="divide-y divide-gray-50">
-            {paid.map((t) => (
-              <div key={t.id} className="flex items-center gap-4 py-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-700 truncate">
-                    {t.desc}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {t.date} · {childMeta[t.childId].name}
-                    {t.scheduleNote ? ` · ${t.scheduleNote}` : ""}
-                  </p>
+          {monthFilteredPaid.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4 text-center">
+              No payments for{" "}
+              {selectedHistoryMonth?.label ?? "this month"}
+            </p>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {monthFilteredPaid.map((t) => (
+                <div key={t.id} className="flex items-center gap-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-700 truncate">
+                      {getDisplayDescription(t)}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {t.date} · {childMeta[t.childId].name}
+                      {getListScheduleNote(t) ? ` · ${getListScheduleNote(t)}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="font-semibold text-gray-800 text-sm tabular-nums">
+                      {getDisplayAmount(t)}
+                    </span>
+                    <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                      Paid
+                    </span>
+                    <button
+                      className="text-gray-300 hover:text-gray-500 transition-colors cursor-pointer"
+                      title="Download receipt"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="font-semibold text-gray-800 text-sm">
-                    {t.amount}
-                  </span>
-                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-                    Paid
-                  </span>
-                  <button
-                    className="text-gray-300 hover:text-gray-500 transition-colors cursor-pointer"
-                    title="Download receipt"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
-                </div>
+              ))}
+            </div>
+          )}
+
+          {otherPaid.length > 0 && (
+            <div className="mt-5 pt-4 border-t border-gray-100">
+              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Other payments
+              </h4>
+              <div className="divide-y divide-gray-50">
+                {otherPaid.map((t) => (
+                  <div key={t.id} className="flex items-center gap-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-700 truncate">
+                        {getDisplayDescription(t)}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {t.date} · {childMeta[t.childId].name}
+                        {getListScheduleNote(t) ? ` · ${getListScheduleNote(t)}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="font-semibold text-gray-800 text-sm tabular-nums">
+                        {getDisplayAmount(t)}
+                      </span>
+                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                        Paid
+                      </span>
+                      <button
+                        className="text-gray-300 hover:text-gray-500 transition-colors cursor-pointer"
+                        title="Download receipt"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </section>
       )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -2897,6 +3705,111 @@ function MessagesPage({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CalendarPage({
+  onEventClick,
+}: {
+  onEventClick: (e: DemoEvent) => void;
+}) {
+  const [month, setMonth] = useState(new Date(2026, 5, 1));
+  const [program, setProgram] = useState<"summer" | "school-year">("summer");
+
+  const year = month.getFullYear();
+  const mon = month.getMonth();
+  const firstDay = new Date(year, mon, 1).getDay();
+  const daysInMonth = new Date(year, mon + 1, 0).getDate();
+  const days = Array.from({ length: 42 }, (_, i) => {
+    const day = i - firstDay + 1;
+    return day >= 1 && day <= daysInMonth ? day : null;
+  });
+  const monthName = month.toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
+  const eventsThisMonth = DEMO_EVENTS.filter((e) => {
+    const d = new Date(e.date);
+    return (
+      d.getFullYear() === year && d.getMonth() === mon && e.program === program
+    );
+  });
+  const eventsForDay = (day: number) =>
+    eventsThisMonth.filter((e) => new Date(e.date).getDate() === day);
+
+  return (
+    <div className="flex-1 p-6 border-t border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex gap-2">
+            {[
+              { val: "summer" as const, label: "Summer 2026" },
+              { val: "school-year" as const, label: "School Year 26–27" },
+            ].map((p) => (
+              <button
+                key={p.val}
+                onClick={() => setProgram(p.val)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${program === p.val ? "bg-[#4a7c59] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMonth(new Date(year, mon - 1, 1))}
+              className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-500" />
+            </button>
+            <span className="text-sm font-semibold text-gray-700 w-36 text-center">
+              {monthName}
+            </span>
+            <button
+              data-tour-id="calendar-next-month"
+              onClick={() => setMonth(new Date(year, mon + 1, 1))}
+              className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-px">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+            <div
+              key={d}
+              className="text-center text-xs text-gray-400 font-medium py-2"
+            >
+              {d}
+            </div>
+          ))}
+          {days.map((day, i) => {
+            const evs = day ? eventsForDay(day) : [];
+            return (
+              <div
+                key={i}
+                className={`min-h-[60px] p-1.5 rounded-lg ${day ? "hover:bg-gray-50 cursor-pointer" : ""}`}
+              >
+                {day && (
+                  <p className="text-xs text-gray-600 font-medium mb-1">
+                    {day}
+                  </p>
+                )}
+                {evs.slice(0, 2).map((e) => (
+                  <button
+                    key={e.id}
+                    data-tour-id={e.id === "e6" ? "calendar-event-e6" : undefined}
+                    onClick={() => onEventClick(e)}
+                    className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium mb-0.5 truncate cursor-pointer"
+                    style={{ backgroundColor: e.color + "20", color: e.color }}
+                  >
+                    {e.title}
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </div>
     </div>
   );
 }
@@ -3059,111 +3972,6 @@ function EventSidebar({
         </div>
       </motion.div>
     </>
-  );
-}
-
-function CalendarPage({
-  onEventClick,
-}: {
-  onEventClick: (e: DemoEvent) => void;
-}) {
-  const [month, setMonth] = useState(new Date(2026, 5, 1));
-  const [program, setProgram] = useState<"summer" | "school-year">("summer");
-
-  const year = month.getFullYear();
-  const mon = month.getMonth();
-  const firstDay = new Date(year, mon, 1).getDay();
-  const daysInMonth = new Date(year, mon + 1, 0).getDate();
-  const days = Array.from({ length: 42 }, (_, i) => {
-    const day = i - firstDay + 1;
-    return day >= 1 && day <= daysInMonth ? day : null;
-  });
-  const monthName = month.toLocaleString("default", {
-    month: "long",
-    year: "numeric",
-  });
-  const eventsThisMonth = DEMO_EVENTS.filter((e) => {
-    const d = new Date(e.date);
-    return (
-      d.getFullYear() === year && d.getMonth() === mon && e.program === program
-    );
-  });
-  const eventsForDay = (day: number) =>
-    eventsThisMonth.filter((e) => new Date(e.date).getDate() === day);
-
-  return (
-    <div className="flex-1 p-6 border-t border-gray-100">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-2">
-            {[
-              { val: "summer" as const, label: "Summer 2026" },
-              { val: "school-year" as const, label: "School Year 26–27" },
-            ].map((p) => (
-              <button
-                key={p.val}
-                onClick={() => setProgram(p.val)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${program === p.val ? "bg-[#4a7c59] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMonth(new Date(year, mon - 1, 1))}
-              className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 text-gray-500" />
-            </button>
-            <span className="text-sm font-semibold text-gray-700 w-36 text-center">
-              {monthName}
-            </span>
-            <button
-              data-tour-id="calendar-next-month"
-              onClick={() => setMonth(new Date(year, mon + 1, 1))}
-              className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-        </div>
-        <div className="grid grid-cols-7 gap-px">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-            <div
-              key={d}
-              className="text-center text-xs text-gray-400 font-medium py-2"
-            >
-              {d}
-            </div>
-          ))}
-          {days.map((day, i) => {
-            const evs = day ? eventsForDay(day) : [];
-            return (
-              <div
-                key={i}
-                className={`min-h-[60px] p-1.5 rounded-lg ${day ? "hover:bg-gray-50 cursor-pointer" : ""}`}
-              >
-                {day && (
-                  <p className="text-xs text-gray-600 font-medium mb-1">
-                    {day}
-                  </p>
-                )}
-                {evs.slice(0, 2).map((e) => (
-                  <button
-                    key={e.id}
-                    data-tour-id={e.id === "e6" ? "calendar-event-e6" : undefined}
-                    onClick={() => onEventClick(e)}
-                    className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium mb-0.5 truncate cursor-pointer"
-                    style={{ backgroundColor: e.color + "20", color: e.color }}
-                  >
-                    {e.title}
-                  </button>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-    </div>
   );
 }
 
@@ -3802,7 +4610,7 @@ function HomeDashboard({
               </button>
             </div>
             <div className="flex flex-col gap-3">
-              {/* Summer Tuition card */}
+              {/* School Year Tuition card */}
               <button
                 onClick={() => onTabChange("billing")}
                 className="rounded-2xl overflow-hidden bg-white border border-gray-100 flex flex-col group text-left cursor-pointer"
@@ -3817,14 +4625,15 @@ function HomeDashboard({
                 </div>
                 <div className="p-3.5 flex flex-col gap-2">
                   <div>
-                    <p className="text-xs font-medium text-gray-400 mb-0.5">Emma, Jake, Liam</p>
-                    <p className="text-sm font-semibold text-gray-800 leading-snug">Summer Tuition</p>
+                    <p className="text-xs font-medium text-gray-400 mb-0.5">Emma &amp; Liam</p>
+                    <p className="text-sm font-semibold text-gray-800 leading-snug">School Year Tuition</p>
+                    <p className="text-xs text-gray-500 mt-0.5">$1,700/mo · Full-Time Program</p>
                   </div>
                   <span
                     className="inline-flex items-center gap-1 self-start px-3 py-1.5 rounded-full text-xs font-semibold text-white"
-                    style={{ backgroundColor: "#e07a3a" }}
+                    style={{ backgroundColor: "#4a7c59" }}
                   >
-                    Select plan <ArrowRight className="w-3 h-3" />
+                    View billing <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
               </button>
@@ -3990,30 +4799,65 @@ function DemoHeader({
 function ChildTabStrip({
   activeChildId,
   onSwitch,
+  layout = "horizontal",
 }: {
   activeChildId: ChildId;
   onSwitch: (id: ChildId) => void;
+  layout?: "horizontal" | "sidebar";
 }) {
+  const children = Object.values(DEMO_CHILDREN) as (typeof DEMO_CHILDREN)[ChildId][];
+
+  if (layout === "sidebar") {
+    return (
+      <aside className="w-56 shrink-0 border-r border-gray-100 flex flex-col py-2 px-2 overflow-hidden">
+        {children.map((child) => {
+          const active = activeChildId === child.id;
+          return (
+            <button
+              key={child.id}
+              data-tour-id={`child-tab-${child.id}`}
+              onClick={() => onSwitch(child.id)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
+                active
+                  ? "bg-[#4a7c59]/8 text-gray-800"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              <Avatar
+                initials={child.initials}
+                color={child.color}
+                size="sm"
+                src={child.image}
+              />
+              <span className="truncate flex-1 min-w-0">{child.name}</span>
+            </button>
+          );
+        })}
+        <button className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[#4a7c59] font-medium border border-dashed border-[#4a7c59]/30 hover:bg-sage-50 transition-colors cursor-pointer mt-1">
+          <Plus className="w-3.5 h-3.5 shrink-0" /> New Application
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <div className="flex gap-2 mb-5">
-      {(Object.values(DEMO_CHILDREN) as (typeof DEMO_CHILDREN)[ChildId][]).map(
-        (child) => (
-          <button
-            key={child.id}
-            data-tour-id={`child-tab-${child.id}`}
-            onClick={() => onSwitch(child.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer border ${activeChildId === child.id ? "bg-white border-gray-200 text-gray-800 shadow-sm" : "border-transparent text-gray-400 hover:text-gray-600"}`}
-          >
-            <Avatar
-              initials={child.initials}
-              color={child.color}
-              size="sm"
-              src={child.image}
-            />
-            {child.name}
-          </button>
-        ),
-      )}
+      {children.map((child) => (
+        <button
+          key={child.id}
+          data-tour-id={`child-tab-${child.id}`}
+          onClick={() => onSwitch(child.id)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer border ${activeChildId === child.id ? "bg-white border-gray-200 text-gray-800 shadow-sm" : "border-transparent text-gray-400 hover:text-gray-600"}`}
+        >
+          <Avatar
+            initials={child.initials}
+            color={child.color}
+            size="sm"
+            src={child.image}
+          />
+          {child.name}
+        </button>
+      ))}
       <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-[#4a7c59] font-medium border border-dashed border-[#4a7c59]/30 hover:bg-sage-50 transition-colors cursor-pointer">
         <Plus className="w-3.5 h-3.5" /> New Application
       </button>
@@ -4101,7 +4945,104 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
 
   // Billing
   const [paidInvoices, setPaidInvoices] = useState<Set<string>>(new Set());
+  const [paymentPlan, setPaymentPlan] = useState<PaymentPlan>("monthly");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutTxIds, setCheckoutTxIds] = useState<string[]>([]);
   const [billingInvoiceSidebarOpen, setBillingInvoiceSidebarOpen] = useState(false);
+  const [homeschoolSelections, setHomeschoolSelections] = useState(
+    initialHomeschoolSelections,
+  );
+  const [paidHomeschoolDetails, setPaidHomeschoolDetails] = useState<
+    Record<string, { amount: string; scheduleNote: string }>
+  >({});
+  const [homeschoolPayModal, setHomeschoolPayModal] = useState<{
+    childId: ChildId;
+    weeks: HomeschoolDropInWeek[];
+    fromCheckout?: boolean;
+  } | null>(null);
+
+  const billingChildNames: Record<ChildId, string> = {
+    emma: "Emma",
+    jake: "Jake",
+    liam: "Liam",
+  };
+
+  const toggleHomeschoolDay = useCallback((weekId: string, day: Weekday) => {
+    setHomeschoolSelections((prev) => {
+      const current = prev[weekId] ?? [];
+      const next = current.includes(day)
+        ? current.filter((d) => d !== day)
+        : [...current, day].sort(
+            (a, b) => WEEKDAYS.indexOf(a) - WEEKDAYS.indexOf(b),
+          );
+      return { ...prev, [weekId]: next };
+    });
+  }, []);
+
+  const openHomeschoolPay = useCallback(
+    (childId: ChildId, fromCheckout = false) => {
+      const bundlePending = DEMO_TRANSACTIONS.some(
+        (t) =>
+          t.id === JAKE_HOMESCHOOL_DROPIN_TX_ID &&
+          t.childId === childId &&
+          t.status === "pending" &&
+          !paidInvoices.has(t.id),
+      );
+      if (!bundlePending) return;
+      setHomeschoolPayModal({
+        childId,
+        weeks: HOMESCHOOL_DROPIN_WEEKS,
+        fromCheckout,
+      });
+    },
+    [paidInvoices],
+  );
+
+  const openCheckout = useCallback((txIds: string[]) => {
+    setCheckoutTxIds(txIds);
+    setCheckoutOpen(true);
+  }, []);
+
+  const handleCheckoutConfirm = useCallback(
+    (plan: PaymentPlan, txIds: string[]) => {
+      setPaymentPlan(plan);
+      setPaidInvoices((prev) => new Set([...prev, ...txIds]));
+      const homeschoolTx = txIds.find(
+        (id) => id === JAKE_HOMESCHOOL_DROPIN_TX_ID,
+      );
+      if (homeschoolTx) {
+        const total = totalHomeschoolAmount(homeschoolSelections);
+        setPaidHomeschoolDetails((prev) => ({
+          ...prev,
+          [JAKE_HOMESCHOOL_DROPIN_TX_ID]: {
+            amount: formatMoney(total),
+            scheduleNote: `${HOMESCHOOL_DROPIN_WEEKS.length} weeks selected`,
+          },
+        }));
+      }
+      setCheckoutOpen(false);
+      setCheckoutTxIds([]);
+    },
+    [homeschoolSelections],
+  );
+
+  const handleHomeschoolPayConfirm = useCallback(() => {
+    if (!homeschoolPayModal) return;
+    if (homeschoolPayModal.fromCheckout) {
+      setHomeschoolPayModal(null);
+      return;
+    }
+    const total = totalHomeschoolAmount(homeschoolSelections);
+    setPaidHomeschoolDetails((prev) => ({
+      ...prev,
+      [JAKE_HOMESCHOOL_DROPIN_TX_ID]: {
+        amount: formatMoney(total),
+        scheduleNote: `${HOMESCHOOL_DROPIN_WEEKS.length} weeks selected`,
+      },
+    }));
+    setPaidInvoices((prev) => new Set([...prev, JAKE_HOMESCHOOL_DROPIN_TX_ID]));
+    setHomeschoolPayModal(null);
+  }, [homeschoolPayModal, homeschoolSelections]);
 
   // Calendar event sidebar
   const [calendarSidebarEvent, setCalendarSidebarEvent] = useState<DemoEvent | null>(null);
@@ -4851,7 +5792,9 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
                     {pageTitle[activeNavTab]}
                   </h1>
                 </div>
-                {activeNavTab !== "volunteer" && activeNavTab !== "billing" && (
+                {activeNavTab !== "volunteer" &&
+                  activeNavTab !== "billing" &&
+                  activeNavTab !== "children" && (
                   <ChildTabStrip
                     activeChildId={activeChildId}
                     onSwitch={setActiveChildId}
@@ -4861,33 +5804,43 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
             </div>
 
             {/* Animated page content */}
-            <div className="flex-1 overflow-y-auto">
+            <div
+              className={
+                activeNavTab === "billing" || activeNavTab === "children"
+                  ? "flex-1 min-h-0 overflow-hidden"
+                  : "flex-1 overflow-y-auto"
+              }
+            >
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeNavTab + activeChildId}
-                  className="px-6 py-5"
+                  className={
+                    activeNavTab === "billing" || activeNavTab === "children"
+                      ? "flex flex-col flex-1 min-h-0 h-full"
+                      : "px-6 py-5"
+                  }
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                 >
                   {activeNavTab === "children" && (
-                    <ChildrenPage activeChildId={activeChildId} />
+                    <ChildrenPage
+                      activeChildId={activeChildId}
+                      onSwitchChild={setActiveChildId}
+                    />
                   )}
 
                   {activeNavTab === "billing" && (
                     <BillingPage
                       activeChildId={activeChildId}
                       paidInvoices={paidInvoices}
-                      onPay={(id) =>
-                        setPaidInvoices((prev) => new Set([...prev, id]))
-                      }
-                      onPayAll={(ids) =>
-                        setPaidInvoices(
-                          (prev) => new Set([...prev, ...ids]),
-                        )
-                      }
+                      paymentPlan={paymentPlan}
+                      onOpenCheckout={openCheckout}
                       onOpenInvoice={() => setBillingInvoiceSidebarOpen(true)}
+                      homeschoolSelections={homeschoolSelections}
+                      paidHomeschoolDetails={paidHomeschoolDetails}
+                      onOpenHomeschoolPay={(childId) => openHomeschoolPay(childId)}
                     />
                   )}
 
@@ -5034,6 +5987,32 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
           <InvoiceSidebar
             key="invoice-sidebar"
             onClose={() => setBillingInvoiceSidebarOpen(false)}
+          />
+        )}
+        {checkoutOpen && (
+          <BillingCheckoutSidebar
+            key="billing-checkout-sidebar"
+            txIds={checkoutTxIds}
+            initialPaymentPlan={paymentPlan}
+            homeschoolSelections={homeschoolSelections}
+            onClose={() => {
+              setCheckoutOpen(false);
+              setCheckoutTxIds([]);
+            }}
+            onConfirm={handleCheckoutConfirm}
+            onOpenHomeschoolPay={() => openHomeschoolPay("jake", true)}
+          />
+        )}
+        {homeschoolPayModal && (
+          <HomeschoolDropInPaySidebar
+            key="homeschool-pay-sidebar"
+            childName={billingChildNames[homeschoolPayModal.childId]}
+            weeks={homeschoolPayModal.weeks}
+            selections={homeschoolSelections}
+            onToggleDay={toggleHomeschoolDay}
+            onClose={() => setHomeschoolPayModal(null)}
+            onConfirm={handleHomeschoolPayConfirm}
+            selectionOnly={homeschoolPayModal.fromCheckout}
           />
         )}
         {calendarSidebarEvent && (
