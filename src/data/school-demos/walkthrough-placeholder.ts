@@ -37,6 +37,7 @@ export interface DemoWalkthroughStep {
   initialSelectedFlowId?: string;
   initialParentTab?: DemoWalkthroughParentTab;
   animateNewSubmission?: boolean;
+  autoSendEnrollmentLink?: boolean;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -99,32 +100,13 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
     },
   },
   {
-    id: "enrollment-checklist-flow",
-    title: "View your enrollment checklist flow",
-    description: "See the checklist families complete when they enroll.",
-    preview: "admin",
-    initialAdmissionsTab: "flows",
-    initialSelectedFlowId: "flow-2",
-    icon: "gitBranch",
-    theme: {
-      bg: "#F2E7D1",
-      bgHover: "#EBDFC4",
-      bgActive: "#EBDFC4",
-      border: "#D9C9A3",
-      iconBg: "#C1A367",
-      iconColor: "#FFFFFF",
-      titleColor: "#5C4A2A",
-      descColor: "#7A6848",
-      connector: "#C1A367",
-    },
-  },
-  {
     id: "send-application-link",
     title: "Send enrollment link",
     description: "After the discovery call, you can send the enrollment link.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
+    autoSendEnrollmentLink: true,
     theme: {
       bg: "#F2E7D1",
       bgHover: "#EBDFC4",

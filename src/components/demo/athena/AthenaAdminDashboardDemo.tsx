@@ -5352,9 +5352,11 @@ function DemoActivityTimelineRow({
 function LeadDetailPanel({
   lead,
   onClose,
+  autoSendEnrollmentLink = false,
 }: {
   lead: DemoLead;
   onClose: () => void;
+  autoSendEnrollmentLink?: boolean;
 }) {
   const flow = getFlowForLead(lead.flowId);
   const responseMap = lead.responses as unknown as Record<string, string | boolean>;
@@ -5384,10 +5386,23 @@ function LeadDetailPanel({
   const [tagDraft, setTagDraft] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [activity, setActivity] = useState<LeadActivityEntry[]>([]);
+  const [enrollmentLinkSent, setEnrollmentLinkSent] = useState(
+    !autoSendEnrollmentLink,
+  );
 
   useEffect(() => {
     setActiveTab(defaultTab);
   }, [defaultTab, lead.id]);
+
+  useEffect(() => {
+    if (!autoSendEnrollmentLink) {
+      setEnrollmentLinkSent(false);
+      return;
+    }
+    setEnrollmentLinkSent(false);
+    const timer = setTimeout(() => setEnrollmentLinkSent(true), 1000);
+    return () => clearTimeout(timer);
+  }, [autoSendEnrollmentLink, lead.id]);
 
   useEffect(() => {
     setLeadStatus(lead.status);
@@ -5848,13 +5863,45 @@ function LeadDetailPanel({
         className="flex-shrink-0 px-4 py-3 sm:px-5"
         style={{ borderTop: `1px solid ${C.border}` }}
       >
-        <button
+        <motion.button
           type="button"
-          className="w-full rounded-sm py-2 text-sm font-semibold transition-colors"
-          style={{ backgroundColor: C.accentLight, color: C.accent }}
+          disabled={enrollmentLinkSent}
+          className="w-full rounded-sm py-2 text-sm font-semibold"
+          animate={{
+            backgroundColor: enrollmentLinkSent ? C.successBg : C.accentLight,
+            color: enrollmentLinkSent ? C.success : C.accent,
+          }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            cursor: enrollmentLinkSent ? "default" : "pointer",
+          }}
         >
-          Send Enrollment Link
-        </button>
+          <AnimatePresence mode="wait" initial={false}>
+            {enrollmentLinkSent ? (
+              <motion.span
+                key="sent"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center justify-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4" aria-hidden />
+                Sent
+              </motion.span>
+            ) : (
+              <motion.span
+                key="send"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                Send Enrollment Link
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </div>
     </motion.div>
   );
@@ -7569,11 +7616,13 @@ function AdmissionsPage({
   initialLeadId,
   initialSelectedFlowId,
   animateNewSubmission,
+  autoSendEnrollmentLink,
 }: {
   activeTab: AdmissionsTab;
   initialLeadId?: string;
   initialSelectedFlowId?: string;
   animateNewSubmission?: boolean;
+  autoSendEnrollmentLink?: boolean;
 }) {
   const [selectedLead, setSelectedLead] = useState<DemoLead | null>(() =>
     initialLeadId ? DEMO_LEADS.find((l) => l.id === initialLeadId) ?? null : null,
@@ -7613,6 +7662,7 @@ function AdmissionsPage({
             key={selectedLead.id}
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
+            autoSendEnrollmentLink={autoSendEnrollmentLink}
           />
         )}
       </AnimatePresence>
@@ -24027,6 +24077,7 @@ export default function AthenaAdminDashboardDemo({
   initialSelectedLeadId,
   initialSelectedFlowId,
   animateNewSubmission,
+  autoSendEnrollmentLink,
   hideNav = false,
   defaultSidebarExpanded = true,
 }: {
@@ -24036,6 +24087,7 @@ export default function AthenaAdminDashboardDemo({
   initialSelectedLeadId?: string
   initialSelectedFlowId?: string
   animateNewSubmission?: boolean
+  autoSendEnrollmentLink?: boolean
   hideNav?: boolean
   defaultSidebarExpanded?: boolean
 }) {
@@ -24112,6 +24164,7 @@ export default function AthenaAdminDashboardDemo({
             initialLeadId={initialSelectedLeadId}
             initialSelectedFlowId={initialSelectedFlowId}
             animateNewSubmission={animateNewSubmission}
+            autoSendEnrollmentLink={autoSendEnrollmentLink}
           />
         );
       case "people":
