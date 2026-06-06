@@ -6,6 +6,10 @@ import { Globe, UserCheck, Users, Settings } from 'lucide-react'
 import { FadeInView } from '@/components/ui/FadeInView'
 import type { LucideIcon } from 'lucide-react'
 
+/** Warm accents tuned for legibility on the dark sage panel */
+const ACCENT_SOLID = '#C4786A'
+const ACCENT_TEXT = '#F0D4CA'
+
 type Step = {
   number: string
   icon: LucideIcon
@@ -92,8 +96,8 @@ const STEP_PREVIEWS = [
         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
-        <span className="ml-2 text-[11px] font-mono" style={{ color: 'rgba(247,241,231,0.3)' }}>
-          sagefieldacademy.com
+        <span className="ml-2 text-[11px] font-mono" style={{ color: 'rgba(247,241,231,0.55)' }}>
+          sagefield.co
         </span>
       </div>
       <div className="p-5 space-y-3" style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
@@ -101,7 +105,7 @@ const STEP_PREVIEWS = [
         <div className="h-3 w-full rounded" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
         <div className="h-3 w-4/5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
         <div className="flex gap-2 mt-4">
-          <div className="h-8 w-28 rounded-full" style={{ backgroundColor: 'rgba(160,92,69,0.35)', border: '1px solid rgba(160,92,69,0.4)' }} />
+          <div className="h-8 w-28 rounded-full" style={{ backgroundColor: '#f29a8f', border: '1px solid rgba(242,154,143,0.6)' }} />
           <div className="h-8 w-24 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -119,7 +123,7 @@ const STEP_PREVIEWS = [
   <div key="enroll" className="flex items-center justify-center w-full p-8">
     <div className="w-full max-w-[360px] space-y-3">
       {[
-        { name: 'Rivera family', status: 'Tour scheduled', dot: '#A05C45' },
+        { name: 'Rivera family', status: 'Tour scheduled', dot: '#f29a8f' },
         { name: 'Chen family', status: 'Application sent', dot: '#4a7c59' },
         { name: 'Torres family', status: 'Enrolled', dot: '#4a7c59' },
       ].map((f) => (
@@ -140,7 +144,7 @@ const STEP_PREVIEWS = [
       ))}
       <div
         className="rounded-lg px-4 py-3 text-center"
-        style={{ backgroundColor: 'rgba(160,92,69,0.12)', border: '1px dashed rgba(160,92,69,0.3)' }}
+        style={{ backgroundColor: 'rgba(242,154,143,0.12)', border: '1px dashed rgba(242,154,143,0.35)' }}
       >
         <span className="text-[12px] font-secondary" style={{ color: 'rgba(247,241,231,0.4)' }}>+ Add new lead</span>
       </div>
@@ -172,7 +176,7 @@ const STEP_PREVIEWS = [
     <div className="w-full max-w-[380px] space-y-2.5">
       {[
         { label: 'Attendance', value: '22 / 25', color: '#4a7c59' },
-        { label: 'Open leads', value: '8 families', color: '#A05C45' },
+        { label: 'Open leads', value: '8 families', color: ACCENT_TEXT },
         { label: 'Invoices due', value: '$4,800', color: '#4a7c59' },
         { label: 'Pending tasks', value: '3 items', color: 'rgba(247,241,231,0.4)' },
       ].map(({ label, value, color }) => (
@@ -240,7 +244,7 @@ export default function SagefieldTimeline() {
                 onClick={() => setActive(i)}
                 className="shrink-0 rounded-pill text-[11px] font-semibold font-secondary px-3.5 h-8 cursor-pointer transition-all duration-200"
                 style={{
-                  backgroundColor: active === i ? '#A05C45' : 'rgba(255,255,255,0.08)',
+                  backgroundColor: active === i ? ACCENT_SOLID : 'rgba(255,255,255,0.08)',
                   color: active === i ? '#ffffff' : 'rgba(247,241,231,0.55)',
                 }}
               >
@@ -269,13 +273,13 @@ export default function SagefieldTimeline() {
                     className="relative flex items-start gap-3 w-full text-left px-4 py-3.5 rounded-md cursor-pointer transition-all duration-200"
                     style={{
                       backgroundColor: isActive ? 'rgba(255,255,255,0.07)' : 'transparent',
-                      borderLeft: isActive ? '2px solid #A05C45' : '2px solid transparent',
+                      borderLeft: isActive ? `2px solid ${ACCENT_SOLID}` : '2px solid transparent',
                     }}
                   >
                     <span
                       className="shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-semibold font-secondary mt-0.5 transition-all duration-200 relative z-10"
                       style={{
-                        backgroundColor: isActive ? '#A05C45' : 'rgba(255,255,255,0.1)',
+                        backgroundColor: isActive ? ACCENT_SOLID : 'rgba(255,255,255,0.1)',
                         color: isActive ? '#ffffff' : 'rgba(247,241,231,0.5)',
                       }}
                     >
@@ -324,7 +328,7 @@ export default function SagefieldTimeline() {
                 <div className="flex items-center gap-3 mb-5">
                   <span
                     className="inline-flex items-center rounded-pill text-[10px] font-semibold uppercase tracking-widest px-3 py-1 font-secondary"
-                    style={{ backgroundColor: '#A05C45', color: '#ffffff' }}
+                    style={{ backgroundColor: ACCENT_SOLID, color: '#ffffff' }}
                   >
                     Step {STEPS[active].number}
                   </span>
@@ -345,7 +349,7 @@ export default function SagefieldTimeline() {
                 </h3>
                 <p
                   className="text-[13px] font-secondary font-medium uppercase tracking-widest mt-1"
-                  style={{ color: 'rgba(160,92,69,0.8)' }}
+                  style={{ color: ACCENT_TEXT }}
                 >
                   {STEPS[active].outcome}
                 </p>
@@ -362,7 +366,7 @@ export default function SagefieldTimeline() {
                     <div key={detail} className="flex items-start gap-2.5">
                       <div
                         className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                        style={{ backgroundColor: 'rgba(160,92,69,0.2)', border: '1px solid rgba(160,92,69,0.35)' }}
+                        style={{ backgroundColor: 'rgba(242,154,143,0.15)', border: '1px solid rgba(240,212,202,0.4)' }}
                       >
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
                           <path d="M1.5 4L3.5 6L6.5 2" stroke="#E8D5C8" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />

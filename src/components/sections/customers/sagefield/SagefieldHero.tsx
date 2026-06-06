@@ -104,6 +104,12 @@ export default function SagefieldHero() {
             >
               See what&apos;s inside the platform
             </a>
+            <a
+              href="#live-site"
+              className="inline-flex items-center gap-1.5 text-sm font-medium font-secondary text-accent hover:text-accent-hover transition-colors duration-200 underline underline-offset-2"
+            >
+              View their live site
+            </a>
           </motion.div>
         </div>
 

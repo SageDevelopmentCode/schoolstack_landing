@@ -4,6 +4,7 @@ import Footer from '@/components/sections/Footer'
 import SagefieldHero from '@/components/sections/customers/sagefield/SagefieldHero'
 import SagefieldChallenge from '@/components/sections/customers/sagefield/SagefieldChallenge'
 import SagefieldTimeline from '@/components/sections/customers/sagefield/SagefieldTimeline'
+import SagefieldLiveWebsite from '@/components/sections/customers/sagefield/SagefieldLiveWebsite'
 import SagefieldOutcomes from '@/components/sections/customers/sagefield/SagefieldOutcomes'
 import SagefieldBeforeAfter from '@/components/sections/customers/sagefield/SagefieldBeforeAfter'
 import SagefieldWhyItWorked from '@/components/sections/customers/sagefield/SagefieldWhyItWorked'
@@ -31,6 +32,7 @@ export default function SagefieldPage() {
         <SagefieldHero />
         <SagefieldChallenge />
         <SagefieldTimeline />
+        <SagefieldLiveWebsite />
         <SagefieldOutcomes />
         <SagefieldBeforeAfter />
         <SagefieldWhyItWorked />
