@@ -2,298 +2,156 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  MonitorPlay,
-  Globe,
-  CalendarCheck,
-  Sparkles,
-  Layers,
-  ArrowRight,
-  Play,
-  Check,
-} from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { FadeInView } from "@/components/ui/FadeInView";
-import type { LucideIcon } from "lucide-react";
 
 type Step = {
   number: string;
-  icon: LucideIcon;
   title: string;
-  shortTitle: string;
   body: string;
-  cta: string;
-  footnote: string;
-  href: string;
 };
 
 const STEPS: Step[] = [
   {
     number: "01",
-    icon: MonitorPlay,
-    title: "Watch the 2-minute tour",
-    shortTitle: "Tour",
-    body: "See how one tool replaces spreadsheets, emails, and scattered apps.",
-    cta: "Watch the Tour",
-    footnote: "2 min · No signup",
-    href: "#",
+    title: "Show us how your school runs now.",
+    body: "We review your forms, spreadsheets, payments, and workflows so we can map the cleanest transition.",
   },
   {
     number: "02",
-    icon: Globe,
-    title: "Explore a sample microschool",
-    shortTitle: "Explore",
-    body: "Click through enrollment, billing, and parent communication like it's your own school.",
-    cta: "Explore the Demo School",
-    footnote: "No account needed",
-    href: "/demo-school",
+    title: "We build your setup inside MudKitchen.",
+    body: "We organize the essentials, help migrate what matters, and get your school configured without making you start from zero.",
   },
   {
     number: "03",
-    icon: CalendarCheck,
-    title: "See your workflows in a live demo",
-    shortTitle: "Demo",
-    body: "Walk through your actual processes with the founder who runs a real microschool.",
-    cta: "Book a Live Demo",
-    footnote: "30 min · No pressure",
-    href: "/get-started",
-  },
-  {
-    number: "04",
-    icon: Sparkles,
-    title: "Start a guided free trial",
-    shortTitle: "Trial",
-    body: "We'll help you set up enrollments, families, and staff so you're not starting from scratch.",
-    cta: "Start Free Trial",
-    footnote: "No credit card required",
-    href: "#",
-  },
-  {
-    number: "05",
-    icon: Layers,
-    title: "Go live with confidence",
-    shortTitle: "Go Live",
-    body: "Pick a plan once it's working for your school—no pressure, no contracts.",
-    cta: "View Pricing",
-    footnote: "Cancel anytime",
-    href: "#pricing",
+    title: "Go live with support.",
+    body: "We walk you through the system, answer questions, and help your team make the move with confidence.",
   },
 ];
 
-const TRIAL_FEATURES = [
-  "Website builder + hosting",
-  "Enrollment & lead management",
-  "Parent communication portal",
-  "Billing & payment processing",
-  "Staff scheduling & tasks",
-  "Document storage & e-signing",
-  "Reporting dashboard",
+const SOURCE_TOOLS = [
+  { label: "Google Sheets", bg: "rgba(66,133,244,0.18)" },
+  { label: "Email forms", bg: "rgba(234,67,53,0.18)" },
+  { label: "Square payments", bg: "rgba(255,255,255,0.08)" },
+  { label: "Google Docs", bg: "rgba(66,133,244,0.12)" },
 ];
 
-const PRICING_PLANS = [
-  { name: "Starter", price: "$79", note: "Up to 30 students", featured: false },
-  { name: "Growth", price: "$149", note: "Up to 100 students", featured: true },
-  { name: "Full", price: "$249", note: "Unlimited students", featured: false },
+const SETUP_ITEMS: { label: string; status: "Ready" | "Imported" | "In progress" }[] = [
+  { label: "Enrollment form", status: "Ready" },
+  { label: "Student records", status: "Imported" },
+  { label: "Tuition billing", status: "In progress" },
+  { label: "Parent portal", status: "Ready" },
+  { label: "Staff access", status: "Imported" },
 ];
 
-const CALENDAR_DATES = [13, 14, 15, 16, 17, 20, 21, 22, 23, 24];
-const CALENDAR_AVAILABLE = [14, 17, 21];
+const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  Ready: { bg: "rgba(74,170,100,0.2)", color: "#7AE2A0" },
+  Imported: { bg: "rgba(160,92,69,0.25)", color: "#E8D5C8" },
+  "In progress": { bg: "rgba(245,208,128,0.15)", color: "#F5D080" },
+};
+
+const PROGRESS_STEPS = ["Kickoff", "Setup", "Review", "Go Live"];
+const LAUNCH_ITEMS = ["Team walkthrough complete", "Families notified", "School is live"];
 
 const STEP_PREVIEWS = [
-  /* 01 — Tour */
-  <div
-    key="tour"
-    className="flex flex-col items-center justify-center gap-4 w-full px-8 py-10"
-  >
-    <div
-      className="w-16 h-16 rounded-full flex items-center justify-center"
-      style={{
-        backgroundColor: "rgba(160,92,69,0.25)",
-        border: "1px solid rgba(160,92,69,0.4)",
-      }}
-    >
-      <Play size={24} style={{ color: "#E8D5C8" }} fill="#E8D5C8" />
-    </div>
-    <div className="w-full max-w-[280px] space-y-2">
-      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-        <div
-          className="h-full w-[35%] rounded-full"
-          style={{ backgroundColor: "#A05C45" }}
-        />
+  /* 01 — Bring what you have */
+  <div key="show" className="flex items-center justify-center w-full p-6 lg:p-8">
+    <div className="w-full max-w-[340px] space-y-3">
+      <p
+        className="text-[10px] uppercase tracking-widest font-secondary font-semibold mb-4"
+        style={{ color: "rgba(247,241,231,0.35)" }}
+      >
+        What you bring
+      </p>
+      <div className="space-y-2">
+        {SOURCE_TOOLS.map((tool) => (
+          <div
+            key={tool.label}
+            className="flex items-center gap-3 rounded-md px-3.5 py-2.5"
+            style={{ backgroundColor: tool.bg, border: "1px solid rgba(255,255,255,0.07)" }}
+          >
+            <div
+              className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: "rgba(247,241,231,0.35)" }}
+            />
+            <span className="text-[12px] font-secondary" style={{ color: "rgba(247,241,231,0.65)" }}>
+              {tool.label}
+            </span>
+          </div>
+        ))}
       </div>
-      <div className="flex justify-between">
-        <span
-          className="text-[11px] font-mono"
-          style={{ color: "rgba(247,241,231,0.3)" }}
-        >
-          0:48
+      <div className="flex items-center gap-2 py-1">
+        <div className="flex-1 h-px" style={{ backgroundColor: "rgba(160,92,69,0.4)" }} />
+        <span className="text-[10px] font-secondary shrink-0" style={{ color: "#A05C45" }}>
+          we map the transition
         </span>
-        <span
-          className="text-[11px] font-mono"
-          style={{ color: "rgba(247,241,231,0.3)" }}
-        >
-          2:14
-        </span>
+        <div className="flex-1 h-px" style={{ backgroundColor: "rgba(160,92,69,0.4)" }} />
       </div>
-    </div>
-    <p
-      className="text-[12px] text-center"
-      style={{ color: "rgba(247,241,231,0.35)" }}
-    >
-      Product tour · 2 min 14 sec
-    </p>
-  </div>,
-
-  /* 02 — Explore sample microschool */
-  <div key="explore" className="flex items-center justify-center w-full p-6">
-    <div
-      className="w-full max-w-[420px] rounded-lg overflow-hidden"
-      style={{ border: "1px solid rgba(255,255,255,0.08)" }}
-    >
       <div
-        className="flex gap-0 border-b"
+        className="rounded-md px-4 py-3 text-center"
         style={{
-          borderColor: "rgba(255,255,255,0.08)",
-          backgroundColor: "rgba(255,255,255,0.03)",
+          backgroundColor: "rgba(160,92,69,0.18)",
+          border: "1px solid rgba(160,92,69,0.38)",
         }}
       >
-        {["Enrollment", "Billing", "Messages"].map((tab, idx) => (
-          <div
-            key={tab}
-            className="px-4 py-2.5 text-[11px] font-secondary font-medium"
-            style={{
-              color: idx === 0 ? "#E8D5C8" : "rgba(247,241,231,0.35)",
-              borderBottom:
-                idx === 0 ? "2px solid #A05C45" : "2px solid transparent",
-            }}
-          >
-            {tab}
-          </div>
-        ))}
-      </div>
-      <div
-        className="p-4 space-y-2.5"
-        style={{ backgroundColor: "rgba(0,0,0,0.2)" }}
-      >
-        <div className="flex items-center justify-between">
-          <div
-            className="h-4 w-28 rounded"
-            style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
-          />
-          <div
-            className="h-6 w-20 rounded-full"
-            style={{
-              backgroundColor: "rgba(160,92,69,0.25)",
-              border: "1px solid rgba(160,92,69,0.35)",
-            }}
-          />
-        </div>
-        {[1, 2, 3].map((n) => (
-          <div
-            key={n}
-            className="flex items-center gap-3 rounded-md px-3 py-2.5"
-            style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
-          >
-            <div
-              className="w-6 h-6 rounded-full shrink-0"
-              style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
-            />
-            <div className="flex-1 space-y-1.5">
-              <div
-                className="h-2.5 rounded w-3/4"
-                style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-              />
-              <div
-                className="h-2 rounded w-1/2"
-                style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-              />
-            </div>
-            <div
-              className="h-5 w-14 rounded-full"
-              style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-            />
-          </div>
-        ))}
+        <span className="text-[12px] font-secondary font-semibold" style={{ color: "#E8D5C8" }}>
+          One MudKitchen workspace
+        </span>
       </div>
     </div>
   </div>,
 
-  /* 03 — Demo booking */
-  <div key="demo" className="flex items-center justify-center w-full p-6">
-    <div
-      className="w-full max-w-[300px] rounded-md p-5"
-      style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
-    >
-      <p
-        className="text-center text-[11px] uppercase tracking-widest font-secondary mb-4"
-        style={{ color: "rgba(247,241,231,0.4)" }}
-      >
-        June 2026
-      </p>
-      <div className="grid grid-cols-5 gap-2">
-        {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
-          <div
-            key={d}
-            className="text-center text-[10px] font-secondary pb-1"
-            style={{ color: "rgba(247,241,231,0.3)" }}
-          >
-            {d}
-          </div>
-        ))}
-        {CALENDAR_DATES.map((d) => (
-          <button
-            key={d}
-            className="text-center text-[12px] rounded-lg py-1.5 font-secondary transition-all"
-            style={{
-              backgroundColor: CALENDAR_AVAILABLE.includes(d)
-                ? "rgba(160,92,69,0.3)"
-                : "rgba(255,255,255,0.05)",
-              color: CALENDAR_AVAILABLE.includes(d)
-                ? "#E8D5C8"
-                : "rgba(247,241,231,0.4)",
-              border: CALENDAR_AVAILABLE.includes(d)
-                ? "1px solid rgba(160,92,69,0.4)"
-                : "1px solid transparent",
-            }}
-          >
-            {d}
-          </button>
-        ))}
-      </div>
-      <p
-        className="text-center text-[11px] mt-3"
-        style={{ color: "rgba(247,241,231,0.3)" }}
-      >
-        Highlighted dates have open slots
-      </p>
-    </div>
-  </div>,
-
-  /* 04 — Trial checklist */
-  <div key="trial" className="flex items-center justify-center w-full p-8">
+  /* 02 — Setup progress */
+  <div key="build" className="flex items-center justify-center w-full p-6 lg:p-8">
     <div className="w-full max-w-[360px]">
       <p
-        className="text-[12px] font-semibold font-secondary uppercase tracking-widest mb-5"
-        style={{ color: "rgba(247,241,231,0.4)" }}
+        className="text-[10px] uppercase tracking-widest font-secondary font-semibold mb-4"
+        style={{ color: "rgba(247,241,231,0.35)" }}
       >
-        Guided setup · 30 days free
+        Setup progress
       </p>
-      <div className="space-y-2.5">
-        {TRIAL_FEATURES.map((f) => (
-          <div key={f} className="flex items-center gap-3">
-            <div
-              className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-              style={{
-                backgroundColor: "rgba(160,92,69,0.2)",
-                border: "1px solid rgba(160,92,69,0.4)",
-              }}
-            >
-              <Check size={11} style={{ color: "#E8D5C8" }} />
+      <div className="space-y-2">
+        {SETUP_ITEMS.map((item) => (
+          <div
+            key={item.label}
+            className="flex items-center justify-between rounded-md px-3.5 py-2.5"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor:
+                    item.status !== "In progress"
+                      ? "rgba(74,170,100,0.2)"
+                      : "rgba(245,208,128,0.12)",
+                  border: `1px solid ${item.status !== "In progress" ? "rgba(74,170,100,0.4)" : "rgba(245,208,128,0.35)"}`,
+                }}
+              >
+                {item.status !== "In progress" ? (
+                  <Check size={9} style={{ color: "#7AE2A0" }} />
+                ) : (
+                  <div
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: "#F5D080" }}
+                  />
+                )}
+              </div>
+              <span className="text-[12px] font-secondary" style={{ color: "rgba(247,241,231,0.65)" }}>
+                {item.label}
+              </span>
             </div>
             <span
-              className="text-[13px] font-secondary"
-              style={{ color: "rgba(247,241,231,0.6)" }}
+              className="text-[10px] font-secondary font-medium px-2.5 py-0.5 rounded-full shrink-0"
+              style={{
+                backgroundColor: STATUS_STYLE[item.status].bg,
+                color: STATUS_STYLE[item.status].color,
+              }}
             >
-              {f}
+              {item.status}
             </span>
           </div>
         ))}
@@ -301,50 +159,78 @@ const STEP_PREVIEWS = [
     </div>
   </div>,
 
-  /* 05 — Pricing mini cards */
-  <div key="pricing" className="flex items-center justify-center w-full p-8">
-    <div className="flex gap-3 w-full max-w-[460px]">
-      {PRICING_PLANS.map((p) => (
-        <div
-          key={p.name}
-          className="flex-1 rounded-md p-4 flex flex-col gap-1.5"
-          style={{
-            backgroundColor: p.featured
-              ? "rgba(160,92,69,0.15)"
-              : "rgba(255,255,255,0.04)",
-            border: p.featured
-              ? "1px solid rgba(160,92,69,0.35)"
-              : "1px solid rgba(255,255,255,0.07)",
-          }}
-        >
-          <span
-            className="text-[11px] font-secondary font-semibold uppercase tracking-widest"
-            style={{ color: p.featured ? "#E8D5C8" : "rgba(247,241,231,0.4)" }}
-          >
-            {p.name}
-          </span>
-          <span
-            className="font-display font-medium"
-            style={{ color: "#F7F1E7", fontSize: "1.4rem" }}
-          >
-            {p.price}
-            <span className="text-[12px] opacity-50">/mo</span>
-          </span>
-          <span
-            className="text-[11px] font-secondary"
-            style={{ color: "rgba(247,241,231,0.4)" }}
-          >
-            {p.note}
-          </span>
+  /* 03 — Go live */
+  <div key="live" className="flex items-center justify-center w-full p-6 lg:p-8">
+    <div className="w-full max-w-[340px]">
+      {/* Onboarding progress bar */}
+      <div className="mb-7">
+        <div className="flex items-end justify-between mb-3">
+          {PROGRESS_STEPS.map((label, i) => {
+            const isLast = i === PROGRESS_STEPS.length - 1;
+            return (
+              <div key={label} className="flex flex-col items-center gap-1.5">
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: isLast ? "#A05C45" : "rgba(255,255,255,0.1)",
+                    border: isLast ? "none" : "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  {isLast ? (
+                    <div className="w-2 h-2 rounded-full bg-white" />
+                  ) : (
+                    <Check size={10} style={{ color: "rgba(247,241,231,0.45)" }} />
+                  )}
+                </div>
+                <span
+                  className="text-[9px] font-secondary font-medium"
+                  style={{ color: isLast ? "#E8D5C8" : "rgba(247,241,231,0.3)" }}
+                >
+                  {label}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      ))}
+        <div
+          className="h-1 rounded-full overflow-hidden"
+          style={{ backgroundColor: "rgba(255,255,255,0.07)" }}
+        >
+          <div className="h-full w-full rounded-full" style={{ backgroundColor: "#A05C45" }} />
+        </div>
+      </div>
+
+      {/* Launch checklist */}
+      <div className="space-y-3">
+        {LAUNCH_ITEMS.map((item) => (
+          <div key={item} className="flex items-center gap-3">
+            <div
+              className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: "rgba(74,170,100,0.2)",
+                border: "1px solid rgba(74,170,100,0.4)",
+              }}
+            >
+              <Check size={10} style={{ color: "#7AE2A0" }} />
+            </div>
+            <span className="text-[13px] font-secondary" style={{ color: "rgba(247,241,231,0.65)" }}>
+              {item}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p
+        className="text-center text-[11px] mt-5 font-secondary"
+        style={{ color: "rgba(247,241,231,0.3)" }}
+      >
+        Your school is ready. Families can enroll today.
+      </p>
     </div>
   </div>,
 ];
 
 export default function WorkflowSection() {
   const [active, setActive] = useState(0);
-  const ActiveIcon: LucideIcon = STEPS[active].icon;
 
   return (
     <section className="bg-dark-panel py-28 overflow-hidden">
@@ -356,7 +242,7 @@ export default function WorkflowSection() {
               className="inline-flex items-center gap-1.5 rounded-pill text-[11px] font-medium uppercase tracking-widest px-3.5 py-1.5 bg-white/10 border border-white/15 font-secondary"
               style={{ color: "rgba(247,241,231,0.75)" }}
             >
-              How it works
+              Guided setup
             </span>
           </FadeInView>
           <FadeInView delay={0.08}>
@@ -364,11 +250,9 @@ export default function WorkflowSection() {
               className="font-display text-[clamp(1.9rem,3.5vw,2.75rem)] leading-[1.05] mt-5"
               style={{ color: "#F7F1E7" }}
             >
-              From curious to running.
+              Get MudKitchen running
               <br />
-              <em style={{ color: "#E8D5C8", fontStyle: "italic" }}>
-                No friction.
-              </em>
+              <em style={{ color: "#E8D5C8", fontStyle: "italic" }}>without starting over.</em>
             </h2>
           </FadeInView>
           <FadeInView delay={0.14}>
@@ -376,15 +260,15 @@ export default function WorkflowSection() {
               className="text-[16px] leading-relaxed mt-4"
               style={{ color: "rgba(247,241,231,0.60)" }}
             >
-              Each step is designed to give you more confidence, not ask more of
-              you.
+              New software usually creates more work before it saves any. We help move the
+              important pieces over, set things up with you, and make the switch feel simple.
             </p>
           </FadeInView>
         </div>
 
         {/* Stepper */}
         <div className="mt-16 flex flex-col lg:flex-row gap-3 lg:gap-8 lg:items-start">
-          {/* Mobile: horizontal scrollable step pills */}
+          {/* Mobile: horizontal step pills */}
           <div
             className="flex gap-2 overflow-x-auto pb-1 lg:hidden"
             style={{ scrollbarWidth: "none" }}
@@ -393,20 +277,19 @@ export default function WorkflowSection() {
               <button
                 key={i}
                 onClick={() => setActive(i)}
-                className="shrink-0 rounded-pill text-[11px] font-semibold font-secondary px-3.5 h-8 cursor-pointer transition-all duration-200"
+                className="shrink-0 rounded-pill text-[11px] font-semibold font-secondary px-4 h-8 cursor-pointer transition-all duration-200"
                 style={{
-                  backgroundColor:
-                    active === i ? "#A05C45" : "rgba(255,255,255,0.08)",
+                  backgroundColor: active === i ? "#A05C45" : "rgba(255,255,255,0.08)",
                   color: active === i ? "#ffffff" : "rgba(247,241,231,0.55)",
                 }}
               >
-                {step.number} · {step.shortTitle}
+                {step.number}
               </button>
             ))}
           </div>
 
           {/* Desktop: vertical step sidebar */}
-          <div className="hidden lg:block w-[260px] shrink-0 relative">
+          <div className="hidden lg:block w-[280px] shrink-0 relative">
             <div
               className="absolute top-5 bottom-5 pointer-events-none"
               style={{
@@ -422,42 +305,47 @@ export default function WorkflowSection() {
                   <button
                     key={i}
                     onClick={() => setActive(i)}
-                    className="relative flex items-start gap-3 w-full text-left px-4 py-3.5 rounded-md cursor-pointer transition-all duration-200"
+                    className="relative flex flex-col w-full text-left px-4 py-3.5 rounded-md cursor-pointer transition-all duration-200"
                     style={{
-                      backgroundColor: isActive
-                        ? "rgba(255,255,255,0.07)"
-                        : "transparent",
-                      borderLeft: isActive
-                        ? "2px solid #A05C45"
-                        : "2px solid transparent",
+                      backgroundColor: isActive ? "rgba(255,255,255,0.07)" : "transparent",
+                      borderLeft: isActive ? "2px solid #A05C45" : "2px solid transparent",
                     }}
                   >
-                    <span
-                      className="shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-semibold font-secondary mt-0.5 transition-all duration-200 relative z-10"
-                      style={{
-                        backgroundColor: isActive
-                          ? "#A05C45"
-                          : "rgba(255,255,255,0.1)",
-                        color: isActive ? "#ffffff" : "rgba(247,241,231,0.5)",
-                      }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span
-                      className="text-[13px] leading-snug font-medium font-secondary transition-all duration-200"
-                      style={{
-                        color: isActive ? "#F7F1E7" : "rgba(247,241,231,0.4)",
-                      }}
-                    >
-                      {step.title}
-                    </span>
+                    <div className="flex items-start gap-3">
+                      <span
+                        className="shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-semibold font-secondary mt-0.5 transition-all duration-200 relative z-10"
+                        style={{
+                          backgroundColor: isActive ? "#A05C45" : "rgba(255,255,255,0.1)",
+                          color: isActive ? "#ffffff" : "rgba(247,241,231,0.5)",
+                        }}
+                      >
+                        {i + 1}
+                      </span>
+                      <span
+                        className="text-[13px] leading-snug font-medium font-secondary transition-all duration-200"
+                        style={{ color: isActive ? "#F7F1E7" : "rgba(247,241,231,0.4)" }}
+                      >
+                        {step.title}
+                      </span>
+                    </div>
+                    {isActive && (
+                      <motion.p
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="text-[12px] leading-relaxed mt-2 pl-[34px] font-secondary"
+                        style={{ color: "rgba(247,241,231,0.5)" }}
+                      >
+                        {step.body}
+                      </motion.p>
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Right: content panel */}
+          {/* Right: preview panel */}
           <div
             className="flex-1 min-w-0 rounded-lg overflow-hidden"
             style={{
@@ -465,6 +353,40 @@ export default function WorkflowSection() {
               border: "1px solid rgba(255,255,255,0.09)",
             }}
           >
+            {/* Mobile: step title + body */}
+            <div
+              className="lg:hidden p-6 pb-0"
+            >
+              <span
+                className="inline-flex items-center rounded-pill text-[10px] font-semibold uppercase tracking-widest px-3 py-1 font-secondary mb-3"
+                style={{ backgroundColor: "#A05C45", color: "#ffffff" }}
+              >
+                Step {STEPS[active].number}
+              </span>
+              <h3
+                className="font-display text-[1.25rem] font-medium leading-snug"
+                style={{ color: "#F7F1E7" }}
+              >
+                {STEPS[active].title}
+              </h3>
+              <p
+                className="text-sm leading-relaxed mt-2 font-secondary"
+                style={{ color: "rgba(247,241,231,0.55)" }}
+              >
+                {STEPS[active].body}
+              </p>
+            </div>
+
+            {/* Desktop: step badge */}
+            <div className="hidden lg:flex items-center gap-3 px-8 pt-8">
+              <span
+                className="inline-flex items-center rounded-pill text-[10px] font-semibold uppercase tracking-widest px-3 py-1 font-secondary"
+                style={{ backgroundColor: "#A05C45", color: "#ffffff" }}
+              >
+                Step {STEPS[active].number}
+              </span>
+            </div>
+
             <AnimatePresence mode="wait">
               <motion.div
                 key={active}
@@ -472,68 +394,42 @@ export default function WorkflowSection() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                className="p-8 lg:p-10 flex flex-col"
+                className="min-h-[260px] flex items-center justify-center"
               >
-                {/* Step badge + icon */}
-                <div className="flex items-center gap-3 mb-5">
-                  <span
-                    className="inline-flex items-center rounded-pill text-[10px] font-semibold uppercase tracking-widest px-3 py-1 font-secondary"
-                    style={{ backgroundColor: "#A05C45", color: "#ffffff" }}
-                  >
-                    Step {STEPS[active].number}
-                  </span>
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: "rgba(255,255,255,0.07)" }}
-                  >
-                    <ActiveIcon size={16} style={{ color: "#E8D5C8" }} />
-                  </div>
-                </div>
-
-                {/* Title + body */}
-                <h3
-                  className="font-display text-[1.4rem] font-medium leading-snug"
-                  style={{ color: "#F7F1E7" }}
-                >
-                  {STEPS[active].title}
-                </h3>
-                <p
-                  className="text-sm leading-relaxed mt-2"
-                  style={{ color: "rgba(247,241,231,0.55)" }}
-                >
-                  {STEPS[active].body}
-                </p>
-
-                {/* Preview area */}
-                <div
-                  className="mt-6 rounded-md min-h-[240px] flex items-center justify-center"
-                  style={{
-                    backgroundColor: "rgba(0,0,0,0.15)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                  }}
-                >
-                  {STEP_PREVIEWS[active]}
-                </div>
-
-                {/* CTA */}
-                <div className="mt-6 flex items-center gap-4 flex-wrap">
-                  <a
-                    href={STEPS[active].href}
-                    className="inline-flex items-center gap-1.5 rounded-pill text-[13px] font-medium font-secondary px-5 h-10 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
-                    style={{ backgroundColor: "#A05C45", color: "#ffffff" }}
-                  >
-                    {STEPS[active].cta}
-                    <ArrowRight size={14} />
-                  </a>
-                  <span
-                    className="text-[12px]"
-                    style={{ color: "rgba(247,241,231,0.35)" }}
-                  >
-                    {STEPS[active].footnote}
-                  </span>
-                </div>
+                {STEP_PREVIEWS[active]}
               </motion.div>
             </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Reassurance + CTAs */}
+        <div
+          className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-5 pt-8"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          <p
+            className="text-[13px] text-center sm:text-left font-secondary max-w-[460px]"
+            style={{ color: "rgba(247,241,231,0.38)" }}
+          >
+            Designed for founder-led schools that want a better system, not a complicated implementation.
+          </p>
+          <div className="flex items-center gap-4 shrink-0">
+            <a
+              href="/get-started"
+              className="inline-flex items-center gap-1.5 rounded-pill text-[13px] font-medium font-secondary px-5 h-10 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
+              style={{ backgroundColor: "#A05C45", color: "#ffffff" }}
+            >
+              Book a Demo
+              <ArrowRight size={14} />
+            </a>
+            <a
+              href="#"
+              className="inline-flex items-center gap-1.5 text-[13px] font-secondary hover:opacity-80 transition-all duration-200"
+              style={{ color: "rgba(247,241,231,0.5)" }}
+            >
+              See how setup works
+              <ArrowRight size={13} />
+            </a>
           </div>
         </div>
       </div>
