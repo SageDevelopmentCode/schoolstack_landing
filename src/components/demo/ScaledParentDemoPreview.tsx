@@ -9,7 +9,7 @@ import {
 
 const DESIGN_WIDTH = 1440;
 
-type ParentTab = "enrollment" | "home";
+type ParentTab = "enrollment" | "home" | "billing";
 
 export default function ScaledParentDemoPreview({
   initialParentTab = "enrollment",

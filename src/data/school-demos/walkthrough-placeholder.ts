@@ -4,11 +4,12 @@ export type DemoWalkthroughIcon =
   | "layoutDashboard"
   | "gitBranch"
   | "link"
-  | "clipboardCheck";
+  | "clipboardCheck"
+  | "creditCard";
 
 export type DemoWalkthroughAdmissionsTab = "flows" | "submissions";
 
-export type DemoWalkthroughParentTab = "enrollment" | "home";
+export type DemoWalkthroughParentTab = "enrollment" | "home" | "billing";
 
 export type DemoWalkthroughPreview = "website" | "admin" | "parent";
 
@@ -150,6 +151,25 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
       titleColor: "#173B5C",
       descColor: "#4A6578",
       connector: "#173B5C",
+    },
+  },
+  {
+    id: "parent-billing",
+    title: "Parents pay their tuition",
+    description: "Families view and pay their balance directly from the parent portal.",
+    preview: "parent",
+    initialParentTab: "billing",
+    icon: "creditCard",
+    theme: {
+      bg: "#F2E7D1",
+      bgHover: "#EBDFC4",
+      bgActive: "#EBDFC4",
+      border: "#D9C9A3",
+      iconBg: "#C1A367",
+      iconColor: "#FFFFFF",
+      titleColor: "#5C4A2A",
+      descColor: "#7A6848",
+      connector: "#C1A367",
     },
   },
 ];
