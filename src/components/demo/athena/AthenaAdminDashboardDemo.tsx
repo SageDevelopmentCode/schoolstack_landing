@@ -4467,20 +4467,208 @@ function LeadsFiltersPanel({
   );
 }
 
+const NEW_SUBMISSION_LEAD_ID = "l0";
+
+function LeadTableRow({
+  lead,
+  onSelectLead,
+  initial,
+  animate,
+  transition,
+}: {
+  lead: DemoLead;
+  onSelectLead: (lead: DemoLead) => void;
+  initial?: { opacity: number; x?: number; y?: number };
+  animate?: { opacity: number; x?: number; y?: number; backgroundColor?: string | string[] };
+  transition?: {
+    delay?: number;
+    duration?: number;
+    ease?: [number, number, number, number];
+    backgroundColor?: { duration?: number; ease?: string };
+  };
+}) {
+  const rowProps = {
+    onClick: () => onSelectLead(lead),
+    className: "cursor-pointer transition-colors",
+    style: { borderBottom: `1px solid ${C.border}` },
+    onMouseEnter: (e: { currentTarget: HTMLTableRowElement }) => {
+      e.currentTarget.style.backgroundColor = C.elevated;
+    },
+    onMouseLeave: (e: { currentTarget: HTMLTableRowElement }) => {
+      e.currentTarget.style.backgroundColor = "transparent";
+    },
+  };
+
+  const cells = (
+    <>
+      <td className="px-4 py-3 max-w-[140px]">
+        <p className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
+          {FLOW_FILTER_OPTIONS.find((f) => f.id === lead.flowId)?.label ?? "—"}
+        </p>
+      </td>
+      <td className="px-4 py-3">
+        <p className="font-medium" style={{ color: C.textPrimary }}>
+          {lead.name}
+        </p>
+      </td>
+      <td className="px-4 py-3">
+        <p style={{ color: C.textSecondary }}>{lead.email}</p>
+        <p className="text-xs" style={{ color: C.textTertiary }}>
+          {lead.phone}
+        </p>
+      </td>
+      <td className="px-4 py-3">
+        {lead.childName ? (
+          <div className="flex min-w-0 items-center gap-2.5">
+            {LEAD_CHILD_PHOTOS[lead.childName] ? (
+              <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
+                <Image
+                  src={LEAD_CHILD_PHOTOS[lead.childName]}
+                  alt={lead.childName}
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                style={{
+                  backgroundColor: C.accentLight,
+                  color: C.accent,
+                }}
+              >
+                {lead.childName
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p
+                className="truncate text-sm"
+                style={{ color: C.textSecondary }}
+              >
+                {lead.childName}
+              </p>
+              {lead.flowId === "flow-5" &&
+              lead.responses.f33 != null &&
+              String(lead.responses.f33).trim() !== "" ? (
+                <p
+                  className="text-xs"
+                  style={{ color: C.textTertiary }}
+                >
+                  {String(lead.responses.f33)}
+                </p>
+              ) : lead.childAge != null ? (
+                <p
+                  className="text-xs"
+                  style={{ color: C.textTertiary }}
+                >
+                  Age {lead.childAge}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <span style={{ color: C.textTertiary }}>—</span>
+        )}
+      </td>
+      <td className="px-4 py-3 max-w-[180px]">
+        <p
+          className="truncate text-xs"
+          style={{ color: C.textTertiary }}
+        >
+          {lead.message ?? "—"}
+        </p>
+      </td>
+      <td className="px-4 py-3">
+        <StatusBadge status={lead.status} />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap gap-1">
+          {lead.tags.map((tag) => (
+            <span
+              key={tag}
+              className="px-1.5 py-0.5 text-[9px] font-medium rounded-full"
+              style={{
+                backgroundColor: C.accentLight,
+                color: C.accent,
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      </td>
+      <td
+        className="px-4 py-3 text-xs"
+        style={{ color: C.textTertiary }}
+      >
+        {lead.date}
+      </td>
+    </>
+  );
+
+  if (initial != null || animate != null || transition != null) {
+    return (
+      <motion.tr
+        key={lead.id}
+        initial={initial}
+        animate={animate}
+        transition={transition}
+        {...rowProps}
+      >
+        {cells}
+      </motion.tr>
+    );
+  }
+
+  return (
+    <tr key={lead.id} {...rowProps}>
+      {cells}
+    </tr>
+  );
+}
+
 function LeadsListTab({
   onSelectLead,
+  animateNewSubmission = false,
 }: {
   onSelectLead: (lead: DemoLead) => void;
+  animateNewSubmission?: boolean;
 }) {
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeFlowFilter, setActiveFlowFilter] = useState("all");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [newSubmissionRevealed, setNewSubmissionRevealed] = useState(
+    !animateNewSubmission,
+  );
+
+  useEffect(() => {
+    if (!animateNewSubmission) {
+      setNewSubmissionRevealed(true);
+      return;
+    }
+    setNewSubmissionRevealed(false);
+    const timer = setTimeout(() => setNewSubmissionRevealed(true), 700);
+    return () => clearTimeout(timer);
+  }, [animateNewSubmission]);
 
   const filtered = ACTIVE_DEMO_LEADS.filter((l) => {
     const statusMatch = activeFilter === "all" || l.status === activeFilter;
     const flowMatch = activeFlowFilter === "all" || l.flowId === activeFlowFilter;
     return statusMatch && flowMatch;
   });
+
+  const newLead = animateNewSubmission
+    ? filtered.find((l) => l.id === NEW_SUBMISSION_LEAD_ID)
+    : undefined;
+  const existingLeads = animateNewSubmission && newLead
+    ? filtered.filter((l) => l.id !== NEW_SUBMISSION_LEAD_ID)
+    : filtered;
+  const useNewSubmissionAnimation = animateNewSubmission && !!newLead;
 
   const activeStatusLabel =
     LEAD_FILTERS.find((f) => f.key === activeFilter)?.label ?? "All";
@@ -4569,7 +4757,7 @@ function LeadsListTab({
       </AnimatePresence>
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto overflow-x-auto">
+        <div className="h-full overflow-y-auto overflow-x-hidden">
           <table className="w-full text-sm">
             <thead
               className="sticky top-0 z-[1]"
@@ -4597,131 +4785,48 @@ function LeadsListTab({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((lead, i) => (
-                <motion.tr
-                  key={lead.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.03 }}
-                  onClick={() => onSelectLead(lead)}
-                  className="cursor-pointer transition-colors"
-                  style={{ borderBottom: `1px solid ${C.border}` }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = C.elevated)
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "transparent")
-                  }
-                >
-                  <td className="px-4 py-3 max-w-[140px]">
-                    <p className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
-                      {FLOW_FILTER_OPTIONS.find((f) => f.id === lead.flowId)?.label ?? "—"}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium" style={{ color: C.textPrimary }}>
-                      {lead.name}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p style={{ color: C.textSecondary }}>{lead.email}</p>
-                    <p className="text-xs" style={{ color: C.textTertiary }}>
-                      {lead.phone}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    {lead.childName ? (
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        {LEAD_CHILD_PHOTOS[lead.childName] ? (
-                          <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                            <Image
-                              src={LEAD_CHILD_PHOTOS[lead.childName]}
-                              alt={lead.childName}
-                              width={32}
-                              height={32}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div
-                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                            style={{
-                              backgroundColor: C.accentLight,
-                              color: C.accent,
-                            }}
-                          >
-                            {lead.childName
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .slice(0, 2)}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p
-                            className="truncate text-sm"
-                            style={{ color: C.textSecondary }}
-                          >
-                            {lead.childName}
-                          </p>
-                          {lead.flowId === "flow-5" &&
-                          lead.responses.f33 != null &&
-                          String(lead.responses.f33).trim() !== "" ? (
-                            <p
-                              className="text-xs"
-                              style={{ color: C.textTertiary }}
-                            >
-                              {String(lead.responses.f33)}
-                            </p>
-                          ) : lead.childAge != null ? (
-                            <p
-                              className="text-xs"
-                              style={{ color: C.textTertiary }}
-                            >
-                              Age {lead.childAge}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                    ) : (
-                      <span style={{ color: C.textTertiary }}>—</span>
+              {useNewSubmissionAnimation ? (
+                <>
+                  <AnimatePresence>
+                    {newSubmissionRevealed && newLead && (
+                      <LeadTableRow
+                        key={newLead.id}
+                        lead={newLead}
+                        onSelectLead={onSelectLead}
+                        initial={{ opacity: 0, x: 56 }}
+                        animate={{
+                          opacity: 1,
+                          x: 0,
+                          backgroundColor: [C.accentLight, "transparent"],
+                        }}
+                        transition={{
+                          duration: 0.65,
+                          ease: [0.22, 1, 0.36, 1],
+                          backgroundColor: { duration: 1.2, ease: "easeOut" },
+                        }}
+                      />
                     )}
-                  </td>
-                  <td className="px-4 py-3 max-w-[180px]">
-                    <p
-                      className="truncate text-xs"
-                      style={{ color: C.textTertiary }}
-                    >
-                      {lead.message ?? "—"}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={lead.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {lead.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-1.5 py-0.5 text-[9px] font-medium rounded-full"
-                          style={{
-                            backgroundColor: C.accentLight,
-                            color: C.accent,
-                          }}
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td
-                    className="px-4 py-3 text-xs"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {lead.date}
-                  </td>
-                </motion.tr>
-              ))}
+                  </AnimatePresence>
+                  {existingLeads.map((lead) => (
+                    <LeadTableRow
+                      key={lead.id}
+                      lead={lead}
+                      onSelectLead={onSelectLead}
+                    />
+                  ))}
+                </>
+              ) : (
+                filtered.map((lead, i) => (
+                  <LeadTableRow
+                    key={lead.id}
+                    lead={lead}
+                    onSelectLead={onSelectLead}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.03 }}
+                  />
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -5247,9 +5352,11 @@ function DemoActivityTimelineRow({
 function LeadDetailPanel({
   lead,
   onClose,
+  autoSendEnrollmentLink = false,
 }: {
   lead: DemoLead;
   onClose: () => void;
+  autoSendEnrollmentLink?: boolean;
 }) {
   const flow = getFlowForLead(lead.flowId);
   const responseMap = lead.responses as unknown as Record<string, string | boolean>;
@@ -5279,10 +5386,23 @@ function LeadDetailPanel({
   const [tagDraft, setTagDraft] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [activity, setActivity] = useState<LeadActivityEntry[]>([]);
+  const [enrollmentLinkSent, setEnrollmentLinkSent] = useState(
+    !autoSendEnrollmentLink,
+  );
 
   useEffect(() => {
     setActiveTab(defaultTab);
   }, [defaultTab, lead.id]);
+
+  useEffect(() => {
+    if (!autoSendEnrollmentLink) {
+      setEnrollmentLinkSent(false);
+      return;
+    }
+    setEnrollmentLinkSent(false);
+    const timer = setTimeout(() => setEnrollmentLinkSent(true), 1000);
+    return () => clearTimeout(timer);
+  }, [autoSendEnrollmentLink, lead.id]);
 
   useEffect(() => {
     setLeadStatus(lead.status);
@@ -5743,13 +5863,45 @@ function LeadDetailPanel({
         className="flex-shrink-0 px-4 py-3 sm:px-5"
         style={{ borderTop: `1px solid ${C.border}` }}
       >
-        <button
+        <motion.button
           type="button"
-          className="w-full rounded-sm py-2 text-sm font-semibold transition-colors"
-          style={{ backgroundColor: C.accentLight, color: C.accent }}
+          disabled={enrollmentLinkSent}
+          className="w-full rounded-sm py-2 text-sm font-semibold"
+          animate={{
+            backgroundColor: enrollmentLinkSent ? C.successBg : C.accentLight,
+            color: enrollmentLinkSent ? C.success : C.accent,
+          }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            cursor: enrollmentLinkSent ? "default" : "pointer",
+          }}
         >
-          Send Enrollment Link
-        </button>
+          <AnimatePresence mode="wait" initial={false}>
+            {enrollmentLinkSent ? (
+              <motion.span
+                key="sent"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center justify-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4" aria-hidden />
+                Sent
+              </motion.span>
+            ) : (
+              <motion.span
+                key="send"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                Send Enrollment Link
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </div>
     </motion.div>
   );
@@ -7463,10 +7615,14 @@ function AdmissionsPage({
   activeTab,
   initialLeadId,
   initialSelectedFlowId,
+  animateNewSubmission,
+  autoSendEnrollmentLink,
 }: {
   activeTab: AdmissionsTab;
   initialLeadId?: string;
   initialSelectedFlowId?: string;
+  animateNewSubmission?: boolean;
+  autoSendEnrollmentLink?: boolean;
 }) {
   const [selectedLead, setSelectedLead] = useState<DemoLead | null>(() =>
     initialLeadId ? DEMO_LEADS.find((l) => l.id === initialLeadId) ?? null : null,
@@ -7493,7 +7649,10 @@ function AdmissionsPage({
         )}
         {activeTab === "submissions" && (
           <motion.div key="submissions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-            <LeadsListTab onSelectLead={setSelectedLead} />
+            <LeadsListTab
+              onSelectLead={setSelectedLead}
+              animateNewSubmission={animateNewSubmission}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -7503,6 +7662,7 @@ function AdmissionsPage({
             key={selectedLead.id}
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
+            autoSendEnrollmentLink={autoSendEnrollmentLink}
           />
         )}
       </AnimatePresence>
@@ -23916,6 +24076,8 @@ export default function AthenaAdminDashboardDemo({
   initialAdmissionsTab = "flows",
   initialSelectedLeadId,
   initialSelectedFlowId,
+  animateNewSubmission,
+  autoSendEnrollmentLink,
   hideNav = false,
   defaultSidebarExpanded = true,
 }: {
@@ -23924,6 +24086,8 @@ export default function AthenaAdminDashboardDemo({
   initialAdmissionsTab?: AdmissionsTab
   initialSelectedLeadId?: string
   initialSelectedFlowId?: string
+  animateNewSubmission?: boolean
+  autoSendEnrollmentLink?: boolean
   hideNav?: boolean
   defaultSidebarExpanded?: boolean
 }) {
@@ -23999,6 +24163,8 @@ export default function AthenaAdminDashboardDemo({
             activeTab={admissionsTab}
             initialLeadId={initialSelectedLeadId}
             initialSelectedFlowId={initialSelectedFlowId}
+            animateNewSubmission={animateNewSubmission}
+            autoSendEnrollmentLink={autoSendEnrollmentLink}
           />
         );
       case "people":

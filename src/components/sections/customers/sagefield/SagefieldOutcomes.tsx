@@ -2,32 +2,10 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, BookOpen, LayoutDashboard, ChevronDown, ArrowRight } from 'lucide-react'
+import { Users, BookOpen, LayoutDashboard, ArrowRight } from 'lucide-react'
 import { FadeInView } from '@/components/ui/FadeInView'
 import { Badge } from '@/components/ui/Badge'
-
-const PROOF_DRAWERS = [
-  {
-    id: 'tuition',
-    label: 'Tuition',
-    detail: 'Monthly and annual tuition plans published online with enrollment options visible to prospective families.',
-  },
-  {
-    id: 'programs',
-    label: 'Programs',
-    detail: 'Detailed program pages covering age groups, schedules, and learning philosophies available on the public site.',
-  },
-  {
-    id: 'team',
-    label: 'Team',
-    detail: 'Staff profiles and credentials published to build family trust before the first tour.',
-  },
-  {
-    id: 'contact',
-    label: 'Contact & enrollment',
-    detail: 'Inquiry forms and enrollment pathways live on the website so families could take next steps immediately.',
-  },
-]
+import SagefieldOutcomeDemoPreview from '@/components/demo/sagefield/SagefieldOutcomeDemoPreview'
 
 const TABS = [
   {
@@ -44,7 +22,6 @@ const TABS = [
       'Documents and forms',
       'Visibility into their child\'s daily experience',
     ],
-    placeholder: 'Parent portal dashboard',
   },
   {
     id: 'teacher',
@@ -60,7 +37,6 @@ const TABS = [
       'Documents and SOPs',
       'Payroll and hours visibility',
     ],
-    placeholder: 'Teacher workspace dashboard',
   },
   {
     id: 'admin',
@@ -76,7 +52,6 @@ const TABS = [
       'Marketing and outreach tools',
       'Staff management and scheduling',
     ],
-    placeholder: 'Admin operations dashboard',
   },
 ] as const
 
@@ -84,7 +59,6 @@ type TabId = 'parent' | 'teacher' | 'admin'
 
 export default function SagefieldOutcomes() {
   const [activeTab, setActiveTab] = useState<TabId>('parent')
-  const [openDrawer, setOpenDrawer] = useState<string | null>(null)
 
   const current = TABS.find((t) => t.id === activeTab)!
   const ActiveIcon = current.icon
@@ -187,85 +161,11 @@ export default function SagefieldOutcomes() {
                 </div>
               </div>
 
-              {/* Right: placeholder screenshot */}
-              <div
-                className="rounded-2xl border border-border overflow-hidden"
-                style={{ backgroundColor: '#EDE0CE' }}
-              >
-                <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-border bg-surface">
-                  <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-                </div>
-                <div className="flex items-center justify-center h-[280px]">
-                  <div className="text-center px-6">
-                    <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-3">
-                      <ActiveIcon size={18} className="text-accent" />
-                    </div>
-                    <p className="text-sm font-secondary text-text-muted">
-                      [{current.placeholder}]
-                    </p>
-                    <p className="text-[12px] font-secondary text-text-faint mt-1">
-                      Replace with actual screenshot
-                    </p>
-                  </div>
-                </div>
-              </div>
+              {/* Right: Sage Field dashboard preview */}
+              <SagefieldOutcomeDemoPreview role={activeTab} />
             </motion.div>
           </AnimatePresence>
         </div>
-
-        {/* Expandable proof drawers */}
-        <FadeInView delay={0.1}>
-          <div className="mt-16 border-t border-border pt-10">
-            <p className="text-[13px] font-secondary font-semibold uppercase tracking-widest text-text-faint mb-5">
-              See what Sage Field had live
-            </p>
-            <div className="space-y-2">
-              {PROOF_DRAWERS.map((drawer) => (
-                <div
-                  key={drawer.id}
-                  className="rounded-xl border border-border bg-surface overflow-hidden"
-                >
-                  <button
-                    onClick={() =>
-                      setOpenDrawer(openDrawer === drawer.id ? null : drawer.id)
-                    }
-                    className="flex items-center justify-between w-full px-5 py-4 text-left cursor-pointer"
-                  >
-                    <span className="text-[14px] font-medium font-secondary text-text">
-                      {drawer.label}
-                    </span>
-                    <motion.div
-                      animate={{ rotate: openDrawer === drawer.id ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronDown size={16} className="text-text-faint" />
-                    </motion.div>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {openDrawer === drawer.id && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                        style={{ overflow: 'hidden' }}
-                      >
-                        <div className="px-5 pb-5">
-                          <div className="border-t border-border mb-4" />
-                          <p className="text-[14px] font-secondary text-text-muted leading-relaxed">
-                            {drawer.detail}
-                          </p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
-            </div>
-          </div>
-        </FadeInView>
 
         {/* Inline CTA */}
         <FadeInView delay={0.12}>

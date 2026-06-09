@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { listSchoolDemoOptions } from "@/data/school-demos";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,8 +39,11 @@ type School = {
   contact_phone: string;
   notes: string;
   last_contacted_at: string | null;
+  demo_slug: string | null;
   updated_at: string;
 };
+
+const SCHOOL_DEMO_OPTIONS = listSchoolDemoOptions();
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -246,6 +250,8 @@ function CrmPanel({
   const [prioritySaving, setPrioritySaving] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const priorityRef = useRef<HTMLDivElement>(null);
+  const [demoSlug, setDemoSlug] = useState(school.demo_slug ?? "");
+  const [demoSlugSaving, setDemoSlugSaving] = useState(false);
 
   useEffect(() => {
     setStatus(school.crm_status);
@@ -255,6 +261,7 @@ function CrmPanel({
     setNotes(school.notes);
     setLastContacted(school.last_contacted_at ? school.last_contacted_at.split("T")[0] : "");
     setPriority(school.priority_score);
+    setDemoSlug(school.demo_slug ?? "");
     setPriorityOpen(false);
     setSavedMsg(false);
   }, [school.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -294,6 +301,15 @@ function CrmPanel({
     await onSave(school.id, { priority_score: score });
     setPrioritySaving(false);
     setPriorityOpen(false);
+  }
+
+  async function handleDemoSlugChange(value: string) {
+    const nextSlug = value || null;
+    if (nextSlug === (school.demo_slug ?? null)) return;
+    setDemoSlug(value);
+    setDemoSlugSaving(true);
+    await onSave(school.id, { demo_slug: nextSlug });
+    setDemoSlugSaving(false);
   }
 
   async function handleSave() {
@@ -389,6 +405,53 @@ function CrmPanel({
               <path d="M2 9L9 2M9 2H5M9 2v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </a>
+        </div>
+
+        {/* Product demo link */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Product Demo</p>
+            {demoSlugSaving && (
+              <svg className="animate-spin w-3 h-3 text-gray-300" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+                <path d="M8 2a6 6 0 016 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mb-2.5">
+            Opens the branded product demo for this prospect.
+          </p>
+          <div className="flex items-center gap-2">
+            <select
+              value={demoSlug}
+              onChange={(e) => handleDemoSlugChange(e.target.value)}
+              disabled={demoSlugSaving}
+              className="flex-1 min-w-0 h-9 px-3 rounded-lg border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-clay/40 focus:ring-2 focus:ring-clay/10 bg-white disabled:opacity-60"
+            >
+              <option value="">None</option>
+              {SCHOOL_DEMO_OPTIONS.map((opt) => (
+                <option key={opt.slug} value={opt.slug}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <a
+              href={demoSlug ? `/demo/${demoSlug}` : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-disabled={!demoSlug}
+              className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-semibold transition-all ${
+                demoSlug
+                  ? "bg-clay text-white hover:opacity-90"
+                  : "bg-gray-100 text-gray-400 pointer-events-none"
+              }`}
+            >
+              Open demo
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                <path d="M2 9L9 2M9 2H5M9 2v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          </div>
         </div>
       </div>
 

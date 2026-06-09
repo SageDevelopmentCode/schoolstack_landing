@@ -12,3 +12,10 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {
   return schoolDemoRegistry[slug];
 }
+
+export function listSchoolDemoOptions(): { slug: string; label: string }[] {
+  return Object.entries(schoolDemoRegistry).map(([slug, config]) => ({
+    slug,
+    label: config.schoolName,
+  }));
+}

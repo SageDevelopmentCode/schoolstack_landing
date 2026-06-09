@@ -5,13 +5,31 @@ export type DemoWalkthroughIcon =
   | "gitBranch"
   | "link"
   | "clipboardCheck"
-  | "creditCard";
+  | "creditCard"
+  | "clipboardList"
+  | "messageCircle";
 
 export type DemoWalkthroughAdmissionsTab = "flows" | "submissions";
 
 export type DemoWalkthroughParentTab = "enrollment" | "home" | "billing";
 
-export type DemoWalkthroughPreview = "website" | "admin" | "parent";
+export type DemoWalkthroughTeacherTab =
+  | "dashboard"
+  | "students"
+  | "hours"
+  | "messages"
+  | "calendar"
+  | "feed"
+  | "attendance"
+  | "payroll"
+  | "forms";
+
+export type DemoWalkthroughPreview =
+  | "website"
+  | "admin"
+  | "parent"
+  | "teacher"
+  | "contact";
 
 export interface DemoWalkthroughStepTheme {
   bg: string;
@@ -36,6 +54,9 @@ export interface DemoWalkthroughStep {
   initialSelectedLeadId?: string;
   initialSelectedFlowId?: string;
   initialParentTab?: DemoWalkthroughParentTab;
+  initialTeacherTab?: DemoWalkthroughTeacherTab;
+  animateNewSubmission?: boolean;
+  autoSendEnrollmentLink?: boolean;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -82,6 +103,8 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
     title: "View the lead in your admin",
     description: "The inquiry appears in your admin dashboard so you can follow up.",
     preview: "admin",
+    initialAdmissionsTab: "submissions",
+    animateNewSubmission: true,
     icon: "layoutDashboard",
     theme: {
       bg: "#EEF4F8",
@@ -96,32 +119,13 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
     },
   },
   {
-    id: "enrollment-checklist-flow",
-    title: "View your enrollment checklist flow",
-    description: "See the checklist families complete when they enroll.",
-    preview: "admin",
-    initialAdmissionsTab: "flows",
-    initialSelectedFlowId: "flow-2",
-    icon: "gitBranch",
-    theme: {
-      bg: "#F2E7D1",
-      bgHover: "#EBDFC4",
-      bgActive: "#EBDFC4",
-      border: "#D9C9A3",
-      iconBg: "#C1A367",
-      iconColor: "#FFFFFF",
-      titleColor: "#5C4A2A",
-      descColor: "#7A6848",
-      connector: "#C1A367",
-    },
-  },
-  {
     id: "send-application-link",
     title: "Send enrollment link",
     description: "After the discovery call, you can send the enrollment link.",
     preview: "admin",
     icon: "link",
     initialSelectedLeadId: "l0",
+    autoSendEnrollmentLink: true,
     theme: {
       bg: "#F2E7D1",
       bgHover: "#EBDFC4",
@@ -154,12 +158,52 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
     },
   },
   {
-    id: "parent-billing",
-    title: "Parents pay their tuition",
-    description: "Families view and pay their balance directly from the parent portal.",
+    id: "parent-pays-tuition",
+    title: "Parent pays tuition",
+    description:
+      "Families pay tuition and manage invoices from the parent portal.",
     preview: "parent",
     initialParentTab: "billing",
     icon: "creditCard",
+    theme: {
+      bg: "#F2E7D1",
+      bgHover: "#EBDFC4",
+      bgActive: "#EBDFC4",
+      border: "#D9C9A3",
+      iconBg: "#C1A367",
+      iconColor: "#FFFFFF",
+      titleColor: "#5C4A2A",
+      descColor: "#7A6848",
+      connector: "#C1A367",
+    },
+  },
+  {
+    id: "teacher-attendance",
+    title: "Teachers take attendance",
+    description: "Staff track daily attendance from the teacher portal.",
+    preview: "teacher",
+    initialTeacherTab: "attendance",
+    icon: "clipboardList",
+    theme: {
+      bg: "#EEF4F8",
+      bgHover: "#E4EDF4",
+      bgActive: "#E4EDF4",
+      border: "#C5D9E8",
+      iconBg: "#173B5C",
+      iconColor: "#FFFFFF",
+      titleColor: "#173B5C",
+      descColor: "#4A6578",
+      connector: "#173B5C",
+    },
+  },
+  {
+    id: "get-in-touch",
+    title: "Questions? Let's connect",
+    description: "Share feedback or ask about anything you saw in this concept.",
+    talkingPoint:
+      "We'd love to hear what resonated — or what you'd want to change.",
+    preview: "contact",
+    icon: "messageCircle",
     theme: {
       bg: "#F2E7D1",
       bgHover: "#EBDFC4",

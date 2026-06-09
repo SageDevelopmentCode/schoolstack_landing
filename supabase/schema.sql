@@ -39,6 +39,7 @@ create table if not exists public.schools (
   contact_phone       text not null default '',
   notes               text not null default '',
   last_contacted_at   timestamptz,
+  demo_slug           text,                            -- /demo/[slug]; NULL = no demo linked
 
   -- Timestamps
   created_at          timestamptz not null default now(),

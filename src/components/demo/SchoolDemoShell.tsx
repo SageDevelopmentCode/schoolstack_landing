@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import DemoContactPanel from "@/components/demo/DemoContactPanel";
 import DemoWalkthroughPanel from "@/components/demo/DemoWalkthroughPanel";
 import ScaledAdminDemoPreview from "@/components/demo/ScaledAdminDemoPreview";
 import ScaledParentDemoPreview from "@/components/demo/ScaledParentDemoPreview";
+import ScaledTeacherDemoPreview from "@/components/demo/ScaledTeacherDemoPreview";
 import ScaledWebsiteDemoPreview from "@/components/demo/ScaledWebsiteDemoPreview";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
@@ -60,12 +62,21 @@ export default function SchoolDemoShell({
             initialAdmissionsTab={steps[activeStep].initialAdmissionsTab ?? "submissions"}
             initialSelectedLeadId={steps[activeStep].initialSelectedLeadId}
             initialSelectedFlowId={steps[activeStep].initialSelectedFlowId}
+            animateNewSubmission={steps[activeStep].animateNewSubmission}
+            autoSendEnrollmentLink={steps[activeStep].autoSendEnrollmentLink}
+          />
+        ) : activePreview === "teacher" ? (
+          <ScaledTeacherDemoPreview
+            key={steps[activeStep].id}
+            initialTeacherTab={steps[activeStep].initialTeacherTab ?? "attendance"}
           />
         ) : activePreview === "parent" ? (
           <ScaledParentDemoPreview
             key={steps[activeStep].id}
             initialParentTab={steps[activeStep].initialParentTab ?? "enrollment"}
           />
+        ) : activePreview === "contact" ? (
+          <DemoContactPanel />
         ) : (
           <ScaledWebsiteDemoPreview
             scrollRequest={scrollRequest}

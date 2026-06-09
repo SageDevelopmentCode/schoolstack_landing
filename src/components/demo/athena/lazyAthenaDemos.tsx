@@ -9,14 +9,18 @@ const importAthenaWebsite = () =>
   import('@/components/demo/athena/AthenaWebsiteDashboardDemo')
 const importAthenaParent = () =>
   import('@/components/demo/athena/AthenaParentDashboardDemo')
+const importAthenaTeacher = () =>
+  import('@/components/demo/athena/AthenaTeacherDashboardDemo')
 
 type AthenaAdminModule = Awaited<ReturnType<typeof importAthenaAdmin>>
 type AthenaWebsiteModule = Awaited<ReturnType<typeof importAthenaWebsite>>
 type AthenaParentModule = Awaited<ReturnType<typeof importAthenaParent>>
+type AthenaTeacherModule = Awaited<ReturnType<typeof importAthenaTeacher>>
 
 let athenaAdminPromise: Promise<AthenaAdminModule> | null = null
 let athenaWebsitePromise: Promise<AthenaWebsiteModule> | null = null
 let athenaParentPromise: Promise<AthenaParentModule> | null = null
+let athenaTeacherPromise: Promise<AthenaTeacherModule> | null = null
 
 function loadAthenaAdminCached() {
   if (!athenaAdminPromise) {
@@ -51,6 +55,17 @@ function loadAthenaParentCached() {
   return athenaParentPromise
 }
 
+function loadAthenaTeacherCached() {
+  if (!athenaTeacherPromise) {
+    athenaTeacherPromise = importAthenaTeacher().catch((error) => {
+      athenaTeacherPromise = null
+      console.error('Failed to load demo "athena-teacher":', error)
+      throw error
+    })
+  }
+  return athenaTeacherPromise
+}
+
 const AthenaAdminDashboardDemo = dynamic(() => loadAthenaAdminCached(), {
   ssr: false,
 })
@@ -58,6 +73,9 @@ const AthenaWebsiteDashboardDemo = dynamic(() => loadAthenaWebsiteCached(), {
   ssr: false,
 })
 const AthenaParentDashboardDemo = dynamic(() => loadAthenaParentCached(), {
+  ssr: false,
+})
+const AthenaTeacherDashboardDemo = dynamic(() => loadAthenaTeacherCached(), {
   ssr: false,
 })
 
@@ -79,6 +97,12 @@ export function LazyAthenaParentDashboardDemo(
   return <AthenaParentDashboardDemo {...props} />
 }
 
+export function LazyAthenaTeacherDashboardDemo(
+  props: ComponentProps<typeof AthenaTeacherDashboardDemo>,
+) {
+  return <AthenaTeacherDashboardDemo {...props} />
+}
+
 export function prefetchAthenaAdminDemo() {
   void loadAthenaAdminCached()
 }
@@ -89,4 +113,8 @@ export function prefetchAthenaWebsiteDemo() {
 
 export function prefetchAthenaParentDemo() {
   void loadAthenaParentCached()
+}
+
+export function prefetchAthenaTeacherDemo() {
+  void loadAthenaTeacherCached()
 }

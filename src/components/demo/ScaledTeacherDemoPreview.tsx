@@ -3,23 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
 import {
-  LazyAthenaParentDashboardDemo,
-  prefetchAthenaParentDemo,
+  LazyAthenaTeacherDashboardDemo,
+  prefetchAthenaTeacherDemo,
 } from "@/components/demo/athena/lazyAthenaDemos";
-import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
+import type { DemoWalkthroughTeacherTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
 
-export default function ScaledParentDemoPreview({
-  initialParentTab = "enrollment",
+export default function ScaledTeacherDemoPreview({
+  initialTeacherTab = "attendance",
 }: {
-  initialParentTab?: DemoWalkthroughParentTab;
+  initialTeacherTab?: DemoWalkthroughTeacherTab;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
 
   useEffect(() => {
-    prefetchAthenaParentDemo();
+    prefetchAthenaTeacherDemo();
   }, []);
 
   useEffect(() => {
@@ -35,10 +35,9 @@ export default function ScaledParentDemoPreview({
   }, []);
 
   return (
-    <DemoPreviewFrame variant="parent">
+    <DemoPreviewFrame variant="teacher">
       <div ref={outerRef} className="relative h-full overflow-hidden">
         <div
-          className="h-full"
           style={{
             width: DESIGN_WIDTH,
             height: scale > 0 ? `${100 / scale}%` : "100%",
@@ -46,8 +45,8 @@ export default function ScaledParentDemoPreview({
             transformOrigin: "top left",
           }}
         >
-          <LazyAthenaParentDashboardDemo
-            initialTab={initialParentTab}
+          <LazyAthenaTeacherDashboardDemo
+            initialTab={initialTeacherTab}
             disableTour
             hideNav={false}
           />

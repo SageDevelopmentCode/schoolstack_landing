@@ -50,6 +50,7 @@ import {
   Landmark,
   Banknote,
 } from "lucide-react";
+import { SAGEFIELD_PARENT_LOGO } from "@/data/school-demos/sagefield-parent-demo";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -437,7 +438,7 @@ const DEMO_CONVERSATIONS: DemoConversation[] = [
   },
   {
     id: "c3",
-    name: "Mud Kitchen Office",
+    name: "Sage Field Office",
     role: "Admin",
     lastMsg: "Your enrollment checklist is almost complete.",
     lastTime: "Apr 17",
@@ -656,7 +657,7 @@ const DEMO_POSTS: DemoPost[] = [
   },
   {
     id: "p3",
-    author: "Mud Kitchen Office",
+    author: "Sage Field Office",
     role: "Admin",
     time: "Apr 17",
     color: "#4A6354",
@@ -838,7 +839,7 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
   liam: [
     {
       label: "School Contact",
-      name: "Mud Kitchen Office",
+      name: "Sage Field Office",
       relationship: "School",
       phone: "(555) 200-1234",
       email: "hello@mudkitchen.co",
@@ -868,7 +869,7 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
   emma: [
     {
       label: "School Contact",
-      name: "Mud Kitchen Office",
+      name: "Sage Field Office",
       relationship: "School",
       phone: "(555) 200-1234",
       email: "hello@mudkitchen.co",
@@ -898,7 +899,7 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
   jake: [
     {
       label: "School Contact",
-      name: "Mud Kitchen Office",
+      name: "Sage Field Office",
       relationship: "School",
       phone: "(555) 200-1234",
       email: "hello@mudkitchen.co",
@@ -931,7 +932,7 @@ const C1_SECTIONS = [
   {
     id: "1-1",
     title: "1. Program Description & Schedule",
-    body: "Mud Kitchen Private School offers a nature-centered, play-based learning environment for Pre-K through Elementary students. Our program runs Monday through Friday, 8:00 AM to 3:00 PM, with optional after-care until 5:30 PM. Students participate in outdoor learning, project-based study, and community-focused activities aligned with each season.",
+    body: "Sage Field offers a nature-centered, play-based learning environment for Pre-K through Elementary students. Our program runs Monday through Friday, 8:00 AM to 3:00 PM, with optional after-care until 5:30 PM. Students participate in outdoor learning, project-based study, and community-focused activities aligned with each season.",
   },
   {
     id: "1-2",
@@ -946,7 +947,7 @@ const C1_SECTIONS = [
   {
     id: "1-4",
     title: "4. Acknowledgment & Agreement",
-    body: "By signing below, I confirm that I have read and understand all sections of the Program Description and Key Policies document. I agree to the terms outlined herein and commit to supporting the Mud Kitchen community through my participation, communication, and adherence to the policies described.",
+    body: "By signing below, I confirm that I have read and understand all sections of the Program Description and Key Policies document. I agree to the terms outlined herein and commit to supporting the Sage Field community through my participation, communication, and adherence to the policies described.",
   },
 ];
 
@@ -954,7 +955,7 @@ const C2_SECTIONS = [
   {
     id: "2-1",
     title: "1. Core Commitments",
-    body: "As a member of the Mud Kitchen community, I commit to treating all students, staff, and families with dignity and respect. I will communicate concerns directly and constructively through appropriate channels, maintain confidentiality about individual children and families, and actively support a culture of inclusion, curiosity, and kindness.",
+    body: "As a member of the Sage Field community, I commit to treating all students, staff, and families with dignity and respect. I will communicate concerns directly and constructively through appropriate channels, maintain confidentiality about individual children and families, and actively support a culture of inclusion, curiosity, and kindness.",
   },
   {
     id: "2-2",
@@ -964,7 +965,7 @@ const C2_SECTIONS = [
   {
     id: "2-3",
     title: "3. Acknowledgment",
-    body: "By signing below, I confirm that I have read and agree to uphold the Mud Kitchen Community Agreement for the duration of my child's enrollment. I understand that this agreement exists to protect the safety, wellbeing, and dignity of every member of our school community.",
+    body: "By signing below, I confirm that I have read and agree to uphold the Sage Field Community Agreement for the duration of my child's enrollment. I understand that this agreement exists to protect the safety, wellbeing, and dignity of every member of our school community.",
   },
 ];
 
@@ -972,17 +973,17 @@ const C5_SECTIONS = [
   {
     id: "5-1",
     title: "1. Permission to Photograph & Record",
-    body: "I, the undersigned parent or legal guardian, hereby grant Mud Kitchen Private School permission to photograph, video record, and otherwise capture images or likenesses of my child during school activities, programs, field trips, events, and related educational experiences.",
+    body: "I, the undersigned parent or legal guardian, hereby grant Sage Field permission to photograph, video record, and otherwise capture images or likenesses of my child during school activities, programs, field trips, events, and related educational experiences.",
   },
   {
     id: "5-2",
     title: "2. Scope of Use",
-    body: "All photographs, videos, and other media captured by Mud Kitchen staff are the property of Mud Kitchen Private School. The School may edit, crop, or enhance media for use in materials including the website, social media, newsletters, and print publications. The School will not sell images to third parties.",
+    body: "All photographs, videos, and other media captured by Sage Field staff are the property of Sage Field. The School may edit, crop, or enhance media for use in materials including the website, social media, newsletters, and print publications. The School will not sell images to third parties.",
   },
   {
     id: "5-3",
     title: "3. Parent/Guardian Acknowledgment",
-    body: "By signing below, I confirm my selected consent level and release Mud Kitchen Private School from any claims arising from the use of photographs or recordings of my child as described in this agreement. This release remains in effect for the duration of enrollment unless revoked in writing.",
+    body: "By signing below, I confirm my selected consent level and release Sage Field from any claims arising from the use of photographs or recordings of my child as described in this agreement. This release remains in effect for the duration of enrollment unless revoked in writing.",
   },
 ];
 
@@ -990,7 +991,7 @@ const C6_SECTIONS = [
   {
     id: "6-1",
     title: "Releasor Acknowledgment & Signature",
-    body: "I, the undersigned parent or legal guardian, acknowledge that participation in Mud Kitchen Private School programs involves inherent risks including but not limited to outdoor and nature-based activities, physical movement, and field excursions. I voluntarily assume all such risks and release Mud Kitchen Private School, its directors, staff, and volunteers from any liability for injury or loss arising from participation in school activities. I have read this agreement in full and sign voluntarily.",
+    body: "I, the undersigned parent or legal guardian, acknowledge that participation in Sage Field programs involves inherent risks including but not limited to outdoor and nature-based activities, physical movement, and field excursions. I voluntarily assume all such risks and release Sage Field, its directors, staff, and volunteers from any liability for injury or loss arising from participation in school activities. I have read this agreement in full and sign voluntarily.",
   },
 ];
 
@@ -998,7 +999,7 @@ const C7_SECTIONS = [
   {
     id: "7-1",
     title: "Authorization Statement",
-    body: "I authorize the individuals listed above to pick up my child from Mud Kitchen Private School on my behalf. I understand that school staff may request photo identification from any authorized pickup person and that this list supersedes any prior pickup authorization on file. I accept full responsibility for ensuring that all listed individuals are aware of and agree to comply with school pickup procedures.",
+    body: "I authorize the individuals listed above to pick up my child from Sage Field on my behalf. I understand that school staff may request photo identification from any authorized pickup person and that this list supersedes any prior pickup authorization on file. I accept full responsibility for ensuring that all listed individuals are aware of and agree to comply with school pickup procedures.",
   },
 ];
 
@@ -1006,7 +1007,7 @@ const C8_SECTIONS = [
   {
     id: "8-1",
     title: "Parent/Guardian Signature",
-    body: "By signing below, I certify that the information provided in this Health Statement is accurate and complete to the best of my knowledge. I understand that Mud Kitchen Private School requires this documentation to ensure the health and safety of all enrolled students and that any changes to my child's health status should be reported to the school promptly.",
+    body: "By signing below, I certify that the information provided in this Health Statement is accurate and complete to the best of my knowledge. I understand that Sage Field requires this documentation to ensure the health and safety of all enrolled students and that any changes to my child's health status should be reported to the school promptly.",
   },
 ];
 
@@ -1093,7 +1094,7 @@ function SignatureBlock({
         value={nameInput}
         onChange={(e) => setNameInput(e.target.value)}
         placeholder="Type your full name"
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#4a7c59] mb-3"
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#f29a8f] mb-3"
       />
       <button
         disabled={!nameInput.trim()}
@@ -1101,7 +1102,7 @@ function SignatureBlock({
           onSign(sectionKey, nameInput.trim());
           setEditing(false);
         }}
-        className="px-4 py-1.5 rounded-lg text-sm font-medium bg-[#4a7c59] text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-opacity"
+        className="px-4 py-1.5 rounded-lg text-sm font-medium bg-[#f29a8f] text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-opacity"
       >
         Click to Sign
       </button>
@@ -1114,7 +1115,7 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
   return (
     <div className="w-full bg-gray-100 rounded-full h-2">
       <div
-        className="h-2 rounded-full bg-[#4a7c59] transition-all duration-500"
+        className="h-2 rounded-full bg-[#f29a8f] transition-all duration-500"
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -1266,7 +1267,7 @@ function HealthFormModal({
                 <input
                   value={form[key as keyof typeof form]}
                   onChange={set(key as keyof typeof form)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#4a7c59]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#f29a8f]"
                 />
               </div>
             ))}
@@ -1292,7 +1293,7 @@ function HealthFormModal({
                 <input
                   value={form[key as keyof typeof form]}
                   onChange={set(key as keyof typeof form)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#4a7c59]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#f29a8f]"
                 />
               </div>
             ))}
@@ -1301,7 +1302,7 @@ function HealthFormModal({
         {!saved ? (
           <button
             onClick={onSave}
-            className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[#f29a8f] text-white text-sm font-medium cursor-pointer hover:bg-[#e88d82] transition-colors"
           >
             Save Health Form
           </button>
@@ -1402,7 +1403,7 @@ function MedicationPlanModal({
                         e.target.value,
                       )
                     }
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#4a7c59] bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#f29a8f] bg-white"
                   />
                 </div>
               ))}
@@ -1411,7 +1412,7 @@ function MedicationPlanModal({
         ))}
         <button
           onClick={addMed}
-          className="flex items-center gap-1.5 text-sm text-[#4a7c59] hover:underline cursor-pointer"
+          className="flex items-center gap-1.5 text-sm text-[#f29a8f] hover:underline cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Medication
         </button>
@@ -1419,7 +1420,7 @@ function MedicationPlanModal({
           <button
             onClick={onSave}
             disabled={meds.length === 0}
-            className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#3d6b4f] transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[#f29a8f] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#e88d82] transition-colors"
           >
             Save Plan
           </button>
@@ -1469,7 +1470,7 @@ function ImmunizationModal({
           <p className="text-sm text-gray-400 mb-3">Drag & drop files here</p>
           <button
             onClick={onUpload}
-            className="px-4 py-2 rounded-lg bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors"
+            className="px-4 py-2 rounded-lg bg-[#f29a8f] text-white text-sm font-medium cursor-pointer hover:bg-[#e88d82] transition-colors"
           >
             Choose File
           </button>
@@ -1560,7 +1561,7 @@ function PhotoReleaseModal({
             {options.map((o) => (
               <label
                 key={o.value}
-                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selected === o.value ? "border-[#4a7c59] bg-sage-50" : "border-gray-100 hover:border-gray-200"}`}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selected === o.value ? "border-[#f29a8f] bg-sage-50" : "border-gray-100 hover:border-gray-200"}`}
               >
                 <input
                   type="radio"
@@ -1571,7 +1572,7 @@ function PhotoReleaseModal({
                     setSelected(o.value);
                     setConsentSaved(false);
                   }}
-                  className="mt-0.5 accent-[#4a7c59]"
+                  className="mt-0.5 accent-[#f29a8f]"
                 />
                 <div>
                   <p className="text-sm font-medium text-gray-700">{o.label}</p>
@@ -1586,7 +1587,7 @@ function PhotoReleaseModal({
                 onConsentSave(selected!);
                 setConsentSaved(true);
               }}
-              className="mt-3 w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors"
+              className="mt-3 w-full py-2.5 rounded-xl bg-[#f29a8f] text-white text-sm font-medium cursor-pointer hover:bg-[#e88d82] transition-colors"
             >
               Save Consent Level
             </button>
@@ -1639,7 +1640,7 @@ function AssumptionOfRiskModal({
       <div className="space-y-4">
         <div className="text-center text-xs text-gray-400 pb-2 border-b border-gray-100">
           <p className="font-semibold text-gray-600 text-sm">
-            Mud Kitchen Private School
+            Sage Field
           </p>
           <p>Assumption of Risk & Release of Liability</p>
         </div>
@@ -1648,7 +1649,7 @@ function AssumptionOfRiskModal({
             Please read carefully before signing
           </p>
           <p className="text-sm text-gray-600 leading-relaxed">
-            I acknowledge that participation in Mud Kitchen Private School
+            I acknowledge that participation in Sage Field
             programs involves inherent risks, including outdoor and nature-based
             activities, physical movement, and field excursions. I voluntarily
             assume all such risks on behalf of my child and agree to hold Sage
@@ -1757,7 +1758,7 @@ function AuthorizedPickupModal({
                         e.target.value,
                       )
                     }
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#4a7c59] bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#f29a8f] bg-white"
                   />
                 </div>
               ))}
@@ -1766,7 +1767,7 @@ function AuthorizedPickupModal({
         ))}
         <button
           onClick={addPerson}
-          className="flex items-center gap-1.5 text-sm text-[#4a7c59] hover:underline cursor-pointer"
+          className="flex items-center gap-1.5 text-sm text-[#f29a8f] hover:underline cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Person
         </button>
@@ -1774,7 +1775,7 @@ function AuthorizedPickupModal({
           <button
             onClick={onSave}
             disabled={persons.length === 0}
-            className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#3d6b4f] transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[#f29a8f] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#e88d82] transition-colors"
           >
             Save List
           </button>
@@ -1846,7 +1847,7 @@ function HealthStatementModal({
           ].map((o) => (
             <label
               key={o.val}
-              className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${selected === o.val ? "border-[#4a7c59] bg-sage-50" : "border-gray-100 hover:border-gray-200"}`}
+              className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${selected === o.val ? "border-[#f29a8f] bg-sage-50" : "border-gray-100 hover:border-gray-200"}`}
             >
               <input
                 type="radio"
@@ -1857,7 +1858,7 @@ function HealthStatementModal({
                   setSelected(o.val);
                   setOptionSaved(false);
                 }}
-                className="mt-0.5 accent-[#4a7c59]"
+                className="mt-0.5 accent-[#f29a8f]"
               />
               <div>
                 <p className="text-sm font-medium text-gray-700">{o.title}</p>
@@ -1872,7 +1873,7 @@ function HealthStatementModal({
               onOptionSave(selected!);
               setOptionSaved(true);
             }}
-            className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[#f29a8f] text-white text-sm font-medium cursor-pointer hover:bg-[#e88d82] transition-colors"
           >
             Save Selection
           </button>
@@ -1920,7 +1921,7 @@ function RegistrationFeeModal({
     <ModalShell title="Registration Fee" onClose={onClose} inline={inline}>
       <div className="space-y-4 text-center">
         <div className="w-16 h-16 rounded-full bg-sage-50 flex items-center justify-center mx-auto">
-          <CreditCard className="w-7 h-7 text-[#4a7c59]" />
+          <CreditCard className="w-7 h-7 text-[#f29a8f]" />
         </div>
         {!paid ? (
           <>
@@ -1939,7 +1940,7 @@ function RegistrationFeeModal({
                 setPaid(true);
                 setTimeout(onPay, 800);
               }}
-              className="w-full py-3 rounded-xl bg-[#4a7c59] text-white font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors"
+              className="w-full py-3 rounded-xl bg-[#f29a8f] text-white font-medium cursor-pointer hover:bg-[#e88d82] transition-colors"
             >
               Pay $75.00
             </button>
@@ -2178,7 +2179,7 @@ function EnrollmentPage({
                     onClick={() => setActiveItem(item.modal)}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${
                       isActive
-                        ? "bg-[#4a7c59]/8 text-[#4a7c59]"
+                        ? "bg-[#f29a8f]/8 text-[#f29a8f]"
                         : "hover:bg-gray-50 text-gray-700"
                     }`}
                   >
@@ -2187,7 +2188,7 @@ function EnrollmentPage({
                         done
                           ? "bg-emerald-100"
                           : isActive
-                            ? "bg-[#4a7c59]/15"
+                            ? "bg-[#f29a8f]/15"
                             : "bg-gray-100"
                       }`}
                     >
@@ -2195,7 +2196,7 @@ function EnrollmentPage({
                         <Check className="w-3 h-3 text-emerald-600" />
                       ) : (
                         <Icon
-                          className={`w-3 h-3 ${isActive ? "text-[#4a7c59]" : "text-gray-400"}`}
+                          className={`w-3 h-3 ${isActive ? "text-[#f29a8f]" : "text-gray-400"}`}
                         />
                       )}
                     </div>
@@ -2441,7 +2442,7 @@ function ChildrenPage({
           <button
             key={t.id}
             onClick={() => setDetailTab(t.id)}
-            className={`px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${detailTab === t.id ? "text-[#4a7c59] border-b-2 border-[#4a7c59]" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${detailTab === t.id ? "text-[#f29a8f] border-b-2 border-[#f29a8f]" : "text-gray-500 hover:text-gray-700"}`}
           >
             {t.label}
           </button>
@@ -2469,11 +2470,11 @@ function ChildrenPage({
                   <div className="flex gap-2 mt-3">
                     <a
                       href={`mailto:${t.email}`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sage-50 text-[#4a7c59] text-xs font-medium hover:bg-sage-100 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sage-50 text-[#f29a8f] text-xs font-medium hover:bg-sage-100 transition-colors"
                     >
                       <Mail className="w-3.5 h-3.5" /> Email
                     </a>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sage-50 text-[#4a7c59] text-xs font-medium hover:bg-sage-100 transition-colors cursor-pointer">
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sage-50 text-[#f29a8f] text-xs font-medium hover:bg-sage-100 transition-colors cursor-pointer">
                       <MessageCircle className="w-3.5 h-3.5" /> Message
                     </button>
                   </div>
@@ -2648,8 +2649,8 @@ function HomeschoolDropInPaySidebar({
                             onClick={() => onToggleDay(week.id, day)}
                             className={`min-w-[2.75rem] px-2.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer border ${
                               selected
-                                ? "bg-[#4a7c59] text-white border-[#4a7c59]"
-                                : "bg-white text-gray-500 border-gray-200 hover:border-[#4a7c59]/40 hover:text-[#4a7c59]"
+                                ? "bg-[#f29a8f] text-white border-[#f29a8f]"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-[#f29a8f]/40 hover:text-[#f29a8f]"
                             }`}
                           >
                             {day}
@@ -2676,7 +2677,7 @@ function HomeschoolDropInPaySidebar({
                   setPaid(true);
                   setTimeout(onConfirm, 800);
                 }}
-                className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full py-2.5 rounded-xl bg-[#f29a8f] text-white text-sm font-medium cursor-pointer hover:bg-[#e88d82] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {selectionOnly ? "Save selection" : `Pay ${formatMoney(total)}`}
               </button>
@@ -2791,7 +2792,7 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
         <div className="px-5 py-4 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium hover:bg-[#3d6b4f] transition-colors cursor-pointer"
+            className="w-full py-2.5 rounded-xl bg-[#f29a8f] text-white text-sm font-medium hover:bg-[#e88d82] transition-colors cursor-pointer"
           >
             Pay Now — $1,700.00
           </button>
@@ -2900,7 +2901,7 @@ function BillingCheckoutSidebar({
                     onClick={() => setCheckoutPlan("monthly")}
                     className={`w-full text-left py-3 px-4 transition-colors cursor-pointer ${
                       checkoutPlan === "monthly"
-                        ? "border-l-2 border-l-[#4a7c59] bg-[#4a7c59]/5"
+                        ? "border-l-2 border-l-[#f29a8f] bg-[#f29a8f]/5"
                         : "hover:bg-gray-50/80"
                     }`}
                   >
@@ -2917,7 +2918,7 @@ function BillingCheckoutSidebar({
                     onClick={() => setCheckoutPlan("upfront")}
                     className={`w-full text-left py-3 px-4 transition-colors cursor-pointer ${
                       checkoutPlan === "upfront"
-                        ? "border-l-2 border-l-[#4a7c59] bg-[#4a7c59]/5"
+                        ? "border-l-2 border-l-[#f29a8f] bg-[#f29a8f]/5"
                         : "hover:bg-gray-50/80"
                     }`}
                   >
@@ -2967,7 +2968,7 @@ function BillingCheckoutSidebar({
                             <button
                               type="button"
                               onClick={onOpenHomeschoolPay}
-                              className="mt-2 text-xs font-semibold text-[#4a7c59] hover:underline cursor-pointer"
+                              className="mt-2 text-xs font-semibold text-[#f29a8f] hover:underline cursor-pointer"
                             >
                               Select days
                             </button>
@@ -3006,7 +3007,7 @@ function BillingCheckoutSidebar({
                       onClick={() => setPaymentMethod(id)}
                       className={`flex flex-col items-center gap-1.5 rounded-md border p-3 transition-all cursor-pointer ${
                         paymentMethod === id
-                          ? "border-[#4a7c59] bg-[#4a7c59]/5"
+                          ? "border-[#f29a8f] bg-[#f29a8f]/5"
                           : "border-gray-100 hover:border-gray-200"
                       }`}
                     >
@@ -3024,7 +3025,7 @@ function BillingCheckoutSidebar({
                     <ul className="text-xs text-gray-600 space-y-1.5 list-disc pl-4">
                       <li>
                         Make check payable to{" "}
-                        <span className="font-medium">Mud Kitchen</span>
+                        <span className="font-medium">Sage Field</span>
                       </li>
                       <li>
                         Mail to: 1234 South Lamar Blvd, Austin, TX 78704 · Attn: Billing
@@ -3068,7 +3069,7 @@ function BillingCheckoutSidebar({
                   setPaid(true);
                   setTimeout(() => onConfirm(checkoutPlan, txIds), 800);
                 }}
-                className="w-full py-2.5 rounded-lg bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full py-2.5 rounded-lg bg-[#f29a8f] text-white text-sm font-medium cursor-pointer hover:bg-[#e88d82] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Pay {formatMoney(total)}
               </button>
@@ -3232,7 +3233,7 @@ function BillingPage({
             onClick={() => setChildFilter("all")}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
               childFilter === "all"
-                ? "bg-[#4a7c59]/8 text-gray-800"
+                ? "bg-[#f29a8f]/8 text-gray-800"
                 : "text-gray-500 hover:bg-gray-50"
             }`}
           >
@@ -3256,7 +3257,7 @@ function BillingPage({
                 onClick={() => setChildFilter(cid)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
                   active
-                    ? "bg-[#4a7c59]/8 text-gray-800"
+                    ? "bg-[#f29a8f]/8 text-gray-800"
                     : "text-gray-500 hover:bg-gray-50"
                 }`}
               >
@@ -3303,7 +3304,7 @@ function BillingPage({
             {childFilter === "all" && pending.length > 0 ? (
               <button
                 onClick={() => onOpenCheckout(pending.map((t) => t.id))}
-                className="px-4 py-2 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4f] transition-colors cursor-pointer shadow-sm"
+                className="px-4 py-2 rounded-xl bg-[#f29a8f] text-white text-sm font-semibold hover:bg-[#e88d82] transition-colors cursor-pointer shadow-sm"
               >
                 Pay All
               </button>
@@ -3406,7 +3407,7 @@ function BillingPage({
                           e.stopPropagation();
                           handlePayClick(t);
                         }}
-                        className="px-3.5 py-2 rounded-md bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors shrink-0"
+                        className="px-3.5 py-2 rounded-md bg-[#f29a8f] text-white text-sm font-medium cursor-pointer hover:bg-[#e88d82] transition-colors shrink-0"
                       >
                         {isHomeschool ? "Select days" : "Pay"}
                       </button>
@@ -3440,7 +3441,7 @@ function BillingPage({
                 title={m.label}
                 onClick={() => setSelectedHistoryMonthId(m.id)}
                 className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border px-3.5 py-3 min-w-[68px] min-h-[64px] cursor-pointer transition-all ${
-                  isSelected ? "ring-2 ring-[#4a7c59] ring-offset-1" : ""
+                  isSelected ? "ring-2 ring-[#f29a8f] ring-offset-1" : ""
                 } ${
                   status === "paid"
                     ? "border-emerald-100 bg-emerald-50"
@@ -3636,7 +3637,7 @@ function MessagesPage({
                     {c.name}
                   </p>
                   {c.unread > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-[#4a7c59] text-white text-[10px] flex items-center justify-center flex-shrink-0">
+                    <span className="w-4 h-4 rounded-full bg-[#f29a8f] text-white text-[10px] flex items-center justify-center flex-shrink-0">
                       {c.unread}
                     </span>
                   )}
@@ -3675,7 +3676,7 @@ function MessagesPage({
               className={`flex ${m.senderId === "parent" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${m.senderId === "parent" ? "bg-[#4a7c59] text-white rounded-br-sm" : "bg-gray-100 text-gray-700 rounded-bl-sm"}`}
+                className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${m.senderId === "parent" ? "bg-[#f29a8f] text-white rounded-br-sm" : "bg-gray-100 text-gray-700 rounded-bl-sm"}`}
               >
                 <p>{m.text}</p>
                 <p
@@ -3694,12 +3695,12 @@ function MessagesPage({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMsg()}
             placeholder="Type a message..."
-            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#4a7c59]"
+            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#f29a8f]"
           />
           <button
             data-tour-id="messages-send"
             onClick={sendMsg}
-            className="p-2 rounded-xl bg-[#4a7c59] text-white cursor-pointer hover:bg-[#3d6b4f] transition-colors"
+            className="p-2 rounded-xl bg-[#f29a8f] text-white cursor-pointer hover:bg-[#e88d82] transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>
@@ -3749,7 +3750,7 @@ function CalendarPage({
               <button
                 key={p.val}
                 onClick={() => setProgram(p.val)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${program === p.val ? "bg-[#4a7c59] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${program === p.val ? "bg-[#f29a8f] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
               >
                 {p.label}
               </button>
@@ -4026,7 +4027,7 @@ function VolunteerPage() {
   return (
     <div className="flex flex-col items-center justify-center py-16">
       <div className="w-16 h-16 rounded-full bg-sage-50 flex items-center justify-center mb-4">
-        <Heart className="w-7 h-7 text-[#4a7c59]" />
+        <Heart className="w-7 h-7 text-[#f29a8f]" />
       </div>
       <h3 className="font-semibold text-gray-700 text-lg mb-2">
         No openings right now
@@ -4035,7 +4036,7 @@ function VolunteerPage() {
         We'll notify you when volunteer opportunities become available. Thank
         you for your willingness to support our community!
       </p>
-      <button className="mt-6 px-5 py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-medium cursor-pointer hover:bg-[#3d6b4f] transition-colors">
+      <button className="mt-6 px-5 py-2.5 rounded-xl bg-[#f29a8f] text-white text-sm font-medium cursor-pointer hover:bg-[#e88d82] transition-colors">
         Notify Me
       </button>
     </div>
@@ -4061,7 +4062,7 @@ function EmergencyContactsPage({ activeChildId }: { activeChildId: ChildId }) {
             {c.label}
           </p>
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-[#4a7c59] font-semibold text-sm">
+            <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-[#f29a8f] font-semibold text-sm">
               {c.name[0]}
             </div>
             <div>
@@ -4225,8 +4226,8 @@ function HomeOnboardingSidebar({ onClose }: { onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#4a7c59]/10 flex items-center justify-center flex-shrink-0">
-              <ClipboardCheck className="w-4 h-4 text-[#4a7c59]" />
+            <div className="w-7 h-7 rounded-lg bg-[#f29a8f]/10 flex items-center justify-center flex-shrink-0">
+              <ClipboardCheck className="w-4 h-4 text-[#f29a8f]" />
             </div>
             <p className="text-sm font-semibold text-gray-800">Onboarding Checklist</p>
           </div>
@@ -4286,7 +4287,7 @@ function HomeOnboardingSidebar({ onClose }: { onClose: () => void }) {
         <div className="px-5 py-4 border-t border-gray-100">
           <p className="text-xs text-gray-400 text-center">
             Go to{" "}
-            <span className="text-[#4a7c59] font-medium">Enrollment</span>{" "}
+            <span className="text-[#f29a8f] font-medium">Enrollment</span>{" "}
             to complete remaining steps.
           </p>
         </div>
@@ -4412,7 +4413,7 @@ function HomeDashboard({
                     <button
                       data-tour-id={child.id === "emma" ? "home-attendance-emma" : undefined}
                       onClick={() => setAttendanceChildId(child.id)}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold font-body text-[#4a7c59] bg-[#EEF5EF] rounded-xl hover:bg-[#ddeede] transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold font-body text-[#f29a8f] bg-[#EEF5EF] rounded-xl hover:bg-[#ddeede] transition-colors cursor-pointer"
                     >
                       <ClipboardList className="w-3.5 h-3.5" />
                       Attendance
@@ -4437,13 +4438,13 @@ function HomeDashboard({
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-full bg-[#4a7c59]/15 flex items-center justify-center">
-                    <Gift className="w-3.5 h-3.5 text-[#4a7c59]" strokeWidth={1.5} />
+                  <div className="w-7 h-7 rounded-full bg-[#f29a8f]/15 flex items-center justify-center">
+                    <Gift className="w-3.5 h-3.5 text-[#f29a8f]" strokeWidth={1.5} />
                   </div>
                   <h2 className="text-base font-heading font-semibold text-gray-800">
                     Refer a Family
                   </h2>
-                  <span className="bg-[#4a7c59] text-white text-xs font-body px-2 py-0.5 rounded-full font-medium">
+                  <span className="bg-[#f29a8f] text-white text-xs font-body px-2 py-0.5 rounded-full font-medium">
                     $150 gift card
                   </span>
                 </div>
@@ -4477,7 +4478,7 @@ function HomeDashboard({
                   <button
                     onClick={copyReferralLink}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold font-body transition-colors whitespace-nowrap cursor-pointer ${
-                      copied ? "bg-green-600 text-white" : "bg-[#4a7c59] text-white hover:bg-[#3d6b4a]"
+                      copied ? "bg-green-600 text-white" : "bg-[#f29a8f] text-white hover:bg-[#e88d82]"
                     }`}
                   >
                     {copied ? (
@@ -4525,20 +4526,20 @@ function HomeDashboard({
             <button
               data-tour-id="home-checklist-prompt"
               onClick={() => setOnboardingOpen(true)}
-              className="w-full flex items-center gap-3 bg-[#4a7c59]/10 hover:bg-[#4a7c59]/15 border border-[#4a7c59]/20 rounded-2xl px-4 py-3 transition-colors text-left cursor-pointer"
+              className="w-full flex items-center gap-3 bg-[#f29a8f]/10 hover:bg-[#f29a8f]/15 border border-[#f29a8f]/20 rounded-2xl px-4 py-3 transition-colors text-left cursor-pointer"
             >
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#4a7c59]/15 flex items-center justify-center">
-                <ClipboardCheck className="w-4 h-4 text-[#4a7c59]" />
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#f29a8f]/15 flex items-center justify-center">
+                <ClipboardCheck className="w-4 h-4 text-[#f29a8f]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold font-body text-[#4a7c59] leading-snug">
+                <p className="text-sm font-semibold font-body text-[#f29a8f] leading-snug">
                   Complete your onboarding
                 </p>
-                <p className="text-xs font-body text-[#4a7c59]/70 mt-0.5">
+                <p className="text-xs font-body text-[#f29a8f]/70 mt-0.5">
                   Finish setting up your account
                 </p>
               </div>
-              <ArrowRight className="w-4 h-4 text-[#4a7c59]/60 flex-shrink-0" />
+              <ArrowRight className="w-4 h-4 text-[#f29a8f]/60 flex-shrink-0" />
             </button>
           </section>
 
@@ -4550,7 +4551,7 @@ function HomeDashboard({
               </h2>
               <button
                 onClick={() => onTabChange("calendar")}
-                className="flex items-center gap-1 text-xs font-body text-[#4a7c59] hover:underline cursor-pointer"
+                className="flex items-center gap-1 text-xs font-body text-[#f29a8f] hover:underline cursor-pointer"
               >
                 View all <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -4604,7 +4605,7 @@ function HomeDashboard({
               </h2>
               <button
                 onClick={() => onTabChange("billing")}
-                className="flex items-center gap-1 text-xs font-body text-[#4a7c59] hover:underline cursor-pointer"
+                className="flex items-center gap-1 text-xs font-body text-[#f29a8f] hover:underline cursor-pointer"
               >
                 View all <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -4631,7 +4632,7 @@ function HomeDashboard({
                   </div>
                   <span
                     className="inline-flex items-center gap-1 self-start px-3 py-1.5 rounded-full text-xs font-semibold text-white"
-                    style={{ backgroundColor: "#4a7c59" }}
+                    style={{ backgroundColor: "#f29a8f" }}
                   >
                     View billing <ArrowRight className="w-3 h-3" />
                   </span>
@@ -4738,8 +4739,8 @@ function DemoHeader({
       {/* Logo — left */}
       <div className="flex items-center gap-2 flex-1">
         <img
-          src="/images/Logo.png"
-          alt="SchoolLayer"
+          src={SAGEFIELD_PARENT_LOGO.src}
+          alt={SAGEFIELD_PARENT_LOGO.alt}
           className="h-7 w-auto object-contain"
         />
         {/* <span className="text-sm font-semibold text-gray-700">SchoolLayer</span> */}
@@ -4752,7 +4753,7 @@ function DemoHeader({
             key={id}
             data-tour-id={`nav-${id}`}
             onClick={() => onTabChange(id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap ${activeTab === id ? "text-[#4a7c59] bg-[#4a7c59]/8 font-semibold" : "text-gray-500 hover:text-[#4a7c59] hover:bg-gray-50"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap ${activeTab === id ? "text-[#f29a8f] bg-[#f29a8f]/8 font-semibold" : "text-gray-500 hover:text-[#f29a8f] hover:bg-gray-50"}`}
           >
             <Icon className="w-3.5 h-3.5" />
             {label}
@@ -4761,7 +4762,7 @@ function DemoHeader({
         <div className="relative" ref={moreRef}>
           <button
             onClick={() => setMoreOpen((v) => !v)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#4a7c59] hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#f29a8f] hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
           >
             More{" "}
             <ChevronDown
@@ -4777,7 +4778,7 @@ function DemoHeader({
                     onTabChange(id);
                     setMoreOpen(false);
                   }}
-                  className={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${activeTab === id ? "text-[#4a7c59] bg-sage-50 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-[#4a7c59]"}`}
+                  className={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${activeTab === id ? "text-[#f29a8f] bg-sage-50 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-[#f29a8f]"}`}
                 >
                   <Icon className="w-4 h-4" />
                   {label}
@@ -4819,7 +4820,7 @@ function ChildTabStrip({
               onClick={() => onSwitch(child.id)}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
                 active
-                  ? "bg-[#4a7c59]/8 text-gray-800"
+                  ? "bg-[#f29a8f]/8 text-gray-800"
                   : "text-gray-500 hover:bg-gray-50"
               }`}
             >
@@ -4833,7 +4834,7 @@ function ChildTabStrip({
             </button>
           );
         })}
-        <button className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[#4a7c59] font-medium border border-dashed border-[#4a7c59]/30 hover:bg-sage-50 transition-colors cursor-pointer mt-1">
+        <button className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[#f29a8f] font-medium border border-dashed border-[#f29a8f]/30 hover:bg-sage-50 transition-colors cursor-pointer mt-1">
           <Plus className="w-3.5 h-3.5 shrink-0" /> New Application
         </button>
       </aside>
@@ -4858,7 +4859,7 @@ function ChildTabStrip({
           {child.name}
         </button>
       ))}
-      <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-[#4a7c59] font-medium border border-dashed border-[#4a7c59]/30 hover:bg-sage-50 transition-colors cursor-pointer">
+      <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-[#f29a8f] font-medium border border-dashed border-[#f29a8f]/30 hover:bg-sage-50 transition-colors cursor-pointer">
         <Plus className="w-3.5 h-3.5" /> New Application
       </button>
     </div>
@@ -4872,7 +4873,7 @@ const TOUR_RESUME_MS = 1500;
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 
-export default function ParentDashboardDemo({ initialTab = "home", disableTour = false, hideNav = false }: { initialTab?: NavTab; disableTour?: boolean; hideNav?: boolean }) {
+export default function SagefieldParentDashboardDemo({ initialTab = "home", disableTour = false, hideNav = false }: { initialTab?: NavTab; disableTour?: boolean; hideNav?: boolean }) {
   const [activeNavTab, setActiveNavTab] = useState<NavTab>(initialTab);
   const [activeChildId, setActiveChildId] = useState<ChildId>("emma");
   const [openModal, setOpenModal] = useState<ModalId>(null);
@@ -5573,7 +5574,7 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
                       {/* All Posts */}
                       <button
                         onClick={() => { setFeedFilterClassId(null); setFeedFilterTeacherName(null); }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${!feedFilterClassId && !feedFilterTeacherName ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${!feedFilterClassId && !feedFilterTeacherName ? "bg-[#f29a8f]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
                       >
                         <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
                           <span className="text-[10px] text-gray-500 font-bold">All</span>
@@ -5588,7 +5589,7 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
                           <div key={cls.id}>
                             <button
                               onClick={() => { setFeedFilterClassId(cls.id); setFeedFilterTeacherName(null); }}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${isClassActive ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${isClassActive ? "bg-[#f29a8f]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
                             >
                               <div
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
@@ -5606,7 +5607,7 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
                                   <button
                                     key={t.name}
                                     onClick={() => { setFeedFilterClassId(cls.id); setFeedFilterTeacherName(t.name); }}
-                                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors cursor-pointer ${isTeacherActive ? "bg-[#4a7c59]/8 text-gray-700" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors cursor-pointer ${isTeacherActive ? "bg-[#f29a8f]/8 text-gray-700" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
                                   >
                                     <div
                                       className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold shrink-0"
@@ -5627,7 +5628,7 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
                       <div className="mt-3 pt-3 border-t border-gray-100">
                         <button
                           onClick={() => { setFeedFilterClassId("admin"); setFeedFilterTeacherName(null); }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterClassId === "admin" ? "bg-[#4a7c59]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterClassId === "admin" ? "bg-[#f29a8f]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
                         >
                           <div className="w-6 h-6 rounded-full bg-[#4A6354] flex items-center justify-center shrink-0">
                             <span className="text-[9px] text-white font-bold">SF</span>
@@ -5765,7 +5766,7 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
                                 onChange={(e) => setFeedCommentInputs({ ...feedCommentInputs, [feedSelectedPost.id]: e.target.value })}
                                 onKeyDown={(e) => e.key === "Enter" && addFeedComment(feedSelectedPost.id)}
                                 placeholder="Add a comment..."
-                                className="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#4a7c59]"
+                                className="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#f29a8f]"
                               />
                             </div>
                           </div>
