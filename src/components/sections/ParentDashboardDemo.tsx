@@ -841,7 +841,7 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
       name: "Mud Kitchen Office",
       relationship: "School",
       phone: "(555) 200-1234",
-      email: "hello@mudkitchen.co",
+      email: "julius@trymudkitchen.com",
     },
     {
       label: "Parent — Mom",
@@ -871,7 +871,7 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
       name: "Mud Kitchen Office",
       relationship: "School",
       phone: "(555) 200-1234",
-      email: "hello@mudkitchen.co",
+      email: "julius@trymudkitchen.com",
     },
     {
       label: "Parent — Mom",
@@ -901,7 +901,7 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
       name: "Mud Kitchen Office",
       relationship: "School",
       phone: "(555) 200-1234",
-      email: "hello@mudkitchen.co",
+      email: "julius@trymudkitchen.com",
     },
     {
       label: "Parent — Mom",

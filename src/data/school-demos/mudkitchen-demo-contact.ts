@@ -4,7 +4,7 @@ export const mudkitchenDemoContact = {
   subheading:
     "Share feedback, ask about features, or tell us what you'd want to see next for your school.",
   contact: {
-    email: "hello@mudkitchen.co",
+    email: "julius@trymudkitchen.com",
     blurb: "We typically respond within one business day.",
   },
   form: {
