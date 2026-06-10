@@ -60,10 +60,7 @@ export default function SagefieldWhyItWorked() {
                   and support families well from the start.&rdquo;
                 </p>
                 <footer className="text-sm text-text-faint mt-4 font-secondary">
-                  — Sabrina, Co-Founder, Sage Field{' '}
-                  <span className="text-[11px] text-text-faint italic">
-                    [placeholder — replace with Sabrina&apos;s actual voice before publishing]
-                  </span>
+                  — Sabrina, Co-Founder, Sage Field
                 </footer>
               </blockquote>
             </FadeInView>

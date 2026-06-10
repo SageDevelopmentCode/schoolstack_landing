@@ -51,6 +51,7 @@ const PAIRS = [
     logo: "/images/competitors/GoogleForms.png",
     feature: "Enrollment",
     icon: UserPlus,
+    iconColor: "#2563EB",
     outer: { x: 500, y: 100 },
     inner: { x: 500, y: 235 },
     delay: 0,
@@ -60,6 +61,7 @@ const PAIRS = [
     logo: "/images/competitors/Venmo.png",
     feature: "Payments",
     icon: CreditCard,
+    iconColor: "#059669",
     outer: { x: 740, y: 168 },
     inner: { x: 582, y: 255 },
     delay: 0.2,
@@ -69,6 +71,7 @@ const PAIRS = [
     logo: "/images/competitors/Paypal.svg",
     feature: "Billing",
     icon: Receipt,
+    iconColor: "#7C3AED",
     outer: { x: 876, y: 253 },
     inner: { x: 633, y: 308 },
     delay: 0.4,
@@ -78,6 +81,7 @@ const PAIRS = [
     logo: "/images/competitors/Gmail.png",
     feature: "Messaging",
     icon: MessageSquare,
+    iconColor: "#0284C7",
     outer: { x: 876, y: 427 },
     inner: { x: 633, y: 372 },
     delay: 0.6,
@@ -87,6 +91,7 @@ const PAIRS = [
     logo: "/images/competitors/DocuSign.png",
     feature: "Contracts",
     icon: FilePen,
+    iconColor: "#4F46E5",
     outer: { x: 740, y: 512 },
     inner: { x: 582, y: 425 },
     delay: 0.8,
@@ -96,6 +101,7 @@ const PAIRS = [
     logo: "/images/competitors/Calendly.webp",
     feature: "Calendar",
     icon: CalendarDays,
+    iconColor: "#DC2626",
     outer: { x: 500, y: 580 },
     inner: { x: 500, y: 445 },
     delay: 1.0,
@@ -105,6 +111,7 @@ const PAIRS = [
     logo: "/images/competitors/GoogleDrive.png",
     feature: "Files",
     icon: FolderOpen,
+    iconColor: "#D97706",
     outer: { x: 260, y: 512 },
     inner: { x: 418, y: 425 },
     delay: 0.8,
@@ -114,6 +121,7 @@ const PAIRS = [
     logo: "/images/competitors/GoogleDocs.png",
     feature: "Staff",
     icon: Users,
+    iconColor: "#0D9488",
     outer: { x: 124, y: 427 },
     inner: { x: 367, y: 372 },
     delay: 0.6,
@@ -123,6 +131,7 @@ const PAIRS = [
     logo: "/images/competitors/GoogleSheets.png",
     feature: "Reports",
     icon: BarChart2,
+    iconColor: "#4338CA",
     outer: { x: 124, y: 253 },
     inner: { x: 367, y: 308 },
     delay: 0.4,
@@ -132,6 +141,7 @@ const PAIRS = [
     logo: "/images/competitors/Wix.png",
     feature: "Website",
     icon: Globe,
+    iconColor: "#A05C45",
     outer: { x: 260, y: 168 },
     inner: { x: 418, y: 255 },
     delay: 0.2,
@@ -319,7 +329,11 @@ export default function PainSection() {
                           delay: p.delay + 0.7,
                         }}
                       >
-                        <p.icon size={9} className="shrink-0 md:w-[11px] md:h-[11px]" />
+                        <p.icon
+                          size={9}
+                          className="shrink-0 md:w-[11px] md:h-[11px]"
+                          style={{ color: p.iconColor }}
+                        />
                         {p.feature}
                       </motion.span>
                     </div>

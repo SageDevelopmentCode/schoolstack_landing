@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FadeInView } from '@/components/ui/FadeInView'
 import { Badge } from '@/components/ui/Badge'
@@ -66,9 +67,9 @@ export default function SagefieldBeforeAfter() {
           </FadeInView>
           <FadeInView delay={0.08}>
             <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.6rem)] leading-[1.07] text-text mt-5">
-              What changed when the{' '}
+              What changed with{' '}
               <em style={{ color: '#A05C45', fontStyle: 'italic' }}>
-                platform came together.
+                MudKitchen.
               </em>
             </h2>
           </FadeInView>
@@ -83,36 +84,54 @@ export default function SagefieldBeforeAfter() {
 
         <FadeInView delay={0.18}>
           {/* Toggle */}
-          <div className="inline-flex items-center rounded-xl border border-border bg-surface p-1 mb-8">
+          <div className="inline-flex items-center rounded-xl border border-border bg-surface-soft p-1 mb-8">
             <button
               onClick={() => setShowWith(false)}
-              className="relative px-5 h-9 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200 cursor-pointer"
+              className="relative isolate px-5 h-9 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200 cursor-pointer"
               style={{ color: !showWith ? '#2E4A3C' : '#6D6257' }}
             >
               {!showWith && (
                 <motion.div
                   layoutId="toggle-pill"
-                  className="absolute inset-0 rounded-lg z-[-1]"
-                  style={{ backgroundColor: '#EDE0CE', border: '1px solid #DDD0BE' }}
+                  className="absolute inset-0 rounded-lg z-0"
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #DDD0BE',
+                    boxShadow: '0 1px 3px rgba(46, 74, 60, 0.1), 0 1px 2px rgba(46, 74, 60, 0.06)',
+                  }}
                   transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 />
               )}
-              Without an operating system
+              <span className="relative z-10">Without an operating system</span>
             </button>
             <button
               onClick={() => setShowWith(true)}
-              className="relative px-5 h-9 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200 cursor-pointer"
+              className="relative isolate px-5 h-9 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200 cursor-pointer"
               style={{ color: showWith ? '#2E4A3C' : '#6D6257' }}
             >
               {showWith && (
                 <motion.div
                   layoutId="toggle-pill"
-                  className="absolute inset-0 rounded-lg z-[-1]"
-                  style={{ backgroundColor: '#C5D5B8', border: '1px solid #A6B89A' }}
+                  className="absolute inset-0 rounded-lg z-0"
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #A6B89A',
+                    boxShadow: '0 1px 3px rgba(46, 74, 60, 0.1), 0 1px 2px rgba(46, 74, 60, 0.06)',
+                  }}
                   transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 />
               )}
-              With one platform
+              <span className="relative z-10 flex items-center gap-2">
+                <Image
+                  src="/images/Logo.png"
+                  alt=""
+                  width={18}
+                  height={18}
+                  className="object-contain shrink-0"
+                  aria-hidden
+                />
+                With MudKitchen
+              </span>
             </button>
           </div>
 
@@ -138,7 +157,7 @@ export default function SagefieldBeforeAfter() {
                   className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: showWith ? '#4a7c59' : '#A05C45' }}
                 />
-                {showWith ? 'With one platform' : 'Without an operating system'}
+                {showWith ? 'With MudKitchen' : 'Without an operating system'}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

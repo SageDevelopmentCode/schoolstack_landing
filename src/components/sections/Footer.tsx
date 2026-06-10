@@ -1,98 +1,71 @@
 import Link from "next/link";
+import { Info, Layers, Users } from "lucide-react";
 
-const PRODUCT_LINKS = [
-  "School Website",
-  "Enrollment",
-  "Admin Portal",
-  "Parent Portal",
-  "Teacher Portal",
-  "Payments",
-  "Leads CRM",
-];
-
-const COMPANY_LINKS = [
-  { label: "About", href: "#about" },
-  { label: "Contact", href: "#" },
-  { label: "Book a Demo", href: "/get-started" },
-];
-
-const LEGAL_LINKS = [
-  { label: "Privacy Policy", href: "#" },
-  { label: "Terms of Service", href: "#" },
+const NAV_LINKS = [
+  { label: "About", href: "#about", icon: Info },
+  { label: "Product", href: "#product", icon: Layers },
+  { label: "Customers", href: "/customers", icon: Users },
 ];
 
 export default function Footer() {
   return (
     <footer className="bg-accent py-16">
       <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
-        {/* Main grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 lg:gap-16">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-10">
           {/* Brand */}
-          <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="font-display text-[17px] text-white/90">
-              MudKitchen
+          <div>
+            <Link href="/" className="flex items-center gap-2 shrink-0">
+              <img
+                src="/images/Logo.png"
+                alt="MudKitchen"
+                className="h-10 w-auto object-contain"
+              />
+              <span className="font-display font-semibold text-[20px] text-white/90">
+                MudKitchen
+              </span>
             </Link>
-            <p className="text-sm text-white/50 mt-2 max-w-[200px] leading-relaxed">
+            <p className="text-sm text-white/50 mt-3 max-w-[240px] leading-relaxed">
               Software built to run a real microschool.
             </p>
           </div>
 
-          {/* Product */}
-          <div>
-            <h4 className="text-[11px] font-medium uppercase tracking-widest text-white/35 mb-4">
-              Product
-            </h4>
-            <ul className="space-y-2">
-              {PRODUCT_LINKS.map((link) => (
-                <li key={link}>
-                  <a
-                    href="#"
-                    className="text-sm text-white/55 hover:text-white/90 transition-colors duration-150 block"
-                  >
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 className="text-[11px] font-medium uppercase tracking-widest text-white/35 mb-4">
-              Company
-            </h4>
-            <ul className="space-y-2">
-              {COMPANY_LINKS.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-sm text-white/55 hover:text-white/90 transition-colors duration-150 block"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h4 className="text-[11px] font-medium uppercase tracking-widest text-white/35 mb-4">
-              Legal
-            </h4>
-            <ul className="space-y-2">
-              {LEGAL_LINKS.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-sm text-white/55 hover:text-white/90 transition-colors duration-150 block"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Nav links */}
+          <nav
+            className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-4 sm:gap-8"
+            aria-label="Footer navigation"
+          >
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="flex items-center gap-1.5 text-sm font-medium text-white/55 hover:text-white/90 transition-colors duration-150"
+              >
+                <link.icon size={14} className="shrink-0" />
+                {link.label}
+              </a>
+            ))}
+            <a
+              href="/get-started"
+              className="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:bg-white/15 transition-all duration-200"
+            >
+              Book a Demo
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+          </nav>
         </div>
 
         {/* Bottom bar */}
