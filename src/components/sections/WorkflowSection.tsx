@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { ArrowRight, Check } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ClipboardCheck,
+  ClipboardList,
+  Globe,
+  Home,
+  LayoutDashboard,
+  UserPlus,
+  type LucideIcon,
+} from "lucide-react";
 import { FadeInView } from "@/components/ui/FadeInView";
 
 type Step = {
@@ -193,19 +203,254 @@ function Step1TransitionVisual() {
   );
 }
 
-const SETUP_ITEMS: { label: string; status: "Ready" | "Imported" | "In progress" }[] = [
-  { label: "Enrollment form", status: "Ready" },
-  { label: "Student records", status: "Imported" },
-  { label: "Tuition billing", status: "In progress" },
-  { label: "Parent portal", status: "Ready" },
-  { label: "Staff access", status: "Imported" },
+type SetupStatus = "Ready" | "Imported" | "In progress";
+
+type SetupMilestone = {
+  label: string;
+  description: string;
+  details?: string[];
+  status: SetupStatus;
+  icon: LucideIcon;
+};
+
+const SETUP_MILESTONES: SetupMilestone[] = [
+  {
+    label: "Branded school website",
+    description:
+      "Programs, philosophy, team pages, and enrollment — all on your school's site.",
+    status: "In progress",
+    icon: Globe,
+  },
+  {
+    label: "Enrollment forms",
+    description:
+      "Application forms and document checklists linked straight to the parent portal.",
+    status: "Ready",
+    icon: ClipboardCheck,
+  },
+  {
+    label: "Parent dashboard",
+    description:
+      "Families enroll, pay tuition, message staff, and stay updated in one place.",
+    details: ["Enrollment & e-signatures", "Billing & payments", "Messages & calendar"],
+    status: "Ready",
+    icon: Home,
+  },
+  {
+    label: "Admin dashboard",
+    description:
+      "Admissions, student records, programs, staff, tuition, and finances — set up for your school.",
+    details: ["Admissions & flows", "My School setup", "Finances & marketing"],
+    status: "In progress",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Teacher dashboard",
+    description:
+      "Teachers manage students, attendance, hours, messaging, and payroll in a focused workspace.",
+    details: ["Students & attendance", "Hours & payroll", "Messages & feed"],
+    status: "In progress",
+    icon: ClipboardList,
+  },
+  {
+    label: "Team onboarding",
+    description:
+      "We train your admins and teachers so everyone is confident before families log in.",
+    status: "Imported",
+    icon: UserPlus,
+  },
 ];
 
-const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+const STATUS_STYLE: Record<SetupStatus, { bg: string; color: string }> = {
   Ready: { bg: "rgba(74,170,100,0.2)", color: "#7AE2A0" },
   Imported: { bg: "rgba(160,92,69,0.25)", color: "#E8D5C8" },
   "In progress": { bg: "rgba(245,208,128,0.15)", color: "#F5D080" },
 };
+
+const ICON_TILE_STYLE: Record<SetupStatus, { bg: string; border: string; color: string }> = {
+  Ready: { bg: "rgba(74,170,100,0.15)", border: "rgba(74,170,100,0.35)", color: "#7AE2A0" },
+  Imported: { bg: "rgba(160,92,69,0.18)", border: "rgba(160,92,69,0.35)", color: "#E8D5C8" },
+  "In progress": { bg: "rgba(245,208,128,0.12)", border: "rgba(245,208,128,0.35)", color: "#F5D080" },
+};
+
+const ROW_H = 126;
+const ROW_GAP = 10;
+const ROW_STEP = ROW_H + ROW_GAP;
+const SETUP_TICK_MS = 1400;
+const SETUP_TRANSITION_S = 0.4;
+
+function SetupMilestoneCard({
+  milestone,
+  isActive,
+}: {
+  milestone: SetupMilestone;
+  isActive: boolean;
+}) {
+  const Icon = milestone.icon;
+  const tile = ICON_TILE_STYLE[milestone.status];
+
+  return (
+    <motion.div
+      animate={{
+        opacity: isActive ? 1 : 0.38,
+        scale: isActive ? 1 : 0.98,
+      }}
+      transition={{ duration: SETUP_TRANSITION_S, ease: [0.16, 1, 0.3, 1] }}
+      className="w-full shrink-0 rounded-lg px-4 py-3.5 flex items-center gap-3.5"
+      style={{
+        height: ROW_H,
+        backgroundColor: isActive ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.04)",
+        border: isActive
+          ? "1px solid rgba(160,92,69,0.45)"
+          : "1px solid rgba(255,255,255,0.06)",
+        boxShadow: isActive ? "0 6px 20px rgba(0,0,0,0.15)" : "none",
+      }}
+    >
+      <div
+        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+        style={{
+          backgroundColor: tile.bg,
+          border: `1px solid ${tile.border}`,
+        }}
+      >
+        <Icon size={18} style={{ color: tile.color }} />
+      </div>
+
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+        <div className="flex items-start justify-between gap-2">
+          <p
+            className="text-[13px] font-secondary font-semibold leading-snug"
+            style={{ color: "rgba(247,241,231,0.85)" }}
+          >
+            {milestone.label}
+          </p>
+          <span
+            className="text-[10px] font-secondary font-medium px-2.5 py-0.5 rounded-full shrink-0"
+            style={{
+              backgroundColor: STATUS_STYLE[milestone.status].bg,
+              color: STATUS_STYLE[milestone.status].color,
+            }}
+          >
+            {milestone.status}
+          </span>
+        </div>
+        <p
+          className="text-[11px] font-secondary leading-snug line-clamp-1"
+          style={{ color: "rgba(247,241,231,0.5)" }}
+        >
+          {milestone.description}
+        </p>
+        {milestone.details && (
+          <div className="flex flex-wrap gap-1.5">
+            {milestone.details.map((detail) => (
+              <span
+                key={detail}
+                className="text-[9px] font-secondary px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.06)",
+                  color: "rgba(247,241,231,0.4)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                {detail}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function Step2SetupProgress() {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const loopMilestones = useMemo(
+    () => [...SETUP_MILESTONES, ...SETUP_MILESTONES],
+    [],
+  );
+  const cycleLength = SETUP_MILESTONES.length;
+  const [index, setIndex] = useState(0);
+  const [instantScroll, setInstantScroll] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(0);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const updateHeight = () => setViewportHeight(el.offsetHeight);
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIndex((i) => i + 1);
+    }, SETUP_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (index < cycleLength) return;
+    const resetId = setTimeout(() => {
+      setInstantScroll(true);
+      setIndex((i) => i - cycleLength);
+      requestAnimationFrame(() => setInstantScroll(false));
+    }, SETUP_TRANSITION_S * 1000);
+    return () => clearTimeout(resetId);
+  }, [index, cycleLength]);
+
+  const focusOffset = index * ROW_STEP;
+  const trackY =
+    viewportHeight > 0 ? viewportHeight / 2 - ROW_H / 2 - focusOffset : 0;
+  const viewportVisibleH = ROW_H * 3 + ROW_GAP * 2;
+
+  return (
+    <div
+      ref={viewportRef}
+      className="relative w-full overflow-hidden px-6 pb-8 lg:px-8 lg:pb-10"
+      style={{ height: viewportVisibleH }}
+    >
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(46,74,60,0.85) 0%, transparent 100%)",
+        }}
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(46,74,60,0.85) 0%, transparent 100%)",
+        }}
+        aria-hidden="true"
+      />
+
+      <motion.div
+        animate={{ y: trackY }}
+        transition={
+          instantScroll
+            ? { duration: 0 }
+            : { duration: SETUP_TRANSITION_S, ease: [0.16, 1, 0.3, 1] }
+        }
+        className="flex flex-col w-full"
+        style={{ gap: ROW_GAP }}
+      >
+        {loopMilestones.map((milestone, i) => (
+          <SetupMilestoneCard
+            key={`${milestone.label}-${i}`}
+            milestone={milestone}
+            isActive={i === index}
+          />
+        ))}
+      </motion.div>
+    </div>
+  );
+}
 
 const PROGRESS_STEPS = ["Kickoff", "Setup", "Review", "Go Live"];
 const LAUNCH_ITEMS = ["Team walkthrough complete", "Families notified", "School is live"];
@@ -215,62 +460,7 @@ const STEP_PREVIEWS = [
   <Step1TransitionVisual key="show" />,
 
   /* 02 — Setup progress */
-  <div key="build" className="flex items-center justify-center w-full p-6 lg:p-8">
-    <div className="w-full max-w-[360px]">
-      <p
-        className="text-[10px] uppercase tracking-widest font-secondary font-semibold mb-4"
-        style={{ color: "rgba(247,241,231,0.35)" }}
-      >
-        Setup progress
-      </p>
-      <div className="space-y-2">
-        {SETUP_ITEMS.map((item) => (
-          <div
-            key={item.label}
-            className="flex items-center justify-between rounded-md px-3.5 py-2.5"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
-                style={{
-                  backgroundColor:
-                    item.status !== "In progress"
-                      ? "rgba(74,170,100,0.2)"
-                      : "rgba(245,208,128,0.12)",
-                  border: `1px solid ${item.status !== "In progress" ? "rgba(74,170,100,0.4)" : "rgba(245,208,128,0.35)"}`,
-                }}
-              >
-                {item.status !== "In progress" ? (
-                  <Check size={9} style={{ color: "#7AE2A0" }} />
-                ) : (
-                  <div
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: "#F5D080" }}
-                  />
-                )}
-              </div>
-              <span className="text-[12px] font-secondary" style={{ color: "rgba(247,241,231,0.65)" }}>
-                {item.label}
-              </span>
-            </div>
-            <span
-              className="text-[10px] font-secondary font-medium px-2.5 py-0.5 rounded-full shrink-0"
-              style={{
-                backgroundColor: STATUS_STYLE[item.status].bg,
-                color: STATUS_STYLE[item.status].color,
-              }}
-            >
-              {item.status}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>,
+  <Step2SetupProgress key="build" />,
 
   /* 03 — Go live */
   <div key="live" className="flex items-center justify-center w-full p-6 lg:p-8">
@@ -507,7 +697,7 @@ export default function WorkflowSection() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                className={`flex items-center justify-center ${active === 0 ? "min-h-[360px] lg:min-h-[400px]" : "min-h-[260px]"}`}
+                className={`flex items-center justify-center ${active === 0 || active === 1 ? "min-h-[360px] lg:min-h-[400px]" : "min-h-[260px]"}`}
               >
                 {STEP_PREVIEWS[active]}
               </motion.div>
