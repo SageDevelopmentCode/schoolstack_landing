@@ -56,6 +56,93 @@ const heroFrameVariant = {
   },
 }
 
+function HeroDemoPanels({
+  demoTab,
+  loadedTabs,
+}: {
+  demoTab: HeroDemoTab
+  loadedTabs: Set<HeroDemoTab>
+}) {
+  return (
+    <>
+      {loadedTabs.has('parent') && (
+        <div
+          inert
+          className={`absolute inset-0 transition-opacity duration-200 ${
+            demoTab === 'parent' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+          }`}
+          aria-hidden={demoTab !== 'parent'}
+        >
+          <LazyParentDashboardDemo />
+        </div>
+      )}
+      {loadedTabs.has('teacher') && (
+        <div
+          inert
+          className={`absolute inset-0 transition-opacity duration-200 ${
+            demoTab === 'teacher' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+          }`}
+          aria-hidden={demoTab !== 'teacher'}
+        >
+          <LazyTeacherDashboardDemo />
+        </div>
+      )}
+      {loadedTabs.has('admin') && (
+        <div
+          inert
+          className={`absolute inset-0 transition-opacity duration-200 ${
+            demoTab === 'admin' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+          }`}
+          aria-hidden={demoTab !== 'admin'}
+        >
+          <LazyAdminDashboardDemo />
+        </div>
+      )}
+      <div
+        className="absolute inset-0 z-20 cursor-default"
+        aria-hidden="true"
+      />
+    </>
+  )
+}
+
+function HeroScaledDemoFrame({
+  t,
+  demoTab,
+  loadedTabs,
+  motionInitial,
+}: {
+  t: boolean
+  demoTab: HeroDemoTab
+  loadedTabs: Set<HeroDemoTab>
+  motionInitial: false | 'hidden'
+}) {
+  const frameClasses = `rounded-t-xl border border-b-0 overflow-hidden transition-colors duration-500 ${t ? 'border-[#2E4A3C]/10' : 'border-white/10'}`
+
+  const boxShadow = t
+    ? '0 0 0 1px rgba(30,59,42,0.15), 0 32px 80px rgba(30,59,42,0.12)'
+    : '0 0 0 1px rgba(30,59,42,0.25), 0 32px 80px rgba(30,59,42,0.45)'
+
+  return (
+    <motion.div
+      initial={motionInitial}
+      animate="visible"
+      variants={heroFrameVariant}
+      className="relative mt-4 max-lg:left-[50vw] max-lg:-translate-x-1/2 max-lg:w-[1100px] max-lg:h-[680px] lg:max-w-[1100px] lg:mx-auto"
+    >
+      <motion.div
+        className={`w-full h-full lg:h-[680px] ${frameClasses}`}
+        animate={{ boxShadow }}
+        transition={{ duration: 0.6, ease }}
+      >
+        <div className="relative w-full h-full">
+          <HeroDemoPanels demoTab={demoTab} loadedTabs={loadedTabs} />
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 export default function HeroSection() {
   const { skip } = useEntranceAnimation()
   const [demoTab, setDemoTab] = useState<HeroDemoTab>('parent')
@@ -74,7 +161,7 @@ export default function HeroSection() {
 
   return (
     <section
-      className="pt-[140px] pb-0 overflow-hidden"
+      className="pt-[140px] pb-0 overflow-x-visible overflow-y-hidden lg:overflow-hidden"
       style={{
         backgroundColor: t ? '#F7F1E7' : demoTab === 'admin' ? '#1a3327' : '#2E4A3C',
         transition: 'background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -87,7 +174,7 @@ export default function HeroSection() {
           initial={motionInitial}
           animate="visible"
           variants={illustrationVariant(1)}
-          className="absolute top-[-20px] right-[-200px] z-0 pointer-events-none select-none"
+          className="absolute top-[-20px] right-[-200px] z-0 pointer-events-none select-none hidden lg:block"
         >
           <Image
             src="/images/illustrations/HeroRight.png"
@@ -103,7 +190,7 @@ export default function HeroSection() {
           initial={motionInitial}
           animate="visible"
           variants={illustrationVariant(-1)}
-          className="absolute top-[-20px] left-[-200px] z-0 pointer-events-none select-none"
+          className="absolute top-[-20px] left-[-200px] z-0 pointer-events-none select-none hidden lg:block"
         >
           <Image
             src="/images/illustrations/HeroLeft.png"
@@ -204,62 +291,12 @@ export default function HeroSection() {
         </motion.div>
 
         {/* Autoplay tour demo (non-interactive) */}
-        <motion.div
-          initial={motionInitial}
-          animate="visible"
-          variants={heroFrameVariant}
-          className="relative max-w-[1100px] mx-auto mt-4"
-        >
-          <motion.div
-            className={`w-full h-[680px] rounded-t-xl border border-b-0 overflow-hidden transition-colors duration-500 ${t ? 'border-[#2E4A3C]/10' : 'border-white/10'}`}
-            animate={{
-              boxShadow: t
-                ? '0 0 0 1px rgba(30,59,42,0.15), 0 32px 80px rgba(30,59,42,0.12)'
-                : '0 0 0 1px rgba(30,59,42,0.25), 0 32px 80px rgba(30,59,42,0.45)',
-            }}
-            transition={{ duration: 0.6, ease }}
-          >
-            <div className="relative w-full h-full">
-              {loadedTabs.has('parent') && (
-                <div
-                  inert
-                  className={`absolute inset-0 transition-opacity duration-200 ${
-                    demoTab === 'parent' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-                  }`}
-                  aria-hidden={demoTab !== 'parent'}
-                >
-                  <LazyParentDashboardDemo />
-                </div>
-              )}
-              {loadedTabs.has('teacher') && (
-                <div
-                  inert
-                  className={`absolute inset-0 transition-opacity duration-200 ${
-                    demoTab === 'teacher' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-                  }`}
-                  aria-hidden={demoTab !== 'teacher'}
-                >
-                  <LazyTeacherDashboardDemo />
-                </div>
-              )}
-              {loadedTabs.has('admin') && (
-                <div
-                  inert
-                  className={`absolute inset-0 transition-opacity duration-200 ${
-                    demoTab === 'admin' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-                  }`}
-                  aria-hidden={demoTab !== 'admin'}
-                >
-                  <LazyAdminDashboardDemo />
-                </div>
-              )}
-              <div
-                className="absolute inset-0 z-20 cursor-default"
-                aria-hidden="true"
-              />
-            </div>
-          </motion.div>
-        </motion.div>
+        <HeroScaledDemoFrame
+          t={t}
+          demoTab={demoTab}
+          loadedTabs={loadedTabs}
+          motionInitial={motionInitial}
+        />
 
       </div>
     </section>
