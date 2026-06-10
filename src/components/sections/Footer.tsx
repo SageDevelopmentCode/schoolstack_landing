@@ -9,7 +9,7 @@ const NAV_LINKS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-accent py-16">
+    <footer className="bg-sage-900 border-t border-white/8 py-16">
       <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-10">
           {/* Brand */}
