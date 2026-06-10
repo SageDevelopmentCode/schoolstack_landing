@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Users, BookOpen, LayoutDashboard } from 'lucide-react'
@@ -46,6 +46,10 @@ const DEMO_TABS = [
   { id: 'admin',   label: 'Admin View',   icon: LayoutDashboard },
 ] as const
 
+const DEMO_WIDTH = 1100
+const DEMO_HEIGHT = 680
+const VISIBLE_FRACTION = 0.75
+
 const heroFrameVariant = {
   hidden: { opacity: 0, y: 32, scale: 0.97 },
   visible: {
@@ -54,6 +58,39 @@ const heroFrameVariant = {
     scale: 1,
     transition: { duration: 0.7, ease, delay: 0.38 },
   },
+}
+
+function useMobileDemoScale(ref: React.RefObject<HTMLDivElement | null>) {
+  const [scale, setScale] = useState(0.47)
+  const [isMobileLayout, setIsMobileLayout] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    const onChange = () => setIsMobileLayout(mq.matches)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !isMobileLayout) return
+
+    const update = () => {
+      const width = el.offsetWidth
+      if (width <= 0) return
+      setScale(width / (DEMO_WIDTH * VISIBLE_FRACTION))
+    }
+
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [ref, isMobileLayout])
+
+  return { scale, isMobileLayout }
 }
 
 function HeroDemoPanels({
@@ -106,6 +143,34 @@ function HeroDemoPanels({
   )
 }
 
+function HeroDemoFrame({
+  t,
+  demoTab,
+  loadedTabs,
+  boxShadow,
+  className,
+}: {
+  t: boolean
+  demoTab: HeroDemoTab
+  loadedTabs: Set<HeroDemoTab>
+  boxShadow: string
+  className: string
+}) {
+  const frameClasses = `rounded-t-xl border border-b-0 overflow-hidden transition-colors duration-500 ${t ? 'border-[#2E4A3C]/10' : 'border-white/10'}`
+
+  return (
+    <motion.div
+      className={`${className} ${frameClasses}`}
+      animate={{ boxShadow }}
+      transition={{ duration: 0.6, ease }}
+    >
+      <div className="relative w-full h-full">
+        <HeroDemoPanels demoTab={demoTab} loadedTabs={loadedTabs} />
+      </div>
+    </motion.div>
+  )
+}
+
 function HeroScaledDemoFrame({
   t,
   demoTab,
@@ -117,7 +182,8 @@ function HeroScaledDemoFrame({
   loadedTabs: Set<HeroDemoTab>
   motionInitial: false | 'hidden'
 }) {
-  const frameClasses = `rounded-t-xl border border-b-0 overflow-hidden transition-colors duration-500 ${t ? 'border-[#2E4A3C]/10' : 'border-white/10'}`
+  const clipRef = useRef<HTMLDivElement>(null)
+  const { scale, isMobileLayout } = useMobileDemoScale(clipRef)
 
   const boxShadow = t
     ? '0 0 0 1px rgba(30,59,42,0.15), 0 32px 80px rgba(30,59,42,0.12)'
@@ -128,17 +194,37 @@ function HeroScaledDemoFrame({
       initial={motionInitial}
       animate="visible"
       variants={heroFrameVariant}
-      className="relative mt-4 max-lg:left-[50vw] max-lg:-translate-x-1/2 max-lg:w-[1100px] max-lg:h-[680px] lg:max-w-[1100px] lg:mx-auto"
+      className="relative mt-4 lg:max-w-[1100px] lg:mx-auto"
     >
-      <motion.div
-        className={`w-full h-full lg:h-[680px] ${frameClasses}`}
-        animate={{ boxShadow }}
-        transition={{ duration: 0.6, ease }}
+      <div
+        ref={clipRef}
+        className="relative -mx-6 overflow-hidden lg:mx-0 lg:overflow-visible"
+        style={{
+          height: isMobileLayout && scale > 0 ? DEMO_HEIGHT * scale : DEMO_HEIGHT,
+        }}
       >
-        <div className="relative w-full h-full">
-          <HeroDemoPanels demoTab={demoTab} loadedTabs={loadedTabs} />
+        <div
+          className={isMobileLayout ? 'absolute top-0 left-0' : 'relative w-full'}
+          style={
+            isMobileLayout
+              ? {
+                  width: DEMO_WIDTH,
+                  height: DEMO_HEIGHT,
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top left',
+                }
+              : { height: DEMO_HEIGHT }
+          }
+        >
+          <HeroDemoFrame
+            t={t}
+            demoTab={demoTab}
+            loadedTabs={loadedTabs}
+            boxShadow={boxShadow}
+            className="w-full h-full"
+          />
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   )
 }
