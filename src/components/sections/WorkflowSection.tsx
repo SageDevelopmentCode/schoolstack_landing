@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { ArrowRight, Check } from "lucide-react";
 import { FadeInView } from "@/components/ui/FadeInView";
 
@@ -29,12 +30,168 @@ const STEPS: Step[] = [
   },
 ];
 
-const SOURCE_TOOLS = [
-  { label: "Google Sheets", bg: "rgba(66,133,244,0.18)" },
-  { label: "Email forms", bg: "rgba(234,67,53,0.18)" },
-  { label: "Square payments", bg: "rgba(255,255,255,0.08)" },
-  { label: "Google Docs", bg: "rgba(66,133,244,0.12)" },
+// Compact hub visual — scaled from PainSection outer ring into 1000 × 420
+const HUB_W = 1000;
+const HUB_H = 420;
+const HUB_CENTER = { x: 500, y: 210 };
+const HUB_CARD = { l: 400, t: 155, w: 200, h: 110 };
+
+const OUTER_PILL_RX = 38;
+const OUTER_PILL_RY = 11;
+
+function pillEdge(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  rx = OUTER_PILL_RX,
+  ry = OUTER_PILL_RY,
+) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len === 0) return from;
+  const nx = dx / len;
+  const ny = dy / len;
+  const scale = 1 / Math.sqrt((nx / rx) ** 2 + (ny / ry) ** 2);
+  return { x: from.x + nx * scale, y: from.y + ny * scale };
+}
+
+function cardEdge(toward: { x: number; y: number }) {
+  return pillEdge(HUB_CENTER, toward, HUB_CARD.w / 2, HUB_CARD.h / 2);
+}
+
+// PainSection outer positions scaled: new_y = (old_y - 340) * (420/680) + 210
+const TRANSITION_TOOLS = [
+  { tool: "Google Forms", logo: "/images/competitors/GoogleForms.png", outer: { x: 500, y: 62 }, delay: 0 },
+  { tool: "Venmo", logo: "/images/competitors/Venmo.png", outer: { x: 740, y: 104 }, delay: 0.2 },
+  { tool: "PayPal", logo: "/images/competitors/Paypal.svg", outer: { x: 876, y: 156 }, delay: 0.4 },
+  { tool: "Gmail", logo: "/images/competitors/Gmail.png", outer: { x: 876, y: 264 }, delay: 0.6 },
+  { tool: "DocuSign", logo: "/images/competitors/DocuSign.png", outer: { x: 740, y: 316 }, delay: 0.8 },
+  { tool: "Calendly", logo: "/images/competitors/Calendly.webp", outer: { x: 500, y: 358 }, delay: 1.0 },
+  { tool: "Google Drive", logo: "/images/competitors/GoogleDrive.png", outer: { x: 260, y: 316 }, delay: 0.8 },
+  { tool: "Google Docs", logo: "/images/competitors/GoogleDocs.png", outer: { x: 124, y: 264 }, delay: 0.6 },
+  { tool: "Google Sheets", logo: "/images/competitors/GoogleSheets.png", outer: { x: 124, y: 156 }, delay: 0.4 },
+  { tool: "Wix", logo: "/images/competitors/Wix.png", outer: { x: 260, y: 104 }, delay: 0.2 },
 ];
+
+function Step1TransitionVisual() {
+  return (
+    <div className="flex items-center justify-center w-full px-4 py-4 lg:px-6 lg:py-5 select-none">
+      <div className="w-full max-w-[720px]">
+        <div
+          className="relative w-full"
+          style={{ paddingBottom: `${(HUB_H / HUB_W) * 100}%` }}
+        >
+          <svg
+            className="absolute inset-0 w-full h-full"
+            viewBox={`0 0 ${HUB_W} ${HUB_H}`}
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden="true"
+          >
+            {TRANSITION_TOOLS.map((t) => {
+              const start = pillEdge(t.outer, HUB_CENTER);
+              const end = cardEdge(t.outer);
+              return (
+                <g key={t.tool}>
+                  <line
+                    x1={start.x}
+                    y1={start.y}
+                    x2={end.x}
+                    y2={end.y}
+                    stroke="rgba(247,241,231,0.15)"
+                    strokeWidth={1}
+                  />
+                  <motion.line
+                    x1={start.x}
+                    y1={start.y}
+                    x2={end.x}
+                    y2={end.y}
+                    stroke="#A05C45"
+                    strokeOpacity={0.5}
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeDasharray="4 20"
+                    animate={{ strokeDashoffset: [0, -24] }}
+                    transition={{
+                      duration: 1.4,
+                      repeat: Infinity,
+                      ease: "linear",
+                      delay: t.delay,
+                    }}
+                  />
+                </g>
+              );
+            })}
+          </svg>
+
+          {TRANSITION_TOOLS.map((t) => (
+            <div
+              key={t.tool}
+              className="absolute z-10"
+              style={{
+                left: `${(t.outer.x / HUB_W) * 100}%`,
+                top: `${(t.outer.y / HUB_H) * 100}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <motion.span
+                className="flex items-center gap-1 rounded-pill text-[8px] md:text-[10px] font-secondary px-2 md:px-2.5 py-0.5 md:py-1 whitespace-nowrap"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  color: "rgba(247,241,231,0.75)",
+                }}
+                animate={{ opacity: [0.75, 1, 0.75] }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: t.delay,
+                }}
+              >
+                <Image
+                  src={t.logo}
+                  alt={t.tool}
+                  width={12}
+                  height={12}
+                  className="shrink-0 object-contain"
+                />
+                {t.tool}
+              </motion.span>
+            </div>
+          ))}
+
+          <div
+            className="absolute z-20 flex items-center justify-center rounded-lg"
+            style={{
+              left: `${(HUB_CARD.l / HUB_W) * 100}%`,
+              top: `${(HUB_CARD.t / HUB_H) * 100}%`,
+              width: `${(HUB_CARD.w / HUB_W) * 100}%`,
+              height: `${(HUB_CARD.h / HUB_H) * 100}%`,
+              backgroundColor: "rgba(160,92,69,0.18)",
+              border: "1px solid rgba(160,92,69,0.38)",
+            }}
+          >
+            <div className="flex flex-col items-center gap-0.5">
+              <Image
+                src="/images/Logo.png"
+                alt="MudKitchen"
+                width={36}
+                height={36}
+                className="object-contain"
+              />
+              <span
+                className="text-[8px] md:text-[10px] font-secondary font-semibold whitespace-nowrap"
+                style={{ color: "#E8D5C8" }}
+              >
+                One workspace
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const SETUP_ITEMS: { label: string; status: "Ready" | "Imported" | "In progress" }[] = [
   { label: "Enrollment form", status: "Ready" },
@@ -54,52 +211,8 @@ const PROGRESS_STEPS = ["Kickoff", "Setup", "Review", "Go Live"];
 const LAUNCH_ITEMS = ["Team walkthrough complete", "Families notified", "School is live"];
 
 const STEP_PREVIEWS = [
-  /* 01 — Bring what you have */
-  <div key="show" className="flex items-center justify-center w-full p-6 lg:p-8">
-    <div className="w-full max-w-[340px] space-y-3">
-      <p
-        className="text-[10px] uppercase tracking-widest font-secondary font-semibold mb-4"
-        style={{ color: "rgba(247,241,231,0.35)" }}
-      >
-        What you bring
-      </p>
-      <div className="space-y-2">
-        {SOURCE_TOOLS.map((tool) => (
-          <div
-            key={tool.label}
-            className="flex items-center gap-3 rounded-md px-3.5 py-2.5"
-            style={{ backgroundColor: tool.bg, border: "1px solid rgba(255,255,255,0.07)" }}
-          >
-            <div
-              className="w-1.5 h-1.5 rounded-full shrink-0"
-              style={{ backgroundColor: "rgba(247,241,231,0.35)" }}
-            />
-            <span className="text-[12px] font-secondary" style={{ color: "rgba(247,241,231,0.65)" }}>
-              {tool.label}
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-2 py-1">
-        <div className="flex-1 h-px" style={{ backgroundColor: "rgba(160,92,69,0.4)" }} />
-        <span className="text-[10px] font-secondary shrink-0" style={{ color: "#A05C45" }}>
-          we map the transition
-        </span>
-        <div className="flex-1 h-px" style={{ backgroundColor: "rgba(160,92,69,0.4)" }} />
-      </div>
-      <div
-        className="rounded-md px-4 py-3 text-center"
-        style={{
-          backgroundColor: "rgba(160,92,69,0.18)",
-          border: "1px solid rgba(160,92,69,0.38)",
-        }}
-      >
-        <span className="text-[12px] font-secondary font-semibold" style={{ color: "#E8D5C8" }}>
-          One MudKitchen workspace
-        </span>
-      </div>
-    </div>
-  </div>,
+  /* 01 — Tools converge into one workspace */
+  <Step1TransitionVisual key="show" />,
 
   /* 02 — Setup progress */
   <div key="build" className="flex items-center justify-center w-full p-6 lg:p-8">
@@ -394,7 +507,7 @@ export default function WorkflowSection() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                className="min-h-[260px] flex items-center justify-center"
+                className={`flex items-center justify-center ${active === 0 ? "min-h-[360px] lg:min-h-[400px]" : "min-h-[260px]"}`}
               >
                 {STEP_PREVIEWS[active]}
               </motion.div>

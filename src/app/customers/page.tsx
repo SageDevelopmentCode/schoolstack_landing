@@ -201,7 +201,7 @@ export default function CustomersPage() {
                   from website to daily operations.
                 </p>
                 <a
-                  href="/#demo"
+                  href="/get-started"
                   className="inline-flex items-center gap-2 rounded-pill px-8 h-12 text-sm font-medium font-secondary hover:-translate-y-0.5 transition-all duration-200 mt-7"
                   style={{ backgroundColor: '#A05C45', color: '#ffffff' }}
                 >
