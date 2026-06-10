@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import {
@@ -203,13 +203,12 @@ function Step1TransitionVisual() {
   );
 }
 
-type SetupStatus = "Ready" | "Imported" | "In progress";
+type SetupStatus = "In progress" | "Complete";
 
 type SetupMilestone = {
   label: string;
   description: string;
   details?: string[];
-  status: SetupStatus;
   icon: LucideIcon;
 };
 
@@ -218,14 +217,12 @@ const SETUP_MILESTONES: SetupMilestone[] = [
     label: "Branded school website",
     description:
       "Programs, philosophy, team pages, and enrollment — all on your school's site.",
-    status: "In progress",
     icon: Globe,
   },
   {
     label: "Enrollment forms",
     description:
       "Application forms and document checklists linked straight to the parent portal.",
-    status: "Ready",
     icon: ClipboardCheck,
   },
   {
@@ -233,7 +230,6 @@ const SETUP_MILESTONES: SetupMilestone[] = [
     description:
       "Families enroll, pay tuition, message staff, and stay updated in one place.",
     details: ["Enrollment & e-signatures", "Billing & payments", "Messages & calendar"],
-    status: "Ready",
     icon: Home,
   },
   {
@@ -241,7 +237,6 @@ const SETUP_MILESTONES: SetupMilestone[] = [
     description:
       "Admissions, student records, programs, staff, tuition, and finances — set up for your school.",
     details: ["Admissions & flows", "My School setup", "Finances & marketing"],
-    status: "In progress",
     icon: LayoutDashboard,
   },
   {
@@ -249,45 +244,54 @@ const SETUP_MILESTONES: SetupMilestone[] = [
     description:
       "Teachers manage students, attendance, hours, messaging, and payroll in a focused workspace.",
     details: ["Students & attendance", "Hours & payroll", "Messages & feed"],
-    status: "In progress",
     icon: ClipboardList,
   },
   {
     label: "Team onboarding",
     description:
       "We train your admins and teachers so everyone is confident before families log in.",
-    status: "Imported",
     icon: UserPlus,
   },
 ];
 
 const STATUS_STYLE: Record<SetupStatus, { bg: string; color: string }> = {
-  Ready: { bg: "rgba(74,170,100,0.2)", color: "#7AE2A0" },
-  Imported: { bg: "rgba(160,92,69,0.25)", color: "#E8D5C8" },
   "In progress": { bg: "rgba(245,208,128,0.15)", color: "#F5D080" },
+  Complete: { bg: "rgba(74,170,100,0.2)", color: "#7AE2A0" },
 };
 
 const ICON_TILE_STYLE: Record<SetupStatus, { bg: string; border: string; color: string }> = {
-  Ready: { bg: "rgba(74,170,100,0.15)", border: "rgba(74,170,100,0.35)", color: "#7AE2A0" },
-  Imported: { bg: "rgba(160,92,69,0.18)", border: "rgba(160,92,69,0.35)", color: "#E8D5C8" },
   "In progress": { bg: "rgba(245,208,128,0.12)", border: "rgba(245,208,128,0.35)", color: "#F5D080" },
+  Complete: { bg: "rgba(74,170,100,0.15)", border: "rgba(74,170,100,0.35)", color: "#7AE2A0" },
 };
 
 const ROW_H = 126;
 const ROW_GAP = 10;
 const ROW_STEP = ROW_H + ROW_GAP;
-const SETUP_TICK_MS = 1400;
+const SETUP_IN_PROGRESS_MS = 1200;
+const SETUP_COMPLETE_MS = 700;
 const SETUP_TRANSITION_S = 0.4;
+
+function milestoneStatus(
+  itemIndex: number,
+  activeIndex: number,
+  phase: "in_progress" | "complete",
+): SetupStatus {
+  if (itemIndex < activeIndex) return "Complete";
+  if (itemIndex === activeIndex) return phase === "complete" ? "Complete" : "In progress";
+  return "In progress";
+}
 
 function SetupMilestoneCard({
   milestone,
+  status,
   isActive,
 }: {
   milestone: SetupMilestone;
+  status: SetupStatus;
   isActive: boolean;
 }) {
   const Icon = milestone.icon;
-  const tile = ICON_TILE_STYLE[milestone.status];
+  const tile = ICON_TILE_STYLE[status];
 
   return (
     <motion.div
@@ -324,15 +328,19 @@ function SetupMilestoneCard({
           >
             {milestone.label}
           </p>
-          <span
+          <motion.span
+            key={status}
+            initial={{ scale: 0.92, opacity: 0.6 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
             className="text-[10px] font-secondary font-medium px-2.5 py-0.5 rounded-full shrink-0"
             style={{
-              backgroundColor: STATUS_STYLE[milestone.status].bg,
-              color: STATUS_STYLE[milestone.status].color,
+              backgroundColor: STATUS_STYLE[status].bg,
+              color: STATUS_STYLE[status].color,
             }}
           >
-            {milestone.status}
-          </span>
+            {status}
+          </motion.span>
         </div>
         <p
           className="text-[11px] font-secondary leading-snug line-clamp-1"
@@ -364,12 +372,9 @@ function SetupMilestoneCard({
 
 function Step2SetupProgress() {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const loopMilestones = useMemo(
-    () => [...SETUP_MILESTONES, ...SETUP_MILESTONES],
-    [],
-  );
   const cycleLength = SETUP_MILESTONES.length;
   const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState<"in_progress" | "complete">("in_progress");
   const [instantScroll, setInstantScroll] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
 
@@ -386,21 +391,25 @@ function Step2SetupProgress() {
   }, []);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setIndex((i) => i + 1);
-    }, SETUP_TICK_MS);
-    return () => clearInterval(id);
-  }, []);
+    if (phase === "in_progress") {
+      const id = setTimeout(() => setPhase("complete"), SETUP_IN_PROGRESS_MS);
+      return () => clearTimeout(id);
+    }
 
-  useEffect(() => {
-    if (index < cycleLength) return;
-    const resetId = setTimeout(() => {
-      setInstantScroll(true);
-      setIndex((i) => i - cycleLength);
-      requestAnimationFrame(() => setInstantScroll(false));
-    }, SETUP_TRANSITION_S * 1000);
-    return () => clearTimeout(resetId);
-  }, [index, cycleLength]);
+    const id = setTimeout(() => {
+      const next = index + 1;
+      setPhase("in_progress");
+      if (next >= cycleLength) {
+        setInstantScroll(true);
+        setIndex(0);
+        requestAnimationFrame(() => setInstantScroll(false));
+      } else {
+        setIndex(next);
+      }
+    }, SETUP_COMPLETE_MS);
+
+    return () => clearTimeout(id);
+  }, [index, phase, cycleLength]);
 
   const focusOffset = index * ROW_STEP;
   const trackY =
@@ -440,10 +449,11 @@ function Step2SetupProgress() {
         className="flex flex-col w-full"
         style={{ gap: ROW_GAP }}
       >
-        {loopMilestones.map((milestone, i) => (
+        {SETUP_MILESTONES.map((milestone, i) => (
           <SetupMilestoneCard
-            key={`${milestone.label}-${i}`}
+            key={milestone.label}
             milestone={milestone}
+            status={milestoneStatus(i, index, phase)}
             isActive={i === index}
           />
         ))}
