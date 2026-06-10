@@ -41,9 +41,9 @@ function illustrationVariant(dir: 1 | -1) {
 }
 
 const DEMO_TABS = [
-  { id: 'parent',  label: 'Parent View',  icon: Users },
-  { id: 'teacher', label: 'Teacher View', icon: BookOpen },
-  { id: 'admin',   label: 'Admin View',   icon: LayoutDashboard },
+  { id: 'parent',  label: 'Parent View',  shortLabel: 'Parent',  icon: Users },
+  { id: 'teacher', label: 'Teacher View', shortLabel: 'Teacher', icon: BookOpen },
+  { id: 'admin',   label: 'Admin View',   shortLabel: 'Admin',   icon: LayoutDashboard },
 ] as const
 
 const DEMO_WIDTH = 1100
@@ -198,20 +198,20 @@ function HeroScaledDemoFrame({
     >
       <div
         ref={clipRef}
-        className="relative -mx-6 overflow-hidden lg:mx-0 lg:overflow-visible"
+        className={`relative -mx-6 overflow-hidden lg:mx-0 lg:overflow-visible${isMobileLayout ? ' flex justify-center' : ''}`}
         style={{
           height: isMobileLayout && scale > 0 ? DEMO_HEIGHT * scale : DEMO_HEIGHT,
         }}
       >
         <div
-          className={isMobileLayout ? 'absolute top-0 left-0' : 'relative w-full'}
+          className={isMobileLayout ? 'shrink-0' : 'relative w-full'}
           style={
             isMobileLayout
               ? {
                   width: DEMO_WIDTH,
                   height: DEMO_HEIGHT,
                   transform: `scale(${scale})`,
-                  transformOrigin: 'top left',
+                  transformOrigin: 'top center',
                 }
               : { height: DEMO_HEIGHT }
           }
@@ -367,7 +367,8 @@ export default function HeroSection() {
                 }`}
               >
                 <tab.icon size={13} />
-                {tab.label}
+                <span className="lg:hidden">{tab.shortLabel}</span>
+                <span className="hidden lg:inline">{tab.label}</span>
               </button>
             ))}
           </div>
