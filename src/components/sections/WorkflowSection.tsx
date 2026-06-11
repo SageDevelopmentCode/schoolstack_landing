@@ -83,10 +83,120 @@ const TRANSITION_TOOLS = [
   { tool: "Wix", logo: "/images/competitors/Wix.png", outer: { x: 260, y: 104 }, delay: 0.2 },
 ];
 
+function Step1TransitionMobileVisual() {
+  return (
+    <div className="lg:hidden w-full max-w-[400px] mx-auto px-4 py-4 select-none">
+      <p
+        className="text-center text-[11px] font-medium uppercase tracking-widest mb-4 font-secondary"
+        style={{ color: "rgba(247,241,231,0.45)" }}
+      >
+        Scattered today
+      </p>
+
+      <div className="flex flex-col gap-2">
+        {TRANSITION_TOOLS.map((t, i) => (
+          <motion.div
+            key={t.tool}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-20px" }}
+            transition={{ duration: 0.35, delay: i * 0.04 }}
+            className="flex items-center gap-2 rounded-xl px-3 py-2.5"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <span className="flex items-center gap-2 flex-1 min-w-0">
+              <Image
+                src={t.logo}
+                alt={t.tool}
+                width={18}
+                height={18}
+                className="shrink-0 object-contain"
+              />
+              <span
+                className="text-[13px] font-secondary truncate"
+                style={{ color: "rgba(247,241,231,0.85)" }}
+              >
+                {t.tool}
+              </span>
+            </span>
+            <ArrowRight
+              size={14}
+              className="shrink-0"
+              style={{ color: "rgba(160,92,69,0.6)" }}
+              aria-hidden="true"
+            />
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="mt-6 flex flex-col items-center">
+        <div className="w-full flex items-center gap-3 mb-5" aria-hidden="true">
+          <div
+            className="flex-1 h-px"
+            style={{
+              background:
+                "linear-gradient(to right, transparent, rgba(247,241,231,0.15))",
+            }}
+          />
+          <ArrowRight
+            size={14}
+            className="rotate-90"
+            style={{ color: "rgba(160,92,69,0.45)" }}
+          />
+          <div
+            className="flex-1 h-px"
+            style={{
+              background:
+                "linear-gradient(to left, transparent, rgba(247,241,231,0.15))",
+            }}
+          />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="flex flex-col items-center gap-2 rounded-2xl px-8 py-5 w-full"
+          style={{
+            backgroundColor: "rgba(160,92,69,0.18)",
+            border: "1px solid rgba(160,92,69,0.38)",
+          }}
+        >
+          <Image
+            src="/images/Logo.png"
+            alt="MudKitchen"
+            width={52}
+            height={52}
+            className="object-contain"
+          />
+          <span
+            className="font-display text-[15px] tracking-tight"
+            style={{ color: "#F7F1E7" }}
+          >
+            MudKitchen
+          </span>
+          <p
+            className="text-[13px] font-secondary text-center leading-snug"
+            style={{ color: "rgba(232,213,200,0.8)" }}
+          >
+            One workspace
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
 function Step1TransitionVisual() {
   return (
     <div className="flex items-center justify-center w-full px-4 py-4 lg:px-6 lg:py-5 select-none">
-      <div className="w-full max-w-[720px]">
+      <Step1TransitionMobileVisual />
+
+      <div className="hidden lg:block w-full max-w-[720px]">
         <div
           className="relative w-full"
           style={{ paddingBottom: `${(HUB_H / HUB_W) * 100}%` }}

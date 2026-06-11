@@ -209,7 +209,7 @@ function TextInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`h-12 px-4 rounded-lg border text-[14px] font-secondary text-text placeholder:text-text-faint focus:outline-none transition-colors duration-150 w-full bg-bg ${
+        className={`h-12 px-4 rounded-lg border text-[14px] font-secondary text-text placeholder:text-text-faint focus:outline-none transition-colors duration-150 w-full bg-surface md:bg-bg ${
           hasError
             ? "border-clay focus:border-clay"
             : "border-border focus:border-accent"
@@ -293,7 +293,7 @@ function TimeSlotList({
   onConfirm: () => void;
 }) {
   return (
-    <div className="flex flex-col h-full p-4">
+    <div className="flex flex-col md:h-full p-4">
       {/* Date header */}
       <div className="mb-3">
         <div className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-0.5">
@@ -372,10 +372,48 @@ function StaticScheduler({ onConfirm }: { onConfirm: () => void }) {
   }
 
   return (
-    <div className="flex" style={{ minHeight: 500 }}>
+    <div className="flex flex-col md:flex-row md:min-h-[500px]">
 
-      {/* Column 1 — info panel */}
-      <div className="w-[140px] flex-shrink-0 border-r border-border p-5 flex flex-col gap-5">
+      {/* Column 1 — info panel (compact row on mobile, sidebar on desktop) */}
+      <div className="flex md:hidden w-full border-b border-border p-4 flex-col gap-2">
+        <div>
+          <div className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-1">
+            SchoolStack
+          </div>
+          <div
+            className="font-display leading-snug text-text"
+            style={{ fontSize: "clamp(1rem, 2.5vw, 1.15rem)" }}
+          >
+            Demo Call
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-secondary text-text-muted">
+          <span className="flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden="true">
+              <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M7 4v3.5l2 1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            30 min
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden="true">
+              <rect x="1" y="3.5" width="8" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M9 6l3.5-2v6L9 8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Video call
+          </span>
+          <span className="flex items-center gap-1.5 text-text-faint">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0" aria-hidden="true">
+              <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2" />
+              <ellipse cx="6" cy="6" rx="2.2" ry="5" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M1 6h10" stroke="currentColor" strokeWidth="1.2" />
+            </svg>
+            Central (CT)
+          </span>
+        </div>
+      </div>
+
+      <div className="hidden md:flex w-[140px] flex-shrink-0 border-r border-border p-5 flex-col gap-5">
         <div>
           <div className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-1.5">
             SchoolStack
@@ -418,7 +456,7 @@ function StaticScheduler({ onConfirm }: { onConfirm: () => void }) {
       </div>
 
       {/* Column 2 — calendar (always visible) */}
-      <div className="flex-1 p-5 min-w-0">
+      <div className="flex-1 p-4 md:p-5 min-w-0">
         {/* Month navigation */}
         <div className="flex items-center justify-between mb-4">
           <button
@@ -450,23 +488,39 @@ function StaticScheduler({ onConfirm }: { onConfirm: () => void }) {
         />
       </div>
 
-      {/* Column 3 — time slots (slides in when a date is selected) */}
+      {/* Column 3 — time slots (stack below on mobile, slides in on desktop) */}
       <AnimatePresence>
         {selectedDate && (
-          <motion.div
-            key="times-col"
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 158, transition: { duration: 0.28, ease } }}
-            exit={{ opacity: 0, width: 0, transition: { duration: 0.2 } }}
-            className="flex-shrink-0 border-l border-border overflow-hidden"
-          >
-            <TimeSlotList
-              dateStr={selectedDate}
-              selectedTime={selectedTime}
-              onSelectTime={setSelectedTime}
-              onConfirm={onConfirm}
-            />
-          </motion.div>
+          <>
+            <motion.div
+              key="times-col-mobile"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto", transition: { duration: 0.28, ease } }}
+              exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
+              className="md:hidden w-full border-t border-border overflow-hidden"
+            >
+              <TimeSlotList
+                dateStr={selectedDate}
+                selectedTime={selectedTime}
+                onSelectTime={setSelectedTime}
+                onConfirm={onConfirm}
+              />
+            </motion.div>
+            <motion.div
+              key="times-col-desktop"
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: 158, transition: { duration: 0.28, ease } }}
+              exit={{ opacity: 0, width: 0, transition: { duration: 0.2 } }}
+              className="hidden md:block flex-shrink-0 border-l border-border overflow-hidden"
+            >
+              <TimeSlotList
+                dateStr={selectedDate}
+                selectedTime={selectedTime}
+                onSelectTime={setSelectedTime}
+                onConfirm={onConfirm}
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
@@ -585,7 +639,7 @@ export default function GetStartedPage() {
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0, transition: { duration: 0.4, ease } }}
                 exit={{ opacity: 0, transition: { duration: 0.2 } }}
-                className="flex flex-col items-center mb-10 gap-3"
+                className="flex flex-col items-center mb-6 md:mb-10 gap-3"
               >
                 <div className="text-[11px] font-medium font-secondary text-text-faint uppercase tracking-widest">
                   Step {step + 1} of 2
@@ -629,7 +683,7 @@ export default function GetStartedPage() {
                   </p>
                 </div>
 
-                <div className="bg-surface border border-border rounded-xl p-8 shadow-sm flex flex-col gap-9">
+                <div className="flex flex-col gap-7 md:gap-9 md:bg-surface md:border md:border-border md:rounded-xl md:p-8 md:shadow-sm">
 
                   {/* Name + Email */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -755,7 +809,7 @@ export default function GetStartedPage() {
                             setErrors((e2) => { const n = new Set(e2); n.delete("branch"); return n; });
                           }}
                           placeholder="e.g. FACTS, Veracross, Google Workspace…"
-                          className={`h-12 px-4 rounded-lg border text-[14px] font-secondary text-text placeholder:text-text-faint focus:outline-none transition-colors duration-150 w-full bg-bg ${
+                          className={`h-12 px-4 rounded-lg border text-[14px] font-secondary text-text placeholder:text-text-faint focus:outline-none transition-colors duration-150 w-full bg-surface md:bg-bg ${
                             errors.has("branch") ? "border-clay" : "border-border focus:border-accent"
                           }`}
                         />
@@ -841,7 +895,7 @@ export default function GetStartedPage() {
                                 onChange={(e) => set("prepNotes", e.target.value)}
                                 placeholder="e.g. We're mid-enrollment season and struggling with…"
                                 rows={3}
-                                className="px-4 py-3 rounded-lg border border-border bg-bg text-[14px] font-secondary text-text placeholder:text-text-faint focus:outline-none focus:border-accent transition-colors duration-150 w-full resize-none"
+                                className="px-4 py-3 rounded-lg border border-border bg-surface md:bg-bg text-[14px] font-secondary text-text placeholder:text-text-faint focus:outline-none focus:border-accent transition-colors duration-150 w-full resize-none"
                               />
                             </div>
                           </div>
@@ -949,7 +1003,7 @@ export default function GetStartedPage() {
                 </div>
 
                 {/* Scheduler */}
-                <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+                <div className="md:bg-surface md:border md:border-border md:rounded-xl md:overflow-hidden md:shadow-sm">
                   <StaticScheduler onConfirm={handleScheduled} />
                 </div>
               </motion.div>
@@ -981,7 +1035,7 @@ export default function GetStartedPage() {
 
                 {/* Prep card */}
                 <div
-                  className="text-left bg-surface border border-border rounded-xl p-7 mb-8 shadow-sm"
+                  className="text-left mb-8 md:bg-surface md:border md:border-border md:rounded-xl md:p-7 md:shadow-sm"
                 >
                   <div className="text-[11px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-4">
                     Helpful before the call
