@@ -135,12 +135,15 @@ export default function ProductPreviewSection() {
     }
   }
 
+  const activeGroup = TABS.find((t) => t.id === activeTab)!.group
+  const activeGroupTabs = TABS.filter((t) => t.group === activeGroup)
+
   const handleTabChange = useCallback((id: TabId) => {
     setActiveTab(id)
     setLoadedTabs((prev) => new Set(prev).add(id))
     const bar = tabBarRef.current
     const el = tabRefs.current.get(id)
-    if (bar && el) {
+    if (bar && el && window.matchMedia('(min-width: 1024px)').matches) {
       const elRect = el.getBoundingClientRect()
       const barRect = bar.getBoundingClientRect()
       const targetLeft =
@@ -148,6 +151,15 @@ export default function ProductPreviewSection() {
       bar.scrollTo({ left: targetLeft, behavior: 'smooth' })
     }
   }, [])
+
+  const handleGroupChange = useCallback(
+    (groupId: TabGroup) => {
+      const groupTabs = TABS.filter((t) => t.group === groupId)
+      const currentInGroup = groupTabs.find((t) => t.id === activeTab)
+      handleTabChange(currentInGroup?.id ?? groupTabs[0].id)
+    },
+    [activeTab, handleTabChange],
+  )
 
   function handleKeyDown(e: React.KeyboardEvent, index: number) {
     if (e.key === 'ArrowRight') {
@@ -276,10 +288,68 @@ export default function ProductPreviewSection() {
         </div>
 
         <FadeInView delay={0.1}>
-          {/* Tab bar */}
+          {/* Mobile tab bar */}
+          <div
+            className="lg:hidden w-full flex flex-col gap-2 bg-surface border border-border rounded-xl shadow-xs p-2"
+            role="tablist"
+            aria-label="Product modules"
+          >
+            <div className="grid grid-cols-4 gap-1 rounded-lg bg-surface-muted p-1">
+              {GROUP_META.map((group) => {
+                const isActiveGroup = activeGroup === group.id
+                return (
+                  <button
+                    key={group.id}
+                    type="button"
+                    onClick={() => handleGroupChange(group.id)}
+                    className={`min-h-10 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 touch-manipulation focus-visible:outline-2 focus-visible:outline-accent ${
+                      isActiveGroup
+                        ? 'bg-surface shadow-xs'
+                        : 'text-text-muted'
+                    }`}
+                    style={isActiveGroup ? { color: GROUP_COLORS[group.id] } : undefined}
+                    aria-pressed={isActiveGroup}
+                  >
+                    {group.label}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex gap-1.5">
+              {activeGroupTabs.map((tab) => {
+                const flatIndex = TABS.findIndex((t) => t.id === tab.id)
+                return (
+                  <button
+                    key={tab.id}
+                    ref={(el) => { if (el) tabRefs.current.set(tab.id, el) }}
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    aria-controls={`tabpanel-${tab.id}`}
+                    onClick={() => handleTabChange(tab.id)}
+                    onMouseEnter={() => prefetchTab(tab.id)}
+                    onKeyDown={(e) => handleKeyDown(e, flatIndex)}
+                    className={`flex flex-1 items-center justify-center gap-2 min-h-11 px-3 rounded-pill text-sm whitespace-nowrap transition-all duration-200 touch-manipulation focus-visible:outline-2 focus-visible:outline-accent ${
+                      activeTab === tab.id
+                        ? 'text-white shadow-xs font-medium'
+                        : 'text-text-muted'
+                    }`}
+                    style={activeTab === tab.id ? { backgroundColor: GROUP_COLORS[tab.group] } : undefined}
+                  >
+                    <tab.icon
+                      size={16}
+                      style={{ color: activeTab === tab.id ? '#fff' : GROUP_COLORS[tab.group] }}
+                    />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Desktop tab bar */}
           <div
             ref={tabBarRef}
-            className="flex items-start gap-2 bg-surface border border-border rounded-xl shadow-xs p-2 overflow-x-auto w-fit mx-auto max-w-full"
+            className="hidden lg:flex items-start gap-2 bg-surface border border-border rounded-xl shadow-xs p-2 overflow-x-auto w-fit mx-auto max-w-full"
             style={{ scrollbarWidth: 'none' }}
             role="tablist"
             aria-label="Product modules"

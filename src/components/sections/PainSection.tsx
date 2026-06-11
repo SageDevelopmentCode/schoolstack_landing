@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
+  ArrowRight,
   UserPlus,
   CreditCard,
   Receipt,
@@ -148,6 +149,81 @@ const PAIRS = [
   },
 ];
 
+function PainSectionMobileVisual() {
+  return (
+    <div className="md:hidden mt-10 w-full max-w-[400px] mx-auto px-4">
+      <p className="text-center text-[11px] font-medium uppercase tracking-widest text-accent-soft mb-4">
+        Scattered today
+      </p>
+
+      <div className="flex flex-col gap-2">
+        {PAIRS.map((p, i) => (
+          <motion.div
+            key={p.tool}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-20px" }}
+            transition={{ duration: 0.35, delay: i * 0.04 }}
+            className="flex items-center gap-2 rounded-xl bg-white/8 border border-white/15 px-3 py-2.5"
+          >
+            <span className="flex items-center gap-2 flex-1 min-w-0">
+              <Image
+                src={p.logo}
+                alt={p.tool}
+                width={18}
+                height={18}
+                className="shrink-0 object-contain"
+              />
+              <span className="text-[13px] text-white/90 truncate">{p.tool}</span>
+            </span>
+            <ArrowRight
+              size={14}
+              className="shrink-0 text-accent-soft/70"
+              aria-hidden="true"
+            />
+            <span className="flex items-center gap-1 rounded-pill bg-white px-2.5 py-1 shrink-0 shadow-xs">
+              <p.icon size={12} className="shrink-0" style={{ color: p.iconColor }} />
+              <span className="text-[11px] font-semibold text-accent whitespace-nowrap">
+                {p.feature}
+              </span>
+            </span>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="mt-6 flex flex-col items-center">
+        <div className="w-full flex items-center gap-3 mb-5" aria-hidden="true">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent to-white/20" />
+          <ArrowRight size={14} className="text-accent-soft/50 rotate-90" />
+          <div className="flex-1 h-px bg-gradient-to-l from-transparent to-white/20" />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white/10 border border-white/25 px-8 py-5 w-full"
+        >
+          <Image
+            src="/images/Logo.png"
+            alt="MudKitchen"
+            width={52}
+            height={52}
+            className="object-contain"
+          />
+          <span className="font-display text-[15px] text-white tracking-tight">
+            MudKitchen
+          </span>
+          <p className="text-[13px] text-accent-highlight/80 text-center leading-snug">
+            All in one shared system
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
 export default function PainSection() {
   return (
     <section className="bg-accent py-16 overflow-hidden">
@@ -191,7 +267,9 @@ export default function PainSection() {
 
       {/* Hub visual — wider than the text */}
       <FadeInView delay={0.2}>
-        <div className="mt-10 w-full max-w-[1200px] mx-auto px-4 md:px-8 select-none">
+        <PainSectionMobileVisual />
+
+        <div className="hidden md:block mt-10 w-full max-w-[1200px] mx-auto px-4 md:px-8 select-none">
           <div
             className="relative w-full"
             style={{ paddingBottom: `${(H / W) * 100}%` }}

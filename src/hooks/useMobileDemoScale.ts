@@ -7,10 +7,9 @@ export function useMobileDemoScale(
   designWidth: number,
   visibleFraction = 0.75,
 ) {
+  // Start false so SSR and the first client render match; updated in useEffect after mount.
   const [scale, setScale] = useState(0.47)
-  const [isMobileLayout, setIsMobileLayout] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
-  )
+  const [isMobileLayout, setIsMobileLayout] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1023px)')
