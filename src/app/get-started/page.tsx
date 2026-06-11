@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/sections/Navbar";
+import { createClient } from "@/utils/supabase/client";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -286,11 +287,13 @@ function TimeSlotList({
   selectedTime,
   onSelectTime,
   onConfirm,
+  isSubmitting,
 }: {
   dateStr: string;
   selectedTime: string | null;
   onSelectTime: (t: string) => void;
-  onConfirm: () => void;
+  onConfirm: (booking: { date: string; time: string }) => void;
+  isSubmitting?: boolean;
 }) {
   return (
     <div className="flex flex-col md:h-full p-4">
@@ -335,11 +338,14 @@ function TimeSlotList({
           >
             <button
               type="button"
-              onClick={onConfirm}
-              className="w-full h-10 rounded-pill text-white text-[13px] font-medium font-secondary hover:opacity-90 transition-all duration-200"
+              disabled={isSubmitting}
+              onClick={() => {
+                if (selectedTime) onConfirm({ date: dateStr, time: selectedTime });
+              }}
+              className="w-full h-10 rounded-pill text-white text-[13px] font-medium font-secondary hover:opacity-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ backgroundColor: "var(--color-clay)" }}
             >
-              Confirm
+              {isSubmitting ? "Booking…" : "Confirm"}
             </button>
           </motion.div>
         )}
@@ -348,7 +354,13 @@ function TimeSlotList({
   );
 }
 
-function StaticScheduler({ onConfirm }: { onConfirm: () => void }) {
+function StaticScheduler({
+  onConfirm,
+  isSubmitting,
+}: {
+  onConfirm: (booking: { date: string; time: string }) => void;
+  isSubmitting?: boolean;
+}) {
   const [viewYear, setViewYear] = useState(2026);
   const [viewMonth, setViewMonth] = useState(4); // May = index 4
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -504,6 +516,7 @@ function StaticScheduler({ onConfirm }: { onConfirm: () => void }) {
                 selectedTime={selectedTime}
                 onSelectTime={setSelectedTime}
                 onConfirm={onConfirm}
+                isSubmitting={isSubmitting}
               />
             </motion.div>
             <motion.div
@@ -518,6 +531,7 @@ function StaticScheduler({ onConfirm }: { onConfirm: () => void }) {
                 selectedTime={selectedTime}
                 onSelectTime={setSelectedTime}
                 onConfirm={onConfirm}
+                isSubmitting={isSubmitting}
               />
             </motion.div>
           </>
@@ -533,8 +547,10 @@ function StaticScheduler({ onConfirm }: { onConfirm: () => void }) {
 export default function GetStartedPage() {
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [showOptional, setShowOptional] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Set<string>>(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [booking, setBooking] = useState<{ date: string; time: string } | null>(null);
 
   const [form, setForm] = useState<FormData>({
     name: "",
@@ -612,12 +628,43 @@ export default function GetStartedPage() {
 
   function handleContinue() {
     if (validate()) {
+      setSubmitError(null);
       setStep(1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
-  function handleScheduled() {
+  async function handleScheduled(selected: { date: string; time: string }) {
+    if (isSubmitting || !form.role) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    const supabase = createClient();
+    const { error } = await supabase.from("demo_requests").insert({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      school_name: form.schoolName.trim(),
+      role: form.role,
+      launch_timeline: form.launchTimeline || null,
+      student_count: form.studentCount || null,
+      current_systems: form.currentSystems.trim(),
+      priorities: form.priorities,
+      website_url: form.websiteUrl.trim(),
+      current_tools: form.currentTools.trim(),
+      prep_notes: form.prepNotes.trim(),
+      scheduled_date: selected.date,
+      scheduled_time: selected.time,
+    });
+
+    setIsSubmitting(false);
+
+    if (error) {
+      setSubmitError(error.message);
+      return;
+    }
+
+    setBooking(selected);
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -921,7 +968,7 @@ export default function GetStartedPage() {
                   </AnimatePresence>
 
                   {/* Submit */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex flex-col items-center sm:flex-row sm:items-center gap-4">
                     <button
                       type="button"
                       onClick={handleContinue}
@@ -931,7 +978,7 @@ export default function GetStartedPage() {
                       Pick a time
                       <ChevronRight size={15} />
                     </button>
-                    <p className="text-[12px] text-text-faint font-secondary leading-snug">
+                    <p className="text-[12px] text-text-faint font-secondary leading-snug text-center sm:text-left">
                       No commitment. We&apos;ll tailor everything to your school.
                     </p>
                   </div>
@@ -947,6 +994,7 @@ export default function GetStartedPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    setSubmitError(null);
                     setStep(0);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
@@ -1004,8 +1052,17 @@ export default function GetStartedPage() {
 
                 {/* Scheduler */}
                 <div className="md:bg-surface md:border md:border-border md:rounded-xl md:overflow-hidden md:shadow-sm">
-                  <StaticScheduler onConfirm={handleScheduled} />
+                  <StaticScheduler onConfirm={handleScheduled} isSubmitting={isSubmitting} />
                 </div>
+
+                {submitError && (
+                  <p
+                    className="mt-4 text-[13px] font-secondary text-center"
+                    style={{ color: "var(--color-clay)" }}
+                  >
+                    {submitError} Please try again or contact us directly.
+                  </p>
+                )}
               </motion.div>
             )}
 
@@ -1027,11 +1084,20 @@ export default function GetStartedPage() {
                   You&apos;re booked.
                 </h1>
 
-                <p className="text-[16px] text-text-muted font-secondary leading-relaxed max-w-[44ch] mx-auto mb-10">
+                <p className="text-[16px] text-text-muted font-secondary leading-relaxed max-w-[44ch] mx-auto mb-4">
                   We&apos;ll tailor the session around your school
                   {roleLabel ? `, your situation as ${roleLabel.toLowerCase()},` : ","} and
                   what you want to improve first.
                 </p>
+
+                {booking && (
+                  <p className="text-[15px] font-medium font-secondary text-text mb-10">
+                    {formatSelectedDate(booking.date)} at {booking.time}{" "}
+                    <span className="text-text-faint font-normal">Central (CT)</span>
+                  </p>
+                )}
+
+                {!booking && <div className="mb-10" />}
 
                 {/* Prep card */}
                 <div
