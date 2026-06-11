@@ -8,7 +8,7 @@ export default function ProductPreviewSkeleton() {
           <div className="h-20 w-full max-w-xl bg-gray-50 rounded-lg mx-auto animate-pulse border border-gray-100" />
         </div>
         <div className="h-12 w-full max-w-2xl bg-gray-100 rounded-xl mx-auto animate-pulse" />
-        <div className="mt-6 w-full h-[420px] md:h-[600px] lg:h-[700px] rounded-xl bg-gray-50 border border-gray-200 animate-pulse" />
+        <div className="mt-6 w-full h-[300px] lg:h-[700px] rounded-xl bg-gray-50 border border-gray-200 animate-pulse" />
       </div>
     </section>
   )

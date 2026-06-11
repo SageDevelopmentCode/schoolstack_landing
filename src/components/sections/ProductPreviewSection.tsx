@@ -16,6 +16,7 @@ import {
   prefetchTeacherDemo,
   prefetchWebsiteDemo,
 } from './lazyDemos'
+import { useMobileDemoScale } from '@/hooks/useMobileDemoScale'
 
 type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'marketing' | 'timeclock'
 
@@ -179,7 +180,7 @@ export default function ProductPreviewSection() {
   }
 
   return (
-    <section id="product" className="relative w-full overflow-x-clip overflow-hidden bg-surface py-24">
+    <section id="product" className="relative w-full overflow-x-visible overflow-y-hidden lg:overflow-hidden bg-surface py-24">
 
       {/* ── Left cluster ── */}
       {/* Notebook — top-left */}
@@ -217,7 +218,7 @@ export default function ProductPreviewSection() {
         <Image src="/images/illustrations/Pastel.png" alt="" aria-hidden width={260} height={260} style={{ opacity: 0.82 }} />
       </motion.div>
 
-      <div className="w-full max-w-[1200px] mx-auto px-6 lg:px-16 overflow-x-hidden">
+      <div className="w-full max-w-[1200px] mx-auto px-6 lg:px-16 lg:overflow-x-hidden">
 
         {/* Top content */}
         <div className="max-w-[720px] mx-auto text-center mb-16">
@@ -327,46 +328,10 @@ export default function ProductPreviewSection() {
             ))}
           </div>
 
-          {/* Product frame */}
-          <div className="mt-6 w-full h-[420px] md:h-[600px] lg:h-[700px] rounded-xl shadow-lg overflow-hidden relative isolate bg-surface">
-            <div className="absolute inset-0 overflow-hidden">
-              {loadedTabs.has('admin') && (
-                <TabPanel visible={activeTab === 'admin'} id="admin" caption={TABS.find((t) => t.id === 'admin')!.caption}>
-                  <AdminTab />
-                </TabPanel>
-              )}
-              {loadedTabs.has('website') && (
-                <TabPanel visible={activeTab === 'website'} id="website" caption={TABS.find((t) => t.id === 'website')!.caption}>
-                  <WebsiteTab />
-                </TabPanel>
-              )}
-              {loadedTabs.has('enrollment') && (
-                <TabPanel visible={activeTab === 'enrollment'} id="enrollment" caption={TABS.find((t) => t.id === 'enrollment')!.caption}>
-                  <EnrollmentTab />
-                </TabPanel>
-              )}
-              {loadedTabs.has('parents') && (
-                <TabPanel visible={activeTab === 'parents'} id="parents" caption={TABS.find((t) => t.id === 'parents')!.caption}>
-                  <ParentsTab />
-                </TabPanel>
-              )}
-              {loadedTabs.has('teachers') && (
-                <TabPanel visible={activeTab === 'teachers'} id="teachers" caption={TABS.find((t) => t.id === 'teachers')!.caption}>
-                  <TeachersTab />
-                </TabPanel>
-              )}
-              {loadedTabs.has('marketing') && (
-                <TabPanel visible={activeTab === 'marketing'} id="marketing" caption={TABS.find((t) => t.id === 'marketing')!.caption}>
-                  <MarketingTab />
-                </TabPanel>
-              )}
-              {loadedTabs.has('timeclock') && (
-                <TabPanel visible={activeTab === 'timeclock'} id="timeclock" caption={TABS.find((t) => t.id === 'timeclock')!.caption}>
-                  <TimeclockTab />
-                </TabPanel>
-              )}
-            </div>
-          </div>
+          <ProductScaledDemoFrame
+            activeTab={activeTab}
+            loadedTabs={loadedTabs}
+          />
         </FadeInView>
 
       </div>
@@ -378,11 +343,13 @@ function TabPanel({
   visible,
   id,
   caption,
+  isMobileLayout,
   children,
 }: {
   visible: boolean
   id: TabId
   caption: string
+  isMobileLayout: boolean
   children: React.ReactNode
 }) {
   return (
@@ -391,11 +358,44 @@ function TabPanel({
       role="tabpanel"
       aria-label={caption}
       aria-hidden={!visible}
-      className={`absolute inset-0 transition-opacity duration-200 ${
-        visible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-      }`}
+      className={
+        isMobileLayout
+          ? visible
+            ? 'relative block h-full'
+            : 'hidden'
+          : `absolute inset-0 transition-opacity duration-200 ${
+              visible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+            }`
+      }
     >
       {children}
+    </div>
+  )
+}
+
+function DemoInteractionGuard({
+  scrollable = false,
+  className = '',
+  children,
+}: {
+  scrollable?: boolean
+  className?: string
+  children: React.ReactNode
+}) {
+  if (scrollable) {
+    return (
+      <div className={`relative h-full min-h-0 ${className}`}>
+        <div className="h-full overflow-y-auto overscroll-contain">
+          <div inert>{children}</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`relative ${className}`}>
+      <div inert>{children}</div>
+      <div className="absolute inset-0 z-20 cursor-default" aria-hidden="true" />
     </div>
   )
 }
@@ -403,20 +403,110 @@ function TabPanel({
 /* ─── Tab mockups ────────────────────────────────────────────────────── */
 
 const DESIGN_WIDTH = 1440
+const DESIGN_HEIGHT = 700
+const MOBILE_PREVIEW_HEIGHT = DESIGN_HEIGHT
+const VISIBLE_FRACTION = 0.65
 
-function DemoTabShell({ children }: { children: React.ReactNode }) {
+function ProductScaledDemoFrame({
+  activeTab,
+  loadedTabs,
+}: {
+  activeTab: TabId
+  loadedTabs: Set<TabId>
+}) {
+  const clipRef = useRef<HTMLDivElement>(null)
+  const { scale, isMobileLayout } = useMobileDemoScale(clipRef, DESIGN_WIDTH, VISIBLE_FRACTION)
+
+  const demoPanels = (
+    <div
+      className={isMobileLayout ? 'relative h-full' : 'absolute inset-0 overflow-hidden'}
+      style={isMobileLayout ? { width: DESIGN_WIDTH, height: MOBILE_PREVIEW_HEIGHT } : undefined}
+    >
+      {loadedTabs.has('admin') && (
+        <TabPanel visible={activeTab === 'admin'} id="admin" isMobileLayout={isMobileLayout} caption={TABS.find((t) => t.id === 'admin')!.caption}>
+          <AdminTab isMobileLayout={isMobileLayout} />
+        </TabPanel>
+      )}
+      {loadedTabs.has('website') && (
+        <TabPanel visible={activeTab === 'website'} id="website" isMobileLayout={isMobileLayout} caption={TABS.find((t) => t.id === 'website')!.caption}>
+          <WebsiteTab isMobileLayout={isMobileLayout} />
+        </TabPanel>
+      )}
+      {loadedTabs.has('enrollment') && (
+        <TabPanel visible={activeTab === 'enrollment'} id="enrollment" isMobileLayout={isMobileLayout} caption={TABS.find((t) => t.id === 'enrollment')!.caption}>
+          <EnrollmentTab isMobileLayout={isMobileLayout} />
+        </TabPanel>
+      )}
+      {loadedTabs.has('parents') && (
+        <TabPanel visible={activeTab === 'parents'} id="parents" isMobileLayout={isMobileLayout} caption={TABS.find((t) => t.id === 'parents')!.caption}>
+          <ParentsTab isMobileLayout={isMobileLayout} />
+        </TabPanel>
+      )}
+      {loadedTabs.has('teachers') && (
+        <TabPanel visible={activeTab === 'teachers'} id="teachers" isMobileLayout={isMobileLayout} caption={TABS.find((t) => t.id === 'teachers')!.caption}>
+          <TeachersTab isMobileLayout={isMobileLayout} />
+        </TabPanel>
+      )}
+      {loadedTabs.has('marketing') && (
+        <TabPanel visible={activeTab === 'marketing'} id="marketing" isMobileLayout={isMobileLayout} caption={TABS.find((t) => t.id === 'marketing')!.caption}>
+          <MarketingTab isMobileLayout={isMobileLayout} />
+        </TabPanel>
+      )}
+      {loadedTabs.has('timeclock') && (
+        <TabPanel visible={activeTab === 'timeclock'} id="timeclock" isMobileLayout={isMobileLayout} caption={TABS.find((t) => t.id === 'timeclock')!.caption}>
+          <TimeclockTab isMobileLayout={isMobileLayout} />
+        </TabPanel>
+      )}
+    </div>
+  )
+
+  if (isMobileLayout) {
+    return (
+      <div className="relative mt-6">
+        <div
+          ref={clipRef}
+          className="relative -mx-6 overflow-x-hidden flex justify-start pl-4"
+          style={{
+            height: scale > 0 ? MOBILE_PREVIEW_HEIGHT * scale : MOBILE_PREVIEW_HEIGHT,
+          }}
+        >
+          <div
+            className="shrink-0 rounded-xl shadow-lg relative isolate bg-surface overflow-hidden"
+            style={{
+              width: DESIGN_WIDTH,
+              height: MOBILE_PREVIEW_HEIGHT,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            {demoPanels}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      {children}
+    <div className="mt-6 w-full h-[700px] rounded-xl shadow-lg overflow-hidden relative isolate bg-surface">
+      {demoPanels}
     </div>
   )
 }
 
-function ScaledDemoContainer({ children }: { children: React.ReactNode }) {
+function ScaledDemoContainer({
+  children,
+  isMobileLayout,
+  scrollable = false,
+}: {
+  children: React.ReactNode
+  isMobileLayout: boolean
+  scrollable?: boolean
+}) {
   const outerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.81)
 
   useEffect(() => {
+    if (isMobileLayout) return
     const el = outerRef.current
     if (!el) return
     const update = () => setScale(el.offsetWidth / DESIGN_WIDTH)
@@ -424,7 +514,21 @@ function ScaledDemoContainer({ children }: { children: React.ReactNode }) {
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [isMobileLayout])
+
+  if (isMobileLayout) {
+    return (
+      <div
+        className={`relative w-full h-full ${scrollable ? 'min-h-0' : 'overflow-hidden'}`}
+        style={{
+          width: DESIGN_WIDTH,
+          height: MOBILE_PREVIEW_HEIGHT,
+        }}
+      >
+        {children}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -447,58 +551,72 @@ function ScaledDemoContainer({ children }: { children: React.ReactNode }) {
   )
 }
 
-function AdminTab() {
+function AdminTab({ isMobileLayout }: { isMobileLayout: boolean }) {
   return (
-    <ScaledDemoContainer>
-      <LazyAdminDashboardDemo disableTour />
+    <ScaledDemoContainer isMobileLayout={isMobileLayout}>
+      <DemoInteractionGuard>
+        <LazyAdminDashboardDemo disableTour />
+      </DemoInteractionGuard>
     </ScaledDemoContainer>
   )
 }
 
-function WebsiteTab() {
+function WebsiteTab({ isMobileLayout }: { isMobileLayout: boolean }) {
   return (
-    <ScaledDemoContainer>
-      <LazyWebsiteDashboardDemo disableTour />
+    <ScaledDemoContainer isMobileLayout={isMobileLayout} scrollable>
+      <DemoInteractionGuard scrollable className="h-full">
+        <LazyWebsiteDashboardDemo disableTour externalScroll />
+      </DemoInteractionGuard>
     </ScaledDemoContainer>
   )
 }
 
-function EnrollmentTab() {
+function EnrollmentTab({ isMobileLayout }: { isMobileLayout: boolean }) {
   return (
-    <DemoTabShell>
-      <LazyParentDashboardDemo initialTab="enrollment" disableTour hideNav />
-    </DemoTabShell>
-  )
-}
-
-function ParentsTab() {
-  return (
-    <DemoTabShell>
-      <LazyParentDashboardDemo initialTab="billing" disableTour hideNav />
-    </DemoTabShell>
-  )
-}
-
-function TeachersTab() {
-  return (
-    <DemoTabShell>
-      <LazyTeacherDashboardDemo initialTab="attendance" disableTour hideNav />
-    </DemoTabShell>
-  )
-}
-
-function MarketingTab() {
-  return (
-    <ScaledDemoContainer>
-      <LazyAdminDashboardDemo initialPage="marketing" disableTour hideNav />
+    <ScaledDemoContainer isMobileLayout={isMobileLayout}>
+      <DemoInteractionGuard>
+        <LazyParentDashboardDemo initialTab="enrollment" disableTour hideNav />
+      </DemoInteractionGuard>
     </ScaledDemoContainer>
   )
 }
 
-function TimeclockTab() {
+function ParentsTab({ isMobileLayout }: { isMobileLayout: boolean }) {
   return (
-    <ScaledDemoContainer>
-      <LazyTeacherDashboardDemo initialTab="hours" disableTour hideNav />
+    <ScaledDemoContainer isMobileLayout={isMobileLayout}>
+      <DemoInteractionGuard>
+        <LazyParentDashboardDemo initialTab="billing" disableTour hideNav />
+      </DemoInteractionGuard>
+    </ScaledDemoContainer>
+  )
+}
+
+function TeachersTab({ isMobileLayout }: { isMobileLayout: boolean }) {
+  return (
+    <ScaledDemoContainer isMobileLayout={isMobileLayout}>
+      <DemoInteractionGuard>
+        <LazyTeacherDashboardDemo initialTab="attendance" disableTour hideNav />
+      </DemoInteractionGuard>
+    </ScaledDemoContainer>
+  )
+}
+
+function MarketingTab({ isMobileLayout }: { isMobileLayout: boolean }) {
+  return (
+    <ScaledDemoContainer isMobileLayout={isMobileLayout}>
+      <DemoInteractionGuard>
+        <LazyAdminDashboardDemo initialPage="marketing" disableTour hideNav />
+      </DemoInteractionGuard>
+    </ScaledDemoContainer>
+  )
+}
+
+function TimeclockTab({ isMobileLayout }: { isMobileLayout: boolean }) {
+  return (
+    <ScaledDemoContainer isMobileLayout={isMobileLayout}>
+      <DemoInteractionGuard>
+        <LazyTeacherDashboardDemo initialTab="hours" disableTour hideNav />
+      </DemoInteractionGuard>
     </ScaledDemoContainer>
   )
 }

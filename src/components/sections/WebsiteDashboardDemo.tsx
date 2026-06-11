@@ -202,6 +202,7 @@ function WelcomeImages({
 interface Props {
   disableTour?: boolean;
   standalone?: boolean;
+  externalScroll?: boolean;
   config?: SchoolWebsiteDemoConfig;
   scrollRequest?: { target: "top" | "form"; nonce: number } | null;
   onDiscoveryCallClick?: () => void;
@@ -210,6 +211,7 @@ interface Props {
 export default function WebsiteDashboardDemo({
   disableTour: _disableTour,
   standalone,
+  externalScroll = false,
   config = defaultWebsiteDemoConfig,
   scrollRequest,
   onDiscoveryCallClick,
@@ -268,7 +270,13 @@ export default function WebsiteDashboardDemo({
   return (
     <div
       ref={scrollContainerRef}
-      className={standalone ? "min-h-screen w-full" : "h-full overflow-y-auto"}
+      className={
+        standalone
+          ? "min-h-screen w-full"
+          : externalScroll
+            ? "w-full"
+            : "h-full overflow-y-auto"
+      }
       style={{ ...getThemeVars(theme), backgroundColor: "var(--demo-page-bg)" }}
     >
       {showAnnouncementBar && (

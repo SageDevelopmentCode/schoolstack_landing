@@ -13,6 +13,7 @@ import {
   prefetchParentDemo,
 } from './lazyDemos'
 import { useEntranceAnimation } from '@/hooks/useEntranceAnimation'
+import { useMobileDemoScale } from '@/hooks/useMobileDemoScale'
 
 type HeroDemoTab = 'parent' | 'teacher' | 'admin'
 
@@ -58,39 +59,6 @@ const heroFrameVariant = {
     scale: 1,
     transition: { duration: 0.7, ease, delay: 0.38 },
   },
-}
-
-function useMobileDemoScale(ref: React.RefObject<HTMLDivElement | null>) {
-  const [scale, setScale] = useState(0.47)
-  const [isMobileLayout, setIsMobileLayout] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
-  )
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)')
-    const onChange = () => setIsMobileLayout(mq.matches)
-    onChange()
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el || !isMobileLayout) return
-
-    const update = () => {
-      const width = el.offsetWidth
-      if (width <= 0) return
-      setScale(width / (DEMO_WIDTH * VISIBLE_FRACTION))
-    }
-
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [ref, isMobileLayout])
-
-  return { scale, isMobileLayout }
 }
 
 function HeroDemoPanels({
@@ -183,7 +151,7 @@ function HeroScaledDemoFrame({
   motionInitial: false | 'hidden'
 }) {
   const clipRef = useRef<HTMLDivElement>(null)
-  const { scale, isMobileLayout } = useMobileDemoScale(clipRef)
+  const { scale, isMobileLayout } = useMobileDemoScale(clipRef, DEMO_WIDTH, VISIBLE_FRACTION)
 
   const boxShadow = t
     ? '0 0 0 1px rgba(30,59,42,0.15), 0 32px 80px rgba(30,59,42,0.12)'
@@ -331,7 +299,7 @@ export default function HeroSection() {
             </a>
             <a
               href="#product"
-              className={`inline-flex items-center gap-1.5 text-sm font-secondary transition-colors duration-500 ${t ? 'text-[#2E4A3C]/50 hover:text-[#2E4A3C]/80' : 'text-white/50 hover:text-white/80'}`}
+              className={`hidden lg:inline-flex items-center gap-1.5 text-sm font-secondary transition-colors duration-500 ${t ? 'text-[#2E4A3C]/50 hover:text-[#2E4A3C]/80' : 'text-white/50 hover:text-white/80'}`}
             >
               Try the product
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
