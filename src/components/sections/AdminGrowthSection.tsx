@@ -6,18 +6,17 @@ import { LazyAdminDashboardDemo } from "@/components/sections/lazyDemos";
 
 export default function AdminGrowthSection() {
   return (
-    <section className="bg-surface py-24 overflow-hidden">
-      <div className="max-w-[1200px] mx-auto pr-6 lg:pr-12 pl-0">
+    <section className="bg-surface py-24 overflow-x-visible overflow-y-hidden lg:overflow-hidden">
+      <div className="max-w-[1200px] mx-auto pl-6 pr-0 lg:pr-12 lg:pl-0">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-center">
 
           {/* Left — AdminDashboardDemo, scaled down with fixed height + internal scroll */}
           {/* Visible height = 430px → inner unscaled height = 430 / 0.72 ≈ 597px */}
-          <FadeInView delay={0.1}>
+          <FadeInView delay={0.1} className="order-2 lg:order-1">
             <InViewDemoGate className="relative w-full" style={{ height: "430px" }}>
               <div
-                className="absolute top-0 left-0 rounded-2xl border border-border shadow-lg overflow-y-auto overflow-x-hidden"
+                className="absolute top-0 left-0 w-[1100px] lg:w-[calc(100%/0.72)] rounded-2xl border border-border shadow-lg overflow-y-auto overflow-x-hidden"
                 style={{
-                  width: "calc(100% / 0.72)",
                   height: "calc(430px / 0.72)",
                   transform: "scale(0.72)",
                   transformOrigin: "top left",
@@ -29,7 +28,7 @@ export default function AdminGrowthSection() {
           </FadeInView>
 
           {/* Right — text content */}
-          <div className="pl-4 lg:pl-6">
+          <div className="order-1 lg:order-2 pr-4 lg:pr-0 lg:pl-6">
             <FadeInView>
               <p className="text-[13px] font-medium uppercase tracking-widest text-text-muted mb-4">
                 Growing operations

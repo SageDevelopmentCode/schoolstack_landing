@@ -6,7 +6,7 @@ import { LazyParentDashboardDemo } from "@/components/sections/lazyDemos";
 
 export default function FamilyClaritySection() {
   return (
-    <section className="bg-surface py-24 overflow-hidden">
+    <section className="bg-surface py-24 overflow-x-visible overflow-y-hidden lg:overflow-hidden">
       <div className="max-w-[1200px] mx-auto pl-6 lg:pl-12 pr-0">
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-12 items-center">
 
@@ -69,9 +69,8 @@ export default function FamilyClaritySection() {
           <FadeInView delay={0.1}>
             <InViewDemoGate className="relative w-full" style={{ height: "430px" }}>
               <div
-                className="absolute top-0 left-0 rounded-2xl border border-border shadow-lg overflow-y-auto overflow-x-hidden"
+                className="absolute top-0 left-0 w-[1100px] lg:w-[calc(100%/0.72)] rounded-2xl border border-border shadow-lg overflow-y-auto overflow-x-hidden"
                 style={{
-                  width: "calc(100% / 0.72)",
                   height: "calc(430px / 0.72)",
                   transform: "scale(0.72)",
                   transformOrigin: "top left",
