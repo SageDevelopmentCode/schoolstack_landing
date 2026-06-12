@@ -16,9 +16,44 @@ const TAGS = [
   'Any workflow you need',
 ]
 
+const MOBILE_TAG_ROWS = [TAGS.slice(0, 6), TAGS.slice(6, 12)]
+
+const tagPillClassName =
+  'inline-flex shrink-0 items-center whitespace-nowrap px-4 py-2 rounded-pill border border-border bg-surface text-sm text-text-muted cursor-default hover:bg-accent-soft hover:text-accent hover:border-accent/30 transition-all duration-200'
+
+function TagMarqueeRow({
+  tags,
+  direction,
+  duration,
+}: {
+  tags: string[]
+  direction: 'left' | 'right'
+  duration: string
+}) {
+  const animationName =
+    direction === 'left' ? 'custom-tag-marquee-left' : 'custom-tag-marquee-right'
+
+  return (
+    <div className="overflow-hidden">
+      <div
+        className="flex w-max gap-2.5"
+        style={{
+          animation: `${animationName} ${duration} linear infinite`,
+        }}
+      >
+        {[...tags, ...tags].map((tag, index) => (
+          <span key={`${tag}-${index}`} className={tagPillClassName} aria-hidden={index >= tags.length}>
+            {tag}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function CustomSection() {
   return (
-    <section id="custom" className="py-24 overflow-hidden" style={{ backgroundColor: '#F4F7F2' }}>
+    <section id="custom" className="py-24 max-lg:overflow-x-visible overflow-hidden" style={{ backgroundColor: '#F4F7F2' }}>
       <div className="relative max-w-[1280px] mx-auto px-6">
 
         {/* Decorative illustration — left */}
@@ -64,12 +99,23 @@ export default function CustomSection() {
         </FadeInView>
 
         <FadeInView delay={0.18}>
-          <div className="flex flex-wrap justify-center gap-2.5 mt-10">
+          <style>{`
+            @keyframes custom-tag-marquee-left {
+              0% { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+            @keyframes custom-tag-marquee-right {
+              0% { transform: translateX(-50%); }
+              100% { transform: translateX(0); }
+            }
+          `}</style>
+          <div className="mt-10 flex flex-col gap-2.5 w-screen relative left-1/2 -translate-x-1/2 lg:hidden">
+            <TagMarqueeRow tags={MOBILE_TAG_ROWS[0]} direction="left" duration="42s" />
+            <TagMarqueeRow tags={MOBILE_TAG_ROWS[1]} direction="right" duration="48s" />
+          </div>
+          <div className="mt-10 hidden lg:flex flex-wrap justify-center gap-2.5">
             {TAGS.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center px-4 py-2 rounded-pill border border-border bg-surface text-sm text-text-muted cursor-default hover:bg-accent-soft hover:text-accent hover:border-accent/30 transition-all duration-200"
-              >
+              <span key={tag} className={tagPillClassName}>
                 {tag}
               </span>
             ))}
