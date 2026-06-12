@@ -1,7 +1,7 @@
 "use client";
 
 import { FadeInView } from "@/components/ui/FadeInView";
-import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
+import { LandingScaledDemoFrame } from "@/components/demo/LandingScaledDemoFrame";
 import { LazyAdminDashboardDemo } from "@/components/sections/lazyDemos";
 
 export default function AdminGrowthSection() {
@@ -11,20 +11,10 @@ export default function AdminGrowthSection() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-center">
 
           {/* Left — AdminDashboardDemo, scaled down with fixed height + internal scroll */}
-          {/* Visible height = 430px → inner unscaled height = 430 / 0.72 ≈ 597px */}
           <FadeInView delay={0.1} className="order-2 lg:order-1">
-            <InViewDemoGate className="relative w-full" style={{ height: "430px" }}>
-              <div
-                className="absolute top-0 left-0 w-[1100px] lg:w-[calc(100%/0.72)] rounded-2xl border border-border shadow-lg overflow-y-auto overflow-x-hidden"
-                style={{
-                  height: "calc(430px / 0.72)",
-                  transform: "scale(0.72)",
-                  transformOrigin: "top left",
-                }}
-              >
-                <LazyAdminDashboardDemo disableTour={true} />
-              </div>
-            </InViewDemoGate>
+            <LandingScaledDemoFrame>
+              <LazyAdminDashboardDemo disableTour={true} />
+            </LandingScaledDemoFrame>
           </FadeInView>
 
           {/* Right — text content */}

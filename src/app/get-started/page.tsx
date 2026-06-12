@@ -1139,33 +1139,6 @@ export default function GetStartedPage() {
                   </ul>
                 </div>
 
-                {/* Secondary action */}
-                <a
-                  href="#"
-                  className="inline-flex items-center gap-2 rounded-pill px-7 h-11 text-sm font-medium font-secondary border border-border hover:border-border-strong hover:text-text transition-all duration-200 text-text-muted"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      cx="8"
-                      cy="8"
-                      r="6.5"
-                      stroke="currentColor"
-                      strokeWidth="1.3"
-                    />
-                    <path
-                      d="M6.5 5.5l4 2.5-4 2.5V5.5z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  Watch the 2-minute tour while you wait
-                </a>
-
                 <div className="mt-8">
                   <Link
                     href="/"
