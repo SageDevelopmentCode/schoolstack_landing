@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/sections/Navbar";
-import { createClient } from "@/utils/supabase/client";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -640,33 +639,42 @@ export default function GetStartedPage() {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.from("demo_requests").insert({
-      name: form.name.trim(),
-      email: form.email.trim(),
-      school_name: form.schoolName.trim(),
-      role: form.role,
-      launch_timeline: form.launchTimeline || null,
-      student_count: form.studentCount || null,
-      current_systems: form.currentSystems.trim(),
-      priorities: form.priorities,
-      website_url: form.websiteUrl.trim(),
-      current_tools: form.currentTools.trim(),
-      prep_notes: form.prepNotes.trim(),
-      scheduled_date: selected.date,
-      scheduled_time: selected.time,
-    });
+    try {
+      const res = await fetch("/api/demo-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          schoolName: form.schoolName,
+          role: form.role,
+          launchTimeline: form.launchTimeline || null,
+          studentCount: form.studentCount || null,
+          currentSystems: form.currentSystems,
+          priorities: form.priorities,
+          websiteUrl: form.websiteUrl,
+          currentTools: form.currentTools,
+          prepNotes: form.prepNotes,
+          scheduledDate: selected.date,
+          scheduledTime: selected.time,
+        }),
+      });
 
-    setIsSubmitting(false);
+      const data = (await res.json()) as { ok?: boolean; error?: string };
 
-    if (error) {
-      setSubmitError(error.message);
-      return;
+      if (!res.ok) {
+        setSubmitError(data.error ?? "Something went wrong");
+        return;
+      }
+
+      setBooking(selected);
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      setSubmitError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setBooking(selected);
-    setStep(2);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   const roleLabel = ROLES.find((r) => r.id === form.role)?.label ?? "";
