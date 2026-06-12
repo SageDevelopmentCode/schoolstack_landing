@@ -6,8 +6,8 @@ import { LazyParentDashboardDemo } from "@/components/sections/lazyDemos";
 
 export default function FamilyClaritySection() {
   return (
-    <section className="bg-surface py-24 overflow-x-visible overflow-y-hidden lg:overflow-hidden">
-      <div className="max-w-[1200px] mx-auto pl-6 lg:pl-12 pr-0">
+    <section className="bg-surface py-24 overflow-x-hidden overflow-y-hidden lg:overflow-hidden">
+      <div className="max-w-[1200px] mx-auto pl-6 lg:pl-12 pr-0 overflow-x-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-12 items-center">
 
           {/* Left — text content */}
@@ -66,9 +66,11 @@ export default function FamilyClaritySection() {
 
           {/* Right — ParentDashboardDemo, scaled down with fixed height + internal scroll */}
           <FadeInView delay={0.1}>
-            <LandingScaledDemoFrame>
-              <LazyParentDashboardDemo disableTour={true} />
-            </LandingScaledDemoFrame>
+            <div className="max-lg:-ml-6 max-lg:overflow-x-hidden max-lg:overscroll-x-none">
+              <LandingScaledDemoFrame preventHorizontalScroll>
+                <LazyParentDashboardDemo disableTour={true} />
+              </LandingScaledDemoFrame>
+            </div>
           </FadeInView>
 
         </div>

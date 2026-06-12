@@ -192,7 +192,7 @@ export default function ProductPreviewSection() {
   }
 
   return (
-    <section id="product" className="relative w-full overflow-x-visible overflow-y-hidden lg:overflow-hidden bg-surface py-24">
+    <section id="product" className="relative w-full overflow-x-hidden overflow-y-hidden lg:overflow-hidden bg-surface py-24">
 
       {/* ── Left cluster ── */}
       {/* Notebook — top-left */}
@@ -230,7 +230,7 @@ export default function ProductPreviewSection() {
         <Image src="/images/illustrations/Pastel.png" alt="" aria-hidden width={260} height={260} style={{ opacity: 0.82 }} />
       </motion.div>
 
-      <div className="w-full max-w-[1200px] mx-auto px-6 lg:px-16 lg:overflow-x-hidden">
+      <div className="w-full max-w-[1200px] mx-auto px-6 lg:px-16 overflow-x-hidden">
 
         {/* Top content */}
         <div className="max-w-[720px] mx-auto text-center mb-16">
@@ -398,10 +398,12 @@ export default function ProductPreviewSection() {
             ))}
           </div>
 
-          <ProductScaledDemoFrame
-            activeTab={activeTab}
-            loadedTabs={loadedTabs}
-          />
+          <div className="max-lg:-mx-6 max-lg:overflow-x-hidden max-lg:overscroll-x-none">
+            <ProductScaledDemoFrame
+              activeTab={activeTab}
+              loadedTabs={loadedTabs}
+            />
+          </div>
         </FadeInView>
 
       </div>
@@ -447,7 +449,7 @@ function ProductScaledDemoFrame({
   loadedTabs: Set<TabId>
 }) {
   return (
-    <LandingScaledDemoFrame className="mt-6">
+    <LandingScaledDemoFrame className="mt-6" preventHorizontalScroll>
       <div className="relative">
         {loadedTabs.has('admin') && (
           <TabPanel visible={activeTab === 'admin'} id="admin" caption={TABS.find((t) => t.id === 'admin')!.caption}>

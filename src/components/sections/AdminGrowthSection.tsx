@@ -6,15 +6,17 @@ import { LazyAdminDashboardDemo } from "@/components/sections/lazyDemos";
 
 export default function AdminGrowthSection() {
   return (
-    <section className="bg-surface py-24 overflow-x-visible overflow-y-hidden lg:overflow-hidden">
-      <div className="max-w-[1200px] mx-auto pl-6 pr-0 lg:pr-12 lg:pl-0">
+    <section className="bg-surface py-24 overflow-x-hidden overflow-y-hidden lg:overflow-hidden">
+      <div className="max-w-[1200px] mx-auto pl-6 pr-0 lg:pr-12 lg:pl-0 overflow-x-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-center">
 
           {/* Left — AdminDashboardDemo, scaled down with fixed height + internal scroll */}
           <FadeInView delay={0.1} className="order-2 lg:order-1">
-            <LandingScaledDemoFrame>
-              <LazyAdminDashboardDemo disableTour={true} />
-            </LandingScaledDemoFrame>
+            <div className="max-lg:-ml-6 max-lg:overflow-x-hidden max-lg:overscroll-x-none">
+              <LandingScaledDemoFrame preventHorizontalScroll>
+                <LazyAdminDashboardDemo disableTour={true} />
+              </LandingScaledDemoFrame>
+            </div>
           </FadeInView>
 
           {/* Right — text content */}
