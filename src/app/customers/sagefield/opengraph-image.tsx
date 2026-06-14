@@ -10,6 +10,7 @@ export default async function OpenGraphImage() {
   const photoData = await readFile(
     join(process.cwd(), "public/images/sagefield/classroom-main.jpg"),
   );
+  const photoSrc = `data:image/jpeg;base64,${photoData.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -24,7 +25,7 @@ export default async function OpenGraphImage() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={photoData as unknown as string}
+          src={photoSrc}
           alt=""
           width={1200}
           height={630}

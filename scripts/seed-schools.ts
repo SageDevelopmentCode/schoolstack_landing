@@ -47,17 +47,17 @@ async function main() {
     last_contacted_at:   null,
   }));
 
-  const { error, count } = await supabase
+  const { data, error } = await supabase
     .from("schools")
     .upsert(rows, { onConflict: "school_id", ignoreDuplicates: true })
-    .select("school_id", { count: "exact" });
+    .select("school_id");
 
   if (error) {
     console.error("❌  Supabase error:", error.message);
     process.exit(1);
   }
 
-  console.log(`✅  Done! Inserted/updated ${count ?? rows.length} schools.`);
+  console.log(`✅  Done! Inserted ${data?.length ?? 0} new schools.`);
 }
 
 main();

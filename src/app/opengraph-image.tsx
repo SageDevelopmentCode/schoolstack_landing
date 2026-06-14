@@ -10,6 +10,7 @@ export default async function OpenGraphImage() {
   const logoData = await readFile(
     join(process.cwd(), "public/images/Logo.png"),
   );
+  const logoSrc = `data:image/png;base64,${logoData.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -35,7 +36,7 @@ export default async function OpenGraphImage() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={logoData as unknown as string}
+            src={logoSrc}
             alt=""
             width={80}
             height={80}

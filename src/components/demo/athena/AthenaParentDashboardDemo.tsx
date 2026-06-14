@@ -48,6 +48,7 @@ import {
   ArrowRight,
   Landmark,
   Banknote,
+  Smartphone,
 } from "lucide-react";
 import { ATHENA_PARENT_LOGO } from "@/data/school-demos/athena-parent-demo";
 

@@ -9637,13 +9637,13 @@ function StudentProfilePanel({
                   <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: C.textTertiary }}>
                     Saved payment methods
                   </p>
-                  {student.billing.paymentMethods.map((pm, i) => (
+                  {student.billing.paymentMethods.map((pm, i, paymentMethods) => (
                     <div
                       key={i}
                       className="flex items-center justify-between py-2.5"
                       style={{
                         borderBottom:
-                          i < student.billing.paymentMethods.length - 1 ? `1px solid ${C.border}` : "none",
+                          i < paymentMethods.length - 1 ? `1px solid ${C.border}` : "none",
                       }}
                     >
                       <span className="flex items-center gap-2 text-xs" style={{ color: C.textPrimary }}>
@@ -9750,21 +9750,23 @@ function StudentProfilePanel({
                     Each row is one calendar week. Selected days drive the invoice for that week.
                   </p>
                   <div className="space-y-2">
-                    {student.billing.weeks.map((w, wi) => {
+                    {student.billing.weeks.map((w, wi, weeks) => {
+                      const billing = student.billing;
+                      if (billing.kind !== "homeschool_dropin") return null;
                       const n = w.days.length;
-                      const subtotal = n * student.billing.ratePerDay;
+                      const subtotal = n * billing.ratePerDay;
                       return (
                         <div
                           key={wi}
                           className="py-3"
-                          style={{ borderBottom: wi < student.billing.weeks.length - 1 ? `1px solid ${C.border}` : "none" }}
+                          style={{ borderBottom: wi < weeks.length - 1 ? `1px solid ${C.border}` : "none" }}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-[11px] font-semibold" style={{ color: C.textPrimary }}>
                               {w.weekOf}
                             </p>
                             <p className="text-[10px] tabular-nums" style={{ color: C.textSecondary }}>
-                              {n} day{n !== 1 ? "s" : ""} × {formatUsd(student.billing.ratePerDay)} ={" "}
+                              {n} day{n !== 1 ? "s" : ""} × {formatUsd(billing.ratePerDay)} ={" "}
                               <span className="font-semibold" style={{ color: C.textPrimary }}>
                                 {formatUsd(subtotal)}
                               </span>
@@ -14267,18 +14269,17 @@ function TuitionPage({
     (f) => f.balanceDue > 0,
   ).length;
 
-  const schedulePrograms: {
-    key: ScheduleProgramKey;
-    label: string;
-    items: TuitionScheduleItem[];
-  }[] = [
+  const schedulePrograms = [
     { key: "summer", label: "Summer 2026", items: selectedFamily.summer },
     {
       key: "schoolYear",
       label: "School Year 26–27",
       items: selectedFamily.schoolYear,
     },
-  ].filter((p) => p.items.length > 0);
+  ].filter(
+    (p): p is { key: ScheduleProgramKey; label: string; items: TuitionScheduleItem[] } =>
+      p.items.length > 0,
+  );
 
   const openScheduleProgram = schedulePrograms.find(
     (p) => p.key === openScheduleKey,
@@ -23281,6 +23282,10 @@ type ActivePage =
   | "people"
   | "programs"
   | "myschool"
+  | "messages"
+  | "calendar"
+  | "transactions"
+  | "emails"
   | "budget"
   | "marketing"
   | "impersonate";

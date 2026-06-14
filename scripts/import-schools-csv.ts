@@ -251,17 +251,17 @@ async function main() {
     }
   }
 
-  const { data, error, count } = await supabase
+  const { data, error } = await supabase
     .from("schools")
     .upsert(rows, { onConflict: "school_id", ignoreDuplicates: true })
-    .select("school_id", { count: "exact" });
+    .select("school_id");
 
   if (error) {
     console.error("❌  Supabase error:", error.message);
     process.exit(1);
   }
 
-  const inserted = count ?? data?.length ?? 0;
+  const inserted = data?.length ?? 0;
   const skipped = rows.length - inserted;
 
   console.log(`✅  Done! Inserted ${inserted} new schools.`);
