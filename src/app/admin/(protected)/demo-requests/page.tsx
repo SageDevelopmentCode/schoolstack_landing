@@ -33,15 +33,15 @@ const STATUS: Record<
 > = {
   scheduled: {
     label: "Scheduled",
-    pill: "bg-violet-50 text-violet-700 border-violet-200",
+    pill: "bg-clay-soft text-clay border-clay/20",
   },
   completed: {
     label: "Completed",
-    pill: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    pill: "bg-accent-highlight text-accent border-accent-soft",
   },
   cancelled: {
     label: "Cancelled",
-    pill: "bg-red-50 text-red-600 border-red-200",
+    pill: "bg-surface-soft text-text-muted border-border",
   },
 };
 
@@ -114,7 +114,7 @@ export default function DemoRequestsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-3rem)] text-sm text-gray-400">
+      <div className="flex items-center justify-center h-[calc(100vh-3rem)] text-sm text-text-faint font-secondary">
         Loading…
       </div>
     );
@@ -122,7 +122,7 @@ export default function DemoRequestsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-3rem)] text-sm text-red-600">
+      <div className="flex items-center justify-center h-[calc(100vh-3rem)] text-sm text-clay font-secondary">
         {error}
       </div>
     );
@@ -134,8 +134,8 @@ export default function DemoRequestsPage() {
       style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
     >
       {/* List panel */}
-      <div className="w-80 shrink-0 border-r border-gray-200 flex flex-col bg-white">
-        <div className="p-3 border-b border-gray-200 space-y-2">
+      <div className="w-80 shrink-0 border-r border-border flex flex-col bg-surface">
+        <div className="p-3 border-b border-border space-y-2">
           <div className="flex gap-1 flex-wrap">
             {(["scheduled", "completed", "cancelled"] as DemoRequestStatus[]).map(
               (s) => (
@@ -147,7 +147,7 @@ export default function DemoRequestsPage() {
                   className={`text-xs px-2 py-1 rounded-full border transition-colors ${
                     statusFilter === s
                       ? STATUS[s].pill
-                      : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                      : "bg-bg text-text-muted border-border hover:bg-surface-soft"
                   }`}
                 >
                   {STATUS[s].label}
@@ -160,22 +160,22 @@ export default function DemoRequestsPage() {
 
         <div className="flex-1 overflow-y-auto">
           {filtered.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">No requests</p>
+            <p className="text-sm text-text-faint text-center py-8">No requests</p>
           ) : (
             filtered.map((r) => (
               <button
                 key={r.id}
                 onClick={() => setSelectedId(r.id)}
-                className={`w-full text-left px-3 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                  selectedId === r.id ? "bg-violet-50" : ""
+                className={`w-full text-left px-3 py-3 border-b border-border hover:bg-bg transition-colors ${
+                  selectedId === r.id ? "bg-clay-soft" : ""
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-text truncate">
                       {r.name}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="text-xs text-text-muted truncate">
                       {r.school_name}
                     </p>
                   </div>
@@ -185,7 +185,7 @@ export default function DemoRequestsPage() {
                     {STATUS[r.status].label}
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-text-faint mt-1">
                   {new Date(r.created_at).toLocaleDateString()}
                 </p>
               </button>
@@ -195,19 +195,19 @@ export default function DemoRequestsPage() {
       </div>
 
       {/* Detail panel */}
-      <div className="flex-1 overflow-y-auto bg-gray-50/40">
+      <div className="flex-1 overflow-y-auto bg-bg/40">
         {!selected ? (
-          <div className="h-full flex items-center justify-center text-sm text-gray-400">
+          <div className="h-full flex items-center justify-center text-sm text-text-faint">
             Select a request
           </div>
         ) : (
           <div className="max-w-2xl mx-auto p-6 space-y-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">
+                <h1 className="text-lg font-semibold text-text font-display">
                   {selected.name}
                 </h1>
-                <p className="text-sm text-gray-500">{selected.school_name}</p>
+                <p className="text-sm text-text-muted font-secondary">{selected.school_name}</p>
               </div>
               <select
                 value={selected.status}
@@ -225,31 +225,31 @@ export default function DemoRequestsPage() {
               </select>
             </div>
 
-            <section className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            <section className="bg-surface border border-border rounded-xl p-4 space-y-3">
+              <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
                 Contact
               </h2>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <dt className="text-gray-500">Email</dt>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm font-secondary">
+                <dt className="text-text-muted">Email</dt>
                 <dd>
                   <a
                     href={`mailto:${selected.email}`}
-                    className="text-violet-600 hover:underline"
+                    className="text-clay hover:underline"
                   >
                     {selected.email}
                   </a>
                 </dd>
-                <dt className="text-gray-500">Role</dt>
+                <dt className="text-text-muted">Role</dt>
                 <dd>{ROLE_LABELS[selected.role] ?? selected.role}</dd>
                 {selected.website_url && (
                   <>
-                    <dt className="text-gray-500">Website</dt>
+                    <dt className="text-text-muted">Website</dt>
                     <dd>
                       <a
                         href={selected.website_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-violet-600 hover:underline truncate"
+                        className="text-clay hover:underline truncate"
                       >
                         {selected.website_url}
                       </a>
@@ -259,11 +259,11 @@ export default function DemoRequestsPage() {
               </dl>
             </section>
 
-            <section className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            <section className="bg-surface border border-border rounded-xl p-4 space-y-3">
+              <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
                 Scheduled
               </h2>
-              <p className="text-sm text-gray-900">
+              <p className="text-sm text-text font-secondary">
                 {formatDate(
                   selected.scheduled_date,
                   selected.scheduled_time,
@@ -276,32 +276,32 @@ export default function DemoRequestsPage() {
               selected.student_count ||
               selected.current_systems ||
               selected.priorities.length > 0) && (
-              <section className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-                <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              <section className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
                   Qualification
                 </h2>
-                <dl className="space-y-2 text-sm">
+                <dl className="space-y-2 text-sm font-secondary">
                   {selected.launch_timeline && (
                     <div>
-                      <dt className="text-gray-500">Launch timeline</dt>
+                      <dt className="text-text-muted">Launch timeline</dt>
                       <dd>{selected.launch_timeline}</dd>
                     </div>
                   )}
                   {selected.student_count && (
                     <div>
-                      <dt className="text-gray-500">Student count</dt>
+                      <dt className="text-text-muted">Student count</dt>
                       <dd>{selected.student_count}</dd>
                     </div>
                   )}
                   {selected.current_systems && (
                     <div>
-                      <dt className="text-gray-500">Current systems</dt>
+                      <dt className="text-text-muted">Current systems</dt>
                       <dd>{selected.current_systems}</dd>
                     </div>
                   )}
                   {selected.priorities.length > 0 && (
                     <div>
-                      <dt className="text-gray-500">Priorities</dt>
+                      <dt className="text-text-muted">Priorities</dt>
                       <dd>{selected.priorities.join(", ")}</dd>
                     </div>
                   )}
@@ -310,27 +310,27 @@ export default function DemoRequestsPage() {
             )}
 
             {(selected.current_tools || selected.prep_notes) && (
-              <section className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-                <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              <section className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
                   Notes
                 </h2>
                 {selected.current_tools && (
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    <span className="font-medium text-gray-500">
+                  <p className="text-sm text-text font-secondary whitespace-pre-wrap">
+                    <span className="font-medium text-text-muted">
                       Current tools:{" "}
                     </span>
                     {selected.current_tools}
                   </p>
                 )}
                 {selected.prep_notes && (
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                  <p className="text-sm text-text font-secondary whitespace-pre-wrap">
                     {selected.prep_notes}
                   </p>
                 )}
               </section>
             )}
 
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-text-faint font-secondary">
               Submitted {new Date(selected.created_at).toLocaleString()} via{" "}
               {selected.source}
             </p>
