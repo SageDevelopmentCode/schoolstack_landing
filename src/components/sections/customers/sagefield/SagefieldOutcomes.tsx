@@ -64,10 +64,10 @@ export default function SagefieldOutcomes() {
   const ActiveIcon = current.icon
 
   return (
-    <section id="outcomes" className="bg-bg py-28">
-      <div className="max-w-[1100px] mx-auto px-6 lg:px-16">
+    <section id="outcomes" className="bg-bg py-28 overflow-x-hidden lg:overflow-visible">
+      <div className="max-w-[1100px] mx-auto pl-6 pr-0 lg:px-16 overflow-x-hidden">
         {/* Heading */}
-        <div className="max-w-[640px]">
+        <div className="max-w-[640px] pr-6 lg:pr-0">
           <FadeInView>
             <Badge>What we helped Sage Field run</Badge>
           </FadeInView>
@@ -90,7 +90,7 @@ export default function SagefieldOutcomes() {
 
         {/* Role tabs */}
         <FadeInView delay={0.18}>
-          <div className="mt-12 relative inline-flex items-center gap-1 rounded-xl border border-border bg-surface p-1">
+          <div className="mt-12 relative inline-flex items-center gap-1 rounded-xl border border-border bg-surface p-1 mr-6 lg:mr-0">
             {TABS.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -128,7 +128,7 @@ export default function SagefieldOutcomes() {
               className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8 items-start"
             >
               {/* Left: outcome + items */}
-              <div>
+              <div className="pr-6 lg:pr-0">
                 <div className="flex items-center gap-2.5 mb-4">
                   <div className="w-9 h-9 rounded-lg bg-sage-100 flex items-center justify-center">
                     <ActiveIcon size={16} className="text-accent" />
@@ -169,7 +169,7 @@ export default function SagefieldOutcomes() {
 
         {/* Inline CTA */}
         <FadeInView delay={0.12}>
-          <div className="mt-14 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 rounded-2xl bg-bg-alt border border-border px-7 py-6">
+          <div className="mt-14 mr-6 lg:mr-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 rounded-2xl bg-bg-alt border border-border px-7 py-6">
             <div>
               <p className="font-secondary font-semibold text-text text-[15px]">
                 Ready to see the platform for your school?

@@ -84,55 +84,60 @@ export default function SagefieldBeforeAfter() {
 
         <FadeInView delay={0.18}>
           {/* Toggle */}
-          <div className="inline-flex items-center rounded-xl border border-border bg-surface-soft p-1 mb-8">
-            <button
-              onClick={() => setShowWith(false)}
-              className="relative isolate px-5 h-9 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200 cursor-pointer"
-              style={{ color: !showWith ? '#2E4A3C' : '#6D6257' }}
-            >
-              {!showWith && (
-                <motion.div
-                  layoutId="toggle-pill"
-                  className="absolute inset-0 rounded-lg z-0"
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #DDD0BE',
-                    boxShadow: '0 1px 3px rgba(46, 74, 60, 0.1), 0 1px 2px rgba(46, 74, 60, 0.06)',
-                  }}
-                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                />
-              )}
-              <span className="relative z-10">Without an operating system</span>
-            </button>
-            <button
-              onClick={() => setShowWith(true)}
-              className="relative isolate px-5 h-9 rounded-lg text-[13px] font-medium font-secondary transition-all duration-200 cursor-pointer"
-              style={{ color: showWith ? '#2E4A3C' : '#6D6257' }}
-            >
-              {showWith && (
-                <motion.div
-                  layoutId="toggle-pill"
-                  className="absolute inset-0 rounded-lg z-0"
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #A6B89A',
-                    boxShadow: '0 1px 3px rgba(46, 74, 60, 0.1), 0 1px 2px rgba(46, 74, 60, 0.06)',
-                  }}
-                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-2">
-                <Image
-                  src="/images/Logo.png"
-                  alt=""
-                  width={18}
-                  height={18}
-                  className="object-contain shrink-0"
-                  aria-hidden
-                />
-                With MudKitchen
-              </span>
-            </button>
+          <div className="max-w-full overflow-x-auto mb-8">
+            <div className="flex w-full max-w-full sm:inline-flex sm:w-auto items-center rounded-xl border border-border bg-surface-soft p-1">
+              <button
+                onClick={() => setShowWith(false)}
+                className="relative isolate flex flex-1 sm:flex-none items-center justify-center px-2.5 sm:px-5 h-8 sm:h-9 rounded-lg text-[11px] sm:text-[13px] leading-none font-medium font-secondary transition-all duration-200 cursor-pointer"
+                style={{ color: !showWith ? '#2E4A3C' : '#6D6257' }}
+              >
+                {!showWith && (
+                  <motion.div
+                    layoutId="toggle-pill"
+                    className="absolute inset-0 rounded-lg z-0"
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #DDD0BE',
+                      boxShadow: '0 1px 3px rgba(46, 74, 60, 0.1), 0 1px 2px rgba(46, 74, 60, 0.06)',
+                    }}
+                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                )}
+                <span className="relative z-10 inline-flex items-center whitespace-nowrap">
+                  <span className="sm:hidden">Without a system</span>
+                  <span className="hidden sm:inline">Without an operating system</span>
+                </span>
+              </button>
+              <button
+                onClick={() => setShowWith(true)}
+                className="relative isolate flex flex-1 sm:flex-none items-center justify-center px-2.5 sm:px-5 h-8 sm:h-9 rounded-lg text-[11px] sm:text-[13px] leading-none font-medium font-secondary transition-all duration-200 cursor-pointer"
+                style={{ color: showWith ? '#2E4A3C' : '#6D6257' }}
+              >
+                {showWith && (
+                  <motion.div
+                    layoutId="toggle-pill"
+                    className="absolute inset-0 rounded-lg z-0"
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #A6B89A',
+                      boxShadow: '0 1px 3px rgba(46, 74, 60, 0.1), 0 1px 2px rgba(46, 74, 60, 0.06)',
+                    }}
+                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
+                  <Image
+                    src="/images/Logo.png"
+                    alt=""
+                    width={18}
+                    height={18}
+                    className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px] object-contain shrink-0"
+                    aria-hidden
+                  />
+                  With MudKitchen
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Content */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
+import { LandingScaledDemoFrame } from "@/components/demo/LandingScaledDemoFrame";
 import {
   LazySagefieldAdminDashboardDemo,
   LazySagefieldParentDashboardDemo,
@@ -26,6 +27,39 @@ interface Props {
   role: Role;
 }
 
+function SagefieldOutcomeDemo({ role }: { role: Role }) {
+  if (role === "parent") {
+    return (
+      <LazySagefieldParentDashboardDemo
+        key="parent"
+        initialTab="billing"
+        disableTour
+        hideNav={false}
+      />
+    );
+  }
+
+  if (role === "teacher") {
+    return (
+      <LazySagefieldTeacherDashboardDemo
+        key="teacher"
+        initialTab="attendance"
+        disableTour
+        hideNav={false}
+      />
+    );
+  }
+
+  return (
+    <LazySagefieldAdminDashboardDemo
+      key="admin"
+      initialPage="leads"
+      initialAdmissionsTab="submissions"
+      disableTour
+    />
+  );
+}
+
 export default function SagefieldOutcomeDemoPreview({ role }: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.35);
@@ -47,54 +81,41 @@ export default function SagefieldOutcomeDemoPreview({ role }: Props) {
   }, []);
 
   return (
-    <div
-      className="rounded-2xl border border-border overflow-hidden"
-      style={{ backgroundColor: "#FFF9F5" }}
-    >
-      <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-border bg-surface">
-        <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-        <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
-        <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+    <>
+      <div className="lg:hidden max-lg:-ml-6 max-lg:overflow-x-hidden max-lg:overscroll-x-none">
+        <LandingScaledDemoFrame preventHorizontalScroll>
+          <SagefieldOutcomeDemo role={role} />
+        </LandingScaledDemoFrame>
       </div>
-      <InViewDemoGate
-        className="relative overflow-hidden"
-        style={{ height: PREVIEW_HEIGHT }}
+
+      <div
+        className="hidden lg:block rounded-2xl border border-border overflow-hidden"
+        style={{ backgroundColor: "#FFF9F5" }}
       >
-        <div ref={outerRef} className="absolute inset-0 overflow-hidden">
-          <div
-            className="h-full"
-            style={{
-              width: DESIGN_WIDTH,
-              height: scale > 0 ? `${100 / scale}%` : "100%",
-              transform: `scale(${scale})`,
-              transformOrigin: "top left",
-            }}
-          >
-            {role === "parent" ? (
-              <LazySagefieldParentDashboardDemo
-                key="parent"
-                initialTab="billing"
-                disableTour
-                hideNav={false}
-              />
-            ) : role === "teacher" ? (
-              <LazySagefieldTeacherDashboardDemo
-                key="teacher"
-                initialTab="attendance"
-                disableTour
-                hideNav={false}
-              />
-            ) : (
-              <LazySagefieldAdminDashboardDemo
-                key="admin"
-                initialPage="leads"
-                initialAdmissionsTab="submissions"
-                disableTour
-              />
-            )}
-          </div>
+        <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-border bg-surface">
+          <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+          <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
+          <div className="w-2.5 h-2.5 rounded-full bg-border-strong" />
         </div>
-      </InViewDemoGate>
-    </div>
+        <InViewDemoGate
+          className="relative overflow-hidden"
+          style={{ height: PREVIEW_HEIGHT }}
+        >
+          <div ref={outerRef} className="absolute inset-0 overflow-hidden">
+            <div
+              className="h-full"
+              style={{
+                width: DESIGN_WIDTH,
+                height: scale > 0 ? `${100 / scale}%` : "100%",
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
+              }}
+            >
+              <SagefieldOutcomeDemo role={role} />
+            </div>
+          </div>
+        </InViewDemoGate>
+      </div>
+    </>
   );
 }
