@@ -76,7 +76,11 @@ export default function SchoolDemoShell({
             initialParentTab={steps[activeStep].initialParentTab ?? "enrollment"}
           />
         ) : activePreview === "contact" ? (
-          <DemoContactPanel />
+          <DemoContactPanel
+            schoolSlug={config.slug}
+            schoolName={schoolName}
+            logo={config.logo}
+          />
         ) : (
           <ScaledWebsiteDemoPreview
             scrollRequest={scrollRequest}

@@ -88,21 +88,20 @@ export default function FounderStorySection() {
             <FadeInView delay={0.30}>
               <a
                 href="/customers/sagefield"
-                className="inline-flex items-center gap-1.5 text-sm font-secondary transition-opacity mt-6 hover:opacity-80"
-                style={{ color: 'var(--color-accent)' }}
+                className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200 mt-6"
               >
                 Read the case study
                 <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 13 13"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
                   fill="none"
                   aria-hidden="true"
                 >
                   <path
-                    d="M2 6.5H11M11 6.5L7 2.5M11 6.5L7 10.5"
+                    d="M2.5 7H11.5M11.5 7L7.5 3M11.5 7L7.5 11"
                     stroke="currentColor"
-                    strokeWidth="1.4"
+                    strokeWidth="1.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />

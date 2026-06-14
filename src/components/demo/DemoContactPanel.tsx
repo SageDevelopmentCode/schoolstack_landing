@@ -8,19 +8,56 @@ import { mudkitchenDemoContact } from "@/data/school-demos/mudkitchen-demo-conta
 const inputClassName =
   "w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition";
 
-export default function DemoContactPanel() {
+interface Props {
+  schoolSlug: string;
+  schoolName: string;
+  logo: { src: string; alt: string; width?: number; height?: number };
+}
+
+export default function DemoContactPanel({ schoolSlug, schoolName, logo }: Props) {
   const { heading, subheading, contact, form } = mudkitchenDemoContact;
   const [question, setQuestion] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canSubmit =
     question.trim().length > 0 && name.trim().length > 0 && email.trim().length > 0;
 
-  const handleSubmit = () => {
-    if (!canSubmit) return;
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    if (!canSubmit || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const res = await fetch("/api/demo-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolSlug,
+          schoolName,
+          name: name.trim(),
+          email: email.trim(),
+          message: question.trim(),
+        }),
+      });
+
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok) {
+        setSubmitError(data.error ?? "Something went wrong");
+        return;
+      }
+
+      setSubmitted(true);
+    } catch {
+      setSubmitError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -28,10 +65,10 @@ export default function DemoContactPanel() {
       <div className="mx-auto flex max-w-2xl flex-col px-6 py-10 sm:px-10 sm:py-12">
           <div className="mb-8 flex items-center gap-3">
             <Image
-              src="/images/Logo.png"
-              alt="MudKitchen"
-              width={32}
-              height={32}
+              src={logo.src}
+              alt={logo.alt}
+              width={logo.width ?? 32}
+              height={logo.height ?? 32}
               className="h-8 w-auto object-contain"
             />
             <h2 className="font-display text-xl font-semibold text-[#2E4A3C] sm:text-2xl">
@@ -94,13 +131,16 @@ export default function DemoContactPanel() {
                     className={inputClassName}
                   />
                 </label>
+                {submitError ? (
+                  <p className="text-sm text-red-600 font-body">{submitError}</p>
+                ) : null}
                 <button
                   type="button"
-                  disabled={!canSubmit}
+                  disabled={!canSubmit || isSubmitting}
                   onClick={handleSubmit}
                   className="mt-1 w-full rounded-lg bg-[#2E4A3C] py-2.5 text-sm font-semibold text-white font-body transition-colors hover:bg-[#233B2F] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {form.submitLabel}
+                  {isSubmitting ? "Sending..." : form.submitLabel}
                 </button>
               </div>
             </div>
