@@ -183,3 +183,24 @@ export async function notifyDemoFeedback(payload: {
     ],
   });
 }
+
+export async function notifyHomepageQuestion(payload: {
+  name: string;
+  email: string;
+  message: string;
+}) {
+  await sendDiscordEmbed({
+    title: "New homepage question",
+    fields: [
+      {
+        name: "Contact",
+        value: truncate(`${payload.name}\n${payload.email}`),
+        inline: true,
+      },
+      {
+        name: "Message",
+        value: truncate(payload.message.trim()),
+      },
+    ],
+  });
+}

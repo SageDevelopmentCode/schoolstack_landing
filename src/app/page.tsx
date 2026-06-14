@@ -4,7 +4,6 @@ import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
 import ProductPreviewSkeleton from "@/components/sections/ProductPreviewSkeleton";
 import SectionFallback from "@/components/ui/SectionFallback";
-import { DeferredSection } from "@/components/ui/DeferredSection";
 import JsonLd from "@/components/seo/JsonLd";
 import FaqJsonLd from "@/components/seo/FaqJsonLd";
 import HomeFaqSection from "@/components/seo/HomeFaqSection";
@@ -94,9 +93,7 @@ export default function Home() {
         <FinalCTASection />
       </main>
       <Footer />
-      <DeferredSection minHeight="0" fallback={null}>
-        <FloatingQuestionButton />
-      </DeferredSection>
+      <FloatingQuestionButton />
     </>
   );
 }
