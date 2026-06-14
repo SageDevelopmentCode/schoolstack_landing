@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
 import { Geist, Lora, Fragment_Mono, Delicious_Handrawn, Poppins } from "next/font/google";
 import NavigationRestoreInit from "@/components/NavigationRestoreInit";
+import { rootMetadata } from "@/lib/metadata";
 import "./globals.css";
 
 const geist = Geist({
@@ -38,11 +38,7 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-export const metadata: Metadata = {
-  title: "MudKitchen — The complete operating system for microschools",
-  description:
-    "MudKitchen was built inside a real microschool to replace the 7 tools founders are stitching together. One system for enrollment, billing, parent communication, and daily operations.",
-};
+export const metadata = rootMetadata();
 
 export default function RootLayout({
   children,

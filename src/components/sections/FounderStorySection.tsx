@@ -18,7 +18,7 @@ const SECTIONS = [
 
 export default function FounderStorySection() {
   return (
-    <section className="py-24" style={{ backgroundColor: '#1a3327' }}>
+    <section id="about" className="py-24" style={{ backgroundColor: '#1a3327' }}>
       <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-16 items-center">
           {/* Left — story + quote */}

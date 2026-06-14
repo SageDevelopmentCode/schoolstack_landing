@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Work_Sans } from "next/font/google";
+import { pageMetadata } from "@/lib/metadata";
 
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
@@ -16,11 +17,13 @@ const workSans = Work_Sans({
   variable: "--font-work-sans",
 });
 
-export const metadata: Metadata = {
-  title: "Athena Micro-academy of Austin — Website Demo",
+export const metadata: Metadata = pageMetadata({
+  title: "Athena Micro-academy Website Demo",
   description:
     "A concept admissions landing page for Athena Micro-academy of Austin — a relationship-centered microschool for grades 6–12 in South Austin.",
-};
+  path: "/demo/athena-microacademy",
+  noIndex: true,
+});
 
 export default function AthenaMicroacademyLayout({
   children,

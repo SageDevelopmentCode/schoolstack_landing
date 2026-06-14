@@ -1,15 +1,22 @@
-import Image from 'next/image'
-import Navbar from '@/components/sections/Navbar'
-import Footer from '@/components/sections/Footer'
-import { Badge } from '@/components/ui/Badge'
-import { FadeInView } from '@/components/ui/FadeInView'
-import { MapPin, TrendingUp, Users, ArrowRight, ExternalLink } from 'lucide-react'
+import type { Metadata } from "next";
+import Image from "next/image";
+import Navbar from "@/components/sections/Navbar";
+import Footer from "@/components/sections/Footer";
+import { Badge } from "@/components/ui/Badge";
+import { FadeInView } from "@/components/ui/FadeInView";
+import { MapPin, TrendingUp, Users, ArrowRight, ExternalLink } from "lucide-react";
+import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
+import { pageMetadata } from "@/lib/metadata";
+import { buildBreadcrumbs } from "@/lib/seo";
 
-export const metadata = {
-  title: 'Customer Stories — MudKitchen',
+export const metadata: Metadata = pageMetadata({
+  title: "Customer Stories",
   description:
-    'See how real microschools launched and grew using MudKitchen to power their website, enrollment, tuition, and daily operations.',
-}
+    "See how real microschools launched and grew using MudKitchen to power their website, enrollment, tuition, and daily operations.",
+  path: "/customers",
+});
+
+const BREADCRUMBS = buildBreadcrumbs({ name: "Customer Stories", path: "/customers" });
 
 const STORIES = [
   {
@@ -31,6 +38,7 @@ const STORIES = [
 export default function CustomersPage() {
   return (
     <>
+      <BreadcrumbJsonLd items={BREADCRUMBS} />
       <Navbar />
       <main className="bg-bg min-h-screen">
         {/* Hero */}
