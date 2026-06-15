@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ClipboardCheck, ClipboardList, CreditCard, GitBranch, Globe, LayoutDashboard, Link2, MessageCircle } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ClipboardList, CreditCard, GitBranch, Globe, LayoutDashboard, Link2, MessageCircle, MousePointerClick } from "lucide-react";
 import Image from "next/image";
 import type { ComponentType, CSSProperties } from "react";
 import type {
@@ -77,12 +77,19 @@ export default function DemoWalkthroughPanel({
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-5">
           <h1 className="font-display text-xl font-medium leading-snug text-gray-900">
             {schoolName}
           </h1>
-          <p className="mt-3 text-[11px] font-secondary font-semibold uppercase tracking-wider text-gray-400">
-            Step {activeStep + 1} of {steps.length}
+        </div>
+
+        <div className="mb-5 flex items-center gap-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2.5">
+          <MousePointerClick
+            className="h-4 w-4 shrink-0 text-clay"
+            aria-hidden
+          />
+          <p className="text-xs font-secondary leading-snug text-gray-600">
+            Click each step below to walk through the flow.
           </p>
         </div>
 
@@ -165,8 +172,9 @@ export default function DemoWalkthroughPanel({
                           Viewing
                         </span>
                       ) : (
-                        <span className="shrink-0 text-[10px] font-secondary text-gray-400 group-hover:text-gray-500">
-                          Click to view
+                        <span className="flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white/80 px-2 py-0.5 text-[10px] font-semibold font-secondary text-gray-500 transition-colors group-hover:border-gray-300 group-hover:text-gray-700">
+                          <MousePointerClick className="h-3 w-3" aria-hidden />
+                          View
                         </span>
                       )}
                     </div>
