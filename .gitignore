@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+.email-previews
 
 # next.js
 /.next/
@@ -45,4 +46,5 @@ specs
 .claude-account3
 .claude-account1
 .claude-account2
-.claude-account
+
+guides
