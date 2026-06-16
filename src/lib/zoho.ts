@@ -34,14 +34,12 @@ const ZOHO_CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET;
 const ZOHO_REDIRECT_URI = process.env.ZOHO_REDIRECT_URI;
 const ZOHO_ACCOUNT_ID = process.env.ZOHO_ACCOUNT_ID;
 const ZOHO_FROM_ADDRESS = process.env.ZOHO_FROM_ADDRESS;
-const ZOHO_FROM_NAME = process.env.ZOHO_FROM_NAME ?? "Julius Cecilia";
 const ACCOUNTS_BASE = "https://accounts.zoho.com";
 const MAIL_BASE = "https://mail.zoho.com";
 
 let cachedAccessToken: string | null = null;
 let tokenExpiresAt: number | null = null;
 let cachedAccountId: string | null = null;
-let fromDisplayNameSynced = false;
 
 function cleanEmailAddress(raw: string): string {
   if (!raw) return "";
@@ -151,52 +149,16 @@ export async function getAuthorizationUrl(): Promise<string> {
   return `${ACCOUNTS_BASE}/oauth/v2/auth?${params.toString()}`;
 }
 
-async function ensureFromDisplayName(): Promise<void> {
-  if (fromDisplayNameSynced || !ZOHO_FROM_ADDRESS || !ZOHO_FROM_NAME) return;
-
-  const accessToken = await getValidAccessToken();
-  const accountId = await getZohoAccountId();
-
-  const res = await fetch(`${MAIL_BASE}/api/accounts/${accountId}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Zoho-oauthtoken ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      mode: "displaynameemailupdate",
-      emailAddress: ZOHO_FROM_ADDRESS,
-      displayName: ZOHO_FROM_NAME,
-    }),
-  });
-
-  if (!res.ok) {
-    console.warn(
-      "Failed to sync Zoho from display name:",
-      await res.text(),
-      "(Re-run /api/zoho/authorize if scope ZohoMail.accounts.UPDATE was missing.)"
-    );
-    return;
-  }
-
-  fromDisplayNameSynced = true;
-}
-
-export async function sendZohoEmail(opts: {
+async function sendViaRestApi(opts: {
   toAddress: string;
   subject: string;
   content: string;
 }): Promise<{ success: boolean; error?: string }> {
-  if (!ZOHO_FROM_ADDRESS) {
-    return { success: false, error: "ZOHO_FROM_ADDRESS is not set" };
-  }
-
   const MAX_ATTEMPTS = 3;
   let lastError = "";
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      await ensureFromDisplayName();
       const accessToken = await getValidAccessToken();
       const accountId = await getZohoAccountId();
 
@@ -237,6 +199,28 @@ export async function sendZohoEmail(opts: {
   }
 
   return { success: false, error: lastError };
+}
+
+export async function sendZohoEmail(opts: {
+  toAddress: string;
+  subject: string;
+  content: string;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!ZOHO_FROM_ADDRESS) {
+    return { success: false, error: "ZOHO_FROM_ADDRESS is not set" };
+  }
+
+  const { isSmtpConfigured, sendViaSmtp } = await import("@/lib/zoho-smtp");
+
+  if (isSmtpConfigured()) {
+    return sendViaSmtp({
+      toAddress: opts.toAddress,
+      subject: opts.subject,
+      html: opts.content,
+    });
+  }
+
+  return sendViaRestApi(opts);
 }
 
 async function fetchMessageContent(
