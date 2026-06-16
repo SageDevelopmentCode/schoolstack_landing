@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { schoolDemoRegistry } from "@/data/school-demos";
 import { notifyDemoFeedback } from "@/lib/discord";
+import { sendDemoFeedbackConfirmation } from "@/lib/emails";
 import { createClient } from "@/utils/supabase/server";
 
 const MAX_MESSAGE_LENGTH = 5000;
@@ -65,6 +66,12 @@ export async function POST(request: Request) {
     await notifyDemoFeedback({ schoolSlug, schoolName, name, email, message });
   } catch (err) {
     console.error("Discord notification error:", err);
+  }
+
+  try {
+    await sendDemoFeedbackConfirmation({ name, email, schoolName });
+  } catch (err) {
+    console.error("Confirmation email error:", err);
   }
 
   return NextResponse.json({ ok: true });

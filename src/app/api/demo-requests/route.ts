@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { notifyDemoBooking } from "@/lib/discord";
+import { sendDemoBookingConfirmation } from "@/lib/emails";
 import { createClient } from "@/utils/supabase/server";
 
 const VALID_ROLES = new Set([
@@ -118,6 +119,18 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("Discord notification error:", err);
+  }
+
+  try {
+    await sendDemoBookingConfirmation({
+      name,
+      email,
+      schoolName,
+      scheduledDate,
+      scheduledTime,
+    });
+  } catch (err) {
+    console.error("Confirmation email error:", err);
   }
 
   return NextResponse.json({ ok: true });

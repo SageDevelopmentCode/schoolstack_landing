@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { notifyHomepageQuestion } from "@/lib/discord";
+import { sendHomepageQuestionConfirmation } from "@/lib/emails";
 import { createClient } from "@/utils/supabase/server";
 
 const MAX_MESSAGE_LENGTH = 5000;
@@ -60,6 +61,12 @@ export async function POST(request: Request) {
     await notifyHomepageQuestion({ name, email, message });
   } catch (err) {
     console.error("Discord notification error:", err);
+  }
+
+  try {
+    await sendHomepageQuestionConfirmation({ name, email });
+  } catch (err) {
+    console.error("Confirmation email error:", err);
   }
 
   return NextResponse.json({ ok: true });
