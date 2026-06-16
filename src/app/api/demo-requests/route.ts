@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { isPastDate } from "@/lib/demo-scheduler";
 import { notifyDemoBooking } from "@/lib/discord";
 import { sendDemoBookingConfirmation } from "@/lib/emails";
 import { createClient } from "@/utils/supabase/server";
@@ -77,8 +78,54 @@ export async function POST(request: Request) {
   const currentTools = body.currentTools?.trim() ?? "";
   const prepNotes = body.prepNotes?.trim() ?? "";
 
+  if (isPastDate(scheduledDate)) {
+    return NextResponse.json(
+      { error: "Cannot book a date in the past." },
+      { status: 400 }
+    );
+  }
+
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
+
+  const { data: slotRow, error: slotError } = await supabase
+    .from("demo_availability_slots")
+    .select("id")
+    .eq("date", scheduledDate)
+    .eq("time_slot", scheduledTime)
+    .maybeSingle();
+
+  if (slotError) {
+    console.error("Availability check failed:", slotError.message);
+    return NextResponse.json({ error: slotError.message }, { status: 500 });
+  }
+
+  if (!slotRow) {
+    return NextResponse.json(
+      { error: "That time slot is no longer available." },
+      { status: 409 }
+    );
+  }
+
+  const { data: existingBooking, error: bookingCheckError } = await supabase
+    .from("demo_requests")
+    .select("id")
+    .eq("scheduled_date", scheduledDate)
+    .eq("scheduled_time", scheduledTime)
+    .eq("status", "scheduled")
+    .maybeSingle();
+
+  if (bookingCheckError) {
+    console.error("Booking check failed:", bookingCheckError.message);
+    return NextResponse.json({ error: bookingCheckError.message }, { status: 500 });
+  }
+
+  if (existingBooking) {
+    return NextResponse.json(
+      { error: "That time slot has already been booked." },
+      { status: 409 }
+    );
+  }
 
   const { error } = await supabase.from("demo_requests").insert({
     name,
@@ -98,6 +145,12 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error("Supabase insert failed:", error.message);
+    if (error.code === "23505") {
+      return NextResponse.json(
+        { error: "That time slot has already been booked." },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

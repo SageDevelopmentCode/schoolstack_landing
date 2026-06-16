@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/sections/Navbar";
+import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
+import { formatSelectedDate } from "@/lib/demo-scheduler";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -67,36 +69,7 @@ const LAUNCH_TIMELINES: { id: LaunchTimeline; label: string }[] = [
   { id: "exploring", label: "Just exploring for now" },
 ];
 
-// ── Scheduler static data ──────────────────────────────────────────────────────
-
-const AVAILABLE_DATES = new Set([
-  "2026-05-15", "2026-05-16", "2026-05-19", "2026-05-20",
-  "2026-05-21", "2026-05-22", "2026-05-27", "2026-05-28", "2026-05-29",
-  "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-09", "2026-06-10", "2026-06-11",
-]);
-
-const TIME_SLOTS = [
-  "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM",
-  "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM",
-];
-
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-const DAY_NAMES = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
-function pad2(n: number) { return String(n).padStart(2, "0"); }
-function dateKey(y: number, m: number, d: number) {
-  return `${y}-${pad2(m + 1)}-${pad2(d)}`;
-}
-function formatSelectedDate(dateStr: string) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    weekday: "short", month: "long", day: "numeric",
-  });
-}
+// ── Scheduler ──────────────────────────────────────────────────────────────────
 
 // ── Animation ──────────────────────────────────────────────────────────────────
 
@@ -219,328 +192,6 @@ function TextInput({
   );
 }
 
-// ── Scheduler sub-components ───────────────────────────────────────────────────
-
-function CalendarGrid({
-  year,
-  month,
-  selected,
-  onSelect,
-}: {
-  year: number;
-  month: number;
-  selected: string | null;
-  onSelect: (date: string) => void;
-}) {
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: (number | null)[] = [
-    ...Array(firstDay).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  return (
-    <div>
-      <div className="grid grid-cols-7 mb-2">
-        {DAY_NAMES.map((d) => (
-          <div
-            key={d}
-            className="text-center text-[11px] font-medium font-secondary text-text-faint py-1"
-          >
-            {d}
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-y-1">
-        {cells.map((day, idx) => {
-          if (!day) return <div key={`empty-${idx}`} />;
-          const key = dateKey(year, month, day);
-          const isAvailable = AVAILABLE_DATES.has(key);
-          const isSelected = selected === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              disabled={!isAvailable}
-              onClick={() => isAvailable && onSelect(key)}
-              className={`mx-auto w-10 h-10 rounded-full text-[14px] font-medium font-secondary flex items-center justify-center transition-all duration-150 ${
-                isSelected
-                  ? "bg-accent text-white"
-                  : isAvailable
-                  ? "text-text hover:bg-accent/10 hover:text-accent cursor-pointer"
-                  : "text-text-faint cursor-default"
-              }`}
-            >
-              {day}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function TimeSlotList({
-  dateStr,
-  selectedTime,
-  onSelectTime,
-  onConfirm,
-  isSubmitting,
-}: {
-  dateStr: string;
-  selectedTime: string | null;
-  onSelectTime: (t: string) => void;
-  onConfirm: (booking: { date: string; time: string }) => void;
-  isSubmitting?: boolean;
-}) {
-  return (
-    <div className="flex flex-col md:h-full p-4">
-      {/* Date header */}
-      <div className="mb-3">
-        <div className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-0.5">
-          Select a time
-        </div>
-        <div className="text-[12px] font-medium font-secondary text-text leading-snug">
-          {formatSelectedDate(dateStr)}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5 flex-1 overflow-y-auto">
-        {TIME_SLOTS.map((slot) => {
-          const isSelected = selectedTime === slot;
-          return (
-            <button
-              key={slot}
-              type="button"
-              onClick={() => onSelectTime(slot)}
-              className={`w-full h-10 rounded-lg border-2 text-[13px] font-medium font-secondary transition-all duration-150 cursor-pointer ${
-                isSelected
-                  ? "border-accent bg-accent text-white"
-                  : "border-border text-text hover:border-accent hover:text-accent"
-              }`}
-            >
-              {slot}
-            </button>
-          );
-        })}
-      </div>
-
-      <AnimatePresence>
-        {selectedTime && (
-          <motion.div
-            key="confirm-btn"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0, transition: { duration: 0.2 } }}
-            exit={{ opacity: 0, y: 6, transition: { duration: 0.15 } }}
-            className="mt-3 pt-3 border-t border-border"
-          >
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => {
-                if (selectedTime) onConfirm({ date: dateStr, time: selectedTime });
-              }}
-              className="w-full h-10 rounded-pill text-white text-[13px] font-medium font-secondary hover:opacity-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "var(--color-clay)" }}
-            >
-              {isSubmitting ? "Booking…" : "Confirm"}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function StaticScheduler({
-  onConfirm,
-  isSubmitting,
-}: {
-  onConfirm: (booking: { date: string; time: string }) => void;
-  isSubmitting?: boolean;
-}) {
-  const [viewYear, setViewYear] = useState(2026);
-  const [viewMonth, setViewMonth] = useState(4); // May = index 4
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-
-  function handleDateSelect(date: string) {
-    setSelectedDate(date);
-    setSelectedTime(null);
-  }
-
-  function prevMonth() {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
-    else { setViewMonth((m) => m - 1); }
-    setSelectedDate(null); setSelectedTime(null);
-  }
-
-  function nextMonth() {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
-    else { setViewMonth((m) => m + 1); }
-    setSelectedDate(null); setSelectedTime(null);
-  }
-
-  return (
-    <div className="flex flex-col md:flex-row md:min-h-[500px]">
-
-      {/* Column 1 — info panel (compact row on mobile, sidebar on desktop) */}
-      <div className="flex md:hidden w-full border-b border-border p-4 flex-col gap-2">
-        <div>
-          <div className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-1">
-            SchoolStack
-          </div>
-          <div
-            className="font-display leading-snug text-text"
-            style={{ fontSize: "clamp(1rem, 2.5vw, 1.15rem)" }}
-          >
-            Demo Call
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-secondary text-text-muted">
-          <span className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden="true">
-              <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M7 4v3.5l2 1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            30 min
-          </span>
-          <span className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden="true">
-              <rect x="1" y="3.5" width="8" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M9 6l3.5-2v6L9 8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Video call
-          </span>
-          <span className="flex items-center gap-1.5 text-text-faint">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0" aria-hidden="true">
-              <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2" />
-              <ellipse cx="6" cy="6" rx="2.2" ry="5" stroke="currentColor" strokeWidth="1.2" />
-              <path d="M1 6h10" stroke="currentColor" strokeWidth="1.2" />
-            </svg>
-            Central (CT)
-          </span>
-        </div>
-      </div>
-
-      <div className="hidden md:flex w-[140px] flex-shrink-0 border-r border-border p-5 flex-col gap-5">
-        <div>
-          <div className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-1.5">
-            SchoolStack
-          </div>
-          <div
-            className="font-display leading-snug text-text"
-            style={{ fontSize: "clamp(1rem, 2.5vw, 1.15rem)" }}
-          >
-            Demo Call
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2 text-[12px] font-secondary text-text-muted">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden="true">
-              <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M7 4v3.5l2 1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            30 min
-          </div>
-          <div className="flex items-center gap-2 text-[12px] font-secondary text-text-muted">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden="true">
-              <rect x="1" y="3.5" width="8" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-              <path d="M9 6l3.5-2v6L9 8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Video call
-          </div>
-        </div>
-
-        <div className="mt-auto pt-4 border-t border-border">
-          <div className="flex items-center gap-1.5 text-[11px] font-secondary text-text-faint">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0" aria-hidden="true">
-              <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2" />
-              <ellipse cx="6" cy="6" rx="2.2" ry="5" stroke="currentColor" strokeWidth="1.2" />
-              <path d="M1 6h10" stroke="currentColor" strokeWidth="1.2" />
-            </svg>
-            Central (CT)
-          </div>
-        </div>
-      </div>
-
-      {/* Column 2 — calendar (always visible) */}
-      <div className="flex-1 p-4 md:p-5 min-w-0">
-        {/* Month navigation */}
-        <div className="flex items-center justify-between mb-4">
-          <button
-            type="button"
-            onClick={prevMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-border/30 transition-all duration-150"
-            aria-label="Previous month"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span className="text-[14px] font-medium font-secondary text-text">
-            {MONTH_NAMES[viewMonth]} {viewYear}
-          </span>
-          <button
-            type="button"
-            onClick={nextMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-border/30 transition-all duration-150"
-            aria-label="Next month"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-
-        <CalendarGrid
-          year={viewYear}
-          month={viewMonth}
-          selected={selectedDate}
-          onSelect={handleDateSelect}
-        />
-      </div>
-
-      {/* Column 3 — time slots (stack below on mobile, slides in on desktop) */}
-      <AnimatePresence>
-        {selectedDate && (
-          <>
-            <motion.div
-              key="times-col-mobile"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto", transition: { duration: 0.28, ease } }}
-              exit={{ opacity: 0, height: 0, transition: { duration: 0.2 } }}
-              className="md:hidden w-full border-t border-border overflow-hidden"
-            >
-              <TimeSlotList
-                dateStr={selectedDate}
-                selectedTime={selectedTime}
-                onSelectTime={setSelectedTime}
-                onConfirm={onConfirm}
-                isSubmitting={isSubmitting}
-              />
-            </motion.div>
-            <motion.div
-              key="times-col-desktop"
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: 158, transition: { duration: 0.28, ease } }}
-              exit={{ opacity: 0, width: 0, transition: { duration: 0.2 } }}
-              className="hidden md:block flex-shrink-0 border-l border-border overflow-hidden"
-            >
-              <TimeSlotList
-                dateStr={selectedDate}
-                selectedTime={selectedTime}
-                onSelectTime={setSelectedTime}
-                onConfirm={onConfirm}
-                isSubmitting={isSubmitting}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-    </div>
-  );
-}
-
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function GetStartedPage() {
@@ -550,6 +201,9 @@ export default function GetStartedPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [booking, setBooking] = useState<{ date: string; time: string } | null>(null);
+  const [availabilitySlots, setAvailabilitySlots] = useState<Record<string, string[]>>({});
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormData>({
     name: "",
@@ -567,6 +221,38 @@ export default function GetStartedPage() {
 
   const set = <K extends keyof FormData>(key: K, value: FormData[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  useEffect(() => {
+    if (step !== 1) return;
+
+    let cancelled = false;
+    setAvailabilityLoading(true);
+    setAvailabilityError(null);
+
+    fetch("/api/availability")
+      .then(async (res) => {
+        const data = (await res.json()) as {
+          slots?: Record<string, string[]>;
+          error?: string;
+        };
+        if (!res.ok) throw new Error(data.error ?? "Failed to load availability");
+        if (!cancelled) setAvailabilitySlots(data.slots ?? {});
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setAvailabilityError(
+            err instanceof Error ? err.message : "Failed to load availability"
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAvailabilityLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [step]);
 
   useEffect(() => {
     if (step !== 2) return;
@@ -1060,7 +746,25 @@ export default function GetStartedPage() {
 
                 {/* Scheduler */}
                 <div className="md:bg-surface md:border md:border-border md:rounded-xl md:overflow-hidden md:shadow-sm">
-                  <StaticScheduler onConfirm={handleScheduled} isSubmitting={isSubmitting} />
+                  {availabilityLoading ? (
+                    <div className="flex items-center justify-center py-24 text-sm text-text-faint font-secondary">
+                      Loading available times…
+                    </div>
+                  ) : availabilityError ? (
+                    <div className="flex items-center justify-center py-24 text-sm text-clay font-secondary">
+                      {availabilityError}
+                    </div>
+                  ) : Object.keys(availabilitySlots).length === 0 ? (
+                    <div className="flex items-center justify-center py-24 text-sm text-text-muted font-secondary">
+                      No demo times are available right now. Please check back soon.
+                    </div>
+                  ) : (
+                    <DemoScheduler
+                      availabilitySlots={availabilitySlots}
+                      onConfirm={handleScheduled}
+                      isSubmitting={isSubmitting}
+                    />
+                  )}
                 </div>
 
                 {submitError && (
