@@ -10,6 +10,10 @@ import {
   LazyWonderHereAdminDashboardDemo,
   prefetchWonderHereAdminDemo,
 } from "@/components/demo/wonderhere/lazyWonderHereDemos";
+import {
+  LazyMonarchHillsAdminDashboardDemo,
+  prefetchMonarchHillsAdminDemo,
+} from "@/components/demo/monarchhills/lazyMonarchHillsDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -30,12 +34,14 @@ export default function ScaledAdminDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
 
   useEffect(() => {
-    if (isWonderHere) prefetchWonderHereAdminDemo();
+    if (isMonarchHills) prefetchMonarchHillsAdminDemo();
+    else if (isWonderHere) prefetchWonderHereAdminDemo();
     else prefetchAthenaAdminDemo();
-  }, [isWonderHere]);
+  }, [isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -49,9 +55,11 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isWonderHere
-    ? LazyWonderHereAdminDashboardDemo
-    : LazyAthenaAdminDashboardDemo;
+  const DemoComponent = isMonarchHills
+    ? LazyMonarchHillsAdminDashboardDemo
+    : isWonderHere
+      ? LazyWonderHereAdminDashboardDemo
+      : LazyAthenaAdminDashboardDemo;
 
   return (
     <DemoPreviewFrame variant="admin">

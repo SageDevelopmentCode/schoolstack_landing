@@ -154,6 +154,23 @@ function SchoolRow({ school, selected, onClick }: { school: School; selected: bo
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${P_PILL[school.priority_score]}`}>
             P{school.priority_score}
           </span>
+          {school.demo_slug && (
+            <span
+              title="Product demo"
+              className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-clay/15 text-clay shrink-0"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+              >
+                <rect x="1" y="1.5" width="10" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M4.5 10.5h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                <path d="M6 8.5v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+            </span>
+          )}
         </div>
       </div>
 

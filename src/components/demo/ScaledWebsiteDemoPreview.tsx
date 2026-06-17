@@ -10,6 +10,10 @@ import {
   LazyWonderHereWebsiteDashboardDemo,
   prefetchWonderHereWebsiteDemo,
 } from "@/components/demo/wonderhere/lazyWonderHereDemos";
+import {
+  LazyMonarchHillsWebsiteDashboardDemo,
+  prefetchMonarchHillsWebsiteDemo,
+} from "@/components/demo/monarchhills/lazyMonarchHillsDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -26,12 +30,14 @@ export default function ScaledWebsiteDemoPreview({
 }: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
 
   useEffect(() => {
-    if (isWonderHere) prefetchWonderHereWebsiteDemo();
+    if (isMonarchHills) prefetchMonarchHillsWebsiteDemo();
+    else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isWonderHere]);
+  }, [isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -45,9 +51,11 @@ export default function ScaledWebsiteDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isWonderHere
-    ? LazyWonderHereWebsiteDashboardDemo
-    : LazyAthenaWebsiteDashboardDemo;
+  const DemoComponent = isMonarchHills
+    ? LazyMonarchHillsWebsiteDashboardDemo
+    : isWonderHere
+      ? LazyWonderHereWebsiteDashboardDemo
+      : LazyAthenaWebsiteDashboardDemo;
 
   return (
     <DemoPreviewFrame variant="website">
