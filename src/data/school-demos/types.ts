@@ -126,13 +126,24 @@ export interface SchoolWebsiteDemoConfig {
   slug: string;
   schoolName: string;
   theme: DemoTheme;
-  logo: { src: string; alt: string; width?: number; height?: number };
+  logo: {
+    src: string;
+    alt: string;
+    width?: number;
+    height?: number;
+    /** Optional class for the nav logo on the dark hero (e.g. brightness-0 invert). */
+    logoOnDarkClassName?: string;
+  };
   hero: {
     eyebrow: string;
     /** When "announcementBar", eyebrow renders as a full-width top bar instead of a hero badge. */
     eyebrowPlacement?: "hero" | "announcementBar";
     headline: string[];
     headlineAccentLine?: number;
+    /** Override default hero h1 Tailwind classes. */
+    headlineClassName?: string;
+    /** Override accent line color on dark hero (defaults to --demo-primary-light). */
+    headlineAccentClassName?: string;
     subheadline: string;
     primaryCta: string;
     secondaryCta: string;

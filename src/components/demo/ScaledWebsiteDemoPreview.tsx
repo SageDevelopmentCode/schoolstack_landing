@@ -22,6 +22,10 @@ import {
   LazyZoeLearningHouseWebsiteDashboardDemo,
   prefetchZoeLearningHouseWebsiteDemo,
 } from "@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos";
+import {
+  LazyMicahMissionWebsiteDashboardDemo,
+  prefetchMicahMissionWebsiteDemo,
+} from "@/components/demo/micahmission/lazyMicahMissionDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -42,14 +46,16 @@ export default function ScaledWebsiteDemoPreview({
   const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
+  const isMicahMissionSchool = demoSlug === "micahs-mission-school";
 
   useEffect(() => {
-    if (isHiltonHorizons) prefetchHiltonHorizonWebsiteDemo();
+    if (isMicahMissionSchool) prefetchMicahMissionWebsiteDemo();
+    else if (isHiltonHorizons) prefetchHiltonHorizonWebsiteDemo();
     else if (isZoeLearningHouse) prefetchZoeLearningHouseWebsiteDemo();
     else if (isMonarchHills) prefetchMonarchHillsWebsiteDemo();
     else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -63,7 +69,9 @@ export default function ScaledWebsiteDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isHiltonHorizons
+  const DemoComponent = isMicahMissionSchool
+    ? LazyMicahMissionWebsiteDashboardDemo
+    : isHiltonHorizons
     ? LazyHiltonHorizonWebsiteDashboardDemo
     : isZoeLearningHouse
     ? LazyZoeLearningHouseWebsiteDashboardDemo

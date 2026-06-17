@@ -290,7 +290,7 @@ export default function WebsiteDashboardDemo({
       )}
 
       {/* ─── 1. HERO ───────────────────────────────────────────────────────── */}
-      <section className="relative h-[600px] overflow-hidden">
+      <section className="relative flex h-[600px] flex-col overflow-hidden">
         <div className="absolute inset-0 scale-[1.05]">
           <Image
             src={hero.backgroundImage}
@@ -327,14 +327,14 @@ export default function WebsiteDashboardDemo({
           </motion.div>
         )}
 
-        <div className="relative z-20 flex items-center justify-between px-8 sm:px-12 pt-7">
+        <div className="relative z-20 flex shrink-0 items-center justify-between px-8 sm:px-12 pt-7">
           <div className="flex items-center gap-2">
             <Image
               src={config.logo.src}
               alt={config.logo.alt}
               width={config.logo.width ?? 120}
               height={config.logo.height ?? 32}
-              className="h-12 w-auto object-contain"
+              className={`h-12 w-auto object-contain${config.logo.logoOnDarkClassName ? ` ${config.logo.logoOnDarkClassName}` : ""}`}
             />
           </div>
           <nav className="hidden md:flex items-center gap-8">
@@ -356,7 +356,7 @@ export default function WebsiteDashboardDemo({
           </button>
         </div>
 
-        <div className="absolute bottom-0 left-0 z-10 px-8 sm:px-14 pb-14 max-w-2xl">
+        <div className="relative z-10 mt-auto max-w-2xl px-8 pb-14 sm:px-14">
           {!showAnnouncementBar && (
             <motion.span
               className="inline-block px-5 py-2 bg-white/15 backdrop-blur-sm text-white text-sm font-semibold rounded-full font-secondary mb-6 border border-white/25"
@@ -369,7 +369,10 @@ export default function WebsiteDashboardDemo({
           )}
 
           <motion.h1
-            className="text-5xl md:text-6xl font-bold text-white font-heading leading-[1.05] mb-6"
+            className={
+              hero.headlineClassName ??
+              "text-4xl md:text-5xl font-bold text-white font-heading leading-[1.08] mb-6"
+            }
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55, duration: 0.85, ease: "easeOut" as const }}
@@ -379,7 +382,7 @@ export default function WebsiteDashboardDemo({
                 key={line}
                 className={
                   hero.headlineAccentLine === i
-                    ? "text-[var(--demo-primary-light)]"
+                    ? (hero.headlineAccentClassName ?? "text-[var(--demo-primary-light)]")
                     : "text-white"
                 }
               >

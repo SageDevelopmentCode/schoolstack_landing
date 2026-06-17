@@ -5,6 +5,7 @@ export { wonderhereLakelandConfig } from "./wonderhere-lakeland";
 export { monarchHillsEducationConfig } from "./monarch-hills-education";
 export { zoeLearningHouseConfig } from "./zoe-learning-house";
 export { hiltonHorizonsAcademyConfig } from "./hilton-horizons-academy";
+export { micahsMissionSchoolConfig } from "./micahs-mission-school";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -12,6 +13,7 @@ import { wonderhereLakelandConfig } from "./wonderhere-lakeland";
 import { monarchHillsEducationConfig } from "./monarch-hills-education";
 import { zoeLearningHouseConfig } from "./zoe-learning-house";
 import { hiltonHorizonsAcademyConfig } from "./hilton-horizons-academy";
+import { micahsMissionSchoolConfig } from "./micahs-mission-school";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -19,6 +21,7 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "monarch-hills-education": monarchHillsEducationConfig,
   "zoe-learning-house": zoeLearningHouseConfig,
   "hilton-horizons-academy": hiltonHorizonsAcademyConfig,
+  "micahs-mission-school": micahsMissionSchoolConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {

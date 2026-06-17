@@ -22,6 +22,10 @@ import {
   LazyZoeLearningHouseAdminDashboardDemo,
   prefetchZoeLearningHouseAdminDemo,
 } from "@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos";
+import {
+  LazyMicahMissionAdminDashboardDemo,
+  prefetchMicahMissionAdminDemo,
+} from "@/components/demo/micahmission/lazyMicahMissionDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -46,14 +50,16 @@ export default function ScaledAdminDemoPreview({
   const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
+  const isMicahMissionSchool = demoSlug === "micahs-mission-school";
 
   useEffect(() => {
-    if (isHiltonHorizons) prefetchHiltonHorizonAdminDemo();
+    if (isMicahMissionSchool) prefetchMicahMissionAdminDemo();
+    else if (isHiltonHorizons) prefetchHiltonHorizonAdminDemo();
     else if (isZoeLearningHouse) prefetchZoeLearningHouseAdminDemo();
     else if (isMonarchHills) prefetchMonarchHillsAdminDemo();
     else if (isWonderHere) prefetchWonderHereAdminDemo();
     else prefetchAthenaAdminDemo();
-  }, [isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -67,7 +73,9 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isHiltonHorizons
+  const DemoComponent = isMicahMissionSchool
+    ? LazyMicahMissionAdminDashboardDemo
+    : isHiltonHorizons
     ? LazyHiltonHorizonAdminDashboardDemo
     : isZoeLearningHouse
     ? LazyZoeLearningHouseAdminDashboardDemo
