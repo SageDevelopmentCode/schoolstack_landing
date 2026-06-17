@@ -26,6 +26,14 @@ import {
   LazyMicahMissionTeacherDashboardDemo,
   prefetchMicahMissionTeacherDemo,
 } from "@/components/demo/micahmission/lazyMicahMissionDemos";
+import {
+  LazyHomeworkHubTeacherDashboardDemo,
+  prefetchHomeworkHubTeacherDemo,
+} from "@/components/demo/homeworkhub/lazyHomeworkHubDemos";
+import {
+  LazyAscendMicroschoolTeacherDashboardDemo,
+  prefetchAscendMicroschoolTeacherDemo,
+} from "@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos";
 import type { DemoWalkthroughTeacherTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
@@ -44,15 +52,19 @@ export default function ScaledTeacherDemoPreview({
   const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
   const isMicahMissionSchool = demoSlug === "micahs-mission-school";
+  const isHomeworkHub = demoSlug === "homework-hub";
+  const isAscendMicroSchool = demoSlug === "ascend-micro-school";
 
   useEffect(() => {
-    if (isMicahMissionSchool) prefetchMicahMissionTeacherDemo();
+    if (isAscendMicroSchool) prefetchAscendMicroschoolTeacherDemo();
+    else if (isHomeworkHub) prefetchHomeworkHubTeacherDemo();
+    else if (isMicahMissionSchool) prefetchMicahMissionTeacherDemo();
     else if (isHiltonHorizons) prefetchHiltonHorizonTeacherDemo();
     else if (isZoeLearningHouse) prefetchZoeLearningHouseTeacherDemo();
     else if (isMonarchHills) prefetchMonarchHillsTeacherDemo();
     else if (isWonderHere) prefetchWonderHereTeacherDemo();
     else prefetchAthenaTeacherDemo();
-  }, [isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -66,7 +78,11 @@ export default function ScaledTeacherDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isMicahMissionSchool
+  const DemoComponent = isAscendMicroSchool
+    ? LazyAscendMicroschoolTeacherDashboardDemo
+    : isHomeworkHub
+    ? LazyHomeworkHubTeacherDashboardDemo
+    : isMicahMissionSchool
     ? LazyMicahMissionTeacherDashboardDemo
     : isHiltonHorizons
     ? LazyHiltonHorizonTeacherDashboardDemo

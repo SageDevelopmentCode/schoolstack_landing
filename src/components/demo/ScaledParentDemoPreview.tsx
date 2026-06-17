@@ -26,6 +26,14 @@ import {
   LazyMicahMissionParentDashboardDemo,
   prefetchMicahMissionParentDemo,
 } from "@/components/demo/micahmission/lazyMicahMissionDemos";
+import {
+  LazyHomeworkHubParentDashboardDemo,
+  prefetchHomeworkHubParentDemo,
+} from "@/components/demo/homeworkhub/lazyHomeworkHubDemos";
+import {
+  LazyAscendMicroschoolParentDashboardDemo,
+  prefetchAscendMicroschoolParentDemo,
+} from "@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos";
 import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
@@ -44,15 +52,19 @@ export default function ScaledParentDemoPreview({
   const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
   const isMicahMissionSchool = demoSlug === "micahs-mission-school";
+  const isHomeworkHub = demoSlug === "homework-hub";
+  const isAscendMicroSchool = demoSlug === "ascend-micro-school";
 
   useEffect(() => {
-    if (isMicahMissionSchool) prefetchMicahMissionParentDemo();
+    if (isAscendMicroSchool) prefetchAscendMicroschoolParentDemo();
+    else if (isHomeworkHub) prefetchHomeworkHubParentDemo();
+    else if (isMicahMissionSchool) prefetchMicahMissionParentDemo();
     else if (isHiltonHorizons) prefetchHiltonHorizonParentDemo();
     else if (isZoeLearningHouse) prefetchZoeLearningHouseParentDemo();
     else if (isMonarchHills) prefetchMonarchHillsParentDemo();
     else if (isWonderHere) prefetchWonderHereParentDemo();
     else prefetchAthenaParentDemo();
-  }, [isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -66,7 +78,11 @@ export default function ScaledParentDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isMicahMissionSchool
+  const DemoComponent = isAscendMicroSchool
+    ? LazyAscendMicroschoolParentDashboardDemo
+    : isHomeworkHub
+    ? LazyHomeworkHubParentDashboardDemo
+    : isMicahMissionSchool
     ? LazyMicahMissionParentDashboardDemo
     : isHiltonHorizons
     ? LazyHiltonHorizonParentDashboardDemo

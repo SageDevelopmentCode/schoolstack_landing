@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { schoolDemoRegistry } from "@/data/school-demos";
 import { isPastDate } from "@/lib/demo-scheduler";
 import { notifyDemoBooking } from "@/lib/discord";
 import { sendDemoBookingConfirmation } from "@/lib/emails";
@@ -34,6 +35,7 @@ interface DemoRequestBody {
   websiteUrl?: string;
   currentTools?: string;
   prepNotes?: string;
+  conceptDemoSlug?: string;
   scheduledDate?: string;
   scheduledTime?: string;
 }
@@ -77,6 +79,11 @@ export async function POST(request: Request) {
   const websiteUrl = body.websiteUrl?.trim() ?? "";
   const currentTools = body.currentTools?.trim() ?? "";
   const prepNotes = body.prepNotes?.trim() ?? "";
+  const conceptDemoSlug = body.conceptDemoSlug?.trim() || null;
+
+  if (conceptDemoSlug && !schoolDemoRegistry[conceptDemoSlug]) {
+    return NextResponse.json({ error: "Invalid concept demo." }, { status: 400 });
+  }
 
   if (isPastDate(scheduledDate)) {
     return NextResponse.json(
@@ -167,6 +174,7 @@ export async function POST(request: Request) {
       websiteUrl,
       currentTools,
       prepNotes,
+      conceptDemoSlug,
       scheduledDate,
       scheduledTime,
     });

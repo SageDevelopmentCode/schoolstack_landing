@@ -1,0 +1,10 @@
+export {
+  ASCEND_MICROSCHOOL_ADMIN_LOGO as ASCEND_MICROSCHOOL_PARENT_LOGO,
+  ASCEND_MICROSCHOOL_ADMIN_COLORS,
+} from "./ascendmicroschool-admin-demo";
+
+export const ASCEND_MICROSCHOOL_PARENT_ACCENT = "#165C9A";
+export const ASCEND_MICROSCHOOL_PARENT_ACCENT_HOVER = "#124A7C";
+export const ASCEND_MICROSCHOOL_PARENT_SCHOOL_NAME = "Ascend Micro School";
+export const ASCEND_MICROSCHOOL_PARENT_SCHOOL_SHORT = "Ascend Micro School";
+export const ASCEND_MICROSCHOOL_PARENT_OFFICE = "Ascend Micro School Office";

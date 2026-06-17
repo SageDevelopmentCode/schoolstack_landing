@@ -26,6 +26,14 @@ import {
   LazyMicahMissionWebsiteDashboardDemo,
   prefetchMicahMissionWebsiteDemo,
 } from "@/components/demo/micahmission/lazyMicahMissionDemos";
+import {
+  LazyHomeworkHubWebsiteDashboardDemo,
+  prefetchHomeworkHubWebsiteDemo,
+} from "@/components/demo/homeworkhub/lazyHomeworkHubDemos";
+import {
+  LazyAscendMicroschoolWebsiteDashboardDemo,
+  prefetchAscendMicroschoolWebsiteDemo,
+} from "@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -47,15 +55,19 @@ export default function ScaledWebsiteDemoPreview({
   const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
   const isMicahMissionSchool = demoSlug === "micahs-mission-school";
+  const isHomeworkHub = demoSlug === "homework-hub";
+  const isAscendMicroSchool = demoSlug === "ascend-micro-school";
 
   useEffect(() => {
-    if (isMicahMissionSchool) prefetchMicahMissionWebsiteDemo();
+    if (isAscendMicroSchool) prefetchAscendMicroschoolWebsiteDemo();
+    else if (isHomeworkHub) prefetchHomeworkHubWebsiteDemo();
+    else if (isMicahMissionSchool) prefetchMicahMissionWebsiteDemo();
     else if (isHiltonHorizons) prefetchHiltonHorizonWebsiteDemo();
     else if (isZoeLearningHouse) prefetchZoeLearningHouseWebsiteDemo();
     else if (isMonarchHills) prefetchMonarchHillsWebsiteDemo();
     else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -69,7 +81,11 @@ export default function ScaledWebsiteDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isMicahMissionSchool
+  const DemoComponent = isAscendMicroSchool
+    ? LazyAscendMicroschoolWebsiteDashboardDemo
+    : isHomeworkHub
+    ? LazyHomeworkHubWebsiteDashboardDemo
+    : isMicahMissionSchool
     ? LazyMicahMissionWebsiteDashboardDemo
     : isHiltonHorizons
     ? LazyHiltonHorizonWebsiteDashboardDemo

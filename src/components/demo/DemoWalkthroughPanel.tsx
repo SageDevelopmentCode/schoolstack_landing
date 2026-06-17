@@ -52,8 +52,8 @@ export default function DemoWalkthroughPanel({
   return (
     <aside className="hidden lg:flex flex-col h-screen w-[20%] min-w-[280px] shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
       <div className="flex flex-col flex-1 px-6 py-8">
-        <div className="mb-5 flex items-center gap-3 border-b border-gray-100 pb-5">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="mb-5 flex items-stretch gap-4 border-b border-gray-100 pb-5">
+          <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5">
             <Image
               src="/images/Logo.png"
               alt="MudKitchen"
@@ -61,18 +61,18 @@ export default function DemoWalkthroughPanel({
               height={28}
               className="h-7 w-auto shrink-0 object-contain"
             />
-            <span className="truncate font-display text-sm font-semibold text-clay">
+            <span className="text-center font-display text-xs font-semibold leading-tight text-clay">
               MudKitchen
             </span>
           </div>
-          <div className="h-6 w-px shrink-0 bg-gray-200" aria-hidden />
-          <div className="flex min-w-0 flex-1 items-center justify-end">
+          <div className="w-px shrink-0 self-stretch bg-gray-200" aria-hidden />
+          <div className="flex min-w-0 flex-1 items-center justify-center">
             <Image
               src={schoolLogo.src}
               alt={schoolLogo.alt}
               width={schoolLogo.width ?? 140}
               height={schoolLogo.height ?? 40}
-              className="h-10 w-auto max-w-[180px] object-contain object-right"
+              className="h-10 w-auto max-w-[180px] object-contain"
             />
           </div>
         </div>

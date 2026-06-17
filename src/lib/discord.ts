@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/lib/site";
+
 const BRAND_COLOR = 0x2e4a3c;
 
 export function truncate(value: string, max = 1024) {
@@ -95,6 +97,7 @@ export async function notifyDemoBooking(payload: {
   websiteUrl: string;
   currentTools: string;
   prepNotes: string;
+  conceptDemoSlug?: string | null;
   scheduledDate: string;
   scheduledTime: string;
 }) {
@@ -102,6 +105,7 @@ export async function notifyDemoBooking(payload: {
   const priorityLabels = payload.priorities
     .map((id) => PRIORITIES[id] ?? id)
     .join(", ");
+  const isWalkthrough = !!payload.conceptDemoSlug;
 
   const branchFields: DiscordEmbedField[] = [];
   if (payload.launchTimeline) {
@@ -138,15 +142,32 @@ export async function notifyDemoBooking(payload: {
 
   const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.scheduledTime} CT`;
 
+  const conceptDemoField: DiscordEmbedField[] = isWalkthrough
+    ? [
+        {
+          name: "Concept demo",
+          value: truncate(
+            `${payload.schoolName}\n(${payload.conceptDemoSlug})\n${SITE_URL}/demo/${payload.conceptDemoSlug}`,
+          ),
+          inline: true,
+        },
+      ]
+    : [];
+
   await sendDiscordEmbed({
-    title: "New demo booking",
+    title: isWalkthrough ? "New demo booking · walkthrough" : "New demo booking",
     fields: [
       {
         name: "Contact",
         value: truncate(`${payload.name}\n${payload.email}`),
         inline: true,
       },
-      { name: "School", value: truncate(payload.schoolName), inline: true },
+      {
+        name: "Prospect school",
+        value: truncate(isWalkthrough ? "—" : payload.schoolName),
+        inline: true,
+      },
+      ...conceptDemoField,
       { name: "When", value: when, inline: true },
       { name: "Role", value: roleLabel, inline: true },
       { name: "Priorities", value: truncate(priorityLabels || "—") },

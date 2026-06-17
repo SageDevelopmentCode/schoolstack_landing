@@ -76,6 +76,7 @@ export default function DemoContactPanel({ schoolSlug, schoolName, logo }: Props
           name: name.trim(),
           email: email.trim(),
           schoolName,
+          conceptDemoSlug: schoolSlug,
           role: "other",
           priorities: ["full"],
           prepNotes: `Booked from school concept demo walkthrough (${schoolSlug}).`,
