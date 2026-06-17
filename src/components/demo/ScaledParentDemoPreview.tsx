@@ -6,21 +6,29 @@ import {
   LazyAthenaParentDashboardDemo,
   prefetchAthenaParentDemo,
 } from "@/components/demo/athena/lazyAthenaDemos";
+import {
+  LazyWonderHereParentDashboardDemo,
+  prefetchWonderHereParentDemo,
+} from "@/components/demo/wonderhere/lazyWonderHereDemos";
 import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
 
 export default function ScaledParentDemoPreview({
+  demoSlug = "athena-microacademy",
   initialParentTab = "enrollment",
 }: {
+  demoSlug?: string;
   initialParentTab?: DemoWalkthroughParentTab;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isWonderHere = demoSlug === "wonderhere-lakeland";
 
   useEffect(() => {
-    prefetchAthenaParentDemo();
-  }, []);
+    if (isWonderHere) prefetchWonderHereParentDemo();
+    else prefetchAthenaParentDemo();
+  }, [isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -34,6 +42,10 @@ export default function ScaledParentDemoPreview({
     return () => ro.disconnect();
   }, []);
 
+  const DemoComponent = isWonderHere
+    ? LazyWonderHereParentDashboardDemo
+    : LazyAthenaParentDashboardDemo;
+
   return (
     <DemoPreviewFrame variant="parent">
       <div ref={outerRef} className="relative h-full overflow-hidden">
@@ -46,7 +58,7 @@ export default function ScaledParentDemoPreview({
             transformOrigin: "top left",
           }}
         >
-          <LazyAthenaParentDashboardDemo
+          <DemoComponent
             initialTab={initialParentTab}
             disableTour
             hideNav={false}

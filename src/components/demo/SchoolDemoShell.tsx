@@ -59,6 +59,7 @@ export default function SchoolDemoShell({
         {activePreview === "admin" ? (
           <ScaledAdminDemoPreview
             key={steps[activeStep].id}
+            demoSlug={config.slug}
             initialAdmissionsTab={steps[activeStep].initialAdmissionsTab ?? "submissions"}
             initialSelectedLeadId={steps[activeStep].initialSelectedLeadId}
             initialSelectedFlowId={steps[activeStep].initialSelectedFlowId}
@@ -68,11 +69,13 @@ export default function SchoolDemoShell({
         ) : activePreview === "teacher" ? (
           <ScaledTeacherDemoPreview
             key={steps[activeStep].id}
+            demoSlug={config.slug}
             initialTeacherTab={steps[activeStep].initialTeacherTab ?? "attendance"}
           />
         ) : activePreview === "parent" ? (
           <ScaledParentDemoPreview
             key={steps[activeStep].id}
+            demoSlug={config.slug}
             initialParentTab={steps[activeStep].initialParentTab ?? "enrollment"}
           />
         ) : activePreview === "contact" ? (
@@ -83,6 +86,7 @@ export default function SchoolDemoShell({
           />
         ) : (
           <ScaledWebsiteDemoPreview
+            demoSlug={config.slug}
             scrollRequest={scrollRequest}
             onDiscoveryCallClick={handleDiscoveryCallClick}
           />

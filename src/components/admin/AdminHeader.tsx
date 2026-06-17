@@ -2,13 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  CalendarCheck,
+  CalendarClock,
+  MessageSquareText,
+  LayoutGrid,
+  CircleHelp,
+  Building2,
+  type LucideIcon,
+} from "lucide-react";
 
-const NAV = [
-  { href: "/admin/demo-requests", label: "Demo Requests" },
-  { href: "/admin/availability", label: "Availability" },
-  { href: "/admin/demo-feedback", label: "Demo Feedback" },
-  { href: "/admin/homepage-questions", label: "Homepage Questions" },
-  { href: "/admin/research", label: "Research CRM" },
+const NAV: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  color: string;
+}[] = [
+  { href: "/admin/demo-requests", label: "Requests", icon: CalendarCheck, color: "#2563eb" },
+  { href: "/admin/availability", label: "Schedule", icon: CalendarClock, color: "#059669" },
+  { href: "/admin/demo-feedback", label: "Feedback", icon: MessageSquareText, color: "#7c3aed" },
+  { href: "/admin/demos", label: "Demos", icon: LayoutGrid, color: "#d97706" },
+  { href: "/admin/homepage-questions", label: "Questions", icon: CircleHelp, color: "#0891b2" },
+  { href: "/admin/research", label: "CRM", icon: Building2, color: "#db2777" },
 ];
 
 type AdminHeaderProps = {
@@ -39,18 +54,24 @@ export default function AdminHeader({
               className="flex items-center gap-1 flex-1 justify-center"
               aria-label="Admin navigation"
             >
-              {NAV.map(({ href, label }) => {
+              {NAV.map(({ href, label, icon: Icon, color }) => {
                 const active = pathname.startsWith(href);
                 return (
                   <Link
                     key={href}
                     href={href}
-                    className={`text-sm px-3 py-1.5 rounded-lg transition-colors duration-150 ${
+                    className={`flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-lg transition-colors duration-150 ${
                       active
                         ? "bg-clay-soft text-clay font-medium"
                         : "text-text-muted hover:text-text"
                     }`}
                   >
+                    <Icon
+                      className="w-3.5 h-3.5 shrink-0"
+                      style={{ color }}
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
                     {label}
                   </Link>
                 );

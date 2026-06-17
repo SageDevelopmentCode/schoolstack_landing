@@ -6,16 +6,22 @@ import {
   LazyAthenaAdminDashboardDemo,
   prefetchAthenaAdminDemo,
 } from "@/components/demo/athena/lazyAthenaDemos";
+import {
+  LazyWonderHereAdminDashboardDemo,
+  prefetchWonderHereAdminDemo,
+} from "@/components/demo/wonderhere/lazyWonderHereDemos";
 
 const DESIGN_WIDTH = 1440;
 
 export default function ScaledAdminDemoPreview({
+  demoSlug = "athena-microacademy",
   initialAdmissionsTab = "submissions",
   initialSelectedLeadId,
   initialSelectedFlowId,
   animateNewSubmission,
   autoSendEnrollmentLink,
 }: {
+  demoSlug?: string;
   initialAdmissionsTab?: "flows" | "submissions";
   initialSelectedLeadId?: string;
   initialSelectedFlowId?: string;
@@ -24,10 +30,12 @@ export default function ScaledAdminDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isWonderHere = demoSlug === "wonderhere-lakeland";
 
   useEffect(() => {
-    prefetchAthenaAdminDemo();
-  }, []);
+    if (isWonderHere) prefetchWonderHereAdminDemo();
+    else prefetchAthenaAdminDemo();
+  }, [isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -41,6 +49,10 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
+  const DemoComponent = isWonderHere
+    ? LazyWonderHereAdminDashboardDemo
+    : LazyAthenaAdminDashboardDemo;
+
   return (
     <DemoPreviewFrame variant="admin">
       <div ref={outerRef} className="relative h-full overflow-hidden">
@@ -52,7 +64,7 @@ export default function ScaledAdminDemoPreview({
             transformOrigin: "top left",
           }}
         >
-          <LazyAthenaAdminDashboardDemo
+          <DemoComponent
             initialPage="leads"
             initialAdmissionsTab={initialAdmissionsTab}
             initialSelectedLeadId={initialSelectedLeadId}
