@@ -59,6 +59,7 @@ function DemoIcon({ name, className }: { name: DemoIconName; className?: string 
 function getThemeVars(theme: DemoTheme): React.CSSProperties {
   return {
     "--demo-primary": theme.primary,
+    "--demo-primary-light": `color-mix(in srgb, ${theme.primary} 45%, white)`,
     "--demo-primary-hover": theme.primaryHover,
     "--demo-dark": theme.dark,
     "--demo-dark-hover": theme.darkHover,
@@ -378,7 +379,7 @@ export default function WebsiteDashboardDemo({
                 key={line}
                 className={
                   hero.headlineAccentLine === i
-                    ? "text-[var(--demo-primary)]"
+                    ? "text-[var(--demo-primary-light)]"
                     : "text-white"
                 }
               >
