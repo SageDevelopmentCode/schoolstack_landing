@@ -14,6 +14,10 @@ import {
   LazyMonarchHillsAdminDashboardDemo,
   prefetchMonarchHillsAdminDemo,
 } from "@/components/demo/monarchhills/lazyMonarchHillsDemos";
+import {
+  LazyZoeLearningHouseAdminDashboardDemo,
+  prefetchZoeLearningHouseAdminDemo,
+} from "@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -34,14 +38,16 @@ export default function ScaledAdminDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
 
   useEffect(() => {
-    if (isMonarchHills) prefetchMonarchHillsAdminDemo();
+    if (isZoeLearningHouse) prefetchZoeLearningHouseAdminDemo();
+    else if (isMonarchHills) prefetchMonarchHillsAdminDemo();
     else if (isWonderHere) prefetchWonderHereAdminDemo();
     else prefetchAthenaAdminDemo();
-  }, [isMonarchHills, isWonderHere]);
+  }, [isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -55,11 +61,13 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isMonarchHills
-    ? LazyMonarchHillsAdminDashboardDemo
-    : isWonderHere
-      ? LazyWonderHereAdminDashboardDemo
-      : LazyAthenaAdminDashboardDemo;
+  const DemoComponent = isZoeLearningHouse
+    ? LazyZoeLearningHouseAdminDashboardDemo
+    : isMonarchHills
+      ? LazyMonarchHillsAdminDashboardDemo
+      : isWonderHere
+        ? LazyWonderHereAdminDashboardDemo
+        : LazyAthenaAdminDashboardDemo;
 
   return (
     <DemoPreviewFrame variant="admin">

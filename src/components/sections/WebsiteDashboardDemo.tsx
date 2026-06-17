@@ -893,7 +893,7 @@ export default function WebsiteDashboardDemo({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {config.socialProof.items.map((t, i) => (
                 <motion.div
-                  key={t.name}
+                  key={`${t.name}-${i}`}
                   className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm flex flex-col"
                   initial={{ opacity: 0, y: 25 }}
                   whileInView={{ opacity: 1, y: 0 }}

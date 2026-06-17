@@ -14,6 +14,10 @@ import {
   LazyMonarchHillsParentDashboardDemo,
   prefetchMonarchHillsParentDemo,
 } from "@/components/demo/monarchhills/lazyMonarchHillsDemos";
+import {
+  LazyZoeLearningHouseParentDashboardDemo,
+  prefetchZoeLearningHouseParentDemo,
+} from "@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos";
 import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
@@ -27,14 +31,16 @@ export default function ScaledParentDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
 
   useEffect(() => {
-    if (isMonarchHills) prefetchMonarchHillsParentDemo();
+    if (isZoeLearningHouse) prefetchZoeLearningHouseParentDemo();
+    else if (isMonarchHills) prefetchMonarchHillsParentDemo();
     else if (isWonderHere) prefetchWonderHereParentDemo();
     else prefetchAthenaParentDemo();
-  }, [isMonarchHills, isWonderHere]);
+  }, [isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -48,11 +54,13 @@ export default function ScaledParentDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isMonarchHills
-    ? LazyMonarchHillsParentDashboardDemo
-    : isWonderHere
-      ? LazyWonderHereParentDashboardDemo
-      : LazyAthenaParentDashboardDemo;
+  const DemoComponent = isZoeLearningHouse
+    ? LazyZoeLearningHouseParentDashboardDemo
+    : isMonarchHills
+      ? LazyMonarchHillsParentDashboardDemo
+      : isWonderHere
+        ? LazyWonderHereParentDashboardDemo
+        : LazyAthenaParentDashboardDemo;
 
   return (
     <DemoPreviewFrame variant="parent">

@@ -1,0 +1,10 @@
+export {
+  ZOE_LEARNING_HOUSE_ADMIN_LOGO as ZOE_LEARNING_HOUSE_PARENT_LOGO,
+  ZOE_LEARNING_HOUSE_ADMIN_COLORS,
+} from "./zoelearninghouse-admin-demo";
+
+export const ZOE_LEARNING_HOUSE_PARENT_ACCENT = "#5F8A7A";
+export const ZOE_LEARNING_HOUSE_PARENT_ACCENT_HOVER = "#4A7568";
+export const ZOE_LEARNING_HOUSE_PARENT_SCHOOL_NAME = "Zoe Learning House";
+export const ZOE_LEARNING_HOUSE_PARENT_SCHOOL_SHORT = "Zoe";
+export const ZOE_LEARNING_HOUSE_PARENT_OFFICE = "Zoe Learning House Office";
