@@ -5087,7 +5087,7 @@ export default function WonderHereTeacherDashboardDemo({
                 alt={WONDERHERE_TEACHER_LOGO.alt}
                 width={WONDERHERE_TEACHER_LOGO.width}
                 height={WONDERHERE_TEACHER_LOGO.height}
-                className="h-7 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </div>
 

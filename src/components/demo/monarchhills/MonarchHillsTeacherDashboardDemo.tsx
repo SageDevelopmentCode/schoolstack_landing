@@ -5087,7 +5087,7 @@ export default function MonarchHillsTeacherDashboardDemo({
                 alt={MONARCH_HILLS_TEACHER_LOGO.alt}
                 width={MONARCH_HILLS_TEACHER_LOGO.width}
                 height={MONARCH_HILLS_TEACHER_LOGO.height}
-                className="h-7 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </div>
 

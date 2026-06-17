@@ -5087,7 +5087,7 @@ export default function SagefieldTeacherDashboardDemo({
                 alt={SAGEFIELD_TEACHER_LOGO.alt}
                 width={SAGEFIELD_TEACHER_LOGO.width}
                 height={SAGEFIELD_TEACHER_LOGO.height}
-                className="h-7 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </div>
 

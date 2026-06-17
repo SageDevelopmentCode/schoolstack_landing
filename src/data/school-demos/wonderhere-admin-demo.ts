@@ -2,8 +2,8 @@
 export const WONDERHERE_LOGO = {
   src: "/images/demo/wonderhere/image.png",
   alt: "WonderHere Lakeland",
-  width: 140,
-  height: 55,
+  width: 180,
+  height: 70,
 } as const;
 
 export const WONDERHERE_ADMIN_LOGO = WONDERHERE_LOGO;

@@ -23648,10 +23648,10 @@ function Sidebar({
         <Image
           src={ZOE_LEARNING_HOUSE_ADMIN_LOGO.src}
           alt={ZOE_LEARNING_HOUSE_ADMIN_LOGO.alt}
-          width={isExpanded ? (ZOE_LEARNING_HOUSE_ADMIN_LOGO.width ?? 120) : 28}
-          height={ZOE_LEARNING_HOUSE_ADMIN_LOGO.height ?? 28}
+          width={isExpanded ? (ZOE_LEARNING_HOUSE_ADMIN_LOGO.width ?? 160) : 36}
+          height={ZOE_LEARNING_HOUSE_ADMIN_LOGO.height ?? 40}
           className="flex-shrink-0 object-contain"
-          style={{ maxHeight: 28 }}
+          style={{ maxHeight: 40 }}
         />
       </div>
 

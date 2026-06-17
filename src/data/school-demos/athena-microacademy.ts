@@ -18,8 +18,8 @@ export const athenaMicroacademyConfig: SchoolWebsiteDemoConfig = {
   logo: {
     src: "/images/demo/athena/Logo.png",
     alt: "Athena Micro-academy of Austin",
-    width: 140,
-    height: 40,
+    width: 180,
+    height: 52,
   },
   hero: {
     eyebrow: "Launching Fall 2026 · South Austin · Grades 6–12",

@@ -7300,7 +7300,7 @@ function EnrollmentFlowsTab({
                           alt={WONDERHERE_ADMIN_LOGO.alt}
                           width={WONDERHERE_ADMIN_LOGO.width}
                           height={WONDERHERE_ADMIN_LOGO.height}
-                          className="h-8 w-auto object-contain"
+                          className="h-10 w-auto object-contain"
                         />
                         <span className="text-sm font-semibold" style={{ color: "#111827" }}>
                           {selectedFlow?.name ?? "Enrollment Form"}
@@ -23651,10 +23651,10 @@ function Sidebar({
         <Image
           src={WONDERHERE_ADMIN_LOGO.src}
           alt={WONDERHERE_ADMIN_LOGO.alt}
-          width={isExpanded ? (WONDERHERE_ADMIN_LOGO.width ?? 120) : 28}
-          height={WONDERHERE_ADMIN_LOGO.height ?? 28}
+          width={isExpanded ? (WONDERHERE_ADMIN_LOGO.width ?? 160) : 36}
+          height={WONDERHERE_ADMIN_LOGO.height ?? 40}
           className="flex-shrink-0 object-contain"
-          style={{ maxHeight: 28 }}
+          style={{ maxHeight: 40 }}
         />
       </div>
 

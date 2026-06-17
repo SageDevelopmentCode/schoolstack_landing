@@ -4743,7 +4743,7 @@ function DemoHeader({
           alt={WONDERHERE_PARENT_LOGO.alt}
           width={WONDERHERE_PARENT_LOGO.width}
           height={WONDERHERE_PARENT_LOGO.height}
-          className="h-7 w-auto object-contain"
+          className="h-10 w-auto object-contain"
         />
         {/* <span className="text-sm font-semibold text-gray-700">SchoolLayer</span> */}
       </div>

@@ -23648,10 +23648,10 @@ function Sidebar({
         <Image
           src={HILTON_HORIZON_ADMIN_LOGO.src}
           alt={HILTON_HORIZON_ADMIN_LOGO.alt}
-          width={isExpanded ? (HILTON_HORIZON_ADMIN_LOGO.width ?? 120) : 28}
-          height={HILTON_HORIZON_ADMIN_LOGO.height ?? 28}
+          width={isExpanded ? (HILTON_HORIZON_ADMIN_LOGO.width ?? 160) : 36}
+          height={HILTON_HORIZON_ADMIN_LOGO.height ?? 40}
           className="flex-shrink-0 object-contain"
-          style={{ maxHeight: 28 }}
+          style={{ maxHeight: 40 }}
         />
       </div>
 

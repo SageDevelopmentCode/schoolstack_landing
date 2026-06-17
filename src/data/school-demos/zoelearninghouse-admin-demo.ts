@@ -2,8 +2,8 @@
 export const ZOE_LEARNING_HOUSE_LOGO = {
   src: "/images/demo/zoelandinghouse/logo.avif",
   alt: "Zoe Learning House",
-  width: 160,
-  height: 48,
+  width: 200,
+  height: 60,
 } as const;
 
 export const ZOE_LEARNING_HOUSE_ADMIN_LOGO = ZOE_LEARNING_HOUSE_LOGO;

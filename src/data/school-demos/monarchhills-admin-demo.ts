@@ -2,8 +2,8 @@
 export const MONARCH_HILLS_LOGO = {
   src: "/images/demo/monarchhills/MHE-Logo-H.webp",
   alt: "Monarch Hills Education",
-  width: 160,
-  height: 48,
+  width: 200,
+  height: 60,
 } as const;
 
 export const MONARCH_HILLS_ADMIN_LOGO = MONARCH_HILLS_LOGO;

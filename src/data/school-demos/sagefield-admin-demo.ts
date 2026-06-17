@@ -1,8 +1,8 @@
 export const SAGEFIELD_ADMIN_LOGO = {
   src: "/images/SageFieldLogo.png",
   alt: "Sage Field",
-  width: 140,
-  height: 40,
+  width: 180,
+  height: 52,
 } as const;
 
 export const SAGEFIELD_ADMIN_COMPACT_ROWS = 5;

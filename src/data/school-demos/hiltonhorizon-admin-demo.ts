@@ -2,8 +2,8 @@
 export const HILTON_HORIZON_ADMIN_LOGO = {
   src: "/images/demo/hiltonhorizon/Hilton+Horizons+Academy+(5).webp",
   alt: "Hilton Horizons Academy",
-  width: 180,
-  height: 48,
+  width: 220,
+  height: 58,
 } as const;
 
 export const HILTON_HORIZON_ADMIN_COMPACT_ROWS = 5;

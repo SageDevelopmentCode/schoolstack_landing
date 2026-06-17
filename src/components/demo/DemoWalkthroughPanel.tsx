@@ -70,9 +70,9 @@ export default function DemoWalkthroughPanel({
             <Image
               src={schoolLogo.src}
               alt={schoolLogo.alt}
-              width={schoolLogo.width ?? 100}
-              height={schoolLogo.height ?? 28}
-              className="h-7 w-auto max-w-[120px] object-contain object-right"
+              width={schoolLogo.width ?? 140}
+              height={schoolLogo.height ?? 40}
+              className="h-10 w-auto max-w-[180px] object-contain object-right"
             />
           </div>
         </div>

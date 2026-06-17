@@ -23643,10 +23643,10 @@ function Sidebar({
         <Image
           src={SAGEFIELD_ADMIN_LOGO.src}
           alt={SAGEFIELD_ADMIN_LOGO.alt}
-          width={isExpanded ? (SAGEFIELD_ADMIN_LOGO.width ?? 120) : 28}
-          height={SAGEFIELD_ADMIN_LOGO.height ?? 28}
+          width={isExpanded ? (SAGEFIELD_ADMIN_LOGO.width ?? 160) : 36}
+          height={SAGEFIELD_ADMIN_LOGO.height ?? 40}
           className="flex-shrink-0 object-contain"
-          style={{ maxHeight: 28 }}
+          style={{ maxHeight: 40 }}
         />
       </div>
 

@@ -5087,7 +5087,7 @@ export default function ZoeLearningHouseTeacherDashboardDemo({
                 alt={ZOE_LEARNING_HOUSE_TEACHER_LOGO.alt}
                 width={ZOE_LEARNING_HOUSE_TEACHER_LOGO.width}
                 height={ZOE_LEARNING_HOUSE_TEACHER_LOGO.height}
-                className="h-7 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </div>
 

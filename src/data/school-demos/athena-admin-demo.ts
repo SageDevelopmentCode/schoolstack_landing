@@ -1,8 +1,8 @@
 export const ATHENA_ADMIN_LOGO = {
   src: "/images/demo/athena/Logo.png",
   alt: "Athena Micro-academy of Austin",
-  width: 140,
-  height: 40,
+  width: 180,
+  height: 52,
 } as const;
 
 export const ATHENA_ADMIN_COMPACT_ROWS = 5;

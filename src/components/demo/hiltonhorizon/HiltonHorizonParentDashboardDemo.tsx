@@ -4741,7 +4741,7 @@ function DemoHeader({
         <img
           src={HILTON_HORIZON_PARENT_LOGO.src}
           alt={HILTON_HORIZON_PARENT_LOGO.alt}
-          className="h-7 w-auto object-contain"
+          className="h-10 w-auto object-contain"
         />
         {/* <span className="text-sm font-semibold text-gray-700">SchoolLayer</span> */}
       </div>

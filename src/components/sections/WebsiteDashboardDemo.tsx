@@ -334,7 +334,7 @@ export default function WebsiteDashboardDemo({
               alt={config.logo.alt}
               width={config.logo.width ?? 120}
               height={config.logo.height ?? 32}
-              className="h-8 w-auto object-contain"
+              className="h-12 w-auto object-contain"
             />
           </div>
           <nav className="hidden md:flex items-center gap-8">
@@ -1383,7 +1383,7 @@ export default function WebsiteDashboardDemo({
                 alt={config.logo.alt}
                 width={config.logo.width ?? 140}
                 height={config.logo.height ?? 36}
-                className="h-9 w-auto object-contain"
+                className="h-11 w-auto object-contain"
               />
             </div>
             <p className="text-white/35 font-secondary text-sm">{config.footer.tagline}</p>

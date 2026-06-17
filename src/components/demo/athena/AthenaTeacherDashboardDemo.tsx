@@ -5087,7 +5087,7 @@ export default function AthenaTeacherDashboardDemo({
                 alt={ATHENA_TEACHER_LOGO.alt}
                 width={ATHENA_TEACHER_LOGO.width}
                 height={ATHENA_TEACHER_LOGO.height}
-                className="h-7 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </div>
 

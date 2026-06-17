@@ -67,9 +67,9 @@ export default function DemoContactPanel({ schoolSlug, schoolName, logo }: Props
             <Image
               src={logo.src}
               alt={logo.alt}
-              width={logo.width ?? 32}
-              height={logo.height ?? 32}
-              className="h-8 w-auto object-contain"
+              width={logo.width ?? 48}
+              height={logo.height ?? 40}
+              className="h-10 w-auto object-contain"
             />
             <h2 className="font-display text-xl font-semibold text-[#2E4A3C] sm:text-2xl">
               {heading}

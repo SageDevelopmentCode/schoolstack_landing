@@ -5087,7 +5087,7 @@ export default function HiltonHorizonTeacherDashboardDemo({
                 alt={HILTON_HORIZON_TEACHER_LOGO.alt}
                 width={HILTON_HORIZON_TEACHER_LOGO.width}
                 height={HILTON_HORIZON_TEACHER_LOGO.height}
-                className="h-7 w-auto object-contain"
+                className="h-10 w-auto object-contain"
               />
             </div>
 
