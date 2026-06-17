@@ -22,6 +22,7 @@ function TimeSlotList({
   onConfirm,
   isSubmitting,
   preview,
+  confirmDisabled,
 }: {
   dateStr: string;
   timeSlots: string[];
@@ -30,6 +31,7 @@ function TimeSlotList({
   onConfirm?: (booking: { date: string; time: string }) => void;
   isSubmitting?: boolean;
   preview?: boolean;
+  confirmDisabled?: boolean;
 }) {
   return (
     <div className="flex flex-col md:h-full p-4">
@@ -79,7 +81,7 @@ function TimeSlotList({
           >
             <button
               type="button"
-              disabled={isSubmitting || preview}
+              disabled={isSubmitting || preview || confirmDisabled}
               onClick={() => {
                 if (selectedTime && onConfirm) {
                   onConfirm({ date: dateStr, time: selectedTime });
@@ -102,11 +104,13 @@ export function DemoScheduler({
   onConfirm,
   isSubmitting,
   preview = false,
+  confirmDisabled = false,
 }: {
   availabilitySlots: Record<string, string[]>;
   onConfirm?: (booking: { date: string; time: string }) => void;
   isSubmitting?: boolean;
   preview?: boolean;
+  confirmDisabled?: boolean;
 }) {
   const initial = todayMonthYear();
   const [viewYear, setViewYear] = useState(initial.year);
@@ -282,6 +286,7 @@ export function DemoScheduler({
                 onConfirm={onConfirm}
                 isSubmitting={isSubmitting}
                 preview={preview}
+                confirmDisabled={confirmDisabled}
               />
             </motion.div>
             <motion.div
@@ -299,6 +304,7 @@ export function DemoScheduler({
                 onConfirm={onConfirm}
                 isSubmitting={isSubmitting}
                 preview={preview}
+                confirmDisabled={confirmDisabled}
               />
             </motion.div>
           </>

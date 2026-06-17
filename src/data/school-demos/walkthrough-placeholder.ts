@@ -198,12 +198,12 @@ export const athenaWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "get-in-touch",
-    title: "Questions? Let's connect",
-    description: "Share feedback or ask about anything you saw in this concept.",
+    title: "Ready for next steps?",
+    description: "Schedule a meeting, or email or call us to talk through this concept.",
     talkingPoint:
-      "We'd love to hear what resonated — or what you'd want to change.",
+      "Pick a time on the calendar, or reach out directly — we'd love to walk through how this could work for your school.",
     preview: "contact",
-    icon: "messageCircle",
+    icon: "calendarDays",
     theme: {
       bg: "#F2E7D1",
       bgHover: "#EBDFC4",
@@ -355,12 +355,12 @@ export const wonderhereWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "get-in-touch",
-    title: "Questions? Let's connect",
-    description: "Share feedback or ask about anything you saw in this concept.",
+    title: "Ready for next steps?",
+    description: "Schedule a meeting, or email or call us to talk through this concept.",
     talkingPoint:
-      "We'd love to hear what resonated — or what you'd want to change.",
+      "Pick a time on the calendar, or reach out directly — we'd love to walk through how this could work for your school.",
     preview: "contact",
-    icon: "messageCircle",
+    icon: "calendarDays",
     theme: {
       bg: "#F5F1E8",
       bgHover: "#EBE5D8",
@@ -512,12 +512,12 @@ export const monarchHillsWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "get-in-touch",
-    title: "Questions? Let's connect",
-    description: "Share feedback or ask about anything you saw in this concept.",
+    title: "Ready for next steps?",
+    description: "Schedule a meeting, or email or call us to talk through this concept.",
     talkingPoint:
-      "We'd love to hear what resonated — or what you'd want to change.",
+      "Pick a time on the calendar, or reach out directly — we'd love to walk through how this could work for your school.",
     preview: "contact",
-    icon: "messageCircle",
+    icon: "calendarDays",
     theme: {
       bg: "#FFF4ED",
       bgHover: "#FFE8D8",
@@ -669,12 +669,12 @@ export const zoeLearningHouseWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "get-in-touch",
-    title: "Questions? Let's connect",
-    description: "Share feedback or ask about anything you saw in this concept.",
+    title: "Ready for next steps?",
+    description: "Schedule a meeting, or email or call us to talk through this concept.",
     talkingPoint:
-      "We'd love to hear what resonated — or what you'd want to change.",
+      "Pick a time on the calendar, or reach out directly — we'd love to walk through how this could work for your school.",
     preview: "contact",
-    icon: "messageCircle",
+    icon: "calendarDays",
     theme: {
       bg: "#FBF5E8",
       bgHover: "#F5ECD4",
@@ -826,12 +826,12 @@ export const hiltonHorizonsAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] 
   },
   {
     id: "get-in-touch",
-    title: "Questions? Let's connect",
-    description: "Share feedback or ask about anything you saw in this concept.",
+    title: "Ready for next steps?",
+    description: "Schedule a meeting, or email or call us to talk through this concept.",
     talkingPoint:
-      "We'd love to hear what resonated — or what you'd want to change.",
+      "Pick a time on the calendar, or reach out directly — we'd love to walk through how this could work for your school.",
     preview: "contact",
-    icon: "messageCircle",
+    icon: "calendarDays",
     theme: {
       bg: "#F7F2E6",
       bgHover: "#F0EAD8",
@@ -983,12 +983,12 @@ export const micahMissionWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "get-in-touch",
-    title: "Questions? Let's connect",
-    description: "Share feedback or ask about anything you saw in this concept.",
+    title: "Ready for next steps?",
+    description: "Schedule a meeting, or email or call us to talk through this concept.",
     talkingPoint:
-      "We'd love to hear what resonated — or what you'd want to change.",
+      "Pick a time on the calendar, or reach out directly — we'd love to walk through how this could work for your school.",
     preview: "contact",
-    icon: "messageCircle",
+    icon: "calendarDays",
     theme: {
       bg: "#FBF5E8",
       bgHover: "#F5ECD4",
