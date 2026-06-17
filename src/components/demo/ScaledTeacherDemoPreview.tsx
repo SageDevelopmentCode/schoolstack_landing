@@ -15,6 +15,10 @@ import {
   prefetchMonarchHillsTeacherDemo,
 } from "@/components/demo/monarchhills/lazyMonarchHillsDemos";
 import {
+  LazyHiltonHorizonTeacherDashboardDemo,
+  prefetchHiltonHorizonTeacherDemo,
+} from "@/components/demo/hiltonhorizon/lazyHiltonHorizonDemos";
+import {
   LazyZoeLearningHouseTeacherDashboardDemo,
   prefetchZoeLearningHouseTeacherDemo,
 } from "@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos";
@@ -31,16 +35,18 @@ export default function ScaledTeacherDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isHiltonHorizons = demoSlug === "hilton-horizons-academy";
   const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
 
   useEffect(() => {
-    if (isZoeLearningHouse) prefetchZoeLearningHouseTeacherDemo();
+    if (isHiltonHorizons) prefetchHiltonHorizonTeacherDemo();
+    else if (isZoeLearningHouse) prefetchZoeLearningHouseTeacherDemo();
     else if (isMonarchHills) prefetchMonarchHillsTeacherDemo();
     else if (isWonderHere) prefetchWonderHereTeacherDemo();
     else prefetchAthenaTeacherDemo();
-  }, [isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -54,7 +60,9 @@ export default function ScaledTeacherDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isZoeLearningHouse
+  const DemoComponent = isHiltonHorizons
+    ? LazyHiltonHorizonTeacherDashboardDemo
+    : isZoeLearningHouse
     ? LazyZoeLearningHouseTeacherDashboardDemo
     : isMonarchHills
       ? LazyMonarchHillsTeacherDashboardDemo

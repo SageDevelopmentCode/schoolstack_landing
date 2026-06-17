@@ -15,6 +15,10 @@ import {
   prefetchMonarchHillsAdminDemo,
 } from "@/components/demo/monarchhills/lazyMonarchHillsDemos";
 import {
+  LazyHiltonHorizonAdminDashboardDemo,
+  prefetchHiltonHorizonAdminDemo,
+} from "@/components/demo/hiltonhorizon/lazyHiltonHorizonDemos";
+import {
   LazyZoeLearningHouseAdminDashboardDemo,
   prefetchZoeLearningHouseAdminDemo,
 } from "@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos";
@@ -38,16 +42,18 @@ export default function ScaledAdminDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isHiltonHorizons = demoSlug === "hilton-horizons-academy";
   const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
 
   useEffect(() => {
-    if (isZoeLearningHouse) prefetchZoeLearningHouseAdminDemo();
+    if (isHiltonHorizons) prefetchHiltonHorizonAdminDemo();
+    else if (isZoeLearningHouse) prefetchZoeLearningHouseAdminDemo();
     else if (isMonarchHills) prefetchMonarchHillsAdminDemo();
     else if (isWonderHere) prefetchWonderHereAdminDemo();
     else prefetchAthenaAdminDemo();
-  }, [isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -61,7 +67,9 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isZoeLearningHouse
+  const DemoComponent = isHiltonHorizons
+    ? LazyHiltonHorizonAdminDashboardDemo
+    : isZoeLearningHouse
     ? LazyZoeLearningHouseAdminDashboardDemo
     : isMonarchHills
       ? LazyMonarchHillsAdminDashboardDemo

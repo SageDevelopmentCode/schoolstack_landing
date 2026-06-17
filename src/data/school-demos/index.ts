@@ -4,18 +4,21 @@ export { athenaMicroacademyConfig } from "./athena-microacademy";
 export { wonderhereLakelandConfig } from "./wonderhere-lakeland";
 export { monarchHillsEducationConfig } from "./monarch-hills-education";
 export { zoeLearningHouseConfig } from "./zoe-learning-house";
+export { hiltonHorizonsAcademyConfig } from "./hilton-horizons-academy";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
 import { wonderhereLakelandConfig } from "./wonderhere-lakeland";
 import { monarchHillsEducationConfig } from "./monarch-hills-education";
 import { zoeLearningHouseConfig } from "./zoe-learning-house";
+import { hiltonHorizonsAcademyConfig } from "./hilton-horizons-academy";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
   "wonderhere-lakeland": wonderhereLakelandConfig,
   "monarch-hills-education": monarchHillsEducationConfig,
   "zoe-learning-house": zoeLearningHouseConfig,
+  "hilton-horizons-academy": hiltonHorizonsAcademyConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {
