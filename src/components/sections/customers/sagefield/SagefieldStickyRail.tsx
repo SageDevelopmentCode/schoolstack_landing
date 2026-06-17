@@ -44,7 +44,7 @@ export default function SagefieldStickyRail() {
             {/* Stats */}
             <div className="space-y-2.5">
               <div className="rounded-lg bg-bg-alt border border-border px-3 py-2.5 text-center">
-                <div className="font-display text-[1.5rem] leading-none text-text">0→25</div>
+                <div className="font-display text-[1.5rem] leading-none text-text">0→35</div>
                 <div className="text-[11px] font-secondary text-text-faint mt-1 leading-snug">
                   students in &lt;3 months
                 </div>

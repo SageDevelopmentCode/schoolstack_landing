@@ -20,7 +20,7 @@ const TAKEAWAYS = [
   {
     number: '04',
     headline: 'Start lean and grow without rebuilding your stack.',
-    body: 'Sage Field launched from zero and scaled to 25 students without switching platforms. The system grew with the school.',
+    body: 'Sage Field launched from zero and scaled to 35 students without switching platforms. The system grew with the school.',
   },
 ]
 

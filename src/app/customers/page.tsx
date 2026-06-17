@@ -24,7 +24,7 @@ const STORIES = [
     location: 'Round Rock, TX',
     tagline: 'Outdoor-focused private microschool',
     ages: 'Ages 4–11',
-    result: '0 → 25 students in < 3 months',
+    result: '0 → 35 students in < 3 months',
     description:
       'Sage Field launched with a full public-facing school presence, enrollment pathways, tuition setup, staff workflows, and parent communication — all from one platform before the first student enrolled.',
     tags: ['Website', 'Enrollment', 'Tuition', 'Operations', 'Parent portal'],

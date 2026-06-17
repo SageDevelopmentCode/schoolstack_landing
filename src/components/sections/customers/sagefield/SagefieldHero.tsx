@@ -66,7 +66,7 @@ export default function SagefieldHero() {
           >
             How Sage Field launched and grew from{' '}
             <em style={{ color: '#A05C45', fontStyle: 'italic' }}>
-              0 to 25 students
+              0 to 35 students
             </em>{' '}
             in under 3 months.
           </motion.h1>

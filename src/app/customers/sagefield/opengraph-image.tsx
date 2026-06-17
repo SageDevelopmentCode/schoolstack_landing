@@ -73,7 +73,7 @@ export default async function OpenGraphImage() {
               maxWidth: "900px",
             }}
           >
-            Sage Field: 0 to 25 students in under 3 months
+            Sage Field: 0 to 35 students in under 3 months
           </p>
           <p
             style={{

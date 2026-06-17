@@ -3,7 +3,7 @@ import { FadeInView } from "@/components/ui/FadeInView";
 
 
 const STATS = [
-  { number: "25", label: "Students enrolled" },
+  { number: "35", label: "Students enrolled" },
   { number: "< 3 mo", label: "To launch" },
   { number: "1", label: "Unified platform" },
 ];
@@ -37,7 +37,7 @@ export default function FounderStorySection() {
 
             <FadeInView delay={0.12}>
               <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.5rem)] leading-[1.05] text-white mt-3">
-                From 0 to 25 students
+                From 0 to 35 students
                 <br />
                 <em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>in under 3 months.</em>
               </h2>

@@ -175,7 +175,7 @@ const STEP_PREVIEWS = [
   <div key="operate" className="flex items-center justify-center w-full p-8">
     <div className="w-full max-w-[380px] space-y-2.5">
       {[
-        { label: 'Attendance', value: '22 / 25', color: '#4a7c59' },
+        { label: 'Attendance', value: '32 / 35', color: '#4a7c59' },
         { label: 'Open leads', value: '8 families', color: ACCENT_TEXT },
         { label: 'Invoices due', value: '$4,800', color: '#4a7c59' },
         { label: 'Pending tasks', value: '3 items', color: 'rgba(247,241,231,0.4)' },

@@ -38,7 +38,7 @@ export default function SagefieldChallenge() {
                   },
                   {
                     label: 'Result',
-                    value: '0 → 25 students in under 3 months',
+                    value: '0 → 35 students in under 3 months',
                   },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-baseline gap-3">
@@ -80,7 +80,7 @@ export default function SagefieldChallenge() {
               {/* Inline stat callout */}
               <div className="mt-8 grid grid-cols-3 gap-4">
                 {[
-                  { number: '25', label: 'Students enrolled' },
+                  { number: '35', label: 'Students enrolled' },
                   { number: '< 3', label: 'Months to launch' },
                   { number: '1', label: 'Unified platform' },
                 ].map(({ number, label }) => (
