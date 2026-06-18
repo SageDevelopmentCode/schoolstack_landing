@@ -34,6 +34,10 @@ import {
   LazyAscendMicroschoolAdminDashboardDemo,
   prefetchAscendMicroschoolAdminDemo,
 } from "@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos";
+import {
+  LazyRootedMeadowsAdminDashboardDemo,
+  prefetchRootedMeadowsAdminDemo,
+} from "@/components/demo/rootedmeadows/lazyRootedMeadowsDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -61,9 +65,11 @@ export default function ScaledAdminDemoPreview({
   const isMicahMissionSchool = demoSlug === "micahs-mission-school";
   const isHomeworkHub = demoSlug === "homework-hub";
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
+  const isRootedMeadows = demoSlug === "rooted-meadows";
 
   useEffect(() => {
-    if (isAscendMicroSchool) prefetchAscendMicroschoolAdminDemo();
+    if (isRootedMeadows) prefetchRootedMeadowsAdminDemo();
+    else if (isAscendMicroSchool) prefetchAscendMicroschoolAdminDemo();
     else if (isHomeworkHub) prefetchHomeworkHubAdminDemo();
     else if (isMicahMissionSchool) prefetchMicahMissionAdminDemo();
     else if (isHiltonHorizons) prefetchHiltonHorizonAdminDemo();
@@ -71,7 +77,7 @@ export default function ScaledAdminDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsAdminDemo();
     else if (isWonderHere) prefetchWonderHereAdminDemo();
     else prefetchAthenaAdminDemo();
-  }, [isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -85,7 +91,9 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isAscendMicroSchool
+  const DemoComponent = isRootedMeadows
+    ? LazyRootedMeadowsAdminDashboardDemo
+    : isAscendMicroSchool
     ? LazyAscendMicroschoolAdminDashboardDemo
     : isHomeworkHub
     ? LazyHomeworkHubAdminDashboardDemo

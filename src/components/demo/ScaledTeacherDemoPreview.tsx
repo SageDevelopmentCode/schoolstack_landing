@@ -34,6 +34,10 @@ import {
   LazyAscendMicroschoolTeacherDashboardDemo,
   prefetchAscendMicroschoolTeacherDemo,
 } from "@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos";
+import {
+  LazyRootedMeadowsTeacherDashboardDemo,
+  prefetchRootedMeadowsTeacherDemo,
+} from "@/components/demo/rootedmeadows/lazyRootedMeadowsDemos";
 import type { DemoWalkthroughTeacherTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
@@ -54,9 +58,11 @@ export default function ScaledTeacherDemoPreview({
   const isMicahMissionSchool = demoSlug === "micahs-mission-school";
   const isHomeworkHub = demoSlug === "homework-hub";
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
+  const isRootedMeadows = demoSlug === "rooted-meadows";
 
   useEffect(() => {
-    if (isAscendMicroSchool) prefetchAscendMicroschoolTeacherDemo();
+    if (isRootedMeadows) prefetchRootedMeadowsTeacherDemo();
+    else if (isAscendMicroSchool) prefetchAscendMicroschoolTeacherDemo();
     else if (isHomeworkHub) prefetchHomeworkHubTeacherDemo();
     else if (isMicahMissionSchool) prefetchMicahMissionTeacherDemo();
     else if (isHiltonHorizons) prefetchHiltonHorizonTeacherDemo();
@@ -64,7 +70,7 @@ export default function ScaledTeacherDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsTeacherDemo();
     else if (isWonderHere) prefetchWonderHereTeacherDemo();
     else prefetchAthenaTeacherDemo();
-  }, [isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -78,7 +84,9 @@ export default function ScaledTeacherDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isAscendMicroSchool
+  const DemoComponent = isRootedMeadows
+    ? LazyRootedMeadowsTeacherDashboardDemo
+    : isAscendMicroSchool
     ? LazyAscendMicroschoolTeacherDashboardDemo
     : isHomeworkHub
     ? LazyHomeworkHubTeacherDashboardDemo

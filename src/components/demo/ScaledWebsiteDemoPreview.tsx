@@ -34,6 +34,10 @@ import {
   LazyAscendMicroschoolWebsiteDashboardDemo,
   prefetchAscendMicroschoolWebsiteDemo,
 } from "@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos";
+import {
+  LazyRootedMeadowsWebsiteDashboardDemo,
+  prefetchRootedMeadowsWebsiteDemo,
+} from "@/components/demo/rootedmeadows/lazyRootedMeadowsDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -57,9 +61,11 @@ export default function ScaledWebsiteDemoPreview({
   const isMicahMissionSchool = demoSlug === "micahs-mission-school";
   const isHomeworkHub = demoSlug === "homework-hub";
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
+  const isRootedMeadows = demoSlug === "rooted-meadows";
 
   useEffect(() => {
-    if (isAscendMicroSchool) prefetchAscendMicroschoolWebsiteDemo();
+    if (isRootedMeadows) prefetchRootedMeadowsWebsiteDemo();
+    else if (isAscendMicroSchool) prefetchAscendMicroschoolWebsiteDemo();
     else if (isHomeworkHub) prefetchHomeworkHubWebsiteDemo();
     else if (isMicahMissionSchool) prefetchMicahMissionWebsiteDemo();
     else if (isHiltonHorizons) prefetchHiltonHorizonWebsiteDemo();
@@ -67,7 +73,7 @@ export default function ScaledWebsiteDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsWebsiteDemo();
     else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -81,7 +87,9 @@ export default function ScaledWebsiteDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isAscendMicroSchool
+  const DemoComponent = isRootedMeadows
+    ? LazyRootedMeadowsWebsiteDashboardDemo
+    : isAscendMicroSchool
     ? LazyAscendMicroschoolWebsiteDashboardDemo
     : isHomeworkHub
     ? LazyHomeworkHubWebsiteDashboardDemo

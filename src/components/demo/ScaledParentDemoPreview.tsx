@@ -34,6 +34,10 @@ import {
   LazyAscendMicroschoolParentDashboardDemo,
   prefetchAscendMicroschoolParentDemo,
 } from "@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos";
+import {
+  LazyRootedMeadowsParentDashboardDemo,
+  prefetchRootedMeadowsParentDemo,
+} from "@/components/demo/rootedmeadows/lazyRootedMeadowsDemos";
 import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
@@ -54,9 +58,11 @@ export default function ScaledParentDemoPreview({
   const isMicahMissionSchool = demoSlug === "micahs-mission-school";
   const isHomeworkHub = demoSlug === "homework-hub";
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
+  const isRootedMeadows = demoSlug === "rooted-meadows";
 
   useEffect(() => {
-    if (isAscendMicroSchool) prefetchAscendMicroschoolParentDemo();
+    if (isRootedMeadows) prefetchRootedMeadowsParentDemo();
+    else if (isAscendMicroSchool) prefetchAscendMicroschoolParentDemo();
     else if (isHomeworkHub) prefetchHomeworkHubParentDemo();
     else if (isMicahMissionSchool) prefetchMicahMissionParentDemo();
     else if (isHiltonHorizons) prefetchHiltonHorizonParentDemo();
@@ -64,7 +70,7 @@ export default function ScaledParentDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsParentDemo();
     else if (isWonderHere) prefetchWonderHereParentDemo();
     else prefetchAthenaParentDemo();
-  }, [isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -78,7 +84,9 @@ export default function ScaledParentDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isAscendMicroSchool
+  const DemoComponent = isRootedMeadows
+    ? LazyRootedMeadowsParentDashboardDemo
+    : isAscendMicroSchool
     ? LazyAscendMicroschoolParentDashboardDemo
     : isHomeworkHub
     ? LazyHomeworkHubParentDashboardDemo
