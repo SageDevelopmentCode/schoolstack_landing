@@ -38,6 +38,10 @@ import {
   LazyRootedMeadowsWebsiteDashboardDemo,
   prefetchRootedMeadowsWebsiteDemo,
 } from "@/components/demo/rootedmeadows/lazyRootedMeadowsDemos";
+import {
+  LazyPrestigeHomeschoolAcademyWebsiteDashboardDemo,
+  prefetchPrestigeHomeschoolAcademyWebsiteDemo,
+} from "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -62,9 +66,11 @@ export default function ScaledWebsiteDemoPreview({
   const isHomeworkHub = demoSlug === "homework-hub";
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
   const isRootedMeadows = demoSlug === "rooted-meadows";
+  const isPrestigeHomeschoolAcademy = demoSlug === "prestige-homeschool-academy";
 
   useEffect(() => {
-    if (isRootedMeadows) prefetchRootedMeadowsWebsiteDemo();
+    if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyWebsiteDemo();
+    else if (isRootedMeadows) prefetchRootedMeadowsWebsiteDemo();
     else if (isAscendMicroSchool) prefetchAscendMicroschoolWebsiteDemo();
     else if (isHomeworkHub) prefetchHomeworkHubWebsiteDemo();
     else if (isMicahMissionSchool) prefetchMicahMissionWebsiteDemo();
@@ -73,7 +79,7 @@ export default function ScaledWebsiteDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsWebsiteDemo();
     else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -87,7 +93,9 @@ export default function ScaledWebsiteDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isRootedMeadows
+  const DemoComponent = isPrestigeHomeschoolAcademy
+    ? LazyPrestigeHomeschoolAcademyWebsiteDashboardDemo
+    : isRootedMeadows
     ? LazyRootedMeadowsWebsiteDashboardDemo
     : isAscendMicroSchool
     ? LazyAscendMicroschoolWebsiteDashboardDemo

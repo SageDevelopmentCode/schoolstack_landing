@@ -38,6 +38,10 @@ import {
   LazyRootedMeadowsTeacherDashboardDemo,
   prefetchRootedMeadowsTeacherDemo,
 } from "@/components/demo/rootedmeadows/lazyRootedMeadowsDemos";
+import {
+  LazyPrestigeHomeschoolAcademyTeacherDashboardDemo,
+  prefetchPrestigeHomeschoolAcademyTeacherDemo,
+} from "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos";
 import type { DemoWalkthroughTeacherTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
@@ -59,9 +63,11 @@ export default function ScaledTeacherDemoPreview({
   const isHomeworkHub = demoSlug === "homework-hub";
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
   const isRootedMeadows = demoSlug === "rooted-meadows";
+  const isPrestigeHomeschoolAcademy = demoSlug === "prestige-homeschool-academy";
 
   useEffect(() => {
-    if (isRootedMeadows) prefetchRootedMeadowsTeacherDemo();
+    if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyTeacherDemo();
+    else if (isRootedMeadows) prefetchRootedMeadowsTeacherDemo();
     else if (isAscendMicroSchool) prefetchAscendMicroschoolTeacherDemo();
     else if (isHomeworkHub) prefetchHomeworkHubTeacherDemo();
     else if (isMicahMissionSchool) prefetchMicahMissionTeacherDemo();
@@ -70,7 +76,7 @@ export default function ScaledTeacherDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsTeacherDemo();
     else if (isWonderHere) prefetchWonderHereTeacherDemo();
     else prefetchAthenaTeacherDemo();
-  }, [isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -84,7 +90,9 @@ export default function ScaledTeacherDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isRootedMeadows
+  const DemoComponent = isPrestigeHomeschoolAcademy
+    ? LazyPrestigeHomeschoolAcademyTeacherDashboardDemo
+    : isRootedMeadows
     ? LazyRootedMeadowsTeacherDashboardDemo
     : isAscendMicroSchool
     ? LazyAscendMicroschoolTeacherDashboardDemo

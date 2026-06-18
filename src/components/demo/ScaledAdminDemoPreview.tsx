@@ -38,6 +38,10 @@ import {
   LazyRootedMeadowsAdminDashboardDemo,
   prefetchRootedMeadowsAdminDemo,
 } from "@/components/demo/rootedmeadows/lazyRootedMeadowsDemos";
+import {
+  LazyPrestigeHomeschoolAcademyAdminDashboardDemo,
+  prefetchPrestigeHomeschoolAcademyAdminDemo,
+} from "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -66,9 +70,11 @@ export default function ScaledAdminDemoPreview({
   const isHomeworkHub = demoSlug === "homework-hub";
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
   const isRootedMeadows = demoSlug === "rooted-meadows";
+  const isPrestigeHomeschoolAcademy = demoSlug === "prestige-homeschool-academy";
 
   useEffect(() => {
-    if (isRootedMeadows) prefetchRootedMeadowsAdminDemo();
+    if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyAdminDemo();
+    else if (isRootedMeadows) prefetchRootedMeadowsAdminDemo();
     else if (isAscendMicroSchool) prefetchAscendMicroschoolAdminDemo();
     else if (isHomeworkHub) prefetchHomeworkHubAdminDemo();
     else if (isMicahMissionSchool) prefetchMicahMissionAdminDemo();
@@ -77,7 +83,7 @@ export default function ScaledAdminDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsAdminDemo();
     else if (isWonderHere) prefetchWonderHereAdminDemo();
     else prefetchAthenaAdminDemo();
-  }, [isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -91,7 +97,9 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isRootedMeadows
+  const DemoComponent = isPrestigeHomeschoolAcademy
+    ? LazyPrestigeHomeschoolAcademyAdminDashboardDemo
+    : isRootedMeadows
     ? LazyRootedMeadowsAdminDashboardDemo
     : isAscendMicroSchool
     ? LazyAscendMicroschoolAdminDashboardDemo
