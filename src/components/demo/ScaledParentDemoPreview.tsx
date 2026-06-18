@@ -42,6 +42,10 @@ import {
   LazyPrestigeHomeschoolAcademyParentDashboardDemo,
   prefetchPrestigeHomeschoolAcademyParentDemo,
 } from "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos";
+import {
+  LazyArizonaGiftedAcademyParentDashboardDemo,
+  prefetchArizonaGiftedAcademyParentDemo,
+} from "@/components/demo/arizonagiftedacademy/lazyArizonaGiftedAcademyDemos";
 import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
@@ -64,9 +68,11 @@ export default function ScaledParentDemoPreview({
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
   const isRootedMeadows = demoSlug === "rooted-meadows";
   const isPrestigeHomeschoolAcademy = demoSlug === "prestige-homeschool-academy";
+  const isArizonaGiftedAcademy = demoSlug === "arizona-gifted-academy";
 
   useEffect(() => {
-    if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyParentDemo();
+    if (isArizonaGiftedAcademy) prefetchArizonaGiftedAcademyParentDemo();
+    else if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyParentDemo();
     else if (isRootedMeadows) prefetchRootedMeadowsParentDemo();
     else if (isAscendMicroSchool) prefetchAscendMicroschoolParentDemo();
     else if (isHomeworkHub) prefetchHomeworkHubParentDemo();
@@ -76,7 +82,7 @@ export default function ScaledParentDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsParentDemo();
     else if (isWonderHere) prefetchWonderHereParentDemo();
     else prefetchAthenaParentDemo();
-  }, [isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -90,7 +96,9 @@ export default function ScaledParentDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isPrestigeHomeschoolAcademy
+  const DemoComponent = isArizonaGiftedAcademy
+    ? LazyArizonaGiftedAcademyParentDashboardDemo
+    : isPrestigeHomeschoolAcademy
     ? LazyPrestigeHomeschoolAcademyParentDashboardDemo
     : isRootedMeadows
     ? LazyRootedMeadowsParentDashboardDemo

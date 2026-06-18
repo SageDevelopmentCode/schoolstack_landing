@@ -42,6 +42,10 @@ import {
   LazyPrestigeHomeschoolAcademyTeacherDashboardDemo,
   prefetchPrestigeHomeschoolAcademyTeacherDemo,
 } from "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos";
+import {
+  LazyArizonaGiftedAcademyTeacherDashboardDemo,
+  prefetchArizonaGiftedAcademyTeacherDemo,
+} from "@/components/demo/arizonagiftedacademy/lazyArizonaGiftedAcademyDemos";
 import type { DemoWalkthroughTeacherTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
@@ -64,9 +68,11 @@ export default function ScaledTeacherDemoPreview({
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
   const isRootedMeadows = demoSlug === "rooted-meadows";
   const isPrestigeHomeschoolAcademy = demoSlug === "prestige-homeschool-academy";
+  const isArizonaGiftedAcademy = demoSlug === "arizona-gifted-academy";
 
   useEffect(() => {
-    if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyTeacherDemo();
+    if (isArizonaGiftedAcademy) prefetchArizonaGiftedAcademyTeacherDemo();
+    else if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyTeacherDemo();
     else if (isRootedMeadows) prefetchRootedMeadowsTeacherDemo();
     else if (isAscendMicroSchool) prefetchAscendMicroschoolTeacherDemo();
     else if (isHomeworkHub) prefetchHomeworkHubTeacherDemo();
@@ -76,7 +82,7 @@ export default function ScaledTeacherDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsTeacherDemo();
     else if (isWonderHere) prefetchWonderHereTeacherDemo();
     else prefetchAthenaTeacherDemo();
-  }, [isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -90,7 +96,9 @@ export default function ScaledTeacherDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isPrestigeHomeschoolAcademy
+  const DemoComponent = isArizonaGiftedAcademy
+    ? LazyArizonaGiftedAcademyTeacherDashboardDemo
+    : isPrestigeHomeschoolAcademy
     ? LazyPrestigeHomeschoolAcademyTeacherDashboardDemo
     : isRootedMeadows
     ? LazyRootedMeadowsTeacherDashboardDemo

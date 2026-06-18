@@ -10,6 +10,7 @@ export { homeworkHubConfig } from "./homework-hub";
 export { ascendMicroSchoolConfig } from "./ascend-micro-school";
 export { rootedMeadowsConfig } from "./rooted-meadows";
 export { prestigeHomeschoolAcademyConfig } from "./prestige-homeschool-academy";
+export { arizonaGiftedAcademyConfig } from "./arizona-gifted-academy";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -22,6 +23,7 @@ import { homeworkHubConfig } from "./homework-hub";
 import { ascendMicroSchoolConfig } from "./ascend-micro-school";
 import { rootedMeadowsConfig } from "./rooted-meadows";
 import { prestigeHomeschoolAcademyConfig } from "./prestige-homeschool-academy";
+import { arizonaGiftedAcademyConfig } from "./arizona-gifted-academy";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -34,6 +36,7 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "ascend-micro-school": ascendMicroSchoolConfig,
   "rooted-meadows": rootedMeadowsConfig,
   "prestige-homeschool-academy": prestigeHomeschoolAcademyConfig,
+  "arizona-gifted-academy": arizonaGiftedAcademyConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {

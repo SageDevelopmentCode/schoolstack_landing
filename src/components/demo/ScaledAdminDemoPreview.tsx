@@ -42,6 +42,10 @@ import {
   LazyPrestigeHomeschoolAcademyAdminDashboardDemo,
   prefetchPrestigeHomeschoolAcademyAdminDemo,
 } from "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos";
+import {
+  LazyArizonaGiftedAcademyAdminDashboardDemo,
+  prefetchArizonaGiftedAcademyAdminDemo,
+} from "@/components/demo/arizonagiftedacademy/lazyArizonaGiftedAcademyDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -71,9 +75,11 @@ export default function ScaledAdminDemoPreview({
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
   const isRootedMeadows = demoSlug === "rooted-meadows";
   const isPrestigeHomeschoolAcademy = demoSlug === "prestige-homeschool-academy";
+  const isArizonaGiftedAcademy = demoSlug === "arizona-gifted-academy";
 
   useEffect(() => {
-    if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyAdminDemo();
+    if (isArizonaGiftedAcademy) prefetchArizonaGiftedAcademyAdminDemo();
+    else if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyAdminDemo();
     else if (isRootedMeadows) prefetchRootedMeadowsAdminDemo();
     else if (isAscendMicroSchool) prefetchAscendMicroschoolAdminDemo();
     else if (isHomeworkHub) prefetchHomeworkHubAdminDemo();
@@ -83,7 +89,7 @@ export default function ScaledAdminDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsAdminDemo();
     else if (isWonderHere) prefetchWonderHereAdminDemo();
     else prefetchAthenaAdminDemo();
-  }, [isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -97,7 +103,9 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isPrestigeHomeschoolAcademy
+  const DemoComponent = isArizonaGiftedAcademy
+    ? LazyArizonaGiftedAcademyAdminDashboardDemo
+    : isPrestigeHomeschoolAcademy
     ? LazyPrestigeHomeschoolAcademyAdminDashboardDemo
     : isRootedMeadows
     ? LazyRootedMeadowsAdminDashboardDemo

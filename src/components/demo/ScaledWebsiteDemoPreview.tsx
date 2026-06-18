@@ -42,6 +42,10 @@ import {
   LazyPrestigeHomeschoolAcademyWebsiteDashboardDemo,
   prefetchPrestigeHomeschoolAcademyWebsiteDemo,
 } from "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos";
+import {
+  LazyArizonaGiftedAcademyWebsiteDashboardDemo,
+  prefetchArizonaGiftedAcademyWebsiteDemo,
+} from "@/components/demo/arizonagiftedacademy/lazyArizonaGiftedAcademyDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -67,9 +71,11 @@ export default function ScaledWebsiteDemoPreview({
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
   const isRootedMeadows = demoSlug === "rooted-meadows";
   const isPrestigeHomeschoolAcademy = demoSlug === "prestige-homeschool-academy";
+  const isArizonaGiftedAcademy = demoSlug === "arizona-gifted-academy";
 
   useEffect(() => {
-    if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyWebsiteDemo();
+    if (isArizonaGiftedAcademy) prefetchArizonaGiftedAcademyWebsiteDemo();
+    else if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyWebsiteDemo();
     else if (isRootedMeadows) prefetchRootedMeadowsWebsiteDemo();
     else if (isAscendMicroSchool) prefetchAscendMicroschoolWebsiteDemo();
     else if (isHomeworkHub) prefetchHomeworkHubWebsiteDemo();
@@ -79,7 +85,7 @@ export default function ScaledWebsiteDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsWebsiteDemo();
     else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -93,7 +99,9 @@ export default function ScaledWebsiteDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isPrestigeHomeschoolAcademy
+  const DemoComponent = isArizonaGiftedAcademy
+    ? LazyArizonaGiftedAcademyWebsiteDashboardDemo
+    : isPrestigeHomeschoolAcademy
     ? LazyPrestigeHomeschoolAcademyWebsiteDashboardDemo
     : isRootedMeadows
     ? LazyRootedMeadowsWebsiteDashboardDemo
