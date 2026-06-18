@@ -25,11 +25,46 @@ export const wonderhereLakelandConfig: SchoolWebsiteDemoConfig = {
       "Experience play-based, project-driven learning at WonderHere Lakeland — your one-stop shop for meaningful education on our ten-acre farm. Schoolhouse, homeschool programs, farm experiences, and summer camps.",
     primaryCta: "Schedule a Visit",
     secondaryCta: "Explore Programs",
+    secondaryCtaTarget: "signature",
     navCta: "Request Info",
     navLinks: ["Schoolhouse", "Homeschool", "Farm", "Summer Camps", "FAQ"],
     backgroundImage: "/images/stock/Homeschool.jpg",
     floatingImages: ["/images/stock/Homeschool2.jpg", "/images/stock/Homeschool3.jpg"],
     imageAlt: "Children learning outdoors on a farm",
+    tagline: "Wonder is for all.",
+  },
+  signatureSection: {
+    type: "farmExperience",
+    eyebrow: "Ten-Acre Farm Campus",
+    heading: "Your one-stop shop for meaningful learning",
+    subtitle:
+      "From drop-off schoolhouse to homeschool community to farm adventures and summer camps — all on our peaceful ten-acre property in Lakeland.",
+    paths: [
+      {
+        title: "Lakeland Schoolhouse",
+        desc: "Small private school with Family-Style™ multi-age classrooms and play-based, project-driven learning.",
+        icon: "bookOpen",
+        image: "/images/stock/Homeschool2.jpg",
+      },
+      {
+        title: "Homeschool Programs",
+        desc: "Friday School, Co-Op, and enrichment days for families who want community without full-time enrollment.",
+        icon: "users",
+        image: "/images/stock/Homeschool3.jpg",
+      },
+      {
+        title: "Farm Programs",
+        desc: "Animals, gardens, and open fields — nature-based learning on a safe, peaceful ten-acre farm.",
+        icon: "treePine",
+        image: "/images/stock/Homeschool.jpg",
+      },
+      {
+        title: "Summer Camps",
+        desc: "Theme weeks, water days, and screen-light free play that spark curiosity all summer long.",
+        icon: "sparkles",
+        image: "/images/stock/ImageFour.jpg",
+      },
+    ],
   },
   stats: [
     { value: "10 Acres", label: "Farm Property" },

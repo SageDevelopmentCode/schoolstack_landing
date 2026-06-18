@@ -122,6 +122,124 @@ export interface DemoTrustSection {
   items: DemoTrustItem[];
 }
 
+export interface DemoLearningMode {
+  label: string;
+  title: string;
+  desc: string;
+  icon: DemoIconName;
+}
+
+export interface DemoLearningModesSection {
+  type: "learningModes";
+  eyebrow: string;
+  heading: string;
+  subtitle?: string;
+  modes: DemoLearningMode[];
+  flexFriday?: { title: string; desc: string };
+}
+
+export interface DemoFruitOfSpirit {
+  name: string;
+  desc: string;
+}
+
+export interface DemoFruitsOfSpiritSection {
+  type: "fruitsOfSpirit";
+  eyebrow: string;
+  heading: string;
+  intro: string;
+  quote?: string;
+  fruits: DemoFruitOfSpirit[];
+}
+
+export interface DemoNatureArtJoyPillar {
+  label: string;
+  title: string;
+  desc: string;
+  icon: DemoIconName;
+}
+
+export interface DemoNatureArtJoySection {
+  type: "natureArtJoy";
+  eyebrow: string;
+  heading: string;
+  pillars: DemoNatureArtJoyPillar[];
+  trustLine?: string;
+}
+
+export interface DemoHybridDay {
+  label: string;
+  title: string;
+  desc: string;
+}
+
+export interface DemoHybridRhythmSection {
+  type: "hybridRhythm";
+  eyebrow: string;
+  heading: string;
+  subtitle: string;
+  tagline?: string;
+  campusDays: DemoHybridDay[];
+  homeDays: DemoHybridDay[];
+  serviceNote?: string;
+}
+
+export interface DemoValuePillar {
+  title: string;
+  desc: string;
+  icon: DemoIconName;
+}
+
+export interface DemoValuePillarsSection {
+  type: "valuePillars";
+  eyebrow: string;
+  heading: string;
+  tagline?: string;
+  pillars: DemoValuePillar[];
+}
+
+export interface DemoPhilosophyQuoteSection {
+  type: "philosophyQuote";
+  eyebrow: string;
+  heading: string;
+  quote: string;
+  attribution?: string;
+  body: string;
+  ctaLabel: string;
+}
+
+export interface DemoFarmPath {
+  title: string;
+  desc: string;
+  icon: DemoIconName;
+  image?: string;
+}
+
+export interface DemoFarmExperienceSection {
+  type: "farmExperience";
+  eyebrow: string;
+  heading: string;
+  subtitle: string;
+  paths: DemoFarmPath[];
+}
+
+export type DemoSignatureSection =
+  | DemoLearningModesSection
+  | DemoFruitsOfSpiritSection
+  | DemoNatureArtJoySection
+  | DemoHybridRhythmSection
+  | DemoValuePillarsSection
+  | DemoPhilosophyQuoteSection
+  | DemoFarmExperienceSection;
+
+export interface DemoSectionVisibility {
+  showMosaic?: boolean;
+  showStrip?: boolean;
+  showParallax?: boolean;
+  showFounder?: boolean;
+  showClosingCta?: boolean;
+}
+
 export interface SchoolWebsiteDemoConfig {
   slug: string;
   schoolName: string;
@@ -152,9 +270,14 @@ export interface SchoolWebsiteDemoConfig {
     backgroundImage: string;
     floatingImages: string[];
     imageAlt: string;
+    trustBadges?: string[];
+    tagline?: string;
+    secondaryCtaTarget?: "programs" | "signature" | "form";
   };
+  sections?: DemoSectionVisibility;
   stats: DemoStat[];
   welcome: DemoMissionSection | DemoParentFitSection;
+  signatureSection?: DemoSignatureSection;
   marquee: string[];
   programs: {
     eyebrow: string;
@@ -215,6 +338,7 @@ export interface SchoolWebsiteDemoConfig {
     successEmoji: string;
     successTitle: string;
     successMessage: string;
+    trustNote?: string;
     programOptions: DemoFormOption[];
     studentFields?: {
       namePlaceholder: string;

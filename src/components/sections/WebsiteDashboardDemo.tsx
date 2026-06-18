@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -25,6 +25,7 @@ import {
   Shield,
   Award,
   Sparkles,
+  Check,
 } from "lucide-react";
 import { defaultWebsiteDemoConfig } from "@/data/school-demos/default";
 import type {
@@ -33,6 +34,10 @@ import type {
   DemoTimelineStep,
   SchoolWebsiteDemoConfig,
 } from "@/data/school-demos/types";
+import SignatureSection from "@/components/sections/website-demo/SignatureSection";
+
+const STICKY_NAV_HEIGHT = 72;
+const NAV_SECTION_TARGETS = ["programs", "welcome", "form", "faq"] as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -229,8 +234,11 @@ export default function WebsiteDashboardDemo({
   const [marqueePaused, setMarqueePaused] = useState(false);
   const [activeProgram, setActiveProgram] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
+  const [showStickyNav, setShowStickyNav] = useState(false);
+  const [showFloatingCta, setShowFloatingCta] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const heroSectionRef = useRef<HTMLElement>(null);
   const formSectionRef = useRef<HTMLElement>(null);
   const statsRef = useRef(null);
   const statsInView = useInView(statsRef, { once: true, margin: "-80px" });
@@ -239,13 +247,31 @@ export default function WebsiteDashboardDemo({
   const activeProgramData = config.programs.items[activeProgram];
   const activeTimelineStep = timeline.steps[activeStep];
 
+  const sectionVisibility = {
+    showMosaic: config.sections?.showMosaic ?? true,
+    showStrip: config.sections?.showStrip ?? true,
+    showParallax: config.sections?.showParallax ?? true,
+    showFounder: config.sections?.showFounder ?? true,
+    showClosingCta: config.sections?.showClosingCta ?? true,
+  };
+
+  const scrollToSection = useCallback((sectionId: string, offset = STICKY_NAV_HEIGHT) => {
+    const container = scrollContainerRef.current;
+    const el = container?.querySelector<HTMLElement>(`#${sectionId}`);
+    if (!container || !el) return;
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const scrollTop = container.scrollTop + elRect.top - containerRect.top - offset;
+    container.scrollTo({ top: Math.max(0, scrollTop), behavior: "smooth" });
+  }, []);
+
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const scrollToForm = () => {
-    formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const scrollToForm = useCallback(() => {
+    scrollToSection("form", STICKY_NAV_HEIGHT);
+  }, [scrollToSection]);
 
   const handleDiscoveryCallClick = () => {
     if (onDiscoveryCallClick) {
@@ -255,11 +281,41 @@ export default function WebsiteDashboardDemo({
     }
   };
 
+  const handleSecondaryCtaClick = () => {
+    const target = hero.secondaryCtaTarget ?? (config.signatureSection ? "signature" : "programs");
+    scrollToSection(target);
+  };
+
+  const handleNavLinkClick = (index: number) => {
+    const target = NAV_SECTION_TARGETS[index] ?? "programs";
+    scrollToSection(target);
+  };
+
   useEffect(() => {
     if (!scrollRequest) return;
     if (scrollRequest.target === "top") scrollToTop();
     else scrollToForm();
-  }, [scrollRequest]);
+  }, [scrollRequest, scrollToForm]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const heroBottom = heroSectionRef.current?.offsetHeight ?? 600;
+      const formTop = formSectionRef.current?.offsetTop ?? Number.MAX_SAFE_INTEGER;
+      const scrollTop = container.scrollTop;
+
+      setShowStickyNav(scrollTop > heroBottom - STICKY_NAV_HEIGHT);
+      setShowFloatingCta(
+        scrollTop > heroBottom && scrollTop < formTop - container.clientHeight * 0.5,
+      );
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,8 +345,50 @@ export default function WebsiteDashboardDemo({
         </div>
       )}
 
+      <AnimatePresence>
+        {showStickyNav && (
+          <motion.header
+            initial={{ y: -80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -80, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="sticky top-0 z-40 flex items-center justify-between px-6 sm:px-10 py-3 border-b border-[var(--demo-light-border)] backdrop-blur-md"
+            style={{ backgroundColor: "color-mix(in srgb, var(--demo-page-bg) 92%, transparent)" }}
+          >
+            <button type="button" onClick={scrollToTop} className="cursor-pointer">
+              <Image
+                src={config.logo.src}
+                alt={config.logo.alt}
+                width={config.logo.width ?? 120}
+                height={config.logo.height ?? 32}
+                className="h-9 w-auto object-contain"
+              />
+            </button>
+            <nav className="hidden md:flex items-center gap-6">
+              {hero.navLinks.map((item, i) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => handleNavLinkClick(i)}
+                  className="text-[var(--demo-muted)] hover:text-[var(--demo-dark)] font-secondary text-sm font-semibold transition-colors duration-200 cursor-pointer"
+                >
+                  {item}
+                </button>
+              ))}
+            </nav>
+            <button
+              type="button"
+              onClick={handleDiscoveryCallClick}
+              className="px-4 py-2 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white text-sm font-semibold rounded-lg font-secondary transition-all duration-200 shadow-md cursor-pointer"
+            >
+              {hero.navCta}
+            </button>
+          </motion.header>
+        )}
+      </AnimatePresence>
+
       {/* ─── 1. HERO ───────────────────────────────────────────────────────── */}
-      <section className="relative flex h-[600px] flex-col overflow-hidden">
+      <section ref={heroSectionRef} className="relative flex h-[620px] flex-col overflow-hidden">
         <div className="absolute inset-0 scale-[1.05]">
           <Image
             src={hero.backgroundImage}
@@ -299,7 +397,7 @@ export default function WebsiteDashboardDemo({
             alt={hero.imageAlt}
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/25 to-black/75" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/30 to-black/80" />
         </div>
 
         {hero.floatingImages[0] && (
@@ -338,9 +436,11 @@ export default function WebsiteDashboardDemo({
             />
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            {hero.navLinks.map((item) => (
+            {hero.navLinks.map((item, i) => (
               <button
                 key={item}
+                type="button"
+                onClick={() => handleNavLinkClick(i)}
                 className="text-white/65 hover:text-white font-secondary text-sm font-semibold transition-colors duration-200 cursor-pointer"
               >
                 {item}
@@ -371,7 +471,7 @@ export default function WebsiteDashboardDemo({
           <motion.h1
             className={
               hero.headlineClassName ??
-              "text-4xl md:text-5xl font-bold text-white font-heading leading-[1.08] mb-6"
+              "text-4xl md:text-[3.25rem] font-bold text-white font-heading leading-[1.06] mb-5"
             }
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -392,8 +492,19 @@ export default function WebsiteDashboardDemo({
             ))}
           </motion.h1>
 
+          {hero.tagline && (
+            <motion.p
+              className="text-sm font-semibold text-[var(--demo-primary)] font-heading tracking-wide mb-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.65, duration: 0.6 }}
+            >
+              {hero.tagline}
+            </motion.p>
+          )}
+
           <motion.p
-            className="text-base md:text-lg text-white/70 font-secondary leading-relaxed mb-9 max-w-lg"
+            className="text-base md:text-lg text-white/70 font-secondary leading-relaxed mb-8 max-w-lg"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.75, duration: 0.7, ease: "easeOut" as const }}
@@ -415,10 +526,32 @@ export default function WebsiteDashboardDemo({
               {hero.primaryCta}
               <ArrowRight className="w-4 h-4" />
             </button>
-            <button className="px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg font-secondary transition-all duration-200 border border-white/25 backdrop-blur-sm cursor-pointer">
+            <button
+              type="button"
+              onClick={handleSecondaryCtaClick}
+              className="px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg font-secondary transition-all duration-200 border border-white/25 backdrop-blur-sm cursor-pointer"
+            >
               {hero.secondaryCta}
             </button>
           </motion.div>
+
+          {hero.trustBadges && hero.trustBadges.length > 0 && (
+            <motion.div
+              className="flex flex-wrap items-center gap-2 mt-8"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.05, duration: 0.6 }}
+            >
+              {hero.trustBadges.map((badge) => (
+                <span
+                  key={badge}
+                  className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/80 text-xs font-semibold font-secondary backdrop-blur-sm"
+                >
+                  {badge}
+                </span>
+              ))}
+            </motion.div>
+          )}
         </div>
 
         <motion.div
@@ -460,6 +593,7 @@ export default function WebsiteDashboardDemo({
 
       {/* ─── 3. WELCOME / PARENT FIT ──────────────────────────────────────── */}
       <section
+        id="welcome"
         className="py-24 px-8 sm:px-12 lg:px-16"
         style={{ backgroundColor: "var(--demo-dark)" }}
       >
@@ -574,8 +708,19 @@ export default function WebsiteDashboardDemo({
         </div>
       </section>
 
+      {config.signatureSection && (
+        <SignatureSection
+          section={config.signatureSection}
+          onCtaClick={handleDiscoveryCallClick}
+        />
+      )}
+
       {/* ─── 5. PROGRAMS ──────────────────────────────────────────────────── */}
-      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-page-bg)" }}>
+      <section
+        id="programs"
+        className="py-24 px-8 sm:px-12 lg:px-16"
+        style={{ backgroundColor: "var(--demo-page-bg)" }}
+      >
         <div className="max-w-7xl mx-auto">
           <motion.div
             className="mb-14"
@@ -664,7 +809,11 @@ export default function WebsiteDashboardDemo({
                     ))}
                   </div>
 
-                  <button className="px-8 py-3.5 bg-[var(--demo-dark)] hover:bg-[var(--demo-dark-hover)] text-white rounded-xl font-semibold font-secondary transition-colors duration-200 flex items-center gap-2 cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={handleDiscoveryCallClick}
+                    className="px-8 py-3.5 bg-[var(--demo-dark)] hover:bg-[var(--demo-dark-hover)] text-white rounded-xl font-semibold font-secondary transition-colors duration-200 flex items-center gap-2 cursor-pointer"
+                  >
                     {config.programs.ctaLabel}
                     <ArrowRight className="w-4 h-4" />
                   </button>
@@ -676,6 +825,7 @@ export default function WebsiteDashboardDemo({
       </section>
 
       {/* ─── 6. PHOTO MOSAIC ──────────────────────────────────────────────── */}
+      {sectionVisibility.showMosaic && (
       <section className="px-4 pb-4" style={{ backgroundColor: "var(--demo-page-bg)" }}>
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 grid-rows-2 gap-3 h-[280px] sm:h-[340px] md:h-[480px]">
           <motion.div
@@ -722,6 +872,7 @@ export default function WebsiteDashboardDemo({
           </motion.div>
         </div>
       </section>
+      )}
 
       {/* ─── 7. PHILOSOPHY QUOTE ──────────────────────────────────────────── */}
       <section className="relative py-28 px-8 overflow-hidden">
@@ -756,6 +907,7 @@ export default function WebsiteDashboardDemo({
       </section>
 
       {/* ─── 8. PHOTO STRIP ───────────────────────────────────────────────── */}
+      {sectionVisibility.showStrip && (
       <section className="bg-[var(--demo-light-bg)] py-10 overflow-hidden border-t border-[var(--demo-light-border)]">
         <style>{`
           @keyframes strip-scroll-website-demo {
@@ -782,9 +934,11 @@ export default function WebsiteDashboardDemo({
           ))}
         </div>
       </section>
+      )}
 
       {/* ─── 9. DAY IN LIFE ───────────────────────────────────────────────── */}
       <section
+        id="timeline"
         className="py-24 px-8 sm:px-12 lg:px-16"
         style={{ backgroundColor: "var(--demo-dark)" }}
       >
@@ -953,6 +1107,7 @@ export default function WebsiteDashboardDemo({
       </section>
 
       {/* ─── 11. FOUNDER ──────────────────────────────────────────────────── */}
+      {sectionVisibility.showFounder && (
       <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-page-bg)" }}>
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 lg:gap-24 items-center">
           <motion.div
@@ -1026,8 +1181,10 @@ export default function WebsiteDashboardDemo({
           </motion.div>
         </div>
       </section>
+      )}
 
       {/* ─── 12. FULL-BLEED BAND ──────────────────────────────────────────── */}
+      {sectionVisibility.showParallax && (
       <section className="relative min-h-[75vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 scale-[1.05]">
           <Image src={config.parallax.backgroundImage} fill className="object-cover" alt="" />
@@ -1067,12 +1224,17 @@ export default function WebsiteDashboardDemo({
               {config.parallax.primaryCta}
               <ArrowRight className="w-4 h-4" />
             </button>
-            <button className="px-8 py-4 bg-white/10 hover:bg-white/18 text-white font-semibold rounded-xl font-secondary transition-all duration-200 border border-white/25 cursor-pointer">
+            <button
+              type="button"
+              onClick={handleSecondaryCtaClick}
+              className="px-8 py-4 bg-white/10 hover:bg-white/18 text-white font-semibold rounded-xl font-secondary transition-all duration-200 border border-white/25 cursor-pointer"
+            >
               {config.parallax.secondaryCta}
             </button>
           </div>
         </motion.div>
       </section>
+      )}
 
       {/* ─── 13. PILLARS ──────────────────────────────────────────────────── */}
       <section className="bg-[var(--demo-light-bg)] py-24 px-8 sm:px-12 lg:px-16">
@@ -1119,8 +1281,9 @@ export default function WebsiteDashboardDemo({
 
       {/* ─── 14. ENROLLMENT FORM ──────────────────────────────────────────── */}
       <section
+        id="form"
         ref={formSectionRef}
-        className="py-0 overflow-hidden"
+        className="py-0 overflow-hidden scroll-mt-[72px]"
         style={{ backgroundColor: "var(--demo-dark)" }}
       >
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row">
@@ -1176,11 +1339,25 @@ export default function WebsiteDashboardDemo({
                   transition={{ duration: 0.4 }}
                   className="text-center py-10"
                 >
-                  <div className="text-5xl mb-5">{config.form.successEmoji}</div>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                    className="w-16 h-16 rounded-full bg-[color-mix(in_srgb,var(--demo-primary)_20%,transparent)] flex items-center justify-center mx-auto mb-5"
+                  >
+                    <Check className="w-8 h-8 text-[var(--demo-primary)]" />
+                  </motion.div>
                   <p className="text-white text-2xl font-heading font-bold mb-3">
                     {config.form.successTitle}
                   </p>
-                  <p className="text-white/50 font-secondary">{config.form.successMessage}</p>
+                  <p className="text-white/50 font-secondary mb-6">{config.form.successMessage}</p>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("programs")}
+                    className="text-sm text-[var(--demo-primary)] font-secondary font-semibold hover:underline cursor-pointer"
+                  >
+                    Explore our programs →
+                  </button>
                 </motion.div>
               ) : (
                 <motion.form
@@ -1259,6 +1436,11 @@ export default function WebsiteDashboardDemo({
                   >
                     {config.form.submitLabel}
                   </button>
+                  {config.form.trustNote && (
+                    <p className="text-center text-white/40 font-secondary text-xs">
+                      {config.form.trustNote}
+                    </p>
+                  )}
                   <p className="text-center text-white/25 font-secondary text-xs pt-1">
                     {config.form.disclaimer}
                   </p>
@@ -1270,7 +1452,11 @@ export default function WebsiteDashboardDemo({
       </section>
 
       {/* ─── 15. FAQ ──────────────────────────────────────────────────────── */}
-      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-page-bg)" }}>
+      <section
+        id="faq"
+        className="py-24 px-8 sm:px-12 lg:px-16 scroll-mt-[72px]"
+        style={{ backgroundColor: "var(--demo-page-bg)" }}
+      >
         <div className="max-w-3xl mx-auto">
           <motion.div
             className="mb-12"
@@ -1340,6 +1526,7 @@ export default function WebsiteDashboardDemo({
       </section>
 
       {/* ─── 15.5. CLOSING CTA ────────────────────────────────────────────── */}
+      {sectionVisibility.showClosingCta && (
       <section className="bg-[var(--demo-light-bg)] py-20 px-8 sm:px-12 lg:px-16 border-t border-[var(--demo-light-border)]">
         <motion.div
           className="max-w-2xl mx-auto text-center"
@@ -1369,12 +1556,17 @@ export default function WebsiteDashboardDemo({
               {config.closingCta.primaryCta}
               <ArrowRight className="w-4 h-4" />
             </button>
-            <button className="px-8 py-3.5 border border-[var(--demo-light-border)] text-[var(--demo-accent-text)] hover:bg-[var(--demo-light-bg)] font-semibold rounded-lg font-secondary transition-all duration-200 cursor-pointer">
+            <button
+              type="button"
+              onClick={handleSecondaryCtaClick}
+              className="px-8 py-3.5 border border-[var(--demo-light-border)] text-[var(--demo-accent-text)] hover:bg-[var(--demo-light-bg)] font-semibold rounded-lg font-secondary transition-all duration-200 cursor-pointer"
+            >
               {config.closingCta.secondaryCta}
             </button>
           </div>
         </motion.div>
       </section>
+      )}
 
       {/* ─── 16. FOOTER ───────────────────────────────────────────────────── */}
       <footer className="py-16 px-8 text-white" style={{ backgroundColor: "var(--demo-dark)" }}>
@@ -1395,9 +1587,11 @@ export default function WebsiteDashboardDemo({
           <div className="w-14 h-px bg-white/10 mx-auto mb-8" />
 
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-8">
-            {config.footer.links.map((link) => (
+            {config.footer.links.map((link, i) => (
               <button
                 key={link}
+                type="button"
+                onClick={() => handleNavLinkClick(i)}
                 className="text-white/40 hover:text-white font-secondary text-sm transition-colors duration-200 cursor-pointer"
               >
                 {link}
@@ -1419,6 +1613,27 @@ export default function WebsiteDashboardDemo({
           </p>
         </div>
       </footer>
+
+      <AnimatePresence>
+        {showFloatingCta && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed bottom-0 left-0 right-0 z-50 p-4 md:hidden border-t border-[var(--demo-light-border)] backdrop-blur-md"
+            style={{ backgroundColor: "color-mix(in srgb, var(--demo-page-bg) 95%, transparent)" }}
+          >
+            <button
+              type="button"
+              onClick={handleDiscoveryCallClick}
+              className="w-full py-3.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-xl font-secondary shadow-lg cursor-pointer"
+            >
+              {hero.primaryCta}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -25,11 +25,42 @@ export const zoeLearningHouseConfig: SchoolWebsiteDemoConfig = {
       "Zoe Learning House is a holistic Christian K–5 academy in Greater New Orleans — where hands-on, creative, outdoor learning meets flexible 1–5 day options and a small community that partners with families.",
     primaryCta: "Submit Interest Form",
     secondaryCta: "Learn how Zoe works",
+    secondaryCtaTarget: "signature",
     navCta: "Submit Interest Form",
     navLinks: ["About", "Programs", "Families Say", "Contact"],
     backgroundImage: "/images/stock/Homeschool.jpg",
     floatingImages: ["/images/stock/Homeschool2.jpg", "/images/stock/ImageFour.jpg"],
     imageAlt: "Children learning outdoors in a warm, nature-rich environment",
+    trustBadges: ["VELA Member", "National Microschooling Center"],
+  },
+  sections: {
+    showStrip: false,
+  },
+  signatureSection: {
+    type: "natureArtJoy",
+    eyebrow: "Our Approach",
+    heading: "Nature · Art · Joy",
+    pillars: [
+      {
+        label: "Nature",
+        title: "Outdoor Learning Every Day",
+        desc: "Regular outdoor play, gardens, and field time woven into the rhythm of the day — not saved for recess.",
+        icon: "treePine",
+      },
+      {
+        label: "Art",
+        title: "Creative, Hands-On Expression",
+        desc: "Art-rich, project-based instruction that inspires curiosity and deep understanding through making and creating.",
+        icon: "palette",
+      },
+      {
+        label: "Joy",
+        title: "A Love for Learning That Lasts",
+        desc: "A child's love for learning shouldn't fade — at Zoe, joy and wonder are at the heart of every day.",
+        icon: "heart",
+      },
+    ],
+    trustLine: "Proud member of VELA & National Microschooling Center.",
   },
   stats: [
     { value: "Grades K–5", label: "Kindergarten through 5th" },

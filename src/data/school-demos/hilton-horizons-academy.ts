@@ -25,11 +25,37 @@ export const hiltonHorizonsAcademyConfig: SchoolWebsiteDemoConfig = {
       "Hilton Horizons Academy offers project-based, holistic learning across an accredited Category III private school and flexible hybrid microschools — tailored to your child's unique journey.",
     primaryCta: "Schedule a Tour",
     secondaryCta: "Explore Programs",
+    secondaryCtaTarget: "signature",
     navCta: "Schedule a Tour",
     navLinks: ["Programs", "About", "Contact", "Apply"],
     backgroundImage: "/images/stock/ImageTwo.jpg",
     floatingImages: ["/images/stock/ImageSeven.jpg", "/images/stock/ImageSix.jpg"],
     imageAlt: "Students engaged in hands-on outdoor learning",
+    tagline: "Rise With Us.",
+    trustBadges: ["Category III Accredited", "Hybrid Microschools", "K–12"],
+  },
+  signatureSection: {
+    type: "valuePillars",
+    eyebrow: "Why Hilton Horizons?",
+    heading: "Why families choose Hilton Horizons Academy",
+    tagline: "Rise With Us.",
+    pillars: [
+      {
+        title: "Individualized Instruction",
+        desc: "Small groups and 1:1 coaching let students progress at their own pace with targeted support and peer collaboration.",
+        icon: "users",
+      },
+      {
+        title: "Hands-On, Project-Based Learning",
+        desc: "STEM, creative arts, gardening, and real-world problem solving in a supportive, experiential community.",
+        icon: "sprout",
+      },
+      {
+        title: "Whole-Child Development",
+        desc: "Social-emotional skills, empathy, and resilience nurtured alongside academic learning for lasting success.",
+        icon: "heart",
+      },
+    ],
   },
   stats: [
     { value: "Grades K–12", label: "Private School & Microschools" },

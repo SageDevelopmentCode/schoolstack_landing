@@ -29,11 +29,52 @@ export const athenaMicroacademyConfig: SchoolWebsiteDemoConfig = {
       "Athena Micro-academy of Austin is a relationship-centered microschool for grades 6–12, designed for students who thrive with personalized learning, close community, and room to grow.",
     primaryCta: "Schedule a Discovery Call",
     secondaryCta: "Explore the Program",
+    secondaryCtaTarget: "signature",
     navCta: "Schedule a Call",
     navLinks: ["Program", "Our Story", "Admissions", "FAQ"],
     backgroundImage: "/images/stock/ImageTwo.jpg",
     floatingImages: ["/images/stock/ImageSeven.jpg", "/images/stock/ImageSix.jpg"],
     imageAlt: "Students learning in a small group setting",
+    trustBadges: ["Accredited", "TEFA Approved", "KaiPod Catalyst"],
+  },
+  sections: {
+    showMosaic: false,
+  },
+  signatureSection: {
+    type: "learningModes",
+    eyebrow: "How the Day Works",
+    heading: "Four modes. One intentional rhythm.",
+    subtitle: "Every day is designed for focus, growth, and belonging — not one-size-fits-all scheduling.",
+    modes: [
+      {
+        label: "Morning",
+        title: "Activation Mode",
+        desc: "Students organize, set goals, and build community — starting each day with intention.",
+        icon: "compass",
+      },
+      {
+        label: "Core Hours",
+        title: "Learning Mode",
+        desc: "Core academics at each student's pace with daily coaching and guidance.",
+        icon: "bookOpen",
+      },
+      {
+        label: "Afternoon",
+        title: "Skill Building Mode",
+        desc: "Voces Spanish and Athena's Council for life and leadership skills.",
+        icon: "graduationCap",
+      },
+      {
+        label: "Flex Time",
+        title: "Flex Mode",
+        desc: "Passion projects, independent study, reading, and personal initiatives.",
+        icon: "sparkles",
+      },
+    ],
+    flexFriday: {
+      title: "Flex Friday",
+      desc: "Austin-area experiences, community service, excursions, and deeper academic progress — every Friday.",
+    },
   },
   stats: [
     { value: "Grades 6–12", label: "Middle & High School" },

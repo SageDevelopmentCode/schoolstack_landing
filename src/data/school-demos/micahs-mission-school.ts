@@ -29,11 +29,31 @@ export const micahsMissionSchoolConfig: SchoolWebsiteDemoConfig = {
       "Micah's Mission School, Inc. is a Hybrid Learning and Resource Center providing hope for the whole child — serving educationally at-risk K–12 students with and without disabilities through project-based learning, daily living skills, pre-work training, and character development.",
     primaryCta: "Request Information",
     secondaryCta: "Step Out of the Boat",
+    secondaryCtaTarget: "signature",
     navCta: "Request Information",
     navLinks: ["About", "Programs", "Enrollment", "Contact"],
     backgroundImage: "/images/stock/Homeschool.jpg",
     floatingImages: ["/images/stock/Homeschool2.jpg", "/images/stock/ImageSix.jpg"],
     imageAlt: "Students learning in a warm, supportive small-group setting",
+  },
+  signatureSection: {
+    type: "fruitsOfSpirit",
+    eyebrow: "Daily Foundation",
+    heading: "To be better today than we were yesterday…",
+    intro:
+      "Each day begins with reflection — choosing a word for the day and a scripture or quote to build a foundation of faith. Students grow in character through the Fruits of the Spirit.",
+    quote: "But the fruit of the Spirit is love, joy, peace, patience, kindness, goodness, faithfulness, gentleness, self-control.",
+    fruits: [
+      { name: "Love", desc: "Caring for others as the hands and feet of Jesus." },
+      { name: "Joy", desc: "Finding hope and celebration in daily learning." },
+      { name: "Peace", desc: "A calm, judgment-free environment to heal and grow." },
+      { name: "Patience", desc: "Learning at each student's individual pace." },
+      { name: "Kindness", desc: "Compassionate support for every child." },
+      { name: "Goodness", desc: "Character development woven into academics." },
+      { name: "Faithfulness", desc: "Rooted in Micah 6:8 and daily devotion." },
+      { name: "Gentleness", desc: "A safe haven for brokenhearted students." },
+      { name: "Self-Control", desc: "Building integrity, motivation, and courage." },
+    ],
   },
   stats: [
     { value: "Grades K–12", label: "Hybrid & Microschool" },
@@ -259,6 +279,7 @@ export const micahsMissionSchoolConfig: SchoolWebsiteDemoConfig = {
     submitLabel: "Request Information",
     disclaimer:
       "We'll respond from info@micahsmissionschool.org within a few business days.",
+    trustNote: "Every inquiry is handled with compassion and confidentiality — we'll help you find the right path for your child.",
     successEmoji: "✓",
     successTitle: "Request received!",
     successMessage:

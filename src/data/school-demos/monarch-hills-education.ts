@@ -25,11 +25,27 @@ export const monarchHillsEducationConfig: SchoolWebsiteDemoConfig = {
       "Monarch Hills Education is a nature-based alternative program for grades TK–6 — where your child learns through hands-on exploration, time outdoors, and meaningful community with peers and caring adults.",
     primaryCta: "Learn About Our Program",
     secondaryCta: "Join Our Interest List",
+    secondaryCtaTarget: "form",
     navCta: "Request Info",
     navLinks: ["Program", "Philosophy", "Enrollment", "FAQ"],
     backgroundImage: "/images/stock/Homeschool.jpg",
     floatingImages: ["/images/stock/Homeschool2.jpg", "/images/stock/ImageFour.jpg"],
     imageAlt: "Children exploring and learning outdoors in nature",
+  },
+  sections: {
+    showParallax: false,
+    showClosingCta: false,
+  },
+  signatureSection: {
+    type: "philosophyQuote",
+    eyebrow: "Our Philosophy",
+    heading: "Every child develops at their own pace.",
+    quote:
+      "A school needs to be a place for all children — not based on the idea that they are the same, but that they are all different.",
+    attribution: "Inspired by the Reggio Emilia approach",
+    body:
+      "Monarch Hills honors each child's learning style, developmental timeline, and interests. Children learn through hands-on exploration in nature-rich environments — where adults act as skilled facilitators, not directors.",
+    ctaLabel: "Join Our Interest List",
   },
   stats: [
     { value: "Grades TK–6", label: "Transitional Kinder through 6th" },

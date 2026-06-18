@@ -25,11 +25,47 @@ export const ascendMicroSchoolConfig: SchoolWebsiteDemoConfig = {
       "Ascend Micro School is a faith-based K–8 hybrid school in northern Colorado Springs that partners with families to provide engaging, learner-driven education rooted in compassion for our local community.",
     primaryCta: "Schedule a Tour",
     secondaryCta: "Learn About Our Mission",
+    secondaryCtaTarget: "signature",
     navCta: "Contact Us",
     navLinks: ["Mission", "Why Hybrid", "Our Story", "FAQ"],
     backgroundImage: "/images/stock/ImageTwo.jpg",
     floatingImages: ["/images/stock/ImageSeven.jpg", "/images/stock/ImageSix.jpg"],
     imageAlt: "Students learning in a small mixed-age group",
+    tagline: "Growing Minds, Giving Hearts.",
+  },
+  signatureSection: {
+    type: "hybridRhythm",
+    eyebrow: "The Hybrid Model",
+    heading: "Two days on campus. Five days of learning.",
+    subtitle:
+      "Ascend partners with families to combine collaborative on-campus instruction with flexible homeschool days — highly individualized, deeply relational.",
+    tagline: "Growing Minds, Giving Hearts.",
+    campusDays: [
+      {
+        label: "Tuesdays & Thursdays",
+        title: "Collaborative Campus Days",
+        desc: "Writing, literature, science, social studies, art, music, and Explorations in small mixed-age cohorts with an 8:1 student-to-instructor ratio.",
+      },
+      {
+        label: "8:45 AM – 3:00 PM",
+        title: "Learner-Driven Instruction",
+        desc: "Mastery-based learning with place-based projects, service opportunities, and learning guides who know each child well.",
+      },
+    ],
+    homeDays: [
+      {
+        label: "Mon · Wed · Fri · Weekends",
+        title: "Homeschool Days at Home",
+        desc: "Families homeschool on off-days with curriculum consulting, MasteryTrack, Google Classroom, and optional Wednesday math tutoring.",
+      },
+      {
+        label: "Year-Round Support",
+        title: "Curriculum & Consulting",
+        desc: "Personalized educational plans, curriculum selection, and independent instruction available beyond campus days.",
+      },
+    ],
+    serviceNote:
+      "Students use their skills to serve the Pikes Peak community — from local partnerships to meaningful service learning projects.",
   },
   stats: [
     { value: "Grades K–8", label: "Elementary & Middle" },
@@ -268,6 +304,7 @@ export const ascendMicroSchoolConfig: SchoolWebsiteDemoConfig = {
       "Tell us about your family and we'll be in touch soon to discuss whether Ascend is the right fit. No commitment required.",
     submitLabel: "Submit Inquiry",
     disclaimer: "We'll respond within a few business days. Email hello@ascendmicroschool.com with any questions.",
+    trustNote: "No spam. Just a personal reply from our team within a few business days.",
     successEmoji: "✓",
     successTitle: "Inquiry received!",
     successMessage:
