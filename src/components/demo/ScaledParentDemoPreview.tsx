@@ -43,6 +43,10 @@ import {
   prefetchPrestigeHomeschoolAcademyParentDemo,
 } from "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos";
 import {
+  LazySpringRiverSchoolParentDashboardDemo,
+  prefetchSpringRiverSchoolParentDemo,
+} from "@/components/demo/springriverschool/lazySpringRiverSchoolDemos";
+import {
   LazyArizonaGiftedAcademyParentDashboardDemo,
   prefetchArizonaGiftedAcademyParentDemo,
 } from "@/components/demo/arizonagiftedacademy/lazyArizonaGiftedAcademyDemos";
@@ -68,10 +72,12 @@ export default function ScaledParentDemoPreview({
   const isAscendMicroSchool = demoSlug === "ascend-micro-school";
   const isRootedMeadows = demoSlug === "rooted-meadows";
   const isPrestigeHomeschoolAcademy = demoSlug === "prestige-homeschool-academy";
+  const isSpringRiverSchool = demoSlug === "spring-river-school";
   const isArizonaGiftedAcademy = demoSlug === "arizona-gifted-academy";
 
   useEffect(() => {
-    if (isArizonaGiftedAcademy) prefetchArizonaGiftedAcademyParentDemo();
+    if (isSpringRiverSchool) prefetchSpringRiverSchoolParentDemo();
+    else if (isArizonaGiftedAcademy) prefetchArizonaGiftedAcademyParentDemo();
     else if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyParentDemo();
     else if (isRootedMeadows) prefetchRootedMeadowsParentDemo();
     else if (isAscendMicroSchool) prefetchAscendMicroschoolParentDemo();
@@ -82,7 +88,7 @@ export default function ScaledParentDemoPreview({
     else if (isMonarchHills) prefetchMonarchHillsParentDemo();
     else if (isWonderHere) prefetchWonderHereParentDemo();
     else prefetchAthenaParentDemo();
-  }, [isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -96,7 +102,9 @@ export default function ScaledParentDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isArizonaGiftedAcademy
+  const DemoComponent = isSpringRiverSchool
+    ? LazySpringRiverSchoolParentDashboardDemo
+    : isArizonaGiftedAcademy
     ? LazyArizonaGiftedAcademyParentDashboardDemo
     : isPrestigeHomeschoolAcademy
     ? LazyPrestigeHomeschoolAcademyParentDashboardDemo
