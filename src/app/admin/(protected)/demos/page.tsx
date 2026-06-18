@@ -22,6 +22,8 @@ export default function AdminDemosPage() {
               <Link
                 key={demo.slug}
                 href={demo.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group flex flex-col rounded-xl border border-border bg-surface overflow-hidden transition-all duration-150 hover:border-clay/40 hover:shadow-sm"
               >
                 <div
