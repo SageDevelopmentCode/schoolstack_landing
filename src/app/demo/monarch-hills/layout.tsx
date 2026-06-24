@@ -20,7 +20,7 @@ export const metadata: Metadata = pageMetadata({
   title: "Monarch Hills Education Website Demo",
   description:
     "A concept admissions landing page for Monarch Hills Education — outdoor enrichment and alternative education for grades TK–6 in San Luis Obispo, California.",
-  path: "/demo/monarch-hills-education",
+  path: "/demo/monarch-hills",
   noIndex: true,
 });
 
