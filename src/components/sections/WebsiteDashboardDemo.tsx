@@ -27,6 +27,7 @@ import {
   Sparkles,
   Check,
 } from "lucide-react";
+import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { defaultWebsiteDemoConfig } from "@/data/school-demos/default";
 import type {
   DemoIconName,
@@ -356,11 +357,8 @@ export default function WebsiteDashboardDemo({
             style={{ backgroundColor: "color-mix(in srgb, var(--demo-page-bg) 92%, transparent)" }}
           >
             <button type="button" onClick={scrollToTop} className="cursor-pointer">
-              <Image
-                src={config.logo.src}
-                alt={config.logo.alt}
-                width={config.logo.width ?? 120}
-                height={config.logo.height ?? 32}
+              <SchoolDemoWordmark
+                logo={config.logo}
                 className="h-9 w-auto object-contain"
               />
             </button>
@@ -427,11 +425,9 @@ export default function WebsiteDashboardDemo({
 
         <div className="relative z-20 flex shrink-0 items-center justify-between px-8 sm:px-12 pt-7">
           <div className="flex items-center gap-2">
-            <Image
-              src={config.logo.src}
-              alt={config.logo.alt}
-              width={config.logo.width ?? 120}
-              height={config.logo.height ?? 32}
+            <SchoolDemoWordmark
+              logo={config.logo}
+              onDark
               className={`h-12 w-auto object-contain${config.logo.logoOnDarkClassName ? ` ${config.logo.logoOnDarkClassName}` : ""}`}
             />
           </div>
@@ -1573,11 +1569,9 @@ export default function WebsiteDashboardDemo({
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <Image
-                src={config.logo.src}
-                alt={config.logo.alt}
-                width={config.logo.width ?? 140}
-                height={config.logo.height ?? 36}
+              <SchoolDemoWordmark
+                logo={config.logo}
+                onDark
                 className="h-11 w-auto object-contain"
               />
             </div>

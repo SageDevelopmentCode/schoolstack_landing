@@ -1,8 +1,10 @@
 "use client";
 
 import { Check, Mail, Phone } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useState } from "react";
+import SchoolDemoWordmark, {
+  type SchoolDemoLogo,
+} from "@/components/demo/SchoolDemoWordmark";
 import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
 import { mudkitchenDemoContact } from "@/data/school-demos/mudkitchen-demo-contact";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
@@ -15,7 +17,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 interface Props {
   schoolSlug: string;
   schoolName: string;
-  logo: { src: string; alt: string; width?: number; height?: number };
+  logo: SchoolDemoLogo;
 }
 
 export default function DemoContactPanel({ schoolSlug, schoolName, logo }: Props) {
@@ -110,12 +112,9 @@ export default function DemoContactPanel({ schoolSlug, schoolName, logo }: Props
     <div className="h-full overflow-y-auto bg-[#F7F1E7]">
       <div className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:px-10 sm:py-12">
         <div className="mb-6 flex items-center gap-3">
-          <Image
-            src={logo.src}
-            alt={logo.alt}
-            width={logo.width ?? 48}
-            height={logo.height ?? 40}
-            className="h-10 w-auto object-contain"
+          <SchoolDemoWordmark
+            logo={logo}
+            className="h-10 w-auto object-contain shrink-0"
           />
           <h2 className="font-display text-xl font-semibold text-[#2E4A3C] sm:text-2xl">
             {heading}

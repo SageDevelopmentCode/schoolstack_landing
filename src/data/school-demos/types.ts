@@ -249,6 +249,9 @@ export interface SchoolWebsiteDemoConfig {
     alt: string;
     width?: number;
     height?: number;
+    /** When set, renders a text wordmark instead of an image. */
+    text?: string;
+    textClassName?: string;
     /** Optional class for the nav logo on the dark hero (e.g. brightness-0 invert). */
     logoOnDarkClassName?: string;
   };

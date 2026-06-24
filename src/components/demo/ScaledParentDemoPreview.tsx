@@ -7,6 +7,10 @@ import {
   prefetchAthenaParentDemo,
 } from "@/components/demo/athena/lazyAthenaDemos";
 import {
+  LazyWonderingOaksLearningParentDashboardDemo,
+  prefetchWonderingOaksLearningParentDemo,
+} from "@/components/demo/wonderingoakslearning/lazyWonderingOaksLearningDemos";
+import {
   LazyWonderHereParentDashboardDemo,
   prefetchWonderHereParentDemo,
 } from "@/components/demo/wonderhere/lazyWonderHereDemos";
@@ -66,6 +70,7 @@ export default function ScaledParentDemoPreview({
   const isHiltonHorizons = demoSlug === "hilton-horizons-academy";
   const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
+  const isWonderingOaks = demoSlug === "wondering-oaks-learning";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
   const isMicahMissionSchool = demoSlug === "micahs-mission-school";
   const isHomeworkHub = demoSlug === "homework-hub";
@@ -86,9 +91,10 @@ export default function ScaledParentDemoPreview({
     else if (isHiltonHorizons) prefetchHiltonHorizonParentDemo();
     else if (isZoeLearningHouse) prefetchZoeLearningHouseParentDemo();
     else if (isMonarchHills) prefetchMonarchHillsParentDemo();
+    else if (isWonderingOaks) prefetchWonderingOaksLearningParentDemo();
     else if (isWonderHere) prefetchWonderHereParentDemo();
     else prefetchAthenaParentDemo();
-  }, [isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -122,6 +128,8 @@ export default function ScaledParentDemoPreview({
     ? LazyZoeLearningHouseParentDashboardDemo
     : isMonarchHills
       ? LazyMonarchHillsParentDashboardDemo
+      : isWonderingOaks
+        ? LazyWonderingOaksLearningParentDashboardDemo
       : isWonderHere
         ? LazyWonderHereParentDashboardDemo
         : LazyAthenaParentDashboardDemo;

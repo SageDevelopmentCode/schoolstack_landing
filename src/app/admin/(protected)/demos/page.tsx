@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { listSchoolDemos } from "@/data/school-demos";
 
 export default function AdminDemosPage() {
@@ -32,11 +33,8 @@ export default function AdminDemosPage() {
                 />
                 <div className="flex flex-col flex-1 p-5 gap-4">
                   <div className="h-10 flex items-center">
-                    <img
-                      src={demo.logo.src}
-                      alt={demo.logo.alt}
-                      width={demo.logo.width}
-                      height={demo.logo.height}
+                    <SchoolDemoWordmark
+                      logo={demo.logo}
                       className="max-h-10 w-auto object-contain"
                     />
                   </div>

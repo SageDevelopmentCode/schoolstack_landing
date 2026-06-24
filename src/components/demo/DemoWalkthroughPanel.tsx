@@ -3,6 +3,9 @@
 import { CalendarDays, ClipboardCheck, ClipboardList, CreditCard, GitBranch, Globe, LayoutDashboard, Link2, MessageCircle, MousePointerClick } from "lucide-react";
 import Image from "next/image";
 import type { ComponentType, CSSProperties } from "react";
+import SchoolDemoWordmark, {
+  type SchoolDemoLogo,
+} from "@/components/demo/SchoolDemoWordmark";
 import type {
   DemoWalkthroughIcon,
   DemoWalkthroughStep,
@@ -22,7 +25,7 @@ const STEP_ICONS: Record<DemoWalkthroughIcon, ComponentType<{ className?: string
 
 interface Props {
   schoolName: string;
-  schoolLogo: { src: string; alt: string; width?: number; height?: number };
+  schoolLogo: SchoolDemoLogo;
   steps: DemoWalkthroughStep[];
   activeStep?: number;
   onStepSelect: (index: number) => void;
@@ -67,12 +70,9 @@ export default function DemoWalkthroughPanel({
           </div>
           <div className="w-px shrink-0 self-stretch bg-gray-200" aria-hidden />
           <div className="flex min-w-0 flex-1 items-center justify-center">
-            <Image
-              src={schoolLogo.src}
-              alt={schoolLogo.alt}
-              width={schoolLogo.width ?? 140}
-              height={schoolLogo.height ?? 40}
-              className="h-10 w-auto max-w-[180px] object-contain"
+            <SchoolDemoWordmark
+              logo={schoolLogo}
+              className="h-10 w-auto max-w-[180px] object-contain text-center"
             />
           </div>
         </div>

@@ -7,6 +7,10 @@ import {
   prefetchAthenaWebsiteDemo,
 } from "@/components/demo/athena/lazyAthenaDemos";
 import {
+  LazyWonderingOaksLearningWebsiteDashboardDemo,
+  prefetchWonderingOaksLearningWebsiteDemo,
+} from "@/components/demo/wonderingoakslearning/lazyWonderingOaksLearningDemos";
+import {
   LazyWonderHereWebsiteDashboardDemo,
   prefetchWonderHereWebsiteDemo,
 } from "@/components/demo/wonderhere/lazyWonderHereDemos";
@@ -69,6 +73,7 @@ export default function ScaledWebsiteDemoPreview({
   const isHiltonHorizons = demoSlug === "hilton-horizons-academy";
   const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
+  const isWonderingOaks = demoSlug === "wondering-oaks-learning";
   const isWonderHere = demoSlug === "wonderhere-lakeland";
   const isMicahMissionSchool = demoSlug === "micahs-mission-school";
   const isHomeworkHub = demoSlug === "homework-hub";
@@ -89,9 +94,10 @@ export default function ScaledWebsiteDemoPreview({
     else if (isHiltonHorizons) prefetchHiltonHorizonWebsiteDemo();
     else if (isZoeLearningHouse) prefetchZoeLearningHouseWebsiteDemo();
     else if (isMonarchHills) prefetchMonarchHillsWebsiteDemo();
+    else if (isWonderingOaks) prefetchWonderingOaksLearningWebsiteDemo();
     else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderHere]);
+  }, [isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -125,6 +131,8 @@ export default function ScaledWebsiteDemoPreview({
     ? LazyZoeLearningHouseWebsiteDashboardDemo
     : isMonarchHills
       ? LazyMonarchHillsWebsiteDashboardDemo
+      : isWonderingOaks
+        ? LazyWonderingOaksLearningWebsiteDashboardDemo
       : isWonderHere
         ? LazyWonderHereWebsiteDashboardDemo
         : LazyAthenaWebsiteDashboardDemo;
