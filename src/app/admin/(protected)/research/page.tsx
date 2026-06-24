@@ -71,13 +71,6 @@ const P_LABEL: Record<number, string> = {
   5: "Hot Lead", 4: "Strong Fit", 3: "Moderate", 2: "Low", 1: "Closing",
 };
 
-function statePillClass(state: string, active: boolean): string {
-  if (!active) return "bg-gray-100 text-gray-400 hover:bg-gray-200";
-  if (state === "TX") return "bg-sky-100 text-sky-700";
-  if (state === "CA") return "bg-violet-100 text-violet-700";
-  return "bg-gray-200 text-gray-700";
-}
-
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
 function hostname(url: string) {
@@ -976,9 +969,6 @@ export default function ResearchPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CrmStatus | "">("");
-  const [priorityFilter, setPriorityFilter] = useState<number | 0>(0);
-  const [stateFilter, setStateFilter] = useState("");
-  const [showClosing, setShowClosing] = useState(false);
   const [showAddSidebar, setShowAddSidebar] = useState(false);
 
   // Load schools
@@ -1022,19 +1012,12 @@ export default function ResearchPage() {
     setSelectedId(school.id);
   }, []);
 
-  const availableStates = useMemo(() => {
-    const states = [...new Set(schools.map((s) => s.state))];
-    return states.sort((a, b) => a.localeCompare(b));
-  }, [schools]);
-
   // Filter list
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return schools.filter((s) => {
-      if (!showClosing && s.is_closing) return false;
+      if (s.is_closing) return false;
       if (statusFilter && s.crm_status !== statusFilter) return false;
-      if (priorityFilter && s.priority_score !== priorityFilter) return false;
-      if (stateFilter && s.state !== stateFilter) return false;
       if (q && !(
         s.name.toLowerCase().includes(q) ||
         s.location.toLowerCase().includes(q) ||
@@ -1043,7 +1026,7 @@ export default function ResearchPage() {
       )) return false;
       return true;
     });
-  }, [schools, search, statusFilter, priorityFilter, stateFilter, showClosing]);
+  }, [schools, search, statusFilter]);
 
   const selectedSchool = useMemo(
     () => schools.find((s) => s.id === selectedId) ?? null,
@@ -1120,57 +1103,14 @@ export default function ResearchPage() {
               />
             </div>
 
-            {/* Filter row */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {/* Priority */}
-              {[5, 4, 3].map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPriorityFilter(priorityFilter === p ? 0 : p)}
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all ${
-                    priorityFilter === p ? P_PILL[p] : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                  }`}
-                >
-                  P{p}
-                </button>
-              ))}
-              {/* State */}
-              {availableStates.map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setStateFilter(stateFilter === st ? "" : st)}
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all ${statePillClass(st, stateFilter === st)}`}
-                >
-                  {st}
-                </button>
-              ))}
-              {/* Closing */}
-              <button
-                onClick={() => setShowClosing(!showClosing)}
-                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all ${
-                  showClosing ? "bg-red-100 text-red-500" : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                }`}
-              >
-                Closing
-              </button>
-              {(search || statusFilter || priorityFilter || stateFilter) && (
-                <button
-                  onClick={() => { setSearch(""); setStatusFilter(""); setPriorityFilter(0); setStateFilter(""); }}
-                  className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors ml-auto"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
             <p className="text-[10px] text-gray-300">{filtered.length} of {schools.length} schools</p>
           </div>
 
           {/* Status filter tabs */}
-          <div className="shrink-0 flex overflow-x-auto border-b border-gray-100 px-3 gap-0 scrollbar-hide">
+          <div className="shrink-0 flex flex-wrap border-b border-gray-100 px-3 py-1 gap-x-4 gap-y-1">
             <button
               onClick={() => setStatusFilter("")}
-              className={`shrink-0 text-[11px] font-medium py-2 mr-4 border-b-2 transition-all ${
+              className={`text-[11px] font-medium py-2 border-b-2 transition-all ${
                 statusFilter === "" ? "border-clay text-clay" : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
@@ -1180,7 +1120,7 @@ export default function ResearchPage() {
               <button
                 key={s}
                 onClick={() => setStatusFilter(statusFilter === s ? "" : s)}
-                className={`shrink-0 text-[11px] font-medium py-2 mr-4 border-b-2 transition-all flex items-center gap-1 ${
+                className={`text-[11px] font-medium py-2 border-b-2 transition-all flex items-center gap-1 ${
                   statusFilter === s ? "border-clay text-clay" : "border-transparent text-gray-400 hover:text-gray-600"
                 }`}
               >
