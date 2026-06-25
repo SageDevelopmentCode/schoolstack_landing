@@ -2,6 +2,8 @@ export type { SchoolWebsiteDemoConfig } from "./types";
 export { defaultWebsiteDemoConfig } from "./default";
 export { athenaMicroacademyConfig } from "./athena-microacademy";
 export { wonderingOaksLearningConfig } from "./wondering-oaks-learning";
+export { wildHeartsAdventureConfig } from "./wild-hearts-adventure";
+export { naturesSchoolhouseConfig } from "./natures-schoolhouse";
 export { wonderhereLakelandConfig } from "./wonderhere-lakeland";
 export { monarchHillsEducationConfig } from "./monarch-hills-education";
 export { zoeLearningHouseConfig } from "./zoe-learning-house";
@@ -17,6 +19,8 @@ export { springRiverSchoolConfig } from "./spring-river-school";
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
 import { wonderingOaksLearningConfig } from "./wondering-oaks-learning";
+import { wildHeartsAdventureConfig } from "./wild-hearts-adventure";
+import { naturesSchoolhouseConfig } from "./natures-schoolhouse";
 import { wonderhereLakelandConfig } from "./wonderhere-lakeland";
 import { monarchHillsEducationConfig } from "./monarch-hills-education";
 import { zoeLearningHouseConfig } from "./zoe-learning-house";
@@ -32,6 +36,8 @@ import { springRiverSchoolConfig } from "./spring-river-school";
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
   "wondering-oaks-learning": wonderingOaksLearningConfig,
+  "wild-hearts-adventure": wildHeartsAdventureConfig,
+  "natures-schoolhouse": naturesSchoolhouseConfig,
   "wonderhere-lakeland": wonderhereLakelandConfig,
   "monarch-hills-education": monarchHillsEducationConfig,
   "zoe-learning-house": zoeLearningHouseConfig,
