@@ -27,6 +27,7 @@ export type DemoWalkthroughTeacherTab =
 export type DemoWalkthroughPreview =
   | "website"
   | "application"
+  | "observation"
   | "admin"
   | "parent"
   | "teacher"
@@ -2124,8 +2125,29 @@ const rootedMeadowsApplicationStep: DemoWalkthroughStep = {
   },
 };
 
+const rootedMeadowsObservationStep: DemoWalkthroughStep = {
+  id: "book-observation",
+  title: "Parent books observation visit",
+  description:
+    "After submitting the application, families schedule their child's observation visit.",
+  preview: "observation",
+  icon: "calendarDays",
+  theme: {
+    bg: "#F5F3E6",
+    bgHover: "#EEEBD8",
+    bgActive: "#EEEBD8",
+    border: "#D8D9A8",
+    iconBg: "#b3b462",
+    iconColor: "#FFFFFF",
+    titleColor: "#5C5A30",
+    descColor: "#6B6840",
+    connector: "#b3b462",
+  },
+};
+
 export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   rootedMeadowsApplicationStep,
+  rootedMeadowsObservationStep,
   ...rootedMeadowsWalkthroughPlaceholder.filter((step) => step.preview !== undefined),
 ];
 

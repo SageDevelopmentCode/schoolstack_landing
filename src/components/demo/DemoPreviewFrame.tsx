@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 type DemoPreviewVariant =
   | "website"
   | "application"
+  | "observation"
   | "admin"
   | "parent"
   | "teacher"
@@ -34,6 +35,15 @@ const VARIANT_CONFIG: Record<
   application: {
     label: "Application",
     emoji: "📝",
+    outerBg: "#F0EBF2",
+    cardBorder: "#C9BBD4",
+    pillBg: "#E8E0EC",
+    pillText: "#5A4D68",
+    pillBorder: "#C9BBD4",
+  },
+  observation: {
+    label: "Observation booking",
+    emoji: "📅",
     outerBg: "#F0EBF2",
     cardBorder: "#C9BBD4",
     pillBg: "#E8E0EC",

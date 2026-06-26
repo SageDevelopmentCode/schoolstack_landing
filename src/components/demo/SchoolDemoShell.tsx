@@ -7,6 +7,7 @@ import ScaledAdminDemoPreview from "@/components/demo/ScaledAdminDemoPreview";
 import ScaledParentDemoPreview from "@/components/demo/ScaledParentDemoPreview";
 import ScaledTeacherDemoPreview from "@/components/demo/ScaledTeacherDemoPreview";
 import ScaledApplicationDemoPreview from "@/components/demo/ScaledApplicationDemoPreview";
+import ScaledObservationDemoPreview from "@/components/demo/ScaledObservationDemoPreview";
 import ScaledWebsiteDemoPreview from "@/components/demo/ScaledWebsiteDemoPreview";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
@@ -87,6 +88,8 @@ export default function SchoolDemoShell({
           />
         ) : activePreview === "application" ? (
           <ScaledApplicationDemoPreview demoSlug={config.slug} />
+        ) : activePreview === "observation" ? (
+          <ScaledObservationDemoPreview demoSlug={config.slug} />
         ) : (
           <ScaledWebsiteDemoPreview
             demoSlug={config.slug}

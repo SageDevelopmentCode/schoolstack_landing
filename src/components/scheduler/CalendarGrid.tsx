@@ -1,5 +1,12 @@
 import { DAY_NAMES, dateKey, isPastDate } from "@/lib/demo-scheduler";
 
+export interface CalendarGridColors {
+  accent: string;
+  accentLight: string;
+  text: string;
+  textFaint: string;
+}
+
 export function CalendarGrid({
   year,
   month,
@@ -8,6 +15,7 @@ export function CalendarGrid({
   availableDates,
   minDate,
   editable = false,
+  colors,
 }: {
   year: number;
   month: number;
@@ -17,6 +25,7 @@ export function CalendarGrid({
   minDate?: string;
   /** Admin mode: any non-past date is selectable; availableDates only highlights configured days */
   editable?: boolean;
+  colors?: CalendarGridColors;
 }) {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -32,7 +41,12 @@ export function CalendarGrid({
         {DAY_NAMES.map((d) => (
           <div
             key={d}
-            className="text-center text-[11px] font-medium font-secondary text-text-faint py-1"
+            className={
+              colors
+                ? "text-center text-[11px] font-medium font-secondary py-1"
+                : "text-center text-[11px] font-medium font-secondary text-text-faint py-1"
+            }
+            style={colors ? { color: colors.textFaint } : undefined}
           >
             {d}
           </div>
@@ -46,6 +60,34 @@ export function CalendarGrid({
           const hasSlots = availableDates.has(key);
           const isSelectable = editable ? !isBeforeMin : hasSlots && !isBeforeMin;
           const isSelected = selected === key;
+
+          if (colors) {
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={!isSelectable}
+                onClick={() => isSelectable && onSelect(key)}
+                className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg text-[14px] font-medium font-secondary transition-all duration-150"
+                style={
+                  isSelected
+                    ? { backgroundColor: colors.accent, color: "#FFFFFF" }
+                    : isSelectable
+                      ? hasSlots
+                        ? {
+                            backgroundColor: colors.accentLight,
+                            color: colors.accent,
+                            cursor: "pointer",
+                          }
+                        : { color: colors.text, cursor: "pointer" }
+                      : { color: colors.textFaint, cursor: "default" }
+                }
+              >
+                {day}
+              </button>
+            );
+          }
+
           return (
             <button
               key={key}
