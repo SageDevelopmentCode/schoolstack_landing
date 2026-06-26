@@ -5,8 +5,10 @@ import RootedMeadowsApplicationDemo from "@/components/demo/rootedmeadows/Rooted
 
 export default function ScaledApplicationDemoPreview({
   demoSlug = "rooted-meadows",
+  onPayApplicationFee,
 }: {
   demoSlug?: string;
+  onPayApplicationFee?: () => void;
 }) {
   if (demoSlug !== "rooted-meadows") {
     return (
@@ -20,7 +22,7 @@ export default function ScaledApplicationDemoPreview({
 
   return (
     <DemoPreviewFrame variant="application">
-      <RootedMeadowsApplicationDemo />
+      <RootedMeadowsApplicationDemo onPayApplicationFee={onPayApplicationFee} />
     </DemoPreviewFrame>
   );
 }

@@ -10,6 +10,12 @@ import {
   ROOTED_MEADOWS_ADMIN_LOGO,
 } from "@/data/school-demos/rootedmeadows-admin-demo";
 import {
+  ROOTED_MEADOWS_APPLICATION_COPY,
+  ROOTED_MEADOWS_DEMO_BOOKING_RESPONSES,
+  ROOTED_MEADOWS_DEMO_APPLYING_RESPONSES,
+} from "@/data/school-demos/rooted-meadows-application";
+import ApplicationProgressView from "@/components/demo/rootedmeadows/ApplicationProgressView";
+import {
   LayoutDashboard,
   TrendingUp,
   Users,
@@ -347,20 +353,15 @@ const DEMO_LEADS = [
     email: "jwalsh@email.com",
     phone: "(512) 555-0198",
     childName: "Ella Whitmore",
-    childAge: null,
-    status: "new",
-    tags: ["Visit Visit Discovery Call Observation Observation", "Fall 2026"],
+    childAge: 8,
+    status: "applying",
+    tags: ["Fall 2026", "Application"],
     date: "12 minutes ago",
     message:
       "Waldorf Core K–8 — looking for a smaller school environment.",
-    flowId: "flow-5",
-    responses: {
-      f29: "Sarah Whitmore",
-      f30: "jwalsh@email.com",
-      f31: "Waldorf Core K–8",
-      f32: "Ella Whitmore",
-      f33: "3rd Grade",
-    },
+    flowId: "flow-1",
+    applicationSectionIndex: 1,
+    responses: ROOTED_MEADOWS_DEMO_APPLYING_RESPONSES,
   },
   {
     id: "l1",
@@ -370,17 +371,13 @@ const DEMO_LEADS = [
     phone: "(512) 555-0142",
     childName: "Noah Foster",
     childAge: 5,
-    status: "new",
-    tags: ["Summer 2026"],
-    date: "18 minutes ago",
-    message: null,
-    flowId: "flow-3",
-    responses: {
-      f16: "Diana Foster",
-      f17: "diana@email.com",
-      f18: "Noah Foster",
-      f19: false,
-    },
+    status: "booking",
+    tags: ["School Year 2026–27", "Needs observation booking"],
+    date: "Yesterday",
+    message: "Application complete — observation visit not yet scheduled.",
+    flowId: "flow-1",
+    applicationSectionIndex: 3,
+    responses: ROOTED_MEADOWS_DEMO_BOOKING_RESPONSES,
   },
   {
     id: "l2",
@@ -388,12 +385,12 @@ const DEMO_LEADS = [
     name: "Robert Kim",
     email: "rkim@gmail.com",
     phone: "(737) 555-0218",
-    childName: null,
-    childAge: null,
-    status: "contacted",
-    tags: ["School Year", "Financial Aid"],
-    date: "5 hours ago",
-    message: "Interested in fall enrollment for my daughter in 3rd grade.",
+    childName: "Hannah Kim",
+    childAge: 9,
+    status: "booked",
+    tags: ["School Year", "Financial Aid", "Observation"],
+    date: "Apr 16",
+    message: "Observation visit scheduled for Apr 18 at 10:00 AM.",
     flowId: "flow-1",
     responses: {
       f1: "Robert",
@@ -416,10 +413,10 @@ const DEMO_LEADS = [
     phone: "(512) 555-0391",
     childName: "Raj Patel",
     childAge: 7,
-    status: "emailed",
+    status: "enrolling",
     tags: ["School Year"],
     date: "Mar 20",
-    message: null,
+    message: "Completing enrollment checklist in parent portal.",
     flowId: "flow-1",
     responses: {
       f1: "Priya",
@@ -440,18 +437,24 @@ const DEMO_LEADS = [
     name: "Mark Sullivan",
     email: "msullivan@email.com",
     phone: "(737) 555-0477",
-    childName: null,
-    childAge: null,
-    status: "new",
-    tags: ["Summer 2026"],
-    date: "3 hours ago",
-    message: "Looking for summer options for twin boys, ages 7.",
-    flowId: "flow-3",
+    childName: "Alex & Ben Sullivan",
+    childAge: 7,
+    status: "needs_contract",
+    tags: ["School Year 2026–27"],
+    date: "Mar 12",
+    message: "Enrollment paperwork complete — contract pending signature.",
+    flowId: "flow-1",
     responses: {
-      f16: "Mark Sullivan",
-      f17: "msullivan@email.com",
-      f18: "Alex & Ben Sullivan (twins)",
-      f19: false,
+      f1: "Mark",
+      f2: "Sullivan",
+      f3: "msullivan@email.com",
+      f4: "(737) 555-0477",
+      f5: "Alex & Ben Sullivan",
+      f6: "2018-05-10",
+      f7: "2nd",
+      f8: "Full Day",
+      f9: "2026-08-17",
+      f10: false,
     },
   },
   {
@@ -462,7 +465,7 @@ const DEMO_LEADS = [
     phone: "(512) 555-0563",
     childName: "Lily Beaumont",
     childAge: 6,
-    status: "application_sent",
+    status: "enrolled",
     tags: ["School Year"],
     date: "Mar 15",
     message: null,
@@ -760,6 +763,30 @@ const STATUS_COLORS: Record<
   string,
   { bg: string; border: string; text: string; label: string }
 > = {
+  applying: {
+    bg: C.infoBg,
+    border: C.infoBorder,
+    text: C.info,
+    label: "Applying",
+  },
+  booking: {
+    bg: C.errorBg,
+    border: C.errorBorder,
+    text: C.error,
+    label: "Booking",
+  },
+  booked: {
+    bg: C.infoBg,
+    border: C.infoBorder,
+    text: C.info,
+    label: "Booked",
+  },
+  needs_contract: {
+    bg: C.warningBg,
+    border: C.warningBorder,
+    text: C.warning,
+    label: "Needs Contract",
+  },
   new: { bg: C.infoBg, border: C.infoBorder, text: C.info, label: "New" },
   contacted: {
     bg: C.accentLight,
@@ -4357,14 +4384,25 @@ function DashboardPage() {
 
 // ─── Admissions page ──────────────────────────────────────────────────────────
 
-const LEAD_FILTERS = [
-  { key: "all", label: "All", count: 17 },
-  { key: "new", label: "New", count: 3 },
-  { key: "contacted", label: "Contacted", count: 2 },
-  { key: "application_sent", label: "App Sent", count: 1 },
-  { key: "enrolled", label: "Enrolled", count: 1 },
-  { key: "lost", label: "Lost", count: 2 },
-];
+const LEAD_STATUS_PIPELINE = [
+  "applying",
+  "booking",
+  "booked",
+  "enrolling",
+  "needs_contract",
+  "enrolled",
+] as const;
+
+function buildLeadFilters(leads: DemoLead[]) {
+  return [
+    { key: "all", label: "All", count: leads.length },
+    ...LEAD_STATUS_PIPELINE.map((key) => ({
+      key,
+      label: STATUS_COLORS[key]?.label ?? key,
+      count: leads.filter((l) => l.status === key).length,
+    })),
+  ];
+}
 
 const LEAD_TAGS = [
   "Summer 2026",
@@ -4392,6 +4430,7 @@ const LEAD_CHILD_PHOTOS: Record<string, string> = {
   "Sofia Mendez": "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",
   "Marcus Park": "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash.jpg",
   "Hannah Kim": "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",
+  "Ella Whitmore": "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg",
   "Jordan Cho": "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg",
   "Ella Thornton": "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg",
   "Chidera Okonkwo": "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",
@@ -4400,10 +4439,12 @@ const LEAD_CHILD_PHOTOS: Record<string, string> = {
 
 function LeadsFiltersPanel({
   activeFilter,
+  filters,
   onChange,
   onClose,
 }: {
   activeFilter: string;
+  filters: ReturnType<typeof buildLeadFilters>;
   onChange: (key: string) => void;
   onClose: () => void;
 }) {
@@ -4446,7 +4487,7 @@ function LeadsFiltersPanel({
           Status
         </p>
         <div className="flex flex-col gap-1.5">
-          {LEAD_FILTERS.map((f) => {
+          {filters.map((f) => {
             const isActive = activeFilter === f.key;
             return (
               <button
@@ -4501,11 +4542,6 @@ function LeadTableRow({
 
   const cells = (
     <>
-      <td className="px-4 py-3 max-w-[140px]">
-        <p className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
-          {FLOW_FILTER_OPTIONS.find((f) => f.id === lead.flowId)?.label ?? "—"}
-        </p>
-      </td>
       <td className="px-4 py-3">
         <p className="font-medium" style={{ color: C.textPrimary }}>
           {lead.name}
@@ -4552,16 +4588,7 @@ function LeadTableRow({
               >
                 {lead.childName}
               </p>
-              {lead.flowId === "flow-5" &&
-              lead.responses.f33 != null &&
-              String(lead.responses.f33).trim() !== "" ? (
-                <p
-                  className="text-xs"
-                  style={{ color: C.textTertiary }}
-                >
-                  {String(lead.responses.f33)}
-                </p>
-              ) : lead.childAge != null ? (
+              {lead.childAge != null ? (
                 <p
                   className="text-xs"
                   style={{ color: C.textTertiary }}
@@ -4640,7 +4667,6 @@ function LeadsListTab({
   animateNewSubmission?: boolean;
 }) {
   const [activeFilter, setActiveFilter] = useState("all");
-  const [activeFlowFilter, setActiveFlowFilter] = useState("all");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [newSubmissionRevealed, setNewSubmissionRevealed] = useState(
     !animateNewSubmission,
@@ -4656,10 +4682,10 @@ function LeadsListTab({
     return () => clearTimeout(timer);
   }, [animateNewSubmission]);
 
+  const leadFilters = buildLeadFilters(ACTIVE_DEMO_LEADS);
+
   const filtered = ACTIVE_DEMO_LEADS.filter((l) => {
-    const statusMatch = activeFilter === "all" || l.status === activeFilter;
-    const flowMatch = activeFlowFilter === "all" || l.flowId === activeFlowFilter;
-    return statusMatch && flowMatch;
+    return activeFilter === "all" || l.status === activeFilter;
   });
 
   const newLead = animateNewSubmission
@@ -4671,7 +4697,7 @@ function LeadsListTab({
   const useNewSubmissionAnimation = animateNewSubmission && !!newLead;
 
   const activeStatusLabel =
-    LEAD_FILTERS.find((f) => f.key === activeFilter)?.label ?? "All";
+    leadFilters.find((f) => f.key === activeFilter)?.label ?? "All";
   const hasActiveStatusFilter = activeFilter !== "all";
 
   return (
@@ -4679,36 +4705,14 @@ function LeadsListTab({
       className="relative flex h-full flex-col"
       style={{ backgroundColor: C.surface }}
     >
-      {/* Form toolbar + filter icon */}
       <div
-        className="flex flex-shrink-0 items-center gap-2 px-6 py-3"
+        className="flex flex-shrink-0 items-center justify-end px-6 py-3"
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          {FLOW_FILTER_OPTIONS.map((f) => {
-            const isActive = activeFlowFilter === f.id;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setActiveFlowFilter(f.id)}
-                className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
-                style={demoSolidPillStyle(isActive)}
-              >
-                {f.label}
-                {f.id !== "all" && (
-                  <span className="ml-1 text-[10px] font-bold opacity-70">
-                    {ACTIVE_DEMO_LEADS.filter((l) => l.flowId === f.id).length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
         <button
           type="button"
           onClick={() => setFilterPanelOpen(true)}
-          className="relative ml-auto flex flex-shrink-0 items-center justify-center rounded-sm p-2 transition-all"
+          className="relative flex flex-shrink-0 items-center justify-center rounded-sm p-2 transition-all"
           style={{
             backgroundColor: hasActiveStatusFilter ? C.accentLight : C.input,
             color: hasActiveStatusFilter ? C.accent : C.textSecondary,
@@ -4746,6 +4750,7 @@ function LeadsListTab({
             <LeadsFiltersPanel
               key="leads-filters-panel"
               activeFilter={activeFilter}
+              filters={leadFilters}
               onChange={(key) => {
                 setActiveFilter(key);
                 setFilterPanelOpen(false);
@@ -4765,7 +4770,6 @@ function LeadsListTab({
             >
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                 {[
-                  "Form",
                   "Name",
                   "Contact",
                   "Child",
@@ -5199,26 +5203,17 @@ function formatSubmissionFieldAnswer(
   return String(raw);
 }
 
-const SUBMISSION_STATUS_OPTIONS = [
-  "new",
-  "contacted",
-  "emailed",
-  "application_sent",
+const PIPELINE_STATUS_OPTIONS = [
+  "applying",
+  "booking",
+  "booked",
+  "enrolling",
+  "needs_contract",
   "enrolled",
-  "lost",
 ] as const;
 
-const TOUR_STATUS_OPTIONS = [
-  "requested",
-  "scheduled",
-  "completed",
-  "no_show",
-  "cancelled",
-] as const;
-
-function getStatusOptionsForLead(flowId: string): readonly string[] {
-  if (flowId === "flow-4") return TOUR_STATUS_OPTIONS;
-  return SUBMISSION_STATUS_OPTIONS;
+function getStatusOptionsForLead(_flowId: string): readonly string[] {
+  return PIPELINE_STATUS_OPTIONS;
 }
 
 type LeadActivityEntry = {
@@ -5230,13 +5225,37 @@ type LeadActivityEntry = {
   variant: "mail" | "note" | "action";
 };
 
-type LeadDetailTabId = `step:${string}` | "status" | "notes" | "activity";
+type LeadDetailTabId =
+  | `step:${string}`
+  | "application"
+  | "status"
+  | "notes"
+  | "activity";
 
 type LeadDetailTab = {
   id: LeadDetailTabId;
   label: string;
-  kind: "step" | "status" | "notes" | "activity";
+  kind: "step" | "application" | "status" | "notes" | "activity";
 };
+
+function isApplicationLead(
+  lead: DemoLead,
+): lead is DemoLead & { applicationSectionIndex: number } {
+  return (
+    (lead.status === "applying" || lead.status === "booking") &&
+    "applicationSectionIndex" in lead &&
+    typeof lead.applicationSectionIndex === "number"
+  );
+}
+
+function getApplicationResponses(lead: DemoLead): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const [key, value] of Object.entries(lead.responses)) {
+    if (typeof value === "string") map[key] = value;
+    else if (typeof value === "boolean") map[key] = value ? "true" : "false";
+  }
+  return map;
+}
 
 type DemoActivityTimelineVariant =
   | "attendance"
@@ -5360,9 +5379,18 @@ function LeadDetailPanel({
 }) {
   const flow = getFlowForLead(lead.flowId);
   const responseMap = lead.responses as unknown as Record<string, string | boolean>;
+  const usesApplicationView = isApplicationLead(lead);
 
-  const tabs = useMemo<LeadDetailTab[]>(
-    () => [
+  const tabs = useMemo<LeadDetailTab[]>(() => {
+    if (usesApplicationView) {
+      return [
+        { id: "application", label: "Application", kind: "application" },
+        { id: "status", label: "Status & Tags", kind: "status" },
+        { id: "notes", label: "Notes", kind: "notes" },
+        { id: "activity", label: "Activity Log", kind: "activity" },
+      ];
+    }
+    return [
       ...(flow?.steps.map((s) => ({
         id: `step:${s.id}` as LeadDetailTabId,
         label: s.title,
@@ -5371,13 +5399,17 @@ function LeadDetailPanel({
       { id: "status", label: "Status & Tags", kind: "status" },
       { id: "notes", label: "Notes", kind: "notes" },
       { id: "activity", label: "Activity Log", kind: "activity" },
-    ],
-    [flow],
-  );
+    ];
+  }, [flow, usesApplicationView]);
 
   const defaultTab = useMemo<LeadDetailTabId>(
-    () => (flow?.steps[0]?.id ? `step:${flow.steps[0].id}` : "status"),
-    [flow],
+    () =>
+      usesApplicationView
+        ? "application"
+        : flow?.steps[0]?.id
+          ? `step:${flow.steps[0].id}`
+          : "status",
+    [flow, usesApplicationView],
   );
 
   const [activeTab, setActiveTab] = useState<LeadDetailTabId>(defaultTab);
@@ -5414,8 +5446,16 @@ function LeadDetailPanel({
         id: `${lead.id}-a0`,
         at: `${lead.date} · 9:02 AM`,
         actor: "System",
-        title: "Submission received",
-        summary: "Form submission received and queued for review.",
+        title: usesApplicationView
+          ? lead.status === "booking"
+            ? "Application submitted — book observation"
+            : "Application started"
+          : "Submission received",
+        summary: usesApplicationView
+          ? lead.status === "booking"
+            ? "Full application received. Family still needs to schedule their observation visit."
+            : "Family began the Apply Now application on your website."
+          : "Form submission received and queued for review.",
         variant: "mail",
       },
       {
@@ -5437,7 +5477,7 @@ function LeadDetailPanel({
         variant: "note",
       });
     }
-    if (lead.status !== "new") {
+    if (lead.status !== "applying") {
       initial.push({
         id: `${lead.id}-a3`,
         at: `${lead.date} · 2:40 PM`,
@@ -5449,7 +5489,7 @@ function LeadDetailPanel({
     }
     setActivity(initial);
     setAdminNotes("");
-  }, [lead.id, lead.date, lead.email, lead.status, lead.tags]);
+  }, [lead.id, lead.date, lead.email, lead.status, lead.tags, usesApplicationView]);
 
   const activeStep =
     activeTab.startsWith("step:") && flow
@@ -5555,7 +5595,9 @@ function LeadDetailPanel({
             {lead.name}
           </h3>
           <p className="mt-0.5 truncate text-xs" style={{ color: C.textTertiary }}>
-            {flow?.name ?? "Form submission"}
+            {usesApplicationView
+              ? ROOTED_MEADOWS_APPLICATION_COPY.applicationFor
+              : flow?.name ?? "Form submission"}
             <span className="mx-1.5 opacity-50">·</span>
             Submitted {lead.date}
           </p>
@@ -5604,6 +5646,13 @@ function LeadDetailPanel({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-3 sm:px-5">
+            {activeTab === "application" && usesApplicationView && (
+              <ApplicationProgressView
+                responses={getApplicationResponses(lead)}
+                applicationSectionIndex={lead.applicationSectionIndex}
+                status={lead.status === "booking" ? "booking" : "applying"}
+              />
+            )}
             {activeTab === "status" && (
               <div className="flex flex-col gap-5 pb-3">
                 <div>

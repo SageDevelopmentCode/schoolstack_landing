@@ -212,7 +212,11 @@ function ApplicationSignatureBlock({
   );
 }
 
-export default function RootedMeadowsApplicationDemo() {
+export default function RootedMeadowsApplicationDemo({
+  onPayApplicationFee,
+}: {
+  onPayApplicationFee?: () => void;
+} = {}) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -260,6 +264,7 @@ export default function RootedMeadowsApplicationDemo() {
 
   const handlePayApplicationFee = () => {
     if (!canPayFee) return;
+    onPayApplicationFee?.();
   };
 
   return (

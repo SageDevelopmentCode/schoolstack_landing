@@ -7,7 +7,7 @@ export const ROOTED_MEADOWS_ADMIN_LOGO = {
   logoOnDarkClassName: "",
 } as const;
 
-export const ROOTED_MEADOWS_ADMIN_COMPACT_ROWS = 5;
+export const ROOTED_MEADOWS_ADMIN_COMPACT_ROWS = 7;
 
 export const ROOTED_MEADOWS_ADMIN_COLORS = {
   bg: "#FAF8F4",

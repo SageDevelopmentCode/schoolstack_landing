@@ -48,6 +48,10 @@ export default function SchoolDemoShell({
     setScrollRequest({ target: "form", nonce: Date.now() });
   }, []);
 
+  const handlePayApplicationFeeClick = useCallback(() => {
+    handleStepSelect(activeStep + 1);
+  }, [activeStep, handleStepSelect]);
+
   return (
     <div className="h-screen flex overflow-hidden">
       <DemoWalkthroughPanel
@@ -87,7 +91,10 @@ export default function SchoolDemoShell({
             logo={config.logo}
           />
         ) : activePreview === "application" ? (
-          <ScaledApplicationDemoPreview demoSlug={config.slug} />
+          <ScaledApplicationDemoPreview
+            demoSlug={config.slug}
+            onPayApplicationFee={handlePayApplicationFeeClick}
+          />
         ) : activePreview === "observation" ? (
           <ScaledObservationDemoPreview demoSlug={config.slug} />
         ) : (

@@ -297,3 +297,61 @@ export const ROOTED_MEADOWS_APPLICATION_ACKNOWLEDGMENTS: ApplicationAcknowledgme
         "I understand that all accepted families must read the Family Handbook prior to signing the enrollment contract.",
     },
   ];
+
+/** Section 0 complete + partial section 1 — Sarah Whitmore (Applying). */
+export const ROOTED_MEADOWS_DEMO_APPLYING_RESPONSES: Record<string, string> = {
+  parentName: "Sarah Whitmore",
+  relationship: "Mother",
+  email: "jwalsh@email.com",
+  phone: "(512) 555-0198",
+  addressLine1: "184 Meadow Lane",
+  addressLine2: "",
+  city: "Boise",
+  state: "ID",
+  zipCode: "83702",
+  secondParent: "James Whitmore — Father — jwhitmore@email.com — (512) 555-0199",
+  preferredCommunication: "email",
+  supportingDocuments: "ella_prior_school_summary.pdf",
+  childFullName: "Ella Whitmore",
+  preferredName: "Ella",
+  dateOfBirth: "2017-04-12",
+  applyingGrade: "3",
+};
+
+/** All sections complete — Diana Foster (Booking). */
+export const ROOTED_MEADOWS_DEMO_BOOKING_RESPONSES: Record<string, string> = {
+  parentName: "Diana Foster",
+  relationship: "Mother",
+  email: "diana@email.com",
+  phone: "(512) 555-0142",
+  addressLine1: "902 Willow Creek Rd",
+  addressLine2: "Unit B",
+  city: "Boise",
+  state: "ID",
+  zipCode: "83706",
+  secondParent: "",
+  preferredCommunication: "text",
+  supportingDocuments: "",
+  childFullName: "Noah Foster",
+  preferredName: "Noah",
+  dateOfBirth: "2020-03-14",
+  applyingGrade: "k",
+  currentSetting: "Homeschool co-op (2 days/week)",
+  priorPrograms: "yes",
+  priorProgramsDetail:
+    "Participated in a local homeschool co-op for the past year with mixed-age group learning.",
+  whyRootedMeadows:
+    "We want a smaller, relationship-based school with a Waldorf rhythm. Noah thrives with hands-on learning and time outdoors.",
+  childStrengths:
+    "Curious, gentle, loves building and storytelling. Does well in small groups and responds warmly to calm routines.",
+  partnershipHopes:
+    "We hope for a school that partners with parents and honors childhood. We want clear communication and a nurturing classroom culture.",
+  readinessAndConcerns:
+    "Noah adjusts well to new environments when transitions are explained. He can be shy at first but opens up with familiar faces.",
+  supportNeeds: "None",
+  observationSupport:
+    "A brief one-on-one hello before joining the group would help him feel comfortable.",
+};
+
+export const ROOTED_MEADOWS_APPLICATION_SECTION_COUNT =
+  ROOTED_MEADOWS_APPLICATION_SECTIONS.length;
