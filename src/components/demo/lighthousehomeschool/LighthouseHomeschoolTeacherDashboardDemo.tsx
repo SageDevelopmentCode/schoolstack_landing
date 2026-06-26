@@ -1,0 +1,5699 @@
+"use client";
+
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  Users,
+  Clock,
+  MessageCircle,
+  Calendar,
+  Rss,
+  CreditCard,
+  FileText,
+  ChevronDown,
+  CalendarDays,
+  TrendingUp,
+  LogIn,
+  LogOut,
+  MapPin,
+  Paperclip,
+  ChevronRight,
+  ChevronLeft,
+  Banknote,
+  X,
+  Trash2,
+  LayoutGrid,
+  Search,
+  Send,
+  SquarePen,
+  MoreHorizontal,
+  Plus,
+  Heart,
+  ClipboardList,
+  Home,
+} from "lucide-react";
+import { LucideIcon } from "lucide-react";
+import {
+  LIGHTHOUSE_TEACHER_LOGO,
+  LIGHTHOUSE_TEACHER_OFFICE,
+  LIGHTHOUSE_TEACHER_PROGRAM_LABELS,
+  LIGHTHOUSE_TEACHER_PROGRAM_ORDER,
+} from "@/data/school-demos/lighthouse-teacher-demo";
+
+// ─── Demo Data ────────────────────────────────────────────────────────────────
+
+const DEMO_TEACHER = {
+  name: "Jordan Taylor",
+  initials: "JT",
+  subject: "Math & Science",
+};
+
+const BANNER_IMAGES = [
+  "/images/stock/ImageOne.jpg",
+  "/images/stock/ImageTwo.jpg",
+  "/images/stock/ImageThree.jpg",
+  "/images/stock/ImageFour.jpg",
+  "/images/stock/ImageFive.jpg",
+  "/images/stock/ImageSix.jpg",
+  "/images/stock/ImageSeven.jpg",
+  "/images/stock/ImageEight.jpg",
+  "/images/stock/ImageNine.jpg",
+  "/images/stock/ImageTen.jpg",
+  "/images/stock/ImageEleven.jpg",
+  "/images/stock/ImageTwelve.jpg",
+  "/images/stock/ImageThirteen.jpg",
+  "/images/stock/ImageFourteen.jpg",
+  "/images/stock/Homeschool.jpg",
+  "/images/stock/Homeschool2.jpg",
+  "/images/stock/Homeschool3.jpg",
+];
+
+type DemoCalendarEvent = {
+  id: string;
+  title: string;
+  event_date: string;
+  is_all_day: boolean;
+  start_time: string | null;
+  end_time: string | null;
+  color: string | null;
+  category: string | null;
+  description: string | null;
+  location: string | null;
+  attachment_links: string[] | null;
+};
+
+const DEMO_EVENTS: DemoCalendarEvent[] = [
+  {
+    id: "e1",
+    title: "Staff Meeting",
+    event_date: "2026-04-22",
+    is_all_day: false,
+    start_time: "08:30",
+    end_time: "09:15",
+    color: "#336699",
+    category: "Staff",
+    description:
+      "Weekly all-staff check-in in the main hall. Please bring your weekly progress notes.",
+    location: "Main Hall",
+    attachment_links: ["agenda.pdf"],
+  },
+  {
+    id: "e2",
+    title: "Nature Walk — Elementary",
+    event_date: "2026-04-24",
+    is_all_day: false,
+    start_time: "10:00",
+    end_time: "11:30",
+    color: "#7FA888",
+    category: "Field Trip",
+    description:
+      "Guided nature walk around the school garden. Wear comfortable shoes.",
+    location: "School Garden",
+    attachment_links: null,
+  },
+  {
+    id: "e3",
+    title: "Parent–Teacher Conferences",
+    event_date: "2026-04-28",
+    is_all_day: false,
+    start_time: "13:00",
+    end_time: "17:00",
+    color: "#f29a8f",
+    category: "Conferences",
+    description:
+      "Spring conference sessions. Check your schedule in the teacher portal for assigned time slots.",
+    location: "Classroom 3B",
+    attachment_links: ["conference-schedule.pdf", "talking-points.pdf"],
+  },
+  {
+    id: "e4",
+    title: "Professional Development Day",
+    event_date: "2026-05-02",
+    is_all_day: true,
+    start_time: null,
+    end_time: null,
+    color: "#6b8db5",
+    category: "PD",
+    description:
+      "No students on campus. Full-day professional development for all staff.",
+    location: "Room 101",
+    attachment_links: null,
+  },
+];
+
+// Mon–Sun for a realistic week (demo today = Mon Apr 20, 2026)
+const DEMO_WEEKLY_HOURS = [4.5, 6.0, 5.5, 7.0, 4.0, 0, 0]; // Mon–Sun
+
+type DemoSession = {
+  id: string;
+  clockInAt: Date;
+  clockOutAt: Date | null;
+  note: string;
+};
+
+// Fixed reference date for demo session data (avoids SSR/hydration mismatches)
+const DEMO_TODAY = new Date(2026, 3, 20); // Mon Apr 20, 2026
+
+function todayKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Map current wall-clock time onto the fixed demo calendar date */
+function getDemoNow(): Date {
+  const now = new Date();
+  return new Date(
+    DEMO_TODAY.getFullYear(),
+    DEMO_TODAY.getMonth(),
+    DEMO_TODAY.getDate(),
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds(),
+  );
+}
+
+function buildInitialSessions(): Record<string, DemoSession[]> {
+  const sessions: Record<string, DemoSession[]> = {};
+  // Add Mon–Fri sessions for the current week
+  const monday = getMondayOfWeek(DEMO_TODAY);
+  const dayHours = DEMO_WEEKLY_HOURS;
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const key = todayKey(d);
+    const hrs = dayHours[i];
+    if (hrs > 0 && todayKey(d) !== todayKey(DEMO_TODAY)) {
+      const clockIn = new Date(d);
+      clockIn.setHours(8, 0, 0, 0);
+      const clockOut = new Date(clockIn);
+      clockOut.setTime(clockIn.getTime() + hrs * 3600 * 1000);
+      sessions[key] = [
+        { id: `s-${i}`, clockInAt: clockIn, clockOutAt: clockOut, note: "" },
+      ];
+    }
+  }
+  // Today has 4.5h logged but no active session
+  const todayClockIn = new Date(DEMO_TODAY);
+  todayClockIn.setHours(8, 0, 0, 0);
+  const todayClockOut = new Date(todayClockIn);
+  todayClockOut.setTime(todayClockIn.getTime() + 4.5 * 3600 * 1000);
+  sessions[todayKey(DEMO_TODAY)] = [
+    {
+      id: "s-today",
+      clockInAt: todayClockIn,
+      clockOutAt: todayClockOut,
+      note: "",
+    },
+  ];
+  return sessions;
+}
+
+// ─── Clock Utilities (inlined from clock-utils) ───────────────────────────────
+
+function getMondayOfWeek(d: Date): Date {
+  const day = new Date(d);
+  const dow = day.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  day.setDate(day.getDate() + diff);
+  day.setHours(0, 0, 0, 0);
+  return day;
+}
+
+function getWeekDays(monday: Date): Date[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+
+function getDayTotalHours(sessions: DemoSession[]): number {
+  return sessions.reduce((sum, s) => {
+    const end = s.clockOutAt ?? new Date();
+    return sum + (end.getTime() - s.clockInAt.getTime()) / 3_600_000;
+  }, 0);
+}
+
+function getWeekTotalHours(
+  monday: Date,
+  sessionsByDay: Record<string, DemoSession[]>,
+): number {
+  return getWeekDays(monday).reduce((sum, d) => {
+    return sum + getDayTotalHours(sessionsByDay[todayKey(d)] ?? []);
+  }, 0);
+}
+
+function formatDuration(hours: number): string {
+  if (hours <= 0) return "0h";
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  if (m === 0) return `${h}h`;
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
+
+function fmt12(d: Date): string {
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function formatEventDate(event: DemoCalendarEvent): string {
+  const d = new Date(event.event_date + "T00:00:00");
+  const dateStr = d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  if (event.is_all_day) return `${dateStr} · All day`;
+  if (event.start_time) {
+    const [sh, sm] = event.start_time.split(":").map(Number);
+    const startD = new Date();
+    startD.setHours(sh, sm);
+    const startStr = startD.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    if (event.end_time) {
+      const [eh, em] = event.end_time.split(":").map(Number);
+      const endD = new Date();
+      endD.setHours(eh, em);
+      const endStr = endD.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      return `${dateStr} · ${startStr} – ${endStr}`;
+    }
+    return `${dateStr} · ${startStr}`;
+  }
+  return dateStr;
+}
+
+// ─── Student Demo Data ────────────────────────────────────────────────────────
+
+type AttendanceStatus = "checked_in" | "checked_out" | "absent";
+
+type DemoStudent = {
+  id: string;
+  student_id: string;
+  name: string;
+  grade: string;
+  program: string;
+  classroom: string;
+  profile_image_url: null;
+  attendance_status: AttendanceStatus;
+  color: string;
+  dob: string;
+  allergies: string | null;
+  learning_style: string;
+  strengths: string;
+  challenges: string;
+  dysregulation_response: string;
+  regulation_strategies: string;
+  medical_notes: string | null;
+  special_interests: string;
+  history_flags: string | null;
+};
+
+const DEMO_STUDENTS: DemoStudent[] = [
+  {
+    id: "s1",
+    student_id: "sid1",
+    name: "Emma Rivera",
+    grade: "3rd Grade",
+    program: "summer_26",
+    classroom: "Room 3B",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#7FA888",
+    dob: "March 12, 2017",
+    allergies: "Tree nuts, mild seasonal pollen",
+    learning_style:
+      "Visual and kinesthetic — responds well to hands-on projects and illustrated instructions.",
+    strengths:
+      "Creative problem-solving, strong artistic ability, natural collaborator with peers.",
+    challenges:
+      "Can become distracted during long verbal instruction segments.",
+    dysregulation_response:
+      "Tends to withdraw and becomes quiet; may seek a corner seat.",
+    regulation_strategies:
+      "Short movement breaks, fidget tool, one-on-one check-ins.",
+    medical_notes: null,
+    special_interests: "Painting, nature walks, building with blocks.",
+    history_flags: null,
+  },
+  {
+    id: "s2",
+    student_id: "sid2",
+    name: "Marcus Chen",
+    grade: "4th Grade",
+    program: "summer_26",
+    classroom: "Room 3B",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#6b8db5",
+    dob: "July 22, 2016",
+    allergies: null,
+    learning_style:
+      "Auditory and logical — thrives with verbal explanation and step-by-step structure.",
+    strengths:
+      "Strong math reasoning, excellent memory retention, enjoys leading small groups.",
+    challenges:
+      "Transitions between activities can be abrupt; benefits from advance notice.",
+    dysregulation_response:
+      "May become louder and more assertive; responds to direct calm redirection.",
+    regulation_strategies:
+      "Transition countdowns, clear activity timelines posted on board.",
+    medical_notes: null,
+    special_interests: "Chess, robotics, reading non-fiction.",
+    history_flags: null,
+  },
+  {
+    id: "s3",
+    student_id: "sid3",
+    name: "Lily Okafor",
+    grade: "2nd Grade",
+    program: "summer_26",
+    classroom: "Room 2A",
+    profile_image_url: null,
+    attendance_status: "absent",
+    color: "#f29a8f",
+    dob: "November 3, 2018",
+    allergies: "Penicillin (medication allergy — notify nurse)",
+    learning_style:
+      "Social learner — performs best in small collaborative groups.",
+    strengths:
+      "High emotional intelligence, strong reader, encourages peers naturally.",
+    challenges: "Can struggle with independent seat work for extended periods.",
+    dysregulation_response:
+      "Cries quietly; benefits from a calm adult presence nearby.",
+    regulation_strategies:
+      "Buddy system, short check-in at start of independent work.",
+    medical_notes: "Mild asthma — inhaler kept in nurse's office.",
+    special_interests: "Storytelling, dance, animals.",
+    history_flags: null,
+  },
+  {
+    id: "s4",
+    student_id: "sid4",
+    name: "Noah Williams",
+    grade: "3rd Grade",
+    program: "summer_26",
+    classroom: "Room 3B",
+    profile_image_url: null,
+    attendance_status: "checked_out",
+    color: "#c9a96e",
+    dob: "February 8, 2017",
+    allergies: null,
+    learning_style:
+      "Kinesthetic — needs to move and manipulate objects to process new concepts.",
+    strengths:
+      "Persistent with physical challenges, good spatial reasoning, humorous and warm with peers.",
+    challenges:
+      "Reading comprehension requires extra scaffolding; tires quickly with dense text.",
+    dysregulation_response:
+      "Becomes restless and may disrupt; outdoor time or physical task helps reset.",
+    regulation_strategies:
+      "Sensory breaks, stress ball, reduce seated time with movement integration.",
+    medical_notes: null,
+    special_interests: "Soccer, building, cooking.",
+    history_flags: null,
+  },
+  {
+    id: "s5",
+    student_id: "sid5",
+    name: "Aisha Thompson",
+    grade: "Kindergarten",
+    program: "school_year_26_27",
+    classroom: "Room K1",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#a78bda",
+    dob: "September 14, 2020",
+    allergies: "Dairy (dietary preference, not medical)",
+    learning_style:
+      "Play-based and musical — engages deeply through song and dramatic play.",
+    strengths:
+      "Joyful energy, imaginative, quick to form connections with new peers.",
+    challenges:
+      "Separation anxiety in the first hour; benefits from a consistent morning routine.",
+    dysregulation_response:
+      "Seeks physical comfort; calm corner with stuffed animal available.",
+    regulation_strategies:
+      "Predictable morning routine, visual schedule, quiet comfort object.",
+    medical_notes: null,
+    special_interests: "Singing, dolls, finger painting.",
+    history_flags: null,
+  },
+  {
+    id: "s6",
+    student_id: "sid6",
+    name: "Ethan Park",
+    grade: "1st Grade",
+    program: "school_year_26_27",
+    classroom: "Room 1C",
+    profile_image_url: null,
+    attendance_status: "checked_out",
+    color: "#5ba8c4",
+    dob: "May 30, 2019",
+    allergies: null,
+    learning_style:
+      "Independent and analytical — prefers to work through problems alone before asking for help.",
+    strengths:
+      "Detail-oriented, strong writing for age, asks insightful questions.",
+    challenges:
+      "Can be reluctant to ask for help; occasionally perfectionistic.",
+    dysregulation_response:
+      "Shuts down; gentle private check-in more effective than group attention.",
+    regulation_strategies:
+      "Private check-in, journaling, 'ask for help' visual cue card.",
+    medical_notes: null,
+    special_interests: "Dinosaurs, maps, drawing comics.",
+    history_flags: null,
+  },
+  {
+    id: "s7",
+    student_id: "sid7",
+    name: "Zoe Martinez",
+    grade: "Mixed Ages",
+    program: "homeschool_drop_in",
+    classroom: "Open Lab",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#e8a05a",
+    dob: "August 19, 2016",
+    allergies: null,
+    learning_style:
+      "Self-directed — accustomed to setting her own pace; benefits from project-based work.",
+    strengths: "Highly motivated, excellent research skills, adaptable.",
+    challenges:
+      "Can struggle with structured group pacing; used to a more flexible schedule.",
+    dysregulation_response:
+      "Becomes visibly frustrated; a brief walk or change of task helps.",
+    regulation_strategies:
+      "Student-chosen project topics, flexible seating, time to decompress.",
+    medical_notes: null,
+    special_interests: "Astronomy, coding, baking.",
+    history_flags: null,
+  },
+  // ── Summer 2026 additions ──────────────────────────────────────────────────
+  {
+    id: "s8",
+    student_id: "sid8",
+    name: "Chloe Nguyen",
+    grade: "5th Grade",
+    program: "summer_26",
+    classroom: "Room 3B",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#c07ab8",
+    dob: "January 5, 2015",
+    allergies: null,
+    learning_style:
+      "Reading/writing learner — thrives with journaling, written instructions, and independent research projects.",
+    strengths:
+      "Strong written communication, self-motivated, excellent at synthesizing information.",
+    challenges:
+      "Can be hesitant to participate verbally in group discussions.",
+    dysregulation_response:
+      "Withdraws into reading or writing; a quiet check-in works best.",
+    regulation_strategies:
+      "Journaling breaks, written reflection prompts, optional verbal sharing.",
+    medical_notes: null,
+    special_interests: "Writing stories, origami, learning languages.",
+    history_flags: null,
+  },
+  {
+    id: "s9",
+    student_id: "sid9",
+    name: "Jayden Brooks",
+    grade: "3rd Grade",
+    program: "summer_26",
+    classroom: "Room 2A",
+    profile_image_url: null,
+    attendance_status: "absent",
+    color: "#7b96c9",
+    dob: "June 14, 2017",
+    allergies: "Peanuts (severe — EpiPen in nurse's office)",
+    learning_style:
+      "Auditory and social — learns best through discussion, storytelling, and peer collaboration.",
+    strengths:
+      "Natural communicator, empathetic listener, quick to build rapport with new classmates.",
+    challenges:
+      "Written work can be a struggle; benefits from verbal response alternatives.",
+    dysregulation_response:
+      "Becomes chatty and seeks attention; a calm redirect and movement break help.",
+    regulation_strategies:
+      "Frequent check-ins, partner work options, verbal assessment alternatives.",
+    medical_notes: "Severe peanut allergy — EpiPen required on site at all times.",
+    special_interests: "Basketball, music production, stand-up comedy.",
+    history_flags: null,
+  },
+  {
+    id: "s10",
+    student_id: "sid10",
+    name: "Sofia Patel",
+    grade: "4th Grade",
+    program: "summer_26",
+    classroom: "Room 3B",
+    profile_image_url: null,
+    attendance_status: "checked_out",
+    color: "#e0895c",
+    dob: "October 28, 2016",
+    allergies: null,
+    learning_style:
+      "Visual and logical — responds well to diagrams, timelines, and structured problem-solving.",
+    strengths:
+      "Analytical thinker, strong in math and science, organized and detail-oriented.",
+    challenges:
+      "Open-ended creative tasks can feel uncomfortable without a clear framework.",
+    dysregulation_response:
+      "Becomes rigid and seeks reassurance; a clear checklist or rubric helps ground her.",
+    regulation_strategies:
+      "Structured task outlines, step-by-step instructions, defined success criteria.",
+    medical_notes: null,
+    special_interests: "Robotics, chess, drawing technical diagrams.",
+    history_flags: null,
+  },
+  // ── School Year 2026–2027 additions ──────────────────────────────────────
+  {
+    id: "s11",
+    student_id: "sid11",
+    name: "Liam Torres",
+    grade: "2nd Grade",
+    program: "school_year_26_27",
+    classroom: "Room 1C",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#4db89a",
+    dob: "March 22, 2018",
+    allergies: null,
+    learning_style:
+      "Kinesthetic and visual — hands-on activities and visual anchors make concepts click.",
+    strengths:
+      "Enthusiastic learner, strong spatial reasoning, loves collaborative building projects.",
+    challenges:
+      "Sitting still for extended reading blocks; benefits from movement integration.",
+    dysregulation_response:
+      "Fidgets and loses focus; a brief physical reset helps him re-engage.",
+    regulation_strategies:
+      "Flexible seating, movement breaks every 20 minutes, hands-on activity options.",
+    medical_notes: null,
+    special_interests: "Lego building, soccer, cooking with family.",
+    history_flags: null,
+  },
+  {
+    id: "s12",
+    student_id: "sid12",
+    name: "Nadia Kim",
+    grade: "1st Grade",
+    program: "school_year_26_27",
+    classroom: "Room K1",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#c97eb0",
+    dob: "July 9, 2019",
+    allergies: "Gluten (celiac disease — strict dietary accommodation required)",
+    learning_style:
+      "Social and musical — thrives in group settings with rhythm, song, and movement built in.",
+    strengths:
+      "Joyful presence, strong memory for songs and patterns, natural performer.",
+    challenges:
+      "Can become overstimulated in loud or chaotic environments.",
+    dysregulation_response:
+      "Covers ears or becomes tearful; moving to a quieter space with a trusted adult helps.",
+    regulation_strategies:
+      "Noise-reducing headphones available, calm-down corner, predictable noise levels.",
+    medical_notes: "Celiac disease — no gluten at snack or lunch. See nurse for full dietary plan.",
+    special_interests: "Dancing, singing, playing with stuffed animals.",
+    history_flags: null,
+  },
+  {
+    id: "s13",
+    student_id: "sid13",
+    name: "Owen Fletcher",
+    grade: "Kindergarten",
+    program: "school_year_26_27",
+    classroom: "Room K1",
+    profile_image_url: null,
+    attendance_status: "absent",
+    color: "#6e9fd6",
+    dob: "December 1, 2020",
+    allergies: null,
+    learning_style:
+      "Play-based — imaginative play and open-ended exploration are his primary entry points for learning.",
+    strengths:
+      "Creative, curious, inventive storyteller; brings unique perspectives to group play.",
+    challenges:
+      "Transitions can be abrupt; needs clear advance warnings and routines.",
+    dysregulation_response:
+      "Refuses to transition and may cry; a 5-minute countdown and visual timer help significantly.",
+    regulation_strategies:
+      "Visual timers, transition warnings, consistent daily schedule posted at his level.",
+    medical_notes: null,
+    special_interests: "Superheroes, trains, drawing maps of imaginary worlds.",
+    history_flags: null,
+  },
+  // ── Homeschool Drop-In additions ─────────────────────────────────────────
+  {
+    id: "s14",
+    student_id: "sid14",
+    name: "Priya Sharma",
+    grade: "Mixed Ages",
+    program: "homeschool_drop_in",
+    classroom: "Open Lab",
+    profile_image_url: null,
+    attendance_status: "checked_in",
+    color: "#c9a840",
+    dob: "February 14, 2015",
+    allergies: null,
+    learning_style:
+      "Inquiry-based — thrives when she can ask her own questions and pursue answers independently.",
+    strengths:
+      "Deep focus on topics of interest, strong research skills, thoughtful written reflections.",
+    challenges:
+      "Can struggle to shift topics once deeply engaged in a subject.",
+    dysregulation_response:
+      "Politely but firmly resists redirection; offering an extension activity helps bridge.",
+    regulation_strategies:
+      "Interest-led extensions, co-created session plan at start of each visit.",
+    medical_notes: null,
+    special_interests: "Marine biology, photography, reading historical fiction.",
+    history_flags: null,
+  },
+  {
+    id: "s15",
+    student_id: "sid15",
+    name: "Felix Grant",
+    grade: "Mixed Ages",
+    program: "homeschool_drop_in",
+    classroom: "Open Lab",
+    profile_image_url: null,
+    attendance_status: "checked_out",
+    color: "#5bb5b0",
+    dob: "May 3, 2016",
+    allergies: null,
+    learning_style:
+      "Collaborative and project-based — engages best when working alongside peers toward a shared goal.",
+    strengths:
+      "Natural team leader, strong verbal reasoning, diplomatic with peers.",
+    challenges:
+      "Independent seat work can feel isolating; benefits from partner or group structure.",
+    dysregulation_response:
+      "Becomes distracted and seeks social interaction; pairing him helps redirect focus.",
+    regulation_strategies:
+      "Partner work, peer tutoring opportunities, group project formats.",
+    medical_notes: null,
+    special_interests: "Theater, debate, building electronics.",
+    history_flags: null,
+  },
+];
+
+const PROGRAM_LABELS = LIGHTHOUSE_TEACHER_PROGRAM_LABELS;
+const PROGRAM_ORDER = [...LIGHTHOUSE_TEACHER_PROGRAM_ORDER];
+
+// ─── Sidebar Primitives (inlined) ─────────────────────────────────────────────
+
+function SidebarField({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
+  if (!value) return null;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs text-gray-400 font-body">{label}</span>
+      <span className="text-sm text-gray-800 font-body">{value}</span>
+    </div>
+  );
+}
+
+function SidebarSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-b border-gray-100 pb-4 mb-4 last:border-0 last:mb-0 last:pb-0">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-3">
+        {title}
+      </h3>
+      <div className="flex flex-col gap-3">{children}</div>
+    </div>
+  );
+}
+
+// ─── Student Detail Sidebar ───────────────────────────────────────────────────
+
+function StudentDetailSidebar({
+  student,
+  onClose,
+}: {
+  student: DemoStudent | null;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && student) onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [student, onClose]);
+
+
+  return (
+    <AnimatePresence>
+      {student && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 z-40 backdrop-blur-sm"
+            style={{ background: "rgba(0,0,0,0.15)" }}
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 280 }}
+            className="absolute top-0 right-0 bottom-0 w-[480px] z-50 flex flex-col overflow-hidden bg-white border-l border-gray-100 shadow-xl"
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-10 px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-white">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold font-body shrink-0"
+                  style={{ backgroundColor: student.color }}
+                >
+                  {student.name
+                    .trim()
+                    .split(/\s+/)
+                    .map((w) => w[0])
+                    .slice(0, 2)
+                    .join("")}
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-gray-800 font-body leading-tight">
+                    {student.name}
+                  </h2>
+                  <p className="text-xs text-gray-400 font-body">
+                    {student.grade} · {student.classroom}
+                  </p>
+                </div>
+              </div>
+              <button
+                data-tour-id="student-sidebar-close"
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-0">
+              <SidebarSection title="Student Info">
+                <SidebarField label="Full Name" value={student.name} />
+                <SidebarField label="Grade" value={student.grade} />
+                <SidebarField label="Date of Birth" value={student.dob} />
+                <SidebarField
+                  label="Program"
+                  value={PROGRAM_LABELS[student.program] ?? student.program}
+                />
+                <SidebarField label="Classroom" value={student.classroom} />
+                <SidebarField
+                  label="Special Interests"
+                  value={student.special_interests}
+                />
+              </SidebarSection>
+              <SidebarSection title="Learning Profile">
+                <SidebarField
+                  label="Learning Style"
+                  value={student.learning_style}
+                />
+                <SidebarField
+                  label="Strengths & Interests"
+                  value={student.strengths}
+                />
+                <SidebarField
+                  label="Current Challenges"
+                  value={student.challenges}
+                />
+                <SidebarField
+                  label="Dysregulation Response"
+                  value={student.dysregulation_response}
+                />
+                <SidebarField
+                  label="Regulation Strategies"
+                  value={student.regulation_strategies}
+                />
+              </SidebarSection>
+              <SidebarSection title="Health Notes">
+                {student.allergies ? (
+                  <SidebarField label="Allergies" value={student.allergies} />
+                ) : (
+                  <p className="text-sm text-gray-400 font-body">
+                    No known allergies.
+                  </p>
+                )}
+                {student.medical_notes && (
+                  <SidebarField
+                    label="Medical Notes"
+                    value={student.medical_notes}
+                  />
+                )}
+              </SidebarSection>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─── Student Avatar ───────────────────────────────────────────────────────────
+
+function StudentAvatar({ name, color }: { name: string; color: string }) {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0].toUpperCase())
+    .slice(0, 2)
+    .join("");
+  return (
+    <div
+      className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold font-body select-none"
+      style={{ backgroundColor: color }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+// ─── My Students Section ──────────────────────────────────────────────────────
+
+function MyStudentsSection() {
+  const programs = PROGRAM_ORDER.filter((p) =>
+    DEMO_STUDENTS.some((s) => s.program === p),
+  );
+  const [activeProgram, setActiveProgram] = useState(programs[0] ?? "");
+  const [selectedStudent, setSelectedStudent] = useState<DemoStudent | null>(
+    null,
+  );
+
+  const filtered = DEMO_STUDENTS.filter((s) => s.program === activeProgram);
+
+  return (
+    <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-lg font-semibold text-gray-700 font-body">
+          My Students
+        </h2>
+        <div className="flex gap-2 flex-wrap justify-end">
+          {programs.map((p) => (
+            <button
+              key={p}
+              onClick={() => setActiveProgram(p)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium font-body transition-colors cursor-pointer ${
+                activeProgram === p
+                  ? "bg-[#336699] text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {PROGRAM_LABELS[p] ?? p}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {filtered.map((s, idx) => (
+          <div
+            key={s.id}
+            data-tour-id={idx === 0 ? "student-row-0" : undefined}
+            onClick={() => setSelectedStudent(s)}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 bg-gray-50 hover:bg-gray-100 hover:border-gray-200 cursor-pointer transition-all"
+          >
+            <StudentAvatar name={s.name} color={s.color} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 font-body">
+                {s.name}
+              </p>
+              <p className="text-xs text-gray-400 font-body mt-0.5">
+                Grade: {s.grade}
+              </p>
+            </div>
+            <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full shrink-0 font-body">
+              {s.classroom}
+            </span>
+            {s.attendance_status === "checked_in" && (
+              <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#336699]/10 text-[#336699] shrink-0 font-body">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#336699] animate-pulse" />
+                Checked In
+              </span>
+            )}
+            {s.attendance_status === "checked_out" && (
+              <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-400 shrink-0 font-body">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                Checked Out
+              </span>
+            )}
+            {s.attendance_status === "absent" && (
+              <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-500 shrink-0 font-body">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                Not Checked In
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <StudentDetailSidebar
+        student={selectedStudent}
+        onClose={() => setSelectedStudent(null)}
+      />
+    </section>
+  );
+}
+
+// ─── Students Page ────────────────────────────────────────────────────────────
+
+function StudentsPage() {
+  const programs = PROGRAM_ORDER.filter((p) =>
+    DEMO_STUDENTS.some((s) => s.program === p),
+  );
+  const [activeProgram, setActiveProgram] = useState(programs[0] ?? "");
+  const [selectedStudent, setSelectedStudent] = useState<DemoStudent | null>(null);
+  const [search, setSearch] = useState("");
+
+  const filtered = DEMO_STUDENTS.filter(
+    (s) =>
+      s.program === activeProgram &&
+      s.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const programStudents = DEMO_STUDENTS.filter((s) => s.program === activeProgram);
+  const checkedInCount = programStudents.filter(
+    (s) => s.attendance_status === "checked_in",
+  ).length;
+  const absentCount = programStudents.filter(
+    (s) => s.attendance_status === "absent",
+  ).length;
+
+  return (
+    <div className="flex flex-1 h-full border-t border-gray-100 overflow-hidden bg-white">
+      {/* Left sidebar */}
+      <div className="w-64 shrink-0 border-r border-gray-100 flex flex-col">
+        <div className="p-4 border-b border-gray-100">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body pb-3">
+            Programs
+          </p>
+          <div className="flex flex-col gap-1">
+            {programs.map((p) => {
+              const count = DEMO_STUDENTS.filter((s) => s.program === p).length;
+              const isActive = activeProgram === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => {
+                    setActiveProgram(p);
+                    setSearch("");
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
+                    isActive
+                      ? "bg-[#336699]/8 text-gray-800"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <span className="text-sm font-body font-medium truncate">
+                    {PROGRAM_LABELS[p] ?? p}
+                  </span>
+                  <span
+                    className={`text-xs font-semibold font-body px-2 py-0.5 rounded-full ${
+                      isActive
+                        ? "bg-[#336699]/15 text-[#336699]"
+                        : "bg-gray-100 text-gray-400"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="p-4 mt-auto">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-3">
+            Attendance Today
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#336699]" />
+                <span className="text-xs text-gray-600 font-body">Checked In</span>
+              </div>
+              <span className="text-xs font-semibold text-[#336699] font-body">
+                {checkedInCount}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="text-xs text-gray-600 font-body">Not Checked In</span>
+              </div>
+              <span className="text-xs font-semibold text-amber-500 font-body">
+                {absentCount}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-gray-300" />
+                <span className="text-xs text-gray-600 font-body">Total</span>
+              </div>
+              <span className="text-xs font-semibold text-gray-500 font-body">
+                {programStudents.length}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Search header */}
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 shrink-0">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search students..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm font-body bg-gray-50 border border-gray-100 rounded-lg focus:outline-none text-gray-800 placeholder:text-gray-400"
+            />
+          </div>
+          <span className="text-xs text-gray-400 font-body ml-auto">
+            {filtered.length} student{filtered.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        {/* Student list */}
+        <div className="flex-1 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="flex items-center justify-center py-16">
+              <p className="text-sm text-gray-400 font-body">No students found.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col divide-y divide-gray-50">
+              {filtered.map((s, idx) => (
+                <button
+                  key={s.id}
+                  data-tour-id={idx === 0 ? "student-row-0" : undefined}
+                  onClick={() => setSelectedStudent(s)}
+                  className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-gray-50 transition-colors cursor-pointer group"
+                >
+                  <StudentAvatar name={s.name} color={s.color} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 font-body">
+                      {s.name}
+                    </p>
+                    <p className="text-xs text-gray-400 font-body mt-0.5">
+                      {s.grade}
+                    </p>
+                  </div>
+                  <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full shrink-0 font-body">
+                    {s.classroom}
+                  </span>
+                  {s.attendance_status === "checked_in" && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#336699]/10 text-[#336699] shrink-0 font-body">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#336699] animate-pulse" />
+                      Checked In
+                    </span>
+                  )}
+                  {s.attendance_status === "checked_out" && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-400 shrink-0 font-body">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                      Checked Out
+                    </span>
+                  )}
+                  {s.attendance_status === "absent" && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-500 shrink-0 font-body">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                      Not Checked In
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <StudentDetailSidebar
+        student={selectedStudent}
+        onClose={() => setSelectedStudent(null)}
+      />
+    </div>
+  );
+}
+
+// ─── Hours Helpers ────────────────────────────────────────────────────────────
+
+function sessionDurationHours(s: DemoSession): number {
+  const end = s.clockOutAt ?? new Date();
+  return (end.getTime() - s.clockInAt.getTime()) / 3_600_000;
+}
+
+function getMonthDays(year: number, month: number): (Date | null)[] {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  const cells: (Date | null)[] = Array(offset).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+function buildHoursInitialSessions(): Record<string, DemoSession[]> {
+  const sessions: Record<string, DemoSession[]> = {};
+  const today = DEMO_TODAY;
+  const notes = [
+    "Curriculum planning",
+    "Student assessments",
+    "Parent emails",
+    "Lesson prep",
+    "Staff meeting",
+    "",
+  ];
+
+  // Build 4 weeks back of data
+  for (let weekBack = 0; weekBack <= 3; weekBack++) {
+    const monday = getMondayOfWeek(today);
+    monday.setDate(monday.getDate() - weekBack * 7);
+    const dayHours =
+      weekBack === 0
+        ? [4.5, 6.0, 5.5, 7.0, 4.0, 0, 0]
+        : weekBack === 1
+          ? [5.0, 5.5, 6.5, 5.0, 6.0, 0, 0]
+          : weekBack === 2
+            ? [4.0, 7.0, 5.0, 6.0, 5.5, 0, 0]
+            : [6.0, 5.0, 4.5, 5.5, 6.5, 0, 0];
+
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const key = todayKey(d);
+      const hrs = dayHours[i];
+      if (hrs <= 0) continue;
+      if (key > todayKey(today)) continue;
+      if (key === todayKey(today)) {
+        // Today: already clocked out session
+        const ci = new Date(d);
+        ci.setHours(8, 0, 0, 0);
+        const co = new Date(ci);
+        co.setTime(ci.getTime() + hrs * 3_600_000);
+        sessions[key] = [
+          {
+            id: `h-${key}-0`,
+            clockInAt: ci,
+            clockOutAt: co,
+            note: "Morning session",
+          },
+        ];
+      } else {
+        const ci = new Date(d);
+        ci.setHours(8, 0, 0, 0);
+        const co = new Date(ci);
+        co.setTime(ci.getTime() + hrs * 3_600_000);
+        sessions[key] = [
+          {
+            id: `h-${key}-0`,
+            clockInAt: ci,
+            clockOutAt: co,
+            note: notes[i % notes.length],
+          },
+        ];
+      }
+    }
+  }
+  return sessions;
+}
+
+const WEEKLY_GOAL = 40;
+type ViewMode = "day" | "week" | "month";
+
+const HOURS_VIEW_OPTIONS: { id: ViewMode; label: string }[] = [
+  { id: "day", label: "Day" },
+  { id: "week", label: "Week" },
+  { id: "month", label: "Month" },
+];
+
+// ─── Session Row ──────────────────────────────────────────────────────────────
+
+function SessionRow({
+  session,
+  onDelete,
+  onNoteChange,
+}: {
+  session: DemoSession;
+  onDelete: (id: string) => void;
+  onNoteChange: (id: string, note: string) => void;
+}) {
+  const [note, setNote] = useState(session.note);
+  const [editing, setEditing] = useState(false);
+  const noteRef = useRef<HTMLInputElement>(null);
+  const hours = sessionDurationHours(session);
+
+  function handleNoteBlur() {
+    setEditing(false);
+    if (note !== session.note) onNoteChange(session.id, note);
+  }
+
+  return (
+    <div className="flex items-center gap-4 px-5 py-3.5 rounded-xl bg-gray-50 border border-gray-100 group">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-1">
+          <span className="text-sm font-semibold text-gray-700 font-body tabular-nums">
+            {fmt12(session.clockInAt)}
+            {session.clockOutAt && <> &ndash; {fmt12(session.clockOutAt)}</>}
+          </span>
+          {session.clockOutAt && (
+            <span className="text-xs font-semibold text-[#336699] bg-[#336699]/8 px-2 py-0.5 rounded-full font-body">
+              {formatDuration(hours)}
+            </span>
+          )}
+        </div>
+        {session.clockOutAt &&
+          (editing ? (
+            <input
+              ref={noteRef}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onBlur={handleNoteBlur}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") noteRef.current?.blur();
+              }}
+              autoFocus
+              placeholder="Add a note..."
+              className="w-full text-xs text-gray-500 font-body bg-transparent border-b border-gray-200 focus:outline-none focus:border-[#336699] py-0.5"
+            />
+          ) : (
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs text-gray-400 font-body hover:text-gray-600 transition-colors text-left truncate max-w-[260px] cursor-pointer"
+            >
+              {note || "Add a note…"}
+            </button>
+          ))}
+      </div>
+      <button
+        onClick={() => onDelete(session.id)}
+        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer shrink-0"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
+// ─── Day View ─────────────────────────────────────────────────────────────────
+
+function DayView({
+  selectedDate,
+  sessionsByDay,
+  activeSession,
+  onClockIn,
+  onClockOut,
+  onDeleteSession,
+  onNoteChange,
+}: {
+  selectedDate: Date;
+  sessionsByDay: Record<string, DemoSession[]>;
+  activeSession: DemoSession | null;
+  onClockIn: () => void;
+  onClockOut: () => void;
+  onDeleteSession: (id: string) => void;
+  onNoteChange: (id: string, note: string) => void;
+}) {
+  const currentTodayKey = todayKey(new Date());
+  const selectedKey = todayKey(selectedDate);
+  const isToday = selectedKey === currentTodayKey;
+  const isFuture = selectedKey > currentTodayKey;
+  const daySessions = sessionsByDay[selectedKey] ?? [];
+  const dayTotalHours = getDayTotalHours(daySessions);
+  const isActiveDay =
+    activeSession !== null &&
+    todayKey(new Date(activeSession.clockInAt)) === selectedKey;
+
+  const dayFull = selectedDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={selectedKey}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="flex flex-col gap-6"
+      >
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-2xl font-semibold font-heading text-gray-800">
+              {selectedDate.toLocaleDateString("en-US", { weekday: "long" })}
+            </h2>
+            {isToday && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-medium font-body bg-amber-50 text-amber-600 border border-amber-200">
+                Today
+              </span>
+            )}
+            {dayTotalHours > 0 && (
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-[#336699]/8 rounded-full">
+                <Clock className="w-3.5 h-3.5 text-[#336699]" />
+                <span className="text-sm font-semibold text-[#336699] font-body tabular-nums">
+                  {formatDuration(dayTotalHours)}
+                </span>
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-400 font-body">
+            {dayFull.split(", ").slice(1).join(", ")}
+          </p>
+        </div>
+
+        {isToday && (
+          <div
+            className={`flex items-center justify-between px-6 py-5 rounded-xl border ${
+              isActiveDay
+                ? "bg-[#336699]/5 border-[#336699]/20"
+                : "bg-gray-50 border-gray-100"
+            }`}
+          >
+            <div>
+              {isActiveDay ? (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#336699] font-body mb-1">
+                    Clocked In
+                  </p>
+                  <p className="text-2xl font-bold font-heading text-gray-800 tabular-nums leading-none">
+                    <ElapsedTimer clockInAt={activeSession!.clockInAt} />
+                  </p>
+                  <p className="text-xs text-gray-400 font-body mt-1">
+                    Since {fmt12(activeSession!.clockInAt)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-1">
+                    Not clocked in
+                  </p>
+                  <p className="text-sm text-gray-400 font-body">
+                    {daySessions.length > 0
+                      ? "Clock in again to log more time"
+                      : "Tap Clock In to start tracking"}
+                  </p>
+                </>
+              )}
+            </div>
+            {isActiveDay ? (
+              <button
+                onClick={onClockOut}
+                className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 text-gray-700 font-semibold font-body text-sm rounded-xl hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                Clock Out
+              </button>
+            ) : (
+              <button
+                onClick={onClockIn}
+                className="flex items-center gap-2 px-5 py-3 bg-[#336699] text-white font-semibold font-body text-sm rounded-xl hover:bg-[#3d6b4a] transition-colors shadow-sm cursor-pointer"
+              >
+                <LogIn className="w-4 h-4" />
+                Clock In
+              </button>
+            )}
+          </div>
+        )}
+
+        {!isToday && !isFuture && daySessions.length === 0 && (
+          <div className="px-6 py-5 rounded-xl bg-gray-50 border border-gray-100">
+            <p className="text-sm text-gray-400 font-body">
+              No sessions logged for this day.
+            </p>
+          </div>
+        )}
+
+        {daySessions.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-1">
+              Sessions
+            </p>
+            {daySessions.map((session) => (
+              <SessionRow
+                key={session.id}
+                session={session}
+                onDelete={onDeleteSession}
+                onNoteChange={onNoteChange}
+              />
+            ))}
+          </div>
+        )}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ─── Week View ────────────────────────────────────────────────────────────────
+
+function WeekView({
+  sessionsByDay,
+  activeSession,
+  onDayClick,
+}: {
+  sessionsByDay: Record<string, DemoSession[]>;
+  activeSession: DemoSession | null;
+  onDayClick: (date: Date, switchView: boolean) => void;
+}) {
+  const currentTodayKey = todayKey(new Date());
+  const [weekOffset, setWeekOffset] = useState(0);
+  const monday = getMondayOfWeek(new Date());
+  monday.setDate(monday.getDate() + weekOffset * 7);
+  const weekDays = getWeekDays(monday);
+  const totalHours = getWeekTotalHours(monday, sessionsByDay);
+
+  const fri = new Date(monday);
+  fri.setDate(monday.getDate() + 4);
+  const weekLabel = `${monday.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${fri.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-700 font-body">
+            {weekOffset === 0
+              ? "This Week"
+              : weekOffset === -1
+                ? "Last Week"
+                : weekLabel.split("–")[0].trim()}
+          </h2>
+          <p className="text-xs text-gray-400 font-body mt-0.5">{weekLabel}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold font-body text-gray-500 tabular-nums mr-2">
+            {formatDuration(totalHours)}
+            <span className="text-xs font-normal text-gray-300 ml-1">
+              / {WEEKLY_GOAL}h
+            </span>
+          </span>
+          <button
+            onClick={() => setWeekOffset((w) => w - 1)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setWeekOffset((w) => w + 1)}
+            disabled={weekOffset >= 0}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {weekDays.map((d, i) => {
+          const key = todayKey(d);
+          const daySessions = sessionsByDay[key] ?? [];
+          const isActiveDay =
+            activeSession !== null &&
+            todayKey(new Date(activeSession.clockInAt)) === key;
+          const isLogged = daySessions.some((s) => !!s.clockOutAt);
+          const isToday = key === currentTodayKey;
+          const hours = getDayTotalHours(daySessions);
+
+          return (
+            <motion.div
+              key={key}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: i * 0.05 }}
+              onClick={() => onDayClick(d, true)}
+              className={`flex items-center gap-5 px-5 py-4 rounded-xl border cursor-pointer transition-all duration-150 group
+                ${
+                  isLogged || isActiveDay
+                    ? "border-l-[3px] border-l-[#336699] border-t-gray-100 border-r-gray-100 border-b-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm"
+                    : isToday
+                      ? "border border-[#336699]/20 bg-[#336699]/5 hover:shadow-sm"
+                      : key > currentTodayKey
+                        ? "border border-gray-50 bg-gray-50/50 opacity-50"
+                        : "border border-gray-100 hover:bg-gray-50 hover:shadow-sm"
+                }`}
+            >
+              <div className="w-16 shrink-0">
+                <p className="text-sm font-semibold text-gray-700 font-body">
+                  {d.toLocaleDateString("en-US", { weekday: "short" })}
+                </p>
+                <p className="text-xs text-gray-400 font-body">
+                  {d.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
+              <div className="shrink-0">
+                {isActiveDay ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium font-body bg-[#336699]/10 text-[#336699]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#336699] animate-pulse" />
+                    Active
+                  </span>
+                ) : isLogged ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium font-body bg-[#336699]/10 text-[#336699]">
+                    Logged
+                  </span>
+                ) : isToday ? (
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium font-body bg-amber-50 text-amber-500 border border-amber-200">
+                    Today
+                  </span>
+                ) : key > currentTodayKey ? (
+                  <span className="text-xs text-gray-300 font-body">
+                    Upcoming
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium font-body bg-gray-100 text-gray-400">
+                    Not logged
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                {hours > 0 && (
+                  <span className="text-xs text-[#336699] font-semibold font-body bg-[#336699]/8 px-2.5 py-1 rounded-full">
+                    {formatDuration(hours)}
+                  </span>
+                )}
+                {isActiveDay && activeSession && (
+                  <span className="text-xs text-gray-400 font-body ml-2">
+                    Clocked in {fmt12(activeSession.clockInAt)}
+                  </span>
+                )}
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            </motion.div>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 pt-5 border-t border-gray-100 flex items-center justify-between">
+        <span className="text-xs text-gray-400 font-body font-semibold uppercase tracking-widest">
+          Week total
+        </span>
+        <span className="text-base font-semibold text-gray-700 font-body tabular-nums">
+          {formatDuration(totalHours)}{" "}
+          <span className="text-sm font-normal text-gray-400">
+            of {WEEKLY_GOAL}h
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Month View ───────────────────────────────────────────────────────────────
+
+function MonthView({
+  sessionsByDay,
+  onDayClick,
+}: {
+  sessionsByDay: Record<string, DemoSession[]>;
+  onDayClick: (date: Date, switchView: boolean) => void;
+}) {
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const currentTodayKey = todayKey(today);
+
+  const cells = getMonthDays(year, month);
+  const monthLabel = new Date(year, month, 1).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  function prevMonth() {
+    if (month === 0) {
+      setMonth(11);
+      setYear((y) => y - 1);
+    } else setMonth((m) => m - 1);
+  }
+  function nextMonth() {
+    if (month === 11) {
+      setMonth(0);
+      setYear((y) => y + 1);
+    } else setMonth((m) => m + 1);
+  }
+
+  const loggedCount = cells.filter(
+    (d) => d && getDayTotalHours(sessionsByDay[todayKey(d)] ?? []) > 0,
+  ).length;
+  const totalLoggedHours = cells.reduce(
+    (acc, d) =>
+      d ? acc + getDayTotalHours(sessionsByDay[todayKey(d)] ?? []) : acc,
+    0,
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-700 font-body">
+            {monthLabel}
+          </h2>
+          <p className="text-xs text-gray-400 font-body mt-0.5">
+            {loggedCount} day{loggedCount !== 1 ? "s" : ""} logged ·{" "}
+            {formatDuration(totalLoggedHours)} total
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={prevMonth}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={nextMonth}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 mb-1">
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+          <div
+            key={d}
+            className="text-center text-xs font-semibold text-gray-300 font-body py-1.5"
+          >
+            {d}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((d, i) => {
+          if (!d) return <div key={`empty-${i}`} />;
+          const key = todayKey(d);
+          const hours = getDayTotalHours(sessionsByDay[key] ?? []);
+          const isLogged = hours > 0;
+          const isToday = key === currentTodayKey;
+          const isFuture = key > currentTodayKey;
+          const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+          return (
+            <button
+              key={key}
+              onClick={() => !isWeekend && onDayClick(d, true)}
+              disabled={isWeekend}
+              className={`relative flex flex-col items-center justify-start rounded-xl py-2 px-1 transition-all group
+                ${isWeekend ? "cursor-default opacity-30" : "cursor-pointer"}
+                ${isLogged && !isWeekend ? "bg-[#336699]/8 hover:bg-[#336699]/15" : isToday ? "ring-2 ring-[#336699]/30 hover:bg-gray-50" : !isWeekend ? "hover:bg-gray-50" : ""}`}
+            >
+              <span
+                className={`text-sm font-medium font-body leading-none mb-1.5
+                ${
+                  isToday
+                    ? "w-6 h-6 flex items-center justify-center rounded-full bg-[#336699] text-white text-xs"
+                    : isLogged
+                      ? "text-gray-800"
+                      : isFuture
+                        ? "text-gray-300"
+                        : "text-gray-500"
+                }`}
+              >
+                {d.getDate()}
+              </span>
+              {isLogged && (
+                <span className="text-[10px] font-semibold text-[#336699] font-body tabular-nums leading-none">
+                  {formatDuration(hours)}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-4 mt-5 pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-[#336699]/15" />
+          <span className="text-xs text-gray-400 font-body">Logged</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded ring-2 ring-[#336699]/30" />
+          <span className="text-xs text-gray-400 font-body">Today</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-gray-100" />
+          <span className="text-xs text-gray-400 font-body">Not logged</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Summary Panel ────────────────────────────────────────────────────────────
+
+function SummaryPanel({
+  sessionsByDay,
+  activeSession,
+}: {
+  sessionsByDay: Record<string, DemoSession[]>;
+  activeSession: DemoSession | null;
+}) {
+  const today = new Date();
+  const currentTodayKey = todayKey(today);
+  const monday = getMondayOfWeek(today);
+  const weekDays = getWeekDays(monday);
+  const weekTotal = getWeekTotalHours(monday, sessionsByDay);
+  const weekLogged = weekDays.filter(
+    (d) => getDayTotalHours(sessionsByDay[todayKey(d)] ?? []) > 0,
+  ).length;
+
+  const monthCells = getMonthDays(today.getFullYear(), today.getMonth());
+  const monthTotal = monthCells.reduce(
+    (acc, d) =>
+      d ? acc + getDayTotalHours(sessionsByDay[todayKey(d)] ?? []) : acc,
+    0,
+  );
+  const monthLogged = monthCells.filter(
+    (d) => d && getDayTotalHours(sessionsByDay[todayKey(d)] ?? []) > 0,
+  ).length;
+
+  const todayHours = getDayTotalHours(sessionsByDay[currentTodayKey] ?? []);
+  const todaySessions = sessionsByDay[currentTodayKey] ?? [];
+
+  const recentDays = Object.entries(sessionsByDay)
+    .filter(
+      ([k]) => k <= currentTodayKey && getDayTotalHours(sessionsByDay[k]) > 0,
+    )
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, 5);
+
+  const weekPct = Math.min(1, weekTotal / WEEKLY_GOAL);
+  const weekRemaining = Math.max(0, WEEKLY_GOAL - weekTotal);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-6 py-6 border-b border-gray-100">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-4">
+          This Week
+        </p>
+        <div className="flex items-end justify-between mb-2.5">
+          <span className="text-2xl font-bold font-heading text-gray-800 tabular-nums leading-none">
+            {formatDuration(weekTotal)}
+          </span>
+          <span className="text-xs text-gray-400 font-body">
+            of {WEEKLY_GOAL}h
+          </span>
+        </div>
+        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-3">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${weekPct * 100}%` }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            className="h-full bg-[#336699] rounded-full"
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-400 font-body">
+            {weekLogged}/5 days
+          </span>
+          {weekRemaining > 0 ? (
+            <span className="text-xs text-gray-500 font-body">
+              <span className="font-semibold text-gray-700">
+                {formatDuration(weekRemaining)}
+              </span>{" "}
+              to go
+            </span>
+          ) : (
+            <span className="text-xs font-semibold text-[#336699] font-body">
+              Goal reached!
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 border-b border-gray-100">
+        <div className="px-6 py-5 border-r border-gray-100">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-2">
+            Today
+          </p>
+          {activeSession ? (
+            <>
+              <p className="text-[11px] font-semibold text-[#336699] font-body mb-1 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#336699] animate-pulse inline-block" />
+                Clocked in
+              </p>
+              <p className="text-xl font-bold font-heading text-gray-800 tabular-nums leading-none">
+                <ElapsedTimer clockInAt={activeSession.clockInAt} />
+              </p>
+            </>
+          ) : todayHours > 0 ? (
+            <>
+              <p className="text-xl font-bold font-heading text-gray-800 tabular-nums leading-none">
+                {formatDuration(todayHours)}
+              </p>
+              <p className="text-[11px] text-gray-400 font-body mt-1">
+                {todaySessions.length} session
+                {todaySessions.length !== 1 ? "s" : ""}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xl font-bold font-heading text-gray-300 leading-none">
+                —
+              </p>
+              <p className="text-[11px] text-gray-300 font-body mt-1">
+                Not clocked in
+              </p>
+            </>
+          )}
+        </div>
+        <div className="px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-2">
+            Month
+          </p>
+          <p className="text-xl font-bold font-heading text-gray-800 tabular-nums leading-none">
+            {formatDuration(monthTotal)}
+          </p>
+          <p className="text-[11px] text-gray-400 font-body mt-1 leading-snug">
+            {monthLogged} day{monthLogged !== 1 ? "s" : ""}
+            <br />
+            logged
+          </p>
+        </div>
+      </div>
+
+      <div className="px-6 py-5 flex-1">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="w-3 h-3 text-gray-400" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body">
+            Recent
+          </p>
+        </div>
+        {recentDays.length === 0 ? (
+          <p className="text-sm text-gray-300 font-body">No entries yet.</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {recentDays.map(([key]) => {
+              const d = new Date(key + "T00:00:00");
+              const isToday = key === currentTodayKey;
+              const hours = getDayTotalHours(sessionsByDay[key] ?? []);
+              const sessionCount = (sessionsByDay[key] ?? []).filter(
+                (s) => !!s.clockOutAt,
+              ).length;
+              return (
+                <div
+                  key={key}
+                  className="flex items-start justify-between gap-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-700 font-body leading-none mb-0.5">
+                      {isToday
+                        ? "Today"
+                        : d.toLocaleDateString("en-US", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                    </p>
+                    <p className="text-[11px] text-gray-400 font-body">
+                      {sessionCount} session{sessionCount !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold text-[#336699] font-body tabular-nums shrink-0">
+                    {formatDuration(hours)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Messages Demo Data ───────────────────────────────────────────────────────
+
+type DemoConvo = {
+  id: string;
+  name: string;
+  role: string;
+  color: string;
+  lastMsg: string;
+  lastTime: string;
+  unread: number;
+};
+type DemoMsg = { id: string; from: "me" | "them"; body: string; time: string };
+
+const DEMO_CONVOS: DemoConvo[] = [
+  {
+    id: "c1",
+    name: "Sarah Rivera",
+    role: "Parent",
+    color: "#7FA888",
+    lastMsg: "Thank you so much, that's great to hear!",
+    lastTime: "2m ago",
+    unread: 2,
+  },
+  {
+    id: "c2",
+    name: "David Chen",
+    role: "Parent",
+    color: "#6b8db5",
+    lastMsg: "Could we reschedule our conference?",
+    lastTime: "Yesterday",
+    unread: 1,
+  },
+  {
+    id: "c3",
+    name: "Ms. Paige Sun",
+    role: "Teacher",
+    color: "#c9a96e",
+    lastMsg: "I'll cover your 10am on Friday.",
+    lastTime: "Apr 18",
+    unread: 0,
+  },
+  {
+    id: "c4",
+    name: LIGHTHOUSE_TEACHER_OFFICE,
+    role: "Admin",
+    color: "#336699",
+    lastMsg: "PD day reminder: May 2nd, no students.",
+    lastTime: "Apr 17",
+    unread: 0,
+  },
+];
+
+const DEMO_THREADS: Record<string, DemoMsg[]> = {
+  c1: [
+    {
+      id: "m1",
+      from: "them",
+      body: "Hi Jordan! Just checking in — Emma seemed a bit tired this morning.",
+      time: "9:02 AM",
+    },
+    {
+      id: "m2",
+      from: "me",
+      body: "Hi Sarah! Yes, I noticed too. She settled in really well once we started our project.",
+      time: "9:10 AM",
+    },
+    {
+      id: "m3",
+      from: "them",
+      body: "That's a relief. Did she participate okay?",
+      time: "9:12 AM",
+    },
+    {
+      id: "m4",
+      from: "me",
+      body: "Absolutely — she was actually one of the first to finish her watercolor piece today. Really proud of her.",
+      time: "9:15 AM",
+    },
+    {
+      id: "m5",
+      from: "them",
+      body: "Thank you so much, that's great to hear!",
+      time: "9:16 AM",
+    },
+  ],
+  c2: [
+    {
+      id: "m1",
+      from: "them",
+      body: "Hi! I wanted to confirm our parent-teacher conference for April 28th.",
+      time: "Yesterday 2:00 PM",
+    },
+    {
+      id: "m2",
+      from: "me",
+      body: "Hi David! Yes, you're confirmed for 2:30 PM. Looking forward to it.",
+      time: "Yesterday 2:30 PM",
+    },
+    {
+      id: "m3",
+      from: "them",
+      body: "Could we reschedule our conference?",
+      time: "Yesterday 4:00 PM",
+    },
+  ],
+  c3: [
+    {
+      id: "m1",
+      from: "them",
+      body: "Hey Jordan — are you free on Friday morning? I have a conflict with my 10am.",
+      time: "Apr 18 11:00 AM",
+    },
+    {
+      id: "m2",
+      from: "me",
+      body: "Sure thing! What time works for you?",
+      time: "Apr 18 11:15 AM",
+    },
+    {
+      id: "m3",
+      from: "them",
+      body: "I'll cover your 10am on Friday.",
+      time: "Apr 18 11:20 AM",
+    },
+  ],
+  c4: [
+    {
+      id: "m1",
+      from: "them",
+      body: "Reminder: Professional Development Day is May 2nd. No students on campus. Bring your curriculum planning materials.",
+      time: "Apr 17 9:00 AM",
+    },
+    {
+      id: "m2",
+      from: "me",
+      body: "Got it, thanks for the heads-up!",
+      time: "Apr 17 9:05 AM",
+    },
+    {
+      id: "m3",
+      from: "them",
+      body: "PD day reminder: May 2nd, no students.",
+      time: "Apr 17 9:10 AM",
+    },
+  ],
+};
+
+function initialsFrom(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0].toUpperCase())
+    .slice(0, 2)
+    .join("");
+}
+
+function MessagesPage({
+  externalDraft,
+  setExternalDraft,
+}: {
+  externalDraft?: string;
+  setExternalDraft?: (v: string) => void;
+}) {
+  const [activeId, setActiveId] = useState<string>("c1");
+  const [threads, setThreads] =
+    useState<Record<string, DemoMsg[]>>(DEMO_THREADS);
+  const [search, setSearch] = useState("");
+  const [internalDraft, setInternalDraft] = useState("");
+  const draft = externalDraft !== undefined ? externalDraft : internalDraft;
+  const setDraft = setExternalDraft ?? setInternalDraft;
+  const [convos, setConvos] = useState<DemoConvo[]>(DEMO_CONVOS);
+  const [mobileView, setMobileView] = useState<"list" | "chat">("chat");
+  const endRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const active = convos.find((c) => c.id === activeId) ?? null;
+  const messages = threads[activeId] ?? [];
+  const filtered = convos.filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [activeId, messages.length]);
+
+  function sendMsg() {
+    const body = draft.trim();
+    if (!body) return;
+    setDraft("");
+    const newMsg: DemoMsg = {
+      id: `m-${Date.now()}`,
+      from: "me",
+      body,
+      time: new Date().toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+    };
+    setThreads((prev) => ({
+      ...prev,
+      [activeId]: [...(prev[activeId] ?? []), newMsg],
+    }));
+    setConvos((prev) =>
+      prev.map((c) =>
+        c.id === activeId
+          ? { ...c, lastMsg: body, lastTime: "Just now", unread: 0 }
+          : c,
+      ),
+    );
+  }
+
+  function openConvo(id: string) {
+    setActiveId(id);
+    setConvos((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, unread: 0 } : c)),
+    );
+    setMobileView("chat");
+  }
+
+  return (
+    <div className="flex flex-1 h-full border-t border-gray-100 overflow-hidden bg-white">
+      {/* Conversation list */}
+      <div
+        className={`w-72 shrink-0 border-r border-gray-100 flex flex-col ${mobileView === "chat" ? "hidden sm:flex" : "flex"}`}
+      >
+        <div className="p-3 border-b border-gray-100 space-y-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search conversations..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm font-body bg-gray-50 border border-gray-100 rounded-lg focus:outline-none text-gray-800 placeholder:text-gray-400"
+            />
+          </div>
+          <button className="w-full flex items-center justify-center gap-2 bg-[#336699] hover:bg-[#3d6b4a] text-white text-sm font-medium py-2 rounded-lg transition-colors cursor-pointer">
+            <SquarePen className="w-4 h-4" />
+            New Message
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {filtered.map((c) => (
+            <button
+              key={c.id}
+              data-tour-id={`messages-conv-${c.id}`}
+              onClick={() => openConvo(c.id)}
+              className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors cursor-pointer ${c.id === activeId ? "bg-[#336699]/5 border-r-2 border-[#336699]" : "hover:bg-gray-50"}`}
+            >
+              <div
+                className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold font-body"
+                style={{ backgroundColor: c.color }}
+              >
+                {initialsFrom(c.name)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold font-body text-gray-800 truncate">
+                    {c.name}
+                  </span>
+                  <span className="text-[11px] text-gray-400 font-body shrink-0 ml-2">
+                    {c.lastTime}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 font-body">{c.role}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-gray-500 font-body truncate flex-1">
+                    {c.lastMsg}
+                  </p>
+                  {c.unread > 0 && (
+                    <span className="bg-[#336699] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+                      {c.unread}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chat area */}
+      <div
+        className={`flex-1 flex flex-col min-w-0 ${mobileView === "list" ? "hidden sm:flex" : "flex"}`}
+      >
+        {active ? (
+          <>
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-100 shrink-0">
+              <button
+                onClick={() => setMobileView("list")}
+                className="sm:hidden text-gray-500 cursor-pointer"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div
+                className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold font-body"
+                style={{ backgroundColor: active.color }}
+              >
+                {initialsFrom(active.name)}
+              </div>
+              <div>
+                <p className="text-sm font-semibold font-body text-gray-800">
+                  {active.name}
+                </p>
+                <p className="text-[11px] text-gray-400 font-body">
+                  {active.role}
+                </p>
+              </div>
+            </div>
+
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm font-body leading-relaxed ${msg.from === "me" ? "bg-[#336699] text-white rounded-br-md" : "bg-gray-100 text-gray-800 rounded-bl-md"}`}
+                  >
+                    <p>{msg.body}</p>
+                    <p
+                      className={`text-[10px] mt-1 ${msg.from === "me" ? "text-white/60" : "text-gray-400"}`}
+                    >
+                      {msg.time}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-gray-100 px-4 py-3 flex items-center gap-2 shrink-0">
+              <input
+                data-tour-id="messages-input"
+                type="text"
+                placeholder="Type a message..."
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMsg();
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 text-sm font-body bg-gray-50 border border-gray-100 rounded-xl focus:outline-none text-gray-800 placeholder:text-gray-400"
+              />
+              <button
+                data-tour-id="messages-send"
+                onClick={sendMsg}
+                disabled={!draft.trim()}
+                className="w-10 h-10 rounded-xl bg-[#336699] hover:bg-[#3d6b4a] disabled:opacity-40 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-gray-400 font-body">
+              Select a conversation
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Calendar Demo Data ───────────────────────────────────────────────────────
+
+const CALENDAR_EVENTS: DemoCalendarEvent[] = [
+  ...DEMO_EVENTS,
+  {
+    id: "ce1",
+    title: "Curriculum Planning",
+    event_date: "2026-04-21",
+    is_all_day: false,
+    start_time: "09:00",
+    end_time: "11:00",
+    color: "#c9a96e",
+    category: "Planning",
+    description: "Q3 curriculum mapping session with department heads.",
+    location: "Room 101",
+    attachment_links: ["curriculum-map-q3.pdf"],
+  },
+  {
+    id: "ce2",
+    title: "Spring Showcase",
+    event_date: "2026-05-08",
+    is_all_day: false,
+    start_time: "14:00",
+    end_time: "16:30",
+    color: "#a78bda",
+    category: "Community",
+    description:
+      "Student art and project showcase for families. All parents invited.",
+    location: "Main Hall",
+    attachment_links: null,
+  },
+  {
+    id: "ce3",
+    title: "End-of-Month Review",
+    event_date: "2026-04-30",
+    is_all_day: false,
+    start_time: "15:30",
+    end_time: "16:15",
+    color: "#5ba8c4",
+    category: "Staff",
+    description:
+      "Monthly wrap-up with admin team. Bring your student progress notes.",
+    location: "Conference Room B",
+    attachment_links: null,
+  },
+];
+
+type CalView = "month" | "week";
+
+function CalendarPage() {
+  const today = new Date(2026, 3, 22); // Apr 22, 2026 (fixed demo date)
+  const currentTodayKey = todayKey(today);
+
+  const [calView, setCalView] = useState<CalView>("week");
+  const [year, setYear] = useState(2026);
+  const [month, setMonth] = useState(3); // April
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date(2026, 3, 22);
+    d.setDate(d.getDate() - d.getDay()); // Sunday of Apr 22's week → Apr 19
+    return d;
+  });
+  const [selectedEvent, setSelectedEvent] = useState<DemoCalendarEvent | null>(null);
+
+  // Month view helpers
+  const cells = getMonthDays(year, month);
+  const monthLabel = new Date(year, month, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  // Week view helpers
+  const WEEK_START_HOUR = 7;
+  const WEEK_END_HOUR = 20;
+  const HOUR_HEIGHT = 56;
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+  const weekRangeLabel = (() => {
+    const s = weekDays[0];
+    const e = weekDays[6];
+    const sM = s.toLocaleString("default", { month: "short" });
+    const eM = e.toLocaleString("default", { month: "short" });
+    if (sM === eM) return `${sM} ${s.getDate()} \u2013 ${e.getDate()}, ${e.getFullYear()}`;
+    return `${sM} ${s.getDate()} \u2013 ${eM} ${e.getDate()}, ${e.getFullYear()}`;
+  })();
+
+  function fmtDate(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function isTodayDate(d: Date) { return fmtDate(d) === currentTodayKey; }
+  function eventsForDate(dateStr: string) {
+    return CALENDAR_EVENTS.filter((e) => e.event_date === dateStr);
+  }
+
+  const timeToTop = (time: string) => {
+    const [h, m] = time.split(":").map(Number);
+    return ((h + m / 60 - WEEK_START_HOUR) / (WEEK_END_HOUR - WEEK_START_HOUR)) * (HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR));
+  };
+  const timeToHeight = (start: string, end: string) => {
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    return ((eh * 60 + em - (sh * 60 + sm)) / 60) * HOUR_HEIGHT;
+  };
+  const nowTop = (() => {
+    const nowH = 10, nowM = 15; // simulate 10:15 AM
+    return ((nowH + nowM / 60 - WEEK_START_HOUR) / (WEEK_END_HOUR - WEEK_START_HOUR)) * (HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR));
+  })();
+
+  function prevPeriod() {
+    if (calView === "month") {
+      if (month === 0) { setMonth(11); setYear((y) => y - 1); }
+      else setMonth((m) => m - 1);
+    } else {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() - 7);
+      setWeekStart(d);
+    }
+  }
+  function nextPeriod() {
+    if (calView === "month") {
+      if (month === 11) { setMonth(0); setYear((y) => y + 1); }
+      else setMonth((m) => m + 1);
+    } else {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + 7);
+      setWeekStart(d);
+    }
+  }
+  function goToday() {
+    if (calView === "month") { setYear(2026); setMonth(3); }
+    else {
+      const d = new Date(2026, 3, 22);
+      d.setDate(d.getDate() - d.getDay());
+      setWeekStart(d);
+    }
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setSelectedEvent(null); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <div className="flex flex-1 overflow-hidden border-t border-gray-100 relative">
+      {/* Main calendar area */}
+      <div className="flex-1 min-w-0 overflow-hidden flex flex-col px-6 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4 shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={prevPeriod}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <h2 className="text-base font-semibold font-body text-gray-800 min-w-[190px] text-center">
+              {calView === "month" ? monthLabel : weekRangeLabel}
+            </h2>
+            <button
+              data-tour-id="calendar-next-month"
+              onClick={nextPeriod}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={goToday}
+              className="ml-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer font-body"
+            >
+              Today
+            </button>
+          </div>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+            {(["month", "week"] as CalView[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setCalView(v)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-body transition-all cursor-pointer capitalize ${calView === v ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {calView === "month" ? (
+          /* \u2500\u2500 Month View \u2500\u2500 */
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="grid grid-cols-7 mb-1 shrink-0">
+              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                <div key={d} className="text-center text-xs font-semibold text-gray-300 font-body py-1.5">{d}</div>
+              ))}
+            </div>
+            <div className="flex-1 overflow-y-auto grid grid-cols-7 gap-px bg-gray-100 border border-gray-100" style={{ gridAutoRows: "minmax(80px, 1fr)" }}>
+              {cells.map((d, i) => {
+                if (!d) return <div key={`e-${i}`} className="bg-white" />;
+                const key = todayKey(d);
+                const isTodayCell = key === currentTodayKey;
+                const dayEvents = eventsForDate(key);
+                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                return (
+                  <div key={key} className={`p-1.5 ${isWeekend ? "bg-gray-50/60" : "bg-white"}`}>
+                    <div className={`text-xs font-semibold font-body mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isTodayCell ? "bg-[#336699] text-white" : "text-gray-500"}`}>
+                      {d.getDate()}
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      {dayEvents.slice(0, 3).map((ev) => (
+                        <button
+                          key={ev.id}
+                          data-tour-id={ev.id === "e4" ? "calendar-event-e4" : undefined}
+                          onClick={() => setSelectedEvent(ev)}
+                          className="w-full text-left text-[10px] font-semibold font-body px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: (ev.color ?? "#336699") + "22", color: ev.color ?? "#336699" }}
+                        >
+                          {ev.title}
+                        </button>
+                      ))}
+                      {dayEvents.length > 3 && (
+                        <span className="text-[10px] text-gray-400 font-body px-1.5">+{dayEvents.length - 3} more</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* \u2500\u2500 Week View \u2500\u2500 */
+          <div className="flex-1 overflow-hidden flex flex-col border border-gray-100 rounded-xl bg-white">
+            {/* Day header row */}
+            <div
+              className="grid shrink-0"
+              style={{ gridTemplateColumns: "52px repeat(7, 1fr)", borderBottom: "1px solid #f3f4f6" }}
+            >
+              <div style={{ borderRight: "1px solid #f3f4f6" }} />
+              {weekDays.map((d, i) => {
+                const todayCol = isTodayDate(d);
+                return (
+                  <div
+                    key={i}
+                    className="py-2 text-center"
+                    style={{
+                      borderRight: i < 6 ? "1px solid #f3f4f6" : "none",
+                      backgroundColor: todayCol ? "#33669918" : "transparent",
+                    }}
+                  >
+                    <div className="text-[9px] font-semibold uppercase tracking-widest text-gray-400">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()]}
+                    </div>
+                    <div
+                      className="text-sm font-bold mt-0.5 w-7 h-7 mx-auto flex items-center justify-center rounded-full"
+                      style={{
+                        color: todayCol ? "#fff" : "#1f2937",
+                        backgroundColor: todayCol ? "#336699" : "transparent",
+                      }}
+                    >
+                      {d.getDate()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* All-day strip */}
+            {weekDays.some((d) => eventsForDate(fmtDate(d)).some((e) => e.is_all_day)) && (
+              <div
+                className="grid shrink-0"
+                style={{ gridTemplateColumns: "52px repeat(7, 1fr)", borderBottom: "1px solid #f3f4f6" }}
+              >
+                <div
+                  className="flex items-center justify-end pr-2"
+                  style={{ borderRight: "1px solid #f3f4f6", minHeight: 28 }}
+                >
+                  <span className="text-[9px] font-semibold uppercase tracking-widest text-gray-400">all\u2011day</span>
+                </div>
+                {weekDays.map((d, i) => {
+                  const allDayEvs = eventsForDate(fmtDate(d)).filter((e) => e.is_all_day);
+                  return (
+                    <div
+                      key={i}
+                      className="px-0.5 py-0.5 flex flex-col gap-0.5"
+                      style={{
+                        borderRight: i < 6 ? "1px solid #f3f4f6" : "none",
+                        backgroundColor: isTodayDate(d) ? "#33669918" : "transparent",
+                      }}
+                    >
+                      {allDayEvs.map((ev) => (
+                        <button
+                          key={ev.id}
+                          data-tour-id={ev.id === "e4" ? "calendar-event-e4" : undefined}
+                          onClick={() => setSelectedEvent(ev)}
+                          className="w-full text-left px-1 py-0.5 rounded text-[9px] font-semibold truncate hover:opacity-80 cursor-pointer"
+                          style={{ backgroundColor: (ev.color ?? "#336699") + "30", color: ev.color ?? "#336699" }}
+                        >
+                          {ev.title}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Scrollable time grid */}
+            <div className="flex-1 overflow-y-auto">
+              <div
+                className="grid relative"
+                style={{
+                  gridTemplateColumns: "52px repeat(7, 1fr)",
+                  height: HOUR_HEIGHT * (WEEK_END_HOUR - WEEK_START_HOUR),
+                }}
+              >
+                {/* Time labels column */}
+                <div style={{ borderRight: "1px solid #f3f4f6" }}>
+                  {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => {
+                    const h = WEEK_START_HOUR + i;
+                    return (
+                      <div key={h} className="flex items-start justify-end pr-2 pt-0.5" style={{ height: HOUR_HEIGHT }}>
+                        <span className="text-[9px] font-medium text-gray-400">
+                          {h === 12 ? "12 PM" : h < 12 ? `${h} AM` : `${h - 12} PM`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Day columns */}
+                {weekDays.map((d, colIdx) => {
+                  const dateStr = fmtDate(d);
+                  const timedEvs = eventsForDate(dateStr).filter((e) => !e.is_all_day && e.start_time && e.end_time);
+                  const todayCol = isTodayDate(d);
+                  return (
+                    <div
+                      key={colIdx}
+                      className="relative"
+                      style={{
+                        borderRight: colIdx < 6 ? "1px solid #f3f4f6" : "none",
+                        backgroundColor: todayCol ? "#3366990a" : "transparent",
+                      }}
+                    >
+                      {/* Hour grid lines */}
+                      {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => (
+                        <div key={i} style={{ position: "absolute", top: i * HOUR_HEIGHT, left: 0, right: 0, borderTop: "1px solid #f3f4f6", pointerEvents: "none" }} />
+                      ))}
+                      {/* Half-hour lines */}
+                      {Array.from({ length: WEEK_END_HOUR - WEEK_START_HOUR }, (_, i) => (
+                        <div key={`h${i}`} style={{ position: "absolute", top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2, left: 0, right: 0, borderTop: "1px dashed #f3f4f6", opacity: 0.5, pointerEvents: "none" }} />
+                      ))}
+                      {/* Current time indicator */}
+                      {todayCol && (
+                        <div style={{ position: "absolute", top: nowTop, left: 0, right: 0, height: 2, backgroundColor: "#ef4444", zIndex: 10, pointerEvents: "none" }}>
+                          <div style={{ position: "absolute", left: -4, top: -4, width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ef4444" }} />
+                        </div>
+                      )}
+                      {/* Timed events */}
+                      {timedEvs.map((ev) => {
+                        const top = timeToTop(ev.start_time!);
+                        const height = Math.max(timeToHeight(ev.start_time!, ev.end_time!), 20);
+                        return (
+                          <button
+                            key={ev.id}
+                            onClick={() => setSelectedEvent(ev)}
+                            className="absolute left-0.5 right-0.5 rounded overflow-hidden text-left hover:opacity-90 transition-opacity cursor-pointer"
+                            style={{
+                              top,
+                              height,
+                              backgroundColor: (ev.color ?? "#336699") + "28",
+                              borderLeft: `3px solid ${ev.color ?? "#336699"}`,
+                              zIndex: 5,
+                            }}
+                          >
+                            <div className="px-1 pt-0.5">
+                              <div className="text-[9px] font-bold truncate" style={{ color: ev.color ?? "#336699" }}>{ev.title}</div>
+                              {height > 28 && (
+                                <div className="text-[8px]" style={{ color: (ev.color ?? "#336699") + "cc" }}>{ev.start_time} \u2013 {ev.end_time}</div>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Legend */}
+        <div className="mt-3 flex flex-wrap gap-3 shrink-0">
+          {Array.from(new Set(CALENDAR_EVENTS.map((e) => e.category)))
+            .filter(Boolean)
+            .map((cat) => {
+              const ev = CALENDAR_EVENTS.find((e) => e.category === cat)!;
+              return (
+                <div key={cat} className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ev.color ?? "#336699" }} />
+                  <span className="text-[11px] text-gray-500 font-body">{cat}</span>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* Upcoming events sidebar */}
+      <div className="w-64 shrink-0 border-l border-gray-100 overflow-y-auto px-4 py-6 flex flex-col gap-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body">Upcoming</p>
+        {CALENDAR_EVENTS.filter((e) => e.event_date >= currentTodayKey)
+          .sort((a, b) => a.event_date.localeCompare(b.event_date))
+          .slice(0, 6)
+          .map((ev) => (
+            <button
+              key={ev.id}
+              onClick={() => setSelectedEvent(ev)}
+              className="w-full text-left relative rounded-md border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors cursor-pointer"
+            >
+              <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: ev.color ?? "#336699" }} />
+              <div className="pl-4 pr-3 py-2.5">
+                <p className="text-[11px] text-gray-400 font-body">{formatEventDate(ev)}</p>
+                <p className="text-xs font-semibold text-gray-800 font-body leading-snug">{ev.title}</p>
+              </div>
+            </button>
+          ))}
+      </div>
+
+      {/* Event detail sidebar */}
+      <AnimatePresence>
+        {selectedEvent && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 z-40 backdrop-blur-sm"
+              style={{ background: "rgba(0,0,0,0.15)" }}
+              onClick={() => setSelectedEvent(null)}
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              className="absolute top-0 right-0 bottom-0 w-[420px] z-50 flex flex-col overflow-hidden bg-white border-l border-gray-100 shadow-xl"
+            >
+              <div className="sticky top-0 z-10 px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-white">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: selectedEvent.color ?? "#336699" }} />
+                  <h2 className="text-base font-semibold text-gray-800 font-body">{selectedEvent.title}</h2>
+                </div>
+                <button
+                  data-tour-id="calendar-sidebar-close"
+                  onClick={() => setSelectedEvent(null)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
+                {selectedEvent.category && (
+                  <span
+                    className="inline-block text-xs font-semibold font-body px-2.5 py-1 rounded-full w-fit"
+                    style={{ backgroundColor: (selectedEvent.color ?? "#336699") + "22", color: selectedEvent.color ?? "#336699" }}
+                  >
+                    {selectedEvent.category}
+                  </span>
+                )}
+                <div>
+                  <p className="text-xs text-gray-400 font-body mb-0.5">Date & Time</p>
+                  <p className="text-sm font-semibold text-gray-800 font-body">{formatEventDate(selectedEvent)}</p>
+                </div>
+                {selectedEvent.location && (
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700 font-body">{selectedEvent.location}</p>
+                  </div>
+                )}
+                {selectedEvent.description && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-body mb-1">Description</p>
+                    <p className="text-sm text-gray-700 font-body leading-relaxed">{selectedEvent.description}</p>
+                  </div>
+                )}
+                {selectedEvent.attachment_links && selectedEvent.attachment_links.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-400 font-body mb-2">Attachments</p>
+                    <div className="flex flex-col gap-2">
+                      {selectedEvent.attachment_links.map((name) => (
+                        <div key={name} className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+                          <Paperclip className="w-4 h-4 text-gray-400 shrink-0" />
+                          <span className="text-sm font-body text-gray-700 truncate">{name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Feed Demo Data ───────────────────────────────────────────────────────────
+
+type DemoReaction = { emoji: string; count: number; mine: boolean };
+type DemoComment = {
+  id: string;
+  authorName: string;
+  authorColor: string;
+  body: string;
+  time: string;
+};
+type DemoFeedPost = {
+  id: string;
+  authorName: string;
+  authorId: string;
+  authorColor: string;
+  body: string;
+  createdAt: string;
+  reactions: DemoReaction[];
+  comments: DemoComment[];
+  attachments?: { type: "image" | "file"; src: string; name?: string }[];
+};
+
+const DEMO_TEACHERS_FEED = [
+  { id: "t1", name: "Jordan Taylor", color: "#336699" },
+  { id: "t2", name: "Ms. Paige Sun", color: "#c9a96e" },
+  { id: "t3", name: "Ms. Nicole Park", color: "#7FA888" },
+];
+
+const INITIAL_POSTS: DemoFeedPost[] = [
+  {
+    id: "p1",
+    authorName: "Jordan Taylor",
+    authorId: "t1",
+    authorColor: "#336699",
+    body: "What a wonderful morning in Room 3B! The students dove headfirst into our new watercolor unit today. Emma and Marcus were especially focused — watching them mix colors and experiment was such a joy. 🎨",
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    attachments: [{ type: "image", src: "/images/stock/ImageThree.jpg" }],
+    reactions: [
+      { emoji: "❤️", count: 4, mine: false },
+      { emoji: "👏", count: 2, mine: false },
+    ],
+    comments: [
+      {
+        id: "cm1",
+        authorName: "Sarah Rivera",
+        authorColor: "#6b8db5",
+        body: "Emma came home and told us all about it! She was so excited.",
+        time: "1h ago",
+      },
+      {
+        id: "cm2",
+        authorName: "Ms. Paige Sun",
+        authorColor: "#c9a96e",
+        body: "Love the watercolor unit — we do something similar in K1. Let me know if you want to share supplies!",
+        time: "45m ago",
+      },
+    ],
+  },
+  {
+    id: "p2",
+    authorName: "Ms. Paige Sun",
+    authorId: "t2",
+    authorColor: "#c9a96e",
+    body: "Aisha counted to 20 entirely on her own today during morning circle — completely unprompted. The whole class cheered for her. These little moments are everything. 🌟",
+    createdAt: new Date(Date.now() - 26 * 3600 * 1000).toISOString(),
+    attachments: [{ type: "image", src: "/images/stock/Homeschool2.jpg" }],
+    reactions: [
+      { emoji: "❤️", count: 7, mine: false },
+      { emoji: "😊", count: 3, mine: false },
+      { emoji: "👏", count: 5, mine: false },
+    ],
+    comments: [
+      {
+        id: "cm3",
+        authorName: "Jordan Taylor",
+        authorColor: "#336699",
+        body: "That's such a big milestone! Way to go Aisha.",
+        time: "Yesterday",
+      },
+    ],
+  },
+  {
+    id: "p3",
+    authorName: "Ms. Nicole Park",
+    authorId: "t3",
+    authorColor: "#7FA888",
+    body: "Quick reminder to all parents — the Nature Walk field trip for elementary students is this Thursday, April 24th. Students should wear closed-toe shoes and bring a water bottle. We'll be out from 10–11:30 AM. So excited for this one!",
+    createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+    reactions: [{ emoji: "👍", count: 6, mine: false }],
+    comments: [],
+  },
+  {
+    id: "p4",
+    authorName: "Jordan Taylor",
+    authorId: "t1",
+    authorColor: "#336699",
+    body: "Parent-teacher conferences are next Monday, April 28th. I've sent individual time slot confirmations via Messages. Looking forward to connecting with each family and sharing how much your students have grown this semester.",
+    createdAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
+    reactions: [
+      { emoji: "❤️", count: 3, mine: false },
+      { emoji: "👏", count: 1, mine: false },
+    ],
+    comments: [
+      {
+        id: "cm4",
+        authorName: "David Chen",
+        authorColor: "#6b8db5",
+        body: "Thanks for the heads up! Looking forward to our slot.",
+        time: "3 days ago",
+      },
+    ],
+  },
+];
+
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24)
+    return `Today at ${new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
+}
+
+const DEFAULT_EMOJIS = ["❤️", "👏", "😊", "👍"];
+
+// ─── Payroll Demo Data ────────────────────────────────────────────────────────
+
+type DemoPayStub = {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  payDate: string;
+  regularHours: number;
+  overtimeHours: number;
+  hourlyRate: number;
+  federalTax: number;
+  stateTax: number;
+  socialSecurity: number;
+  medicare: number;
+};
+
+function grossPay(s: DemoPayStub) {
+  return s.regularHours * s.hourlyRate + s.overtimeHours * s.hourlyRate * 1.5;
+}
+function totalDeductions(s: DemoPayStub) {
+  return s.federalTax + s.stateTax + s.socialSecurity + s.medicare;
+}
+function netPay(s: DemoPayStub) {
+  return grossPay(s) - totalDeductions(s);
+}
+function fmtUSD(n: number) {
+  return "$" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+function fmtDate(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+const DEMO_PAY_STUBS: DemoPayStub[] = [
+  {
+    id: "ps1",
+    periodStart: "2026-04-06",
+    periodEnd: "2026-04-19",
+    payDate: "2026-04-25",
+    regularHours: 76,
+    overtimeHours: 2,
+    hourlyRate: 22.5,
+    federalTax: 198.4,
+    stateTax: 89.2,
+    socialSecurity: 112.36,
+    medicare: 26.28,
+  },
+  {
+    id: "ps2",
+    periodStart: "2026-03-23",
+    periodEnd: "2026-04-05",
+    payDate: "2026-04-11",
+    regularHours: 80,
+    overtimeHours: 0,
+    hourlyRate: 22.5,
+    federalTax: 202.1,
+    stateTax: 90.8,
+    socialSecurity: 111.6,
+    medicare: 26.1,
+  },
+  {
+    id: "ps3",
+    periodStart: "2026-03-09",
+    periodEnd: "2026-03-22",
+    payDate: "2026-03-28",
+    regularHours: 78,
+    overtimeHours: 3,
+    hourlyRate: 22.5,
+    federalTax: 210.5,
+    stateTax: 94.2,
+    socialSecurity: 115.42,
+    medicare: 27.0,
+  },
+  {
+    id: "ps4",
+    periodStart: "2026-02-23",
+    periodEnd: "2026-03-08",
+    payDate: "2026-03-14",
+    regularHours: 80,
+    overtimeHours: 0,
+    hourlyRate: 22.5,
+    federalTax: 202.1,
+    stateTax: 90.8,
+    socialSecurity: 111.6,
+    medicare: 26.1,
+  },
+  {
+    id: "ps5",
+    periodStart: "2026-02-09",
+    periodEnd: "2026-02-22",
+    payDate: "2026-02-27",
+    regularHours: 74,
+    overtimeHours: 1,
+    hourlyRate: 22.5,
+    federalTax: 191.6,
+    stateTax: 86.1,
+    socialSecurity: 108.81,
+    medicare: 25.46,
+  },
+  {
+    id: "ps6",
+    periodStart: "2026-01-26",
+    periodEnd: "2026-02-08",
+    payDate: "2026-02-13",
+    regularHours: 80,
+    overtimeHours: 0,
+    hourlyRate: 22.5,
+    federalTax: 202.1,
+    stateTax: 90.8,
+    socialSecurity: 111.6,
+    medicare: 26.1,
+  },
+];
+
+function PayrollPage() {
+  const [selectedId, setSelectedId] = useState<string>(DEMO_PAY_STUBS[0].id);
+  const selected =
+    DEMO_PAY_STUBS.find((s) => s.id === selectedId) ?? DEMO_PAY_STUBS[0];
+
+  const ytdGross = DEMO_PAY_STUBS.reduce((sum, s) => sum + grossPay(s), 0);
+  const ytdDeductions = DEMO_PAY_STUBS.reduce(
+    (sum, s) => sum + totalDeductions(s),
+    0,
+  );
+  const ytdNet = ytdGross - ytdDeductions;
+  const lastNet = netPay(DEMO_PAY_STUBS[0]);
+
+  const breakdown = [
+    {
+      label: "Regular Hours",
+      value: `${selected.regularHours} hrs x ${fmtUSD(selected.hourlyRate)}`,
+      amount: selected.regularHours * selected.hourlyRate,
+      positive: true,
+    },
+    {
+      label: "Overtime Hours",
+      value: `${selected.overtimeHours} hrs x ${fmtUSD(selected.hourlyRate * 1.5)}`,
+      amount: selected.overtimeHours * selected.hourlyRate * 1.5,
+      positive: true,
+    },
+    {
+      label: "Gross Pay",
+      value: "",
+      amount: grossPay(selected),
+      positive: true,
+      bold: true,
+    },
+    {
+      label: "Federal Income Tax",
+      value: "",
+      amount: -selected.federalTax,
+      positive: false,
+    },
+    {
+      label: "State Income Tax",
+      value: "",
+      amount: -selected.stateTax,
+      positive: false,
+    },
+    {
+      label: "Social Security",
+      value: "",
+      amount: -selected.socialSecurity,
+      positive: false,
+    },
+    {
+      label: "Medicare",
+      value: "",
+      amount: -selected.medicare,
+      positive: false,
+    },
+    {
+      label: "Total Deductions",
+      value: "",
+      amount: -totalDeductions(selected),
+      positive: false,
+      bold: true,
+    },
+    {
+      label: "Net Pay",
+      value: "",
+      amount: netPay(selected),
+      positive: true,
+      bold: true,
+      highlight: true,
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Stat cards */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          {
+            label: "Next Pay Date",
+            value: "May 2, 2026",
+            sub: "in 12 days",
+            accent: true,
+          },
+          {
+            label: "Last Net Pay",
+            value: fmtUSD(lastNet),
+            sub: `Paid ${fmtDate(DEMO_PAY_STUBS[0].payDate)}`,
+            accent: false,
+          },
+          {
+            label: "YTD Earnings",
+            value: fmtUSD(ytdNet),
+            sub: `${fmtUSD(ytdGross)} gross`,
+            accent: false,
+          },
+        ].map(({ label, value, sub, accent }) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className={`rounded-xl border p-5 ${accent ? "bg-[#336699]/5 border-[#336699]/15" : "bg-white border-gray-100 shadow-sm"}`}
+          >
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-2">
+              {label}
+            </p>
+            <p className="text-2xl font-bold font-heading text-gray-800 leading-none">
+              {value}
+            </p>
+            <p className="text-xs text-gray-400 font-body mt-1">{sub}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="flex gap-6">
+        {/* Pay stubs list */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
+          className="w-72 shrink-0 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+        >
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 font-body">
+              Pay Stubs
+            </h2>
+            <span className="text-[11px] font-semibold font-body px-2 py-0.5 rounded-full bg-amber-50 text-amber-500 border border-amber-100">
+              Coming soon
+            </span>
+          </div>
+          <div className="flex flex-col">
+            {DEMO_PAY_STUBS.map((s) => {
+              const isSelected = s.id === selectedId;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedId(s.id)}
+                  className={`w-full text-left flex items-center gap-3 px-5 py-4 border-b border-gray-50 transition-all cursor-pointer relative ${isSelected ? "bg-[#336699]/5" : "hover:bg-gray-50"}`}
+                >
+                  {isSelected && (
+                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#336699]" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-700 font-body">
+                      {fmtDate(s.periodStart)} –{" "}
+                      {new Date(s.periodEnd + "T00:00:00").toLocaleDateString(
+                        "en-US",
+                        { month: "short", day: "numeric" },
+                      )}
+                    </p>
+                    <p className="text-[11px] text-gray-400 font-body mt-0.5">
+                      Paid {fmtDate(s.payDate)}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p
+                      className={`text-sm font-semibold font-body ${isSelected ? "text-[#336699]" : "text-gray-700"}`}
+                    >
+                      {fmtUSD(netPay(s))}
+                    </p>
+                    <p className="text-[10px] text-gray-400 font-body">net</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* Pay stub detail */}
+        <motion.div
+          key={selectedId}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex-1 bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5"
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-lg font-semibold font-heading text-gray-800">
+                Pay Stub
+              </h2>
+              <p className="text-sm text-gray-400 font-body mt-0.5">
+                {fmtDate(selected.periodStart)} – {fmtDate(selected.periodEnd)}{" "}
+                · Paid {fmtDate(selected.payDate)}
+              </p>
+            </div>
+            <button className="flex items-center gap-1.5 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-body text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+              <ChevronDown className="w-4 h-4" />
+              Download
+            </button>
+          </div>
+
+          <div className="border border-gray-100 rounded-xl overflow-hidden">
+            {breakdown.map(
+              ({ label, value, amount, positive, bold, highlight }) => (
+                <div
+                  key={label}
+                  className={`flex items-center justify-between px-5 py-3 border-b border-gray-50 last:border-0 ${highlight ? "bg-[#336699]/5" : bold ? "bg-gray-50/60" : ""}`}
+                >
+                  <div>
+                    <p
+                      className={`text-sm font-body ${bold ? "font-semibold text-gray-800" : "text-gray-600"}`}
+                    >
+                      {label}
+                    </p>
+                    {value && (
+                      <p className="text-xs text-gray-400 font-body">{value}</p>
+                    )}
+                  </div>
+                  <p
+                    className={`text-sm tabular-nums font-body ${bold ? "font-bold" : ""} ${highlight ? "text-[#336699] text-base" : positive ? "text-gray-800" : "text-gray-500"}`}
+                  >
+                    {amount < 0
+                      ? `(${fmtUSD(Math.abs(amount))})`
+                      : fmtUSD(amount)}
+                  </p>
+                </div>
+              ),
+            )}
+          </div>
+
+          <div className="mt-auto pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-3">
+              Year-to-Date Summary
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Gross Earnings", value: fmtUSD(ytdGross) },
+                { label: "Total Deductions", value: fmtUSD(ytdDeductions) },
+                { label: "Net Earnings", value: fmtUSD(ytdNet) },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3"
+                >
+                  <p className="text-[11px] text-gray-400 font-body mb-1">
+                    {label}
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800 font-body tabular-nums">
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Forms & Documents Demo Data ──────────────────────────────────────────────
+
+type DemoForm = {
+  id: string;
+  title: string;
+  description: string;
+  completed: boolean;
+  signedDate: string | null;
+};
+type DemoDocument = {
+  id: string;
+  title: string;
+  category: string;
+  size: string;
+};
+
+const INITIAL_FORMS: DemoForm[] = [
+  {
+    id: "f1",
+    title: "Direct Deposit Authorization",
+    description: "Set up or update your direct deposit banking information.",
+    completed: true,
+    signedDate: "Jan 15, 2026",
+  },
+  {
+    id: "f2",
+    title: "W-4 Tax Withholding",
+    description: "Federal tax withholding elections for the current year.",
+    completed: true,
+    signedDate: "Jan 15, 2026",
+  },
+  {
+    id: "f3",
+    title: "Employee Handbook Acknowledgement",
+    description: "Confirm you have read and understood the staff handbook.",
+    completed: true,
+    signedDate: "Jan 16, 2026",
+  },
+  {
+    id: "f4",
+    title: "Emergency Contact Update",
+    description: "Verify or update your emergency contact on file.",
+    completed: false,
+    signedDate: null,
+  },
+  {
+    id: "f5",
+    title: "Technology Use Policy",
+    description: "Acknowledge the school's acceptable use policy for devices.",
+    completed: false,
+    signedDate: null,
+  },
+];
+
+const DEMO_DOCUMENTS: DemoDocument[] = [
+  { id: "d1", title: "Employee Handbook", category: "Policy", size: "2.4 MB" },
+  {
+    id: "d2",
+    title: "Benefits Guide 2026",
+    category: "Benefits",
+    size: "1.1 MB",
+  },
+  { id: "d3", title: "PTO & Leave Policy", category: "Policy", size: "380 KB" },
+  {
+    id: "d4",
+    title: "Payroll Schedule 2026",
+    category: "Payroll",
+    size: "120 KB",
+  },
+  {
+    id: "d5",
+    title: "School Calendar 2025–26",
+    category: "Schedule",
+    size: "540 KB",
+  },
+];
+
+// ─── Attendance Demo Data ─────────────────────────────────────────────────────
+
+type AttendanceStudent = {
+  id: string;
+  name: string;
+  initials: string;
+  avatar: string;
+  homeschoolDropIn: boolean;
+};
+
+type AttendanceRecord = {
+  studentId: string;
+  date: string;
+  paid: boolean;
+  present: boolean;
+};
+
+const ATTENDANCE_STUDENTS: AttendanceStudent[] = [
+  { id: "as1", name: "Maya Chen",    initials: "MC", avatar: "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg",        homeschoolDropIn: false },
+  { id: "as2", name: "Liam Torres",  initials: "LT", avatar: "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",           homeschoolDropIn: false },
+  { id: "as3", name: "Sofia Patel",  initials: "SP", avatar: "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",homeschoolDropIn: true  },
+  { id: "as4", name: "Noah Adkins",  initials: "NA", avatar: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg",        homeschoolDropIn: false },
+  { id: "as5", name: "Zoe Kim",      initials: "ZK", avatar: "/images/people/students/izzy-park-8hBY-30cEqI-unsplash.jpg",             homeschoolDropIn: true  },
+  { id: "as6", name: "Ethan Brooks", initials: "EB", avatar: "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg",         homeschoolDropIn: false },
+  { id: "as7", name: "Isla Nguyen",  initials: "IN", avatar: "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash.jpg",           homeschoolDropIn: true  },
+  { id: "as8", name: "Oliver Hayes", initials: "OH", avatar: "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",         homeschoolDropIn: false },
+];
+
+// Base week dates (Week 1: May 25–29 2026)
+const ATTENDANCE_BASE_DATES = [
+  "2026-05-25",
+  "2026-05-26",
+  "2026-05-27",
+  "2026-05-28",
+  "2026-05-29",
+];
+
+function buildInitialAttendance(): AttendanceRecord[] {
+  // keyed as "studentId:date"
+  const paidOn = new Set([
+    "as1:2026-05-25", "as1:2026-05-26", "as1:2026-05-27", "as1:2026-05-28", "as1:2026-05-29",
+    "as2:2026-05-25", "as2:2026-05-26", "as2:2026-05-27", "as2:2026-05-28", "as2:2026-05-29",
+    "as3:2026-05-27",
+    "as4:2026-05-25", "as4:2026-05-26", "as4:2026-05-27",
+    "as5:2026-05-29",
+    "as6:2026-05-25", "as6:2026-05-26", "as6:2026-05-27", "as6:2026-05-28", "as6:2026-05-29",
+    "as8:2026-05-25", "as8:2026-05-26",
+  ]);
+
+  const presentOn = new Set([
+    "as1:2026-05-25", "as1:2026-05-26",
+    "as2:2026-05-25", "as2:2026-05-27",
+    "as3:2026-05-27",
+    "as4:2026-05-25",
+    "as5:2026-05-29",
+    "as6:2026-05-26", "as6:2026-05-28",
+    "as8:2026-05-25",
+  ]);
+
+  const records: AttendanceRecord[] = [];
+  for (const student of ATTENDANCE_STUDENTS) {
+    for (const date of ATTENDANCE_BASE_DATES) {
+      const key = `${student.id}:${date}`;
+      records.push({
+        studentId: student.id,
+        date,
+        paid: paidOn.has(key),
+        present: presentOn.has(key),
+      });
+    }
+  }
+  return records;
+}
+
+function FormsPage() {
+  const [forms, setForms] = useState<DemoForm[]>(INITIAL_FORMS);
+  const [signingId, setSigningId] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState("");
+
+  const completed = forms.filter((f) => f.completed).length;
+  const signingForm = forms.find((f) => f.id === signingId);
+
+  function sign() {
+    if (!signingId || !nameInput.trim()) return;
+    setForms((prev) =>
+      prev.map((f) =>
+        f.id === signingId
+          ? {
+              ...f,
+              completed: true,
+              signedDate: new Date().toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }),
+            }
+          : f,
+      ),
+    );
+    setSigningId(null);
+    setNameInput("");
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Required Forms */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="bg-white rounded-xl border border-gray-100 shadow-sm p-6"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-gray-700 font-body">
+            Required Forms
+          </h2>
+          <span
+            className={`text-xs font-semibold font-body px-2.5 py-1 rounded-full ${completed === forms.length ? "bg-[#336699]/10 text-[#336699]" : "bg-amber-50 text-amber-500 border border-amber-100"}`}
+          >
+            {completed} of {forms.length} complete
+          </span>
+        </div>
+        <div className="flex flex-col gap-2">
+          {forms.map((form) => (
+            <div
+              key={form.id}
+              className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-gray-100 bg-gray-50"
+            >
+              <div
+                className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2 ${form.completed ? "bg-[#336699] border-[#336699]" : "border-gray-300"}`}
+              >
+                {form.completed && (
+                  <svg
+                    className="w-3 h-3 text-white"
+                    fill="none"
+                    viewBox="0 0 12 12"
+                  >
+                    <path
+                      d="M2 6l3 3 5-5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800 font-body">
+                  {form.title}
+                </p>
+                <p className="text-xs text-gray-400 font-body mt-0.5">
+                  {form.description}
+                </p>
+              </div>
+              <div className="shrink-0">
+                {form.completed ? (
+                  <span className="flex items-center gap-1 text-xs font-semibold font-body text-[#336699] bg-[#336699]/8 px-2.5 py-1 rounded-full">
+                    Signed {form.signedDate}
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setSigningId(form.id);
+                      setNameInput("");
+                    }}
+                    className="px-3.5 py-1.5 bg-[#336699] text-white text-xs font-semibold font-body rounded-lg hover:bg-[#3d6b4a] transition-colors cursor-pointer"
+                  >
+                    Complete
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Documents */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, delay: 0.08 }}
+        className="bg-white rounded-xl border border-gray-100 shadow-sm p-6"
+      >
+        <h2 className="text-lg font-semibold text-gray-700 font-body mb-5">
+          Documents
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {DEMO_DOCUMENTS.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-gray-100 hover:border-gray-200 transition-all"
+            >
+              <div className="w-10 h-10 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4 text-rose-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800 font-body leading-snug">
+                  {doc.title}
+                </p>
+                <p className="text-xs text-gray-400 font-body mt-0.5">
+                  {doc.category} · PDF · {doc.size}
+                </p>
+                <button className="mt-2 text-xs font-semibold font-body text-[#336699] hover:text-[#3d6b4a] transition-colors cursor-pointer">
+                  Download
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Sign modal */}
+      <AnimatePresence>
+        {signingId && signingForm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 z-40 flex items-center justify-center backdrop-blur-sm"
+              style={{ background: "rgba(0,0,0,0.3)" }}
+              onClick={() => setSigningId(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
+            >
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 w-full max-w-md mx-4 p-6 pointer-events-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold text-gray-800 font-body">
+                    Sign Form
+                  </h3>
+                  <button
+                    onClick={() => setSigningId(null)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-sm font-semibold text-gray-700 font-body mb-1">
+                  {signingForm.title}
+                </p>
+                <p className="text-xs text-gray-400 font-body mb-5">
+                  {signingForm.description}
+                </p>
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
+                  <p className="text-xs text-gray-500 font-body leading-relaxed">
+                    By signing below, I confirm I have read and agree to the
+                    contents of this form. This constitutes my electronic
+                    signature.
+                  </p>
+                </div>
+                <label className="block mb-1">
+                  <span className="text-xs font-semibold text-gray-500 font-body">
+                    Type your full name to sign
+                  </span>
+                </label>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Jordan Taylor"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") sign();
+                  }}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-body text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#336699]/40 mb-4"
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSigningId(null)}
+                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-body text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={sign}
+                    disabled={!nameInput.trim()}
+                    className="flex-1 px-4 py-2.5 bg-[#336699] text-white rounded-xl text-sm font-semibold font-body hover:bg-[#3d6b4a] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Sign & Submit
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Attendance Tab ───────────────────────────────────────────────────────────
+
+const ATTENDANCE_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const ATTENDANCE_MONTH_ABBRS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const ATTENDANCE_TOTAL_WEEKS = 12;
+
+function AttendanceTab() {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [records, setRecords] = useState<AttendanceRecord[]>(buildInitialAttendance);
+  const [search, setSearch] = useState("");
+
+  const currentWeek = weekOffset + 1;
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const weekDates = useMemo(() => {
+    return ATTENDANCE_BASE_DATES.map((d) => {
+      const date = new Date(d + "T00:00:00");
+      date.setDate(date.getDate() + weekOffset * 7);
+      return date.toISOString().slice(0, 10);
+    });
+  }, [weekOffset]);
+
+  const filteredStudents = useMemo(
+    () =>
+      ATTENDANCE_STUDENTS.filter((s) =>
+        s.name.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [search],
+  );
+
+  function getRecord(studentId: string, date: string) {
+    return records.find((r) => r.studentId === studentId && r.date === date);
+  }
+
+  function togglePresent(studentId: string, date: string) {
+    setRecords((prev) =>
+      prev.map((r) =>
+        r.studentId === studentId && r.date === date
+          ? { ...r, present: !r.present }
+          : r,
+      ),
+    );
+  }
+
+  function presentCount(date: string) {
+    return records.filter(
+      (r) =>
+        r.date === date &&
+        r.present &&
+        filteredStudents.some((s) => s.id === r.studentId),
+    ).length;
+  }
+
+  function formatDateLabel(dateStr: string) {
+    const d = new Date(dateStr + "T00:00:00");
+    return `${ATTENDANCE_MONTH_ABBRS[d.getMonth()]} ${d.getDate()}`;
+  }
+
+  function weekRangeLabel() {
+    const s = new Date(weekDates[0] + "T00:00:00");
+    const e = new Date(weekDates[4] + "T00:00:00");
+    const sm = ATTENDANCE_MONTH_ABBRS[s.getMonth()];
+    const em = ATTENDANCE_MONTH_ABBRS[e.getMonth()];
+    if (sm === em) return `${sm} ${s.getDate()} – ${e.getDate()}`;
+    return `${sm} ${s.getDate()} – ${em} ${e.getDate()}`;
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden bg-white">
+      {/* Header */}
+      <div className="px-6 pt-5 pb-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold font-heading text-gray-800">
+              Attendance
+            </h1>
+            <p className="text-sm text-gray-400 font-body mt-0.5">
+              Week {currentWeek} of {ATTENDANCE_TOTAL_WEEKS} &middot;{" "}
+              {filteredStudents.length} students
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Drop-in legend */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#336699]/8 border border-[#336699]/15">
+              <Home className="w-3 h-3 text-[#336699]" />
+              <span className="text-[11px] font-semibold font-body text-[#336699]">
+                Homeschool drop-in
+              </span>
+            </div>
+
+            {/* Search */}
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 w-44 shrink-0">
+              <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search students..."
+                className="flex-1 bg-transparent text-sm font-body text-gray-700 placeholder-gray-400 outline-none min-w-0"
+              />
+            </div>
+
+            {/* Week navigation */}
+            <div className="flex items-center gap-1 border border-gray-200 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setWeekOffset((o) => Math.max(0, o - 1))}
+                className="p-2 hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-semibold font-body text-gray-600 px-2 min-w-[150px] text-center border-x border-gray-200">
+                Week {currentWeek} &mdash; {weekRangeLabel()}
+              </span>
+              <button
+                data-tour-id="attendance-week-next"
+                onClick={() =>
+                  setWeekOffset((o) => Math.min(ATTENDANCE_TOTAL_WEEKS - 1, o + 1))
+                }
+                className="p-2 hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5-column day grid */}
+      <div className="flex-1 overflow-auto">
+        <div className="grid grid-cols-5 divide-x divide-gray-100 min-h-full">
+          {weekDates.map((date, di) => {
+            const present = presentCount(date);
+            const expected = filteredStudents.length;
+            const isToday = date === todayStr;
+            return (
+              <div
+                key={date}
+                className={`flex flex-col min-w-0 ${isToday ? "bg-[#336699]/[0.03]" : ""}`}
+              >
+                {/* Day column header */}
+                <div
+                  className={`px-3 py-3 border-b shrink-0 ${
+                    isToday
+                      ? "border-[#336699]/20 bg-[#f7faf8]"
+                      : "border-gray-100 bg-[#fafaf9]"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <p
+                      className={`text-sm font-bold font-body ${
+                        isToday ? "text-[#336699]" : "text-gray-800"
+                      }`}
+                    >
+                      {ATTENDANCE_DAY_LABELS[di]}
+                    </p>
+                    {isToday && (
+                      <span className="text-[9px] font-bold font-body text-white bg-[#336699] px-1.5 py-0.5 rounded-full leading-none">
+                        Today
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-400 font-body">
+                    {formatDateLabel(date)}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] font-body text-gray-400">
+                      {expected} expected
+                    </span>
+                    <span className="text-gray-200">&middot;</span>
+                    <span
+                      className={`text-[10px] font-semibold font-body ${
+                        present > 0 ? "text-[#336699]" : "text-gray-400"
+                      }`}
+                    >
+                      {present} present
+                    </span>
+                  </div>
+                </div>
+
+                {/* Student rows */}
+                <div className="flex flex-col divide-y divide-gray-50">
+                  {filteredStudents.map((student, si) => {
+                    const rec = getRecord(student.id, date);
+                    const isPresent = rec?.present ?? false;
+                    const isPaid = rec?.paid ?? false;
+                    return (
+                      <div
+                        key={student.id}
+                        className={`flex items-center gap-2 px-2.5 py-2 transition-colors ${
+                          isPresent ? "bg-[#336699]/[0.04]" : "hover:bg-gray-50/80"
+                        }`}
+                      >
+                        {/* Avatar */}
+                        <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-gray-100">
+                          <Image
+                            src={student.avatar}
+                            alt={student.name}
+                            width={28}
+                            height={28}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {/* Name + drop-in icon */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="text-[11px] font-body text-gray-700 truncate">
+                              {student.name}
+                            </span>
+                            {student.homeschoolDropIn && (
+                              <span title="Homeschool drop-in">
+                                <Home className="w-3 h-3 text-[#336699] shrink-0" />
+                              </span>
+                            )}
+                          </div>
+                          {/* Paid badge inline under name */}
+                          <span
+                            className={`text-[9px] font-semibold font-body ${
+                              isPaid ? "text-[#336699]" : "text-gray-400"
+                            }`}
+                          >
+                            {isPaid ? "Paid" : "Unpaid"}
+                          </span>
+                        </div>
+
+                        {/* Attendance checkbox */}
+                        <button
+                          data-tour-id={
+                            si === 0 && di === 0
+                              ? "attendance-checkbox-row-0"
+                              : undefined
+                          }
+                          onClick={() => togglePresent(student.id, date)}
+                          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                            isPresent
+                              ? "bg-[#336699] border-[#336699] shadow-sm"
+                              : "border-gray-300 hover:border-[#336699]/60 bg-white"
+                          }`}
+                        >
+                          {isPresent && (
+                            <svg
+                              className="w-3 h-3 text-white"
+                              fill="none"
+                              viewBox="0 0 12 12"
+                            >
+                              <path
+                                d="M2 6l3 3 5-5"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tour Constants ───────────────────────────────────────────────────────────
+
+const TOUR_MOVE_MS = 950;
+const TOUR_RESUME_MS = 1500;
+
+// ─── Nav Types ────────────────────────────────────────────────────────────────
+
+type NavTab =
+  | "dashboard"
+  | "students"
+  | "hours"
+  | "messages"
+  | "calendar"
+  | "feed"
+  | "attendance"
+  | "payroll"
+  | "forms";
+
+const PRIMARY_NAV: { label: string; icon: LucideIcon; tab: NavTab }[] = [
+  { label: "Dashboard", icon: LayoutDashboard, tab: "dashboard" },
+  { label: "My Students", icon: Users, tab: "students" },
+  { label: "My Hours", icon: Clock, tab: "hours" },
+  { label: "Messages", icon: MessageCircle, tab: "messages" },
+  { label: "Calendar", icon: Calendar, tab: "calendar" },
+  { label: "Attendance", icon: ClipboardList, tab: "attendance" },
+];
+
+const MORE_NAV: { label: string; icon: LucideIcon; tab: NavTab }[] = [
+  { label: "Feed", icon: Rss, tab: "feed" },
+  { label: "Payroll", icon: CreditCard, tab: "payroll" },
+  { label: "Forms and Documents", icon: FileText, tab: "forms" },
+];
+
+// ─── Elapsed Timer ────────────────────────────────────────────────────────────
+
+function ElapsedTimer({ clockInAt }: { clockInAt: Date }) {
+  const [elapsed, setElapsed] = useState(() =>
+    Math.floor((Date.now() - clockInAt.getTime()) / 1000),
+  );
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - clockInAt.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [clockInAt]);
+
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return <>{h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`}</>;
+}
+
+// ─── ClockWidget ──────────────────────────────────────────────────────────────
+
+function ClockWidget({
+  sessionsByDay,
+  onClockIn,
+  onClockOut,
+}: {
+  sessionsByDay: Record<string, DemoSession[]>;
+  onClockIn: () => void;
+  onClockOut: () => void;
+}) {
+  const today = DEMO_TODAY;
+  const todaySessions = sessionsByDay[todayKey(today)] ?? [];
+  const activeSession =
+    Object.values(sessionsByDay)
+      .flat()
+      .find((s) => !s.clockOutAt) ?? null;
+  const monday = getMondayOfWeek(today);
+  const todayHours = getDayTotalHours(todaySessions);
+  const weekTotal = getWeekTotalHours(monday, sessionsByDay);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 font-body">
+          Clock
+        </h2>
+        <span
+          className={`flex items-center gap-1.5 text-xs font-semibold font-body px-2.5 py-1 rounded-full ${
+            activeSession
+              ? "bg-[#336699]/10 text-[#336699]"
+              : "bg-gray-100 text-gray-400"
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              activeSession ? "bg-[#336699] animate-pulse" : "bg-gray-300"
+            }`}
+          />
+          {activeSession ? "Clocked In" : "Not Clocked In"}
+        </span>
+      </div>
+
+      <div
+        className={`rounded-xl px-5 py-4 ${
+          activeSession
+            ? "bg-[#336699]/5 border border-[#336699]/15"
+            : "bg-gray-50 border border-gray-100"
+        }`}
+      >
+        {activeSession ? (
+          <div>
+            <p className="text-3xl font-bold font-heading text-gray-800 leading-none mb-1">
+              <ElapsedTimer clockInAt={activeSession.clockInAt} />
+            </p>
+            <p className="text-xs text-gray-400 font-body">
+              Since {fmt12(activeSession.clockInAt)}
+            </p>
+          </div>
+        ) : todayHours > 0 ? (
+          <div>
+            <p className="text-3xl font-bold font-heading text-gray-800 leading-none mb-1">
+              {formatDuration(todayHours)}
+            </p>
+            <p className="text-xs text-gray-400 font-body">
+              Logged today · clock in again to add more
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-3xl font-bold font-heading text-gray-300 leading-none mb-1">
+              0h
+            </p>
+            <p className="text-xs text-gray-400 font-body">
+              Clock in to start tracking
+            </p>
+          </div>
+        )}
+      </div>
+
+      {activeSession ? (
+        <button
+          onClick={onClockOut}
+          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-white border border-gray-200 text-gray-700 font-semibold font-body text-sm rounded-xl hover:border-red-200 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm cursor-pointer"
+        >
+          <LogOut className="w-4 h-4" />
+          Clock Out
+        </button>
+      ) : (
+        <button
+          onClick={onClockIn}
+          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-[#336699] text-white font-semibold font-body text-sm rounded-xl hover:bg-[#3d6b4a] transition-colors shadow-sm cursor-pointer"
+        >
+          <LogIn className="w-4 h-4" />
+          Clock In
+        </button>
+      )}
+
+      <div className="flex items-center gap-3 pt-1">
+        <div className="flex-1 rounded-lg bg-gray-50 border border-gray-100 px-4 py-2.5 text-center">
+          <p className="text-[11px] text-gray-400 font-body mb-0.5">Today</p>
+          <p className="text-sm font-semibold text-gray-700 font-body tabular-nums">
+            {formatDuration(
+              activeSession ? getDayTotalHours(todaySessions) : todayHours,
+            )}
+          </p>
+        </div>
+        <div className="flex-1 rounded-lg bg-gray-50 border border-gray-100 px-4 py-2.5 text-center">
+          <p className="text-[11px] text-gray-400 font-body mb-0.5">
+            This Week
+          </p>
+          <p className="text-sm font-semibold text-gray-700 font-body tabular-nums">
+            {formatDuration(weekTotal)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Upcoming Events ──────────────────────────────────────────────────────────
+
+function UpcomingEventsCard({
+  events,
+  expandedId,
+  onToggle,
+}: {
+  events: DemoCalendarEvent[];
+  expandedId: string | null;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <CalendarDays className="w-4 h-4 text-gray-400" />
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 font-body">
+          Upcoming Events
+        </h2>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {events.map((event, idx) => {
+          const accent = event.color ?? "#336699";
+          const isExpanded = expandedId === event.id;
+          return (
+            <div
+              key={event.id}
+              data-tour-id={idx === 0 ? "event-card-e1" : undefined}
+              className="relative rounded-xl border border-gray-100 overflow-hidden cursor-pointer hover:border-gray-200 transition-colors"
+              onClick={() => onToggle(event.id)}
+            >
+              <div
+                className="absolute left-0 top-0 bottom-0 w-1"
+                style={{ backgroundColor: accent }}
+              />
+              <div className="pl-4 pr-3 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-gray-400 font-body mb-0.5">
+                      {formatEventDate(event)}
+                    </p>
+                    <p className="text-sm font-semibold text-gray-800 font-body leading-snug">
+                      {event.title}
+                    </p>
+                    {event.category && (
+                      <span
+                        className="inline-block mt-1.5 text-[11px] font-semibold font-body px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: accent + "22",
+                          color: accent,
+                        }}
+                      >
+                        {event.category}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronRight
+                    className={`w-3.5 h-3.5 text-gray-300 shrink-0 mt-1 transition-transform duration-200 ${
+                      isExpanded ? "rotate-90" : ""
+                    }`}
+                  />
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-3 mt-3 border-t border-gray-100 flex flex-col gap-2">
+                        {event.description && (
+                          <p className="text-xs text-gray-500 font-body leading-relaxed">
+                            {event.description}
+                          </p>
+                        )}
+                        {event.location && (
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="w-3 h-3 text-gray-300 shrink-0" />
+                            <p className="text-xs text-gray-400 font-body">
+                              {event.location}
+                            </p>
+                          </div>
+                        )}
+                        {event.attachment_links &&
+                          event.attachment_links.length > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <Paperclip className="w-3 h-3 text-gray-300 shrink-0" />
+                              <p className="text-xs text-gray-400 font-body">
+                                {event.attachment_links.length} attachment
+                                {event.attachment_links.length !== 1 ? "s" : ""}
+                              </p>
+                            </div>
+                          )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Weekly Hours Chart ───────────────────────────────────────────────────────
+
+function WeeklyHoursChart({
+  sessionsByDay,
+}: {
+  sessionsByDay: Record<string, DemoSession[]>;
+}) {
+  const today = DEMO_TODAY;
+  const currentTodayKey = todayKey(today);
+  const monday = getMondayOfWeek(today);
+  const weekDays = getWeekDays(monday);
+
+  const weekDayData = weekDays.map((d) => ({
+    date: d,
+    key: todayKey(d),
+    hours: getDayTotalHours(sessionsByDay[todayKey(d)] ?? []),
+  }));
+
+  const maxDayHours = Math.max(...weekDayData.map((d) => d.hours), 0.1);
+
+  const fri = new Date(monday);
+  fri.setDate(monday.getDate() + 4);
+  const weekLabel = `${monday.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${fri.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 font-body">
+            Weekly Hours
+          </h2>
+        </div>
+        <span className="text-xs text-gray-400 font-body">{weekLabel}</span>
+      </div>
+
+      <div className="flex items-end gap-3 h-28">
+        {weekDayData.map(({ date, key, hours }) => {
+          const isToday = key === currentTodayKey;
+          const isFuture = key > currentTodayKey;
+          const pct = hours > 0 ? (hours / maxDayHours) * 100 : 0;
+
+          return (
+            <div
+              key={key}
+              className="flex flex-col items-center gap-1.5 flex-1 group relative"
+            >
+              {hours > 0 && (
+                <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] font-body px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  {formatDuration(hours)}
+                </div>
+              )}
+              <div className="w-full flex items-end h-20">
+                <div
+                  className={`w-full rounded-t-md transition-all duration-500 min-h-[4px] ${
+                    isToday
+                      ? "bg-[#336699]"
+                      : !isFuture && hours > 0
+                        ? "bg-[#336699]/40"
+                        : "bg-gray-100"
+                  }`}
+                  style={{ height: `${Math.max(pct, 4)}%` }}
+                />
+              </div>
+              <p
+                className={`text-[11px] font-semibold font-body ${
+                  isToday ? "text-[#336699]" : "text-gray-400"
+                }`}
+              >
+                {date.toLocaleDateString("en-US", { weekday: "short" })}
+              </p>
+              {isToday && (
+                <span className="w-1 h-1 rounded-full bg-[#336699]" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Payroll Card ─────────────────────────────────────────────────────────────
+
+function PayrollCard() {
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Banknote className="w-4 h-4 text-gray-400" />
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 font-body">
+            Payroll
+          </h2>
+        </div>
+        <span className="text-[11px] font-semibold font-body px-2.5 py-1 rounded-full bg-amber-50 text-amber-500 border border-amber-100">
+          Coming soon
+        </span>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="flex-1 rounded-xl bg-[#336699]/5 border border-[#336699]/10 px-4 py-3.5">
+          <p className="text-[11px] text-gray-400 font-body mb-1">
+            Next Payroll
+          </p>
+          <p className="text-base font-semibold text-gray-800 font-body">
+            May 2, 2026
+          </p>
+          <p className="text-[11px] text-gray-400 font-body mt-0.5">
+            in 12 days
+          </p>
+        </div>
+        <div className="flex-1 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3.5">
+          <p className="text-[11px] text-gray-400 font-body mb-1">Last Paid</p>
+          <p className="text-base font-semibold text-gray-800 font-body">
+            Apr 18, 2026
+          </p>
+          <p className="text-[11px] text-gray-400 font-body mt-0.5">
+            2 weeks ago
+          </p>
+        </div>
+      </div>
+
+      <p className="text-xs text-gray-300 font-body">
+        Full payroll details and history will be available here soon.
+      </p>
+    </div>
+  );
+}
+
+// ─── Coming Soon Placeholder ──────────────────────────────────────────────────
+
+function ComingSoonPage({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-3">
+      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+        <Clock className="w-5 h-5 text-gray-300" />
+      </div>
+      <p className="text-sm font-semibold text-gray-400 font-body">{label}</p>
+      <p className="text-xs text-gray-300 font-body">
+        Coming in the next demo update
+      </p>
+    </div>
+  );
+}
+
+// ─── TeacherNav (state-driven, no router) ─────────────────────────────────────
+
+function TeacherNav({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: NavTab;
+  onTabChange: (tab: NavTab) => void;
+}) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const moreRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    }
+    if (moreOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [moreOpen]);
+
+  function openMore() {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setDropdownPos({ top: r.bottom + 6, left: r.left + r.width / 2 });
+    }
+    setMoreOpen((v) => !v);
+  }
+
+  return (
+    <nav className="flex items-center gap-2">
+      {PRIMARY_NAV.map(({ label, icon: Icon, tab }) => {
+        const isActive = activeTab === tab;
+        return (
+          <button
+            key={tab}
+            data-tour-id={`nav-${tab}`}
+            onClick={() => onTabChange(tab)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-body rounded-md transition-colors whitespace-nowrap cursor-pointer ${
+              isActive
+                ? "text-[#336699] bg-[#336699]/8 font-semibold"
+                : "text-gray-600 hover:text-[#336699] hover:bg-gray-50"
+            }`}
+          >
+            <Icon className="w-4 h-4 pointer-events-none" />
+            {label}
+          </button>
+        );
+      })}
+
+      <div ref={moreRef}>
+        <button
+          ref={btnRef}
+          data-tour-id="nav-more"
+          onClick={openMore}
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-body text-gray-600 hover:text-[#336699] hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+        >
+          More
+          <ChevronDown
+            className={`w-3.5 h-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`}
+            strokeWidth={2.5}
+          />
+        </button>
+
+        {moreOpen && (
+          <div
+            className="fixed w-52 bg-white border border-gray-100 rounded-xl shadow-lg z-[9999] py-1.5 -translate-x-1/2"
+            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+          >
+            {MORE_NAV.map(({ label, icon: Icon, tab }) => (
+              <button
+                key={tab}
+                data-tour-id={`nav-${tab}`}
+                onClick={() => {
+                  onTabChange(tab);
+                  setMoreOpen(false);
+                }}
+                className="flex items-center gap-1.5 w-full text-left px-4 py-2 text-sm font-body text-gray-700 hover:bg-gray-50 hover:text-[#336699] transition-colors cursor-pointer"
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+// ─── Main Demo Component ──────────────────────────────────────────────────────
+
+export default function LighthouseHomeschoolTeacherDashboardDemo({
+  initialTab = "dashboard",
+  disableTour = false,
+  hideNav = false,
+}: {
+  initialTab?: NavTab;
+  disableTour?: boolean;
+  hideNav?: boolean;
+}) {
+  const [activeTab, setActiveTab] = useState<NavTab>(initialTab);
+  const [sessionsByDay, setSessionsByDay] =
+    useState<Record<string, DemoSession[]>>(buildInitialSessions);
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [bannerIndex, setBannerIndex] = useState(0);
+
+  // ── Lifted state for tour control ──────────────────────────────────────────
+  const [msgDraft, setMsgDraft] = useState("");
+
+  // ── Hours tab state ──────────────────────────────────────────────────────────
+  const [hoursView, setHoursView] = useState<ViewMode>("day");
+  const [hoursSessionsByDay, setHoursSessionsByDay] = useState<Record<string, DemoSession[]>>(buildHoursInitialSessions);
+  const [hoursSelectedDate, setHoursSelectedDate] = useState<Date>(() => {
+    const today = DEMO_TODAY;
+    const day = today.getDay();
+    if (day === 6) { const d = new Date(today); d.setDate(today.getDate() - 1); return d; }
+    if (day === 0) { const d = new Date(today); d.setDate(today.getDate() - 2); return d; }
+    return today;
+  });
+
+  // ── Feed tab state ───────────────────────────────────────────────────────────
+  const [feedPosts, setFeedPosts] = useState<DemoFeedPost[]>(INITIAL_POSTS);
+  const [feedFilterTeacher, setFeedFilterTeacher] = useState<string | null>(null);
+  const [feedSelectedPost, setFeedSelectedPost] = useState<DemoFeedPost | null>(null);
+  const [feedComposing, setFeedComposing] = useState(false);
+  const [feedDraftBody, setFeedDraftBody] = useState("");
+  const [feedCommentDraft, setFeedCommentDraft] = useState("");
+
+  // ── Tour state ──────────────────────────────────────────────────────────────
+  const [isTouring, setIsTouring] = useState(!disableTour);
+  const [tourStep, setTourStep] = useState(0);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [cursorVisible, setCursorVisible] = useState(false);
+  const [cursorClicking, setCursorClicking] = useState(false);
+  const [typingTarget, setTypingTarget] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tourTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setBannerIndex(Math.floor(Math.random() * BANNER_IMAGES.length));
+    const timer = setInterval(() => {
+      setBannerIndex((i) => (i + 1) % BANNER_IMAGES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    function onFeedKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setFeedSelectedPost(null);
+    }
+    document.addEventListener("keydown", onFeedKey);
+    return () => document.removeEventListener("keydown", onFeedKey);
+  }, []);
+
+  function handleClockIn() {
+    const now = getDemoNow();
+    const key = todayKey(now);
+    const newSession: DemoSession = {
+      id: `demo-${Date.now()}`,
+      clockInAt: now,
+      clockOutAt: null,
+      note: "",
+    };
+    setSessionsByDay((prev) => ({
+      ...prev,
+      [key]: [...(prev[key] ?? []), newSession],
+    }));
+  }
+
+  function handleClockOut() {
+    const activeSession = Object.values(sessionsByDay)
+      .flat()
+      .find((s) => !s.clockOutAt);
+    if (!activeSession) return;
+    const key = todayKey(activeSession.clockInAt);
+    const clockOutAt = getDemoNow();
+    setSessionsByDay((prev) => ({
+      ...prev,
+      [key]: (prev[key] ?? []).map((s) =>
+        s.id === activeSession.id ? { ...s, clockOutAt } : s,
+      ),
+    }));
+  }
+
+  // ── Hours tab handlers ────────────────────────────────────────────────────────
+
+  const hoursActiveSession =
+    Object.values(hoursSessionsByDay)
+      .flat()
+      .find((s) => !s.clockOutAt) ?? null;
+
+  function handleHoursClockIn() {
+    const now = getDemoNow();
+    const key = todayKey(now);
+    setHoursSessionsByDay((prev) => ({
+      ...prev,
+      [key]: [
+        ...(prev[key] ?? []),
+        { id: `h-${Date.now()}`, clockInAt: now, clockOutAt: null, note: "" },
+      ],
+    }));
+  }
+
+  function handleHoursClockOut() {
+    if (!hoursActiveSession) return;
+    const key = todayKey(hoursActiveSession.clockInAt);
+    const clockOutAt = getDemoNow();
+    setHoursSessionsByDay((prev) => ({
+      ...prev,
+      [key]: (prev[key] ?? []).map((s) =>
+        s.id === hoursActiveSession.id ? { ...s, clockOutAt } : s,
+      ),
+    }));
+  }
+
+  function handleDeleteHoursSession(id: string) {
+    setHoursSessionsByDay((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        next[key] = next[key].filter((s) => s.id !== id);
+        if (next[key].length === 0) delete next[key];
+      }
+      return next;
+    });
+  }
+
+  function handleHoursNoteChange(id: string, note: string) {
+    setHoursSessionsByDay((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        next[key] = next[key].map((s) => (s.id === id ? { ...s, note } : s));
+      }
+      return next;
+    });
+  }
+
+  function handleHoursDayClick(date: Date, switchToDay: boolean) {
+    setHoursSelectedDate(date);
+    if (switchToDay) setHoursView("day");
+  }
+
+  function goHoursDay(delta: number) {
+    const next = new Date(hoursSelectedDate);
+    next.setDate(next.getDate() + delta);
+    if (next.getDay() === 0)
+      next.setDate(next.getDate() + (delta > 0 ? 1 : -2));
+    if (next.getDay() === 6)
+      next.setDate(next.getDate() + (delta > 0 ? 2 : -1));
+    setHoursSelectedDate(next);
+  }
+
+  // ── Feed tab handlers ─────────────────────────────────────────────────────────
+
+  const feedLivePost = feedSelectedPost
+    ? (feedPosts.find((p) => p.id === feedSelectedPost.id) ?? feedSelectedPost)
+    : null;
+  const feedDisplayed = feedFilterTeacher
+    ? feedPosts.filter((p) => p.authorId === feedFilterTeacher)
+    : feedPosts;
+
+  function toggleFeedReaction(postId: string, emoji: string) {
+    setFeedPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const existing = p.reactions.find((r) => r.emoji === emoji);
+        let reactions: DemoReaction[];
+        if (existing) {
+          reactions = p.reactions
+            .map((r) =>
+              r.emoji === emoji
+                ? { ...r, count: r.mine ? r.count - 1 : r.count + 1, mine: !r.mine }
+                : r,
+            )
+            .filter((r) => r.count > 0);
+        } else {
+          reactions = [...p.reactions, { emoji, count: 1, mine: true }];
+        }
+        return { ...p, reactions };
+      }),
+    );
+  }
+
+  function addFeedComment(postId: string, body: string) {
+    const newComment: DemoComment = {
+      id: `c-${Date.now()}`,
+      authorName: DEMO_TEACHER.name,
+      authorColor: "#336699",
+      body,
+      time: "Just now",
+    };
+    setFeedPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p,
+      ),
+    );
+  }
+
+  function submitFeedPost() {
+    const body = feedDraftBody.trim();
+    if (!body) return;
+    const newPost: DemoFeedPost = {
+      id: `p-${Date.now()}`,
+      authorName: DEMO_TEACHER.name,
+      authorId: "t1",
+      authorColor: "#336699",
+      body,
+      createdAt: new Date().toISOString(),
+      reactions: [],
+      comments: [],
+    };
+    setFeedPosts((prev) => [newPost, ...prev]);
+    setFeedDraftBody("");
+    setFeedComposing(false);
+  }
+
+  // ── Tour helpers ────────────────────────────────────────────────────────────
+
+  const getTargetCenter = useCallback(
+    (targetId: string): { x: number; y: number } | null => {
+      if (!containerRef.current) return null;
+      // Try inside container first; fall back to document for fixed-positioned elements (e.g. dropdown)
+      const el =
+        containerRef.current.querySelector(`[data-tour-id="${targetId}"]`) ??
+        document.querySelector(`[data-tour-id="${targetId}"]`);
+      if (!el) return null;
+      const cr = containerRef.current.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      return {
+        x: er.left - cr.left + er.width / 2,
+        y: er.top - cr.top + er.height / 2,
+      };
+    },
+    [],
+  );
+
+  // Typing animation
+  useEffect(() => {
+    if (!typingTarget) return;
+    setMsgDraft("");
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setMsgDraft(typingTarget.slice(0, i));
+      if (i >= typingTarget.length) {
+        clearInterval(id);
+        setTypingTarget(null);
+      }
+    }, 55);
+    return () => clearInterval(id);
+  }, [typingTarget]);
+
+  const msgDraftRef = useRef(msgDraft);
+  useEffect(() => {
+    msgDraftRef.current = msgDraft;
+  }, [msgDraft]);
+
+  const sendMsgFromTour = useCallback(() => {
+    if (!msgDraftRef.current.trim()) return;
+    const el = containerRef.current?.querySelector(
+      '[data-tour-id="messages-send"]',
+    );
+    (el as HTMLElement)?.click();
+  }, []);
+
+  const tourSteps = useMemo(
+    () => [
+      {
+        action: () => setActiveTab("students"),
+        targetId: "nav-students",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="student-row-0"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "student-row-0",
+        holdMs: 2200,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="student-sidebar-close"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "student-sidebar-close",
+        holdMs: 800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("hours"),
+        targetId: "nav-hours",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("messages"),
+        targetId: "nav-messages",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="messages-conv-c2"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "messages-conv-c2",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => setTypingTarget("Sure, let's reschedule for Thursday!"),
+        targetId: "messages-input",
+        holdMs: 2800,
+        clickAnimation: true,
+      },
+      {
+        action: () => sendMsgFromTour(),
+        targetId: "messages-send",
+        holdMs: 1000,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("calendar"),
+        targetId: "nav-calendar",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="calendar-next-month"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "calendar-next-month",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="calendar-event-e4"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "calendar-event-e4",
+        holdMs: 2400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="calendar-sidebar-close"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "calendar-sidebar-close",
+        holdMs: 600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-more"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-more",
+        holdMs: 600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = document.querySelector('[data-tour-id="nav-feed"]');
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-feed",
+        holdMs: 1600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-more"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-more",
+        holdMs: 600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = document.querySelector('[data-tour-id="nav-payroll"]');
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-payroll",
+        holdMs: 2200,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="nav-more"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-more",
+        holdMs: 600,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = document.querySelector('[data-tour-id="nav-forms"]');
+          (el as HTMLElement)?.click();
+        },
+        targetId: "nav-forms",
+        holdMs: 2000,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("attendance"),
+        targetId: "nav-attendance",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="attendance-week-next"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "attendance-week-next",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="attendance-checkbox-row-0"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "attendance-checkbox-row-0",
+        holdMs: 1400,
+        clickAnimation: true,
+      },
+      {
+        action: () => setActiveTab("dashboard"),
+        targetId: "nav-dashboard",
+        holdMs: 1800,
+        clickAnimation: true,
+      },
+      {
+        action: () => {
+          const el = containerRef.current?.querySelector(
+            '[data-tour-id="event-card-e1"]',
+          );
+          (el as HTMLElement)?.click();
+        },
+        targetId: "event-card-e1",
+        holdMs: 2000,
+        clickAnimation: true,
+      },
+    ],
+    [sendMsgFromTour],
+  );
+
+  // Main tour effect
+  useEffect(() => {
+    if (!isTouring) return;
+    const step = tourSteps[tourStep];
+    let cancelled = false;
+
+    const t1 = setTimeout(() => {
+      if (cancelled) return;
+      const pos = getTargetCenter(step.targetId);
+      if (pos) {
+        setCursorPos(pos);
+        setCursorVisible(true);
+      }
+
+      const t2 = setTimeout(() => {
+        if (cancelled) return;
+        step.action();
+
+        if (step.clickAnimation) {
+          setCursorClicking(true);
+          setTimeout(() => {
+            if (!cancelled) setCursorClicking(false);
+          }, 350);
+        }
+
+        const t3 = setTimeout(() => {
+          if (!cancelled) setTourStep((prev) => (prev + 1) % tourSteps.length);
+        }, step.holdMs);
+        tourTimerRef.current = t3;
+      }, TOUR_MOVE_MS);
+      tourTimerRef.current = t2;
+    }, 60);
+    tourTimerRef.current = t1;
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t1);
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current);
+    };
+  }, [tourStep, isTouring]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (tourTimerRef.current) clearTimeout(tourTimerRef.current);
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, []);
+
+  const handleTourMouseEnter = useCallback(() => {
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    setIsTouring(false);
+    setCursorVisible(false);
+  }, []);
+
+  const handleTourMouseLeave = useCallback(() => {
+    if (disableTour) return;
+    resumeTimerRef.current = setTimeout(() => {
+      setTourStep(0);
+      setIsTouring(true);
+    }, TOUR_RESUME_MS);
+  }, [disableTour]);
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseEnter={handleTourMouseEnter}
+      onMouseLeave={handleTourMouseLeave}
+      className="h-full relative flex flex-col bg-[#fafaf9] font-body"
+    >
+      {/* Tour cursor */}
+      {cursorVisible && (
+        <motion.div
+          className="pointer-events-none absolute z-[100]"
+          animate={{ x: cursorPos.x - 10, y: cursorPos.y - 10 }}
+          transition={{ duration: TOUR_MOVE_MS / 1000, ease: [0.25, 1, 0.5, 1] }}
+          style={{ top: 0, left: 0 }}
+        >
+          <motion.div
+            animate={cursorClicking ? { scale: 0.7 } : { scale: 1 }}
+            transition={{ duration: 0.15 }}
+            className="w-5 h-5 rounded-full bg-[#336699]"
+            style={{
+              boxShadow:
+                "0 0 0 3px rgba(74,124,89,0.25), 0 2px 8px rgba(74,124,89,0.4)",
+            }}
+          />
+        </motion.div>
+      )}
+
+      {/* Header */}
+      {!hideNav && (
+        <header className="shrink-0 z-40 bg-white border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
+            {/* Logo */}
+            <div className="shrink-0">
+              <Image
+                src={LIGHTHOUSE_TEACHER_LOGO.src}
+                alt={LIGHTHOUSE_TEACHER_LOGO.alt}
+                width={LIGHTHOUSE_TEACHER_LOGO.width}
+                height={LIGHTHOUSE_TEACHER_LOGO.height}
+                className="h-10 w-auto object-contain"
+              />
+            </div>
+
+            {/* Nav */}
+            <div className="flex-1 flex justify-center">
+              <TeacherNav activeTab={activeTab} onTabChange={setActiveTab} />
+            </div>
+
+            {/* Profile avatar */}
+            <div className="shrink-0 w-8 h-8 rounded-full bg-[#336699] flex items-center justify-center cursor-pointer">
+              <span className="text-white text-xs font-semibold font-body">
+                {DEMO_TEACHER.initials}
+              </span>
+            </div>
+          </div>
+        </header>
+      )}
+
+      {/* Page content */}
+      <main className={`flex-1 min-h-0 overflow-y-auto flex flex-col ${activeTab === "messages" || activeTab === "calendar" || activeTab === "students" || activeTab === "dashboard" || activeTab === "hours" || activeTab === "feed" || activeTab === "attendance" ? "bg-white" : ""}`}>
+        {activeTab === "messages" && (
+          <MessagesPage
+            externalDraft={msgDraft}
+            setExternalDraft={setMsgDraft}
+          />
+        )}
+
+        {activeTab === "calendar" && <CalendarPage />}
+
+        {activeTab === "students" && <StudentsPage />}
+
+        {activeTab === "dashboard" && (
+          <div className="flex flex-col flex-1">
+            {/* Banner */}
+            <div className="px-6 pt-6 shrink-0">
+            <motion.div
+              initial={{ opacity: 0, scale: 1.01 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="relative h-44 rounded-2xl overflow-hidden shadow-sm"
+            >
+              <AnimatePresence initial={false}>
+                <motion.div
+                  key={bannerIndex}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.8, ease: "easeInOut" }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={BANNER_IMAGES[bannerIndex]}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                </motion.div>
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-black/45" />
+
+              {/* Dot indicators */}
+              <div className="absolute bottom-3 right-5 flex gap-1.5">
+                {BANNER_IMAGES.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setBannerIndex(i)}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                      i === bannerIndex ? "bg-white scale-125" : "bg-white/40"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <div className="absolute inset-0 flex flex-col justify-end px-7 pb-6">
+                <motion.p
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.15 }}
+                  className="text-white/70 text-sm font-body mb-1"
+                >
+                  {DEMO_TODAY.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </motion.p>
+                <motion.h1
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="text-white text-3xl font-bold font-heading leading-tight"
+                >
+                  Welcome, {DEMO_TEACHER.name.split(" ")[0]}.
+                </motion.h1>
+              </div>
+            </motion.div>
+            </div>
+
+            {/* Two-column content */}
+            <div className="flex flex-1 border-t border-gray-100 mt-6">
+              {/* Left: Clock + Payroll */}
+              <div className="w-72 shrink-0 border-r border-gray-100 flex flex-col divide-y divide-gray-100">
+                <div className="p-6">
+                  <ClockWidget
+                    sessionsByDay={sessionsByDay}
+                    onClockIn={handleClockIn}
+                    onClockOut={handleClockOut}
+                  />
+                </div>
+                <div className="p-6">
+                  <PayrollCard />
+                </div>
+              </div>
+
+              {/* Right: Upcoming Events + Weekly Hours */}
+              <div className="flex-1 flex flex-col divide-y divide-gray-100">
+                <div className="p-6">
+                  <UpcomingEventsCard
+                    events={DEMO_EVENTS}
+                    expandedId={expandedEventId}
+                    onToggle={(id) =>
+                      setExpandedEventId((prev) => (prev === id ? null : id))
+                    }
+                  />
+                </div>
+                <div className="p-6">
+                  <WeeklyHoursChart sessionsByDay={sessionsByDay} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "hours" && (
+          <div className="flex flex-1 border-t border-gray-100">
+            {/* Main content */}
+            <div className="flex-1 min-w-0 flex flex-col">
+              {/* Header bar */}
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 shrink-0">
+                <div>
+                  <h1 className="text-xl font-bold font-heading text-gray-800">
+                    My Hours
+                  </h1>
+                  <p className="text-sm text-gray-400 font-body mt-0.5">
+                    Clock in and out to track your daily work time.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  {hoursView === "day" && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => goHoursDay(-1)}
+                        className="p-1.5 rounded-lg hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <span className="text-sm font-medium text-gray-600 font-body tabular-nums min-w-[110px] text-center">
+                        {hoursSelectedDate.toLocaleDateString("en-US", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                      <button
+                        onClick={() => goHoursDay(1)}
+                        className="p-1.5 rounded-lg hover:bg-gray-200/60 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                    {HOURS_VIEW_OPTIONS.map(({ id, label }) => (
+                      <button
+                        key={id}
+                        onClick={() => setHoursView(id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-body transition-all cursor-pointer
+                          ${hoursView === id ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                      >
+                        {id === "day" && <Clock className="w-3.5 h-3.5" />}
+                        {id === "week" && <CalendarDays className="w-3.5 h-3.5" />}
+                        {id === "month" && <LayoutGrid className="w-3.5 h-3.5" />}
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 p-6">
+              <AnimatePresence mode="wait">
+                {hoursView === "day" && (
+                  <motion.div
+                    key="day"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <DayView
+                      selectedDate={hoursSelectedDate}
+                      sessionsByDay={hoursSessionsByDay}
+                      activeSession={hoursActiveSession}
+                      onClockIn={handleHoursClockIn}
+                      onClockOut={handleHoursClockOut}
+                      onDeleteSession={handleDeleteHoursSession}
+                      onNoteChange={handleHoursNoteChange}
+                    />
+                  </motion.div>
+                )}
+                {hoursView === "week" && (
+                  <motion.div
+                    key="week"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <WeekView
+                      sessionsByDay={hoursSessionsByDay}
+                      activeSession={hoursActiveSession}
+                      onDayClick={handleHoursDayClick}
+                    />
+                  </motion.div>
+                )}
+                {hoursView === "month" && (
+                  <motion.div
+                    key="month"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <MonthView
+                      sessionsByDay={hoursSessionsByDay}
+                      onDayClick={handleHoursDayClick}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Summary sidebar */}
+            <div className="w-64 shrink-0 border-l border-gray-100">
+              <SummaryPanel
+                sessionsByDay={hoursSessionsByDay}
+                activeSession={hoursActiveSession}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === "feed" && (
+          <div className="flex flex-1 border-t border-gray-100">
+            {/* Teacher filter sidebar */}
+            <aside className="w-48 shrink-0 border-r border-gray-100 flex flex-col p-4 gap-1">
+              <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wider px-2 pb-2">
+                Teachers
+              </p>
+              <button
+                onClick={() => setFeedFilterTeacher(null)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterTeacher === null ? "bg-[#336699]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+              >
+                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                  <span className="text-[10px] text-gray-500 font-bold">All</span>
+                </div>
+                <span className="text-sm font-body font-medium truncate">
+                  All Teachers
+                </span>
+              </button>
+              {DEMO_TEACHERS_FEED.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() =>
+                    setFeedFilterTeacher(feedFilterTeacher === t.id ? null : t.id)
+                  }
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterTeacher === t.id ? "bg-[#336699]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                >
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
+                    style={{ backgroundColor: t.color }}
+                  >
+                    {initialsFrom(t.name)}
+                  </div>
+                  <span className="text-xs font-body font-medium truncate">
+                    {t.name.split(" ")[0]}
+                  </span>
+                </button>
+              ))}
+            </aside>
+
+            {/* Feed */}
+            <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">
+              {/* Compose bar */}
+              <div className="flex items-start gap-3 px-6 py-4 border-b border-gray-100 shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#336699] flex items-center justify-center text-white text-xs font-semibold font-body shrink-0 mt-0.5">
+                    {initialsFrom(DEMO_TEACHER.name)}
+                  </div>
+                  <div className="flex-1">
+                    {!feedComposing ? (
+                      <button
+                        onClick={() => setFeedComposing(true)}
+                        className="w-full text-left bg-gray-50 rounded-full px-4 py-2.5 border border-gray-100 text-sm font-body text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer"
+                      >
+                        Share something with parents...
+                      </button>
+                    ) : (
+                      <div>
+                        <textarea
+                          autoFocus
+                          value={feedDraftBody}
+                          onChange={(e) => setFeedDraftBody(e.target.value)}
+                          placeholder="What's happening in the classroom today?"
+                          rows={3}
+                          className="w-full bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200 text-sm font-body text-gray-700 placeholder-gray-400 outline-none resize-none focus:border-[#336699]/40 transition-colors"
+                        />
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                          <button
+                            onClick={() => {
+                              setFeedComposing(false);
+                              setFeedDraftBody("");
+                            }}
+                            className="px-3 py-1.5 text-sm font-body text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={submitFeedPost}
+                            disabled={!feedDraftBody.trim()}
+                            className="px-4 py-1.5 bg-[#336699] text-white text-sm font-semibold font-body rounded-full hover:bg-[#3d6b4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            Post
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+              </div>
+
+              {/* Posts */}
+              {feedDisplayed.length === 0 ? (
+                <p className="text-sm text-gray-400 font-body text-center py-12">
+                  No posts yet.
+                </p>
+              ) : (
+                <div className="flex flex-col divide-y divide-gray-100">
+                  {feedDisplayed.map((post) => (
+                    <motion.div
+                      key={post.id}
+                      layout
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      onClick={() => setFeedSelectedPost(post)}
+                      className="px-6 py-5 cursor-pointer hover:bg-gray-50/60 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div
+                          className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold font-body"
+                          style={{ backgroundColor: post.authorColor }}
+                        >
+                          {initialsFrom(post.authorName)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold font-body text-gray-800 leading-tight">
+                            {post.authorName}
+                          </p>
+                          <p className="text-xs text-gray-400 font-body">
+                            Teacher · {timeAgo(post.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="text-sm font-body text-gray-700 leading-relaxed mb-4">
+                        {post.body}
+                      </p>
+
+                      {post.attachments?.map((att, i) =>
+                        att.type === "image" ? (
+                          <img
+                            key={i}
+                            src={att.src}
+                            alt={att.name || ""}
+                            className="w-40 h-40 object-cover rounded-xl mb-4 shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : null
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          {DEFAULT_EMOJIS.map((emoji) => {
+                            const r = post.reactions.find((rx) => rx.emoji === emoji);
+                            return (
+                              <button
+                                key={emoji}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFeedReaction(post.id, emoji);
+                                }}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#336699]/10 border-[#336699]/30 text-[#336699]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                              >
+                                <span>{emoji}</span>
+                                {r && r.count > 0 && (
+                                  <span className="text-xs font-semibold">
+                                    {r.count}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFeedSelectedPost(post);
+                          }}
+                          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#336699] transition-colors font-body ml-3 shrink-0 cursor-pointer"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          {post.comments.length}
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Post detail panel */}
+            <div className="w-80 shrink-0 border-l border-gray-100 flex flex-col overflow-hidden">
+              {feedLivePost ? (
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+                  {/* Post header */}
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-white text-sm font-semibold font-body"
+                      style={{ backgroundColor: feedLivePost.authorColor }}
+                    >
+                      {initialsFrom(feedLivePost.authorName)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold font-body text-gray-800">
+                        {feedLivePost.authorName}
+                      </p>
+                      <p className="text-xs text-gray-400 font-body">
+                        Teacher · {timeAgo(feedLivePost.createdAt)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setFeedSelectedPost(null)}
+                      className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-sm font-body text-gray-700 leading-relaxed">
+                    {feedLivePost.body}
+                  </p>
+
+                  {feedLivePost.attachments?.map((att, i) =>
+                    att.type === "image" ? (
+                      <img
+                        key={i}
+                        src={att.src}
+                        alt={att.name || ""}
+                        className="w-full max-h-44 object-cover rounded-xl"
+                      />
+                    ) : null
+                  )}
+
+                  {/* Reactions */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-3">
+                      Reactions
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {DEFAULT_EMOJIS.map((emoji) => {
+                        const r = feedLivePost.reactions.find(
+                          (rx) => rx.emoji === emoji,
+                        );
+                        return (
+                          <button
+                            key={emoji}
+                            onClick={() => toggleFeedReaction(feedLivePost.id, emoji)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#336699]/10 border-[#336699]/30 text-[#336699]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                          >
+                            <span>{emoji}</span>
+                            {r && r.count > 0 && (
+                              <span className="text-xs font-semibold">
+                                {r.count}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Comments */}
+                  <div className="border-t border-gray-100 pt-4">
+                    <p className="text-xs font-semibold font-body text-gray-400 uppercase tracking-wide mb-4">
+                      Comments · {feedLivePost.comments.length}
+                    </p>
+                    <div className="flex flex-col gap-4">
+                      {feedLivePost.comments.map((c) => (
+                        <div key={c.id} className="flex gap-2.5">
+                          <div
+                            className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-[9px] font-bold font-body"
+                            style={{ backgroundColor: c.authorColor }}
+                          >
+                            {initialsFrom(c.authorName)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="bg-[#eef4ef] rounded-2xl rounded-tl-sm px-3.5 py-2.5">
+                              <p className="text-xs font-semibold font-body text-gray-700 mb-0.5">
+                                {c.authorName}
+                              </p>
+                              <p className="text-sm font-body text-gray-600 leading-relaxed">
+                                {c.body}
+                              </p>
+                            </div>
+                            <p className="text-xs text-gray-400 font-body mt-1 ml-1">
+                              {c.time}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {feedLivePost.comments.length === 0 && (
+                        <p className="text-sm text-gray-400 font-body">
+                          No comments yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Comment input */}
+                  <div className="border-t border-gray-100 pt-4 flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-[#336699] flex items-center justify-center text-white text-[9px] font-bold font-body shrink-0">
+                      {initialsFrom(DEMO_TEACHER.name)}
+                    </div>
+                    <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3.5 py-2">
+                      <input
+                        type="text"
+                        value={feedCommentDraft}
+                        onChange={(e) => setFeedCommentDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            addFeedComment(feedLivePost.id, feedCommentDraft.trim());
+                            setFeedCommentDraft("");
+                          }
+                        }}
+                        placeholder="Add a comment..."
+                        className="flex-1 bg-transparent text-sm font-body text-gray-700 placeholder-gray-400 outline-none"
+                      />
+                      <button
+                        onClick={() => {
+                          addFeedComment(feedLivePost.id, feedCommentDraft.trim());
+                          setFeedCommentDraft("");
+                        }}
+                        disabled={!feedCommentDraft.trim()}
+                        className="text-[#336699] hover:text-[#3d6b4a] transition-colors shrink-0 disabled:opacity-40 cursor-pointer"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+                  <MessageCircle className="w-8 h-8 text-gray-200" />
+                  <p className="text-sm text-gray-400 font-body">Select a post to view details</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "attendance" && (
+          <div className="flex flex-col flex-1 min-h-0">
+            <AttendanceTab />
+          </div>
+        )}
+
+        {(activeTab !== "messages" && activeTab !== "calendar" && activeTab !== "students" &&
+          activeTab !== "dashboard" && activeTab !== "hours" && activeTab !== "feed" &&
+          activeTab !== "attendance") && (
+          <div className="max-w-6xl w-full mx-auto px-6 py-8 flex flex-col flex-1">
+            {activeTab === "payroll" && <PayrollPage />}
+
+            {activeTab === "forms" && <FormsPage />}
+
+            {activeTab !== "payroll" && activeTab !== "forms" && (
+              <ComingSoonPage
+                label={
+                  PRIMARY_NAV.find((n) => n.tab === activeTab)?.label ??
+                  MORE_NAV.find((n) => n.tab === activeTab)?.label ??
+                  activeTab
+                }
+              />
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
