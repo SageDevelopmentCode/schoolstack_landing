@@ -68,9 +68,16 @@ export default function SchoolDemoShell({
             demoSlug={config.slug}
             initialAdmissionsTab={steps[activeStep].initialAdmissionsTab ?? "submissions"}
             initialSelectedLeadId={steps[activeStep].initialSelectedLeadId}
+            initialSelectedLeadStatus={steps[activeStep].initialSelectedLeadStatus}
+            initialSelectedLeadApplicationSectionIndex={
+              steps[activeStep].initialSelectedLeadApplicationSectionIndex
+            }
             initialSelectedFlowId={steps[activeStep].initialSelectedFlowId}
             animateNewSubmission={steps[activeStep].animateNewSubmission}
             autoSendEnrollmentLink={steps[activeStep].autoSendEnrollmentLink}
+            autoSendEnrollmentLinkDelayMs={steps[activeStep].autoSendEnrollmentLinkDelayMs}
+            openInitialLeadDetail={steps[activeStep].openInitialLeadDetail}
+            hideLeadDetailEnrollmentAction={steps[activeStep].hideLeadDetailEnrollmentAction}
           />
         ) : activePreview === "teacher" ? (
           <ScaledTeacherDemoPreview

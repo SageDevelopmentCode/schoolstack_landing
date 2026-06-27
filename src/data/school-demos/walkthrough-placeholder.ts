@@ -54,11 +54,16 @@ export interface DemoWalkthroughStep {
   scrollTarget?: "top" | "form";
   initialAdmissionsTab?: DemoWalkthroughAdmissionsTab;
   initialSelectedLeadId?: string;
+  initialSelectedLeadStatus?: string;
+  initialSelectedLeadApplicationSectionIndex?: number;
   initialSelectedFlowId?: string;
   initialParentTab?: DemoWalkthroughParentTab;
   initialTeacherTab?: DemoWalkthroughTeacherTab;
   animateNewSubmission?: boolean;
   autoSendEnrollmentLink?: boolean;
+  autoSendEnrollmentLinkDelayMs?: number;
+  openInitialLeadDetail?: boolean;
+  hideLeadDetailEnrollmentAction?: boolean;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -2153,7 +2158,10 @@ const rootedMeadowsSendContractStep: DemoWalkthroughStep = {
   preview: "admin",
   icon: "link",
   initialSelectedLeadId: "l0",
-  autoSendEnrollmentLink: true,
+  initialSelectedLeadStatus: "needs_contract",
+  initialSelectedLeadApplicationSectionIndex: 3,
+  openInitialLeadDetail: false,
+  hideLeadDetailEnrollmentAction: true,
   theme: {
     bg: "#F5F3E6",
     bgHover: "#EEEBD8",

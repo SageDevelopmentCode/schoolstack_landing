@@ -13,6 +13,7 @@ import {
   ROOTED_MEADOWS_APPLICATION_COPY,
   ROOTED_MEADOWS_DEMO_BOOKING_RESPONSES,
   ROOTED_MEADOWS_DEMO_APPLYING_RESPONSES,
+  ROOTED_MEADOWS_DEMO_SARAH_COMPLETE_RESPONSES,
 } from "@/data/school-demos/rooted-meadows-application";
 import ApplicationProgressView from "@/components/demo/rootedmeadows/ApplicationProgressView";
 import {
@@ -785,7 +786,7 @@ const STATUS_COLORS: Record<
     bg: C.warningBg,
     border: C.warningBorder,
     text: C.warning,
-    label: "Needs Contract",
+    label: "Ready for Enrollment",
   },
   new: { bg: C.infoBg, border: C.infoBorder, text: C.info, label: "New" },
   contacted: {
@@ -4510,6 +4511,51 @@ function LeadsFiltersPanel({
 
 const NEW_SUBMISSION_LEAD_ID = "l0";
 
+type LeadWalkthroughOverride = {
+  leadId: string;
+  status?: string;
+  applicationSectionIndex?: number;
+  responses?: Record<string, string>;
+};
+
+function applyLeadWalkthroughOverride(
+  lead: DemoLead,
+  override?: LeadWalkthroughOverride,
+): DemoLead {
+  if (!override || override.leadId !== lead.id) return lead;
+  return {
+    ...lead,
+    ...(override.status ? { status: override.status } : {}),
+    ...(override.applicationSectionIndex !== undefined
+      ? { applicationSectionIndex: override.applicationSectionIndex }
+      : {}),
+    ...(override.responses ? { responses: override.responses } : {}),
+  } as DemoLead;
+}
+
+function getLeadSubmissionActionLabel(status: string): string | null {
+  switch (status) {
+    case "needs_contract":
+      return "Send Enrollment";
+    case "booking":
+      return "Send Reminder";
+    case "booked":
+      return "View Date/Time";
+    case "enrolling":
+      return "View Progress";
+    case "enrolled":
+      return "View Details";
+    case "applying":
+      return "Review Application";
+    default:
+      return null;
+  }
+}
+
+function isLeadSubmissionSecondaryAction(status: string): boolean {
+  return status === "booked" || status === "enrolling" || status === "enrolled";
+}
+
 function LeadTableRow({
   lead,
   onSelectLead,
@@ -4528,6 +4574,8 @@ function LeadTableRow({
     backgroundColor?: { duration?: number; ease?: string };
   };
 }) {
+  const actionLabel = getLeadSubmissionActionLabel(lead.status);
+  const isSecondaryAction = isLeadSubmissionSecondaryAction(lead.status);
   const rowProps = {
     onClick: () => onSelectLead(lead),
     className: "cursor-pointer transition-colors",
@@ -4613,7 +4661,7 @@ function LeadTableRow({
       <td className="px-4 py-3">
         <StatusBadge status={lead.status} />
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 max-w-[9rem]">
         <div className="flex flex-wrap gap-1">
           {lead.tags.map((tag) => (
             <span
@@ -4629,11 +4677,33 @@ function LeadTableRow({
           ))}
         </div>
       </td>
-      <td
-        className="px-4 py-3 text-xs"
-        style={{ color: C.textTertiary }}
-      >
-        {lead.date}
+      <td className="min-w-[11rem] px-4 py-3">
+        {actionLabel ? (
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            className="whitespace-nowrap rounded-sm px-3.5 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
+            style={
+              isSecondaryAction
+                ? {
+                    backgroundColor: C.accentLight,
+                    color: C.accent,
+                    border: `1px solid ${C.secondaryBtnBorder}`,
+                  }
+                : {
+                    backgroundColor: C.accent,
+                    color: "#fff",
+                    border: `1px solid ${C.accentDark}`,
+                  }
+            }
+          >
+            {actionLabel}
+          </button>
+        ) : (
+          <span className="text-xs" style={{ color: C.textTertiary }}>
+            —
+          </span>
+        )}
       </td>
     </>
   );
@@ -4662,10 +4732,15 @@ function LeadTableRow({
 function LeadsListTab({
   onSelectLead,
   animateNewSubmission = false,
+  leadWalkthroughOverride,
 }: {
   onSelectLead: (lead: DemoLead) => void;
   animateNewSubmission?: boolean;
+  leadWalkthroughOverride?: LeadWalkthroughOverride;
 }) {
+  const applyOverride = (lead: DemoLead) =>
+    applyLeadWalkthroughOverride(lead, leadWalkthroughOverride);
+  const handleSelectLead = (lead: DemoLead) => onSelectLead(applyOverride(lead));
   const [activeFilter, setActiveFilter] = useState("all");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [newSubmissionRevealed, setNewSubmissionRevealed] = useState(
@@ -4776,11 +4851,13 @@ function LeadsListTab({
                   "Message",
                   "Status",
                   "Tags",
-                  "Date",
+                  "Action",
                 ].map((col) => (
                   <th
                     key={col}
-                    className="text-left px-4 py-3 text-xs font-medium"
+                    className={`text-left px-4 py-3 text-xs font-medium${
+                      col === "Action" ? " min-w-[11rem]" : ""
+                    }${col === "Tags" ? " max-w-[9rem]" : ""}`}
                     style={{ color: C.textTertiary }}
                   >
                     {col}
@@ -4795,8 +4872,8 @@ function LeadsListTab({
                     {newSubmissionRevealed && newLead && (
                       <LeadTableRow
                         key={newLead.id}
-                        lead={newLead}
-                        onSelectLead={onSelectLead}
+                        lead={applyOverride(newLead)}
+                        onSelectLead={handleSelectLead}
                         initial={{ opacity: 0, x: 56 }}
                         animate={{
                           opacity: 1,
@@ -4814,8 +4891,8 @@ function LeadsListTab({
                   {existingLeads.map((lead) => (
                     <LeadTableRow
                       key={lead.id}
-                      lead={lead}
-                      onSelectLead={onSelectLead}
+                      lead={applyOverride(lead)}
+                      onSelectLead={handleSelectLead}
                     />
                   ))}
                 </>
@@ -4823,8 +4900,8 @@ function LeadsListTab({
                 filtered.map((lead, i) => (
                   <LeadTableRow
                     key={lead.id}
-                    lead={lead}
-                    onSelectLead={onSelectLead}
+                    lead={applyOverride(lead)}
+                    onSelectLead={handleSelectLead}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
@@ -5242,7 +5319,9 @@ function isApplicationLead(
   lead: DemoLead,
 ): lead is DemoLead & { applicationSectionIndex: number } {
   return (
-    (lead.status === "applying" || lead.status === "booking") &&
+    (lead.status === "applying" ||
+      lead.status === "booking" ||
+      lead.status === "needs_contract") &&
     "applicationSectionIndex" in lead &&
     typeof lead.applicationSectionIndex === "number"
   );
@@ -5372,10 +5451,14 @@ function LeadDetailPanel({
   lead,
   onClose,
   autoSendEnrollmentLink = false,
+  autoSendEnrollmentLinkDelayMs,
+  hideLeadDetailEnrollmentAction = false,
 }: {
   lead: DemoLead;
   onClose: () => void;
   autoSendEnrollmentLink?: boolean;
+  autoSendEnrollmentLinkDelayMs?: number;
+  hideLeadDetailEnrollmentAction?: boolean;
 }) {
   const flow = getFlowForLead(lead.flowId);
   const responseMap = lead.responses as unknown as Record<string, string | boolean>;
@@ -5432,9 +5515,12 @@ function LeadDetailPanel({
       return;
     }
     setEnrollmentLinkSent(false);
-    const timer = setTimeout(() => setEnrollmentLinkSent(true), 1000);
+    const timer = setTimeout(
+      () => setEnrollmentLinkSent(true),
+      autoSendEnrollmentLinkDelayMs ?? 1000,
+    );
     return () => clearTimeout(timer);
-  }, [autoSendEnrollmentLink, lead.id]);
+  }, [autoSendEnrollmentLink, autoSendEnrollmentLinkDelayMs, lead.id]);
 
   useEffect(() => {
     setLeadStatus(lead.status);
@@ -5908,6 +5994,7 @@ function LeadDetailPanel({
         </div>
       </div>
 
+      {!hideLeadDetailEnrollmentAction && (
       <div
         className="flex-shrink-0 px-4 py-3 sm:px-5"
         style={{ borderTop: `1px solid ${C.border}` }}
@@ -5952,6 +6039,7 @@ function LeadDetailPanel({
           </AnimatePresence>
         </motion.button>
       </div>
+      )}
     </motion.div>
   );
 }
@@ -7663,19 +7751,49 @@ type AdmissionsTab = "flows" | "submissions";
 function AdmissionsPage({
   activeTab,
   initialLeadId,
+  initialSelectedLeadStatus,
+  initialSelectedLeadApplicationSectionIndex,
   initialSelectedFlowId,
   animateNewSubmission,
   autoSendEnrollmentLink,
+  autoSendEnrollmentLinkDelayMs,
+  openInitialLeadDetail,
+  hideLeadDetailEnrollmentAction,
 }: {
   activeTab: AdmissionsTab;
   initialLeadId?: string;
+  initialSelectedLeadStatus?: string;
+  initialSelectedLeadApplicationSectionIndex?: number;
   initialSelectedFlowId?: string;
   animateNewSubmission?: boolean;
   autoSendEnrollmentLink?: boolean;
+  autoSendEnrollmentLinkDelayMs?: number;
+  openInitialLeadDetail?: boolean;
+  hideLeadDetailEnrollmentAction?: boolean;
 }) {
-  const [selectedLead, setSelectedLead] = useState<DemoLead | null>(() =>
-    initialLeadId ? DEMO_LEADS.find((l) => l.id === initialLeadId) ?? null : null,
-  );
+  const leadWalkthroughOverride =
+    initialLeadId &&
+    (initialSelectedLeadStatus ||
+      initialSelectedLeadApplicationSectionIndex !== undefined)
+      ? {
+          leadId: initialLeadId,
+          status: initialSelectedLeadStatus,
+          applicationSectionIndex: initialSelectedLeadApplicationSectionIndex,
+          responses:
+            initialSelectedLeadApplicationSectionIndex !== undefined &&
+            initialLeadId === "l0"
+              ? ROOTED_MEADOWS_DEMO_SARAH_COMPLETE_RESPONSES
+              : undefined,
+        }
+      : undefined;
+  const shouldOpenInitialLeadDetail =
+    Boolean(initialLeadId) && openInitialLeadDetail !== false;
+  const [selectedLead, setSelectedLead] = useState<DemoLead | null>(() => {
+    if (!shouldOpenInitialLeadDetail || !initialLeadId) return null;
+    const lead = DEMO_LEADS.find((l) => l.id === initialLeadId);
+    if (!lead) return null;
+    return applyLeadWalkthroughOverride(lead, leadWalkthroughOverride);
+  });
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
   useEffect(() => {
@@ -7701,6 +7819,7 @@ function AdmissionsPage({
             <LeadsListTab
               onSelectLead={setSelectedLead}
               animateNewSubmission={animateNewSubmission}
+              leadWalkthroughOverride={leadWalkthroughOverride}
             />
           </motion.div>
         )}
@@ -7712,6 +7831,8 @@ function AdmissionsPage({
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
             autoSendEnrollmentLink={autoSendEnrollmentLink}
+            autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
+            hideLeadDetailEnrollmentAction={hideLeadDetailEnrollmentAction}
           />
         )}
       </AnimatePresence>
@@ -24129,9 +24250,14 @@ export default function RootedMeadowsAdminDashboardDemo({
   initialPage = "dashboard",
   initialAdmissionsTab = "flows",
   initialSelectedLeadId,
+  initialSelectedLeadStatus,
+  initialSelectedLeadApplicationSectionIndex,
   initialSelectedFlowId,
   animateNewSubmission,
   autoSendEnrollmentLink,
+  autoSendEnrollmentLinkDelayMs,
+  openInitialLeadDetail,
+  hideLeadDetailEnrollmentAction,
   hideNav = false,
   defaultSidebarExpanded = true,
 }: {
@@ -24139,9 +24265,14 @@ export default function RootedMeadowsAdminDashboardDemo({
   initialPage?: ActivePage
   initialAdmissionsTab?: AdmissionsTab
   initialSelectedLeadId?: string
+  initialSelectedLeadStatus?: string
+  initialSelectedLeadApplicationSectionIndex?: number
   initialSelectedFlowId?: string
   animateNewSubmission?: boolean
   autoSendEnrollmentLink?: boolean
+  autoSendEnrollmentLinkDelayMs?: number
+  openInitialLeadDetail?: boolean
+  hideLeadDetailEnrollmentAction?: boolean
   hideNav?: boolean
   defaultSidebarExpanded?: boolean
 }) {
@@ -24216,9 +24347,16 @@ export default function RootedMeadowsAdminDashboardDemo({
           <AdmissionsPage
             activeTab={admissionsTab}
             initialLeadId={initialSelectedLeadId}
+            initialSelectedLeadStatus={initialSelectedLeadStatus}
+            initialSelectedLeadApplicationSectionIndex={
+              initialSelectedLeadApplicationSectionIndex
+            }
             initialSelectedFlowId={initialSelectedFlowId}
             animateNewSubmission={animateNewSubmission}
             autoSendEnrollmentLink={autoSendEnrollmentLink}
+            autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
+            openInitialLeadDetail={openInitialLeadDetail}
+            hideLeadDetailEnrollmentAction={hideLeadDetailEnrollmentAction}
           />
         );
       case "people":

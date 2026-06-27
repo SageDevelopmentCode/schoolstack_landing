@@ -81,16 +81,26 @@ export default function ScaledAdminDemoPreview({
   demoSlug = "athena-microacademy",
   initialAdmissionsTab = "submissions",
   initialSelectedLeadId,
+  initialSelectedLeadStatus,
+  initialSelectedLeadApplicationSectionIndex,
   initialSelectedFlowId,
   animateNewSubmission,
   autoSendEnrollmentLink,
+  autoSendEnrollmentLinkDelayMs,
+  openInitialLeadDetail,
+  hideLeadDetailEnrollmentAction,
 }: {
   demoSlug?: string;
   initialAdmissionsTab?: "flows" | "submissions";
   initialSelectedLeadId?: string;
+  initialSelectedLeadStatus?: string;
+  initialSelectedLeadApplicationSectionIndex?: number;
   initialSelectedFlowId?: string;
   animateNewSubmission?: boolean;
   autoSendEnrollmentLink?: boolean;
+  autoSendEnrollmentLinkDelayMs?: number;
+  openInitialLeadDetail?: boolean;
+  hideLeadDetailEnrollmentAction?: boolean;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
@@ -196,9 +206,16 @@ export default function ScaledAdminDemoPreview({
             initialPage="leads"
             initialAdmissionsTab={initialAdmissionsTab}
             initialSelectedLeadId={initialSelectedLeadId}
+            initialSelectedLeadStatus={initialSelectedLeadStatus}
+            initialSelectedLeadApplicationSectionIndex={
+              initialSelectedLeadApplicationSectionIndex
+            }
             initialSelectedFlowId={initialSelectedFlowId}
             animateNewSubmission={animateNewSubmission}
             autoSendEnrollmentLink={autoSendEnrollmentLink}
+            autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
+            openInitialLeadDetail={openInitialLeadDetail}
+            hideLeadDetailEnrollmentAction={hideLeadDetailEnrollmentAction}
           />
         </div>
       </div>

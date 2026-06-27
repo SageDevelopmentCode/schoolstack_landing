@@ -318,6 +318,26 @@ export const ROOTED_MEADOWS_DEMO_APPLYING_RESPONSES: Record<string, string> = {
   applyingGrade: "3",
 };
 
+/** All sections complete — Sarah Whitmore (post-observation, Needs Contract). */
+export const ROOTED_MEADOWS_DEMO_SARAH_COMPLETE_RESPONSES: Record<string, string> = {
+  ...ROOTED_MEADOWS_DEMO_APPLYING_RESPONSES,
+  currentSetting: "Public school (2nd grade, half-day)",
+  priorPrograms: "yes",
+  priorProgramsDetail:
+    "Attended a traditional elementary school for first and second grade before exploring Waldorf-guided options.",
+  whyRootedMeadows:
+    "We want a smaller, Waldorf-guided environment where Ella can learn at a natural pace. The observation visit confirmed this feels like the right fit for our family.",
+  childStrengths:
+    "Creative, thoughtful, and drawn to art and outdoor play. Ella listens well in small groups and connects easily with gentle routines.",
+  partnershipHopes:
+    "We hope for a school that partners with parents and honors childhood. We want rhythm, clear communication, and a nurturing classroom culture.",
+  readinessAndConcerns:
+    "Ella did well during her observation visit and engaged warmly with the classroom rhythm. She may need a moment to warm up in new social settings.",
+  supportNeeds: "None",
+  observationSupport:
+    "Ella responded well when a guide greeted her one-on-one before joining the group — helpful for future transitions.",
+};
+
 /** All sections complete — Diana Foster (Booking). */
 export const ROOTED_MEADOWS_DEMO_BOOKING_RESPONSES: Record<string, string> = {
   parentName: "Diana Foster",
