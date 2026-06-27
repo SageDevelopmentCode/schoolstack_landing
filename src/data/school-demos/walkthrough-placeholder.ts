@@ -2145,10 +2145,38 @@ const rootedMeadowsObservationStep: DemoWalkthroughStep = {
   },
 };
 
+const rootedMeadowsSendContractStep: DemoWalkthroughStep = {
+  id: "send-enrollment-contract",
+  title: "Send the enrollment contract",
+  description:
+    "After the observation visit is complete, you send the family their enrollment contract.",
+  preview: "admin",
+  icon: "link",
+  initialSelectedLeadId: "l0",
+  autoSendEnrollmentLink: true,
+  theme: {
+    bg: "#F5F3E6",
+    bgHover: "#EEEBD8",
+    bgActive: "#EEEBD8",
+    border: "#D8D9A8",
+    iconBg: "#b3b462",
+    iconColor: "#FFFFFF",
+    titleColor: "#5C5A30",
+    descColor: "#6B6840",
+    connector: "#b3b462",
+  },
+};
+
 export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   rootedMeadowsApplicationStep,
   rootedMeadowsObservationStep,
-  ...rootedMeadowsWalkthroughPlaceholder.filter((step) => step.preview !== undefined),
+  rootedMeadowsSendContractStep,
+  ...rootedMeadowsWalkthroughPlaceholder.filter(
+    (step) =>
+      step.preview !== undefined &&
+      step.id !== "view-lead" &&
+      step.id !== "send-application-link",
+  ),
 ];
 
 export const prestigeHomeschoolAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] = [
