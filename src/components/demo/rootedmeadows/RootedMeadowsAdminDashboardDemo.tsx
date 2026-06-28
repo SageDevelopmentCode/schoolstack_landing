@@ -17,6 +17,9 @@ import {
 } from "@/data/school-demos/rooted-meadows-application";
 import ApplicationProgressView from "@/components/demo/rootedmeadows/ApplicationProgressView";
 import SendEnrollmentOutcomeModal from "@/components/demo/rootedmeadows/SendEnrollmentOutcomeModal";
+import CommitteesAdminPage, {
+  type CommitteeAdminView,
+} from "@/components/demo/rootedmeadows/committees/CommitteesAdminPage";
 import {
   getPostSendLeadUpdate,
   type EnrollmentOutcomePathId,
@@ -24288,6 +24291,7 @@ type ActivePage =
   | "people"
   | "programs"
   | "myschool"
+  | "committees"
   | "messages"
   | "calendar"
   | "transactions"
@@ -24353,6 +24357,12 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         key: "myschool",
         name: "My School",
         icon: <School className="w-4 h-4" />,
+        phase1: true,
+      },
+      {
+        key: "committees",
+        name: "Committees",
+        icon: <Heart className="w-4 h-4" />,
         phase1: true,
       },
     ],
@@ -25094,6 +25104,10 @@ export default function RootedMeadowsAdminDashboardDemo({
   openInitialTuitionAdjustModalDelayMs,
   tuitionOverride,
   onTuitionOverrideApplied,
+  initialCommitteeId,
+  initialCommitteeAdminView,
+  openCreateCommitteeModal,
+  openArchiveCommitteeModal,
 }: {
   disableTour?: boolean
   initialPage?: ActivePage
@@ -25116,6 +25130,10 @@ export default function RootedMeadowsAdminDashboardDemo({
   openInitialTuitionAdjustModalDelayMs?: number
   tuitionOverride?: DemoTuitionOverride | null
   onTuitionOverrideApplied?: (override: DemoTuitionOverride | null) => void
+  initialCommitteeId?: string
+  initialCommitteeAdminView?: CommitteeAdminView
+  openCreateCommitteeModal?: boolean
+  openArchiveCommitteeModal?: boolean
 }) {
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
   const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>(initialAdmissionsTab);
@@ -25251,6 +25269,15 @@ export default function RootedMeadowsAdminDashboardDemo({
             }
             tuitionOverride={tuitionOverride}
             onTuitionOverrideApplied={onTuitionOverrideApplied}
+          />
+        );
+      case "committees":
+        return (
+          <CommitteesAdminPage
+            initialCommitteeId={initialCommitteeId}
+            initialView={initialCommitteeAdminView}
+            openCreateModal={openCreateCommitteeModal}
+            openArchiveModal={openArchiveCommitteeModal}
           />
         );
       case "budget":
@@ -25558,7 +25585,7 @@ export default function RootedMeadowsAdminDashboardDemo({
                 activePage === "leads" || activePage === "people" ||
                 activePage === "transactions" || activePage === "emails" ||
                 activePage === "marketing" || activePage === "myschool" ||
-                activePage === "budget"
+                activePage === "budget" || activePage === "committees"
                   ? ""
                   : "max-w-screen-xl mx-auto p-6"
               }`}

@@ -8,9 +8,27 @@ export type DemoWalkthroughIcon =
   | "creditCard"
   | "clipboardList"
   | "messageCircle"
-  | "badgePercent";
+  | "badgePercent"
+  | "users"
+  | "heart";
 
-export type DemoWalkthroughAdminPage = "myschool";
+export type DemoWalkthroughAdminPage = "myschool" | "committees";
+
+export type DemoWalkthroughCommitteeAdminView =
+  | "list"
+  | "detail"
+  | "signup"
+  | "archive";
+
+export type DemoWalkthroughCommitteeSection =
+  | "home"
+  | "about"
+  | "resources"
+  | "calendar"
+  | "tasks"
+  | "messages"
+  | "members"
+  | "settings";
 
 export type DemoWalkthroughMySchoolTab =
   | "students"
@@ -21,7 +39,7 @@ export type DemoWalkthroughMySchoolTab =
 
 export type DemoWalkthroughAdmissionsTab = "flows" | "submissions";
 
-export type DemoWalkthroughParentTab = "enrollment" | "home" | "billing";
+export type DemoWalkthroughParentTab = "enrollment" | "home" | "billing" | "committees";
 
 export type DemoWalkthroughTeacherTab =
   | "dashboard"
@@ -82,6 +100,11 @@ export interface DemoWalkthroughStep {
   openInitialTuitionAdjustModal?: boolean;
   openInitialTuitionAdjustModalDelayMs?: number;
   billingChildIds?: readonly ("emma" | "jake" | "liam")[];
+  initialCommitteeId?: string;
+  initialCommitteeSection?: DemoWalkthroughCommitteeSection;
+  initialCommitteeAdminView?: DemoWalkthroughCommitteeAdminView;
+  openCreateCommitteeModal?: boolean;
+  openArchiveCommitteeModal?: boolean;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -2219,6 +2242,97 @@ const rootedMeadowsSendContractStep: DemoWalkthroughStep = {
   },
 };
 
+const rootedMeadowsCreateCommitteeStep: DemoWalkthroughStep = {
+  id: "create-committee",
+  title: "Create a committee workspace",
+  description:
+    "Set up Service & Sunshine from a template — preload the handbook, calendar, and starter tasks before inviting families.",
+  preview: "admin",
+  initialAdminPage: "committees",
+  openCreateCommitteeModal: true,
+  icon: "users",
+  theme: {
+    bg: "#F0EBF2",
+    bgHover: "#E8E0EC",
+    bgActive: "#E8E0EC",
+    border: "#C9BBD4",
+    iconBg: "#827096",
+    iconColor: "#FFFFFF",
+    titleColor: "#5A4D68",
+    descColor: "#6B6560",
+    connector: "#827096",
+  },
+};
+
+const rootedMeadowsPlaceMembersStep: DemoWalkthroughStep = {
+  id: "place-committee-members",
+  title: "Place families from August signup",
+  description:
+    "Review volunteer signup responses and place families into their committee workspaces for the school year.",
+  preview: "admin",
+  initialAdminPage: "committees",
+  initialCommitteeAdminView: "signup",
+  icon: "users",
+  theme: {
+    bg: "#F5F3E6",
+    bgHover: "#EEEBD8",
+    bgActive: "#EEEBD8",
+    border: "#D8D9A8",
+    iconBg: "#b3b462",
+    iconColor: "#FFFFFF",
+    titleColor: "#5C5A30",
+    descColor: "#6B6840",
+    connector: "#b3b462",
+  },
+};
+
+const rootedMeadowsParentCommitteeStep: DemoWalkthroughStep = {
+  id: "parent-committee-workspace",
+  title: "Parent joins the committee workspace",
+  description:
+    "Sarah opens Service & Sunshine — a private workspace with resources, calendar, tasks, and committee-only messaging.",
+  preview: "parent",
+  initialParentTab: "committees",
+  initialCommitteeId: "service-sunshine-2025",
+  initialCommitteeSection: "home",
+  icon: "heart",
+  theme: {
+    bg: "#F0EBF2",
+    bgHover: "#E8E0EC",
+    bgActive: "#E8E0EC",
+    border: "#C9BBD4",
+    iconBg: "#827096",
+    iconColor: "#FFFFFF",
+    titleColor: "#5A4D68",
+    descColor: "#6B6560",
+    connector: "#827096",
+  },
+};
+
+const rootedMeadowsArchiveCommitteeStep: DemoWalkthroughStep = {
+  id: "archive-committee",
+  title: "Archive and roll over for next year",
+  description:
+    "At year end, archive the committee, bulk-uninvite members, and duplicate the workspace template for the next school year.",
+  preview: "admin",
+  initialAdminPage: "committees",
+  initialCommitteeId: "service-sunshine-2025",
+  initialCommitteeAdminView: "detail",
+  openArchiveCommitteeModal: true,
+  icon: "users",
+  theme: {
+    bg: "#F5F3E6",
+    bgHover: "#EEEBD8",
+    bgActive: "#EEEBD8",
+    border: "#D8D9A8",
+    iconBg: "#b3b462",
+    iconColor: "#FFFFFF",
+    titleColor: "#5C5A30",
+    descColor: "#6B6840",
+    connector: "#b3b462",
+  },
+};
+
 export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   rootedMeadowsApplicationStep,
   rootedMeadowsObservationStep,
@@ -2247,6 +2361,15 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
             : step;
       if (step.id === "parent-enrollment") {
         return [mapped, rootedMeadowsAssignTuitionStep];
+      }
+      if (step.id === "teacher-attendance") {
+        return [
+          mapped,
+          rootedMeadowsCreateCommitteeStep,
+          rootedMeadowsPlaceMembersStep,
+          rootedMeadowsParentCommitteeStep,
+          rootedMeadowsArchiveCommitteeStep,
+        ];
       }
       return [mapped];
     }),

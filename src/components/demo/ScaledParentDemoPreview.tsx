@@ -85,12 +85,16 @@ export default function ScaledParentDemoPreview({
   parentEnrollmentVariant,
   billingChildIds,
   tuitionOverride,
+  initialCommitteeId,
+  initialCommitteeSection,
 }: {
   demoSlug?: string;
   initialParentTab?: DemoWalkthroughParentTab;
   parentEnrollmentVariant?: "prototype";
   billingChildIds?: readonly ("emma" | "jake" | "liam")[];
   tuitionOverride?: DemoTuitionOverride | null;
+  initialCommitteeId?: string;
+  initialCommitteeSection?: "home" | "about" | "resources" | "calendar" | "tasks" | "messages" | "members" | "settings";
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
@@ -194,7 +198,9 @@ export default function ScaledParentDemoPreview({
           }}
         >
           <DemoComponent
-            initialTab={initialParentTab}
+            initialTab={
+              initialParentTab as "home" | "enrollment" | "billing"
+            }
             disableTour
             hideNav={false}
             enrollmentVariant={
@@ -204,6 +210,8 @@ export default function ScaledParentDemoPreview({
             }
             billingChildIds={isRootedMeadows ? billingChildIds : undefined}
             tuitionOverride={isRootedMeadows ? tuitionOverride : undefined}
+            initialCommitteeId={isRootedMeadows ? initialCommitteeId : undefined}
+            initialCommitteeSection={isRootedMeadows ? initialCommitteeSection : undefined}
           />
         </div>
       </div>

@@ -75,7 +75,7 @@ import {
   prefetchLuffLearningAdminDemo,
 } from "@/components/demo/lufflearning/lazyLuffLearningDemos";
 
-import type { DemoWalkthroughMySchoolTab } from "@/data/school-demos/walkthrough-placeholder";
+import type { DemoWalkthroughMySchoolTab, DemoWalkthroughAdminPage } from "@/data/school-demos/walkthrough-placeholder";
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 
 const DESIGN_WIDTH = 1440;
@@ -100,6 +100,10 @@ export default function ScaledAdminDemoPreview({
   openInitialTuitionAdjustModalDelayMs,
   tuitionOverride,
   onTuitionOverrideApplied,
+  initialCommitteeId,
+  initialCommitteeAdminView,
+  openCreateCommitteeModal,
+  openArchiveCommitteeModal,
 }: {
   demoSlug?: string;
   initialAdmissionsTab?: "flows" | "submissions";
@@ -113,13 +117,17 @@ export default function ScaledAdminDemoPreview({
   openInitialLeadDetail?: boolean;
   hideLeadDetailEnrollmentAction?: boolean;
   highlightSendEnrollmentLeadId?: string;
-  initialAdminPage?: "myschool";
+  initialAdminPage?: DemoWalkthroughAdminPage;
   initialMySchoolTab?: DemoWalkthroughMySchoolTab;
   initialSelectedTuitionFamilyId?: string;
   openInitialTuitionAdjustModal?: boolean;
   openInitialTuitionAdjustModalDelayMs?: number;
   tuitionOverride?: DemoTuitionOverride | null;
   onTuitionOverrideApplied?: (override: DemoTuitionOverride | null) => void;
+  initialCommitteeId?: string;
+  initialCommitteeAdminView?: "list" | "detail" | "signup" | "archive";
+  openCreateCommitteeModal?: boolean;
+  openArchiveCommitteeModal?: boolean;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
@@ -222,7 +230,15 @@ export default function ScaledAdminDemoPreview({
           }}
         >
           <DemoComponent
-            initialPage={initialAdminPage ?? "leads"}
+            initialPage={
+              (initialAdminPage ?? "leads") as
+                | "dashboard"
+                | "leads"
+                | "myschool"
+                | "budget"
+                | "marketing"
+                | "impersonate"
+            }
             initialAdmissionsTab={initialAdmissionsTab}
             initialSelectedLeadId={initialSelectedLeadId}
             initialSelectedLeadStatus={initialSelectedLeadStatus}
@@ -244,6 +260,10 @@ export default function ScaledAdminDemoPreview({
                   openInitialTuitionAdjustModalDelayMs,
                   tuitionOverride,
                   onTuitionOverrideApplied,
+                  initialCommitteeId,
+                  initialCommitteeAdminView,
+                  openCreateCommitteeModal,
+                  openArchiveCommitteeModal,
                 }
               : {})}
           />

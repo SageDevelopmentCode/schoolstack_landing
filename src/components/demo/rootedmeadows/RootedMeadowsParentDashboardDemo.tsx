@@ -68,6 +68,14 @@ import {
   ROOTED_MEADOWS_C2_SECTIONS,
   ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS,
 } from "@/data/school-demos/rooted-meadows-enrollment-contracts";
+import {
+  DEMO_PARENT_USER_ID,
+  getCommitteeById,
+  getCommitteesForParent,
+} from "@/data/school-demos/rooted-meadows-committees";
+import type { CommitteeWorkspaceSection } from "@/data/school-demos/rooted-meadows-committees";
+import CommitteeListPage from "@/components/demo/rootedmeadows/committees/CommitteeListPage";
+import CommitteeWorkspaceShell from "@/components/demo/rootedmeadows/committees/CommitteeWorkspaceShell";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -81,7 +89,7 @@ type NavTab =
   | "calendar"
   | "feed"
   | "forms"
-  | "volunteer"
+  | "committees"
   | "emergency-contacts";
 type ModalId =
   | null
@@ -4339,26 +4347,6 @@ function FormsPage({
   );
 }
 
-function VolunteerPage() {
-  return (
-    <div className="flex flex-col items-center justify-center py-16">
-      <div className="w-16 h-16 rounded-full bg-[#827096]/5 flex items-center justify-center mb-4">
-        <Heart className="w-7 h-7 text-[#827096]" />
-      </div>
-      <h3 className="font-semibold text-gray-700 text-lg mb-2">
-        No openings right now
-      </h3>
-      <p className="text-sm text-gray-400 text-center max-w-xs">
-        We'll notify you when volunteer opportunities become available. Thank
-        you for your willingness to support our community!
-      </p>
-      <button className="mt-6 px-5 py-2.5 rounded-xl bg-[#827096] text-white text-sm font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors">
-        Notify Me
-      </button>
-    </div>
-  );
-}
-
 function EmergencyContactsPage({ activeChildId }: { activeChildId: ChildId }) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const contacts = DEMO_CONTACTS[activeChildId];
@@ -4629,6 +4617,7 @@ function HomeDashboard({
   isEnrolledByChild,
   checklistItems,
   onboardingCompletedIds,
+  committeeUnreadCount = 0,
 }: {
   onTabChange: (t: NavTab) => void;
   attendanceChildId: ChildId | null;
@@ -4638,6 +4627,7 @@ function HomeDashboard({
   isEnrolledByChild: Record<ChildId, boolean>;
   checklistItems: ChecklistItem[];
   onboardingCompletedIds: Set<number>;
+  committeeUnreadCount?: number;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -4672,7 +4662,7 @@ function HomeDashboard({
     { label: "Attendance", icon: ClipboardList, iconBg: "bg-amber-100", iconColor: "text-amber-600", tab: "children" },
     { label: "School Feed", icon: Rss, iconBg: "bg-sky-100", iconColor: "text-sky-600", tab: "feed" },
     { label: "My Children", icon: Users, iconBg: "bg-rose-100", iconColor: "text-rose-600", tab: "children" },
-    { label: "Volunteer", icon: Heart, iconBg: "bg-pink-100", iconColor: "text-pink-600", tab: "volunteer" },
+    { label: "Committees", icon: Heart, iconBg: "bg-pink-100", iconColor: "text-pink-600", tab: "committees" },
     { label: "Help", icon: HelpCircle, iconBg: "bg-teal-100", iconColor: "text-teal-600", tab: "enrollment" },
   ];
 
@@ -4828,10 +4818,15 @@ function HomeDashboard({
                 <button
                   key={label}
                   onClick={() => onTabChange(tab)}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors text-center cursor-pointer"
+                  className="relative flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors text-center cursor-pointer"
                 >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
+                  <div className={`relative w-10 h-10 rounded-xl flex items-center justify-center ${iconBg}`}>
                     <Icon className={`w-5 h-5 ${iconColor}`} strokeWidth={1.5} />
+                    {tab === "committees" && committeeUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#827096] text-white text-[10px] flex items-center justify-center font-semibold">
+                        {committeeUnreadCount}
+                      </span>
+                    )}
                   </div>
                   <span className="text-xs font-semibold font-body text-gray-700 leading-tight">
                     {label}
@@ -5039,16 +5034,18 @@ const PRIMARY_NAV: {
 
 const MORE_NAV: { id: NavTab; label: string; icon: typeof FileText }[] = [
   { id: "forms", label: "Forms & Documents", icon: FileText },
-  { id: "volunteer", label: "Volunteer Opportunities", icon: Heart },
+  { id: "committees", label: "Committees", icon: Heart },
   { id: "emergency-contacts", label: "Emergency Contacts", icon: Phone },
 ];
 
 function DemoHeader({
   activeTab,
   onTabChange,
+  committeeUnreadCount = 0,
 }: {
   activeTab: NavTab;
   onTabChange: (t: NavTab) => void;
+  committeeUnreadCount?: number;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -5109,7 +5106,12 @@ function DemoHeader({
                   className={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${activeTab === id ? "text-[#827096] bg-[#827096]/5 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-[#827096]"}`}
                 >
                   <Icon className="w-4 h-4" />
-                  {label}
+                  <span className="flex-1">{label}</span>
+                  {id === "committees" && committeeUnreadCount > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-[#827096] text-white text-[10px] flex items-center justify-center">
+                      {committeeUnreadCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -5208,6 +5210,8 @@ export default function RootedMeadowsParentDashboardDemo({
   enrollmentVariant = "default",
   tuitionOverride,
   billingChildIds,
+  initialCommitteeId,
+  initialCommitteeSection = "home",
 }: {
   initialTab?: NavTab;
   disableTour?: boolean;
@@ -5215,6 +5219,8 @@ export default function RootedMeadowsParentDashboardDemo({
   enrollmentVariant?: EnrollmentVariant;
   tuitionOverride?: DemoTuitionOverride | null;
   billingChildIds?: readonly ChildId[];
+  initialCommitteeId?: string;
+  initialCommitteeSection?: CommitteeWorkspaceSection;
 }) {
   const checklistItems = getChecklistItems(enrollmentVariant);
   const requiredChecklistIndices = getRequiredChecklistIndices(enrollmentVariant);
@@ -5224,6 +5230,16 @@ export default function RootedMeadowsParentDashboardDemo({
       : getDefaultOnboardingCompletedIds();
 
   const [activeNavTab, setActiveNavTab] = useState<NavTab>(initialTab);
+  const [selectedCommitteeId, setSelectedCommitteeId] = useState<string | null>(
+    initialCommitteeId ?? null,
+  );
+  const [committeeSection, setCommitteeSection] =
+    useState<CommitteeWorkspaceSection>(initialCommitteeSection);
+  const parentCommittees = useMemo(
+    () => getCommitteesForParent(DEMO_PARENT_USER_ID),
+    [],
+  );
+  const committeeUnreadCount = 1;
   const [activeChildId, setActiveChildId] = useState<ChildId>("emma");
   const [openModal, setOpenModal] = useState<ModalId>(null);
 
@@ -5825,7 +5841,7 @@ export default function RootedMeadowsParentDashboardDemo({
     calendar: "Calendar",
     feed: "Feed",
     forms: "Forms & Documents",
-    volunteer: "Volunteer Opportunities",
+    committees: "Committees",
     "emergency-contacts": "Emergency Contacts",
   };
 
@@ -5841,10 +5857,24 @@ export default function RootedMeadowsParentDashboardDemo({
       onMouseEnter={handleTourMouseEnter}
       onMouseLeave={handleTourMouseLeave}
     >
-      {!hideNav && <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />}
+      {!hideNav && (
+        <DemoHeader
+          activeTab={activeNavTab}
+          onTabChange={setActiveNavTab}
+          committeeUnreadCount={committeeUnreadCount}
+        />
+      )}
 
       <main className="flex-1 overflow-y-auto flex flex-col bg-white">
-        {activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" || activeNavTab === "home" || activeNavTab === "enrollment" ? (
+        {activeNavTab === "committees" && selectedCommitteeId && getCommitteeById(selectedCommitteeId) ? (
+          <CommitteeWorkspaceShell
+            committee={getCommitteeById(selectedCommitteeId)!}
+            activeSection={committeeSection}
+            onSectionChange={setCommitteeSection}
+            onBack={() => setSelectedCommitteeId(null)}
+            currentUserId="m-ss-sarah"
+          />
+        ) : activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" || activeNavTab === "home" || activeNavTab === "enrollment" ? (
           <AnimatePresence mode="wait">
             <motion.div
               key={activeNavTab}
@@ -5864,6 +5894,7 @@ export default function RootedMeadowsParentDashboardDemo({
                   isEnrolledByChild={isEnrolledByChild}
                   checklistItems={checklistItems}
                   onboardingCompletedIds={onboardingCompletedIds}
+                  committeeUnreadCount={committeeUnreadCount}
                 />
               )}
               {activeNavTab === "enrollment" && (
@@ -6177,7 +6208,7 @@ export default function RootedMeadowsParentDashboardDemo({
                     {pageTitle[activeNavTab]}
                   </h1>
                 </div>
-                {activeNavTab !== "volunteer" &&
+                {activeNavTab !== "committees" &&
                   activeNavTab !== "billing" &&
                   activeNavTab !== "children" && (
                   <ChildTabStrip
@@ -6239,7 +6270,12 @@ export default function RootedMeadowsParentDashboardDemo({
                     />
                   )}
 
-                  {activeNavTab === "volunteer" && <VolunteerPage />}
+                  {activeNavTab === "committees" && (
+                    <CommitteeListPage
+                      committees={parentCommittees}
+                      onOpenCommittee={(id) => setSelectedCommitteeId(id)}
+                    />
+                  )}
 
                   {activeNavTab === "emergency-contacts" && (
                     <EmergencyContactsPage activeChildId={activeChildId} />

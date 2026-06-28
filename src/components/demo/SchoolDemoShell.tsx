@@ -95,6 +95,10 @@ export default function SchoolDemoShell({
             openInitialTuitionAdjustModalDelayMs={
               steps[activeStep].openInitialTuitionAdjustModalDelayMs
             }
+            initialCommitteeId={steps[activeStep].initialCommitteeId}
+            initialCommitteeAdminView={steps[activeStep].initialCommitteeAdminView}
+            openCreateCommitteeModal={steps[activeStep].openCreateCommitteeModal}
+            openArchiveCommitteeModal={steps[activeStep].openArchiveCommitteeModal}
             tuitionOverride={demoTuitionOverride}
             onTuitionOverrideApplied={setDemoTuitionOverride}
           />
@@ -111,6 +115,8 @@ export default function SchoolDemoShell({
             initialParentTab={steps[activeStep].initialParentTab ?? "enrollment"}
             parentEnrollmentVariant={steps[activeStep].parentEnrollmentVariant}
             billingChildIds={steps[activeStep].billingChildIds}
+            initialCommitteeId={steps[activeStep].initialCommitteeId}
+            initialCommitteeSection={steps[activeStep].initialCommitteeSection}
             tuitionOverride={demoTuitionOverride}
           />
         ) : activePreview === "contact" ? (
