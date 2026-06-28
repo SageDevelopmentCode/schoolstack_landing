@@ -104,6 +104,7 @@ export interface DemoWalkthroughStep {
   initialCommitteeSection?: DemoWalkthroughCommitteeSection;
   initialCommitteeAdminView?: DemoWalkthroughCommitteeAdminView;
   openCreateCommitteeModal?: boolean;
+  openCreateCommitteeModalDelayMs?: number;
   openArchiveCommitteeModal?: boolean;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
@@ -2250,6 +2251,7 @@ const rootedMeadowsCreateCommitteeStep: DemoWalkthroughStep = {
   preview: "admin",
   initialAdminPage: "committees",
   openCreateCommitteeModal: true,
+  openCreateCommitteeModalDelayMs: 1500,
   icon: "users",
   theme: {
     bg: "#F0EBF2",

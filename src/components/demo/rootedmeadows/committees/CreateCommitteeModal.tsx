@@ -7,9 +7,11 @@ import { COMMITTEE_TEMPLATES } from "@/data/school-demos/rooted-meadows-committe
 
 export default function CreateCommitteeModal({
   onClose,
+  onCreate,
   preselectedTemplateId = "template-service-sunshine",
 }: {
   onClose: () => void;
+  onCreate?: (templateId: string) => void;
   preselectedTemplateId?: string;
 }) {
   const [selected, setSelected] = useState(preselectedTemplateId);
@@ -104,7 +106,10 @@ export default function CreateCommitteeModal({
             Cancel
           </button>
           <button
-            onClick={onClose}
+            onClick={() => {
+              onCreate?.(selected);
+              onClose();
+            }}
             className="px-4 py-2 text-sm font-medium text-white bg-[#827096] hover:bg-[#5A4D68] rounded-md cursor-pointer"
           >
             Create workspace

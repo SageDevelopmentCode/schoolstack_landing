@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Archive, Plus, Users } from "lucide-react";
 import {
   DEMO_COMMITTEES,
   getCommitteeById,
+  getDemoCommitteeIdForTemplate,
 } from "@/data/school-demos/rooted-meadows-committees";
 import type { Committee, CommitteeWorkspaceSection } from "./types";
 import CommitteeWorkspaceShell from "./CommitteeWorkspaceShell";
@@ -19,11 +20,13 @@ export default function CommitteesAdminPage({
   initialCommitteeId,
   initialView = "list",
   openCreateModal = false,
+  openCreateModalDelayMs,
   openArchiveModal = false,
 }: {
   initialCommitteeId?: string;
   initialView?: CommitteeAdminView;
   openCreateModal?: boolean;
+  openCreateModalDelayMs?: number;
   openArchiveModal?: boolean;
 }) {
   const [view, setView] = useState<CommitteeAdminView>(initialView);
@@ -31,9 +34,10 @@ export default function CommitteesAdminPage({
     initialCommitteeId ?? null,
   );
   const [section, setSection] = useState<CommitteeWorkspaceSection>("home");
-  const [showCreate, setShowCreate] = useState(openCreateModal);
+  const [showCreate, setShowCreate] = useState(false);
   const [showArchive, setShowArchive] = useState(openArchiveModal);
   const [committees, setCommittees] = useState(DEMO_COMMITTEES);
+  const createModalOpenedRef = useRef(false);
 
   useEffect(() => {
     setView(initialView);
@@ -44,8 +48,14 @@ export default function CommitteesAdminPage({
   }, [initialCommitteeId]);
 
   useEffect(() => {
-    if (openCreateModal) setShowCreate(true);
-  }, [openCreateModal]);
+    if (!openCreateModal || createModalOpenedRef.current) return;
+    const delayMs = openCreateModalDelayMs ?? 1500;
+    const t = setTimeout(() => {
+      createModalOpenedRef.current = true;
+      setShowCreate(true);
+    }, delayMs);
+    return () => clearTimeout(t);
+  }, [openCreateModal, openCreateModalDelayMs]);
 
   useEffect(() => {
     if (openArchiveModal) setShowArchive(true);
@@ -53,6 +63,16 @@ export default function CommitteesAdminPage({
 
   const updateCommittee = (updated: Committee) => {
     setCommittees((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+  };
+
+  const handleCreateWorkspace = (templateId: string) => {
+    const committeeId = getDemoCommitteeIdForTemplate(templateId);
+    setShowCreate(false);
+    if (committeeId) {
+      setSelectedId(committeeId);
+      setView("detail");
+      setSection("home");
+    }
   };
 
   const selected = selectedId ? getCommitteeById(selectedId) : undefined;
@@ -172,7 +192,10 @@ export default function CommitteesAdminPage({
 
       <AnimatePresence>
         {showCreate && (
-          <CreateCommitteeModal onClose={() => setShowCreate(false)} />
+          <CreateCommitteeModal
+            onClose={() => setShowCreate(false)}
+            onCreate={handleCreateWorkspace}
+          />
         )}
       </AnimatePresence>
     </div>

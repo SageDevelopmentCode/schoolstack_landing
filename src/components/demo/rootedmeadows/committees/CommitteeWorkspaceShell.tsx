@@ -125,7 +125,13 @@ export default function CommitteeWorkspaceShell({
         </nav>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+      <div
+        className={
+          activeSection === "messages"
+            ? "flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-50/50"
+            : "flex-1 overflow-y-auto p-6 bg-gray-50/50"
+        }
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={activeSection}
@@ -133,11 +139,20 @@ export default function CommitteeWorkspaceShell({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
+            className={
+              activeSection === "messages" ? "flex flex-col flex-1 min-h-0 h-full" : undefined
+            }
           >
             {activeSection === "home" && (
               <CommitteeHomeSection committee={committee} onNavigate={onSectionChange} />
             )}
-            {activeSection === "about" && <CommitteeAboutSection committee={committee} />}
+            {activeSection === "about" && (
+              <CommitteeAboutSection
+                committee={committee}
+                isAdminView={isAdminView}
+                onCommitteeUpdate={onCommitteeUpdate}
+              />
+            )}
             {activeSection === "resources" && (
               <CommitteeResourcesSection
                 committee={committee}

@@ -98,6 +98,9 @@ export default function SchoolDemoShell({
             initialCommitteeId={steps[activeStep].initialCommitteeId}
             initialCommitteeAdminView={steps[activeStep].initialCommitteeAdminView}
             openCreateCommitteeModal={steps[activeStep].openCreateCommitteeModal}
+            openCreateCommitteeModalDelayMs={
+              steps[activeStep].openCreateCommitteeModalDelayMs
+            }
             openArchiveCommitteeModal={steps[activeStep].openArchiveCommitteeModal}
             tuitionOverride={demoTuitionOverride}
             onTuitionOverrideApplied={setDemoTuitionOverride}

@@ -12,5 +12,6 @@ export type {
   CommitteeEvent,
   CommitteeTask,
   CommitteeMessage,
+  CommitteeDutyRole,
   AugustSignupResponse,
 } from "@/data/school-demos/rooted-meadows-committees";

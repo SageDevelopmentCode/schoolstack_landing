@@ -46,6 +46,7 @@ export interface CommitteeMember {
   phone?: string;
   role: CommitteeRole;
   grade?: string;
+  bio?: string;
   termStart?: string;
   termEnd?: string;
   parentUserId?: string;
@@ -89,6 +90,13 @@ export interface CommitteeMessage {
   time: string;
 }
 
+export interface CommitteeDutyRole {
+  id: string;
+  title: string;
+  description: string;
+  assigneeId?: string;
+}
+
 export interface Committee {
   id: string;
   templateId: string;
@@ -100,6 +108,7 @@ export interface Committee {
   termStart: string;
   termEnd: string;
   aboutHtml: string;
+  dutyRoles: CommitteeDutyRole[];
   members: CommitteeMember[];
   resources: CommitteeResource[];
   events: CommitteeEvent[];
@@ -168,6 +177,7 @@ const SERVICE_SUNSHINE_MEMBERS: CommitteeMember[] = [
     email: "rebecca.h@email.com",
     phone: "(503) 555-0142",
     role: "lead",
+    bio: "Coordinates fall and spring service project planning and leads monthly committee meetings.",
   },
   {
     id: "m-ss-sarah",
@@ -176,24 +186,28 @@ const SERVICE_SUNSHINE_MEMBERS: CommitteeMember[] = [
     phone: "(503) 555-0198",
     role: "member",
     parentUserId: DEMO_PARENT_USER_ID,
+    bio: "Parent volunteer focused on sunshine meal support and family celebration coordination.",
   },
   {
     id: "m-ss-james",
     name: "James Okonkwo",
     email: "james.o@email.com",
     role: "member",
+    bio: "Helps organize class-level service activities and connects families to volunteer opportunities.",
   },
   {
     id: "m-ss-liaison",
     name: "Ms. Elena Vasquez",
     email: "e.vasquez@rootedmeadows.org",
     role: "faculty_liaison",
+    bio: "School liaison for logistics, scheduling, and alignment with campus policies and facilities.",
   },
   {
     id: "m-ss-amy",
     name: "Amy Chen",
     email: "amy.c@email.com",
     role: "member",
+    bio: "Leads community partner outreach and helps draft templates for local organization contacts.",
   },
 ];
 
@@ -210,6 +224,145 @@ const FCC_MEMBERS: CommitteeMember[] = [
   { id: "m-fcc-liaison", name: "Ms. Helen Brooks", email: "h.brooks@rootedmeadows.org", role: "faculty_liaison" },
 ];
 
+const SERVICE_SUNSHINE_DUTY_ROLES: CommitteeDutyRole[] = [
+  {
+    id: "dr-ss-lead",
+    title: "Committee Lead",
+    description: "Coordinates planning meetings and overall committee direction.",
+    assigneeId: "m-ss-lead",
+  },
+  {
+    id: "dr-ss-fall",
+    title: "Fall Service Project Lead",
+    description: "Partner outreach and fall donation drive.",
+    assigneeId: "m-ss-lead",
+  },
+  {
+    id: "dr-ss-spring",
+    title: "Spring Service Project Lead",
+    description: "April earth-focused service day logistics.",
+    assigneeId: "m-ss-sarah",
+  },
+  {
+    id: "dr-ss-class",
+    title: "Class Projects Coordinator",
+    description: "Tracks grade-level class service activities.",
+    assigneeId: "m-ss-amy",
+  },
+  {
+    id: "dr-ss-sunshine",
+    title: "Sunshine Support Lead",
+    description: "Meal trains, babysitting, and celebration coordination.",
+    assigneeId: "m-ss-james",
+  },
+  {
+    id: "dr-ss-outreach",
+    title: "Community Partner Outreach",
+    description: "Draft outreach templates and contact local organizations.",
+  },
+  {
+    id: "dr-ss-liaison",
+    title: "Faculty Liaison",
+    description: "School staff coordination and scheduling.",
+    assigneeId: "m-ss-liaison",
+  },
+];
+
+const FCC_DUTY_ROLES: CommitteeDutyRole[] = [
+  {
+    id: "dr-fcc-lead",
+    title: "Committee Lead",
+    description: "Coordinates grade representatives and Pedagogy Committee communication.",
+    assigneeId: "m-fcc-g2",
+  },
+  {
+    id: "dr-fcc-kg",
+    title: "Kindergarten Coordinator",
+    description: "Relays messages and coordinates classroom volunteering for Kindergarten.",
+    assigneeId: "m-fcc-kg",
+  },
+  {
+    id: "dr-fcc-g1",
+    title: "Grade 1 Coordinator",
+    description: "Relays messages and coordinates classroom volunteering for Grade 1.",
+    assigneeId: "m-fcc-g1",
+  },
+  {
+    id: "dr-fcc-g2",
+    title: "Grade 2 Coordinator",
+    description: "Relays messages and coordinates classroom volunteering for Grade 2.",
+    assigneeId: "m-fcc-g2",
+  },
+  {
+    id: "dr-fcc-g3",
+    title: "Grade 3 Coordinator",
+    description: "Relays messages and coordinates classroom volunteering for Grade 3.",
+    assigneeId: "m-fcc-g3",
+  },
+  {
+    id: "dr-fcc-g4",
+    title: "Grade 4 Coordinator",
+    description: "Relays messages and coordinates classroom volunteering for Grade 4.",
+    assigneeId: "m-fcc-g4",
+  },
+  {
+    id: "dr-fcc-g5",
+    title: "Grade 5 Coordinator",
+    description: "Relays messages and coordinates classroom volunteering for Grade 5.",
+    assigneeId: "m-fcc-g5",
+  },
+  {
+    id: "dr-fcc-g6",
+    title: "Grade 6 Coordinator",
+    description: "Relays messages and coordinates classroom volunteering for Grade 6.",
+    assigneeId: "m-fcc-g6",
+  },
+  {
+    id: "dr-fcc-g7",
+    title: "Grade 7 Coordinator",
+    description: "Relays messages and coordinates classroom volunteering for Grade 7.",
+    assigneeId: "m-fcc-g7",
+  },
+  {
+    id: "dr-fcc-g8",
+    title: "Grade 8 Coordinator",
+    description: "Relays messages and coordinates classroom volunteering for Grade 8.",
+    assigneeId: "m-fcc-g8",
+  },
+  {
+    id: "dr-fcc-liaison",
+    title: "Faculty Liaison",
+    description: "School staff partner for faculty communication and meeting coordination.",
+    assigneeId: "m-fcc-liaison",
+  },
+];
+
+const FALL_FESTIVAL_DUTY_ROLES: CommitteeDutyRole[] = [
+  {
+    id: "dr-ff-lead",
+    title: "Committee Lead",
+    description: "Overall festival planning, meetings, and event-day coordination.",
+    assigneeId: "m-ff-lead",
+  },
+  {
+    id: "dr-ff-booths",
+    title: "Booth Coordinator",
+    description: "Assigns and supports booth leads for activities and games.",
+    assigneeId: "m-ff-1",
+  },
+  {
+    id: "dr-ff-logistics",
+    title: "Event Logistics Lead",
+    description: "Setup schedules, supply collection, and site map coordination.",
+    assigneeId: "m-ff-2",
+  },
+  {
+    id: "dr-ff-food",
+    title: "Food Coordination",
+    description: "Vendor outreach, menu planning, and food booth staffing.",
+  },
+];
+
 export const DEMO_COMMITTEES: Committee[] = [
   {
     id: "service-sunshine-2025",
@@ -222,13 +375,8 @@ export const DEMO_COMMITTEES: Committee[] = [
     termLabel: "2025–2026 School Year",
     termStart: "2025-08-15",
     termEnd: "2026-06-15",
-    aboutHtml: `Service & Sunshine handles two annual school service projects, one smaller service project for each class, and family support needs such as meals, babysitting, and celebration coordination.
-
-**Your role includes:**
-- Participating in fall and spring service project planning
-- Supporting class-level service activities
-- Responding to sunshine support requests with care and discretion
-- Attending monthly planning meetings (first Tuesday, 7 PM)`,
+    aboutHtml: `Service & Sunshine handles two annual school service projects, one smaller service project for each class, and family support needs such as meals, babysitting, and celebration coordination.`,
+    dutyRoles: SERVICE_SUNSHINE_DUTY_ROLES,
     members: SERVICE_SUNSHINE_MEMBERS,
     resources: [
       { id: "r-ss-handbook", title: "Service & Sunshine Role Guide", type: "pdf", description: "Duties, norms, and expectations" },
@@ -271,6 +419,7 @@ export const DEMO_COMMITTEES: Committee[] = [
     aboutHtml: `Family Communication Coordinators are one parent from each grade who help answer parent questions, relay messages, coordinate classroom volunteering, and represent grade-level family concerns to faculty through the Pedagogy Committee.
 
 Members serve for two years in a private working space with durable resources and ongoing communication tools.`,
+    dutyRoles: FCC_DUTY_ROLES,
     members: FCC_MEMBERS,
     resources: [
       { id: "r-fcc-handbook", title: "FCC Handbook & Expectations", type: "pdf" },
@@ -300,6 +449,7 @@ Members serve for two years in a private working space with durable resources an
     termStart: "2025-09-01",
     termEnd: "2025-10-18",
     aboutHtml: `The Fall Festival committee plans our community celebration including booth activities, food coordination, and event-day setup.`,
+    dutyRoles: FALL_FESTIVAL_DUTY_ROLES,
     members: [
       { id: "m-ff-lead", name: "Patricia Dunn", email: "patricia.d@email.com", role: "lead" },
       { id: "m-ff-1", name: "Michael Torres", email: "michael.t@email.com", role: "member" },
@@ -413,6 +563,10 @@ export function getCommitteeTemplate(templateId: string): CommitteeTemplate | un
 
 export function getCommitteeById(id: string): Committee | undefined {
   return DEMO_COMMITTEES.find((c) => c.id === id);
+}
+
+export function getDemoCommitteeIdForTemplate(templateId: string): string | undefined {
+  return DEMO_COMMITTEES.find((c) => c.templateId === templateId)?.id;
 }
 
 export function getCommitteesForParent(parentUserId: string): Committee[] {
