@@ -59,55 +59,7 @@ export interface CommitteeResource {
   url?: string;
   description?: string;
   addedBy?: string;
-  allowedRoles?: CommitteeRole[];
-}
-
-export const COMMITTEE_RESOURCE_ROLES: CommitteeRole[] = [
-  "lead",
-  "member",
-  "faculty_liaison",
-];
-
-const COMMITTEE_RESOURCE_ROLE_LABELS: Record<
-  Exclude<CommitteeRole, "admin">,
-  string
-> = {
-  lead: "Lead",
-  member: "Member",
-  faculty_liaison: "Faculty liaison",
-};
-
-function hasFullResourceAccess(allowedRoles?: CommitteeRole[]): boolean {
-  if (!allowedRoles || allowedRoles.length === 0) return true;
-  return COMMITTEE_RESOURCE_ROLES.every((role) => allowedRoles.includes(role));
-}
-
-export function canAccessCommitteeResource(
-  resource: CommitteeResource,
-  viewerRole: CommitteeRole | undefined,
-  isAdminView: boolean,
-): boolean {
-  if (isAdminView) return true;
-  if (hasFullResourceAccess(resource.allowedRoles)) return true;
-  if (!viewerRole) return true;
-  return resource.allowedRoles!.includes(viewerRole);
-}
-
-export function formatResourceAccessLabel(
-  allowedRoles?: CommitteeRole[],
-): string | null {
-  if (hasFullResourceAccess(allowedRoles)) return null;
-  const roles = allowedRoles!.filter((role) => role !== "admin");
-  if (roles.length === 0) return null;
-  if (roles.length === 1) {
-    return `${COMMITTEE_RESOURCE_ROLE_LABELS[roles[0] as Exclude<CommitteeRole, "admin">]} only`;
-  }
-  return roles
-    .map(
-      (role) =>
-        COMMITTEE_RESOURCE_ROLE_LABELS[role as Exclude<CommitteeRole, "admin">],
-    )
-    .join(" & ");
+  allowedDutyRoleIds?: string[];
 }
 
 export interface CommitteeEvent {
@@ -174,6 +126,72 @@ export interface AugustSignupResponse {
   status: "pending" | "placed" | "invited";
   placedCommitteeId?: string;
   highlight?: boolean;
+}
+
+const DUTY_ROLE_SHORT_TITLES: Record<string, string> = {
+  "Committee Lead": "Lead",
+  "Fall Service Project Lead": "Fall lead",
+  "Spring Service Project Lead": "Spring lead",
+  "Class Projects Coordinator": "Class projects",
+  "Sunshine Support Lead": "Sunshine",
+  "Community Partner Outreach": "Outreach",
+  "Faculty Liaison": "Faculty liaison",
+};
+
+export function simplifyDutyRoleTitle(title: string): string {
+  if (DUTY_ROLE_SHORT_TITLES[title]) return DUTY_ROLE_SHORT_TITLES[title];
+  const gradeMatch = title.match(/^Grade (\d+) Coordinator$/);
+  if (gradeMatch) return `Grade ${gradeMatch[1]}`;
+  if (title.endsWith(" Coordinator")) {
+    return title.replace(/ Coordinator$/, "");
+  }
+  if (title.endsWith(" Lead")) {
+    return title.replace(/ Lead$/, " lead");
+  }
+  return title;
+}
+
+export function hasFullDutyRoleAccess(
+  allowedDutyRoleIds: string[] | undefined,
+  dutyRoles: CommitteeDutyRole[],
+): boolean {
+  if (!allowedDutyRoleIds || allowedDutyRoleIds.length === 0) return true;
+  const allIds = dutyRoles.map((r) => r.id);
+  return allIds.every((id) => allowedDutyRoleIds.includes(id));
+}
+
+export function canAccessCommitteeResource(
+  resource: CommitteeResource,
+  memberId: string | undefined,
+  committee: Committee,
+  isAdminView: boolean,
+): boolean {
+  if (isAdminView) return true;
+  if (hasFullDutyRoleAccess(resource.allowedDutyRoleIds, committee.dutyRoles)) {
+    return true;
+  }
+  if (!memberId) return true;
+  const allowedIds = resource.allowedDutyRoleIds ?? [];
+  return committee.dutyRoles.some(
+    (duty) =>
+      allowedIds.includes(duty.id) && duty.assigneeId === memberId,
+  );
+}
+
+export function formatResourceAccessLabel(
+  allowedDutyRoleIds: string[] | undefined,
+  dutyRoles: CommitteeDutyRole[],
+): string | null {
+  if (hasFullDutyRoleAccess(allowedDutyRoleIds, dutyRoles)) return null;
+  const ids = allowedDutyRoleIds ?? [];
+  const labels = ids
+    .map((id) => dutyRoles.find((r) => r.id === id))
+    .filter((r): r is CommitteeDutyRole => r != null)
+    .map((r) => simplifyDutyRoleTitle(r.title));
+  if (labels.length === 0) return null;
+  if (labels.length === 1) return `${labels[0]} only`;
+  if (labels.length === 2) return `${labels[0]} & ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")} & ${labels[labels.length - 1]}`;
 }
 
 export const DEMO_PARENT_USER_ID = "sarah-m";
@@ -429,9 +447,9 @@ export const DEMO_COMMITTEES: Committee[] = [
     members: SERVICE_SUNSHINE_MEMBERS,
     resources: [
       { id: "r-ss-handbook", title: "Service & Sunshine Role Guide", type: "pdf", description: "Duties, norms, and expectations" },
-      { id: "r-ss-fall-plan", title: "Fall Service Project Planning Doc", type: "doc", description: "Partner outreach and logistics", allowedRoles: ["lead"] },
+      { id: "r-ss-fall-plan", title: "Fall Service Project Planning Doc", type: "doc", description: "Partner outreach and logistics", allowedDutyRoleIds: ["dr-ss-fall"] },
       { id: "r-ss-meal-train", title: "Meal Train Template", type: "checklist", description: "Steps for organizing family support" },
-      { id: "r-ss-outreach", title: "Community Partner Outreach Templates", type: "link", url: "#", description: "Email templates for local organizations", allowedRoles: ["lead", "faculty_liaison"] },
+      { id: "r-ss-outreach", title: "Community Partner Outreach Templates", type: "link", url: "#", description: "Email templates for local organizations", allowedDutyRoleIds: ["dr-ss-outreach", "dr-ss-liaison", "dr-ss-lead"] },
     ],
     events: [
       { id: "e-ss-1", title: "Monthly Planning Meeting", date: "2026-04-07", time: "7:00 PM", type: "meeting", location: "Community Room" },

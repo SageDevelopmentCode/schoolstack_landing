@@ -9,6 +9,7 @@ import {
 } from "@/data/school-demos/rooted-meadows-committees";
 import type { Committee, CommitteeResource } from "./types";
 import AddResourceModal from "./AddResourceModal";
+import ResourceDetailModal from "./ResourceDetailModal";
 
 function ResourceIcon({ type }: { type: CommitteeResource["type"] }) {
   switch (type) {
@@ -33,22 +34,33 @@ export default function CommitteeResourcesSection({
   currentUserId?: string;
 }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
   const canManage = Boolean(isAdminView && committee.status === "active" && onCommitteeUpdate);
-
-  const viewerRole = currentUserId
-    ? committee.members.find((m) => m.id === currentUserId)?.role
-    : undefined;
 
   const visibleResources = useMemo(
     () =>
       committee.resources.filter((resource) =>
-        canAccessCommitteeResource(resource, viewerRole, isAdminView),
+        canAccessCommitteeResource(resource, currentUserId, committee, isAdminView),
       ),
-    [committee.resources, viewerRole, isAdminView],
+    [committee, currentUserId, isAdminView],
   );
+
+  const selectedResource =
+    selectedResourceId != null
+      ? committee.resources.find((r) => r.id === selectedResourceId) ?? null
+      : null;
 
   const handleAdd = (resource: CommitteeResource) => {
     onCommitteeUpdate?.({ ...committee, resources: [...committee.resources, resource] });
+  };
+
+  const handleUpdate = (updated: CommitteeResource) => {
+    onCommitteeUpdate?.({
+      ...committee,
+      resources: committee.resources.map((r) =>
+        r.id === updated.id ? updated : r,
+      ),
+    });
   };
 
   return (
@@ -66,11 +78,16 @@ export default function CommitteeResourcesSection({
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {visibleResources.map((r) => {
-          const accessLabel = formatResourceAccessLabel(r.allowedRoles);
+          const accessLabel = formatResourceAccessLabel(
+            r.allowedDutyRoleIds,
+            committee.dutyRoles,
+          );
           return (
-            <div
+            <button
               key={r.id}
-              className="flex items-start gap-4 p-4 bg-white border border-gray-100 rounded-xl hover:border-[#827096]/20 transition-colors"
+              type="button"
+              onClick={() => setSelectedResourceId(r.id)}
+              className="flex items-start gap-4 p-4 bg-white border border-gray-100 rounded-xl hover:border-[#827096]/20 transition-colors cursor-pointer text-left w-full"
             >
               <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
                 <ResourceIcon type={r.type} />
@@ -94,15 +111,27 @@ export default function CommitteeResourcesSection({
               {r.type === "link" && (
                 <ExternalLink className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />
               )}
-            </div>
+            </button>
           );
         })}
       </div>
       <AnimatePresence>
         {showAdd && (
-          <AddResourceModal onClose={() => setShowAdd(false)} onSave={handleAdd} />
+          <AddResourceModal
+            committee={committee}
+            onClose={() => setShowAdd(false)}
+            onSave={handleAdd}
+          />
         )}
       </AnimatePresence>
+      <ResourceDetailModal
+        resource={selectedResource}
+        committee={committee}
+        isAdminView={isAdminView}
+        canManage={canManage}
+        onClose={() => setSelectedResourceId(null)}
+        onSave={canManage ? handleUpdate : undefined}
+      />
     </div>
   );
 }
