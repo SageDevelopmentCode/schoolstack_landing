@@ -89,6 +89,8 @@ export interface DemoWalkthroughStep {
   initialSelectedFlowId?: string;
   initialParentTab?: DemoWalkthroughParentTab;
   initialTeacherTab?: DemoWalkthroughTeacherTab;
+  initialSelectedTeacherStudentId?: string;
+  openInitialTeacherStudentDetailDelayMs?: number;
   animateNewSubmission?: boolean;
   autoSendEnrollmentLink?: boolean;
   autoSendEnrollmentLinkDelayMs?: number;
@@ -2295,15 +2297,17 @@ const rootedMeadowsResourceAccessStep: DemoWalkthroughStep = {
   },
 };
 
-const rootedMeadowsPlaceMembersStep: DemoWalkthroughStep = {
-  id: "place-committee-members",
-  title: "Place families from August signup",
+const rootedMeadowsAssignTasksStep: DemoWalkthroughStep = {
+  id: "assign-committee-tasks",
+  title: "Assign committee tasks",
   description:
-    "Review volunteer signup responses and place families into their committee workspaces for the school year.",
+    "Drag tasks across the board or assign volunteers from the kanban — open tasks get claimed, assigned work moves to In Progress.",
   preview: "admin",
   initialAdminPage: "committees",
-  initialCommitteeAdminView: "signup",
-  icon: "users",
+  initialCommitteeId: "service-sunshine-2025",
+  initialCommitteeAdminView: "detail",
+  initialCommitteeSection: "tasks",
+  icon: "clipboardList",
   theme: {
     bg: "#F5F3E6",
     bgHover: "#EEEBD8",
@@ -2364,6 +2368,29 @@ const rootedMeadowsArchiveCommitteeStep: DemoWalkthroughStep = {
   },
 };
 
+const rootedMeadowsTeacherStudentsStep: DemoWalkthroughStep = {
+  id: "teacher-view-students",
+  title: "Teachers view student details",
+  description:
+    "Guides open My Students to see their roster — grade, room, and live check-in status across programs.",
+  preview: "teacher",
+  initialTeacherTab: "students",
+  initialSelectedTeacherStudentId: "s1",
+  openInitialTeacherStudentDetailDelayMs: 600,
+  icon: "users",
+  theme: {
+    bg: "#F5F3E6",
+    bgHover: "#EEEBD8",
+    bgActive: "#EEEBD8",
+    border: "#D8D9A8",
+    iconBg: "#b3b462",
+    iconColor: "#FFFFFF",
+    titleColor: "#5C5A30",
+    descColor: "#6B6840",
+    connector: "#b3b462",
+  },
+};
+
 export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   rootedMeadowsApplicationStep,
   rootedMeadowsObservationStep,
@@ -2373,7 +2400,8 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
       (step) =>
         step.preview !== undefined &&
         step.id !== "view-lead" &&
-        step.id !== "send-application-link",
+        step.id !== "send-application-link" &&
+        step.id !== "teacher-attendance",
     )
     .flatMap((step) => {
       const mapped =
@@ -2393,15 +2421,21 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
       if (step.id === "parent-enrollment") {
         return [mapped, rootedMeadowsAssignTuitionStep];
       }
-      if (step.id === "teacher-attendance") {
+      if (step.id === "parent-pays-tuition") {
         return [
           mapped,
           rootedMeadowsCreateCommitteeStep,
           rootedMeadowsResourceAccessStep,
-          rootedMeadowsPlaceMembersStep,
+          rootedMeadowsAssignTasksStep,
           rootedMeadowsParentCommitteeStep,
           rootedMeadowsArchiveCommitteeStep,
         ];
+      }
+      if (step.id === "get-in-touch") {
+        const teacherAttendance = rootedMeadowsWalkthroughPlaceholder.find(
+          (s) => s.id === "teacher-attendance",
+        )!;
+        return [teacherAttendance, rootedMeadowsTeacherStudentsStep, mapped];
       }
       return [mapped];
     }),

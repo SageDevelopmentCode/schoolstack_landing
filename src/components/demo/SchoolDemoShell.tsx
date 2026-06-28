@@ -112,6 +112,12 @@ export default function SchoolDemoShell({
             key={steps[activeStep].id}
             demoSlug={config.slug}
             initialTeacherTab={steps[activeStep].initialTeacherTab ?? "attendance"}
+            initialSelectedTeacherStudentId={
+              steps[activeStep].initialSelectedTeacherStudentId
+            }
+            openInitialTeacherStudentDetailDelayMs={
+              steps[activeStep].openInitialTeacherStudentDetailDelayMs
+            }
           />
         ) : activePreview === "parent" ? (
           <ScaledParentDemoPreview

@@ -81,9 +81,13 @@ const DESIGN_WIDTH = 1440;
 export default function ScaledTeacherDemoPreview({
   demoSlug = "athena-microacademy",
   initialTeacherTab = "attendance",
+  initialSelectedTeacherStudentId,
+  openInitialTeacherStudentDetailDelayMs,
 }: {
   demoSlug?: string;
   initialTeacherTab?: DemoWalkthroughTeacherTab;
+  initialSelectedTeacherStudentId?: string;
+  openInitialTeacherStudentDetailDelayMs?: number;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
@@ -189,6 +193,13 @@ export default function ScaledTeacherDemoPreview({
             initialTab={initialTeacherTab}
             disableTour
             hideNav={false}
+            {...(isRootedMeadows
+              ? {
+                  initialSelectedStudentId: initialSelectedTeacherStudentId,
+                  openInitialStudentDetailDelayMs:
+                    openInitialTeacherStudentDetailDelayMs,
+                }
+              : {})}
           />
         </div>
       </div>

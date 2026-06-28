@@ -987,13 +987,36 @@ function MyStudentsSection() {
 
 // ─── Students Page ────────────────────────────────────────────────────────────
 
-function StudentsPage() {
+function StudentsPage({
+  initialSelectedStudentId,
+  openInitialStudentDetailDelayMs,
+}: {
+  initialSelectedStudentId?: string;
+  openInitialStudentDetailDelayMs?: number;
+}) {
   const programs = PROGRAM_ORDER.filter((p) =>
     DEMO_STUDENTS.some((s) => s.program === p),
   );
   const [activeProgram, setActiveProgram] = useState(programs[0] ?? "");
   const [selectedStudent, setSelectedStudent] = useState<DemoStudent | null>(null);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!initialSelectedStudentId) return;
+    const openDetail = () => {
+      const student = DEMO_STUDENTS.find((s) => s.id === initialSelectedStudentId);
+      if (!student) return;
+      if (programs.includes(student.program as (typeof programs)[number])) {
+        setActiveProgram(student.program as (typeof programs)[number]);
+      }
+      setSelectedStudent(student);
+    };
+    if (openInitialStudentDetailDelayMs) {
+      const t = setTimeout(openDetail, openInitialStudentDetailDelayMs);
+      return () => clearTimeout(t);
+    }
+    openDetail();
+  }, [initialSelectedStudentId, openInitialStudentDetailDelayMs]);
 
   const filtered = DEMO_STUDENTS.filter(
     (s) =>
@@ -4500,10 +4523,14 @@ export default function RootedMeadowsTeacherDashboardDemo({
   initialTab = "dashboard",
   disableTour = false,
   hideNav = false,
+  initialSelectedStudentId,
+  openInitialStudentDetailDelayMs,
 }: {
   initialTab?: NavTab;
   disableTour?: boolean;
   hideNav?: boolean;
+  initialSelectedStudentId?: string;
+  openInitialStudentDetailDelayMs?: number;
 }) {
   const [activeTab, setActiveTab] = useState<NavTab>(initialTab);
   const [sessionsByDay, setSessionsByDay] =
@@ -5117,7 +5144,12 @@ export default function RootedMeadowsTeacherDashboardDemo({
 
         {activeTab === "calendar" && <CalendarPage />}
 
-        {activeTab === "students" && <StudentsPage />}
+        {activeTab === "students" && (
+          <StudentsPage
+            initialSelectedStudentId={initialSelectedStudentId}
+            openInitialStudentDetailDelayMs={openInitialStudentDetailDelayMs}
+          />
+        )}
 
         {activeTab === "dashboard" && (
           <div className="flex flex-col flex-1">
