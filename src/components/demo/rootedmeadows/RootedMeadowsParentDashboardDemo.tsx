@@ -51,6 +51,10 @@ import {
   Smartphone,
 } from "lucide-react";
 import { ROOTED_MEADOWS_PARENT_LOGO } from "@/data/school-demos/rootedmeadows-parent-demo";
+import {
+  ROOTED_MEADOWS_C1_SECTIONS,
+  ROOTED_MEADOWS_C2_SECTIONS,
+} from "@/data/school-demos/rooted-meadows-enrollment-contracts";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -928,46 +932,8 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
   ],
 };
 
-const C1_SECTIONS = [
-  {
-    id: "1-1",
-    title: "1. Program Description & Schedule",
-    body: "Rooted Meadows Waldorf School offers a nature-centered, play-based learning environment for Pre-K through Elementary students. Our program runs Monday through Friday, 8:00 AM to 3:00 PM, with optional after-care until 5:30 PM. Students participate in outdoor learning, project-based study, and community-focused activities aligned with each season.",
-  },
-  {
-    id: "1-2",
-    title: "2. Tuition & Payment Policy",
-    body: "Tuition is due on the first of each month. A 5-day grace period is provided. Accounts more than 10 days past due may result in a temporary enrollment hold. Families experiencing hardship are encouraged to contact the director to discuss payment arrangements. All fees are non-refundable once the program month has begun.",
-  },
-  {
-    id: "1-3",
-    title: "3. Health & Wellness Standards",
-    body: "Students must be symptom-free for 24 hours before returning to school after illness. Please do not send your child with fever, vomiting, or signs of a communicable illness. The school follows local public health guidance and may require additional protocols during community health events. Up-to-date immunization records or an approved exemption must be on file.",
-  },
-  {
-    id: "1-4",
-    title: "4. Acknowledgment & Agreement",
-    body: "By signing below, I confirm that I have read and understand all sections of the Program Description and Key Policies document. I agree to the terms outlined herein and commit to supporting the Rooted Meadows community through my participation, communication, and adherence to the policies described.",
-  },
-];
-
-const C2_SECTIONS = [
-  {
-    id: "2-1",
-    title: "1. Core Commitments",
-    body: "As a member of the Rooted Meadows community, I commit to treating all students, staff, and families with dignity and respect. I will communicate concerns directly and constructively through appropriate channels, maintain confidentiality about individual children and families, and actively support a culture of inclusion, curiosity, and kindness.",
-  },
-  {
-    id: "2-2",
-    title: "2. Respectful Communication",
-    body: "I agree to address disagreements or concerns calmly and directly with the appropriate staff member. I will refrain from posting negative or identifying comments about students, families, or staff on social media or other public platforms. I understand that repeated or serious violations of community communication standards may result in a required meeting with the director.",
-  },
-  {
-    id: "2-3",
-    title: "3. Acknowledgment",
-    body: "By signing below, I confirm that I have read and agree to uphold the Rooted Meadows Community Agreement for the duration of my child's enrollment. I understand that this agreement exists to protect the safety, wellbeing, and dignity of every member of our school community.",
-  },
-];
+const C1_SECTIONS = ROOTED_MEADOWS_C1_SECTIONS;
+const C2_SECTIONS = ROOTED_MEADOWS_C2_SECTIONS;
 
 const C5_SECTIONS = [
   {

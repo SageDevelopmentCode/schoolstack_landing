@@ -16,6 +16,11 @@ import {
   ROOTED_MEADOWS_DEMO_SARAH_COMPLETE_RESPONSES,
 } from "@/data/school-demos/rooted-meadows-application";
 import ApplicationProgressView from "@/components/demo/rootedmeadows/ApplicationProgressView";
+import SendEnrollmentOutcomeModal from "@/components/demo/rootedmeadows/SendEnrollmentOutcomeModal";
+import {
+  getPostSendLeadUpdate,
+  type EnrollmentOutcomePathId,
+} from "@/data/school-demos/rooted-meadows-enrollment-contracts";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -830,6 +835,12 @@ const STATUS_COLORS: Record<
     border: C.purpleBorder,
     text: C.purple,
     label: "Enrolling",
+  },
+  referral: {
+    bg: C.clayBg,
+    border: C.clayBorder,
+    text: C.clay,
+    label: "Better Fit Referral",
   },
   lost: {
     bg: C.errorBg,
@@ -4559,12 +4570,14 @@ function isLeadSubmissionSecondaryAction(status: string): boolean {
 function LeadTableRow({
   lead,
   onSelectLead,
+  onSendEnrollment,
   initial,
   animate,
   transition,
 }: {
   lead: DemoLead;
   onSelectLead: (lead: DemoLead) => void;
+  onSendEnrollment?: (lead: DemoLead) => void;
   initial?: { opacity: number; x?: number; y?: number };
   animate?: { opacity: number; x?: number; y?: number; backgroundColor?: string | string[] };
   transition?: {
@@ -4681,7 +4694,15 @@ function LeadTableRow({
         {actionLabel ? (
           <button
             type="button"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (
+                actionLabel === "Send Enrollment" &&
+                onSendEnrollment
+              ) {
+                onSendEnrollment(lead);
+              }
+            }}
             className="whitespace-nowrap rounded-sm px-3.5 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
             style={
               isSecondaryAction
@@ -4733,14 +4754,24 @@ function LeadsListTab({
   onSelectLead,
   animateNewSubmission = false,
   leadWalkthroughOverride,
+  leadStatusOverrides,
+  onOpenEnrollmentModal,
 }: {
   onSelectLead: (lead: DemoLead) => void;
   animateNewSubmission?: boolean;
   leadWalkthroughOverride?: LeadWalkthroughOverride;
+  leadStatusOverrides: Record<string, Partial<DemoLead>>;
+  onOpenEnrollmentModal: (lead: DemoLead) => void;
 }) {
   const applyOverride = (lead: DemoLead) =>
     applyLeadWalkthroughOverride(lead, leadWalkthroughOverride);
-  const handleSelectLead = (lead: DemoLead) => onSelectLead(applyOverride(lead));
+  const mergeLeadOverrides = (lead: DemoLead) => {
+    const base = applyOverride(lead);
+    const patch = leadStatusOverrides[base.id];
+    return patch ? ({ ...base, ...patch } as DemoLead) : base;
+  };
+  const handleSelectLead = (lead: DemoLead) =>
+    onSelectLead(mergeLeadOverrides(lead));
   const [activeFilter, setActiveFilter] = useState("all");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [newSubmissionRevealed, setNewSubmissionRevealed] = useState(
@@ -4760,8 +4791,13 @@ function LeadsListTab({
   const leadFilters = buildLeadFilters(ACTIVE_DEMO_LEADS);
 
   const filtered = ACTIVE_DEMO_LEADS.filter((l) => {
-    return activeFilter === "all" || l.status === activeFilter;
+    const status = mergeLeadOverrides(l).status;
+    return activeFilter === "all" || status === activeFilter;
   });
+
+  function handleSendEnrollment(lead: DemoLead) {
+    onOpenEnrollmentModal(mergeLeadOverrides(lead));
+  }
 
   const newLead = animateNewSubmission
     ? filtered.find((l) => l.id === NEW_SUBMISSION_LEAD_ID)
@@ -4872,8 +4908,9 @@ function LeadsListTab({
                     {newSubmissionRevealed && newLead && (
                       <LeadTableRow
                         key={newLead.id}
-                        lead={applyOverride(newLead)}
+                        lead={mergeLeadOverrides(newLead)}
                         onSelectLead={handleSelectLead}
+                        onSendEnrollment={handleSendEnrollment}
                         initial={{ opacity: 0, x: 56 }}
                         animate={{
                           opacity: 1,
@@ -4891,8 +4928,9 @@ function LeadsListTab({
                   {existingLeads.map((lead) => (
                     <LeadTableRow
                       key={lead.id}
-                      lead={applyOverride(lead)}
+                      lead={mergeLeadOverrides(lead)}
                       onSelectLead={handleSelectLead}
+                      onSendEnrollment={handleSendEnrollment}
                     />
                   ))}
                 </>
@@ -4900,8 +4938,9 @@ function LeadsListTab({
                 filtered.map((lead, i) => (
                   <LeadTableRow
                     key={lead.id}
-                    lead={applyOverride(lead)}
+                    lead={mergeLeadOverrides(lead)}
                     onSelectLead={handleSelectLead}
+                    onSendEnrollment={handleSendEnrollment}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
@@ -7759,6 +7798,8 @@ function AdmissionsPage({
   autoSendEnrollmentLinkDelayMs,
   openInitialLeadDetail,
   hideLeadDetailEnrollmentAction,
+  leadStatusOverrides,
+  onOpenEnrollmentModal,
 }: {
   activeTab: AdmissionsTab;
   initialLeadId?: string;
@@ -7770,6 +7811,8 @@ function AdmissionsPage({
   autoSendEnrollmentLinkDelayMs?: number;
   openInitialLeadDetail?: boolean;
   hideLeadDetailEnrollmentAction?: boolean;
+  leadStatusOverrides: Record<string, Partial<DemoLead>>;
+  onOpenEnrollmentModal: (lead: DemoLead) => void;
 }) {
   const leadWalkthroughOverride =
     initialLeadId &&
@@ -7820,6 +7863,8 @@ function AdmissionsPage({
               onSelectLead={setSelectedLead}
               animateNewSubmission={animateNewSubmission}
               leadWalkthroughOverride={leadWalkthroughOverride}
+              leadStatusOverrides={leadStatusOverrides}
+              onOpenEnrollmentModal={onOpenEnrollmentModal}
             />
           </motion.div>
         )}
@@ -24293,6 +24338,11 @@ export default function RootedMeadowsAdminDashboardDemo({
   C = isDark ? C_DARK : C_LIGHT;
 
   const [showSupport, setShowSupport] = useState(false);
+  const [enrollmentModalLead, setEnrollmentModalLead] =
+    useState<DemoLead | null>(null);
+  const [leadStatusOverrides, setLeadStatusOverrides] = useState<
+    Record<string, Partial<DemoLead>>
+  >({});
   const [backdropClose, setBackdropClose] = useState<(() => void) | null>(null);
   const backdropCtx = useMemo(() => ({
     openBackdrop: (onClose: () => void) => setBackdropClose(() => onClose),
@@ -24332,6 +24382,25 @@ export default function RootedMeadowsAdminDashboardDemo({
     setFocusStaffId(null);
   }, []);
 
+  const handleOpenEnrollmentModal = useCallback((lead: DemoLead) => {
+    setEnrollmentModalLead(lead);
+  }, []);
+
+  const handleEnrollmentSent = useCallback(
+    (pathId: EnrollmentOutcomePathId) => {
+      if (!enrollmentModalLead) return;
+      const update = getPostSendLeadUpdate(pathId);
+      setLeadStatusOverrides((prev) => ({
+        ...prev,
+        [enrollmentModalLead.id]: {
+          status: update.status,
+          message: update.message,
+        },
+      }));
+    },
+    [enrollmentModalLead],
+  );
+
   const PAGE_NAMES: Record<string, string> = {
     budget: "Finances",
     marketing: "Marketing",
@@ -24357,6 +24426,8 @@ export default function RootedMeadowsAdminDashboardDemo({
             autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
             openInitialLeadDetail={openInitialLeadDetail}
             hideLeadDetailEnrollmentAction={hideLeadDetailEnrollmentAction}
+            leadStatusOverrides={leadStatusOverrides}
+            onOpenEnrollmentModal={handleOpenEnrollmentModal}
           />
         );
       case "people":
@@ -24623,6 +24694,22 @@ export default function RootedMeadowsAdminDashboardDemo({
       <AnimatePresence>
         {showSupport && (
           <SupportModal key="support-modal" onClose={() => setShowSupport(false)} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {enrollmentModalLead && (
+          <SendEnrollmentOutcomeModal
+            key={enrollmentModalLead.id}
+            lead={{
+              id: enrollmentModalLead.id,
+              name: enrollmentModalLead.name,
+              email: enrollmentModalLead.email,
+              childName: enrollmentModalLead.childName,
+              childAge: enrollmentModalLead.childAge,
+            }}
+            onClose={() => setEnrollmentModalLead(null)}
+            onSent={handleEnrollmentSent}
+          />
         )}
       </AnimatePresence>
       {!hideNav && (
