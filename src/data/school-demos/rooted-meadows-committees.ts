@@ -382,6 +382,31 @@ export const AUGUST_SIGNUP_RESPONSES: AugustSignupResponse[] = [
   },
 ];
 
+export interface CommitteeInviteCandidate {
+  id: string;
+  name: string;
+  email: string;
+  familyName: string;
+}
+
+export const COMMITTEE_INVITE_CANDIDATES: CommitteeInviteCandidate[] = [
+  { id: "invite-walsh", name: "Jen Walsh", email: "jen.w@email.com", familyName: "Walsh Family" },
+  { id: "invite-bradley", name: "Tom Bradley", email: "tom.b@email.com", familyName: "Bradley Family" },
+  { id: "invite-dunn", name: "Patricia Dunn", email: "patricia.d@email.com", familyName: "Dunn Family" },
+  { id: "invite-kim", name: "Lisa Kim", email: "lisa.k@email.com", familyName: "Kim Family" },
+];
+
+export function createCommitteeEntityId(prefix: string): string {
+  return `${prefix}-${Date.now()}`;
+}
+
+export function getInviteCandidatesForCommittee(committee: Committee): CommitteeInviteCandidate[] {
+  const memberEmails = new Set(committee.members.map((m) => m.email.toLowerCase()));
+  return COMMITTEE_INVITE_CANDIDATES.filter(
+    (c) => !memberEmails.has(c.email.toLowerCase()),
+  );
+}
+
 export function getCommitteeTemplate(templateId: string): CommitteeTemplate | undefined {
   return COMMITTEE_TEMPLATES.find((t) => t.id === templateId);
 }

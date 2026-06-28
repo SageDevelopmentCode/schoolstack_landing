@@ -1,7 +1,10 @@
 "use client";
 
-import { ExternalLink, FileText, Link2, ListChecks } from "lucide-react";
+import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import { ExternalLink, FileText, Link2, ListChecks, Plus } from "lucide-react";
 import type { Committee, CommitteeResource } from "./types";
+import AddResourceModal from "./AddResourceModal";
 
 function ResourceIcon({ type }: { type: CommitteeResource["type"] }) {
   switch (type) {
@@ -16,16 +19,29 @@ function ResourceIcon({ type }: { type: CommitteeResource["type"] }) {
 
 export default function CommitteeResourcesSection({
   committee,
-  canEdit = false,
+  isAdminView = false,
+  onCommitteeUpdate,
 }: {
   committee: Committee;
-  canEdit?: boolean;
+  isAdminView?: boolean;
+  onCommitteeUpdate?: (updated: Committee) => void;
 }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const canManage = Boolean(isAdminView && committee.status === "active" && onCommitteeUpdate);
+
+  const handleAdd = (resource: CommitteeResource) => {
+    onCommitteeUpdate?.({ ...committee, resources: [...committee.resources, resource] });
+  };
+
   return (
     <div className="space-y-4">
-      {canEdit && (
+      {canManage && (
         <div className="flex justify-end">
-          <button className="px-4 py-2 text-sm font-medium text-[#827096] border border-[#827096]/30 rounded-xl hover:bg-[#827096]/5 transition-colors cursor-pointer">
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#827096] hover:bg-[#5A4D68] rounded-md cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
             Add resource
           </button>
         </div>
@@ -54,6 +70,11 @@ export default function CommitteeResourcesSection({
           </div>
         ))}
       </div>
+      <AnimatePresence>
+        {showAdd && (
+          <AddResourceModal onClose={() => setShowAdd(false)} onSave={handleAdd} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

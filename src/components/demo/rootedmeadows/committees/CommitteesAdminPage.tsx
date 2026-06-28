@@ -51,6 +51,10 @@ export default function CommitteesAdminPage({
     if (openArchiveModal) setShowArchive(true);
   }, [openArchiveModal]);
 
+  const updateCommittee = (updated: Committee) => {
+    setCommittees((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+  };
+
   const selected = selectedId ? getCommitteeById(selectedId) : undefined;
   const activeCommittee = selected
     ? committees.find((c) => c.id === selected.id) ?? selected
@@ -76,6 +80,8 @@ export default function CommitteesAdminPage({
             setSelectedId(null);
           }}
           showSettings
+          isAdminView
+          onCommitteeUpdate={updateCommittee}
           onArchive={() => setShowArchive(true)}
         />
         <AnimatePresence>

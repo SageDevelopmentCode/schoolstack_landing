@@ -1,10 +1,11 @@
 "use client";
 
-import { Paperclip, User } from "lucide-react";
-import {
-  getCommitteeTemplate,
-} from "@/data/school-demos/rooted-meadows-committees";
-import type { Committee, CommitteeTask, CommitteeTaskStatus } from "./types";
+import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import { Paperclip, Plus, User } from "lucide-react";
+import { getCommitteeTemplate } from "@/data/school-demos/rooted-meadows-committees";
+import type { Committee, CommitteeMember, CommitteeTask, CommitteeTaskStatus } from "./types";
+import AddTaskModal from "./AddTaskModal";
 
 const STATUS_STYLES: Record<CommitteeTaskStatus, string> = {
   open: "bg-gray-100 text-gray-600",
@@ -20,7 +21,19 @@ const STATUS_LABELS: Record<CommitteeTaskStatus, string> = {
   done: "Done",
 };
 
-function TaskCard({ task, onClaim }: { task: CommitteeTask; onClaim?: () => void }) {
+function TaskCard({
+  task,
+  onClaim,
+  isAdminView,
+  assignableMembers,
+  onAssign,
+}: {
+  task: CommitteeTask;
+  onClaim?: () => void;
+  isAdminView?: boolean;
+  assignableMembers?: CommitteeMember[];
+  onAssign?: (taskId: string, memberId: string) => void;
+}) {
   return (
     <div className="p-4 bg-white border border-gray-100 rounded-xl hover:border-[#827096]/20 transition-colors">
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -55,7 +68,22 @@ function TaskCard({ task, onClaim }: { task: CommitteeTask; onClaim?: () => void
           </span>
         )}
       </div>
-      {task.status === "open" && onClaim && (
+      {isAdminView && assignableMembers && onAssign && (
+        <div className="mt-3 flex items-center gap-2">
+          <label className="text-xs text-gray-500">Assign:</label>
+          <select
+            value={task.assigneeId ?? ""}
+            onChange={(e) => onAssign(task.id, e.target.value)}
+            className="text-xs border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:border-[#827096]/50"
+          >
+            <option value="">Unassigned</option>
+            {assignableMembers.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      {!isAdminView && task.status === "open" && onClaim && (
         <button
           onClick={onClaim}
           className="mt-3 text-xs font-medium text-[#827096] hover:underline cursor-pointer"
@@ -69,37 +97,93 @@ function TaskCard({ task, onClaim }: { task: CommitteeTask; onClaim?: () => void
 
 export default function CommitteeTasksSection({
   committee,
-  interactive = true,
+  isAdminView = false,
+  onCommitteeUpdate,
 }: {
   committee: Committee;
-  interactive?: boolean;
+  isAdminView?: boolean;
+  onCommitteeUpdate?: (updated: Committee) => void;
 }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const canManage = Boolean(isAdminView && committee.status === "active" && onCommitteeUpdate);
   const template = getCommitteeTemplate(committee.templateId);
   const groups = template?.taskGroups ?? [{ id: "general" as const, label: "Tasks" }];
+  const assignableMembers = committee.members.filter(
+    (m) => m.role === "member" || m.role === "lead",
+  );
+
+  const handleAdd = (task: CommitteeTask) => {
+    onCommitteeUpdate?.({ ...committee, tasks: [...committee.tasks, task] });
+  };
+
+  const handleAssign = (taskId: string, memberId: string) => {
+    if (!onCommitteeUpdate) return;
+    const member = assignableMembers.find((m) => m.id === memberId);
+    onCommitteeUpdate({
+      ...committee,
+      tasks: committee.tasks.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              assigneeId: member?.id,
+              assigneeName: member?.name,
+              status: member ? "in_progress" : "open",
+            }
+          : t,
+      ),
+    });
+  };
 
   return (
     <div className="space-y-8">
+      {canManage && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#827096] hover:bg-[#5A4D68] rounded-md cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Add task
+          </button>
+        </div>
+      )}
       {groups.map((group) => {
         const tasks = committee.tasks.filter((t) => t.group === group.id);
-        if (tasks.length === 0) return null;
+        if (tasks.length === 0 && !canManage) return null;
         return (
           <section key={group.id}>
             <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <span className="w-1 h-4 bg-[#827096] rounded-full" />
               {group.label}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {tasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onClaim={interactive ? () => {} : undefined}
-                />
-              ))}
-            </div>
+            {tasks.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">No tasks yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {tasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onClaim={() => {}}
+                    isAdminView={isAdminView}
+                    assignableMembers={canManage ? assignableMembers : undefined}
+                    onAssign={canManage ? handleAssign : undefined}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         );
       })}
+      <AnimatePresence>
+        {showAdd && (
+          <AddTaskModal
+            committee={committee}
+            onClose={() => setShowAdd(false)}
+            onSave={handleAdd}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

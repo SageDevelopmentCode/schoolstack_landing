@@ -1,6 +1,17 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  CalendarDays,
+  CheckSquare,
+  FileText,
+  Home,
+  MessageCircle,
+  Settings,
+  Users,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   COMMITTEE_SECTION_LABELS,
@@ -16,12 +27,25 @@ import CommitteeMessagesSection from "./CommitteeMessagesSection";
 import CommitteeMembersSection from "./CommitteeMembersSection";
 import CommitteeSettingsSection from "./CommitteeSettingsSection";
 
+const SECTION_ICONS: Record<CommitteeWorkspaceSection, LucideIcon> = {
+  home: Home,
+  about: BookOpen,
+  resources: FileText,
+  calendar: CalendarDays,
+  tasks: CheckSquare,
+  messages: MessageCircle,
+  members: Users,
+  settings: Settings,
+};
+
 export default function CommitteeWorkspaceShell({
   committee,
   activeSection,
   onSectionChange,
   onBack,
   showSettings = false,
+  isAdminView = false,
+  onCommitteeUpdate,
   currentUserId,
   onArchive,
 }: {
@@ -30,6 +54,8 @@ export default function CommitteeWorkspaceShell({
   onSectionChange: (section: CommitteeWorkspaceSection) => void;
   onBack?: () => void;
   showSettings?: boolean;
+  isAdminView?: boolean;
+  onCommitteeUpdate?: (updated: Committee) => void;
   currentUserId?: string;
   onArchive?: () => void;
 }) {
@@ -79,19 +105,23 @@ export default function CommitteeWorkspaceShell({
           </div>
         </div>
         <nav className="flex items-center gap-1 mt-4 overflow-x-auto pb-1">
-          {sections.map((section) => (
-            <button
-              key={section}
-              onClick={() => onSectionChange(section)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
-                activeSection === section
-                  ? "text-[#827096] bg-[#827096]/8 font-semibold"
-                  : "text-gray-500 hover:text-[#827096] hover:bg-gray-50"
-              }`}
-            >
-              {COMMITTEE_SECTION_LABELS[section]}
-            </button>
-          ))}
+          {sections.map((section) => {
+            const Icon = SECTION_ICONS[section];
+            return (
+              <button
+                key={section}
+                onClick={() => onSectionChange(section)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
+                  activeSection === section
+                    ? "text-[#827096] bg-[#827096]/8 font-semibold"
+                    : "text-gray-500 hover:text-[#827096] hover:bg-gray-50"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {COMMITTEE_SECTION_LABELS[section]}
+              </button>
+            );
+          })}
         </nav>
       </div>
 
@@ -109,16 +139,42 @@ export default function CommitteeWorkspaceShell({
             )}
             {activeSection === "about" && <CommitteeAboutSection committee={committee} />}
             {activeSection === "resources" && (
-              <CommitteeResourcesSection committee={committee} canEdit={showSettings} />
+              <CommitteeResourcesSection
+                committee={committee}
+                isAdminView={isAdminView}
+                onCommitteeUpdate={onCommitteeUpdate}
+              />
             )}
-            {activeSection === "calendar" && <CommitteeCalendarSection committee={committee} />}
-            {activeSection === "tasks" && <CommitteeTasksSection committee={committee} />}
+            {activeSection === "calendar" && (
+              <CommitteeCalendarSection
+                committee={committee}
+                isAdminView={isAdminView}
+                onCommitteeUpdate={onCommitteeUpdate}
+              />
+            )}
+            {activeSection === "tasks" && (
+              <CommitteeTasksSection
+                committee={committee}
+                isAdminView={isAdminView}
+                onCommitteeUpdate={onCommitteeUpdate}
+              />
+            )}
             {activeSection === "messages" && (
               <CommitteeMessagesSection committee={committee} currentUserId={currentUserId} />
             )}
-            {activeSection === "members" && <CommitteeMembersSection committee={committee} />}
+            {activeSection === "members" && (
+              <CommitteeMembersSection
+                committee={committee}
+                isAdminView={isAdminView}
+                onCommitteeUpdate={onCommitteeUpdate}
+              />
+            )}
             {activeSection === "settings" && showSettings && (
-              <CommitteeSettingsSection committee={committee} onArchive={onArchive} />
+              <CommitteeSettingsSection
+                committee={committee}
+                onArchive={onArchive}
+                onNavigateToSection={onSectionChange}
+              />
             )}
           </motion.div>
         </AnimatePresence>
