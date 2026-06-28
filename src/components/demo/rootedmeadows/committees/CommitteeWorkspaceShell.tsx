@@ -157,6 +157,7 @@ export default function CommitteeWorkspaceShell({
                 committee={committee}
                 isAdminView={isAdminView}
                 onCommitteeUpdate={onCommitteeUpdate}
+                currentUserId={currentUserId}
               />
             )}
             {activeSection === "messages" && (
