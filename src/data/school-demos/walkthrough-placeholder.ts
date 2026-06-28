@@ -78,6 +78,8 @@ export interface DemoWalkthroughStep {
   title: string;
   description: string;
   talkingPoint?: string;
+  previewHint?: string;
+  previewHintDelayMs?: number;
   preview?: DemoWalkthroughPreview;
   scrollTarget?: "top" | "form";
   initialAdmissionsTab?: DemoWalkthroughAdmissionsTab;
@@ -2158,6 +2160,9 @@ const rootedMeadowsApplicationStep: DemoWalkthroughStep = {
   description:
     "Parents click Apply Now on the school's website and complete the MudKitchen-hosted application.",
   preview: "application",
+  previewHint:
+    "Application questions are fully customizable — you'll be able to add, remove, and edit fields once your admin portal is set up. This is just a prototype preview.",
+  previewHintDelayMs: 800,
   icon: "clipboardCheck",
   theme: {
     bg: "#F0EBF2",
@@ -2352,7 +2357,7 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
           ? {
               ...step,
               description:
-                "Families sign the Standard Enrollment Agreement and complete the enrollment checklist — including supply and activities fees.",
+                "Families sign the Standard Enrollment Agreement and complete the enrollment checklist — including activities and supply fees.",
               parentEnrollmentVariant: "prototype" as const,
             }
           : step.id === "parent-pays-tuition"

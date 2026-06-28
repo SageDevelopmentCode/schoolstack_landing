@@ -214,10 +214,6 @@ function PreviewEmptyState() {
       <p className="text-sm font-medium" style={{ color: C.textSecondary }}>
         Select a path to preview
       </p>
-      <p className="mt-1 max-w-xs text-xs leading-relaxed" style={{ color: C.textTertiary }}>
-        Choose an enrollment agreement or referral message on the left to see a
-        live preview here.
-      </p>
     </div>
   );
 }

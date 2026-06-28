@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import DemoContactPanel from "@/components/demo/DemoContactPanel";
+import DemoPreviewHint from "@/components/demo/DemoPreviewHint";
 import DemoWalkthroughPanel from "@/components/demo/DemoWalkthroughPanel";
 import ScaledAdminDemoPreview from "@/components/demo/ScaledAdminDemoPreview";
 import ScaledParentDemoPreview from "@/components/demo/ScaledParentDemoPreview";
@@ -64,7 +65,7 @@ export default function SchoolDemoShell({
         activeStep={activeStep}
         onStepSelect={handleStepSelect}
       />
-      <div className="flex-1 h-screen min-w-0">
+      <div className="relative flex-1 h-screen min-w-0">
         {activePreview === "admin" ? (
           <ScaledAdminDemoPreview
             key={steps[activeStep].id}
@@ -142,6 +143,13 @@ export default function SchoolDemoShell({
             onDiscoveryCallClick={handleDiscoveryCallClick}
           />
         )}
+        {steps[activeStep]?.previewHint ? (
+          <DemoPreviewHint
+            key={steps[activeStep].id}
+            message={steps[activeStep].previewHint}
+            delayMs={steps[activeStep].previewHintDelayMs}
+          />
+        ) : null}
       </div>
     </div>
   );

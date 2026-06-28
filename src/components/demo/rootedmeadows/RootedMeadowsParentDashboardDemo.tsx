@@ -104,8 +104,7 @@ type ModalId =
   | "authorized-pickup"
   | "health-statement"
   | "registration-fee"
-  | "activities-fee"
-  | "supply-fee";
+  | "enrollment-fees";
 type EnrollmentVariant = "default" | "prototype";
 type ChildDetailTab = "teacher" | "attendance" | "learning" | "profile";
 
@@ -2074,6 +2073,88 @@ function RegistrationFeeModal({
   );
 }
 
+const ENROLLMENT_FEE_LINE_ITEMS = [
+  { label: "Activities Fee", amount: ROOTED_MEADOWS_ACTIVITIES_FEE },
+  { label: "Supply Fee", amount: ROOTED_MEADOWS_SUPPLY_FEE },
+] as const;
+
+const ENROLLMENT_FEES_TOTAL =
+  ROOTED_MEADOWS_ACTIVITIES_FEE + ROOTED_MEADOWS_SUPPLY_FEE;
+
+function EnrollmentFeesPaymentPanel({
+  onPay,
+  onClose,
+  inline,
+}: {
+  onPay: () => void;
+  onClose?: () => void;
+  inline?: boolean;
+}) {
+  const [paid, setPaid] = useState(false);
+  const totalFormatted = formatMoney(ENROLLMENT_FEES_TOTAL);
+
+  return (
+    <ModalShell
+      title="Activities & Supply Fees"
+      onClose={onClose}
+      inline={inline}
+    >
+      <div className="space-y-5">
+        {!paid ? (
+          <>
+            <div>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                Fee summary
+              </h3>
+              <div className="rounded-lg border border-gray-100 bg-gray-50/50 divide-y divide-gray-100">
+                {ENROLLMENT_FEE_LINE_ITEMS.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex justify-between px-4 py-3"
+                  >
+                    <span className="text-sm text-gray-700">{item.label}</span>
+                    <span className="text-sm font-semibold text-gray-800 tabular-nums">
+                      {formatMoney(item.amount)}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between px-4 py-3 bg-white rounded-b-lg">
+                  <span className="text-sm font-semibold text-gray-800">
+                    Total
+                  </span>
+                  <span className="text-sm font-bold text-gray-900 tabular-nums">
+                    {totalFormatted}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 text-center">
+              Payment is processed securely through the parent portal.
+            </p>
+            <button
+              onClick={() => {
+                setPaid(true);
+                setTimeout(onPay, 800);
+              }}
+              className="w-full py-3 rounded-md bg-[#827096] text-white font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors"
+            >
+              Pay {totalFormatted}
+            </button>
+          </>
+        ) : (
+          <div className="py-4 text-center">
+            <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+            <p className="font-semibold text-gray-800">Payment Successful!</p>
+            <p className="text-sm text-gray-400 mt-1">
+              Your activities and supply fees are confirmed.
+            </p>
+          </div>
+        )}
+      </div>
+    </ModalShell>
+  );
+}
+
 // ─── CHECKLIST VIEW ──────────────────────────────────────────────────────────
 
 const SHARED_FORM_CHECKLIST_ITEMS: ChecklistItem[] = [
@@ -2178,18 +2259,10 @@ const PROTOTYPE_CHECKLIST_ITEMS: ChecklistItem[] = [
   })),
   {
     id: 9,
-    label: "Activities Fee",
+    label: "Activities & Supply Fees",
     icon: CreditCard,
     required: true,
-    modal: "activities-fee",
-    optional: false,
-  },
-  {
-    id: 10,
-    label: "Supply Fee",
-    icon: CreditCard,
-    required: true,
-    modal: "supply-fee",
+    modal: "enrollment-fees",
     optional: false,
   },
 ];
@@ -2202,12 +2275,12 @@ function getChecklistItems(variant: EnrollmentVariant): ChecklistItem[] {
 
 function getRequiredChecklistIndices(variant: EnrollmentVariant): number[] {
   return variant === "prototype"
-    ? [0, 1, 3, 4, 5, 6, 8, 9]
+    ? [0, 1, 3, 4, 5, 6, 8]
     : [0, 1, 2, 4, 5, 6, 7, 9];
 }
 
 function getPrototypeOnboardingCompletedIds(): Set<number> {
-  return new Set([1, 2, 3, 4, 5, 6, 7, 9, 10]);
+  return new Set([1, 2, 3, 4, 5, 6, 7, 9]);
 }
 
 function getDefaultOnboardingCompletedIds(): Set<number> {
@@ -2247,8 +2320,7 @@ function buildChildCompletions(
         (section) => !!childSigs[section.id],
       ),
       ...sharedTail,
-      state.activitiesFeePaid[childId],
-      state.supplyFeePaid[childId],
+      state.activitiesFeePaid[childId] && state.supplyFeePaid[childId],
     ];
   }
 
@@ -2288,8 +2360,7 @@ function EnrollmentPage({
   pickupSaved,
   onPickupSave,
   onFeePay,
-  onActivitiesFeePay,
-  onSupplyFeePay,
+  onEnrollmentFeesPay,
 }: {
   activeChildId: ChildId;
   setActiveChildId: (id: ChildId) => void;
@@ -2316,8 +2387,7 @@ function EnrollmentPage({
   pickupSaved: boolean;
   onPickupSave: () => void;
   onFeePay: () => void;
-  onActivitiesFeePay: () => void;
-  onSupplyFeePay: () => void;
+  onEnrollmentFeesPay: () => void;
 }) {
   const [activeItem, setActiveItem] = useState<ModalId>(
     checklistItems[0].modal,
@@ -2546,24 +2616,10 @@ function EnrollmentPage({
                     onPay={onFeePay}
                   />
                 )}
-                {activeItem === "activities-fee" && (
-                  <FeePaymentModal
+                {activeItem === "enrollment-fees" && (
+                  <EnrollmentFeesPaymentPanel
                     inline
-                    title="Activities Fee"
-                    amount={formatMoney(ROOTED_MEADOWS_ACTIVITIES_FEE)}
-                    description="Annual activities fee"
-                    successMessage="Your activities fee is confirmed."
-                    onPay={onActivitiesFeePay}
-                  />
-                )}
-                {activeItem === "supply-fee" && (
-                  <FeePaymentModal
-                    inline
-                    title="Supply Fee"
-                    amount={formatMoney(ROOTED_MEADOWS_SUPPLY_FEE)}
-                    description="Annual supply fee"
-                    successMessage="Your supply fee is confirmed."
-                    onPay={onSupplyFeePay}
+                    onPay={onEnrollmentFeesPay}
                   />
                 )}
               </motion.div>
@@ -5946,12 +6002,10 @@ export default function RootedMeadowsParentDashboardDemo({
                   onFeePay={() =>
                     setFeePaid((p) => ({ ...p, [activeChildId]: true }))
                   }
-                  onActivitiesFeePay={() =>
-                    setActivitiesFeePaid((p) => ({ ...p, [activeChildId]: true }))
-                  }
-                  onSupplyFeePay={() =>
-                    setSupplyFeePaid((p) => ({ ...p, [activeChildId]: true }))
-                  }
+                  onEnrollmentFeesPay={() => {
+                    setActivitiesFeePaid((p) => ({ ...p, [activeChildId]: true }));
+                    setSupplyFeePaid((p) => ({ ...p, [activeChildId]: true }));
+                  }}
                 />
               )}
               {activeNavTab === "messages" && (
@@ -6421,28 +6475,11 @@ export default function RootedMeadowsParentDashboardDemo({
             onClose={() => setOpenModal(null)}
           />
         )}
-        {openModal === "activities-fee" && (
-          <FeePaymentModal
-            key="activities-fee"
-            title="Activities Fee"
-            amount={formatMoney(ROOTED_MEADOWS_ACTIVITIES_FEE)}
-            description="Annual activities fee"
-            successMessage="Your activities fee is confirmed."
+        {openModal === "enrollment-fees" && (
+          <EnrollmentFeesPaymentPanel
+            key="enrollment-fees"
             onPay={() => {
               setActivitiesFeePaid((p) => ({ ...p, [activeChildId]: true }));
-              setOpenModal(null);
-            }}
-            onClose={() => setOpenModal(null)}
-          />
-        )}
-        {openModal === "supply-fee" && (
-          <FeePaymentModal
-            key="supply-fee"
-            title="Supply Fee"
-            amount={formatMoney(ROOTED_MEADOWS_SUPPLY_FEE)}
-            description="Annual supply fee"
-            successMessage="Your supply fee is confirmed."
-            onPay={() => {
               setSupplyFeePaid((p) => ({ ...p, [activeChildId]: true }));
               setOpenModal(null);
             }}
