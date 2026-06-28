@@ -28,6 +28,11 @@ import {
   type TuitionAdjustType,
 } from "@/data/school-demos/tuition-override";
 import {
+  ROOTED_MEADOWS_ACTIVITIES_FEE,
+  ROOTED_MEADOWS_SCHOOL_YEAR_MONTHLY,
+  ROOTED_MEADOWS_SUPPLY_FEE,
+} from "@/data/school-demos/rooted-meadows-tuition";
+import {
   LayoutDashboard,
   TrendingUp,
   Users,
@@ -1288,16 +1293,16 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
     ],
     billing: {
       kind: "full_time",
-      monthlyTuition: 1450,
+      monthlyTuition: 720,
       autopayOn: true,
       paymentMethods: [
         { label: "Visa", last4: "4242", brand: "card", default: true },
         { label: "Checking · Chase", last4: "4412", brand: "bank", default: false },
       ],
       lineItems: [
-        { id: "ft-st1-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 1450, status: "paid" },
-        { id: "ft-st1-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year)", amount: 1450, status: "pending" },
-        { id: "ft-st1-3", date: "Apr 1, 2026", description: "Apr 2026 tuition (School Year)", amount: 1450, status: "paid" },
+        { id: "ft-st1-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 720, status: "paid" },
+        { id: "ft-st1-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year)", amount: 720, status: "pending" },
+        { id: "ft-st1-3", date: "Apr 1, 2026", description: "Apr 2026 tuition (School Year)", amount: 720, status: "paid" },
       ],
     },
   },
@@ -1572,12 +1577,12 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
     ],
     billing: {
       kind: "full_time",
-      monthlyTuition: 1425,
+      monthlyTuition: 720,
       autopayOn: false,
       paymentMethods: [{ label: "Amex", last4: "3001", brand: "card", default: true }],
       lineItems: [
-        { id: "ft-st5-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 1425, status: "paid" },
-        { id: "ft-st5-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year)", amount: 1425, status: "pending" },
+        { id: "ft-st5-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 720, status: "paid" },
+        { id: "ft-st5-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year)", amount: 720, status: "pending" },
         { id: "ft-st5-3", date: "Apr 15, 2026", description: "Materials & lab fee", amount: 75, status: "paid" },
       ],
     },
@@ -1645,15 +1650,15 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
     ],
     billing: {
       kind: "full_time",
-      monthlyTuition: 1500,
+      monthlyTuition: 720,
       autopayOn: true,
       paymentMethods: [
         { label: "Visa", last4: "7721", brand: "card", default: true },
         { label: "Health savings · FSA", last4: "6600", brand: "fsa", default: false },
       ],
       lineItems: [
-        { id: "ft-st6-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 1500, status: "paid" },
-        { id: "ft-st6-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year) — autopay scheduled", amount: 1500, status: "pending" },
+        { id: "ft-st6-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 720, status: "paid" },
+        { id: "ft-st6-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year) — autopay scheduled", amount: 720, status: "pending" },
       ],
     },
   },
@@ -1862,11 +1867,11 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
     ],
     billing: {
       kind: "full_time",
-      monthlyTuition: 1450,
+      monthlyTuition: 648,
       autopayOn: true,
       paymentMethods: [{ label: "Mastercard", last4: "9922", brand: "card", default: true }],
       lineItems: [
-        { id: "ft-st9-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 1450, status: "paid" },
+        { id: "ft-st9-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 648, status: "paid" },
         { id: "ft-st9-2", date: "May 20, 2026", description: "OT co-pay pass-through (quarterly)", amount: 120, status: "pending" },
       ],
     },
@@ -2079,12 +2084,12 @@ const DEMO_STUDENTS_P2: DemoStudent[] = [
     ],
     billing: {
       kind: "full_time",
-      monthlyTuition: 1535,
+      monthlyTuition: 720,
       autopayOn: false,
       paymentMethods: [{ label: "ACH · Wells Fargo", last4: "7722", brand: "bank", default: true }],
       lineItems: [
-        { id: "ft-st12-1", date: "May 1, 2026", description: "May 2026 tuition + reading aide stipend", amount: 1535, status: "paid" },
-        { id: "ft-st12-2", date: "Jun 1, 2026", description: "Jun 2026 tuition + reading aide stipend", amount: 1535, status: "pending" },
+        { id: "ft-st12-1", date: "May 1, 2026", description: "May 2026 tuition (School Year)", amount: 720, status: "paid" },
+        { id: "ft-st12-2", date: "Jun 1, 2026", description: "Jun 2026 tuition (School Year)", amount: 720, status: "pending" },
         { id: "ft-st12-3", date: "Apr 20, 2026", description: "Assistive tech software (quarterly)", amount: 45, status: "paid" },
       ],
     },
@@ -2292,19 +2297,18 @@ const DEMO_PROGRAMS_P2: DemoProgram[] = [
         "Health & emergency form",
         "Immunization records",
         "Photo release",
-        "Registration fee ($150)",
-        "Supply fee ($150)",
+        "Supply fee ($500)",
+        "Activities fee ($150)",
       ],
       autoTag: "School Year",
       websiteCta: "Apply Now",
     },
     pricing: {
       billingModel: "monthly",
-      baseAmount: 1280,
+      baseAmount: 720,
       fees: [
-        { label: "Registration fee", amount: 150 },
-        { label: "Supply fee", amount: 150 },
-        { label: "Deposit", amount: 500, refundable: true },
+        { label: "Supply fee", amount: 500 },
+        { label: "Activities fee", amount: 150 },
       ],
       paymentSchedule: SCHOOL_YEAR_MONTH_SCHEDULE,
       acceptsFinancialAid: true,
@@ -10763,7 +10767,14 @@ function ProgramEnrollmentTab({ program }: { program: DemoProgram }) {
           <ProgramSection title="Fees & automation">
             <ProgramDetailRows
               rows={[
-                ["Registration fee", `$${program.enrollment.registrationFee}`],
+                ...(program.type === "school_year"
+                  ? ([
+                      ["Supply fee", `$${ROOTED_MEADOWS_SUPPLY_FEE}`],
+                      ["Activities fee", `$${ROOTED_MEADOWS_ACTIVITIES_FEE}`],
+                    ] as [string, string][])
+                  : ([
+                      ["Registration fee", `$${program.enrollment.registrationFee}`],
+                    ] as [string, string][])),
                 ["Auto-tag on submit", program.enrollment.autoTag],
                 ["Website CTA", program.enrollment.websiteCta],
                 ["Financial aid", program.pricing.acceptsFinancialAid ? "Accepted" : "Not offered"],
@@ -11477,7 +11488,7 @@ const DEMO_TRANSACTIONS = [
     payerName: "Sarah Richardson",
     payerEmail: "sarah.r@email.com",
     childName: "Emma Richardson",
-    amount: 1800,
+    amount: 720,
     type: "tuition",
     status: "succeeded",
     date: "Apr 1, 2026",
@@ -11516,7 +11527,7 @@ const DEMO_TRANSACTIONS = [
     payerName: "Priya Patel",
     payerEmail: "ppatel@email.com",
     childName: "Raj Patel",
-    amount: 1800,
+    amount: 720,
     type: "tuition",
     status: "succeeded",
     date: "Apr 1, 2026",
@@ -11555,7 +11566,7 @@ const DEMO_TRANSACTIONS = [
     payerName: "Kevin Johnson",
     payerEmail: "kjohnson@email.com",
     childName: "Mia Johnson",
-    amount: 1800,
+    amount: 720,
     type: "tuition",
     status: "succeeded",
     date: "Apr 1, 2026",
@@ -11581,7 +11592,7 @@ const DEMO_TRANSACTIONS = [
     payerName: "Mark Davis",
     payerEmail: "mdavis@email.com",
     childName: "Harper Davis",
-    amount: 1800,
+    amount: 720,
     type: "tuition",
     status: "succeeded",
     date: "Apr 1, 2026",
@@ -11620,7 +11631,7 @@ const DEMO_TRANSACTIONS = [
     payerName: "Angela Lee",
     payerEmail: "alee@email.com",
     childName: "Sebastian Lee",
-    amount: 1800,
+    amount: 720,
     type: "tuition",
     status: "failed",
     date: "Apr 2, 2026",
@@ -11661,6 +11672,16 @@ type UpcomingCharge = {
   status: "scheduled" | "sent" | "overdue";
 };
 
+function upcomingStatusColors(
+  c: typeof C_DARK,
+): Record<UpcomingCharge["status"], { bg: string; border: string; text: string }> {
+  return {
+    sent: { bg: c.warningBg, border: c.warningBorder, text: c.warning },
+    overdue: { bg: c.errorBg, border: c.errorBorder, text: c.error },
+    scheduled: { bg: c.infoBg, border: c.infoBorder, text: c.info },
+  };
+}
+
 type FamilyBillingStatus =
   | "current"
   | "invoice_sent"
@@ -11690,16 +11711,15 @@ type DemoFamilyBilling = {
 };
 
 const SUMMER_WEEK_AMOUNT = 900;
-const SCHOOL_YEAR_MONTHLY = 1800;
-const REG_FEE = 500;
-const SUPPLY_FEE = 250;
+const SCHOOL_YEAR_MONTHLY = ROOTED_MEADOWS_SCHOOL_YEAR_MONTHLY;
+const SUMMER_REG_FEE = 500;
 
 function buildSummerWeeks(
   paidCount: number,
   sentIndex?: number,
 ): TuitionScheduleItem[] {
   return [
-    { label: "Registration Fee", amount: REG_FEE, state: "paid", date: "Jan 15" },
+    { label: "Registration Fee", amount: SUMMER_REG_FEE, state: "paid", date: "Jan 15" },
     ...Array.from({ length: 12 }, (_, i) => ({
       label: `Week ${i + 1}`,
       amount: SUMMER_WEEK_AMOUNT,
@@ -11735,8 +11755,8 @@ function buildSchoolYearMonths(
     "May",
   ];
   return [
-    { label: "Registration Fee", amount: REG_FEE, state: "paid", date: "Nov 1" },
-    { label: "Supply Fee", amount: SUPPLY_FEE, state: "paid", date: "Nov 1" },
+    { label: "Supply Fee", amount: ROOTED_MEADOWS_SUPPLY_FEE, state: "paid", date: "Nov 1" },
+    { label: "Activities Fee", amount: ROOTED_MEADOWS_ACTIVITIES_FEE, state: "paid", date: "Nov 1" },
     ...months.map((m, i) => ({
       label: `${m} Tuition`,
       amount: SCHOOL_YEAR_MONTHLY,
@@ -11764,9 +11784,9 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     color: "#5E7C68",
     children: ["Emma Richardson"],
     programs: ["School Year 26–27"],
-    balanceDue: 1800,
-    paidYtd: 16250,
-    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
+    balanceDue: 720,
+    paidYtd: 4970,
+    nextDue: { date: "Apr 1, 2026", amount: 720, label: "Feb Tuition" },
     autopayOn: true,
     paymentMethod: "Visa ·••• 4242",
     status: "current",
@@ -11776,7 +11796,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u1",
         label: "Feb Tuition",
-        amount: 1800,
+        amount: 720,
         dueDate: "Apr 1, 2026",
         program: "School Year 26–27",
         status: "sent",
@@ -11792,9 +11812,9 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     color: "#38BDF8",
     children: ["Liam Torres"],
     programs: ["School Year 26–27"],
-    balanceDue: 3600,
-    paidYtd: 11700,
-    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
+    balanceDue: 1440,
+    paidYtd: 4250,
+    nextDue: { date: "Apr 1, 2026", amount: 720, label: "Feb Tuition" },
     autopayOn: true,
     paymentMethod: "Visa ·••• 8812",
     status: "overdue",
@@ -11804,7 +11824,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u4",
         label: "Feb Tuition",
-        amount: 1800,
+        amount: 720,
         dueDate: "Apr 1, 2026",
         program: "School Year 26–27",
         status: "overdue",
@@ -11812,7 +11832,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u4b",
         label: "Jan Tuition",
-        amount: 1800,
+        amount: 720,
         dueDate: "Mar 1, 2026",
         program: "School Year 26–27",
         status: "overdue",
@@ -11828,9 +11848,9 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     color: "#F59E0B",
     children: ["Noah Foster"],
     programs: ["School Year 26–27"],
-    balanceDue: 1800,
-    paidYtd: 9950,
-    nextDue: { date: "May 1, 2026", amount: 1800, label: "Apr Tuition" },
+    balanceDue: 720,
+    paidYtd: 5690,
+    nextDue: { date: "May 1, 2026", amount: 720, label: "Apr Tuition" },
     autopayOn: true,
     paymentMethod: "Mastercard ·••• 3341",
     status: "current",
@@ -11840,7 +11860,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u5",
         label: "Apr Tuition",
-        amount: 1800,
+        amount: 720,
         dueDate: "May 1, 2026",
         program: "School Year 26–27",
         status: "scheduled",
@@ -11856,7 +11876,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     children: ["Tyler Watkins"],
     programs: ["School Year 26–27"],
     balanceDue: 0,
-    paidYtd: 24100,
+    paidYtd: 7850,
     autopayOn: true,
     paymentMethod: "Visa ·••• 9921",
     status: "current",
@@ -11877,8 +11897,8 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     children: ["Marcus Webb"],
     programs: ["School Year 26–27"],
     balanceDue: 0,
-    paidYtd: 12850,
-    nextDue: { date: "May 1, 2026", amount: 1800, label: "Apr Tuition" },
+    paidYtd: 5834,
+    nextDue: { date: "May 1, 2026", amount: 648, label: "Apr Tuition" },
     autopayOn: true,
     paymentMethod: "ACH ·••• 7721",
     status: "current",
@@ -11896,7 +11916,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u6",
         label: "Apr Tuition",
-        amount: 1800,
+        amount: 648,
         dueDate: "May 1, 2026",
         program: "School Year 26–27",
         status: "scheduled",
@@ -11912,9 +11932,9 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     color: "#06B6D4",
     children: ["Lily Nakamura"],
     programs: ["School Year 26–27"],
-    balanceDue: 1800,
-    paidYtd: 15400,
-    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
+    balanceDue: 720,
+    paidYtd: 5690,
+    nextDue: { date: "Apr 1, 2026", amount: 720, label: "Feb Tuition" },
     autopayOn: false,
     paymentMethod: "Visa ·••• 5510",
     status: "invoice_sent",
@@ -11924,7 +11944,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u7",
         label: "Feb Tuition",
-        amount: 1800,
+        amount: 720,
         dueDate: "Apr 1, 2026",
         program: "School Year 26–27",
         status: "sent",
@@ -11939,9 +11959,9 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     color: "#EF4444",
     children: ["Sebastian Lee"],
     programs: ["School Year 26–27"],
-    balanceDue: 3600,
-    paidYtd: 8900,
-    nextDue: { date: "Apr 2, 2026", amount: 1800, label: "Feb Tuition (failed)" },
+    balanceDue: 1440,
+    paidYtd: 3530,
+    nextDue: { date: "Apr 2, 2026", amount: 720, label: "Feb Tuition (failed)" },
     autopayOn: true,
     paymentMethod: "Visa ·••• 1102",
     status: "failed_payment",
@@ -11952,7 +11972,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u8",
         label: "Feb Tuition (retry)",
-        amount: 1800,
+        amount: 720,
         dueDate: "Apr 8, 2026",
         program: "School Year 26–27",
         status: "overdue",
@@ -11967,9 +11987,9 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     color: "#8B5CF6",
     children: ["Mason Wright"],
     programs: ["School Year 26–27"],
-    balanceDue: 1800,
-    paidYtd: 7200,
-    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
+    balanceDue: 720,
+    paidYtd: 2810,
+    nextDue: { date: "Apr 1, 2026", amount: 720, label: "Feb Tuition" },
     autopayOn: false,
     paymentMethod: "ACH ·••• 3390",
     status: "invoice_sent",
@@ -11979,7 +11999,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u9",
         label: "Feb Tuition",
-        amount: 1800,
+        amount: 720,
         dueDate: "Apr 1, 2026",
         program: "School Year 26–27",
         status: "sent",
@@ -11995,8 +12015,8 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     children: ["Ava Chen"],
     programs: ["School Year 26–27"],
     balanceDue: 0,
-    paidYtd: 5900,
-    nextDue: { date: "May 1, 2026", amount: 1800, label: "Apr Tuition" },
+    paidYtd: 3530,
+    nextDue: { date: "May 1, 2026", amount: 720, label: "Apr Tuition" },
     autopayOn: true,
     paymentMethod: "Visa ·••• 6677",
     status: "current",
@@ -12006,7 +12026,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u10",
         label: "Apr Tuition",
-        amount: 1800,
+        amount: 720,
         dueDate: "May 1, 2026",
         program: "School Year 26–27",
         status: "scheduled",
@@ -12021,9 +12041,9 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     color: "#14B8A6",
     children: ["Raj Patel"],
     programs: ["School Year 26–27"],
-    balanceDue: 1800,
-    paidYtd: 11100,
-    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
+    balanceDue: 720,
+    paidYtd: 4250,
+    nextDue: { date: "Apr 1, 2026", amount: 720, label: "Feb Tuition" },
     autopayOn: true,
     paymentMethod: "ACH ·••• 4488",
     status: "invoice_sent",
@@ -12033,7 +12053,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
       {
         id: "u11",
         label: "Feb Tuition",
-        amount: 1800,
+        amount: 720,
         dueDate: "Apr 1, 2026",
         program: "School Year 26–27",
         status: "sent",
@@ -12051,6 +12071,102 @@ type TuitionFilter = "all" | "overdue" | "upcoming" | "autopay_off" | "at_risk";
 
 function getFamilyTransactions(payerName: string) {
   return DEMO_TRANSACTIONS.filter((tx) => tx.payerName === payerName);
+}
+
+const SCHEDULE_MONTH_SORT: Record<string, number> = {
+  Aug: 0,
+  Sep: 1,
+  Oct: 2,
+  Nov: 3,
+  Dec: 4,
+  Jan: 5,
+  Feb: 6,
+  Mar: 7,
+  Apr: 8,
+  May: 9,
+};
+
+function formatSchedulePaymentDate(label: string, rawDate?: string): string {
+  if (!rawDate) return "—";
+  if (rawDate.includes(",")) return rawDate;
+  if (label.includes("Fee")) return `${rawDate}, 2025`;
+  const month = rawDate.split(" ")[0];
+  const year = ["Jan", "Feb", "Mar", "Apr", "May"].includes(month)
+    ? "2026"
+    : "2025";
+  return `${rawDate}, ${year}`;
+}
+
+function schedulePaymentSortKey(label: string, rawDate?: string): number {
+  const formatted = formatSchedulePaymentDate(label, rawDate);
+  if (formatted === "—") return 0;
+  const parsed = Date.parse(formatted);
+  if (!Number.isNaN(parsed)) return parsed;
+  const month = rawDate?.split(" ")[0] ?? "";
+  return SCHEDULE_MONTH_SORT[month] ?? 0;
+}
+
+function paymentTypeForScheduleLabel(label: string): string {
+  if (label.includes("Tuition") || label.startsWith("Week")) return "tuition";
+  return "registration";
+}
+
+function programForScheduleLabel(
+  label: string,
+  family: DemoFamilyBilling,
+): string {
+  if (
+    label.startsWith("Week") ||
+    family.summer.some((item) => item.label === label)
+  ) {
+    return "summer";
+  }
+  return "school_year";
+}
+
+function paidAmountForScheduleItem(
+  item: TuitionScheduleItem,
+  effectiveOverride?: DemoTuitionOverride,
+): number {
+  if (!item.label.includes("Tuition") || !effectiveOverride) return item.amount;
+  return computeAdjustedAmount({
+    ...effectiveOverride,
+    standardAmount: item.amount,
+  });
+}
+
+function getFamilyPaymentHistory(
+  family: DemoFamilyBilling,
+  effectiveOverride?: DemoTuitionOverride,
+): ((typeof DEMO_TRANSACTIONS)[number] & { historyLabel: string })[] {
+  const childName = family.children[0] ?? "Student";
+  const method = family.paymentMethod?.toLowerCase().includes("ach")
+    ? ("ach" as const)
+    : ("card" as const);
+
+  const paidItems = [...family.schoolYear, ...family.summer]
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.state === "paid")
+    .sort(
+      (a, b) =>
+        schedulePaymentSortKey(b.item.label, b.item.date) -
+        schedulePaymentSortKey(a.item.label, a.item.date),
+    );
+
+  return paidItems.map(({ item, index }, rowIndex) => ({
+    id: `ph-${family.id}-${index}`,
+    payerName: family.name,
+    payerEmail: family.email,
+    childName,
+    amount: paidAmountForScheduleItem(item, effectiveOverride),
+    type: paymentTypeForScheduleLabel(item.label),
+    status: "succeeded" as const,
+    date: formatSchedulePaymentDate(item.label, item.date),
+    program: programForScheduleLabel(item.label, family),
+    method,
+    stripeId: `pi_demo_${family.id}_${rowIndex}`,
+    historyLabel: item.label,
+  }));
 }
 
 function countOutstandingTuition(): number {
@@ -14523,6 +14639,163 @@ function getEffectiveFamilyOverride(
   return family.tuitionOverride;
 }
 
+function TuitionRatesModal({
+  family,
+  programRates,
+  effectiveOverride,
+  onClose,
+  onAdjust,
+}: {
+  family: DemoFamilyBilling;
+  programRates: ProgramRateRow[];
+  effectiveOverride?: DemoTuitionOverride;
+  onClose: () => void;
+  onAdjust: (program: ProgramRateRow) => void;
+}) {
+  const fmt = (n: number) => `$${n.toLocaleString()}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.35)", zIndex: 50 }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 12 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        onClick={(e) => e.stopPropagation()}
+        className="flex flex-col overflow-hidden w-full"
+        style={{
+          maxWidth: 480,
+          maxHeight: "min(90vh, 520px)",
+          backgroundColor: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: C.r.xl,
+          boxShadow: C.shadowMedium,
+        }}
+      >
+        <div
+          className="flex items-start justify-between gap-3 px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <div>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-widest mb-1"
+              style={{ color: C.textTertiary }}
+            >
+              Tuition rates
+            </p>
+            <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
+              {family.name}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-sm transition-colors"
+            style={{ color: C.textTertiary }}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-4">
+          <div className="space-y-2">
+            {programRates.map((program) => {
+              const rowOverride =
+                effectiveOverride?.programLabel === program.label
+                  ? effectiveOverride
+                  : undefined;
+              const adjusted = rowOverride
+                ? computeAdjustedAmount(rowOverride)
+                : program.standardAmount;
+              const isCustom = Boolean(rowOverride);
+              return (
+                <div
+                  key={program.key}
+                  className="flex items-center justify-between gap-3 py-2.5"
+                  style={{ borderBottom: `1px solid ${C.border}` }}
+                >
+                  <div className="min-w-0">
+                    <p
+                      className="text-sm font-medium truncate"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {program.label}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {isCustom ? (
+                        <>
+                          <span
+                            className="text-xs tabular-nums line-through"
+                            style={{ color: C.textTertiary }}
+                          >
+                            {fmt(program.standardAmount)}
+                            {program.billingSuffix}
+                          </span>
+                          <span
+                            className="text-sm font-bold tabular-nums"
+                            style={{ color: C.accent }}
+                          >
+                            {fmt(adjusted)}
+                            {program.billingSuffix}
+                          </span>
+                          <span
+                            className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{
+                              backgroundColor: C.purpleBg,
+                              border: `1px solid ${C.purpleBorder}`,
+                              color: C.purple,
+                            }}
+                          >
+                            {rowOverride
+                              ? formatTuitionOverrideSummary(rowOverride)
+                              : "Custom"}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span
+                            className="text-sm font-semibold tabular-nums"
+                            style={{ color: C.textPrimary }}
+                          >
+                            {fmt(program.standardAmount)}
+                            {program.billingSuffix}
+                          </span>
+                          <span
+                            className="text-[9px]"
+                            style={{ color: C.textTertiary }}
+                          >
+                            Standard rate
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onAdjust(program)}
+                    className="text-[10px] font-semibold shrink-0 px-2 py-1 rounded-sm transition-colors"
+                    style={{ color: C.accent }}
+                  >
+                    Adjust
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function TuitionAdjustModal({
   family,
   program,
@@ -14677,8 +14950,8 @@ function TuitionAdjustModal({
                       onClick={() => {
                         setAdjustType(opt.key);
                         if (opt.key === "percent_discount") setValue(15);
-                        else if (opt.key === "fixed_discount") setValue(270);
-                        else setValue(program.standardAmount - 270);
+                        else if (opt.key === "fixed_discount") setValue(72);
+                        else setValue(program.standardAmount - 72);
                       }}
                       className="px-2.5 py-1.5 text-[10px] font-semibold rounded-full transition-colors"
                       style={{
@@ -14724,8 +14997,8 @@ function TuitionAdjustModal({
                         adjustType === "percent_discount"
                           ? "15"
                           : adjustType === "fixed_discount"
-                            ? "270"
-                            : String(program.standardAmount - 270)
+                            ? "72"
+                            : String(program.standardAmount - 72)
                       }
                     />
                     {adjustType === "percent_discount" && (
@@ -14864,6 +15137,7 @@ function TuitionPage({
   const [adjustModalProgram, setAdjustModalProgram] =
     useState<ProgramRateRow | null>(null);
   const [initialAdjustOpened, setInitialAdjustOpened] = useState(false);
+  const [tuitionRatesModalOpen, setTuitionRatesModalOpen] = useState(false);
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
   const effectiveOverride = getEffectiveFamilyOverride(
@@ -14924,6 +15198,10 @@ function TuitionPage({
       }
     }
   }, [selectedFamilyId]);
+
+  useEffect(() => {
+    setTuitionRatesModalOpen(false);
+  }, [selectedFamily.id]);
 
   useEffect(() => {
     if (selectedTx || openScheduleKey) {
@@ -14994,7 +15272,10 @@ function TuitionPage({
     onSelectFamily?.(family.id);
   };
 
-  const familyTx = getFamilyTransactions(selectedFamily.name);
+  const familyPaymentHistory = getFamilyPaymentHistory(
+    selectedFamily,
+    effectiveOverride,
+  );
   const statusColors = familyBillingStatusColors(selectedFamily.status);
   const remindersCount = ACTIVE_DEMO_FAMILIES.filter(
     (f) => f.balanceDue > 0,
@@ -15311,7 +15592,7 @@ function TuitionPage({
                   {familyBillingStatusLabel(selectedFamily.status)}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <p
                     className="text-[10px] uppercase tracking-wide mb-1"
@@ -15327,20 +15608,6 @@ function TuitionPage({
                     }}
                   >
                     {fmt(selectedFamily.balanceDue)}
-                  </p>
-                </div>
-                <div>
-                  <p
-                    className="text-[10px] uppercase tracking-wide mb-1"
-                    style={{ color: C.textTertiary }}
-                  >
-                    Paid YTD
-                  </p>
-                  <p
-                    className="text-2xl font-bold tabular-nums"
-                    style={{ color: C.textPrimary }}
-                  >
-                    {fmt(selectedFamily.paidYtd)}
                   </p>
                 </div>
                 <div>
@@ -15383,102 +15650,6 @@ function TuitionPage({
                   </span>
                 )}
               </div>
-              {programRates.length > 0 && (
-                <div className="mb-4">
-                  <p
-                    className="text-[10px] font-semibold uppercase tracking-widest mb-2.5"
-                    style={{ color: C.textTertiary }}
-                  >
-                    Tuition rates
-                  </p>
-                  <div className="space-y-2">
-                    {programRates.map((program) => {
-                      const rowOverride =
-                        effectiveOverride?.programLabel === program.label
-                          ? effectiveOverride
-                          : undefined;
-                      const adjusted = rowOverride
-                        ? computeAdjustedAmount(rowOverride)
-                        : program.standardAmount;
-                      const isCustom = Boolean(rowOverride);
-                      return (
-                        <div
-                          key={program.key}
-                          className="flex items-center justify-between gap-3 py-1.5"
-                          style={{
-                            borderBottom: `1px solid ${C.border}`,
-                          }}
-                        >
-                          <div className="min-w-0">
-                            <p
-                              className="text-sm font-medium truncate"
-                              style={{ color: C.textPrimary }}
-                            >
-                              {program.label}
-                            </p>
-                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                              {isCustom ? (
-                                <>
-                                  <span
-                                    className="text-xs tabular-nums line-through"
-                                    style={{ color: C.textTertiary }}
-                                  >
-                                    {fmt(program.standardAmount)}
-                                    {program.billingSuffix}
-                                  </span>
-                                  <span
-                                    className="text-sm font-bold tabular-nums"
-                                    style={{ color: C.accent }}
-                                  >
-                                    {fmt(adjusted)}
-                                    {program.billingSuffix}
-                                  </span>
-                                  <span
-                                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                                    style={{
-                                      backgroundColor: C.purpleBg,
-                                      border: `1px solid ${C.purpleBorder}`,
-                                      color: C.purple,
-                                    }}
-                                  >
-                                    {rowOverride
-                                      ? formatTuitionOverrideSummary(rowOverride)
-                                      : "Custom"}
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <span
-                                    className="text-sm font-semibold tabular-nums"
-                                    style={{ color: C.textPrimary }}
-                                  >
-                                    {fmt(program.standardAmount)}
-                                    {program.billingSuffix}
-                                  </span>
-                                  <span
-                                    className="text-[9px]"
-                                    style={{ color: C.textTertiary }}
-                                  >
-                                    Standard rate
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => openAdjustModal(program)}
-                            className="text-[10px] font-semibold shrink-0 px-2 py-1 rounded-sm transition-colors"
-                            style={{ color: C.accent }}
-                          >
-                            Adjust
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
@@ -15499,6 +15670,17 @@ function TuitionPage({
                   >
                     <Percent className="w-3.5 h-3.5" />
                     Adjust tuition
+                  </button>
+                )}
+                {programRates.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTuitionRatesModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
+                    style={demoSecondaryButtonStyle()}
+                  >
+                    <Tag className="w-3.5 h-3.5" />
+                    View tuition rates
                   </button>
                 )}
                 <button
@@ -15532,23 +15714,12 @@ function TuitionPage({
               ) : (
                 <div>
                   {selectedFamily.upcoming.map((item, itemIdx) => {
-                    const paidSchool = selectedFamily.schoolYear.filter(
-                      (s) => s.state === "paid",
-                    ).length;
-                    const totalSchool = selectedFamily.schoolYear.length;
-                    const paidSummer = selectedFamily.summer.filter(
-                      (s) => s.state === "paid",
-                    ).length;
-                    const totalSummer = selectedFamily.summer.length;
-                    const isSummer = item.program.includes("Summer");
-                    const paid = isSummer ? paidSummer : paidSchool;
-                    const total = isSummer ? totalSummer : totalSchool;
-                    const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
                     const scheduleKey = scheduleKeyForProgram(item.program);
                     const canOpenSchedule =
                       scheduleKey !== null &&
                       schedulePrograms.some((p) => p.key === scheduleKey);
                     const isScheduleOpen = scheduleKey === openScheduleKey;
+                    const statusColors = upcomingStatusColors(C)[item.status];
                     return (
                       <button
                         key={item.id}
@@ -15576,7 +15747,7 @@ function TuitionPage({
                           }
                         }}
                       >
-                        <div className="flex items-center justify-between gap-3 mb-2">
+                        <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <p
                               className="text-sm font-medium"
@@ -15585,58 +15756,31 @@ function TuitionPage({
                               {item.label}
                             </p>
                             <p
-                              className="text-xs"
+                              className="text-xs mt-0.5"
                               style={{ color: C.textTertiary }}
                             >
-                              {item.program} · Due {item.dueDate}
+                              Due {item.dueDate}
                             </p>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <p
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span
                               className="text-sm font-bold tabular-nums"
                               style={{ color: C.textPrimary }}
                             >
                               {fmt(item.amount)}
-                            </p>
+                            </span>
                             <span
-                              className="text-[9px] font-semibold capitalize"
+                              className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full capitalize"
                               style={{
-                                color:
-                                  item.status === "overdue"
-                                    ? C.error
-                                    : item.status === "sent"
-                                      ? C.warning
-                                      : C.textTertiary,
+                                backgroundColor: statusColors.bg,
+                                border: `1px solid ${statusColors.border}`,
+                                color: statusColors.text,
                               }}
                             >
                               {item.status}
                             </span>
                           </div>
                         </div>
-                        {total > 0 && (
-                          <div>
-                            <div className="flex justify-between text-[10px] mb-1">
-                              <span style={{ color: C.textTertiary }}>
-                                {item.program} progress
-                              </span>
-                              <span style={{ color: C.textSecondary }}>
-                                {paid}/{total} paid
-                              </span>
-                            </div>
-                            <div
-                              className="h-1.5 rounded-full overflow-hidden"
-                              style={{ backgroundColor: C.input }}
-                            >
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${pct}%`,
-                                  backgroundColor: C.accent,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
                         {canOpenSchedule && (
                           <div className="flex items-center gap-1 mt-2">
                             <p
@@ -15660,13 +15804,13 @@ function TuitionPage({
 
             <div className="pt-5">
               <SectionLabel className="mb-3">Payment history</SectionLabel>
-              {familyTx.length === 0 ? (
+              {familyPaymentHistory.length === 0 ? (
                 <p className="text-sm py-2" style={{ color: C.textTertiary }}>
                   No payments recorded yet.
                 </p>
               ) : (
                 <div>
-                  {familyTx.map((tx, i) => {
+                  {familyPaymentHistory.map((tx, i) => {
                     const sc = TX_STATUS_COLORS[tx.status] ?? {
                       bg: C.input,
                       border: C.border,
@@ -15683,7 +15827,7 @@ function TuitionPage({
                         className="w-full flex items-center justify-between gap-3 py-3 text-left transition-colors"
                         style={{
                           borderBottom:
-                            i < familyTx.length - 1
+                            i < familyPaymentHistory.length - 1
                               ? `1px solid ${C.border}`
                               : "none",
                           backgroundColor: "transparent",
@@ -15697,10 +15841,10 @@ function TuitionPage({
                       >
                         <div className="min-w-0">
                           <p
-                            className="text-sm font-medium capitalize truncate"
+                            className="text-sm font-medium truncate"
                             style={{ color: C.textPrimary }}
                           >
-                            {tx.type} · {tx.childName}
+                            {tx.historyLabel} · {tx.childName}
                           </p>
                           <p className="text-xs" style={{ color: C.textTertiary }}>
                             {tx.date}
@@ -15729,6 +15873,23 @@ function TuitionPage({
                   })}
                 </div>
               )}
+              <div
+                className="flex items-center justify-between gap-3 pt-4 mt-1"
+                style={{ borderTop: `1px solid ${C.border}` }}
+              >
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: C.textTertiary }}
+                >
+                  Paid YTD
+                </p>
+                <p
+                  className="text-lg font-bold tabular-nums"
+                  style={{ color: C.textPrimary }}
+                >
+                  {fmt(selectedFamily.paidYtd)}
+                </p>
+              </div>
             </div>
           </div>
           </div>
@@ -15772,6 +15933,19 @@ function TuitionPage({
             }
             onClose={() => setAdjustModalProgram(null)}
             onSave={handleSaveOverride}
+          />
+        )}
+        {tuitionRatesModalOpen && (
+          <TuitionRatesModal
+            key={selectedFamily.id}
+            family={selectedFamily}
+            programRates={programRates}
+            effectiveOverride={effectiveOverride}
+            onClose={() => setTuitionRatesModalOpen(false)}
+            onAdjust={(program) => {
+              setTuitionRatesModalOpen(false);
+              openAdjustModal(program);
+            }}
           />
         )}
       </AnimatePresence>

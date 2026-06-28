@@ -83,11 +83,13 @@ export default function ScaledParentDemoPreview({
   demoSlug = "athena-microacademy",
   initialParentTab = "enrollment",
   parentEnrollmentVariant,
+  billingChildIds,
   tuitionOverride,
 }: {
   demoSlug?: string;
   initialParentTab?: DemoWalkthroughParentTab;
   parentEnrollmentVariant?: "prototype";
+  billingChildIds?: readonly ("emma" | "jake" | "liam")[];
   tuitionOverride?: DemoTuitionOverride | null;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
@@ -200,6 +202,7 @@ export default function ScaledParentDemoPreview({
                 ? "prototype"
                 : "default"
             }
+            billingChildIds={isRootedMeadows ? billingChildIds : undefined}
             tuitionOverride={isRootedMeadows ? tuitionOverride : undefined}
           />
         </div>

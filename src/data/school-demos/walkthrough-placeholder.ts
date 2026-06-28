@@ -81,6 +81,7 @@ export interface DemoWalkthroughStep {
   initialSelectedTuitionFamilyId?: string;
   openInitialTuitionAdjustModal?: boolean;
   openInitialTuitionAdjustModalDelayMs?: number;
+  billingChildIds?: readonly ("emma" | "jake" | "liam")[];
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -2235,10 +2236,15 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
           ? {
               ...step,
               description:
-                "Families sign the Standard Enrollment Agreement and complete the enrollment checklist — including enrollment and supply fees.",
+                "Families sign the Standard Enrollment Agreement and complete the enrollment checklist — including supply and activities fees.",
               parentEnrollmentVariant: "prototype" as const,
             }
-          : step;
+          : step.id === "parent-pays-tuition"
+            ? {
+                ...step,
+                billingChildIds: ["emma", "jake"] as const,
+              }
+            : step;
       if (step.id === "parent-enrollment") {
         return [mapped, rootedMeadowsAssignTuitionStep];
       }

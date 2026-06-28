@@ -8,6 +8,12 @@ import {
   type DemoTuitionOverride,
 } from "@/data/school-demos/tuition-override";
 import {
+  ROOTED_MEADOWS_ACTIVITIES_FEE,
+  ROOTED_MEADOWS_SCHOOL_YEAR_ANNUAL,
+  ROOTED_MEADOWS_SCHOOL_YEAR_MONTHLY,
+  ROOTED_MEADOWS_SUPPLY_FEE,
+} from "@/data/school-demos/rooted-meadows-tuition";
+import {
   FileText,
   Users,
   CreditCard,
@@ -90,7 +96,7 @@ type ModalId =
   | "authorized-pickup"
   | "health-statement"
   | "registration-fee"
-  | "enrollment-fee"
+  | "activities-fee"
   | "supply-fee";
 type EnrollmentVariant = "default" | "prototype";
 type ChildDetailTab = "teacher" | "attendance" | "learning" | "profile";
@@ -228,9 +234,10 @@ const ACH_FEE_RATE = 0.008;
 const SCHOOL_YEAR_LABEL = "School Year 2026–27";
 const BILLING_BANNER_SCHOOL_YEAR = "/images/stock/ImageFive.jpg";
 const BILLING_BANNER_HOMESCHOOL = "/images/stock/Homeschool2.jpg";
-const SCHOOL_YEAR_MONTHLY_TUITION = 1700;
-const SCHOOL_YEAR_UPFRONT_TUITION = 17000;
+const SCHOOL_YEAR_MONTHLY_TUITION = ROOTED_MEADOWS_SCHOOL_YEAR_MONTHLY;
+const SCHOOL_YEAR_UPFRONT_TUITION = ROOTED_MEADOWS_SCHOOL_YEAR_ANNUAL;
 const EMMA_SCHOOL_YEAR_TX_ID = "emma-school-year-tuition";
+const JAKE_SCHOOL_YEAR_TX_ID = "jake-school-year-tuition";
 const LIAM_SCHOOL_YEAR_TX_ID = "liam-school-year-tuition";
 
 const SCHOOL_YEAR_MONTHS = [
@@ -760,6 +767,22 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
     childId: "emma",
   },
   {
+    id: "t-supply-emma",
+    desc: "Supply Fee — Emma Whitmore",
+    amount: formatMoney(ROOTED_MEADOWS_SUPPLY_FEE),
+    date: "Jul 10, 2026",
+    status: "paid",
+    childId: "emma",
+  },
+  {
+    id: "t-activities-emma",
+    desc: "Activities Fee — Emma Whitmore",
+    amount: formatMoney(ROOTED_MEADOWS_ACTIVITIES_FEE),
+    date: "Jul 10, 2026",
+    status: "paid",
+    childId: "emma",
+  },
+  {
     id: EMMA_SCHOOL_YEAR_TX_ID,
     desc: "May 2026 Tuition",
     amount: "$0.00",
@@ -778,13 +801,13 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
     kind: "school_year_tuition",
   },
   {
-    id: JAKE_HOMESCHOOL_DROPIN_TX_ID,
-    desc: "Homeschool Drop-In",
+    id: JAKE_SCHOOL_YEAR_TX_ID,
+    desc: "May 2026 Tuition",
     amount: "$0.00",
-    date: "Apr 18, 2026",
+    date: "May 1, 2026",
     status: "pending",
     childId: "jake",
-    kind: "homeschool_dropin",
+    kind: "school_year_tuition",
   },
   {
     id: "t4",
@@ -797,7 +820,7 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
   {
     id: "t-paid-nov-emma",
     desc: "November 2026 Tuition",
-    amount: "$1,700.00",
+    amount: "$720.00",
     date: "Nov 1, 2026",
     status: "paid",
     childId: "emma",
@@ -807,7 +830,7 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
   {
     id: "t-paid-nov-liam",
     desc: "November 2026 Tuition",
-    amount: "$1,700.00",
+    amount: "$720.00",
     date: "Nov 1, 2026",
     status: "paid",
     childId: "liam",
@@ -817,7 +840,7 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
   {
     id: "t-paid-oct-emma",
     desc: "October 2026 Tuition",
-    amount: "$1,700.00",
+    amount: "$720.00",
     date: "Oct 1, 2026",
     status: "paid",
     childId: "emma",
@@ -827,7 +850,7 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
   {
     id: "t-paid-oct-liam",
     desc: "October 2026 Tuition",
-    amount: "$1,700.00",
+    amount: "$720.00",
     date: "Oct 1, 2026",
     status: "paid",
     childId: "liam",
@@ -837,7 +860,7 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
   {
     id: "t-paid-sep-emma",
     desc: "September 2026 Tuition",
-    amount: "$1,700.00",
+    amount: "$720.00",
     date: "Sep 1, 2026",
     status: "paid",
     childId: "emma",
@@ -847,7 +870,7 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
   {
     id: "t-paid-aug-emma",
     desc: "August 2026 Tuition",
-    amount: "$1,700.00",
+    amount: "$720.00",
     date: "Aug 1, 2026",
     status: "paid",
     childId: "emma",
@@ -857,12 +880,68 @@ const DEMO_TRANSACTIONS: DemoTransaction[] = [
   {
     id: "t-paid-aug-liam",
     desc: "August 2026 Tuition",
-    amount: "$1,700.00",
+    amount: "$720.00",
     date: "Aug 1, 2026",
     status: "paid",
     childId: "liam",
     kind: "school_year_tuition",
     schoolYearMonthId: "aug-2026",
+  },
+  {
+    id: "t-paid-nov-jake",
+    desc: "November 2026 Tuition",
+    amount: "$720.00",
+    date: "Nov 1, 2026",
+    status: "paid",
+    childId: "jake",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "nov-2026",
+  },
+  {
+    id: "t-paid-oct-jake",
+    desc: "October 2026 Tuition",
+    amount: "$720.00",
+    date: "Oct 1, 2026",
+    status: "paid",
+    childId: "jake",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "oct-2026",
+  },
+  {
+    id: "t-paid-sep-jake",
+    desc: "September 2026 Tuition",
+    amount: "$720.00",
+    date: "Sep 1, 2026",
+    status: "paid",
+    childId: "jake",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "sep-2026",
+  },
+  {
+    id: "t-paid-aug-jake",
+    desc: "August 2026 Tuition",
+    amount: "$720.00",
+    date: "Aug 1, 2026",
+    status: "paid",
+    childId: "jake",
+    kind: "school_year_tuition",
+    schoolYearMonthId: "aug-2026",
+  },
+  {
+    id: "t-supply-jake",
+    desc: "Supply Fee — Jake Whitmore",
+    amount: formatMoney(ROOTED_MEADOWS_SUPPLY_FEE),
+    date: "Jul 10, 2026",
+    status: "paid",
+    childId: "jake",
+  },
+  {
+    id: "t-activities-jake",
+    desc: "Activities Fee — Jake Whitmore",
+    amount: formatMoney(ROOTED_MEADOWS_ACTIVITIES_FEE),
+    date: "Jul 10, 2026",
+    status: "paid",
+    childId: "jake",
   },
 ];
 
@@ -2091,10 +2170,10 @@ const PROTOTYPE_CHECKLIST_ITEMS: ChecklistItem[] = [
   })),
   {
     id: 9,
-    label: "Enrollment Fee",
+    label: "Activities Fee",
     icon: CreditCard,
     required: true,
-    modal: "enrollment-fee",
+    modal: "activities-fee",
     optional: false,
   },
   {
@@ -2138,7 +2217,7 @@ function buildChildCompletions(
     photoConsent: Record<ChildId, "FULL" | "LIMITED" | "NO" | null>;
     pickupSaved: Record<ChildId, boolean>;
     feePaid: Record<ChildId, boolean>;
-    enrollmentFeePaid: Record<ChildId, boolean>;
+    activitiesFeePaid: Record<ChildId, boolean>;
     supplyFeePaid: Record<ChildId, boolean>;
   },
 ): boolean[] {
@@ -2160,7 +2239,7 @@ function buildChildCompletions(
         (section) => !!childSigs[section.id],
       ),
       ...sharedTail,
-      state.enrollmentFeePaid[childId],
+      state.activitiesFeePaid[childId],
       state.supplyFeePaid[childId],
     ];
   }
@@ -2201,7 +2280,7 @@ function EnrollmentPage({
   pickupSaved,
   onPickupSave,
   onFeePay,
-  onEnrollmentFeePay,
+  onActivitiesFeePay,
   onSupplyFeePay,
 }: {
   activeChildId: ChildId;
@@ -2229,7 +2308,7 @@ function EnrollmentPage({
   pickupSaved: boolean;
   onPickupSave: () => void;
   onFeePay: () => void;
-  onEnrollmentFeePay: () => void;
+  onActivitiesFeePay: () => void;
   onSupplyFeePay: () => void;
 }) {
   const [activeItem, setActiveItem] = useState<ModalId>(
@@ -2459,21 +2538,21 @@ function EnrollmentPage({
                     onPay={onFeePay}
                   />
                 )}
-                {activeItem === "enrollment-fee" && (
+                {activeItem === "activities-fee" && (
                   <FeePaymentModal
                     inline
-                    title="Enrollment Fee"
-                    amount="$150.00"
-                    description="One-time enrollment fee"
-                    successMessage="Your enrollment fee is confirmed."
-                    onPay={onEnrollmentFeePay}
+                    title="Activities Fee"
+                    amount={formatMoney(ROOTED_MEADOWS_ACTIVITIES_FEE)}
+                    description="Annual activities fee"
+                    successMessage="Your activities fee is confirmed."
+                    onPay={onActivitiesFeePay}
                   />
                 )}
                 {activeItem === "supply-fee" && (
                   <FeePaymentModal
                     inline
                     title="Supply Fee"
-                    amount="$150.00"
+                    amount={formatMoney(ROOTED_MEADOWS_SUPPLY_FEE)}
                     description="Annual supply fee"
                     successMessage="Your supply fee is confirmed."
                     onPay={onSupplyFeePay}
@@ -2906,7 +2985,7 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
             <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">
               Pending
             </span>
-            <p className="text-2xl font-bold text-gray-900">$1,700.00</p>
+            <p className="text-2xl font-bold text-gray-900">$720.00</p>
           </div>
           <p className="text-xs text-amber-700 mt-2">Due May 1, 2026</p>
         </div>
@@ -2937,11 +3016,11 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Monthly Tuition</span>
-                <span className="font-medium text-gray-800">$1,700.00</span>
+                <span className="font-medium text-gray-800">$720.00</span>
               </div>
               <div className="border-t border-gray-100 pt-2 flex justify-between text-sm font-semibold">
                 <span className="text-gray-800">Total</span>
-                <span className="text-gray-900">$1,700.00</span>
+                <span className="text-gray-900">$720.00</span>
               </div>
             </div>
           </div>
@@ -2959,7 +3038,7 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
             onClick={onClose}
             className="w-full py-2.5 rounded-xl bg-[#827096] text-white text-sm font-medium hover:bg-[#5A4D68] transition-colors cursor-pointer"
           >
-            Pay Now — $1,700.00
+            Pay Now — $720.00
           </button>
           <button
             onClick={onClose}
@@ -3298,6 +3377,7 @@ function BillingPage({
   paidHomeschoolDetails,
   onOpenHomeschoolPay,
   tuitionOverride,
+  visibleChildIds,
 }: {
   activeChildId: ChildId;
   paidInvoices: Set<string>;
@@ -3308,22 +3388,32 @@ function BillingPage({
   paidHomeschoolDetails: Record<string, { amount: string; scheduleNote: string }>;
   onOpenHomeschoolPay: (childId: ChildId) => void;
   tuitionOverride?: DemoTuitionOverride | null;
+  visibleChildIds?: readonly ChildId[];
 }) {
   const [childFilter, setChildFilter] = useState<ChildId | "all">("all");
   const [selectedHistoryMonthId, setSelectedHistoryMonthId] = useState(
     SCHOOL_YEAR_MONTHS[DEMO_SCHOOL_YEAR_MONTHS_PAID - 1].id,
   );
 
-  const CHILD_IDS: ChildId[] = ["emma", "jake", "liam"];
+  const ALL_CHILD_IDS: ChildId[] = ["emma", "jake", "liam"];
+  const childIds: ChildId[] = visibleChildIds
+    ? [...visibleChildIds]
+    : ALL_CHILD_IDS;
+  const transactions = DEMO_TRANSACTIONS.filter((t) =>
+    childIds.includes(t.childId),
+  );
   const childMeta: Record<ChildId, { name: string; initials: string; color: string }> = {
     emma: { name: "Emma", initials: "EM", color: DEMO_CHILDREN.emma.color },
     jake: { name: "Jake", initials: "JM", color: DEMO_CHILDREN.jake.color },
     liam: { name: "Liam", initials: "LM", color: DEMO_CHILDREN.liam.color },
   };
 
-  const emmaTuitionPaid = paidInvoices.has(EMMA_SCHOOL_YEAR_TX_ID);
-  const liamTuitionPaid = paidInvoices.has(LIAM_SCHOOL_YEAR_TX_ID);
-  const fullTimeTuitionPaid = emmaTuitionPaid && liamTuitionPaid;
+  const pendingSchoolYearTxIds = transactions
+    .filter((t) => isSchoolYearTuition(t) && t.status === "pending")
+    .map((t) => t.id);
+  const allSchoolYearTuitionPaid =
+    pendingSchoolYearTxIds.length > 0 &&
+    pendingSchoolYearTxIds.every((id) => paidInvoices.has(id));
 
   const getDisplayAmount = (t: DemoTransaction): string => {
     if (paidHomeschoolDetails[t.id]) return paidHomeschoolDetails[t.id].amount;
@@ -3363,8 +3453,8 @@ function BillingPage({
 
   const filteredTx =
     childFilter === "all"
-      ? DEMO_TRANSACTIONS
-      : DEMO_TRANSACTIONS.filter((t) => t.childId === childFilter);
+      ? transactions
+      : transactions.filter((t) => t.childId === childFilter);
 
   const pending = filteredTx.filter(
     (t) => t.status === "pending" && !paidInvoices.has(t.id),
@@ -3380,7 +3470,7 @@ function BillingPage({
   const nextDue = pending.length > 0 ? pending[0].date : null;
 
   const monthsPaidCount =
-    DEMO_SCHOOL_YEAR_MONTHS_PAID + (fullTimeTuitionPaid ? 1 : 0);
+    DEMO_SCHOOL_YEAR_MONTHS_PAID + (allSchoolYearTuitionPaid ? 1 : 0);
 
   const getMonthStatus = (
     monthIndex: number,
@@ -3390,18 +3480,18 @@ function BillingPage({
     return "upcoming";
   };
 
-  const selectedHistoryMonth = SCHOOL_YEAR_MONTHS.find(
-    (m) => m.id === selectedHistoryMonthId,
-  );
-  const checkoutPaidMonthId =
-    fullTimeTuitionPaid && monthsPaidCount > 0
-      ? SCHOOL_YEAR_MONTHS[monthsPaidCount - 1].id
-      : undefined;
-  const monthFilteredPaid = getPaidTransactionsForMonth(
-    paid,
-    selectedHistoryMonthId,
-    checkoutPaidMonthId,
-  );
+  const schoolYearPaid = paid
+    .filter((t) => isSchoolYearTuition(t))
+    .sort((a, b) => {
+      const aIdx = a.schoolYearMonthId
+        ? SCHOOL_YEAR_MONTHS.findIndex((m) => m.id === a.schoolYearMonthId)
+        : SCHOOL_YEAR_MONTHS.length;
+      const bIdx = b.schoolYearMonthId
+        ? SCHOOL_YEAR_MONTHS.findIndex((m) => m.id === b.schoolYearMonthId)
+        : SCHOOL_YEAR_MONTHS.length;
+      if (bIdx !== aIdx) return bIdx - aIdx;
+      return a.childId.localeCompare(b.childId);
+    });
   const otherPaid = getOtherPaidTransactions(paid);
 
   const firstSchoolYearPendingIdx = pending.findIndex(
@@ -3437,9 +3527,9 @@ function BillingPage({
             </div>
             <span className="truncate">All children</span>
           </button>
-          {CHILD_IDS.map((cid) => {
+          {childIds.map((cid) => {
             const meta = childMeta[cid];
-            const childPendingCount = DEMO_TRANSACTIONS.filter(
+            const childPendingCount = transactions.filter(
               (t) =>
                 t.childId === cid &&
                 t.status === "pending" &&
@@ -3713,16 +3803,14 @@ function BillingPage({
         <section>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
             Payment History
-            {selectedHistoryMonth ? ` — ${selectedHistoryMonth.label}` : ""}
           </h3>
-          {monthFilteredPaid.length === 0 ? (
+          {schoolYearPaid.length === 0 ? (
             <p className="text-sm text-gray-400 py-4 text-center">
-              No payments for{" "}
-              {selectedHistoryMonth?.label ?? "this month"}
+              No tuition payments yet
             </p>
           ) : (
             <div className="divide-y divide-gray-50">
-              {monthFilteredPaid.map((t) => (
+              {schoolYearPaid.map((t) => (
                 <div key={t.id} className="flex items-center gap-4 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-700 truncate">
@@ -4866,7 +4954,7 @@ function HomeDashboard({
                   <div>
                     <p className="text-xs font-medium text-gray-400 mb-0.5">Emma &amp; Liam</p>
                     <p className="text-sm font-semibold text-gray-800 leading-snug">School Year Tuition</p>
-                    <p className="text-xs text-gray-500 mt-0.5">$1,700/mo · Waldorf Core K–8</p>
+                    <p className="text-xs text-gray-500 mt-0.5">$720/mo · Waldorf Core K–8</p>
                   </div>
                   <span
                     className="inline-flex items-center gap-1 self-start px-3 py-1.5 rounded-full text-xs font-semibold text-white"
@@ -5119,12 +5207,14 @@ export default function RootedMeadowsParentDashboardDemo({
   hideNav = false,
   enrollmentVariant = "default",
   tuitionOverride,
+  billingChildIds,
 }: {
   initialTab?: NavTab;
   disableTour?: boolean;
   hideNav?: boolean;
   enrollmentVariant?: EnrollmentVariant;
   tuitionOverride?: DemoTuitionOverride | null;
+  billingChildIds?: readonly ChildId[];
 }) {
   const checklistItems = getChecklistItems(enrollmentVariant);
   const requiredChecklistIndices = getRequiredChecklistIndices(enrollmentVariant);
@@ -5202,7 +5292,7 @@ export default function RootedMeadowsParentDashboardDemo({
     jake: false,
     liam: true,
   });
-  const [enrollmentFeePaid, setEnrollmentFeePaid] = useState<
+  const [activitiesFeePaid, setActivitiesFeePaid] = useState<
     Record<ChildId, boolean>
   >({ emma: true, jake: false, liam: true });
   const [supplyFeePaid, setSupplyFeePaid] = useState<Record<ChildId, boolean>>({
@@ -5682,7 +5772,7 @@ export default function RootedMeadowsParentDashboardDemo({
     photoConsent,
     pickupSaved,
     feePaid,
-    enrollmentFeePaid,
+    activitiesFeePaid,
     supplyFeePaid,
   };
   const sigs = activeSigs;
@@ -5720,7 +5810,7 @@ export default function RootedMeadowsParentDashboardDemo({
     healthStatement,
     photoConsent,
     feePaid,
-    enrollmentFeePaid,
+    activitiesFeePaid,
     supplyFeePaid,
     pickupSaved,
   ]);
@@ -5825,8 +5915,8 @@ export default function RootedMeadowsParentDashboardDemo({
                   onFeePay={() =>
                     setFeePaid((p) => ({ ...p, [activeChildId]: true }))
                   }
-                  onEnrollmentFeePay={() =>
-                    setEnrollmentFeePaid((p) => ({ ...p, [activeChildId]: true }))
+                  onActivitiesFeePay={() =>
+                    setActivitiesFeePaid((p) => ({ ...p, [activeChildId]: true }))
                   }
                   onSupplyFeePay={() =>
                     setSupplyFeePaid((p) => ({ ...p, [activeChildId]: true }))
@@ -6137,6 +6227,7 @@ export default function RootedMeadowsParentDashboardDemo({
                       paidHomeschoolDetails={paidHomeschoolDetails}
                       onOpenHomeschoolPay={(childId) => openHomeschoolPay(childId)}
                       tuitionOverride={tuitionOverride}
+                      visibleChildIds={billingChildIds}
                     />
                   )}
 
@@ -6294,15 +6385,15 @@ export default function RootedMeadowsParentDashboardDemo({
             onClose={() => setOpenModal(null)}
           />
         )}
-        {openModal === "enrollment-fee" && (
+        {openModal === "activities-fee" && (
           <FeePaymentModal
-            key="enrollment-fee"
-            title="Enrollment Fee"
-            amount="$150.00"
-            description="One-time enrollment fee"
-            successMessage="Your enrollment fee is confirmed."
+            key="activities-fee"
+            title="Activities Fee"
+            amount={formatMoney(ROOTED_MEADOWS_ACTIVITIES_FEE)}
+            description="Annual activities fee"
+            successMessage="Your activities fee is confirmed."
             onPay={() => {
-              setEnrollmentFeePaid((p) => ({ ...p, [activeChildId]: true }));
+              setActivitiesFeePaid((p) => ({ ...p, [activeChildId]: true }));
               setOpenModal(null);
             }}
             onClose={() => setOpenModal(null)}
@@ -6312,7 +6403,7 @@ export default function RootedMeadowsParentDashboardDemo({
           <FeePaymentModal
             key="supply-fee"
             title="Supply Fee"
-            amount="$150.00"
+            amount={formatMoney(ROOTED_MEADOWS_SUPPLY_FEE)}
             description="Annual supply fee"
             successMessage="Your supply fee is confirmed."
             onPay={() => {

@@ -110,6 +110,7 @@ export default function SchoolDemoShell({
             demoSlug={config.slug}
             initialParentTab={steps[activeStep].initialParentTab ?? "enrollment"}
             parentEnrollmentVariant={steps[activeStep].parentEnrollmentVariant}
+            billingChildIds={steps[activeStep].billingChildIds}
             tuitionOverride={demoTuitionOverride}
           />
         ) : activePreview === "contact" ? (
