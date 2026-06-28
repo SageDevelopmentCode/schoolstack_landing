@@ -33,6 +33,8 @@ import {
   Heart,
   ClipboardList,
   Home,
+  Phone,
+  Mail,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import {
@@ -295,7 +297,41 @@ function formatEventDate(event: DemoCalendarEvent): string {
 
 type AttendanceStatus = "checked_in" | "checked_out" | "absent";
 
-type DemoStudent = {
+type DemoAttendanceRecord = {
+  date: string;
+  status: "present" | "absent" | "tardy" | "early_dismissal";
+  checkIn?: string;
+  checkOut?: string;
+  note?: string;
+};
+
+type DemoTeacherContact = {
+  name: string;
+  role: string;
+  email?: string;
+};
+
+type DemoTeacherAssignment = {
+  teacher: DemoTeacherContact;
+  term: string;
+  isCurrent?: boolean;
+};
+
+type DemoParentContact = {
+  name: string;
+  relationship: string;
+  phone: string;
+  email?: string;
+  isPrimary?: boolean;
+};
+
+type DemoAuthorizedPickup = {
+  name: string;
+  relationship: string;
+  phone: string;
+};
+
+type DemoStudentBase = {
   id: string;
   student_id: string;
   name: string;
@@ -317,7 +353,15 @@ type DemoStudent = {
   history_flags: string | null;
 };
 
-const DEMO_STUDENTS: DemoStudent[] = [
+type DemoStudent = DemoStudentBase & {
+  current_teachers: DemoTeacherContact[];
+  teacher_history: DemoTeacherAssignment[];
+  attendance_history: DemoAttendanceRecord[];
+  parent_contacts: DemoParentContact[];
+  authorized_pickups: DemoAuthorizedPickup[];
+};
+
+const DEMO_STUDENTS_BASE: DemoStudentBase[] = [
   {
     id: "s1",
     student_id: "sid1",
@@ -714,6 +758,193 @@ const DEMO_STUDENTS: DemoStudent[] = [
 const PROGRAM_LABELS = ROOTED_MEADOWS_TEACHER_PROGRAM_LABELS;
 const PROGRAM_ORDER = [...ROOTED_MEADOWS_TEACHER_PROGRAM_ORDER];
 
+const CLASSROOM_TEACHERS: Record<string, DemoTeacherContact[]> = {
+  "Room 3B": [
+    { name: "Ms. Taylor Reyes", role: "Lead Teacher", email: "taylor@mudkitchen.co" },
+    { name: "Ms. Nicole Park", role: "Co-Teacher", email: "nicole@mudkitchen.co" },
+  ],
+  "Room 2A": [
+    { name: "Ms. Jade Liu", role: "Lead Teacher", email: "jade@mudkitchen.co" },
+  ],
+  "Room K1": [
+    { name: "Ms. Paige Sun", role: "Lead Teacher", email: "paige@mudkitchen.co" },
+  ],
+  "Room 1C": [
+    { name: "Ms. Amara Okonkwo", role: "Lead Teacher", email: "amara@mudkitchen.co" },
+  ],
+  "Open Lab": [
+    { name: "Mr. Sam Weston", role: "Lab Guide", email: "sam@mudkitchen.co" },
+  ],
+};
+
+function studentLastName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/);
+  return parts[parts.length - 1] ?? fullName;
+}
+
+function defaultStudentExtras(
+  student: DemoStudentBase,
+): Pick<
+  DemoStudent,
+  | "current_teachers"
+  | "teacher_history"
+  | "attendance_history"
+  | "parent_contacts"
+  | "authorized_pickups"
+> {
+  const teachers =
+    CLASSROOM_TEACHERS[student.classroom] ?? CLASSROOM_TEACHERS["Room 3B"];
+  const ln = studentLastName(student.name);
+  const parentName = `${ln} Family`;
+  const todayStatus: DemoAttendanceRecord["status"] =
+    student.attendance_status === "absent" ? "absent" : "present";
+
+  return {
+    current_teachers: teachers,
+    teacher_history: [],
+    attendance_history: [
+      {
+        date: "Apr 18, 2026",
+        status: todayStatus,
+        checkIn: todayStatus === "present" ? "8:15 AM" : undefined,
+        checkOut:
+          todayStatus === "present" ? "3:05 PM" : undefined,
+        note:
+          todayStatus === "absent"
+            ? "Parent called — illness."
+            : undefined,
+      },
+      {
+        date: "Apr 17, 2026",
+        status: "present",
+        checkIn: "8:20 AM",
+        checkOut: "3:10 PM",
+      },
+    ],
+    parent_contacts: [
+      {
+        name: parentName,
+        relationship: "Parent / Guardian",
+        phone: "(512) 555-0101",
+        isPrimary: true,
+      },
+    ],
+    authorized_pickups: [
+      {
+        name: parentName,
+        relationship: "Parent / Guardian",
+        phone: "(512) 555-0101",
+      },
+    ],
+  };
+}
+
+const EMMA_STUDENT_EXTRAS: Pick<
+  DemoStudent,
+  | "current_teachers"
+  | "teacher_history"
+  | "attendance_history"
+  | "parent_contacts"
+  | "authorized_pickups"
+> = {
+  current_teachers: [
+    { name: "Ms. Taylor Reyes", role: "Lead Teacher", email: "taylor@mudkitchen.co" },
+    { name: "Ms. Nicole Park", role: "Co-Teacher", email: "nicole@mudkitchen.co" },
+  ],
+  teacher_history: [
+    {
+      teacher: { name: "Ms. Paige Sun", role: "Lead Teacher" },
+      term: "2025–26 School Year",
+    },
+  ],
+  attendance_history: [
+    {
+      date: "Apr 18, 2026",
+      status: "present",
+      checkIn: "8:12 AM",
+      checkOut: "3:05 PM",
+    },
+    {
+      date: "Apr 17, 2026",
+      status: "present",
+      checkIn: "8:20 AM",
+      checkOut: "3:10 PM",
+    },
+    {
+      date: "Apr 16, 2026",
+      status: "present",
+      checkIn: "8:08 AM",
+      checkOut: "3:00 PM",
+    },
+    {
+      date: "Apr 15, 2026",
+      status: "tardy",
+      checkIn: "8:35 AM",
+      checkOut: "3:07 PM",
+      note: "Traffic delay. Parent note on file.",
+    },
+    {
+      date: "Apr 14, 2026",
+      status: "absent",
+      note: "Parent called — mild fever. Returned Apr 16.",
+    },
+    {
+      date: "Apr 11, 2026",
+      status: "early_dismissal",
+      checkIn: "8:15 AM",
+      checkOut: "1:30 PM",
+      note: "Doctor appointment. Parent pickup confirmed.",
+    },
+  ],
+  parent_contacts: [
+    {
+      name: "Maria Rivera",
+      relationship: "Mother",
+      phone: "(512) 555-0142",
+      email: "maria.rivera@email.com",
+      isPrimary: true,
+    },
+    {
+      name: "David Rivera",
+      relationship: "Father",
+      phone: "(512) 555-0143",
+      email: "david.rivera@email.com",
+    },
+  ],
+  authorized_pickups: [
+    {
+      name: "Elena Ramos",
+      relationship: "Grandmother",
+      phone: "(512) 555-0188",
+    },
+    {
+      name: "David Rivera",
+      relationship: "Father",
+      phone: "(512) 555-0143",
+    },
+  ],
+};
+
+function enrichStudent(
+  base: DemoStudentBase,
+  overrides?: Partial<
+    Pick<
+      DemoStudent,
+      | "current_teachers"
+      | "teacher_history"
+      | "attendance_history"
+      | "parent_contacts"
+      | "authorized_pickups"
+    >
+  >,
+): DemoStudent {
+  return { ...base, ...defaultStudentExtras(base), ...overrides };
+}
+
+const DEMO_STUDENTS: DemoStudent[] = DEMO_STUDENTS_BASE.map((base) =>
+  enrichStudent(base, base.id === "s1" ? EMMA_STUDENT_EXTRAS : undefined),
+);
+
 // ─── Sidebar Primitives (inlined) ─────────────────────────────────────────────
 
 function SidebarField({
@@ -751,6 +982,49 @@ function SidebarSection({
 
 // ─── Student Detail Sidebar ───────────────────────────────────────────────────
 
+type StudentDetailTab =
+  | "profile"
+  | "learning"
+  | "health"
+  | "attendance"
+  | "teachers"
+  | "family";
+
+const STUDENT_DETAIL_TABS: { id: StudentDetailTab; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "learning", label: "Learning" },
+  { id: "health", label: "Health" },
+  { id: "attendance", label: "Attendance" },
+  { id: "teachers", label: "Teachers" },
+  { id: "family", label: "Family" },
+];
+
+function attendanceStatusLabel(status: DemoAttendanceRecord["status"]) {
+  switch (status) {
+    case "present":
+      return "Present";
+    case "absent":
+      return "Absent";
+    case "tardy":
+      return "Tardy";
+    case "early_dismissal":
+      return "Early Dismissal";
+  }
+}
+
+function attendanceStatusStyles(status: DemoAttendanceRecord["status"]) {
+  switch (status) {
+    case "present":
+      return "bg-[#827096]/10 text-[#827096]";
+    case "absent":
+      return "bg-amber-50 text-amber-600";
+    case "tardy":
+      return "bg-gray-100 text-gray-500";
+    case "early_dismissal":
+      return "bg-sky-50 text-sky-600";
+  }
+}
+
 function StudentDetailSidebar({
   student,
   onClose,
@@ -758,6 +1032,8 @@ function StudentDetailSidebar({
   student: DemoStudent | null;
   onClose: () => void;
 }) {
+  const [activeTab, setActiveTab] = useState<StudentDetailTab>("profile");
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape" && student) onClose();
@@ -766,6 +1042,9 @@ function StudentDetailSidebar({
     return () => document.removeEventListener("keydown", onKey);
   }, [student, onClose]);
 
+  useEffect(() => {
+    setActiveTab("profile");
+  }, [student?.id]);
 
   return (
     <AnimatePresence>
@@ -788,7 +1067,7 @@ function StudentDetailSidebar({
             className="absolute top-0 right-0 bottom-0 w-[480px] z-50 flex flex-col overflow-hidden bg-white border-l border-gray-100 shadow-xl"
           >
             {/* Header */}
-            <div className="sticky top-0 z-10 px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-white">
+            <div className="flex-shrink-0 px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-white">
               <div className="flex items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold font-body shrink-0"
@@ -819,59 +1098,247 @@ function StudentDetailSidebar({
               </button>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-0">
-              <SidebarSection title="Student Info">
-                <SidebarField label="Full Name" value={student.name} />
-                <SidebarField label="Grade" value={student.grade} />
-                <SidebarField label="Date of Birth" value={student.dob} />
-                <SidebarField
-                  label="Program"
-                  value={PROGRAM_LABELS[student.program] ?? student.program}
-                />
-                <SidebarField label="Classroom" value={student.classroom} />
-                <SidebarField
-                  label="Special Interests"
-                  value={student.special_interests}
-                />
-              </SidebarSection>
-              <SidebarSection title="Learning Profile">
-                <SidebarField
-                  label="Learning Style"
-                  value={student.learning_style}
-                />
-                <SidebarField
-                  label="Strengths & Interests"
-                  value={student.strengths}
-                />
-                <SidebarField
-                  label="Current Challenges"
-                  value={student.challenges}
-                />
-                <SidebarField
-                  label="Dysregulation Response"
-                  value={student.dysregulation_response}
-                />
-                <SidebarField
-                  label="Regulation Strategies"
-                  value={student.regulation_strategies}
-                />
-              </SidebarSection>
-              <SidebarSection title="Health Notes">
-                {student.allergies ? (
-                  <SidebarField label="Allergies" value={student.allergies} />
-                ) : (
-                  <p className="text-sm text-gray-400 font-body">
-                    No known allergies.
-                  </p>
-                )}
-                {student.medical_notes && (
+            {/* Tab bar */}
+            <div className="flex-shrink-0 flex border-b border-gray-100 overflow-x-auto">
+              {STUDENT_DETAIL_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-shrink-0 px-3.5 py-3 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? "text-[#827096] border-b-2 border-[#827096]"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
+              {activeTab === "profile" && (
+                <SidebarSection title="Student Info">
+                  <SidebarField label="Full Name" value={student.name} />
+                  <SidebarField label="Grade" value={student.grade} />
+                  <SidebarField label="Date of Birth" value={student.dob} />
                   <SidebarField
-                    label="Medical Notes"
-                    value={student.medical_notes}
+                    label="Program"
+                    value={PROGRAM_LABELS[student.program] ?? student.program}
                   />
-                )}
-              </SidebarSection>
+                  <SidebarField label="Classroom" value={student.classroom} />
+                  <SidebarField
+                    label="Special Interests"
+                    value={student.special_interests}
+                  />
+                </SidebarSection>
+              )}
+
+              {activeTab === "learning" && (
+                <SidebarSection title="Learning Profile">
+                  <SidebarField
+                    label="Learning Style"
+                    value={student.learning_style}
+                  />
+                  <SidebarField
+                    label="Strengths & Interests"
+                    value={student.strengths}
+                  />
+                  <SidebarField
+                    label="Current Challenges"
+                    value={student.challenges}
+                  />
+                  <SidebarField
+                    label="Dysregulation Response"
+                    value={student.dysregulation_response}
+                  />
+                  <SidebarField
+                    label="Regulation Strategies"
+                    value={student.regulation_strategies}
+                  />
+                </SidebarSection>
+              )}
+
+              {activeTab === "health" && (
+                <SidebarSection title="Health Notes">
+                  {student.allergies ? (
+                    <SidebarField label="Allergies" value={student.allergies} />
+                  ) : (
+                    <p className="text-sm text-gray-400 font-body">
+                      No known allergies.
+                    </p>
+                  )}
+                  {student.medical_notes && (
+                    <SidebarField
+                      label="Medical Notes"
+                      value={student.medical_notes}
+                    />
+                  )}
+                </SidebarSection>
+              )}
+
+              {activeTab === "attendance" && (
+                <div className="flex flex-col gap-2">
+                  {student.attendance_history.map((record) => (
+                    <div
+                      key={record.date}
+                      className="border border-gray-100 rounded-xl px-4 py-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-gray-800 font-body">
+                          {record.date}
+                        </p>
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 font-body ${attendanceStatusStyles(record.status)}`}
+                        >
+                          {attendanceStatusLabel(record.status)}
+                        </span>
+                      </div>
+                      {(record.checkIn || record.checkOut) && (
+                        <p className="text-xs text-gray-400 font-body mt-1.5">
+                          {record.checkIn && `In ${record.checkIn}`}
+                          {record.checkIn && record.checkOut && " · "}
+                          {record.checkOut && `Out ${record.checkOut}`}
+                        </p>
+                      )}
+                      {record.note && (
+                        <p className="text-xs text-gray-500 font-body mt-1.5 leading-relaxed">
+                          {record.note}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeTab === "teachers" && (
+                <div className="space-y-6">
+                  <SidebarSection title="Current">
+                    <div className="flex flex-col gap-3">
+                      {student.current_teachers.map((teacher) => (
+                        <div
+                          key={teacher.email ?? teacher.name}
+                          className="border border-gray-100 rounded-xl p-4"
+                        >
+                          <p className="text-sm font-medium text-gray-800 font-body">
+                            {teacher.name}
+                          </p>
+                          <p className="text-xs text-gray-400 font-body mt-0.5">
+                            {teacher.role}
+                          </p>
+                          {teacher.email && (
+                            <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-[#827096]/5 text-[#827096] text-xs font-medium font-body">
+                              <Mail className="w-3 h-3" />
+                              {teacher.email}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </SidebarSection>
+                  {student.teacher_history.length > 0 && (
+                    <SidebarSection title="Previous Assignments">
+                      <div className="flex flex-col gap-2">
+                        {student.teacher_history.map((assignment) => (
+                          <div
+                            key={`${assignment.teacher.name}-${assignment.term}`}
+                            className="border border-gray-100 rounded-xl px-4 py-3"
+                          >
+                            <p className="text-sm font-medium text-gray-800 font-body">
+                              {assignment.teacher.name}
+                            </p>
+                            <p className="text-xs text-gray-400 font-body mt-0.5">
+                              {assignment.teacher.role} · {assignment.term}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </SidebarSection>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "family" && (
+                <div className="space-y-6">
+                  <SidebarSection title="Parent Contacts">
+                    <div className="flex flex-col gap-3">
+                      {student.parent_contacts.map((contact) => (
+                        <div
+                          key={`${contact.name}-${contact.phone}`}
+                          className="border border-gray-100 rounded-xl p-4"
+                        >
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-800 font-body">
+                              {contact.name}
+                            </p>
+                            {contact.isPrimary && (
+                              <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096] font-body">
+                                Primary
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 font-body mt-0.5">
+                            {contact.relationship}
+                          </p>
+                          <div className="flex flex-col gap-1 mt-2">
+                            <span className="flex items-center gap-1.5 text-xs text-gray-600 font-body">
+                              <Phone className="w-3 h-3 text-gray-400 shrink-0" />
+                              {contact.phone}
+                            </span>
+                            {contact.email && (
+                              <span className="flex items-center gap-1.5 text-xs text-gray-600 font-body">
+                                <Mail className="w-3 h-3 text-gray-400 shrink-0" />
+                                {contact.email}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </SidebarSection>
+                  <SidebarSection title="Authorized Pickup">
+                    <div className="flex flex-col gap-0">
+                      {student.authorized_pickups.map((person, i) => (
+                        <div
+                          key={`${person.name}-${person.phone}`}
+                          className={`flex items-center gap-3 py-2.5 ${
+                            i < student.authorized_pickups.length - 1
+                              ? "border-b border-gray-100"
+                              : ""
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 font-body"
+                            style={{
+                              backgroundColor: `${student.color}18`,
+                              color: student.color,
+                            }}
+                          >
+                            {person.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .slice(0, 2)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 font-body">
+                              {person.name}
+                            </p>
+                            <p className="text-xs text-gray-400 font-body">
+                              {person.relationship}
+                            </p>
+                          </div>
+                          <span className="flex items-center gap-1 text-xs text-gray-500 shrink-0 font-body">
+                            <Phone className="w-3 h-3 text-gray-400" />
+                            {person.phone}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </SidebarSection>
+                </div>
+              )}
             </div>
           </motion.div>
         </>
