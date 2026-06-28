@@ -20,6 +20,7 @@ import SendEnrollmentOutcomeModal from "@/components/demo/rootedmeadows/SendEnro
 import CommitteesAdminPage, {
   type CommitteeAdminView,
 } from "@/components/demo/rootedmeadows/committees/CommitteesAdminPage";
+import type { CommitteeWorkspaceSection } from "@/data/school-demos/rooted-meadows-committees";
 import {
   getPostSendLeadUpdate,
   type EnrollmentOutcomePathId,
@@ -25106,6 +25107,7 @@ export default function RootedMeadowsAdminDashboardDemo({
   onTuitionOverrideApplied,
   initialCommitteeId,
   initialCommitteeAdminView,
+  initialCommitteeSection,
   openCreateCommitteeModal,
   openCreateCommitteeModalDelayMs,
   openArchiveCommitteeModal,
@@ -25133,6 +25135,7 @@ export default function RootedMeadowsAdminDashboardDemo({
   onTuitionOverrideApplied?: (override: DemoTuitionOverride | null) => void
   initialCommitteeId?: string
   initialCommitteeAdminView?: CommitteeAdminView
+  initialCommitteeSection?: CommitteeWorkspaceSection
   openCreateCommitteeModal?: boolean
   openCreateCommitteeModalDelayMs?: number
   openArchiveCommitteeModal?: boolean
@@ -25278,6 +25281,7 @@ export default function RootedMeadowsAdminDashboardDemo({
           <CommitteesAdminPage
             initialCommitteeId={initialCommitteeId}
             initialView={initialCommitteeAdminView}
+            initialCommitteeSection={initialCommitteeSection}
             openCreateModal={openCreateCommitteeModal}
             openCreateModalDelayMs={openCreateCommitteeModalDelayMs}
             openArchiveModal={openArchiveCommitteeModal}

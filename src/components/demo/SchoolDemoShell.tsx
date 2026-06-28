@@ -98,6 +98,7 @@ export default function SchoolDemoShell({
             }
             initialCommitteeId={steps[activeStep].initialCommitteeId}
             initialCommitteeAdminView={steps[activeStep].initialCommitteeAdminView}
+            initialCommitteeSection={steps[activeStep].initialCommitteeSection}
             openCreateCommitteeModal={steps[activeStep].openCreateCommitteeModal}
             openCreateCommitteeModalDelayMs={
               steps[activeStep].openCreateCommitteeModalDelayMs

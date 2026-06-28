@@ -59,6 +59,55 @@ export interface CommitteeResource {
   url?: string;
   description?: string;
   addedBy?: string;
+  allowedRoles?: CommitteeRole[];
+}
+
+export const COMMITTEE_RESOURCE_ROLES: CommitteeRole[] = [
+  "lead",
+  "member",
+  "faculty_liaison",
+];
+
+const COMMITTEE_RESOURCE_ROLE_LABELS: Record<
+  Exclude<CommitteeRole, "admin">,
+  string
+> = {
+  lead: "Lead",
+  member: "Member",
+  faculty_liaison: "Faculty liaison",
+};
+
+function hasFullResourceAccess(allowedRoles?: CommitteeRole[]): boolean {
+  if (!allowedRoles || allowedRoles.length === 0) return true;
+  return COMMITTEE_RESOURCE_ROLES.every((role) => allowedRoles.includes(role));
+}
+
+export function canAccessCommitteeResource(
+  resource: CommitteeResource,
+  viewerRole: CommitteeRole | undefined,
+  isAdminView: boolean,
+): boolean {
+  if (isAdminView) return true;
+  if (hasFullResourceAccess(resource.allowedRoles)) return true;
+  if (!viewerRole) return true;
+  return resource.allowedRoles!.includes(viewerRole);
+}
+
+export function formatResourceAccessLabel(
+  allowedRoles?: CommitteeRole[],
+): string | null {
+  if (hasFullResourceAccess(allowedRoles)) return null;
+  const roles = allowedRoles!.filter((role) => role !== "admin");
+  if (roles.length === 0) return null;
+  if (roles.length === 1) {
+    return `${COMMITTEE_RESOURCE_ROLE_LABELS[roles[0] as Exclude<CommitteeRole, "admin">]} only`;
+  }
+  return roles
+    .map(
+      (role) =>
+        COMMITTEE_RESOURCE_ROLE_LABELS[role as Exclude<CommitteeRole, "admin">],
+    )
+    .join(" & ");
 }
 
 export interface CommitteeEvent {
@@ -380,9 +429,9 @@ export const DEMO_COMMITTEES: Committee[] = [
     members: SERVICE_SUNSHINE_MEMBERS,
     resources: [
       { id: "r-ss-handbook", title: "Service & Sunshine Role Guide", type: "pdf", description: "Duties, norms, and expectations" },
-      { id: "r-ss-fall-plan", title: "Fall Service Project Planning Doc", type: "doc", description: "Partner outreach and logistics" },
+      { id: "r-ss-fall-plan", title: "Fall Service Project Planning Doc", type: "doc", description: "Partner outreach and logistics", allowedRoles: ["lead"] },
       { id: "r-ss-meal-train", title: "Meal Train Template", type: "checklist", description: "Steps for organizing family support" },
-      { id: "r-ss-outreach", title: "Community Partner Outreach Templates", type: "link", url: "#", description: "Email templates for local organizations" },
+      { id: "r-ss-outreach", title: "Community Partner Outreach Templates", type: "link", url: "#", description: "Email templates for local organizations", allowedRoles: ["lead", "faculty_liaison"] },
     ],
     events: [
       { id: "e-ss-1", title: "Monthly Planning Meeting", date: "2026-04-07", time: "7:00 PM", type: "meeting", location: "Community Room" },

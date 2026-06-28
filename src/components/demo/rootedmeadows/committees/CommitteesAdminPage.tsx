@@ -19,12 +19,14 @@ export type CommitteeAdminView = "list" | "detail" | "signup" | "archive";
 export default function CommitteesAdminPage({
   initialCommitteeId,
   initialView = "list",
+  initialCommitteeSection = "home",
   openCreateModal = false,
   openCreateModalDelayMs,
   openArchiveModal = false,
 }: {
   initialCommitteeId?: string;
   initialView?: CommitteeAdminView;
+  initialCommitteeSection?: CommitteeWorkspaceSection;
   openCreateModal?: boolean;
   openCreateModalDelayMs?: number;
   openArchiveModal?: boolean;
@@ -33,7 +35,9 @@ export default function CommitteesAdminPage({
   const [selectedId, setSelectedId] = useState<string | null>(
     initialCommitteeId ?? null,
   );
-  const [section, setSection] = useState<CommitteeWorkspaceSection>("home");
+  const [section, setSection] = useState<CommitteeWorkspaceSection>(
+    initialCommitteeSection,
+  );
   const [showCreate, setShowCreate] = useState(false);
   const [showArchive, setShowArchive] = useState(openArchiveModal);
   const [committees, setCommittees] = useState(DEMO_COMMITTEES);
@@ -46,6 +50,10 @@ export default function CommitteesAdminPage({
   useEffect(() => {
     if (initialCommitteeId) setSelectedId(initialCommitteeId);
   }, [initialCommitteeId]);
+
+  useEffect(() => {
+    setSection(initialCommitteeSection);
+  }, [initialCommitteeSection]);
 
   useEffect(() => {
     if (!openCreateModal || createModalOpenedRef.current) return;

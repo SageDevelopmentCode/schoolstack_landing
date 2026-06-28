@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { createCommitteeEntityId } from "@/data/school-demos/rooted-meadows-committees";
-import type { CommitteeResource } from "./types";
+import {
+  COMMITTEE_RESOURCE_ROLES,
+  createCommitteeEntityId,
+} from "@/data/school-demos/rooted-meadows-committees";
+import type { CommitteeResource, CommitteeRole } from "./types";
 import CommitteeModalShell, { inputClass } from "./CommitteeModalShell";
 
 export default function AddResourceModal({
@@ -16,9 +19,21 @@ export default function AddResourceModal({
   const [type, setType] = useState<CommitteeResource["type"]>("pdf");
   const [description, setDescription] = useState("");
   const [url, setUrl] = useState("");
+  const [selectedRoles, setSelectedRoles] = useState<CommitteeRole[]>([
+    ...COMMITTEE_RESOURCE_ROLES,
+  ]);
+
+  const toggleRole = (role: CommitteeRole) => {
+    setSelectedRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
+    );
+  };
 
   const handleSave = () => {
-    if (!title.trim()) return;
+    if (!title.trim() || selectedRoles.length === 0) return;
+    const allRolesSelected = COMMITTEE_RESOURCE_ROLES.every((role) =>
+      selectedRoles.includes(role),
+    );
     onSave({
       id: createCommitteeEntityId("r"),
       title: title.trim(),
@@ -26,6 +41,7 @@ export default function AddResourceModal({
       description: description.trim() || undefined,
       url: type === "link" ? url.trim() || "#" : undefined,
       addedBy: "Admin",
+      allowedRoles: allRolesSelected ? undefined : selectedRoles,
     });
     onClose();
   };
@@ -55,6 +71,29 @@ export default function AddResourceModal({
           <input value={url} onChange={(e) => setUrl(e.target.value)} className={inputClass} placeholder="https://..." />
         </div>
       )}
+      <div>
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Who can access</label>
+        <div className="mt-2 space-y-2">
+          {COMMITTEE_RESOURCE_ROLES.map((role) => (
+            <label
+              key={role}
+              className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={selectedRoles.includes(role)}
+                onChange={() => toggleRole(role)}
+                className="rounded border-gray-300 text-[#827096] focus:ring-[#827096]"
+              />
+              {role === "lead"
+                ? "Lead"
+                : role === "member"
+                  ? "Member"
+                  : "Faculty liaison"}
+            </label>
+          ))}
+        </div>
+      </div>
     </CommitteeModalShell>
   );
 }

@@ -2271,6 +2271,30 @@ const rootedMeadowsCreateCommitteeStep: DemoWalkthroughStep = {
   },
 };
 
+const rootedMeadowsResourceAccessStep: DemoWalkthroughStep = {
+  id: "committee-resource-access",
+  title: "Restrict resources by member role",
+  description:
+    "Limit sensitive planning docs to committee leads or faculty liaisons — general guides stay visible to all members.",
+  preview: "admin",
+  initialAdminPage: "committees",
+  initialCommitteeId: "service-sunshine-2025",
+  initialCommitteeAdminView: "detail",
+  initialCommitteeSection: "resources",
+  icon: "users",
+  theme: {
+    bg: "#F0EBF2",
+    bgHover: "#E8E0EC",
+    bgActive: "#E8E0EC",
+    border: "#C9BBD4",
+    iconBg: "#827096",
+    iconColor: "#FFFFFF",
+    titleColor: "#5A4D68",
+    descColor: "#6B6560",
+    connector: "#827096",
+  },
+};
+
 const rootedMeadowsPlaceMembersStep: DemoWalkthroughStep = {
   id: "place-committee-members",
   title: "Place families from August signup",
@@ -2373,6 +2397,7 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
         return [
           mapped,
           rootedMeadowsCreateCommitteeStep,
+          rootedMeadowsResourceAccessStep,
           rootedMeadowsPlaceMembersStep,
           rootedMeadowsParentCommitteeStep,
           rootedMeadowsArchiveCommitteeStep,

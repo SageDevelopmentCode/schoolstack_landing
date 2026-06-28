@@ -75,7 +75,11 @@ import {
   prefetchLuffLearningAdminDemo,
 } from "@/components/demo/lufflearning/lazyLuffLearningDemos";
 
-import type { DemoWalkthroughMySchoolTab, DemoWalkthroughAdminPage } from "@/data/school-demos/walkthrough-placeholder";
+import type {
+  DemoWalkthroughMySchoolTab,
+  DemoWalkthroughAdminPage,
+  DemoWalkthroughCommitteeSection,
+} from "@/data/school-demos/walkthrough-placeholder";
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 
 const DESIGN_WIDTH = 1440;
@@ -102,6 +106,7 @@ export default function ScaledAdminDemoPreview({
   onTuitionOverrideApplied,
   initialCommitteeId,
   initialCommitteeAdminView,
+  initialCommitteeSection,
   openCreateCommitteeModal,
   openCreateCommitteeModalDelayMs,
   openArchiveCommitteeModal,
@@ -127,6 +132,7 @@ export default function ScaledAdminDemoPreview({
   onTuitionOverrideApplied?: (override: DemoTuitionOverride | null) => void;
   initialCommitteeId?: string;
   initialCommitteeAdminView?: "list" | "detail" | "signup" | "archive";
+  initialCommitteeSection?: DemoWalkthroughCommitteeSection;
   openCreateCommitteeModal?: boolean;
   openCreateCommitteeModalDelayMs?: number;
   openArchiveCommitteeModal?: boolean;
@@ -264,6 +270,7 @@ export default function ScaledAdminDemoPreview({
                   onTuitionOverrideApplied,
                   initialCommitteeId,
                   initialCommitteeAdminView,
+                  initialCommitteeSection,
                   openCreateCommitteeModal,
                   openCreateCommitteeModalDelayMs,
                   openArchiveCommitteeModal,
