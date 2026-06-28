@@ -7,7 +7,17 @@ export type DemoWalkthroughIcon =
   | "clipboardCheck"
   | "creditCard"
   | "clipboardList"
-  | "messageCircle";
+  | "messageCircle"
+  | "badgePercent";
+
+export type DemoWalkthroughAdminPage = "myschool";
+
+export type DemoWalkthroughMySchoolTab =
+  | "students"
+  | "programs"
+  | "staff"
+  | "classrooms"
+  | "tuition";
 
 export type DemoWalkthroughAdmissionsTab = "flows" | "submissions";
 
@@ -64,6 +74,13 @@ export interface DemoWalkthroughStep {
   autoSendEnrollmentLinkDelayMs?: number;
   openInitialLeadDetail?: boolean;
   hideLeadDetailEnrollmentAction?: boolean;
+  highlightSendEnrollmentLeadId?: string;
+  parentEnrollmentVariant?: "prototype";
+  initialAdminPage?: DemoWalkthroughAdminPage;
+  initialMySchoolTab?: DemoWalkthroughMySchoolTab;
+  initialSelectedTuitionFamilyId?: string;
+  openInitialTuitionAdjustModal?: boolean;
+  openInitialTuitionAdjustModalDelayMs?: number;
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -2150,6 +2167,31 @@ const rootedMeadowsObservationStep: DemoWalkthroughStep = {
   },
 };
 
+const rootedMeadowsAssignTuitionStep: DemoWalkthroughStep = {
+  id: "assign-family-tuition",
+  title: "Set a custom tuition rate",
+  description:
+    "Override standard program pricing for a family — sibling discounts, financial aid, or custom monthly amounts.",
+  preview: "admin",
+  initialAdminPage: "myschool",
+  initialMySchoolTab: "tuition",
+  initialSelectedTuitionFamilyId: "fb1",
+  openInitialTuitionAdjustModal: true,
+  openInitialTuitionAdjustModalDelayMs: 700,
+  icon: "badgePercent",
+  theme: {
+    bg: "#F0EBF2",
+    bgHover: "#E8E0EC",
+    bgActive: "#E8E0EC",
+    border: "#C9BBD4",
+    iconBg: "#827096",
+    iconColor: "#FFFFFF",
+    titleColor: "#5A4D68",
+    descColor: "#6B6560",
+    connector: "#827096",
+  },
+};
+
 const rootedMeadowsSendContractStep: DemoWalkthroughStep = {
   id: "send-enrollment-contract",
   title: "Send the enrollment contract",
@@ -2162,6 +2204,7 @@ const rootedMeadowsSendContractStep: DemoWalkthroughStep = {
   initialSelectedLeadApplicationSectionIndex: 3,
   openInitialLeadDetail: false,
   hideLeadDetailEnrollmentAction: true,
+  highlightSendEnrollmentLeadId: "l0",
   theme: {
     bg: "#F5F3E6",
     bgHover: "#EEEBD8",
@@ -2179,12 +2222,28 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
   rootedMeadowsApplicationStep,
   rootedMeadowsObservationStep,
   rootedMeadowsSendContractStep,
-  ...rootedMeadowsWalkthroughPlaceholder.filter(
-    (step) =>
-      step.preview !== undefined &&
-      step.id !== "view-lead" &&
-      step.id !== "send-application-link",
-  ),
+  ...rootedMeadowsWalkthroughPlaceholder
+    .filter(
+      (step) =>
+        step.preview !== undefined &&
+        step.id !== "view-lead" &&
+        step.id !== "send-application-link",
+    )
+    .flatMap((step) => {
+      const mapped =
+        step.id === "parent-enrollment"
+          ? {
+              ...step,
+              description:
+                "Families sign the Standard Enrollment Agreement and complete the enrollment checklist — including enrollment and supply fees.",
+              parentEnrollmentVariant: "prototype" as const,
+            }
+          : step;
+      if (step.id === "parent-enrollment") {
+        return [mapped, rootedMeadowsAssignTuitionStep];
+      }
+      return [mapped];
+    }),
 ];
 
 export const prestigeHomeschoolAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] = [

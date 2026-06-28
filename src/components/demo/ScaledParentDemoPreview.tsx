@@ -75,15 +75,20 @@ import {
   prefetchLuffLearningParentDemo,
 } from "@/components/demo/lufflearning/lazyLuffLearningDemos";
 import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
+import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 
 const DESIGN_WIDTH = 1440;
 
 export default function ScaledParentDemoPreview({
   demoSlug = "athena-microacademy",
   initialParentTab = "enrollment",
+  parentEnrollmentVariant,
+  tuitionOverride,
 }: {
   demoSlug?: string;
   initialParentTab?: DemoWalkthroughParentTab;
+  parentEnrollmentVariant?: "prototype";
+  tuitionOverride?: DemoTuitionOverride | null;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
@@ -190,6 +195,12 @@ export default function ScaledParentDemoPreview({
             initialTab={initialParentTab}
             disableTour
             hideNav={false}
+            enrollmentVariant={
+              isRootedMeadows && parentEnrollmentVariant === "prototype"
+                ? "prototype"
+                : "default"
+            }
+            tuitionOverride={isRootedMeadows ? tuitionOverride : undefined}
           />
         </div>
       </div>

@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  formatTuitionOverrideSummary,
+  mapOverrideToParentAmount,
+  type DemoTuitionOverride,
+} from "@/data/school-demos/tuition-override";
+import {
   FileText,
   Users,
   CreditCard,
@@ -49,11 +54,13 @@ import {
   Landmark,
   Banknote,
   Smartphone,
+  Percent,
 } from "lucide-react";
 import { ROOTED_MEADOWS_PARENT_LOGO } from "@/data/school-demos/rootedmeadows-parent-demo";
 import {
   ROOTED_MEADOWS_C1_SECTIONS,
   ROOTED_MEADOWS_C2_SECTIONS,
+  ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS,
 } from "@/data/school-demos/rooted-meadows-enrollment-contracts";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -74,6 +81,7 @@ type ModalId =
   | null
   | "contract-1"
   | "contract-2"
+  | "standard-enrollment"
   | "health-form"
   | "medication-plan"
   | "immunization"
@@ -81,8 +89,20 @@ type ModalId =
   | "assumption-of-risk"
   | "authorized-pickup"
   | "health-statement"
-  | "registration-fee";
+  | "registration-fee"
+  | "enrollment-fee"
+  | "supply-fee";
+type EnrollmentVariant = "default" | "prototype";
 type ChildDetailTab = "teacher" | "attendance" | "learning" | "profile";
+
+type ChecklistItem = {
+  id: number;
+  label: string;
+  icon: typeof FileText;
+  required: boolean;
+  modal: ModalId;
+  optional: boolean;
+};
 
 interface DemoMedication {
   id: string;
@@ -233,10 +253,16 @@ function isSchoolYearTuition(t: DemoTransaction): boolean {
   return t.kind === "school_year_tuition";
 }
 
-function getSchoolYearAmount(plan: PaymentPlan): number {
-  return plan === "monthly"
-    ? SCHOOL_YEAR_MONTHLY_TUITION
-    : SCHOOL_YEAR_UPFRONT_TUITION;
+function getSchoolYearAmount(
+  plan: PaymentPlan,
+  tuitionOverride?: DemoTuitionOverride | null,
+): number {
+  const standard =
+    plan === "monthly"
+      ? SCHOOL_YEAR_MONTHLY_TUITION
+      : SCHOOL_YEAR_UPFRONT_TUITION;
+  if (!tuitionOverride) return standard;
+  return mapOverrideToParentAmount(tuitionOverride, standard);
 }
 
 function getSchoolYearDescription(plan: PaymentPlan): string {
@@ -249,9 +275,10 @@ function getTxCheckoutAmount(
   t: DemoTransaction,
   plan: PaymentPlan,
   selections: Record<string, Weekday[]>,
+  tuitionOverride?: DemoTuitionOverride | null,
 ): number {
   if (isHomeschoolDropIn(t)) return totalHomeschoolAmount(selections);
-  if (isSchoolYearTuition(t)) return getSchoolYearAmount(plan);
+  if (isSchoolYearTuition(t)) return getSchoolYearAmount(plan, tuitionOverride);
   return parseFloat(t.amount.replace("$", "").replace(",", ""));
 }
 
@@ -1015,6 +1042,16 @@ function Avatar({
   );
 }
 
+// ─── ENROLLMENT MODALS ───────────────────────────────────────────────────────
+
+const ENROLLMENT_INPUT_CLASS =
+  "w-full border border-gray-200 rounded-md px-3 py-2 text-sm outline-none focus:border-[#827096]";
+const ENROLLMENT_CARD_CLASS = "border border-gray-100 rounded-md p-4";
+const ENROLLMENT_OPTION_CLASS =
+  "flex items-start gap-3 rounded-md border cursor-pointer transition-colors";
+const ENROLLMENT_BUTTON_CLASS =
+  "w-full py-2.5 rounded-md bg-[#827096] text-white text-sm font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors";
+
 function SignatureBlock({
   sectionKey,
   parentName,
@@ -1032,7 +1069,7 @@ function SignatureBlock({
 
   if (signed && !editing) {
     return (
-      <div className="mt-4 border border-emerald-200 rounded-xl bg-emerald-50 p-4">
+      <div className="mt-4 border border-emerald-200 rounded-md bg-emerald-50 p-4">
         <p className="text-xs text-emerald-600 font-medium mb-1">Signed</p>
         <p
           className="text-2xl text-emerald-700"
@@ -1051,7 +1088,7 @@ function SignatureBlock({
   }
 
   return (
-    <div className="mt-4 border border-gray-200 rounded-xl bg-gray-50 p-4">
+    <div className="mt-4 border border-gray-200 rounded-md bg-gray-50 p-4">
       <p className="text-xs text-gray-500 font-medium mb-2">
         Parent / Guardian Signature
       </p>
@@ -1060,7 +1097,7 @@ function SignatureBlock({
         value={nameInput}
         onChange={(e) => setNameInput(e.target.value)}
         placeholder="Type your full name"
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#827096] mb-3"
+        className={`${ENROLLMENT_INPUT_CLASS} bg-white mb-3`}
       />
       <button
         disabled={!nameInput.trim()}
@@ -1068,7 +1105,7 @@ function SignatureBlock({
           onSign(sectionKey, nameInput.trim());
           setEditing(false);
         }}
-        className="px-4 py-1.5 rounded-lg text-sm font-medium bg-[#827096] text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-opacity"
+        className="px-4 py-1.5 rounded-md text-sm font-medium bg-[#827096] text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-opacity"
       >
         Click to Sign
       </button>
@@ -1162,7 +1199,7 @@ function ContractModal({
       </p>
       <div className="space-y-6">
         {sections.map((s) => (
-          <div key={s.id} className="border border-gray-100 rounded-xl p-4">
+          <div key={s.id} className={ENROLLMENT_CARD_CLASS}>
             <h3 className="font-semibold text-gray-700 text-sm mb-2">
               {s.title}
             </h3>
@@ -1216,7 +1253,7 @@ function HealthFormModal({
       inline={inline}
     >
       <div className="space-y-5">
-        <div className="bg-[#827096]/5 rounded-xl p-4">
+        <div className="bg-[#827096]/5 rounded-md p-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
             Emergency Contact
           </p>
@@ -1233,13 +1270,13 @@ function HealthFormModal({
                 <input
                   value={form[key as keyof typeof form]}
                   onChange={set(key as keyof typeof form)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#827096]"
+                  className={ENROLLMENT_INPUT_CLASS}
                 />
               </div>
             ))}
           </div>
         </div>
-        <div className="bg-[#827096]/5 rounded-xl p-4">
+        <div className="bg-[#827096]/5 rounded-md p-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
             Physician & Insurance
           </p>
@@ -1259,7 +1296,7 @@ function HealthFormModal({
                 <input
                   value={form[key as keyof typeof form]}
                   onChange={set(key as keyof typeof form)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#827096]"
+                  className={ENROLLMENT_INPUT_CLASS}
                 />
               </div>
             ))}
@@ -1268,7 +1305,7 @@ function HealthFormModal({
         {!saved ? (
           <button
             onClick={onSave}
-            className="w-full py-2.5 rounded-xl bg-[#827096] text-white text-sm font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors"
+            className={ENROLLMENT_BUTTON_CLASS}
           >
             Save Health Form
           </button>
@@ -1334,7 +1371,7 @@ function MedicationPlanModal({
         {meds.map((med) => (
           <div
             key={med.id}
-            className="border border-gray-100 rounded-xl p-4 bg-gray-50"
+            className={`${ENROLLMENT_CARD_CLASS} bg-gray-50`}
           >
             <div className="flex justify-between mb-3">
               <span className="text-xs font-semibold text-gray-500">
@@ -1369,7 +1406,7 @@ function MedicationPlanModal({
                         e.target.value,
                       )
                     }
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#827096] bg-white"
+                    className={`${ENROLLMENT_INPUT_CLASS} bg-white`}
                   />
                 </div>
               ))}
@@ -1386,7 +1423,7 @@ function MedicationPlanModal({
           <button
             onClick={onSave}
             disabled={meds.length === 0}
-            className="w-full py-2.5 rounded-xl bg-[#827096] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#5A4D68] transition-colors"
+            className={`${ENROLLMENT_BUTTON_CLASS} disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             Save Plan
           </button>
@@ -1431,12 +1468,12 @@ function ImmunizationModal({
           Upload your child's immunization records or approved exemption
           documents (PDF, JPG, PNG — max 10MB each).
         </p>
-        <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
+        <div className="border-2 border-dashed border-gray-200 rounded-md p-8 text-center">
           <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
           <p className="text-sm text-gray-400 mb-3">Drag & drop files here</p>
           <button
             onClick={onUpload}
-            className="px-4 py-2 rounded-lg bg-[#827096] text-white text-sm font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors"
+            className="px-4 py-2 rounded-md bg-[#827096] text-white text-sm font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors"
           >
             Choose File
           </button>
@@ -1446,7 +1483,7 @@ function ImmunizationModal({
             {fakeFiles.map((f, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2"
+                className="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-md px-3 py-2"
               >
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-emerald-600" />
@@ -1512,14 +1549,14 @@ function PhotoReleaseModal({
     <ModalShell title="Photo Release Form" onClose={onClose} inline={inline}>
       <div className="space-y-5">
         {C5_SECTIONS.slice(0, 2).map((s) => (
-          <div key={s.id} className="border border-gray-100 rounded-xl p-4">
+          <div key={s.id} className={ENROLLMENT_CARD_CLASS}>
             <h3 className="font-semibold text-gray-700 text-sm mb-2">
               {s.title}
             </h3>
             <p className="text-sm text-gray-600 leading-relaxed">{s.body}</p>
           </div>
         ))}
-        <div className="border border-gray-100 rounded-xl p-4">
+        <div className={ENROLLMENT_CARD_CLASS}>
           <h3 className="font-semibold text-gray-700 text-sm mb-3">
             Select Your Consent Level
           </h3>
@@ -1527,7 +1564,7 @@ function PhotoReleaseModal({
             {options.map((o) => (
               <label
                 key={o.value}
-                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selected === o.value ? "border-[#827096] bg-[#827096]/5" : "border-gray-100 hover:border-gray-200"}`}
+                className={`${ENROLLMENT_OPTION_CLASS} p-3 ${selected === o.value ? "border-[#827096] bg-[#827096]/5" : "border-gray-100 hover:border-gray-200"}`}
               >
                 <input
                   type="radio"
@@ -1553,7 +1590,7 @@ function PhotoReleaseModal({
                 onConsentSave(selected!);
                 setConsentSaved(true);
               }}
-              className="mt-3 w-full py-2.5 rounded-xl bg-[#827096] text-white text-sm font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors"
+              className={`mt-3 ${ENROLLMENT_BUTTON_CLASS}`}
             >
               Save Consent Level
             </button>
@@ -1565,7 +1602,7 @@ function PhotoReleaseModal({
           )}
         </div>
         {consentSaved && (
-          <div className="border border-gray-100 rounded-xl p-4">
+          <div className={ENROLLMENT_CARD_CLASS}>
             <h3 className="font-semibold text-gray-700 text-sm mb-2">
               {C5_SECTIONS[2].title}
             </h3>
@@ -1610,7 +1647,7 @@ function AssumptionOfRiskModal({
           </p>
           <p>Assumption of Risk & Release of Liability</p>
         </div>
-        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+        <div className="bg-amber-50 border border-amber-100 rounded-md p-4">
           <p className="text-xs text-amber-700 font-medium mb-1">
             Please read carefully before signing
           </p>
@@ -1625,7 +1662,7 @@ function AssumptionOfRiskModal({
           </p>
         </div>
         {C6_SECTIONS.map((s) => (
-          <div key={s.id} className="border border-gray-100 rounded-xl p-4">
+          <div key={s.id} className={ENROLLMENT_CARD_CLASS}>
             <h3 className="font-semibold text-gray-700 text-sm mb-2">
               {s.title}
             </h3>
@@ -1689,7 +1726,7 @@ function AuthorizedPickupModal({
         {persons.map((person) => (
           <div
             key={person.id}
-            className="border border-gray-100 rounded-xl p-4 bg-gray-50"
+            className={`${ENROLLMENT_CARD_CLASS} bg-gray-50`}
           >
             <div className="flex justify-between mb-3">
               <span className="text-xs font-semibold text-gray-500">
@@ -1724,7 +1761,7 @@ function AuthorizedPickupModal({
                         e.target.value,
                       )
                     }
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#827096] bg-white"
+                    className={`${ENROLLMENT_INPUT_CLASS} bg-white`}
                   />
                 </div>
               ))}
@@ -1741,7 +1778,7 @@ function AuthorizedPickupModal({
           <button
             onClick={onSave}
             disabled={persons.length === 0}
-            className="w-full py-2.5 rounded-xl bg-[#827096] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#5A4D68] transition-colors"
+            className={`${ENROLLMENT_BUTTON_CLASS} disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             Save List
           </button>
@@ -1752,7 +1789,7 @@ function AuthorizedPickupModal({
               complete.
             </div>
             {C7_SECTIONS.map((s) => (
-              <div key={s.id} className="border border-gray-100 rounded-xl p-4">
+              <div key={s.id} className={ENROLLMENT_CARD_CLASS}>
                 <h3 className="font-semibold text-gray-700 text-sm mb-2">
                   {s.title}
                 </h3>
@@ -1813,7 +1850,7 @@ function HealthStatementModal({
           ].map((o) => (
             <label
               key={o.val}
-              className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${selected === o.val ? "border-[#827096] bg-[#827096]/5" : "border-gray-100 hover:border-gray-200"}`}
+              className={`${ENROLLMENT_OPTION_CLASS} p-4 ${selected === o.val ? "border-[#827096] bg-[#827096]/5" : "border-gray-100 hover:border-gray-200"}`}
             >
               <input
                 type="radio"
@@ -1839,7 +1876,7 @@ function HealthStatementModal({
               onOptionSave(selected!);
               setOptionSaved(true);
             }}
-            className="w-full py-2.5 rounded-xl bg-[#827096] text-white text-sm font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors"
+            className={ENROLLMENT_BUTTON_CLASS}
           >
             Save Selection
           </button>
@@ -1851,7 +1888,7 @@ function HealthStatementModal({
               to complete.
             </div>
             {C8_SECTIONS.map((s) => (
-              <div key={s.id} className="border border-gray-100 rounded-xl p-4">
+              <div key={s.id} className={ENROLLMENT_CARD_CLASS}>
                 <h3 className="font-semibold text-gray-700 text-sm mb-2">
                   {s.title}
                 </h3>
@@ -1873,6 +1910,61 @@ function HealthStatementModal({
   );
 }
 
+function FeePaymentModal({
+  title,
+  amount,
+  description,
+  successMessage,
+  onPay,
+  onClose,
+  inline,
+}: {
+  title: string;
+  amount: string;
+  description: string;
+  successMessage: string;
+  onPay: () => void;
+  onClose?: () => void;
+  inline?: boolean;
+}) {
+  const [paid, setPaid] = useState(false);
+  return (
+    <ModalShell title={title} onClose={onClose} inline={inline}>
+      <div className="space-y-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-[#827096]/5 flex items-center justify-center mx-auto">
+          <CreditCard className="w-7 h-7 text-[#827096]" />
+        </div>
+        {!paid ? (
+          <>
+            <div>
+              <p className="text-2xl font-semibold text-gray-800">{amount}</p>
+              <p className="text-sm text-gray-400 mt-1">{description}</p>
+            </div>
+            <p className="text-sm text-gray-500">
+              Payment is processed securely through the parent portal.
+            </p>
+            <button
+              onClick={() => {
+                setPaid(true);
+                setTimeout(onPay, 800);
+              }}
+              className="w-full py-3 rounded-md bg-[#827096] text-white font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors"
+            >
+              Pay {amount}
+            </button>
+          </>
+        ) : (
+          <div className="py-4">
+            <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+            <p className="font-semibold text-gray-800">Payment Successful!</p>
+            <p className="text-sm text-gray-400 mt-1">{successMessage}</p>
+          </div>
+        )}
+      </div>
+    </ModalShell>
+  );
+}
+
 function RegistrationFeeModal({
   onPay,
   onClose,
@@ -1882,74 +1974,28 @@ function RegistrationFeeModal({
   onClose?: () => void;
   inline?: boolean;
 }) {
-  const [paid, setPaid] = useState(false);
   return (
-    <ModalShell title="Registration Fee" onClose={onClose} inline={inline}>
-      <div className="space-y-4 text-center">
-        <div className="w-16 h-16 rounded-full bg-[#827096]/5 flex items-center justify-center mx-auto">
-          <CreditCard className="w-7 h-7 text-[#827096]" />
-        </div>
-        {!paid ? (
-          <>
-            <div>
-              <p className="text-2xl font-semibold text-gray-800">$75.00</p>
-              <p className="text-sm text-gray-400 mt-1">
-                One-time registration fee
-              </p>
-            </div>
-            <p className="text-sm text-gray-500">
-              This fee secures your child's spot for the upcoming program.
-              Payment is processed securely.
-            </p>
-            <button
-              onClick={() => {
-                setPaid(true);
-                setTimeout(onPay, 800);
-              }}
-              className="w-full py-3 rounded-xl bg-[#827096] text-white font-medium cursor-pointer hover:bg-[#5A4D68] transition-colors"
-            >
-              Pay $75.00
-            </button>
-          </>
-        ) : (
-          <div className="py-4">
-            <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-            <p className="font-semibold text-gray-800">Payment Successful!</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Your registration is confirmed.
-            </p>
-          </div>
-        )}
-      </div>
-    </ModalShell>
+    <FeePaymentModal
+      title="Registration Fee"
+      amount="$75.00"
+      description="One-time registration fee"
+      successMessage="Your registration is confirmed."
+      onPay={onPay}
+      onClose={onClose}
+      inline={inline}
+    />
   );
 }
 
 // ─── CHECKLIST VIEW ──────────────────────────────────────────────────────────
 
-const CHECKLIST_ITEMS = [
-  {
-    id: 1,
-    label: "Program Description & Key Policies",
-    icon: FileText,
-    required: true,
-    modal: "contract-1" as ModalId,
-    optional: false,
-  },
-  {
-    id: 2,
-    label: "Community Agreement",
-    icon: Users,
-    required: true,
-    modal: "contract-2" as ModalId,
-    optional: false,
-  },
+const SHARED_FORM_CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: 3,
     label: "Emergency Contact, Health & Immunization Form",
     icon: Heart,
     required: true,
-    modal: "health-form" as ModalId,
+    modal: "health-form",
     optional: false,
   },
   {
@@ -1957,7 +2003,7 @@ const CHECKLIST_ITEMS = [
     label: "Emergency Medication Plan",
     icon: Pill,
     required: false,
-    modal: "medication-plan" as ModalId,
+    modal: "medication-plan",
     optional: true,
   },
   {
@@ -1965,7 +2011,7 @@ const CHECKLIST_ITEMS = [
     label: "Proof of Immunizations",
     icon: ShieldCheck,
     required: true,
-    modal: "immunization" as ModalId,
+    modal: "immunization",
     optional: false,
   },
   {
@@ -1973,7 +2019,7 @@ const CHECKLIST_ITEMS = [
     label: "Health Information Form",
     icon: ClipboardList,
     required: true,
-    modal: "health-statement" as ModalId,
+    modal: "health-statement",
     optional: false,
   },
   {
@@ -1981,7 +2027,7 @@ const CHECKLIST_ITEMS = [
     label: "Photo Release Form",
     icon: Camera,
     required: true,
-    modal: "photo-release" as ModalId,
+    modal: "photo-release",
     optional: false,
   },
   {
@@ -1989,7 +2035,7 @@ const CHECKLIST_ITEMS = [
     label: "Assumption of Risk",
     icon: AlertTriangle,
     required: true,
-    modal: "assumption-of-risk" as ModalId,
+    modal: "assumption-of-risk",
     optional: false,
   },
   {
@@ -1997,24 +2043,142 @@ const CHECKLIST_ITEMS = [
     label: "Additional Authorized Pickup",
     icon: UserPlus,
     required: false,
-    modal: "authorized-pickup" as ModalId,
+    modal: "authorized-pickup",
     optional: true,
   },
+];
+
+const DEFAULT_CHECKLIST_ITEMS: ChecklistItem[] = [
+  {
+    id: 1,
+    label: "Program Description & Key Policies",
+    icon: FileText,
+    required: true,
+    modal: "contract-1",
+    optional: false,
+  },
+  {
+    id: 2,
+    label: "Community Agreement",
+    icon: Users,
+    required: true,
+    modal: "contract-2",
+    optional: false,
+  },
+  ...SHARED_FORM_CHECKLIST_ITEMS,
   {
     id: 10,
     label: "Pay Registration Fee",
     icon: CreditCard,
     required: true,
-    modal: "registration-fee" as ModalId,
+    modal: "registration-fee",
     optional: false,
   },
 ];
+
+const PROTOTYPE_CHECKLIST_ITEMS: ChecklistItem[] = [
+  {
+    id: 1,
+    label: "Standard Enrollment Agreement",
+    icon: FileText,
+    required: true,
+    modal: "standard-enrollment",
+    optional: false,
+  },
+  ...SHARED_FORM_CHECKLIST_ITEMS.map((item, index) => ({
+    ...item,
+    id: index + 2,
+  })),
+  {
+    id: 9,
+    label: "Enrollment Fee",
+    icon: CreditCard,
+    required: true,
+    modal: "enrollment-fee",
+    optional: false,
+  },
+  {
+    id: 10,
+    label: "Supply Fee",
+    icon: CreditCard,
+    required: true,
+    modal: "supply-fee",
+    optional: false,
+  },
+];
+
+function getChecklistItems(variant: EnrollmentVariant): ChecklistItem[] {
+  return variant === "prototype"
+    ? PROTOTYPE_CHECKLIST_ITEMS
+    : DEFAULT_CHECKLIST_ITEMS;
+}
+
+function getRequiredChecklistIndices(variant: EnrollmentVariant): number[] {
+  return variant === "prototype"
+    ? [0, 1, 3, 4, 5, 6, 8, 9]
+    : [0, 1, 2, 4, 5, 6, 7, 9];
+}
+
+function getPrototypeOnboardingCompletedIds(): Set<number> {
+  return new Set([1, 2, 3, 4, 5, 6, 7, 9, 10]);
+}
+
+function getDefaultOnboardingCompletedIds(): Set<number> {
+  return new Set([1, 2, 3, 5, 6, 7, 8, 10]);
+}
+
+function buildChildCompletions(
+  variant: EnrollmentVariant,
+  childId: ChildId,
+  childSigs: Record<string, string>,
+  state: {
+    healthFormSaved: Record<ChildId, boolean>;
+    immunizationCount: Record<ChildId, number>;
+    healthStatement: Record<ChildId, "A" | "B" | null>;
+    photoConsent: Record<ChildId, "FULL" | "LIMITED" | "NO" | null>;
+    pickupSaved: Record<ChildId, boolean>;
+    feePaid: Record<ChildId, boolean>;
+    enrollmentFeePaid: Record<ChildId, boolean>;
+    supplyFeePaid: Record<ChildId, boolean>;
+  },
+): boolean[] {
+  const sharedTail = [
+    state.healthFormSaved[childId] &&
+      !!childSigs["3-1"] &&
+      !!childSigs["3-2"],
+    !!childSigs["4-1"],
+    state.immunizationCount[childId] > 0,
+    !!state.healthStatement[childId] && !!childSigs["8-1"],
+    !!state.photoConsent[childId] && !!childSigs["5-3"],
+    !!childSigs["6-1"],
+    state.pickupSaved[childId] && !!childSigs["7-1"],
+  ];
+
+  if (variant === "prototype") {
+    return [
+      ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS.every(
+        (section) => !!childSigs[section.id],
+      ),
+      ...sharedTail,
+      state.enrollmentFeePaid[childId],
+      state.supplyFeePaid[childId],
+    ];
+  }
+
+  return [
+    C1_SECTIONS.every((section) => !!childSigs[section.id]),
+    C2_SECTIONS.every((section) => !!childSigs[section.id]),
+    ...sharedTail,
+    state.feePaid[childId],
+  ];
+}
 
 // ─── ENROLLMENT PAGE (split-panel) ───────────────────────────────────────────
 
 function EnrollmentPage({
   activeChildId,
   setActiveChildId,
+  checklistItems,
   completions,
   enrolled,
   isJakePending,
@@ -2036,11 +2200,13 @@ function EnrollmentPage({
   setPickupPersons,
   pickupSaved,
   onPickupSave,
-  feePaid,
   onFeePay,
+  onEnrollmentFeePay,
+  onSupplyFeePay,
 }: {
   activeChildId: ChildId;
   setActiveChildId: (id: ChildId) => void;
+  checklistItems: ChecklistItem[];
   completions: boolean[];
   enrolled: boolean;
   isJakePending: boolean;
@@ -2062,17 +2228,18 @@ function EnrollmentPage({
   setPickupPersons: (p: DemoAuthorizedPerson[]) => void;
   pickupSaved: boolean;
   onPickupSave: () => void;
-  feePaid: boolean;
   onFeePay: () => void;
+  onEnrollmentFeePay: () => void;
+  onSupplyFeePay: () => void;
 }) {
   const [activeItem, setActiveItem] = useState<ModalId>(
-    CHECKLIST_ITEMS[0].modal,
+    checklistItems[0].modal,
   );
 
-  const reqCompleted = CHECKLIST_ITEMS.filter(
+  const reqCompleted = checklistItems.filter(
     (i) => i.required && completions[i.id - 1],
   ).length;
-  const reqTotal = CHECKLIST_ITEMS.filter((i) => i.required).length;
+  const reqTotal = checklistItems.filter((i) => i.required).length;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -2135,7 +2302,7 @@ function EnrollmentPage({
             </div>
             {/* Form list */}
             <div className="overflow-y-auto flex-1 divide-y divide-gray-100">
-              {CHECKLIST_ITEMS.map((item) => {
+              {checklistItems.map((item) => {
                 const done = completions[item.id - 1];
                 const Icon = item.icon;
                 const isActive = activeItem === item.modal;
@@ -2213,6 +2380,16 @@ function EnrollmentPage({
                     onSign={onSign}
                   />
                 )}
+                {activeItem === "standard-enrollment" && (
+                  <ContractModal
+                    inline
+                    contractId="standard"
+                    sections={ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS}
+                    title="Standard Enrollment Agreement"
+                    sigs={sigs}
+                    onSign={onSign}
+                  />
+                )}
                 {activeItem === "health-form" && (
                   <HealthFormModal
                     inline
@@ -2282,6 +2459,26 @@ function EnrollmentPage({
                     onPay={onFeePay}
                   />
                 )}
+                {activeItem === "enrollment-fee" && (
+                  <FeePaymentModal
+                    inline
+                    title="Enrollment Fee"
+                    amount="$150.00"
+                    description="One-time enrollment fee"
+                    successMessage="Your enrollment fee is confirmed."
+                    onPay={onEnrollmentFeePay}
+                  />
+                )}
+                {activeItem === "supply-fee" && (
+                  <FeePaymentModal
+                    inline
+                    title="Supply Fee"
+                    amount="$150.00"
+                    description="Annual supply fee"
+                    successMessage="Your supply fee is confirmed."
+                    onPay={onSupplyFeePay}
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -2292,25 +2489,27 @@ function EnrollmentPage({
 }
 
 function ChecklistView({
+  checklistItems,
   completions,
   onOpen,
   enrolled,
 }: {
+  checklistItems: ChecklistItem[];
   completions: boolean[];
   onOpen: (modal: ModalId) => void;
   enrolled: boolean;
 }) {
-  const required = CHECKLIST_ITEMS.filter((i) => i.required);
+  const required = checklistItems.filter((i) => i.required);
   const completedRequired = required.filter((_, idx) => {
-    const item = CHECKLIST_ITEMS.find(
+    const item = checklistItems.find(
       (ci) => ci.required && required.indexOf(ci) === idx,
     );
     return item ? completions[item.id - 1] : false;
   }).length;
-  const reqCompleted = CHECKLIST_ITEMS.filter(
+  const reqCompleted = checklistItems.filter(
     (i) => i.required && completions[i.id - 1],
   ).length;
-  const reqTotal = CHECKLIST_ITEMS.filter((i) => i.required).length;
+  const reqTotal = checklistItems.filter((i) => i.required).length;
 
   return (
     <div className="space-y-0">
@@ -2339,7 +2538,7 @@ function ChecklistView({
         <ProgressBar value={reqCompleted} max={reqTotal} />
       </div>
       <div className="divide-y divide-gray-100">
-        {CHECKLIST_ITEMS.map((item, idx) => {
+        {checklistItems.map((item, idx) => {
           const done = completions[item.id - 1];
           const Icon = item.icon;
           return (
@@ -2778,6 +2977,7 @@ function BillingCheckoutSidebar({
   txIds,
   initialPaymentPlan,
   homeschoolSelections,
+  tuitionOverride,
   onClose,
   onConfirm,
   onOpenHomeschoolPay,
@@ -2785,6 +2985,7 @@ function BillingCheckoutSidebar({
   txIds: string[];
   initialPaymentPlan: PaymentPlan;
   homeschoolSelections: Record<string, Weekday[]>;
+  tuitionOverride?: DemoTuitionOverride | null;
   onClose: () => void;
   onConfirm: (plan: PaymentPlan, txIds: string[]) => void;
   onOpenHomeschoolPay: () => void;
@@ -2798,7 +2999,9 @@ function BillingCheckoutSidebar({
     .filter((t): t is DemoTransaction => !!t);
 
   const subtotal = lineItems.reduce(
-    (sum, t) => sum + getTxCheckoutAmount(t, checkoutPlan, homeschoolSelections),
+    (sum, t) =>
+      sum +
+      getTxCheckoutAmount(t, checkoutPlan, homeschoolSelections, tuitionOverride),
     0,
   );
 
@@ -2813,7 +3016,12 @@ function BillingCheckoutSidebar({
 
   const homeschoolItem = lineItems.find(isHomeschoolDropIn);
   const homeschoolAmount = homeschoolItem
-    ? getTxCheckoutAmount(homeschoolItem, checkoutPlan, homeschoolSelections)
+    ? getTxCheckoutAmount(
+        homeschoolItem,
+        checkoutPlan,
+        homeschoolSelections,
+        tuitionOverride,
+      )
     : 0;
   const canPay = !homeschoolItem || homeschoolAmount > 0;
 
@@ -2875,8 +3083,17 @@ function BillingCheckoutSidebar({
                       Monthly with Autopay
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {formatMoney(SCHOOL_YEAR_MONTHLY_TUITION)}/mo per child · charged
-                      on the 1st
+                      {tuitionOverride ? (
+                        <>
+                          <span className="line-through text-gray-400 mr-1">
+                            {formatMoney(SCHOOL_YEAR_MONTHLY_TUITION)}
+                          </span>
+                          {formatMoney(getSchoolYearAmount("monthly", tuitionOverride))}
+                        </>
+                      ) : (
+                        formatMoney(SCHOOL_YEAR_MONTHLY_TUITION)
+                      )}
+                      /mo per child · charged on the 1st
                     </p>
                   </button>
                   <button
@@ -2890,8 +3107,17 @@ function BillingCheckoutSidebar({
                   >
                     <p className="text-sm font-semibold text-gray-800">Pay in Full</p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {formatMoney(SCHOOL_YEAR_UPFRONT_TUITION)} per child ·{" "}
-                      {SCHOOL_YEAR_LABEL}
+                      {tuitionOverride ? (
+                        <>
+                          <span className="line-through text-gray-400 mr-1">
+                            {formatMoney(SCHOOL_YEAR_UPFRONT_TUITION)}
+                          </span>
+                          {formatMoney(getSchoolYearAmount("upfront", tuitionOverride))}
+                        </>
+                      ) : (
+                        formatMoney(SCHOOL_YEAR_UPFRONT_TUITION)
+                      )}{" "}
+                      per child · {SCHOOL_YEAR_LABEL}
                     </p>
                   </button>
                 </div>
@@ -2908,6 +3134,7 @@ function BillingCheckoutSidebar({
                       t,
                       checkoutPlan,
                       homeschoolSelections,
+                      tuitionOverride,
                     );
                     const isHomeschool = isHomeschoolDropIn(t);
                     return (
@@ -3070,6 +3297,7 @@ function BillingPage({
   homeschoolSelections,
   paidHomeschoolDetails,
   onOpenHomeschoolPay,
+  tuitionOverride,
 }: {
   activeChildId: ChildId;
   paidInvoices: Set<string>;
@@ -3079,6 +3307,7 @@ function BillingPage({
   homeschoolSelections: Record<string, Weekday[]>;
   paidHomeschoolDetails: Record<string, { amount: string; scheduleNote: string }>;
   onOpenHomeschoolPay: (childId: ChildId) => void;
+  tuitionOverride?: DemoTuitionOverride | null;
 }) {
   const [childFilter, setChildFilter] = useState<ChildId | "all">("all");
   const [selectedHistoryMonthId, setSelectedHistoryMonthId] = useState(
@@ -3103,7 +3332,7 @@ function BillingPage({
     }
     if (isSchoolYearTuition(t)) {
       if (t.status === "paid") return t.amount;
-      return formatMoney(getSchoolYearAmount(paymentPlan));
+      return formatMoney(getSchoolYearAmount(paymentPlan, tuitionOverride));
     }
     return t.amount;
   };
@@ -3282,6 +3511,22 @@ function BillingPage({
             ) : null}
           </div>
 
+          {tuitionOverride && (
+            <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-[#827096]/8 border border-[#827096]/15">
+              <Percent className="w-4 h-4 text-[#827096] shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-gray-800">
+                  Custom rate applied
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {formatTuitionOverrideSummary(tuitionOverride)} ·{" "}
+                  {formatMoney(getSchoolYearAmount("monthly", tuitionOverride))}/mo
+                  instead of {formatMoney(SCHOOL_YEAR_MONTHLY_TUITION)}/mo
+                </p>
+              </div>
+            </div>
+          )}
+
       {/* ── Pending invoices ─────────────────────────────────────────── */}
       <section>
         <div className="flex items-center justify-between mb-2">
@@ -3364,9 +3609,24 @@ function BillingPage({
                       </div>
                     </div>
                     <div className="mt-auto flex items-center justify-between gap-3 pt-1">
-                      <span className="font-semibold text-gray-800 text-base tabular-nums">
-                        {getDisplayAmount(t)}
-                      </span>
+                      {isSchoolYearTuition(t) &&
+                      tuitionOverride &&
+                      t.status === "pending" ? (
+                        <span className="flex items-center gap-2 tabular-nums">
+                          <span className="text-sm text-gray-400 line-through">
+                            {formatMoney(
+                              getSchoolYearAmount(paymentPlan, null),
+                            )}
+                          </span>
+                          <span className="font-semibold text-gray-800 text-base">
+                            {getDisplayAmount(t)}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-gray-800 text-base tabular-nums">
+                          {getDisplayAmount(t)}
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -3943,15 +4203,17 @@ function CalendarPage({
 }
 
 function FormsPage({
+  checklistItems,
   completions,
   onOpen,
 }: {
+  checklistItems: ChecklistItem[];
   completions: boolean[];
   onOpen: (modal: ModalId) => void;
 }) {
   return (
     <div className="bg-white border border-gray-100 rounded-2xl divide-y divide-gray-50 shadow-sm overflow-hidden">
-      {CHECKLIST_ITEMS.map((item) => {
+      {checklistItems.map((item) => {
         const done = completions[item.id - 1];
         const Icon = item.icon;
         return (
@@ -4162,11 +4424,17 @@ function HomeAttendanceSidebar({
   );
 }
 
-function HomeOnboardingSidebar({ onClose }: { onClose: () => void }) {
-  // Pre-seeded completions matching Emma's state: contracts 1 & 2 + assumption of risk done
-  const completedIds = new Set([1, 2, 3, 5, 6, 7, 8, 10]);
-  const reqTotal = CHECKLIST_ITEMS.filter((i) => !i.optional).length;
-  const reqCompleted = CHECKLIST_ITEMS.filter(
+function HomeOnboardingSidebar({
+  onClose,
+  checklistItems,
+  completedIds,
+}: {
+  onClose: () => void;
+  checklistItems: ChecklistItem[];
+  completedIds: Set<number>;
+}) {
+  const reqTotal = checklistItems.filter((i) => !i.optional).length;
+  const reqCompleted = checklistItems.filter(
     (i) => !i.optional && completedIds.has(i.id),
   ).length;
 
@@ -4219,7 +4487,7 @@ function HomeOnboardingSidebar({ onClose }: { onClose: () => void }) {
 
         {/* Checklist items — read-only */}
         <div className="flex flex-col divide-y divide-gray-50 flex-1">
-          {CHECKLIST_ITEMS.map((item) => {
+          {checklistItems.map((item) => {
             const done = completedIds.has(item.id);
             const Icon = item.icon;
             return (
@@ -4271,6 +4539,8 @@ function HomeDashboard({
   onboardingOpen,
   setOnboardingOpen,
   isEnrolledByChild,
+  checklistItems,
+  onboardingCompletedIds,
 }: {
   onTabChange: (t: NavTab) => void;
   attendanceChildId: ChildId | null;
@@ -4278,6 +4548,8 @@ function HomeDashboard({
   onboardingOpen: boolean;
   setOnboardingOpen: (v: boolean) => void;
   isEnrolledByChild: Record<ChildId, boolean>;
+  checklistItems: ChecklistItem[];
+  onboardingCompletedIds: Set<number>;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -4652,6 +4924,8 @@ function HomeDashboard({
           <HomeOnboardingSidebar
             key="home-onboarding-sidebar"
             onClose={() => setOnboardingOpen(false)}
+            checklistItems={checklistItems}
+            completedIds={onboardingCompletedIds}
           />
         )}
       </AnimatePresence>
@@ -4839,7 +5113,26 @@ const TOUR_RESUME_MS = 1500;
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 
-export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", disableTour = true, hideNav = false }: { initialTab?: NavTab; disableTour?: boolean; hideNav?: boolean }) {
+export default function RootedMeadowsParentDashboardDemo({
+  initialTab = "home",
+  disableTour = true,
+  hideNav = false,
+  enrollmentVariant = "default",
+  tuitionOverride,
+}: {
+  initialTab?: NavTab;
+  disableTour?: boolean;
+  hideNav?: boolean;
+  enrollmentVariant?: EnrollmentVariant;
+  tuitionOverride?: DemoTuitionOverride | null;
+}) {
+  const checklistItems = getChecklistItems(enrollmentVariant);
+  const requiredChecklistIndices = getRequiredChecklistIndices(enrollmentVariant);
+  const onboardingCompletedIds =
+    enrollmentVariant === "prototype"
+      ? getPrototypeOnboardingCompletedIds()
+      : getDefaultOnboardingCompletedIds();
+
   const [activeNavTab, setActiveNavTab] = useState<NavTab>(initialTab);
   const [activeChildId, setActiveChildId] = useState<ChildId>("emma");
   const [openModal, setOpenModal] = useState<ModalId>(null);
@@ -4853,6 +5146,9 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
     "2-1": "Sarah Whitmore",
     "2-2": "Sarah Whitmore",
     "2-3": "Sarah Whitmore",
+    "std-2-1": "Sarah Whitmore",
+    "std-2-2": "Sarah Whitmore",
+    "std-2-3": "Sarah Whitmore",
     "3-1": "Sarah Whitmore",
     "3-2": "Sarah Whitmore",
     "5-3": "Sarah Whitmore",
@@ -4870,6 +5166,9 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
     "2-1": "Sarah Whitmore",
     "2-2": "Sarah Whitmore",
     "2-3": "Sarah Whitmore",
+    "std-2-1": "Sarah Whitmore",
+    "std-2-2": "Sarah Whitmore",
+    "std-2-3": "Sarah Whitmore",
     "3-1": "Sarah Whitmore",
     "3-2": "Sarah Whitmore",
     "5-3": "Sarah Whitmore",
@@ -4899,6 +5198,14 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
     Record<ChildId, number>
   >({ emma: 1, jake: 0, liam: 1 });
   const [feePaid, setFeePaid] = useState<Record<ChildId, boolean>>({
+    emma: true,
+    jake: false,
+    liam: true,
+  });
+  const [enrollmentFeePaid, setEnrollmentFeePaid] = useState<
+    Record<ChildId, boolean>
+  >({ emma: true, jake: false, liam: true });
+  const [supplyFeePaid, setSupplyFeePaid] = useState<Record<ChildId, boolean>>({
     emma: true,
     jake: false,
     liam: true,
@@ -5148,7 +5455,12 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
         clickAnimation: true,
       },
       {
-        action: () => setOpenModal("contract-1"),
+        action: () =>
+          setOpenModal(
+            enrollmentVariant === "prototype"
+              ? "standard-enrollment"
+              : "contract-1",
+          ),
         targetId: "checklist-item-0",
         holdMs: 2200,
         clickAnimation: true,
@@ -5256,7 +5568,7 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
         clickAnimation: true,
       },
     ],
-    [sendMsgFromTour],
+    [sendMsgFromTour, enrollmentVariant],
   );
 
   useEffect(() => {
@@ -5363,46 +5675,55 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
     setFeedCommentInputs({ ...feedCommentInputs, [postId]: "" });
   };
   // Completion logic
+  const completionState = {
+    healthFormSaved,
+    immunizationCount,
+    healthStatement,
+    photoConsent,
+    pickupSaved,
+    feePaid,
+    enrollmentFeePaid,
+    supplyFeePaid,
+  };
   const sigs = activeSigs;
-  const completions = [
-    C1_SECTIONS.every((s) => sigs[s.id]), // 1
-    C2_SECTIONS.every((s) => sigs[s.id]), // 2
-    healthFormSaved[activeChildId] && !!sigs["3-1"] && !!sigs["3-2"], // 3
-    !!sigs["4-1"], // 4 optional
-    immunizationCount[activeChildId] > 0, // 5
-    !!healthStatement[activeChildId] && !!sigs["8-1"], // 6
-    !!photoConsent[activeChildId] && !!sigs["5-3"], // 7
-    !!sigs["6-1"], // 8
-    pickupSaved[activeChildId] && !!sigs["7-1"], // 9 optional
-    feePaid[activeChildId], // 10
-  ];
+  const completions = buildChildCompletions(
+    enrollmentVariant,
+    activeChildId,
+    sigs,
+    completionState,
+  );
 
-  const requiredItems = [0, 1, 2, 4, 5, 6, 7, 9]; // 0-indexed positions that are required
-  const isEnrolled = requiredItems.every((i) => completions[i]);
+  const isEnrolled = requiredChecklistIndices.every((i) => completions[i]);
 
   const isEnrolledByChild = useMemo((): Record<ChildId, boolean> => {
-    const check = (childId: ChildId, childSigs: Record<string, string>): boolean => {
-      const c = [
-        C1_SECTIONS.every((s) => !!childSigs[s.id]),
-        C2_SECTIONS.every((s) => !!childSigs[s.id]),
-        healthFormSaved[childId] && !!childSigs["3-1"] && !!childSigs["3-2"],
-        !!childSigs["4-1"],
-        immunizationCount[childId] > 0,
-        !!healthStatement[childId] && !!childSigs["8-1"],
-        !!photoConsent[childId] && !!childSigs["5-3"],
-        !!childSigs["6-1"],
-        pickupSaved[childId] && !!childSigs["7-1"],
-        feePaid[childId],
-      ];
-      return requiredItems.every((i) => c[i]);
-    };
+    const check = (childId: ChildId, childSigs: Record<string, string>) =>
+      requiredChecklistIndices.every((i) =>
+        buildChildCompletions(
+          enrollmentVariant,
+          childId,
+          childSigs,
+          completionState,
+        )[i],
+      );
     return {
       emma: check("emma", signaturesEmma),
       jake: false,
       liam: check("liam", signaturesLiam),
     };
-  }, [signaturesEmma, signaturesLiam, healthFormSaved, immunizationCount,
-      healthStatement, photoConsent, feePaid, pickupSaved]);
+  }, [
+    enrollmentVariant,
+    requiredChecklistIndices,
+    signaturesEmma,
+    signaturesLiam,
+    healthFormSaved,
+    immunizationCount,
+    healthStatement,
+    photoConsent,
+    feePaid,
+    enrollmentFeePaid,
+    supplyFeePaid,
+    pickupSaved,
+  ]);
 
 
   const pageTitle: Record<NavTab, string> = {
@@ -5451,6 +5772,8 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
                   onboardingOpen={homeOnboardingOpen}
                   setOnboardingOpen={setHomeOnboardingOpen}
                   isEnrolledByChild={isEnrolledByChild}
+                  checklistItems={checklistItems}
+                  onboardingCompletedIds={onboardingCompletedIds}
                 />
               )}
               {activeNavTab === "enrollment" && (
@@ -5458,6 +5781,7 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
                   key={activeChildId}
                   activeChildId={activeChildId}
                   setActiveChildId={setActiveChildId}
+                  checklistItems={checklistItems}
                   completions={completions}
                   enrolled={isEnrolled}
                   isJakePending={activeChildId === "jake"}
@@ -5498,9 +5822,14 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
                   onPickupSave={() =>
                     setPickupSaved((p) => ({ ...p, [activeChildId]: true }))
                   }
-                  feePaid={feePaid[activeChildId]}
                   onFeePay={() =>
                     setFeePaid((p) => ({ ...p, [activeChildId]: true }))
+                  }
+                  onEnrollmentFeePay={() =>
+                    setEnrollmentFeePaid((p) => ({ ...p, [activeChildId]: true }))
+                  }
+                  onSupplyFeePay={() =>
+                    setSupplyFeePaid((p) => ({ ...p, [activeChildId]: true }))
                   }
                 />
               )}
@@ -5807,11 +6136,16 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
                       homeschoolSelections={homeschoolSelections}
                       paidHomeschoolDetails={paidHomeschoolDetails}
                       onOpenHomeschoolPay={(childId) => openHomeschoolPay(childId)}
+                      tuitionOverride={tuitionOverride}
                     />
                   )}
 
                   {activeNavTab === "forms" && (
-                    <FormsPage completions={completions} onOpen={setOpenModal} />
+                    <FormsPage
+                      checklistItems={checklistItems}
+                      completions={completions}
+                      onOpen={setOpenModal}
+                    />
                   )}
 
                   {activeNavTab === "volunteer" && <VolunteerPage />}
@@ -5845,6 +6179,17 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
             contractId="2"
             sections={C2_SECTIONS}
             title="Community Agreement"
+            sigs={activeSigs}
+            onSign={handleSign}
+            onClose={() => setOpenModal(null)}
+          />
+        )}
+        {openModal === "standard-enrollment" && (
+          <ContractModal
+            key="standard-enrollment"
+            contractId="standard"
+            sections={ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS}
+            title="Standard Enrollment Agreement"
             sigs={activeSigs}
             onSign={handleSign}
             onClose={() => setOpenModal(null)}
@@ -5949,6 +6294,34 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
             onClose={() => setOpenModal(null)}
           />
         )}
+        {openModal === "enrollment-fee" && (
+          <FeePaymentModal
+            key="enrollment-fee"
+            title="Enrollment Fee"
+            amount="$150.00"
+            description="One-time enrollment fee"
+            successMessage="Your enrollment fee is confirmed."
+            onPay={() => {
+              setEnrollmentFeePaid((p) => ({ ...p, [activeChildId]: true }));
+              setOpenModal(null);
+            }}
+            onClose={() => setOpenModal(null)}
+          />
+        )}
+        {openModal === "supply-fee" && (
+          <FeePaymentModal
+            key="supply-fee"
+            title="Supply Fee"
+            amount="$150.00"
+            description="Annual supply fee"
+            successMessage="Your supply fee is confirmed."
+            onPay={() => {
+              setSupplyFeePaid((p) => ({ ...p, [activeChildId]: true }));
+              setOpenModal(null);
+            }}
+            onClose={() => setOpenModal(null)}
+          />
+        )}
         {billingInvoiceSidebarOpen && (
           <InvoiceSidebar
             key="invoice-sidebar"
@@ -5961,6 +6334,7 @@ export default function RootedMeadowsParentDashboardDemo({ initialTab = "home", 
             txIds={checkoutTxIds}
             initialPaymentPlan={paymentPlan}
             homeschoolSelections={homeschoolSelections}
+            tuitionOverride={tuitionOverride}
             onClose={() => {
               setCheckoutOpen(false);
               setCheckoutTxIds([]);

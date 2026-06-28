@@ -75,6 +75,9 @@ import {
   prefetchLuffLearningAdminDemo,
 } from "@/components/demo/lufflearning/lazyLuffLearningDemos";
 
+import type { DemoWalkthroughMySchoolTab } from "@/data/school-demos/walkthrough-placeholder";
+import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
+
 const DESIGN_WIDTH = 1440;
 
 export default function ScaledAdminDemoPreview({
@@ -89,6 +92,14 @@ export default function ScaledAdminDemoPreview({
   autoSendEnrollmentLinkDelayMs,
   openInitialLeadDetail,
   hideLeadDetailEnrollmentAction,
+  highlightSendEnrollmentLeadId,
+  initialAdminPage,
+  initialMySchoolTab,
+  initialSelectedTuitionFamilyId,
+  openInitialTuitionAdjustModal,
+  openInitialTuitionAdjustModalDelayMs,
+  tuitionOverride,
+  onTuitionOverrideApplied,
 }: {
   demoSlug?: string;
   initialAdmissionsTab?: "flows" | "submissions";
@@ -101,6 +112,14 @@ export default function ScaledAdminDemoPreview({
   autoSendEnrollmentLinkDelayMs?: number;
   openInitialLeadDetail?: boolean;
   hideLeadDetailEnrollmentAction?: boolean;
+  highlightSendEnrollmentLeadId?: string;
+  initialAdminPage?: "myschool";
+  initialMySchoolTab?: DemoWalkthroughMySchoolTab;
+  initialSelectedTuitionFamilyId?: string;
+  openInitialTuitionAdjustModal?: boolean;
+  openInitialTuitionAdjustModalDelayMs?: number;
+  tuitionOverride?: DemoTuitionOverride | null;
+  onTuitionOverrideApplied?: (override: DemoTuitionOverride | null) => void;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
@@ -203,7 +222,7 @@ export default function ScaledAdminDemoPreview({
           }}
         >
           <DemoComponent
-            initialPage="leads"
+            initialPage={initialAdminPage ?? "leads"}
             initialAdmissionsTab={initialAdmissionsTab}
             initialSelectedLeadId={initialSelectedLeadId}
             initialSelectedLeadStatus={initialSelectedLeadStatus}
@@ -216,6 +235,17 @@ export default function ScaledAdminDemoPreview({
             autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
             openInitialLeadDetail={openInitialLeadDetail}
             hideLeadDetailEnrollmentAction={hideLeadDetailEnrollmentAction}
+            highlightSendEnrollmentLeadId={highlightSendEnrollmentLeadId}
+            {...(isRootedMeadows
+              ? {
+                  initialMySchoolTab,
+                  initialSelectedTuitionFamilyId,
+                  openInitialTuitionAdjustModal,
+                  openInitialTuitionAdjustModalDelayMs,
+                  tuitionOverride,
+                  onTuitionOverrideApplied,
+                }
+              : {})}
           />
         </div>
       </div>

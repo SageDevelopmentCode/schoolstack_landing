@@ -22,6 +22,12 @@ import {
   type EnrollmentOutcomePathId,
 } from "@/data/school-demos/rooted-meadows-enrollment-contracts";
 import {
+  computeAdjustedAmount,
+  formatTuitionOverrideSummary,
+  type DemoTuitionOverride,
+  type TuitionAdjustType,
+} from "@/data/school-demos/tuition-override";
+import {
   LayoutDashboard,
   TrendingUp,
   Users,
@@ -81,6 +87,7 @@ import {
   Camera,
   AlertTriangle,
   UserPlus,
+  Percent,
 } from "lucide-react";
 
 // ─── Backdrop context — lets page sub-components show a full-demo backdrop ────
@@ -4571,6 +4578,7 @@ function LeadTableRow({
   lead,
   onSelectLead,
   onSendEnrollment,
+  highlightSendEnrollment = false,
   initial,
   animate,
   transition,
@@ -4578,6 +4586,7 @@ function LeadTableRow({
   lead: DemoLead;
   onSelectLead: (lead: DemoLead) => void;
   onSendEnrollment?: (lead: DemoLead) => void;
+  highlightSendEnrollment?: boolean;
   initial?: { opacity: number; x?: number; y?: number };
   animate?: { opacity: number; x?: number; y?: number; backgroundColor?: string | string[] };
   transition?: {
@@ -4589,6 +4598,55 @@ function LeadTableRow({
 }) {
   const actionLabel = getLeadSubmissionActionLabel(lead.status);
   const isSecondaryAction = isLeadSubmissionSecondaryAction(lead.status);
+  const showSendEnrollmentHint =
+    highlightSendEnrollment && actionLabel === "Send Enrollment";
+
+  const actionButton = actionLabel ? (
+    <motion.button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (actionLabel === "Send Enrollment" && onSendEnrollment) {
+          onSendEnrollment(lead);
+        }
+      }}
+      animate={
+        showSendEnrollmentHint
+          ? {
+              boxShadow: [
+                `0 0 0 0 rgba(130, 112, 150, 0.65)`,
+                `0 0 0 10px rgba(130, 112, 150, 0)`,
+                `0 0 0 0 rgba(130, 112, 150, 0.65)`,
+              ],
+            }
+          : undefined
+      }
+      transition={
+        showSendEnrollmentHint
+          ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" }
+          : undefined
+      }
+      className={`whitespace-nowrap rounded-sm px-3.5 py-2 text-xs font-semibold transition-opacity hover:opacity-90${
+        showSendEnrollmentHint ? " ring-2 ring-offset-1 ring-[#827096]" : ""
+      }`}
+      style={
+        isSecondaryAction
+          ? {
+              backgroundColor: C.accentLight,
+              color: C.accent,
+              border: `1px solid ${C.secondaryBtnBorder}`,
+            }
+          : {
+              backgroundColor: C.accent,
+              color: "#fff",
+              border: `1px solid ${C.accentDark}`,
+            }
+      }
+    >
+      {actionLabel}
+    </motion.button>
+  ) : null;
+
   const rowProps = {
     onClick: () => onSelectLead(lead),
     className: "cursor-pointer transition-colors",
@@ -4691,35 +4749,26 @@ function LeadTableRow({
         </div>
       </td>
       <td className="min-w-[11rem] px-4 py-3">
-        {actionLabel ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (
-                actionLabel === "Send Enrollment" &&
-                onSendEnrollment
-              ) {
-                onSendEnrollment(lead);
-              }
-            }}
-            className="whitespace-nowrap rounded-sm px-3.5 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
-            style={
-              isSecondaryAction
-                ? {
-                    backgroundColor: C.accentLight,
-                    color: C.accent,
-                    border: `1px solid ${C.secondaryBtnBorder}`,
-                  }
-                : {
-                    backgroundColor: C.accent,
-                    color: "#fff",
-                    border: `1px solid ${C.accentDark}`,
-                  }
-            }
-          >
-            {actionLabel}
-          </button>
+        {actionButton ? (
+          showSendEnrollmentHint ? (
+            <div className="inline-flex flex-col items-center gap-0.5">
+              {actionButton}
+              <motion.span
+                aria-hidden
+                animate={{ y: [0, -4, 0] }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="text-lg leading-none select-none"
+              >
+                👆
+              </motion.span>
+            </div>
+          ) : (
+            actionButton
+          )
         ) : (
           <span className="text-xs" style={{ color: C.textTertiary }}>
             —
@@ -4755,12 +4804,14 @@ function LeadsListTab({
   animateNewSubmission = false,
   leadWalkthroughOverride,
   leadStatusOverrides,
+  highlightSendEnrollmentLeadId,
   onOpenEnrollmentModal,
 }: {
   onSelectLead: (lead: DemoLead) => void;
   animateNewSubmission?: boolean;
   leadWalkthroughOverride?: LeadWalkthroughOverride;
   leadStatusOverrides: Record<string, Partial<DemoLead>>;
+  highlightSendEnrollmentLeadId?: string;
   onOpenEnrollmentModal: (lead: DemoLead) => void;
 }) {
   const applyOverride = (lead: DemoLead) =>
@@ -4777,6 +4828,12 @@ function LeadsListTab({
   const [newSubmissionRevealed, setNewSubmissionRevealed] = useState(
     !animateNewSubmission,
   );
+  const [sendEnrollmentHintDismissed, setSendEnrollmentHintDismissed] =
+    useState(false);
+
+  useEffect(() => {
+    setSendEnrollmentHintDismissed(false);
+  }, [highlightSendEnrollmentLeadId]);
 
   useEffect(() => {
     if (!animateNewSubmission) {
@@ -4796,8 +4853,21 @@ function LeadsListTab({
   });
 
   function handleSendEnrollment(lead: DemoLead) {
+    if (
+      highlightSendEnrollmentLeadId &&
+      lead.id === highlightSendEnrollmentLeadId
+    ) {
+      setSendEnrollmentHintDismissed(true);
+    }
     onOpenEnrollmentModal(mergeLeadOverrides(lead));
   }
+
+  const shouldHighlightSendEnrollment = (leadId: string) =>
+    Boolean(
+      highlightSendEnrollmentLeadId &&
+        !sendEnrollmentHintDismissed &&
+        leadId === highlightSendEnrollmentLeadId,
+    );
 
   const newLead = animateNewSubmission
     ? filtered.find((l) => l.id === NEW_SUBMISSION_LEAD_ID)
@@ -4911,6 +4981,9 @@ function LeadsListTab({
                         lead={mergeLeadOverrides(newLead)}
                         onSelectLead={handleSelectLead}
                         onSendEnrollment={handleSendEnrollment}
+                        highlightSendEnrollment={shouldHighlightSendEnrollment(
+                          newLead.id,
+                        )}
                         initial={{ opacity: 0, x: 56 }}
                         animate={{
                           opacity: 1,
@@ -4931,6 +5004,9 @@ function LeadsListTab({
                       lead={mergeLeadOverrides(lead)}
                       onSelectLead={handleSelectLead}
                       onSendEnrollment={handleSendEnrollment}
+                      highlightSendEnrollment={shouldHighlightSendEnrollment(
+                        lead.id,
+                      )}
                     />
                   ))}
                 </>
@@ -4941,6 +5017,9 @@ function LeadsListTab({
                     lead={mergeLeadOverrides(lead)}
                     onSelectLead={handleSelectLead}
                     onSendEnrollment={handleSendEnrollment}
+                    highlightSendEnrollment={shouldHighlightSendEnrollment(
+                      lead.id,
+                    )}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
@@ -7798,6 +7877,7 @@ function AdmissionsPage({
   autoSendEnrollmentLinkDelayMs,
   openInitialLeadDetail,
   hideLeadDetailEnrollmentAction,
+  highlightSendEnrollmentLeadId,
   leadStatusOverrides,
   onOpenEnrollmentModal,
 }: {
@@ -7811,6 +7891,7 @@ function AdmissionsPage({
   autoSendEnrollmentLinkDelayMs?: number;
   openInitialLeadDetail?: boolean;
   hideLeadDetailEnrollmentAction?: boolean;
+  highlightSendEnrollmentLeadId?: string;
   leadStatusOverrides: Record<string, Partial<DemoLead>>;
   onOpenEnrollmentModal: (lead: DemoLead) => void;
 }) {
@@ -7864,6 +7945,7 @@ function AdmissionsPage({
               animateNewSubmission={animateNewSubmission}
               leadWalkthroughOverride={leadWalkthroughOverride}
               leadStatusOverrides={leadStatusOverrides}
+              highlightSendEnrollmentLeadId={highlightSendEnrollmentLeadId}
               onOpenEnrollmentModal={onOpenEnrollmentModal}
             />
           </motion.div>
@@ -11604,6 +11686,7 @@ type DemoFamilyBilling = {
   summer: TuitionScheduleItem[];
   schoolYear: TuitionScheduleItem[];
   upcoming: UpcomingCharge[];
+  tuitionOverride?: DemoTuitionOverride;
 };
 
 const SUMMER_WEEK_AMOUNT = 900;
@@ -11680,14 +11763,14 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     initials: "SR",
     color: "#5E7C68",
     children: ["Emma Richardson"],
-    programs: ["Summer 2026", "School Year 26–27"],
+    programs: ["School Year 26–27"],
     balanceDue: 1800,
     paidYtd: 16250,
     nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
     autopayOn: true,
     paymentMethod: "Visa ·••• 4242",
     status: "current",
-    summer: buildSummerWeeks(8),
+    summer: [],
     schoolYear: buildSchoolYearMonths(6, 6),
     upcoming: [
       {
@@ -11697,14 +11780,6 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
         dueDate: "Apr 1, 2026",
         program: "School Year 26–27",
         status: "sent",
-      },
-      {
-        id: "u2",
-        label: "Week 9",
-        amount: 900,
-        dueDate: "May 24, 2026",
-        program: "Summer 2026",
-        status: "scheduled",
       },
     ],
   },
@@ -11716,31 +11791,31 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     initials: "MT",
     color: "#38BDF8",
     children: ["Liam Torres"],
-    programs: ["Summer 2026", "School Year 26–27"],
-    balanceDue: 4500,
+    programs: ["School Year 26–27"],
+    balanceDue: 3600,
     paidYtd: 11700,
-    nextDue: { date: "May 17, 2026", amount: 900, label: "Week 6" },
+    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
     autopayOn: true,
     paymentMethod: "Visa ·••• 8812",
     status: "overdue",
-    summer: buildSummerWeeks(5, 5),
-    schoolYear: buildSchoolYearMonths(5),
+    summer: [],
+    schoolYear: buildSchoolYearMonths(5, undefined, 5),
     upcoming: [
-      {
-        id: "u3",
-        label: "Week 6",
-        amount: 900,
-        dueDate: "May 17, 2026",
-        program: "Summer 2026",
-        status: "overdue",
-      },
       {
         id: "u4",
         label: "Feb Tuition",
         amount: 1800,
         dueDate: "Apr 1, 2026",
         program: "School Year 26–27",
-        status: "sent",
+        status: "overdue",
+      },
+      {
+        id: "u4b",
+        label: "Jan Tuition",
+        amount: 1800,
+        dueDate: "Mar 1, 2026",
+        program: "School Year 26–27",
+        status: "overdue",
       },
     ],
   },
@@ -11752,22 +11827,22 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     initials: "DF",
     color: "#F59E0B",
     children: ["Noah Foster"],
-    programs: ["Summer 2026"],
+    programs: ["School Year 26–27"],
     balanceDue: 1800,
     paidYtd: 9950,
-    nextDue: { date: "Jun 7, 2026", amount: 900, label: "Week 11" },
+    nextDue: { date: "May 1, 2026", amount: 1800, label: "Apr Tuition" },
     autopayOn: true,
     paymentMethod: "Mastercard ·••• 3341",
     status: "current",
-    summer: buildSummerWeeks(10),
-    schoolYear: [],
+    summer: [],
+    schoolYear: buildSchoolYearMonths(7),
     upcoming: [
       {
         id: "u5",
-        label: "Week 11",
-        amount: 900,
-        dueDate: "Jun 7, 2026",
-        program: "Summer 2026",
+        label: "Apr Tuition",
+        amount: 1800,
+        dueDate: "May 1, 2026",
+        program: "School Year 26–27",
         status: "scheduled",
       },
     ],
@@ -11779,13 +11854,13 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     initials: "JW",
     color: "#22C55E",
     children: ["Tyler Watkins"],
-    programs: ["Summer 2026", "School Year 26–27"],
+    programs: ["School Year 26–27"],
     balanceDue: 0,
     paidYtd: 24100,
     autopayOn: true,
     paymentMethod: "Visa ·••• 9921",
     status: "current",
-    summer: buildSummerWeeks(12).map((w) => ({ ...w, state: "paid" as const })),
+    summer: [],
     schoolYear: buildSchoolYearMonths(10).map((m) => ({
       ...m,
       state: "paid" as const,
@@ -11809,6 +11884,14 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     status: "current",
     summer: [],
     schoolYear: buildSchoolYearMonths(8),
+    tuitionOverride: {
+      familyId: "fb5",
+      programLabel: "School Year 26–27",
+      standardAmount: SCHOOL_YEAR_MONTHLY,
+      type: "percent_discount",
+      value: 10,
+      reason: "Financial aid",
+    },
     upcoming: [
       {
         id: "u6",
@@ -11828,22 +11911,22 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     initials: "YN",
     color: "#06B6D4",
     children: ["Lily Nakamura"],
-    programs: ["Summer 2026", "School Year 26–27"],
-    balanceDue: 900,
+    programs: ["School Year 26–27"],
+    balanceDue: 1800,
     paidYtd: 15400,
-    nextDue: { date: "Apr 15, 2026", amount: 900, label: "Week 4" },
+    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
     autopayOn: false,
     paymentMethod: "Visa ·••• 5510",
     status: "invoice_sent",
-    summer: buildSummerWeeks(3, 3),
-    schoolYear: buildSchoolYearMonths(7),
+    summer: [],
+    schoolYear: buildSchoolYearMonths(7, 7),
     upcoming: [
       {
         id: "u7",
-        label: "Week 4",
-        amount: 900,
-        dueDate: "Apr 15, 2026",
-        program: "Summer 2026",
+        label: "Feb Tuition",
+        amount: 1800,
+        dueDate: "Apr 1, 2026",
+        program: "School Year 26–27",
         status: "sent",
       },
     ],
@@ -11855,7 +11938,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     initials: "AL",
     color: "#EF4444",
     children: ["Sebastian Lee"],
-    programs: ["Summer 2026", "School Year 26–27"],
+    programs: ["School Year 26–27"],
     balanceDue: 3600,
     paidYtd: 8900,
     nextDue: { date: "Apr 2, 2026", amount: 1800, label: "Feb Tuition (failed)" },
@@ -11863,7 +11946,7 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     paymentMethod: "Visa ·••• 1102",
     status: "failed_payment",
     hasFailedPayment: true,
-    summer: buildSummerWeeks(4),
+    summer: [],
     schoolYear: buildSchoolYearMonths(4, undefined, 5),
     upcoming: [
       {
@@ -11883,22 +11966,22 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     initials: "DW",
     color: "#8B5CF6",
     children: ["Mason Wright"],
-    programs: ["Summer 2026", "School Year 26–27"],
-    balanceDue: 900,
+    programs: ["School Year 26–27"],
+    balanceDue: 1800,
     paidYtd: 7200,
-    nextDue: { date: "Apr 5, 2026", amount: 900, label: "Week 3 (processing)" },
+    nextDue: { date: "Apr 1, 2026", amount: 1800, label: "Feb Tuition" },
     autopayOn: false,
     paymentMethod: "ACH ·••• 3390",
     status: "invoice_sent",
-    summer: buildSummerWeeks(2),
-    schoolYear: buildSchoolYearMonths(3),
+    summer: [],
+    schoolYear: buildSchoolYearMonths(3, 3),
     upcoming: [
       {
         id: "u9",
-        label: "Week 3",
-        amount: 900,
-        dueDate: "Apr 5, 2026",
-        program: "Summer 2026",
+        label: "Feb Tuition",
+        amount: 1800,
+        dueDate: "Apr 1, 2026",
+        program: "School Year 26–27",
         status: "sent",
       },
     ],
@@ -11910,22 +11993,22 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
     initials: "JC",
     color: "#A855F7",
     children: ["Ava Chen"],
-    programs: ["Summer 2026"],
+    programs: ["School Year 26–27"],
     balanceDue: 0,
     paidYtd: 5900,
-    nextDue: { date: "May 3, 2026", amount: 900, label: "Week 5" },
+    nextDue: { date: "May 1, 2026", amount: 1800, label: "Apr Tuition" },
     autopayOn: true,
     paymentMethod: "Visa ·••• 6677",
     status: "current",
-    summer: buildSummerWeeks(4),
-    schoolYear: [],
+    summer: [],
+    schoolYear: buildSchoolYearMonths(4),
     upcoming: [
       {
         id: "u10",
-        label: "Week 5",
-        amount: 900,
-        dueDate: "May 3, 2026",
-        program: "Summer 2026",
+        label: "Apr Tuition",
+        amount: 1800,
+        dueDate: "May 1, 2026",
+        program: "School Year 26–27",
         status: "scheduled",
       },
     ],
@@ -13698,6 +13781,12 @@ function TransactionDetailPanel({
 
 type ScheduleProgramKey = "summer" | "schoolYear";
 
+function scheduleKeyForProgram(program: string): ScheduleProgramKey | null {
+  if (program.includes("School Year")) return "schoolYear";
+  if (program.includes("Summer")) return "summer";
+  return null;
+}
+
 function PaymentScheduleSheet({
   family,
   programLabel,
@@ -14389,18 +14478,375 @@ function TuitionReminderModal({
   );
 }
 
+const TUITION_ADJUST_REASONS = [
+  "Sibling discount",
+  "Financial aid",
+  "Staff/faculty",
+  "Custom arrangement",
+] as const;
+
+type ProgramRateRow = {
+  key: "schoolYear" | "summer";
+  label: string;
+  standardAmount: number;
+  billingSuffix: string;
+};
+
+function getFamilyProgramRates(family: DemoFamilyBilling): ProgramRateRow[] {
+  const rates: ProgramRateRow[] = [];
+  if (family.schoolYear.length > 0) {
+    rates.push({
+      key: "schoolYear",
+      label: "School Year 26–27",
+      standardAmount: SCHOOL_YEAR_MONTHLY,
+      billingSuffix: "/mo",
+    });
+  }
+  if (family.summer.length > 0) {
+    rates.push({
+      key: "summer",
+      label: "Summer 2026",
+      standardAmount: SUMMER_WEEK_AMOUNT,
+      billingSuffix: "/wk",
+    });
+  }
+  return rates;
+}
+
+function getEffectiveFamilyOverride(
+  family: DemoFamilyBilling,
+  externalOverride: DemoTuitionOverride | null | undefined,
+  localOverrides: Record<string, DemoTuitionOverride>,
+): DemoTuitionOverride | undefined {
+  if (externalOverride?.familyId === family.id) return externalOverride;
+  if (localOverrides[family.id]) return localOverrides[family.id];
+  return family.tuitionOverride;
+}
+
+function TuitionAdjustModal({
+  family,
+  program,
+  existingOverride,
+  onClose,
+  onSave,
+}: {
+  family: DemoFamilyBilling;
+  program: ProgramRateRow;
+  existingOverride?: DemoTuitionOverride;
+  onClose: () => void;
+  onSave: (override: DemoTuitionOverride) => void;
+}) {
+  const [adjustType, setAdjustType] = useState<TuitionAdjustType>(
+    existingOverride?.type ?? "percent_discount",
+  );
+  const [value, setValue] = useState(
+    () =>
+      existingOverride?.value ??
+      (existingOverride?.type === "custom_amount" ? program.standardAmount : 15),
+  );
+  const [reason, setReason] = useState(
+    existingOverride?.reason ?? TUITION_ADJUST_REASONS[0],
+  );
+  const [saved, setSaved] = useState(false);
+
+  const draftOverride: DemoTuitionOverride = {
+    familyId: family.id,
+    programLabel: program.label,
+    standardAmount: program.standardAmount,
+    type: adjustType,
+    value: Number(value) || 0,
+    reason,
+  };
+  const adjustedAmount = computeAdjustedAmount(draftOverride);
+  const savings = program.standardAmount - adjustedAmount;
+  const fmt = (n: number) => `$${n.toLocaleString()}`;
+
+  useEffect(() => {
+    if (!saved) return;
+    const t = setTimeout(onClose, 1400);
+    return () => clearTimeout(t);
+  }, [saved, onClose]);
+
+  function handleSave() {
+    onSave(draftOverride);
+    setSaved(true);
+  }
+
+  const adjustTypeOptions: { key: TuitionAdjustType; label: string }[] = [
+    { key: "percent_discount", label: "% Discount" },
+    { key: "fixed_discount", label: "$ Discount" },
+    { key: "custom_amount", label: "Custom amount" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.35)", zIndex: 50 }}
+      onClick={onClose}
+      data-tour-id="tuition-adjust-modal"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 12 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        onClick={(e) => e.stopPropagation()}
+        className="flex flex-col overflow-hidden w-full"
+        style={{
+          maxWidth: 520,
+          maxHeight: "min(90vh, 640px)",
+          backgroundColor: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: C.r.xl,
+          boxShadow: C.shadowMedium,
+        }}
+      >
+        <div
+          className="flex items-start justify-between gap-3 px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: `1px solid ${C.border}` }}
+        >
+          <div>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-widest mb-1"
+              style={{ color: C.textTertiary }}
+            >
+              Adjust tuition
+            </p>
+            <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
+              {family.name}
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+              {program.label}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-sm transition-colors"
+            style={{ color: C.textTertiary }}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {saved ? (
+          <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
+            <CheckCircle className="w-10 h-10" style={{ color: C.success }} />
+            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+              Rate saved
+            </p>
+            <p className="text-xs" style={{ color: C.textTertiary }}>
+              Future invoices will use {fmt(adjustedAmount)}
+              {program.billingSuffix}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              <div
+                className="rounded-sm px-3 py-2.5"
+                style={{
+                  backgroundColor: C.accentLight,
+                  border: `1px solid ${C.secondaryBtnBorder}`,
+                }}
+              >
+                <p className="text-[10px] font-medium uppercase tracking-wide mb-0.5" style={{ color: C.textTertiary }}>
+                  Standard program rate
+                </p>
+                <p className="text-lg font-bold tabular-nums" style={{ color: C.textPrimary }}>
+                  {fmt(program.standardAmount)}
+                  <span className="text-sm font-normal" style={{ color: C.textTertiary }}>
+                    {program.billingSuffix}
+                  </span>
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: C.textTertiary }}>
+                  Adjustment type
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {adjustTypeOptions.map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => {
+                        setAdjustType(opt.key);
+                        if (opt.key === "percent_discount") setValue(15);
+                        else if (opt.key === "fixed_discount") setValue(270);
+                        else setValue(program.standardAmount - 270);
+                      }}
+                      className="px-2.5 py-1.5 text-[10px] font-semibold rounded-full transition-colors"
+                      style={{
+                        backgroundColor:
+                          adjustType === opt.key ? C.accentLight : C.elevated,
+                        color: adjustType === opt.key ? C.accent : C.textTertiary,
+                        border: `1px solid ${adjustType === opt.key ? C.accent + "44" : C.border}`,
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-wide mb-1.5 block" style={{ color: C.textTertiary }}>
+                    {adjustType === "percent_discount"
+                      ? "Discount %"
+                      : adjustType === "fixed_discount"
+                        ? "Discount amount"
+                        : "Custom rate"}
+                  </label>
+                  <div
+                    className="flex items-center gap-2 px-2.5 py-2 rounded-sm"
+                    style={{
+                      backgroundColor: C.input,
+                      border: `1px solid ${C.inputBorder}`,
+                    }}
+                  >
+                    {adjustType !== "percent_discount" && (
+                      <span className="text-xs" style={{ color: C.textTertiary }}>$</span>
+                    )}
+                    <input
+                      type="number"
+                      min={0}
+                      value={value}
+                      onChange={(e) => setValue(Number(e.target.value))}
+                      className="bg-transparent border-none outline-none text-sm w-full tabular-nums"
+                      style={{ color: C.textPrimary }}
+                      placeholder={
+                        adjustType === "percent_discount"
+                          ? "15"
+                          : adjustType === "fixed_discount"
+                            ? "270"
+                            : String(program.standardAmount - 270)
+                      }
+                    />
+                    {adjustType === "percent_discount" && (
+                      <span className="text-xs" style={{ color: C.textTertiary }}>%</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-wide mb-1.5 block" style={{ color: C.textTertiary }}>
+                    Reason
+                  </label>
+                  <select
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="w-full px-2.5 py-2 rounded-sm text-sm outline-none"
+                    style={{
+                      backgroundColor: C.input,
+                      border: `1px solid ${C.inputBorder}`,
+                      color: C.textPrimary,
+                    }}
+                  >
+                    {TUITION_ADJUST_REASONS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div
+                className="rounded-sm p-4"
+                style={{
+                  backgroundColor: C.surface,
+                  border: `1px solid ${C.border}`,
+                  boxShadow: C.shadowCard,
+                }}
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-wide mb-3" style={{ color: C.textTertiary }}>
+                  Preview
+                </p>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="text-center flex-1">
+                    <p className="text-[10px] mb-1" style={{ color: C.textTertiary }}>
+                      Standard
+                    </p>
+                    <p className="text-base font-semibold tabular-nums line-through" style={{ color: C.textTertiary }}>
+                      {fmt(program.standardAmount)}
+                    </p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: C.textTertiary }} />
+                  <div className="text-center flex-1">
+                    <p className="text-[10px] mb-1" style={{ color: C.textTertiary }}>
+                      New rate
+                    </p>
+                    <p className="text-xl font-bold tabular-nums" style={{ color: C.accent }}>
+                      {fmt(adjustedAmount)}
+                      <span className="text-xs font-normal">{program.billingSuffix}</span>
+                    </p>
+                  </div>
+                </div>
+                {savings > 0 && (
+                  <p className="text-xs text-center mt-3 font-medium" style={{ color: C.success }}>
+                    Saves {fmt(savings)}
+                    {program.billingSuffix} · {formatTuitionOverrideSummary(draftOverride)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div
+              className="flex items-center justify-end gap-2 px-5 py-4 flex-shrink-0"
+              style={{ borderTop: `1px solid ${C.border}` }}
+            >
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-2 rounded-sm text-[11px] font-semibold"
+                style={demoSecondaryButtonStyle()}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="px-3 py-2 rounded-sm text-[11px] font-semibold"
+                style={{ backgroundColor: C.accent, color: "#fff" }}
+              >
+                Save rate
+              </button>
+            </div>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function TuitionPage({
   selectedFamilyId,
   initialFilter = "all",
   onSelectFamily,
+  openInitialTuitionAdjustModal,
+  openInitialTuitionAdjustModalDelayMs,
+  tuitionOverride,
+  onTuitionOverrideApplied,
 }: {
   selectedFamilyId?: string;
   initialFilter?: TuitionFilter;
   onSelectFamily?: (id: string) => void;
+  openInitialTuitionAdjustModal?: boolean;
+  openInitialTuitionAdjustModalDelayMs?: number;
+  tuitionOverride?: DemoTuitionOverride | null;
+  onTuitionOverrideApplied?: (override: DemoTuitionOverride | null) => void;
 }) {
   const kpis = computeTuitionKPIs();
   const [filter, setFilter] = useState<TuitionFilter>(initialFilter);
   const [search, setSearch] = useState("");
+  const [localOverrides, setLocalOverrides] = useState<
+    Record<string, DemoTuitionOverride>
+  >({});
   const [selectedFamily, setSelectedFamily] = useState<DemoFamilyBilling>(
     () =>
       ACTIVE_DEMO_FAMILIES.find((f) => f.id === selectedFamilyId) ??
@@ -14415,7 +14861,48 @@ function TuitionPage({
   const [reminderInitialIds, setReminderInitialIds] = useState<
     string[] | undefined
   >(undefined);
+  const [adjustModalProgram, setAdjustModalProgram] =
+    useState<ProgramRateRow | null>(null);
+  const [initialAdjustOpened, setInitialAdjustOpened] = useState(false);
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
+
+  const effectiveOverride = getEffectiveFamilyOverride(
+    selectedFamily,
+    tuitionOverride,
+    localOverrides,
+  );
+  const programRates = getFamilyProgramRates(selectedFamily);
+  const primaryProgram =
+    programRates.find((p) => p.key === "schoolYear") ?? programRates[0];
+
+  const openAdjustModal = useCallback((program: ProgramRateRow) => {
+    setSelectedTx(null);
+    setOpenScheduleKey(null);
+    setReminderModalOpen(false);
+    setAdjustModalProgram(program);
+  }, []);
+
+  useEffect(() => {
+    if (
+      !openInitialTuitionAdjustModal ||
+      initialAdjustOpened ||
+      !primaryProgram
+    ) {
+      return;
+    }
+    const delayMs = openInitialTuitionAdjustModalDelayMs ?? 700;
+    const t = setTimeout(() => {
+      setInitialAdjustOpened(true);
+      openAdjustModal(primaryProgram);
+    }, delayMs);
+    return () => clearTimeout(t);
+  }, [
+    openInitialTuitionAdjustModal,
+    openInitialTuitionAdjustModalDelayMs,
+    initialAdjustOpened,
+    primaryProgram,
+    openAdjustModal,
+  ]);
 
   const openReminderModal = useCallback((familyIds?: string[]) => {
     setSelectedTx(null);
@@ -14453,9 +14940,29 @@ function TuitionPage({
     if (reminderModalOpen) {
       setSelectedTx(null);
       setOpenScheduleKey(null);
+      setAdjustModalProgram(null);
       closeBackdrop();
     }
   }, [reminderModalOpen, closeBackdrop]);
+
+  useEffect(() => {
+    if (adjustModalProgram) {
+      setSelectedTx(null);
+      setOpenScheduleKey(null);
+      closeBackdrop();
+    }
+  }, [adjustModalProgram, closeBackdrop]);
+
+  function handleSaveOverride(override: DemoTuitionOverride) {
+    setLocalOverrides((prev) => ({ ...prev, [override.familyId]: override }));
+    onTuitionOverrideApplied?.(override);
+  }
+
+  function familyHasCustomRate(family: DemoFamilyBilling): boolean {
+    return Boolean(
+      getEffectiveFamilyOverride(family, tuitionOverride, localOverrides),
+    );
+  }
 
   const fmt = (n: number) => `$${n.toLocaleString()}`;
 
@@ -14507,6 +15014,16 @@ function TuitionPage({
 
   const openScheduleProgram = schedulePrograms.find(
     (p) => p.key === openScheduleKey,
+  );
+
+  const openScheduleForProgram = useCallback(
+    (program: string) => {
+      const key = scheduleKeyForProgram(program);
+      if (!key || !schedulePrograms.some((p) => p.key === key)) return;
+      setSelectedTx(null);
+      setOpenScheduleKey(key);
+    },
+    [schedulePrograms],
   );
 
   return (
@@ -14735,6 +15252,18 @@ function TuitionPage({
                       >
                         Autopay {family.autopayOn ? "on" : "off"}
                       </p>
+                      {familyHasCustomRate(family) && (
+                        <span
+                          className="inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-full mt-1"
+                          style={{
+                            backgroundColor: C.purpleBg,
+                            border: `1px solid ${C.purpleBorder}`,
+                            color: C.purple,
+                          }}
+                        >
+                          Custom rate
+                        </span>
+                      )}
                     </div>
                   </div>
                 </button>
@@ -14748,14 +15277,10 @@ function TuitionPage({
           style={{ backgroundColor: C.surface }}
         >
           <div className="flex-1 overflow-y-auto">
-          <div className="p-5 space-y-5">
+          <div className="p-5">
             <div
-              className="rounded-sm p-5"
-              style={{
-                backgroundColor: C.surface,
-                border: `1px solid ${C.border}`,
-                boxShadow: C.shadowCard,
-              }}
+              className="pb-5"
+              style={{ borderBottom: `1px solid ${C.border}` }}
             >
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
@@ -14858,7 +15383,103 @@ function TuitionPage({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              {programRates.length > 0 && (
+                <div className="mb-4">
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-widest mb-2.5"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Tuition rates
+                  </p>
+                  <div className="space-y-2">
+                    {programRates.map((program) => {
+                      const rowOverride =
+                        effectiveOverride?.programLabel === program.label
+                          ? effectiveOverride
+                          : undefined;
+                      const adjusted = rowOverride
+                        ? computeAdjustedAmount(rowOverride)
+                        : program.standardAmount;
+                      const isCustom = Boolean(rowOverride);
+                      return (
+                        <div
+                          key={program.key}
+                          className="flex items-center justify-between gap-3 py-1.5"
+                          style={{
+                            borderBottom: `1px solid ${C.border}`,
+                          }}
+                        >
+                          <div className="min-w-0">
+                            <p
+                              className="text-sm font-medium truncate"
+                              style={{ color: C.textPrimary }}
+                            >
+                              {program.label}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              {isCustom ? (
+                                <>
+                                  <span
+                                    className="text-xs tabular-nums line-through"
+                                    style={{ color: C.textTertiary }}
+                                  >
+                                    {fmt(program.standardAmount)}
+                                    {program.billingSuffix}
+                                  </span>
+                                  <span
+                                    className="text-sm font-bold tabular-nums"
+                                    style={{ color: C.accent }}
+                                  >
+                                    {fmt(adjusted)}
+                                    {program.billingSuffix}
+                                  </span>
+                                  <span
+                                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                                    style={{
+                                      backgroundColor: C.purpleBg,
+                                      border: `1px solid ${C.purpleBorder}`,
+                                      color: C.purple,
+                                    }}
+                                  >
+                                    {rowOverride
+                                      ? formatTuitionOverrideSummary(rowOverride)
+                                      : "Custom"}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <span
+                                    className="text-sm font-semibold tabular-nums"
+                                    style={{ color: C.textPrimary }}
+                                  >
+                                    {fmt(program.standardAmount)}
+                                    {program.billingSuffix}
+                                  </span>
+                                  <span
+                                    className="text-[9px]"
+                                    style={{ color: C.textTertiary }}
+                                  >
+                                    Standard rate
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openAdjustModal(program)}
+                            className="text-[10px] font-semibold shrink-0 px-2 py-1 rounded-sm transition-colors"
+                            style={{ color: C.accent }}
+                          >
+                            Adjust
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => openReminderModal([selectedFamily.id])}
@@ -14868,6 +15489,18 @@ function TuitionPage({
                   <Send className="w-3.5 h-3.5" />
                   Send reminder
                 </button>
+                {primaryProgram && (
+                  <button
+                    type="button"
+                    onClick={() => openAdjustModal(primaryProgram)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
+                    style={demoSecondaryButtonStyle()}
+                    data-tour-id="tuition-adjust-btn"
+                  >
+                    <Percent className="w-3.5 h-3.5" />
+                    Adjust tuition
+                  </button>
+                )}
                 <button
                   type="button"
                   className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[11px] font-semibold"
@@ -14887,39 +15520,64 @@ function TuitionPage({
               </div>
             </div>
 
-            <div>
-              <SectionLabel>Upcoming</SectionLabel>
+            <div
+              className="pt-5 pb-5"
+              style={{ borderBottom: `1px solid ${C.border}` }}
+            >
+              <SectionLabel className="mb-3">Upcoming</SectionLabel>
               {selectedFamily.upcoming.length === 0 ? (
                 <p className="text-sm py-2" style={{ color: C.textTertiary }}>
                   No upcoming charges in the next 60 days.
                 </p>
               ) : (
-                <div className="space-y-2">
-                  {selectedFamily.upcoming.map((item) => {
-                    const paidSummer = selectedFamily.summer.filter(
-                      (s) => s.state === "paid",
-                    ).length;
-                    const totalSummer = selectedFamily.summer.length;
+                <div>
+                  {selectedFamily.upcoming.map((item, itemIdx) => {
                     const paidSchool = selectedFamily.schoolYear.filter(
                       (s) => s.state === "paid",
                     ).length;
                     const totalSchool = selectedFamily.schoolYear.length;
+                    const paidSummer = selectedFamily.summer.filter(
+                      (s) => s.state === "paid",
+                    ).length;
+                    const totalSummer = selectedFamily.summer.length;
                     const isSummer = item.program.includes("Summer");
                     const paid = isSummer ? paidSummer : paidSchool;
                     const total = isSummer ? totalSummer : totalSchool;
                     const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
+                    const scheduleKey = scheduleKeyForProgram(item.program);
+                    const canOpenSchedule =
+                      scheduleKey !== null &&
+                      schedulePrograms.some((p) => p.key === scheduleKey);
+                    const isScheduleOpen = scheduleKey === openScheduleKey;
                     return (
-                      <div
+                      <button
                         key={item.id}
-                        className="rounded-sm p-3"
+                        type="button"
+                        disabled={!canOpenSchedule}
+                        onClick={() => openScheduleForProgram(item.program)}
+                        className="w-full text-left py-3 transition-colors disabled:cursor-default"
                         style={{
-                          backgroundColor: C.surface,
-                          border: `1px solid ${C.border}`,
-                          boxShadow: C.shadowCard,
+                          borderBottom:
+                            itemIdx < selectedFamily.upcoming.length - 1
+                              ? `1px solid ${C.border}`
+                              : "none",
+                          backgroundColor: isScheduleOpen
+                            ? C.accentLight
+                            : "transparent",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (canOpenSchedule && !isScheduleOpen) {
+                            e.currentTarget.style.backgroundColor = C.accentLight;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isScheduleOpen) {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                          }
                         }}
                       >
                         <div className="flex items-center justify-between gap-3 mb-2">
-                          <div>
+                          <div className="min-w-0">
                             <p
                               className="text-sm font-medium"
                               style={{ color: C.textPrimary }}
@@ -14933,7 +15591,7 @@ function TuitionPage({
                               {item.program} · Due {item.dueDate}
                             </p>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex-shrink-0">
                             <p
                               className="text-sm font-bold tabular-nums"
                               style={{ color: C.textPrimary }}
@@ -14979,28 +15637,35 @@ function TuitionPage({
                             </div>
                           </div>
                         )}
-                      </div>
+                        {canOpenSchedule && (
+                          <div className="flex items-center gap-1 mt-2">
+                            <p
+                              className="text-[11px] font-medium"
+                              style={{ color: C.accent }}
+                            >
+                              View schedule
+                            </p>
+                            <ChevronRight
+                              className="w-3.5 h-3.5"
+                              style={{ color: C.accent }}
+                            />
+                          </div>
+                        )}
+                      </button>
                     );
                   })}
                 </div>
               )}
             </div>
 
-            <div>
-              <SectionLabel>Payment history</SectionLabel>
+            <div className="pt-5">
+              <SectionLabel className="mb-3">Payment history</SectionLabel>
               {familyTx.length === 0 ? (
                 <p className="text-sm py-2" style={{ color: C.textTertiary }}>
                   No payments recorded yet.
                 </p>
               ) : (
-                <div
-                  className="rounded-sm overflow-hidden"
-                  style={{
-                    border: `1px solid ${C.border}`,
-                    backgroundColor: C.surface,
-                    boxShadow: C.shadowCard,
-                  }}
-                >
+                <div>
                   {familyTx.map((tx, i) => {
                     const sc = TX_STATUS_COLORS[tx.status] ?? {
                       bg: C.input,
@@ -15015,19 +15680,19 @@ function TuitionPage({
                           setOpenScheduleKey(null);
                           setSelectedTx(tx);
                         }}
-                        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors"
+                        className="w-full flex items-center justify-between gap-3 py-3 text-left transition-colors"
                         style={{
                           borderBottom:
                             i < familyTx.length - 1
                               ? `1px solid ${C.border}`
                               : "none",
-                          backgroundColor: C.surface,
+                          backgroundColor: "transparent",
                         }}
                         onMouseEnter={(e) =>
                           (e.currentTarget.style.backgroundColor = C.accentLight)
                         }
                         onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor = C.surface)
+                          (e.currentTarget.style.backgroundColor = "transparent")
                         }
                       >
                         <div className="min-w-0">
@@ -15065,91 +15730,6 @@ function TuitionPage({
                 </div>
               )}
             </div>
-
-            <div>
-              <SectionLabel>Payment schedule</SectionLabel>
-              {schedulePrograms.length === 0 ? (
-                <p className="text-sm py-2" style={{ color: C.textTertiary }}>
-                  No payment schedule on file.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {schedulePrograms.map((program) => {
-                    const paid = program.items.filter(
-                      (i) => i.state === "paid",
-                    ).length;
-                    const pct =
-                      program.items.length > 0
-                        ? Math.round((paid / program.items.length) * 100)
-                        : 0;
-                    const isOpen = openScheduleKey === program.key;
-                    return (
-                      <button
-                        key={program.key}
-                        type="button"
-                        onClick={() => {
-                          setSelectedTx(null);
-                          setOpenScheduleKey(program.key);
-                        }}
-                        className="w-full rounded-sm p-4 text-left transition-colors"
-                        style={{
-                          backgroundColor: isOpen ? C.accentLight : C.surface,
-                          border: `1px solid ${isOpen ? C.accent + "44" : C.border}`,
-                          boxShadow: C.shadowCard,
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isOpen)
-                            e.currentTarget.style.backgroundColor = C.accentLight;
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isOpen)
-                            e.currentTarget.style.backgroundColor = C.surface;
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-3 mb-2">
-                          <p
-                            className="text-sm font-medium"
-                            style={{ color: C.textPrimary }}
-                          >
-                            {program.label}
-                          </p>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span
-                              className="text-xs tabular-nums"
-                              style={{ color: C.textTertiary }}
-                            >
-                              {paid}/{program.items.length} paid
-                            </span>
-                            <ChevronRight
-                              className="w-4 h-4"
-                              style={{ color: C.textTertiary }}
-                            />
-                          </div>
-                        </div>
-                        <div
-                          className="h-1.5 rounded-full overflow-hidden"
-                          style={{ backgroundColor: C.input }}
-                        >
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${pct}%`,
-                              backgroundColor: C.accent,
-                            }}
-                          />
-                        </div>
-                        <p
-                          className="text-[11px] font-medium mt-2"
-                          style={{ color: C.accent }}
-                        >
-                          View schedule
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           </div>
           </div>
         </div>
@@ -15178,6 +15758,20 @@ function TuitionPage({
             key={reminderInitialIds?.join(",") ?? "bulk"}
             initialFamilyIds={reminderInitialIds}
             onClose={() => setReminderModalOpen(false)}
+          />
+        )}
+        {adjustModalProgram && (
+          <TuitionAdjustModal
+            key={`${selectedFamily.id}-${adjustModalProgram.key}`}
+            family={selectedFamily}
+            program={adjustModalProgram}
+            existingOverride={
+              effectiveOverride?.programLabel === adjustModalProgram.label
+                ? effectiveOverride
+                : undefined
+            }
+            onClose={() => setAdjustModalProgram(null)}
+            onSave={handleSaveOverride}
           />
         )}
       </AnimatePresence>
@@ -23456,6 +24050,10 @@ function MySchoolPage({
   focusStaffTab,
   onStaffFocusConsumed,
   onNavigateToFinancesPayroll,
+  openInitialTuitionAdjustModal,
+  openInitialTuitionAdjustModalDelayMs,
+  tuitionOverride,
+  onTuitionOverrideApplied,
 }: {
   activeTab: MySchoolTab;
   onTabChange: (tab: MySchoolTab) => void;
@@ -23466,6 +24064,10 @@ function MySchoolPage({
   focusStaffTab?: StaffProfileTab;
   onStaffFocusConsumed?: () => void;
   onNavigateToFinancesPayroll?: () => void;
+  openInitialTuitionAdjustModal?: boolean;
+  openInitialTuitionAdjustModalDelayMs?: number;
+  tuitionOverride?: DemoTuitionOverride | null;
+  onTuitionOverrideApplied?: (override: DemoTuitionOverride | null) => void;
 }) {
   return (
     <div className="h-full overflow-hidden">
@@ -23492,6 +24094,12 @@ function MySchoolPage({
           selectedFamilyId={selectedTuitionFamilyId}
           initialFilter={tuitionFilter}
           onSelectFamily={onSelectTuitionFamily}
+          openInitialTuitionAdjustModal={openInitialTuitionAdjustModal}
+          openInitialTuitionAdjustModalDelayMs={
+            openInitialTuitionAdjustModalDelayMs
+          }
+          tuitionOverride={tuitionOverride}
+          onTuitionOverrideApplied={onTuitionOverrideApplied}
         />
       )}
     </div>
@@ -24303,8 +24911,15 @@ export default function RootedMeadowsAdminDashboardDemo({
   autoSendEnrollmentLinkDelayMs,
   openInitialLeadDetail,
   hideLeadDetailEnrollmentAction,
+  highlightSendEnrollmentLeadId,
   hideNav = false,
   defaultSidebarExpanded = true,
+  initialMySchoolTab,
+  initialSelectedTuitionFamilyId,
+  openInitialTuitionAdjustModal,
+  openInitialTuitionAdjustModalDelayMs,
+  tuitionOverride,
+  onTuitionOverrideApplied,
 }: {
   disableTour?: boolean
   initialPage?: ActivePage
@@ -24318,18 +24933,27 @@ export default function RootedMeadowsAdminDashboardDemo({
   autoSendEnrollmentLinkDelayMs?: number
   openInitialLeadDetail?: boolean
   hideLeadDetailEnrollmentAction?: boolean
+  highlightSendEnrollmentLeadId?: string
   hideNav?: boolean
   defaultSidebarExpanded?: boolean
+  initialMySchoolTab?: MySchoolTab
+  initialSelectedTuitionFamilyId?: string
+  openInitialTuitionAdjustModal?: boolean
+  openInitialTuitionAdjustModalDelayMs?: number
+  tuitionOverride?: DemoTuitionOverride | null
+  onTuitionOverrideApplied?: (override: DemoTuitionOverride | null) => void
 }) {
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
   const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>(initialAdmissionsTab);
   const [budgetTab, setBudgetTab] = useState<BudgetTab>("overview");
-  const [mySchoolTab, setMySchoolTab] = useState<MySchoolTab>("students");
+  const [mySchoolTab, setMySchoolTab] = useState<MySchoolTab>(
+    initialMySchoolTab ?? "students",
+  );
   const [focusStaffId, setFocusStaffId] = useState<string | null>(null);
   const [focusStaffTab, setFocusStaffTab] = useState<StaffProfileTab>("payroll");
   const [selectedTuitionFamilyId, setSelectedTuitionFamilyId] = useState<
     string | undefined
-  >(undefined);
+  >(initialSelectedTuitionFamilyId);
   const [tuitionFilter, setTuitionFilter] = useState<TuitionFilter>("all");
   const [isExpanded, setIsExpanded] = useState(
     defaultSidebarExpanded !== undefined ? defaultSidebarExpanded : !disableTour
@@ -24426,6 +25050,7 @@ export default function RootedMeadowsAdminDashboardDemo({
             autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
             openInitialLeadDetail={openInitialLeadDetail}
             hideLeadDetailEnrollmentAction={hideLeadDetailEnrollmentAction}
+            highlightSendEnrollmentLeadId={highlightSendEnrollmentLeadId}
             leadStatusOverrides={leadStatusOverrides}
             onOpenEnrollmentModal={handleOpenEnrollmentModal}
           />
@@ -24446,6 +25071,12 @@ export default function RootedMeadowsAdminDashboardDemo({
             focusStaffTab={focusStaffTab}
             onStaffFocusConsumed={clearStaffFocus}
             onNavigateToFinancesPayroll={navigateToFinancesPayroll}
+            openInitialTuitionAdjustModal={openInitialTuitionAdjustModal}
+            openInitialTuitionAdjustModalDelayMs={
+              openInitialTuitionAdjustModalDelayMs
+            }
+            tuitionOverride={tuitionOverride}
+            onTuitionOverrideApplied={onTuitionOverrideApplied}
           />
         );
       case "budget":

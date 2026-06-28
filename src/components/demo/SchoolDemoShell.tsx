@@ -10,6 +10,7 @@ import ScaledApplicationDemoPreview from "@/components/demo/ScaledApplicationDem
 import ScaledObservationDemoPreview from "@/components/demo/ScaledObservationDemoPreview";
 import ScaledWebsiteDemoPreview from "@/components/demo/ScaledWebsiteDemoPreview";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
+import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
 
 interface Props {
@@ -24,6 +25,8 @@ export default function SchoolDemoShell({
   steps,
 }: Props) {
   const [activeStep, setActiveStep] = useState(0);
+  const [demoTuitionOverride, setDemoTuitionOverride] =
+    useState<DemoTuitionOverride | null>(null);
   const [scrollRequest, setScrollRequest] = useState<{
     target: "top" | "form";
     nonce: number;
@@ -78,6 +81,22 @@ export default function SchoolDemoShell({
             autoSendEnrollmentLinkDelayMs={steps[activeStep].autoSendEnrollmentLinkDelayMs}
             openInitialLeadDetail={steps[activeStep].openInitialLeadDetail}
             hideLeadDetailEnrollmentAction={steps[activeStep].hideLeadDetailEnrollmentAction}
+            highlightSendEnrollmentLeadId={
+              steps[activeStep].highlightSendEnrollmentLeadId
+            }
+            initialAdminPage={steps[activeStep].initialAdminPage}
+            initialMySchoolTab={steps[activeStep].initialMySchoolTab}
+            initialSelectedTuitionFamilyId={
+              steps[activeStep].initialSelectedTuitionFamilyId
+            }
+            openInitialTuitionAdjustModal={
+              steps[activeStep].openInitialTuitionAdjustModal
+            }
+            openInitialTuitionAdjustModalDelayMs={
+              steps[activeStep].openInitialTuitionAdjustModalDelayMs
+            }
+            tuitionOverride={demoTuitionOverride}
+            onTuitionOverrideApplied={setDemoTuitionOverride}
           />
         ) : activePreview === "teacher" ? (
           <ScaledTeacherDemoPreview
@@ -90,6 +109,8 @@ export default function SchoolDemoShell({
             key={steps[activeStep].id}
             demoSlug={config.slug}
             initialParentTab={steps[activeStep].initialParentTab ?? "enrollment"}
+            parentEnrollmentVariant={steps[activeStep].parentEnrollmentVariant}
+            tuitionOverride={demoTuitionOverride}
           />
         ) : activePreview === "contact" ? (
           <DemoContactPanel
