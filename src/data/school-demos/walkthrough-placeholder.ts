@@ -110,6 +110,7 @@ export interface DemoWalkthroughStep {
   openCreateCommitteeModal?: boolean;
   openCreateCommitteeModalDelayMs?: number;
   openArchiveCommitteeModal?: boolean;
+  contactPanelVariant?: "schedule" | "feedback";
   icon: DemoWalkthroughIcon;
   theme: DemoWalkthroughStepTheme;
 }
@@ -2136,12 +2137,14 @@ export const rootedMeadowsWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
   {
     id: "get-in-touch",
-    title: "Ready for next steps?",
-    description: "Schedule a meeting, or email or call us to talk through this concept.",
+    title: "Got any questions or comments?",
+    description:
+      "Share questions or notes — we'll use your input as we build this out.",
     talkingPoint:
-      "Pick a time on the calendar, or reach out directly — we'd love to walk through how this could work for Rooted Meadows Waldorf School.",
+      "Tell us what stood out, what you'd change, or anything you'd like to see next for Rooted Meadows Waldorf School.",
     preview: "contact",
-    icon: "calendarDays",
+    contactPanelVariant: "feedback",
+    icon: "messageCircle",
     theme: {
       bg: "#F5F3E6",
       bgHover: "#EEEBD8",

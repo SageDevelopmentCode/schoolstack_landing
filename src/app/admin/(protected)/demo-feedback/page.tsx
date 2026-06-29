@@ -9,12 +9,29 @@ type DemoFeedback = {
   id: string;
   school_slug: string;
   school_name: string;
-  name: string;
-  email: string;
+  name: string | null;
+  email: string | null;
   message: string;
   source: string;
   created_at: string;
 };
+
+function displayName(feedback: DemoFeedback) {
+  return feedback.name?.trim() || "Anonymous";
+}
+
+function formatSourceLabel(source: string) {
+  switch (source) {
+    case "prototype-walkthrough":
+      return "Prototype walkthrough";
+    case "floating-widget":
+      return "Homepage widget";
+    case "demo-walkthrough":
+      return "Demo walkthrough";
+    default:
+      return source;
+  }
+}
 
 export default function DemoFeedbackPage() {
   const supabase = createClient();
@@ -127,7 +144,7 @@ export default function DemoFeedbackPage() {
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-text truncate">
-                    {f.name}
+                    {displayName(f)}
                   </p>
                   <p className="text-xs text-text-muted truncate">
                     {f.school_name}
@@ -135,6 +152,7 @@ export default function DemoFeedbackPage() {
                 </div>
                 <p className="text-xs text-text-faint mt-1">
                   {new Date(f.created_at).toLocaleDateString()}
+                  {f.source ? ` · ${formatSourceLabel(f.source)}` : ""}
                 </p>
               </button>
             ))
@@ -152,11 +170,14 @@ export default function DemoFeedbackPage() {
           <div className="max-w-2xl mx-auto p-6 space-y-6">
             <div>
               <h1 className="text-lg font-semibold text-text font-display">
-                {selected.name}
+                {displayName(selected)}
               </h1>
               <p className="text-sm text-text-muted font-secondary">
                 {selected.school_name}
               </p>
+              <span className="inline-block mt-2 text-xs px-2 py-0.5 rounded border bg-bg text-text-muted border-border font-secondary">
+                {formatSourceLabel(selected.source)}
+              </span>
             </div>
 
             <section className="bg-surface border border-border rounded-xl p-4 space-y-3">
@@ -164,15 +185,19 @@ export default function DemoFeedbackPage() {
                 Contact
               </h2>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm font-secondary">
-                <dt className="text-text-muted">Email</dt>
-                <dd>
-                  <a
-                    href={`mailto:${selected.email}`}
-                    className="text-clay hover:underline"
-                  >
-                    {selected.email}
-                  </a>
-                </dd>
+                {selected.email ? (
+                  <>
+                    <dt className="text-text-muted">Email</dt>
+                    <dd>
+                      <a
+                        href={`mailto:${selected.email}`}
+                        className="text-clay hover:underline"
+                      >
+                        {selected.email}
+                      </a>
+                    </dd>
+                  </>
+                ) : null}
                 <dt className="text-text-muted">Submitted</dt>
                 <dd>{new Date(selected.created_at).toLocaleString()}</dd>
               </dl>

@@ -22,4 +22,13 @@ export const mudkitchenDemoContact = {
     successTitle: "You're booked.",
     successMessage: "We'll see you on {date} at {time} Central (CT).",
   },
+  feedback: {
+    heading: "Got any questions or comments?",
+    subheading:
+      "Share your thoughts on this prototype — questions, ideas, or anything you'd like us to know.",
+    inputPlaceholder: "Share your thoughts, questions, or feedback…",
+    submitLabel: "Send feedback",
+    successTitle: "Thanks — we got your feedback.",
+    successMessage: "We'll review your notes and follow up if needed.",
+  },
 } as const;

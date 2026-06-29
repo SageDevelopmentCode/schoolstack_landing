@@ -180,10 +180,16 @@ export async function notifyDemoBooking(payload: {
 export async function notifyDemoFeedback(payload: {
   schoolSlug: string;
   schoolName: string;
-  name: string;
-  email: string;
+  name: string | null;
+  email: string | null;
   message: string;
+  source?: string;
 }) {
+  const contactValue =
+    payload.name && payload.email
+      ? truncate(`${payload.name}\n${payload.email}`)
+      : "Anonymous";
+
   await sendDiscordEmbed({
     title: "New demo feedback",
     fields: [
@@ -194,9 +200,18 @@ export async function notifyDemoFeedback(payload: {
       },
       {
         name: "Contact",
-        value: truncate(`${payload.name}\n${payload.email}`),
+        value: contactValue,
         inline: true,
       },
+      ...(payload.source
+        ? [
+            {
+              name: "Source",
+              value: payload.source,
+              inline: true,
+            },
+          ]
+        : []),
       {
         name: "Message",
         value: truncate(payload.message.trim()),

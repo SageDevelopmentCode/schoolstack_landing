@@ -12,16 +12,170 @@ import { formatSelectedDate } from "@/lib/demo-scheduler";
 const inputClassName =
   "w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition";
 
+const textareaClassName =
+  "w-full min-h-[140px] resize-y rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition";
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface Props {
   schoolSlug: string;
   schoolName: string;
   logo: SchoolDemoLogo;
+  variant?: "schedule" | "feedback";
 }
 
-export default function DemoContactPanel({ schoolSlug, schoolName, logo }: Props) {
-  const { heading, subheading, scheduler, contact, form } = mudkitchenDemoContact;
+function ContactDetailsFooter() {
+  const { contact } = mudkitchenDemoContact;
+
+  return (
+    <div className="mt-8 rounded-lg border border-black/[0.07] bg-white px-5 py-5">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-[#2E4A3C]/50 font-body">
+        {contact.eyebrow}
+      </p>
+      <a
+        href={`mailto:${contact.email}`}
+        className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#2E4A3C] font-body hover:text-[#233B2F] transition-colors"
+      >
+        <Mail className="h-4 w-4 shrink-0" aria-hidden />
+        {contact.email}
+      </a>
+      <a
+        href={contact.phoneHref}
+        className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#2E4A3C] font-body hover:text-[#233B2F] transition-colors"
+      >
+        <Phone className="h-4 w-4 shrink-0" aria-hidden />
+        {contact.phone}
+        <span className="font-normal text-[#2E4A3C]/60">· text or call</span>
+      </a>
+      <p className="mt-2 text-xs text-[#2E4A3C]/60 font-body">{contact.blurb}</p>
+    </div>
+  );
+}
+
+function DemoContactFeedbackPanel({
+  schoolSlug,
+  schoolName,
+  logo,
+}: {
+  schoolSlug: string;
+  schoolName: string;
+  logo: SchoolDemoLogo;
+}) {
+  const { feedback } = mudkitchenDemoContact;
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+
+  const canSubmit = comment.trim().length > 0 && !isSubmitting;
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const res = await fetch("/api/demo-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolSlug,
+          schoolName,
+          message: comment.trim(),
+        }),
+      });
+
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok) {
+        setSubmitError(data.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+
+      setSubmitted(true);
+      setComment("");
+    } catch {
+      setSubmitError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="h-full overflow-y-auto bg-[#F7F1E7]">
+      <div className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:px-10 sm:py-12">
+        <div className="mb-6 flex items-center gap-3">
+          <SchoolDemoWordmark
+            logo={logo}
+            className="h-10 w-auto object-contain shrink-0"
+          />
+          <h2 className="font-display text-xl font-semibold text-[#2E4A3C] sm:text-2xl">
+            {feedback.heading}
+          </h2>
+        </div>
+
+        {submitted ? (
+          <div className="rounded-lg border border-[#2E4A3C]/10 bg-white px-6 py-8 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#2E4A3C] text-white">
+              <Check className="h-6 w-6" aria-hidden />
+            </div>
+            <h3 className="font-display text-lg font-medium text-[#2E4A3C]">
+              {feedback.successTitle}
+            </h3>
+            <p className="mt-2 text-sm text-[#2E4A3C]/70 font-body">
+              {feedback.successMessage}
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="mb-6 text-sm leading-relaxed text-[#2E4A3C]/70 font-body">
+              {feedback.subheading}
+            </p>
+
+            <div className="rounded-lg border border-black/[0.07] bg-white p-5 sm:p-6">
+              <label className="flex flex-col gap-1.5">
+                <span className="sr-only">Questions or comments</span>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder={feedback.inputPlaceholder}
+                  className={textareaClassName}
+                />
+              </label>
+              <div className="mt-4 flex items-center justify-end gap-3">
+                {submitError ? (
+                  <p className="text-sm text-red-600 font-body mr-auto">{submitError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={!canSubmit}
+                  className="px-4 py-2.5 rounded-md bg-[#2E4A3C] text-white text-sm font-medium font-body hover:bg-[#233B2F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isSubmitting ? "Sending…" : feedback.submitLabel}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        <ContactDetailsFooter />
+      </div>
+    </div>
+  );
+}
+
+function DemoContactSchedulePanel({
+  schoolSlug,
+  schoolName,
+  logo,
+}: {
+  schoolSlug: string;
+  schoolName: string;
+  logo: SchoolDemoLogo;
+}) {
+  const { heading, subheading, scheduler, form } = mudkitchenDemoContact;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [booking, setBooking] = useState<{ date: string; time: string } | null>(null);
@@ -205,28 +359,33 @@ export default function DemoContactPanel({ schoolSlug, schoolName, logo }: Props
           </>
         )}
 
-        <div className="mt-8 rounded-lg border border-black/[0.07] bg-white px-5 py-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#2E4A3C]/50 font-body">
-            {contact.eyebrow}
-          </p>
-          <a
-            href={`mailto:${contact.email}`}
-            className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#2E4A3C] font-body hover:text-[#233B2F] transition-colors"
-          >
-            <Mail className="h-4 w-4 shrink-0" aria-hidden />
-            {contact.email}
-          </a>
-          <a
-            href={contact.phoneHref}
-            className="mt-2 flex items-center gap-2 text-sm font-semibold text-[#2E4A3C] font-body hover:text-[#233B2F] transition-colors"
-          >
-            <Phone className="h-4 w-4 shrink-0" aria-hidden />
-            {contact.phone}
-            <span className="font-normal text-[#2E4A3C]/60">· text or call</span>
-          </a>
-          <p className="mt-2 text-xs text-[#2E4A3C]/60 font-body">{contact.blurb}</p>
-        </div>
+        <ContactDetailsFooter />
       </div>
     </div>
+  );
+}
+
+export default function DemoContactPanel({
+  schoolSlug,
+  schoolName,
+  logo,
+  variant = "schedule",
+}: Props) {
+  if (variant === "feedback") {
+    return (
+      <DemoContactFeedbackPanel
+        schoolSlug={schoolSlug}
+        schoolName={schoolName}
+        logo={logo}
+      />
+    );
+  }
+
+  return (
+    <DemoContactSchedulePanel
+      schoolSlug={schoolSlug}
+      schoolName={schoolName}
+      logo={logo}
+    />
   );
 }

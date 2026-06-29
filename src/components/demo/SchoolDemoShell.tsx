@@ -135,6 +135,7 @@ export default function SchoolDemoShell({
             schoolSlug={config.slug}
             schoolName={schoolName}
             logo={config.logo}
+            variant={steps[activeStep].contactPanelVariant ?? "schedule"}
           />
         ) : activePreview === "application" ? (
           <ScaledApplicationDemoPreview

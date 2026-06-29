@@ -13,6 +13,7 @@ interface DemoFeedbackBody {
   name?: string;
   email?: string;
   message?: string;
+  source?: string;
 }
 
 export async function POST(request: Request) {
@@ -26,11 +27,11 @@ export async function POST(request: Request) {
 
   const schoolSlug = body.schoolSlug?.trim() ?? "";
   const schoolName = body.schoolName?.trim() ?? "";
-  const name = body.name?.trim() ?? "";
-  const email = body.email?.trim() ?? "";
+  const name = body.name?.trim() || null;
+  const email = body.email?.trim() || null;
   const message = body.message?.trim() ?? "";
 
-  if (!schoolSlug || !schoolName || !name || !email || !message) {
+  if (!schoolSlug || !schoolName || !message) {
     return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
   }
 
@@ -38,13 +39,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid school." }, { status: 400 });
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
   }
 
   if (message.length > MAX_MESSAGE_LENGTH) {
     return NextResponse.json({ error: "Message is too long." }, { status: 400 });
   }
+
+  const isPrototypeWalkthrough = !name && !email;
+  const source =
+    body.source?.trim() ||
+    (isPrototypeWalkthrough ? "prototype-walkthrough" : "demo-walkthrough");
 
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -55,6 +61,7 @@ export async function POST(request: Request) {
     name,
     email,
     message,
+    source,
   });
 
   if (error) {
@@ -63,15 +70,24 @@ export async function POST(request: Request) {
   }
 
   try {
-    await notifyDemoFeedback({ schoolSlug, schoolName, name, email, message });
+    await notifyDemoFeedback({
+      schoolSlug,
+      schoolName,
+      name,
+      email,
+      message,
+      source,
+    });
   } catch (err) {
     console.error("Discord notification error:", err);
   }
 
-  try {
-    await sendDemoFeedbackConfirmation({ name, email, schoolName });
-  } catch (err) {
-    console.error("Confirmation email error:", err);
+  if (name && email) {
+    try {
+      await sendDemoFeedbackConfirmation({ name, email, schoolName });
+    } catch (err) {
+      console.error("Confirmation email error:", err);
+    }
   }
 
   return NextResponse.json({ ok: true });
