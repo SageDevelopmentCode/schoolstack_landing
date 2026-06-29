@@ -2163,6 +2163,30 @@ export const rootedMeadowsWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   },
 ];
 
+const rootedMeadowsPurpleStepTheme: DemoWalkthroughStepTheme = {
+  bg: "#F0EBF2",
+  bgHover: "#E8E0EC",
+  bgActive: "#E8E0EC",
+  border: "#C9BBD4",
+  iconBg: "#827096",
+  iconColor: "#FFFFFF",
+  titleColor: "#5A4D68",
+  descColor: "#6B6560",
+  connector: "#827096",
+};
+
+const rootedMeadowsOliveStepTheme: DemoWalkthroughStepTheme = {
+  bg: "#F5F3E6",
+  bgHover: "#EEEBD8",
+  bgActive: "#EEEBD8",
+  border: "#D8D9A8",
+  iconBg: "#b3b462",
+  iconColor: "#FFFFFF",
+  titleColor: "#5C5A30",
+  descColor: "#6B6840",
+  connector: "#b3b462",
+};
+
 const rootedMeadowsApplicationStep: DemoWalkthroughStep = {
   id: "submit-application",
   title: "Family submits the application",
@@ -2471,7 +2495,7 @@ const rootedMeadowsTeacherStudentsStep: DemoWalkthroughStep = {
   },
 };
 
-export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[] = [
+const rootedMeadowsPrototypeStepsRaw: DemoWalkthroughStep[] = [
   rootedMeadowsApplicationStep,
   rootedMeadowsObservationStep,
   rootedMeadowsSendContractStep,
@@ -2527,6 +2551,15 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
       return [mapped];
     }),
 ];
+
+export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[] =
+  rootedMeadowsPrototypeStepsRaw.map((step, index) => ({
+    ...step,
+    theme:
+      index % 2 === 0
+        ? rootedMeadowsPurpleStepTheme
+        : rootedMeadowsOliveStepTheme,
+  }));
 
 export const prestigeHomeschoolAcademyWalkthroughPlaceholder: DemoWalkthroughStep[] = [
   {
