@@ -4759,20 +4759,29 @@ function LeadTableRow({
       <td className="min-w-[11rem] px-4 py-3">
         {actionButton ? (
           showSendEnrollmentHint ? (
-            <div className="inline-flex flex-col items-center gap-0.5">
+            <div className="relative inline-flex">
               {actionButton}
-              <motion.span
+              <motion.div
                 aria-hidden
-                animate={{ y: [0, -4, 0] }}
+                animate={{
+                  y: [0, -8, 0],
+                  scale: [1, 1.15, 1],
+                }}
                 transition={{
                   duration: 1.2,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="text-lg leading-none select-none"
+                className="pointer-events-none absolute left-1/2 top-full z-10 flex -translate-x-1/2 flex-col items-center gap-0.5 pt-1 select-none"
               >
-                👆
-              </motion.span>
+                <span className="text-3xl leading-none">👆</span>
+                <span
+                  className="text-[10px] font-semibold"
+                  style={{ color: C.accent }}
+                >
+                  Click here
+                </span>
+              </motion.div>
             </div>
           ) : (
             actionButton
