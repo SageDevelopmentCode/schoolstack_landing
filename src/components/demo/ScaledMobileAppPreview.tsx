@@ -9,7 +9,7 @@ import {
 } from "@/components/demo/rootedmeadows/mobile/MobilePhoneFrame";
 
 const SHOWCASE_WIDTH = MOBILE_DESIGN_WIDTH + 48;
-const SHOWCASE_HEIGHT = MOBILE_DESIGN_HEIGHT + 160;
+const SHOWCASE_HEIGHT = MOBILE_DESIGN_HEIGHT + 200;
 
 export default function ScaledMobileAppPreview({
   demoSlug = "rooted-meadows",

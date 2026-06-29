@@ -2427,9 +2427,9 @@ const rootedMeadowsMobileAppStep: DemoWalkthroughStep = {
   id: "mobile-app",
   title: "Everything in your pocket",
   description:
-    "Messaging, attendance, and committees — all available in a mobile app built for your school community.",
+    "Messaging, tuition, attendance, and committees — all available in a mobile app built for your school community.",
   talkingPoint:
-    "Parents and teachers get the features they use most, optimized for phones.",
+    "Parents and teachers get the features they use most — including paying tuition from their phone — optimized for mobile.",
   preview: "mobile",
   previewHint:
     "Mobile app preview — features shown here will be available on iOS and Android.",

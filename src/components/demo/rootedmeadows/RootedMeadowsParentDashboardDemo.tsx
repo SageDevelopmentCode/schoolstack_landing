@@ -6615,3 +6615,459 @@ export function RootedMeadowsParentMessagesMobilePreview() {
     </div>
   );
 }
+
+function BillingMobileCheckoutSheet({
+  txIds,
+  paymentPlan,
+  onPaymentPlanChange,
+  onClose,
+  onConfirm,
+}: {
+  txIds: string[];
+  paymentPlan: PaymentPlan;
+  onPaymentPlanChange: (plan: PaymentPlan) => void;
+  onClose: () => void;
+  onConfirm: (plan: PaymentPlan, paidTxIds: string[]) => void;
+}) {
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  const [paid, setPaid] = useState(false);
+  const homeschoolSelections = useMemo(() => initialHomeschoolSelections(), []);
+
+  const lineItems = txIds
+    .map((id) => DEMO_TRANSACTIONS.find((t) => t.id === id))
+    .filter((t): t is DemoTransaction => !!t);
+
+  const subtotal = lineItems.reduce(
+    (sum, t) =>
+      sum + getTxCheckoutAmount(t, paymentPlan, homeschoolSelections, null),
+    0,
+  );
+
+  const processingFee =
+    paymentMethod === "card"
+      ? subtotal * CARD_FEE_RATE
+      : paymentMethod === "ach"
+        ? subtotal * ACH_FEE_RATE
+        : 0;
+
+  const total = subtotal + processingFee;
+
+  const feeLabel =
+    paymentMethod === "card"
+      ? `Card processing (${(CARD_FEE_RATE * 100).toFixed(1)}%)`
+      : paymentMethod === "ach"
+        ? `ACH processing (${(ACH_FEE_RATE * 100).toFixed(1)}%)`
+        : null;
+
+  const handlePay = () => {
+    setPaid(true);
+    setTimeout(() => onConfirm(paymentPlan, txIds), 800);
+  };
+
+  return (
+    <motion.div
+      initial={{ y: "100%" }}
+      animate={{ y: 0 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "spring", damping: 32, stiffness: 320 }}
+      className="absolute inset-0 z-30 flex flex-col bg-white"
+    >
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-gray-500 cursor-pointer shrink-0"
+          aria-label="Back to billing"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h2 className="text-base font-semibold text-gray-800">Review &amp; Pay</h2>
+      </div>
+
+      {!paid ? (
+        <>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="border-b border-gray-100 pb-4 mb-4">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Payment Plan
+              </h3>
+              <div className="space-y-1 rounded-xl border border-gray-100 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => onPaymentPlanChange("monthly")}
+                  className={`w-full text-left py-3 px-3 transition-colors cursor-pointer ${
+                    paymentPlan === "monthly"
+                      ? "border-l-2 border-l-[#827096] bg-[#827096]/5"
+                      : "hover:bg-gray-50/80"
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-gray-800">
+                    Monthly with Autopay
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {formatMoney(SCHOOL_YEAR_MONTHLY_TUITION)}/mo per child · charged on the 1st
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onPaymentPlanChange("upfront")}
+                  className={`w-full text-left py-3 px-3 transition-colors cursor-pointer border-t border-gray-100 ${
+                    paymentPlan === "upfront"
+                      ? "border-l-2 border-l-[#827096] bg-[#827096]/5"
+                      : "hover:bg-gray-50/80"
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-gray-800">Pay in Full</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {formatMoney(SCHOOL_YEAR_UPFRONT_TUITION)} per child · {SCHOOL_YEAR_LABEL}
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            <div className="border-b border-gray-100 pb-4 mb-4">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Receipt
+              </h3>
+              <div className="rounded-xl border border-gray-100 overflow-hidden">
+                {lineItems.map((t, idx) => {
+                  const meta = CHILD_BILLING_META[t.childId];
+                  const amount = getTxCheckoutAmount(
+                    t,
+                    paymentPlan,
+                    homeschoolSelections,
+                    null,
+                  );
+                  return (
+                    <div
+                      key={t.id}
+                      className={`flex items-start gap-3 p-3 ${
+                        idx > 0 ? "border-t border-gray-100" : ""
+                      }`}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                        style={{ backgroundColor: meta.color }}
+                      >
+                        {meta.initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800">{meta.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {getTxCheckoutDescription(t, paymentPlan)}
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-800 tabular-nums shrink-0">
+                        {formatMoney(amount)}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-between px-3 py-2.5 border-t border-gray-100 bg-gray-50/50">
+                  <span className="text-sm font-medium text-gray-600">Subtotal</span>
+                  <span className="text-sm font-semibold text-gray-800 tabular-nums">
+                    {formatMoney(subtotal)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Payment Method
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    { id: "card" as const, label: "Card", icon: CreditCard },
+                    { id: "ach" as const, label: "ACH", icon: Landmark },
+                  ] as const
+                ).map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setPaymentMethod(id)}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all cursor-pointer ${
+                      paymentMethod === id
+                        ? "border-[#827096] bg-[#827096]/5"
+                        : "border-gray-100 hover:border-gray-200"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 text-gray-600" />
+                    <span className="text-xs font-semibold text-gray-700">{label}</span>
+                  </button>
+                ))}
+              </div>
+              {feeLabel && (
+                <div className="mt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">{feeLabel}</span>
+                    <span className="font-medium text-gray-700 tabular-nums">
+                      {formatMoney(processingFee)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold pt-2 border-t border-gray-100">
+                    <span className="text-gray-800">Total</span>
+                    <span className="text-gray-900 tabular-nums">{formatMoney(total)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="shrink-0 px-4 py-3 border-t border-gray-100 bg-white pb-5">
+            <button
+              type="button"
+              onClick={handlePay}
+              className="w-full py-3 rounded-xl bg-[#827096] text-white text-sm font-semibold cursor-pointer hover:bg-[#5A4D68] transition-colors"
+            >
+              Pay {formatMoney(total)}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 text-center">
+          <CheckCircle className="w-12 h-12 text-emerald-500 mb-3" />
+          <p className="font-semibold text-gray-800">Payment received</p>
+          <p className="text-sm text-gray-400 mt-1">
+            {formatMoney(total)} processed successfully.
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function BillingMobileView({
+  visibleChildIds = ["emma", "jake"],
+}: {
+  visibleChildIds?: readonly ChildId[];
+}) {
+  const [childFilter, setChildFilter] = useState<ChildId | "all">("all");
+  const [paidInvoices, setPaidInvoices] = useState<Set<string>>(new Set());
+  const [listPaymentPlan] = useState<PaymentPlan>("monthly");
+  const [checkoutTxIds, setCheckoutTxIds] = useState<string[] | null>(null);
+  const [checkoutPaymentPlan, setCheckoutPaymentPlan] = useState<PaymentPlan>("monthly");
+
+  const childIds = [...visibleChildIds];
+  const transactions = DEMO_TRANSACTIONS.filter((t) => childIds.includes(t.childId));
+
+  const filteredTx =
+    childFilter === "all"
+      ? transactions
+      : transactions.filter((t) => t.childId === childFilter);
+
+  const pending = filteredTx.filter(
+    (t) => t.status === "pending" && !paidInvoices.has(t.id) && isSchoolYearTuition(t),
+  );
+
+  const parseAmount = (amount: string) =>
+    parseFloat(amount.replace("$", "").replace(",", ""));
+
+  const getDisplayAmount = (t: DemoTransaction): string =>
+    formatMoney(getSchoolYearAmount(listPaymentPlan, null));
+
+  const getDisplayDescription = (t: DemoTransaction): string =>
+    getSchoolYearDescription(listPaymentPlan);
+
+  const totalDue = pending.reduce(
+    (sum, t) => sum + parseAmount(getDisplayAmount(t)),
+    0,
+  );
+  const nextDue = pending.length > 0 ? pending[0].date : null;
+
+  const openCheckout = (txIds: string[]) => {
+    setCheckoutPaymentPlan("monthly");
+    setCheckoutTxIds(txIds);
+  };
+
+  const handleCheckoutConfirm = (plan: PaymentPlan, txIds: string[]) => {
+    setPaidInvoices((prev) => {
+      const next = new Set(prev);
+      txIds.forEach((id) => next.add(id));
+      return next;
+    });
+    setCheckoutTxIds(null);
+  };
+
+  return (
+    <div className="relative flex flex-col flex-1 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div className="rounded-2xl bg-gradient-to-br from-[#827096] to-[#5A4D68] p-4 text-white shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70 mb-1">
+            Total balance due
+          </p>
+          <p className="text-3xl font-bold leading-none tabular-nums">
+            ${totalDue.toFixed(2)}
+          </p>
+          {nextDue && totalDue > 0 && (
+            <span className="inline-flex items-center gap-1 mt-2.5 text-[11px] font-medium text-amber-100 bg-white/15 px-2 py-0.5 rounded-full">
+              <Clock className="w-3 h-3" />
+              Next due {nextDue}
+            </span>
+          )}
+          {totalDue === 0 && (
+            <span className="inline-flex items-center gap-1 mt-2.5 text-[11px] font-medium text-emerald-100 bg-white/15 px-2 py-0.5 rounded-full">
+              <CheckCircle className="w-3 h-3" />
+              All paid
+            </span>
+          )}
+          <p className="text-[11px] text-white/70 mt-3">
+            Monthly autopay · charged on the 1st
+          </p>
+          {childFilter === "all" && pending.length > 1 && (
+            <button
+              type="button"
+              onClick={() => openCheckout(pending.map((t) => t.id))}
+              className="mt-3 w-full py-2.5 rounded-xl bg-white text-[#5A4D68] text-sm font-semibold cursor-pointer hover:bg-white/90 transition-colors"
+            >
+              Pay All
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <button
+            type="button"
+            onClick={() => setChildFilter("all")}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+              childFilter === "all"
+                ? "bg-[#827096] text-white"
+                : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            All
+          </button>
+          {childIds.map((cid) => {
+            const meta = CHILD_BILLING_META[cid];
+            const childPending = transactions.filter(
+              (t) =>
+                t.childId === cid &&
+                t.status === "pending" &&
+                !paidInvoices.has(t.id) &&
+                isSchoolYearTuition(t),
+            ).length;
+            return (
+              <button
+                key={cid}
+                type="button"
+                onClick={() => setChildFilter(cid)}
+                className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                  childFilter === cid
+                    ? "bg-[#827096] text-white"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                <span
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
+                  style={{
+                    backgroundColor: childFilter === cid ? "rgba(255,255,255,0.25)" : meta.color,
+                  }}
+                >
+                  {meta.initials[0]}
+                </span>
+                {meta.name}
+                {childPending > 0 && childFilter !== cid && (
+                  <span className="w-4 h-4 rounded-full bg-amber-400 text-white text-[9px] flex items-center justify-center">
+                    {childPending}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <section>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              Pending
+            </h3>
+            {pending.length > 0 && (
+              <span className="text-xs text-amber-600 font-medium">
+                {pending.length} invoice{pending.length > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+
+          {pending.length === 0 ? (
+            <div className="flex items-center gap-2 py-3 text-sm text-emerald-600 rounded-xl border border-emerald-100 bg-emerald-50/50 px-3">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>
+                No pending invoices
+                {childFilter !== "all" && (
+                  <span className="text-gray-400">
+                    {" "}
+                    for {CHILD_BILLING_META[childFilter].name}
+                  </span>
+                )}
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {pending.map((t) => {
+                const meta = CHILD_BILLING_META[t.childId];
+                return (
+                  <article
+                    key={t.id}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white shadow-sm"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                      style={{ backgroundColor: meta.color }}
+                    >
+                      {meta.initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 leading-snug">
+                        {getDisplayDescription(t)}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Due {t.date} · {meta.name}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className="font-semibold text-gray-800 text-sm tabular-nums">
+                        {getDisplayAmount(t)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => openCheckout([t.id])}
+                        className="px-3 py-1.5 rounded-lg bg-[#827096] text-white text-xs font-semibold cursor-pointer hover:bg-[#5A4D68] transition-colors"
+                      >
+                        Pay
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <AnimatePresence>
+        {checkoutTxIds && (
+          <BillingMobileCheckoutSheet
+            key="billing-mobile-checkout"
+            txIds={checkoutTxIds}
+            paymentPlan={checkoutPaymentPlan}
+            onPaymentPlanChange={setCheckoutPaymentPlan}
+            onClose={() => setCheckoutTxIds(null)}
+            onConfirm={handleCheckoutConfirm}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export function RootedMeadowsParentBillingMobilePreview() {
+  return (
+    <div className="flex flex-col h-full bg-white">
+      <div className="px-4 py-3 border-b border-gray-100 shrink-0 bg-white">
+        <p className="text-base font-semibold text-gray-800">Tuition &amp; Billing</p>
+      </div>
+      <BillingMobileView visibleChildIds={["emma", "jake"]} />
+    </div>
+  );
+}

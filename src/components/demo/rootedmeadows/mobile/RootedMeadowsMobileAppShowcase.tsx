@@ -5,7 +5,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { getCommitteeById } from "@/data/school-demos/rooted-meadows-committees";
 import type { CommitteeWorkspaceSection } from "@/data/school-demos/rooted-meadows-committees";
 import CommitteeWorkspaceShell from "@/components/demo/rootedmeadows/committees/CommitteeWorkspaceShell";
-import { RootedMeadowsParentMessagesMobilePreview } from "@/components/demo/rootedmeadows/RootedMeadowsParentDashboardDemo";
+import {
+  RootedMeadowsParentBillingMobilePreview,
+  RootedMeadowsParentMessagesMobilePreview,
+} from "@/components/demo/rootedmeadows/RootedMeadowsParentDashboardDemo";
 import { RootedMeadowsTeacherAttendanceMobilePreview } from "@/components/demo/rootedmeadows/RootedMeadowsTeacherDashboardDemo";
 import MobilePhoneFrame from "./MobilePhoneFrame";
 
@@ -15,6 +18,12 @@ const SLIDES = [
     label: "Parent messages",
     caption: "Message teachers from anywhere",
     render: () => <RootedMeadowsParentMessagesMobilePreview />,
+  },
+  {
+    id: "parent-tuition",
+    label: "Tuition",
+    caption: "Pay tuition in a few taps",
+    render: () => <RootedMeadowsParentBillingMobilePreview />,
   },
   {
     id: "teacher-attendance",
