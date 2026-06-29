@@ -128,6 +128,10 @@ export interface AugustSignupResponse {
   status: "pending" | "placed" | "invited";
   placedCommitteeId?: string;
   highlight?: boolean;
+  assignedRole?: string;
+  participationSummary?: string;
+  gradeLevel?: string;
+  inviteSentAt?: string;
 }
 
 const DUTY_ROLE_SHORT_TITLES: Record<string, string> = {
@@ -545,7 +549,7 @@ Members serve for two years in a private working space with durable resources an
   },
 ];
 
-export const AUGUST_SIGNUP_RESPONSES: AugustSignupResponse[] = [
+const AUGUST_SIGNUP_SEED_FAMILIES: AugustSignupResponse[] = [
   {
     id: "signup-1",
     familyName: "Nguyen Family",
@@ -554,6 +558,10 @@ export const AUGUST_SIGNUP_RESPONSES: AugustSignupResponse[] = [
     preferences: ["Service & Sunshine", "Farm & Wellness Outreach"],
     status: "placed",
     placedCommitteeId: "service-sunshine-2025",
+    assignedRole: "Member",
+    gradeLevel: "Kindergarten",
+    participationSummary:
+      "Supporting fall donation drive logistics and signing up for the April earth-focused service day.",
   },
   {
     id: "signup-2",
@@ -563,6 +571,10 @@ export const AUGUST_SIGNUP_RESPONSES: AugustSignupResponse[] = [
     preferences: ["Service & Sunshine"],
     status: "placed",
     placedCommitteeId: "service-sunshine-2025",
+    assignedRole: "Class Projects Coordinator",
+    gradeLevel: "Grade 3",
+    participationSummary:
+      "Tracking Grade 3 class service activity and coordinating parent volunteers for the spring project.",
   },
   {
     id: "signup-3",
@@ -571,6 +583,7 @@ export const AUGUST_SIGNUP_RESPONSES: AugustSignupResponse[] = [
     email: "jen.w@email.com",
     preferences: ["Fall Festival", "Service & Sunshine"],
     status: "pending",
+    gradeLevel: "Grade 4",
     highlight: true,
   },
   {
@@ -581,6 +594,10 @@ export const AUGUST_SIGNUP_RESPONSES: AugustSignupResponse[] = [
     preferences: ["Fall Festival"],
     status: "placed",
     placedCommitteeId: "fall-festival-2025",
+    assignedRole: "Event Logistics Lead",
+    gradeLevel: "Grade 2",
+    participationSummary:
+      "Managing setup schedules and supply collection for Fall Festival booth activities.",
   },
   {
     id: "signup-5",
@@ -590,6 +607,11 @@ export const AUGUST_SIGNUP_RESPONSES: AugustSignupResponse[] = [
     preferences: ["Service & Sunshine", "Farm & Wellness Outreach"],
     status: "invited",
     placedCommitteeId: "service-sunshine-2025",
+    assignedRole: "Sunshine Support Lead",
+    gradeLevel: "Grade 5",
+    inviteSentAt: "Aug 12, 2025",
+    participationSummary:
+      "Leading meal train coordination and family celebration support for the school community.",
   },
   {
     id: "signup-6",
@@ -598,8 +620,140 @@ export const AUGUST_SIGNUP_RESPONSES: AugustSignupResponse[] = [
     email: "tom.b@email.com",
     preferences: ["Farm & Wellness Outreach"],
     status: "pending",
+    gradeLevel: "Grade 1",
   },
 ];
+
+const GENERATED_PARENT_FIRST = [
+  "Maria", "David", "Sarah", "Robert", "Lisa", "Kevin", "Patricia", "Daniel",
+  "Emily", "Christopher", "Angela", "Matthew", "Nicole", "Andrew", "Rachel",
+  "Brian", "Stephanie", "Jason", "Michelle", "Ryan", "Amanda", "Eric", "Jessica",
+  "Mark", "Laura", "Steven", "Karen", "Paul", "Nancy", "Greg", "Sandra", "Tim",
+  "Melissa", "Jeff", "Rebecca", "Scott", "Kimberly", "Adam", "Heather", "Josh",
+  "Tiffany", "Brandon", "Christina", "Justin", "Amber", "Tyler",
+];
+
+const GENERATED_PARENT_LAST = [
+  "Santos", "Kim", "Mitchell", "Hartwell", "Dunn", "Rivera", "Foster", "Patel",
+  "Garcia", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Wilson",
+  "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin",
+  "Thompson", "Robinson", "Clark", "Lewis", "Lee", "Walker", "Hall", "Allen",
+  "Young", "King", "Wright", "Scott", "Green", "Baker", "Adams", "Nelson",
+  "Carter", "Mitchell", "Perez", "Roberts", "Turner", "Phillips",
+];
+
+const GRADE_LEVELS = [
+  "Kindergarten", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6",
+  "Grade 7", "Grade 8",
+];
+
+const COMMITTEE_ASSIGNMENTS = [
+  {
+    id: "service-sunshine-2025",
+    name: "Service & Sunshine",
+    roles: [
+      "Member",
+      "Sunshine Support Lead",
+      "Class Projects Coordinator",
+      "Fall Service Project Lead",
+      "Community Partner Outreach",
+    ],
+    participation: [
+      "Volunteering for the spring earth-focused service day and class project check-ins.",
+      "Coordinating meal trains and family celebration support throughout the school year.",
+      "Tracking grade-level class service activities and parent volunteer sign-ups.",
+      "Leading fall service partner outreach and donation drive planning.",
+      "Drafting community partner outreach templates and local organization contacts.",
+    ],
+  },
+  {
+    id: "fcc-2024-2026",
+    name: "Family Communication Coordinators",
+    roles: [
+      "Grade 2 Coordinator",
+      "Grade 3 Coordinator",
+      "Grade 4 Coordinator",
+      "Grade 5 Coordinator",
+      "Member",
+    ],
+    participation: [
+      "Relaying grade-level messages and coordinating classroom volunteering for families.",
+      "Representing grade-level concerns at Pedagogy Committee meetings.",
+      "Updating classroom volunteer sign-up sheets and parent FAQ responses.",
+    ],
+  },
+  {
+    id: "fall-festival-2025",
+    name: "Fall Festival",
+    roles: ["Booth Coordinator", "Event Logistics Lead", "Food Coordination", "Member"],
+    participation: [
+      "Assigning and supporting booth leads for festival activities and games.",
+      "Managing event-day setup schedules and supply collection logistics.",
+      "Coordinating food vendor outreach and booth staffing for festival day.",
+    ],
+  },
+] as const;
+
+const PREFERENCE_SETS: string[][] = [
+  ["Service & Sunshine", "Farm & Wellness Outreach"],
+  ["Service & Sunshine"],
+  ["Family Communication Coordinators", "Service & Sunshine"],
+  ["Fall Festival", "Service & Sunshine"],
+  ["Fall Festival"],
+  ["Farm & Wellness Outreach"],
+  ["Service & Sunshine", "Fall Festival"],
+  ["Family Communication Coordinators"],
+];
+
+function buildAugustSignupResponses(): AugustSignupResponse[] {
+  const seed = [...AUGUST_SIGNUP_SEED_FAMILIES];
+  const generated: AugustSignupResponse[] = [];
+
+  for (let i = 0; i < 46; i++) {
+    const first = GENERATED_PARENT_FIRST[i % GENERATED_PARENT_FIRST.length];
+    const last = GENERATED_PARENT_LAST[i % GENERATED_PARENT_LAST.length];
+    const familyName = `${last} Family`;
+    const parentName = `${first} ${last}`;
+    const email = `${first.toLowerCase()}.${last.toLowerCase().charAt(0)}@email.com`;
+
+    let status: AugustSignupResponse["status"];
+    if (i < 33) status = "invited";
+    else if (i < 42) status = "placed";
+    else status = "pending";
+
+    const committee = COMMITTEE_ASSIGNMENTS[i % COMMITTEE_ASSIGNMENTS.length];
+    const roleIdx = i % committee.roles.length;
+    const partIdx = i % committee.participation.length;
+    const preferences = PREFERENCE_SETS[i % PREFERENCE_SETS.length];
+
+    const entry: AugustSignupResponse = {
+      id: `signup-${i + 7}`,
+      familyName,
+      parentName,
+      email,
+      preferences: [...preferences],
+      status,
+      gradeLevel: GRADE_LEVELS[i % GRADE_LEVELS.length],
+    };
+
+    if (status !== "pending") {
+      entry.placedCommitteeId = committee.id;
+      entry.assignedRole = committee.roles[roleIdx];
+      entry.participationSummary = committee.participation[partIdx];
+    }
+
+    if (status === "invited") {
+      const day = (i % 20) + 1;
+      entry.inviteSentAt = `Aug ${day}, 2025`;
+    }
+
+    generated.push(entry);
+  }
+
+  return [...seed, ...generated];
+}
+
+export const AUGUST_SIGNUP_RESPONSES: AugustSignupResponse[] = buildAugustSignupResponses();
 
 export interface CommitteeInviteCandidate {
   id: string;

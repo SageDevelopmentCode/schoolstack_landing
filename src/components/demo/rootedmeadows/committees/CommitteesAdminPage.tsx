@@ -112,7 +112,7 @@ export default function CommitteesAdminPage({
 
   if (view === "signup") {
     return (
-      <div className="h-full overflow-y-auto p-6">
+      <div className="h-full flex flex-col overflow-hidden p-6">
         <AugustSignupPanel />
       </div>
     );
