@@ -109,6 +109,7 @@ export default function ScaledAdminDemoPreview({
   initialCommitteeSection,
   openCreateCommitteeModal,
   openCreateCommitteeModalDelayMs,
+  highlightCreateWorkspace,
   openSendAugustSignupModal,
   openSendAugustSignupModalDelayMs,
   openArchiveCommitteeModal,
@@ -137,6 +138,7 @@ export default function ScaledAdminDemoPreview({
   initialCommitteeSection?: DemoWalkthroughCommitteeSection;
   openCreateCommitteeModal?: boolean;
   openCreateCommitteeModalDelayMs?: number;
+  highlightCreateWorkspace?: boolean;
   openSendAugustSignupModal?: boolean;
   openSendAugustSignupModalDelayMs?: number;
   openArchiveCommitteeModal?: boolean;
@@ -277,6 +279,7 @@ export default function ScaledAdminDemoPreview({
                   initialCommitteeSection,
                   openCreateCommitteeModal,
                   openCreateCommitteeModalDelayMs,
+                  highlightCreateWorkspace,
                   openSendAugustSignupModal,
                   openSendAugustSignupModalDelayMs,
                   openArchiveCommitteeModal,

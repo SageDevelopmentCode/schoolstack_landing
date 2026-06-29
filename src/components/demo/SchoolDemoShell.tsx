@@ -105,6 +105,7 @@ export default function SchoolDemoShell({
             openCreateCommitteeModalDelayMs={
               steps[activeStep].openCreateCommitteeModalDelayMs
             }
+            highlightCreateWorkspace={steps[activeStep].highlightCreateWorkspace}
             openSendAugustSignupModal={steps[activeStep].openSendAugustSignupModal}
             openSendAugustSignupModalDelayMs={
               steps[activeStep].openSendAugustSignupModalDelayMs

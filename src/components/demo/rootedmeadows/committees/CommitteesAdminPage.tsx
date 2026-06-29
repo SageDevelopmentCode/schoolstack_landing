@@ -23,6 +23,7 @@ export default function CommitteesAdminPage({
   initialCommitteeSection = "home",
   openCreateModal = false,
   openCreateModalDelayMs,
+  highlightCreateWorkspace = false,
   openSendAugustSignupModal = false,
   openSendAugustSignupModalDelayMs,
   openArchiveModal = false,
@@ -32,6 +33,7 @@ export default function CommitteesAdminPage({
   initialCommitteeSection?: CommitteeWorkspaceSection;
   openCreateModal?: boolean;
   openCreateModalDelayMs?: number;
+  highlightCreateWorkspace?: boolean;
   openSendAugustSignupModal?: boolean;
   openSendAugustSignupModalDelayMs?: number;
   openArchiveModal?: boolean;
@@ -225,6 +227,7 @@ export default function CommitteesAdminPage({
           <CreateCommitteeModal
             onClose={() => setShowCreate(false)}
             onCreate={handleCreateWorkspace}
+            showCreateWorkspaceHint={highlightCreateWorkspace}
           />
         )}
         {showSendAugustSignup && (

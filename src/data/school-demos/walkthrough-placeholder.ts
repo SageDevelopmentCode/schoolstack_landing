@@ -111,6 +111,7 @@ export interface DemoWalkthroughStep {
   initialCommitteeAdminView?: DemoWalkthroughCommitteeAdminView;
   openCreateCommitteeModal?: boolean;
   openCreateCommitteeModalDelayMs?: number;
+  highlightCreateWorkspace?: boolean;
   openSendAugustSignupModal?: boolean;
   openSendAugustSignupModalDelayMs?: number;
   openArchiveCommitteeModal?: boolean;
@@ -2292,7 +2293,8 @@ const rootedMeadowsCreateCommitteeStep: DemoWalkthroughStep = {
   preview: "admin",
   initialAdminPage: "committees",
   openCreateCommitteeModal: true,
-  openCreateCommitteeModalDelayMs: 1500,
+  openCreateCommitteeModalDelayMs: 600,
+  highlightCreateWorkspace: true,
   icon: "users",
   theme: {
     bg: "#F0EBF2",

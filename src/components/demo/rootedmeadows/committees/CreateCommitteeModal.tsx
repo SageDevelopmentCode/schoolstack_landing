@@ -9,13 +9,49 @@ export default function CreateCommitteeModal({
   onClose,
   onCreate,
   preselectedTemplateId = "template-service-sunshine",
+  showCreateWorkspaceHint = false,
 }: {
   onClose: () => void;
   onCreate?: (templateId: string) => void;
   preselectedTemplateId?: string;
+  showCreateWorkspaceHint?: boolean;
 }) {
   const [selected, setSelected] = useState(preselectedTemplateId);
+  const [hintDismissed, setHintDismissed] = useState(false);
   const template = COMMITTEE_TEMPLATES.find((t) => t.id === selected);
+  const showHint = showCreateWorkspaceHint && !hintDismissed;
+
+  const handleCreate = () => {
+    if (showHint) setHintDismissed(true);
+    onCreate?.(selected);
+    onClose();
+  };
+
+  const createButton = (
+    <motion.button
+      type="button"
+      onClick={handleCreate}
+      animate={
+        showHint
+          ? {
+              boxShadow: [
+                "0 0 0 0 rgba(130, 112, 150, 0.65)",
+                "0 0 0 10px rgba(130, 112, 150, 0)",
+                "0 0 0 0 rgba(130, 112, 150, 0.65)",
+              ],
+            }
+          : undefined
+      }
+      transition={
+        showHint ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : undefined
+      }
+      className={`px-4 py-2 text-sm font-medium text-white bg-[#827096] hover:bg-[#5A4D68] rounded-md cursor-pointer${
+        showHint ? " ring-2 ring-offset-1 ring-[#827096]" : ""
+      }`}
+    >
+      Create workspace
+    </motion.button>
+  );
 
   return (
     <motion.div
@@ -29,7 +65,7 @@ export default function CreateCommitteeModal({
         initial={{ scale: 0.96, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.96, opacity: 0 }}
-        className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -98,22 +134,39 @@ export default function CreateCommitteeModal({
             />
           </div>
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+        <div
+          className={`px-6 py-4 border-t border-gray-100 flex justify-end gap-3${
+            showHint ? " overflow-visible" : ""
+          }`}
+        >
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-md cursor-pointer"
           >
             Cancel
           </button>
-          <button
-            onClick={() => {
-              onCreate?.(selected);
-              onClose();
-            }}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#827096] hover:bg-[#5A4D68] rounded-md cursor-pointer"
-          >
-            Create workspace
-          </button>
+          {showHint ? (
+            <div className="relative inline-flex">
+              {createButton}
+              <motion.div
+                aria-hidden
+                animate={{
+                  y: [0, -8, 0],
+                  scale: [1, 1.15, 1],
+                }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="pointer-events-none absolute left-1/2 top-full z-20 flex -translate-x-1/2 pt-1 select-none"
+              >
+                <span className="text-3xl leading-none">👆</span>
+              </motion.div>
+            </div>
+          ) : (
+            createButton
+          )}
         </div>
       </motion.div>
     </motion.div>

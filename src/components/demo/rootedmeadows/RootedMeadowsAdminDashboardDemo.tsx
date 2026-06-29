@@ -25119,6 +25119,7 @@ export default function RootedMeadowsAdminDashboardDemo({
   initialCommitteeSection,
   openCreateCommitteeModal,
   openCreateCommitteeModalDelayMs,
+  highlightCreateWorkspace,
   openSendAugustSignupModal,
   openSendAugustSignupModalDelayMs,
   openArchiveCommitteeModal,
@@ -25149,6 +25150,7 @@ export default function RootedMeadowsAdminDashboardDemo({
   initialCommitteeSection?: CommitteeWorkspaceSection
   openCreateCommitteeModal?: boolean
   openCreateCommitteeModalDelayMs?: number
+  highlightCreateWorkspace?: boolean
   openSendAugustSignupModal?: boolean
   openSendAugustSignupModalDelayMs?: number
   openArchiveCommitteeModal?: boolean
@@ -25297,6 +25299,7 @@ export default function RootedMeadowsAdminDashboardDemo({
             initialCommitteeSection={initialCommitteeSection}
             openCreateModal={openCreateCommitteeModal}
             openCreateModalDelayMs={openCreateCommitteeModalDelayMs}
+            highlightCreateWorkspace={highlightCreateWorkspace}
             openSendAugustSignupModal={openSendAugustSignupModal}
             openSendAugustSignupModalDelayMs={openSendAugustSignupModalDelayMs}
             openArchiveModal={openArchiveCommitteeModal}
