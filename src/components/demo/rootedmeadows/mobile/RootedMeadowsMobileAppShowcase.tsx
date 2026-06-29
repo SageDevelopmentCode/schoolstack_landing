@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  ClipboardList,
+  CreditCard,
+  Heart,
+  MessageCircle,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { getCommitteeById } from "@/data/school-demos/rooted-meadows-committees";
 import type { CommitteeWorkspaceSection } from "@/data/school-demos/rooted-meadows-committees";
 import CommitteeWorkspaceShell from "@/components/demo/rootedmeadows/committees/CommitteeWorkspaceShell";
@@ -10,34 +17,49 @@ import {
   RootedMeadowsParentMessagesMobilePreview,
 } from "@/components/demo/rootedmeadows/RootedMeadowsParentDashboardDemo";
 import { RootedMeadowsTeacherAttendanceMobilePreview } from "@/components/demo/rootedmeadows/RootedMeadowsTeacherDashboardDemo";
-import MobilePhoneFrame from "./MobilePhoneFrame";
+import MobilePhoneFrame, { MOBILE_SHOWCASE_WIDTH } from "./MobilePhoneFrame";
 
-const SLIDES = [
+const SLIDES: {
+  id: string;
+  label: string;
+  shortLabel: string;
+  caption: string;
+  icon: LucideIcon;
+  render: () => React.ReactNode;
+}[] = [
   {
     id: "parent-messages",
     label: "Parent messages",
+    shortLabel: "Messages",
     caption: "Message teachers from anywhere",
+    icon: MessageCircle,
     render: () => <RootedMeadowsParentMessagesMobilePreview />,
   },
   {
     id: "parent-tuition",
     label: "Tuition",
+    shortLabel: "Tuition",
     caption: "Pay tuition in a few taps",
+    icon: CreditCard,
     render: () => <RootedMeadowsParentBillingMobilePreview />,
   },
   {
     id: "teacher-attendance",
     label: "Attendance",
+    shortLabel: "Attendance",
     caption: "Take attendance one day at a time",
+    icon: ClipboardList,
     render: () => <RootedMeadowsTeacherAttendanceMobilePreview />,
   },
   {
     id: "parent-committee",
     label: "Committees",
+    shortLabel: "Committees",
     caption: "Stay connected with your committee",
+    icon: Heart,
     render: () => <ParentCommitteeMobilePreview />,
   },
-] as const;
+];
 
 function ParentCommitteeMobilePreview() {
   const committee = getCommitteeById("service-sunshine-2025");
@@ -68,21 +90,31 @@ export default function RootedMeadowsMobileAppShowcase() {
   const slide = SLIDES[activeSlide];
 
   return (
-    <div className="flex h-full flex-col items-center justify-center px-4 py-6">
-      <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
-        {SLIDES.map((item, index) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveSlide(index)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-              activeSlide === index
-                ? "bg-[#827096] text-white shadow-sm"
-                : "bg-white text-gray-600 border border-gray-200 hover:border-[#827096]/30 hover:text-[#827096]"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+    <div className="flex h-full w-full flex-col items-center justify-center px-4 py-6">
+      <div
+        className="mb-5 grid w-full grid-cols-4 gap-2.5"
+        style={{ maxWidth: MOBILE_SHOWCASE_WIDTH }}
+      >
+        {SLIDES.map((item, index) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveSlide(index)}
+              aria-label={`Show ${item.label}`}
+              aria-current={activeSlide === index ? "true" : undefined}
+              className={`flex flex-row items-center justify-center gap-1.5 min-h-[48px] rounded-xl px-2.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                activeSlide === index
+                  ? "bg-[#827096] text-white shadow-sm"
+                  : "bg-white text-gray-600 border border-gray-200 hover:border-[#827096]/30 hover:text-[#827096]"
+              }`}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span className="leading-tight whitespace-nowrap">{item.shortLabel}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center">
@@ -105,6 +137,7 @@ export default function RootedMeadowsMobileAppShowcase() {
         {SLIDES.map((item, index) => (
           <button
             key={item.id}
+            type="button"
             onClick={() => setActiveSlide(index)}
             aria-label={`Show ${item.label}`}
             className={`h-2 rounded-full transition-all cursor-pointer ${

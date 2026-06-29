@@ -5,10 +5,10 @@ import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
 import RootedMeadowsMobileAppShowcase from "@/components/demo/rootedmeadows/mobile/RootedMeadowsMobileAppShowcase";
 import {
   MOBILE_DESIGN_HEIGHT,
-  MOBILE_DESIGN_WIDTH,
+  MOBILE_SHOWCASE_WIDTH,
 } from "@/components/demo/rootedmeadows/mobile/MobilePhoneFrame";
 
-const SHOWCASE_WIDTH = MOBILE_DESIGN_WIDTH + 48;
+const SHOWCASE_WIDTH = MOBILE_SHOWCASE_WIDTH;
 const SHOWCASE_HEIGHT = MOBILE_DESIGN_HEIGHT + 200;
 
 export default function ScaledMobileAppPreview({
