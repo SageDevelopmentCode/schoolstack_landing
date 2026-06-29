@@ -89,7 +89,13 @@ export default function CommitteeWorkspaceShell({
         )}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div
+              className={
+                compact
+                  ? "flex flex-col items-start gap-1"
+                  : "flex items-center gap-2 flex-wrap"
+              }
+            >
               <h1
                 className={`font-heading font-semibold text-gray-800 ${
                   compact ? "text-base" : "text-xl"
@@ -97,14 +103,16 @@ export default function CommitteeWorkspaceShell({
               >
                 {committee.name}
               </h1>
-              <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096]">
-                {committee.termLabel}
-              </span>
-              {committee.status === "archived" && (
-                <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                  Archived
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096]">
+                  {committee.termLabel}
                 </span>
-              )}
+                {committee.status === "archived" && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                    Archived
+                  </span>
+                )}
+              </div>
             </div>
             {!compact && (
               <>
@@ -118,31 +126,39 @@ export default function CommitteeWorkspaceShell({
             )}
           </div>
         </div>
-        <nav
-          className={`flex items-center gap-1 overflow-x-auto pb-1 ${
-            compact ? "mt-2" : "mt-4"
-          }`}
-        >
-          {sections.map((section) => {
-            const Icon = SECTION_ICONS[section];
-            return (
-              <button
-                key={section}
-                onClick={() => onSectionChange(section)}
-                className={`flex items-center gap-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
-                  compact ? "px-2 py-1" : "px-3 py-1.5"
-                } ${
-                  activeSection === section
-                    ? "text-[#827096] bg-[#827096]/8 font-semibold"
-                    : "text-gray-500 hover:text-[#827096] hover:bg-gray-50"
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {COMMITTEE_SECTION_LABELS[section]}
-              </button>
-            );
-          })}
-        </nav>
+        <div className={`relative ${compact ? "mt-2" : "mt-4"}`}>
+          <nav
+            className={`flex items-center gap-1 overflow-x-auto pb-1 ${
+              compact ? "pr-6" : ""
+            }`}
+          >
+            {sections.map((section) => {
+              const Icon = SECTION_ICONS[section];
+              return (
+                <button
+                  key={section}
+                  onClick={() => onSectionChange(section)}
+                  className={`flex items-center gap-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
+                    compact ? "px-2 py-1" : "px-3 py-1.5"
+                  } ${
+                    activeSection === section
+                      ? "text-[#827096] bg-[#827096]/8 font-semibold"
+                      : "text-gray-500 hover:text-[#827096] hover:bg-gray-50"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {COMMITTEE_SECTION_LABELS[section]}
+                </button>
+              );
+            })}
+          </nav>
+          {compact && (
+            <div
+              className="absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-white to-transparent pointer-events-none"
+              aria-hidden
+            />
+          )}
+        </div>
       </div>
 
       <div
@@ -168,6 +184,7 @@ export default function CommitteeWorkspaceShell({
                 committee={committee}
                 onNavigate={onSectionChange}
                 currentUserId={currentUserId}
+                compact={compact}
               />
             )}
             {activeSection === "about" && (
