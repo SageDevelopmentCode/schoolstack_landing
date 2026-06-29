@@ -14,7 +14,7 @@ import type {
 import AddTaskModal from "./AddTaskModal";
 import TaskAssigneeAvatars from "./TaskAssigneeAvatars";
 import TaskDetailModal from "./TaskDetailModal";
-import { resolveTaskAssignee } from "./committeeTaskUtils";
+import { resolveTaskAssignee, getMemberDutyRoles, TASK_STATUS_LABELS, TASK_STATUS_STYLES } from "./committeeTaskUtils";
 
 const KANBAN_COLUMNS: {
   status: CommitteeTaskStatus;
@@ -39,6 +39,7 @@ function TaskCard({
   onDragStart,
   onDragEnd,
   onOpenDetail,
+  showStatusChip,
 }: {
   task: CommitteeTask;
   groupLabel: string;
@@ -51,6 +52,7 @@ function TaskCard({
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
   onOpenDetail?: () => void;
+  showStatusChip?: boolean;
 }) {
   const handleClick = () => {
     onOpenDetail?.();
@@ -75,9 +77,18 @@ function TaskCard({
       }`}
     >
       <p className="text-sm font-medium text-gray-800 leading-snug mb-2">{task.title}</p>
-      <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096] mb-2">
-        {groupLabel}
-      </span>
+      <div className="flex items-center gap-2 flex-wrap mb-2">
+        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096]">
+          {groupLabel}
+        </span>
+        {showStatusChip && (
+          <span
+            className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${TASK_STATUS_STYLES[task.status]}`}
+          >
+            {TASK_STATUS_LABELS[task.status]}
+          </span>
+        )}
+      </div>
       {task.description && (
         <p className="text-xs text-gray-500 mb-2 line-clamp-2">{task.description}</p>
       )}
@@ -209,6 +220,10 @@ export default function CommitteeTasksSection({
   const canClaim = Boolean(
     !isAdminView && committee.status === "active" && currentUserId,
   );
+  const showPersonalization = Boolean(currentUserId && !isAdminView);
+  const myDutyRoles = showPersonalization && currentUserId
+    ? getMemberDutyRoles(committee, currentUserId)
+    : [];
 
   const template = getCommitteeTemplate(committee.templateId);
   const groups = template?.taskGroups ?? [{ id: "general" as const, label: "Tasks" }];
@@ -230,6 +245,22 @@ export default function CommitteeTasksSection({
         ? tasks
         : tasks.filter((t) => t.group === filterGroup),
     [tasks, filterGroup],
+  );
+
+  const myTasks = useMemo(
+    () =>
+      showPersonalization && currentUserId
+        ? filteredTasks.filter((t) => t.assigneeId === currentUserId)
+        : [],
+    [filteredTasks, showPersonalization, currentUserId],
+  );
+
+  const boardTasks = useMemo(
+    () =>
+      showPersonalization && currentUserId
+        ? filteredTasks.filter((t) => t.assigneeId !== currentUserId)
+        : filteredTasks,
+    [filteredTasks, showPersonalization, currentUserId],
   );
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId) ?? null;
@@ -356,9 +387,46 @@ export default function CommitteeTasksSection({
         )}
       </div>
 
+      {myDutyRoles.length > 0 && (
+        <div className="px-4 py-3 bg-[#827096]/5 border border-[#827096]/20 rounded-xl">
+          <p className="text-sm text-gray-600">
+            Your role:{" "}
+            <span className="font-semibold text-[#827096]">
+              {myDutyRoles.map((r) => r.title).join(", ")}
+            </span>
+          </p>
+        </div>
+      )}
+
       <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
+        {showPersonalization && (
+          <KanbanColumn
+            label="Your tasks"
+            headerClass="text-[#827096]"
+            count={myTasks.length}
+            isDropTarget={false}
+            onDragOver={() => {}}
+            onDragLeave={() => {}}
+            onDrop={() => {}}
+          >
+            {myTasks.length === 0 ? (
+              <p className="text-xs text-gray-400 italic px-1 py-2">No tasks assigned to you</p>
+            ) : (
+              myTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  groupLabel={getGroupLabel(task.group)}
+                  allMembers={committee.members}
+                  onOpenDetail={() => handleOpenDetail(task.id)}
+                  showStatusChip
+                />
+              ))
+            )}
+          </KanbanColumn>
+        )}
         {KANBAN_COLUMNS.map(({ status, label, headerClass }) => {
-          const columnTasks = filteredTasks.filter((t) => t.status === status);
+          const columnTasks = boardTasks.filter((t) => t.status === status);
           return (
             <KanbanColumn
               key={status}

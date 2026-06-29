@@ -47,15 +47,24 @@ function DutyRoleCard({
   assigneeName,
   canManage,
   onSelect,
+  isYourRole,
 }: {
   dutyRole: CommitteeDutyRole;
   assigneeName?: string;
   canManage?: boolean;
   onSelect?: () => void;
+  isYourRole?: boolean;
 }) {
   const content = (
     <>
-      <p className="text-sm font-semibold text-gray-800">{dutyRole.title}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-semibold text-gray-800">{dutyRole.title}</p>
+        {isYourRole && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096] shrink-0">
+            Your role
+          </span>
+        )}
+      </div>
       <p className="text-xs text-gray-500 mt-1 line-clamp-3 leading-relaxed">{dutyRole.description}</p>
       <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
         {assigneeName ? (
@@ -77,12 +86,16 @@ function DutyRoleCard({
     </>
   );
 
+  const cardClass = isYourRole
+    ? "bg-gradient-to-br from-[#827096]/10 to-[#b3b462]/8 border-[#827096]/30"
+    : "bg-white border-gray-100";
+
   if (canManage && onSelect) {
     return (
       <button
         type="button"
         onClick={onSelect}
-        className="text-left p-4 bg-white border border-gray-100 rounded-xl cursor-pointer hover:border-[#827096]/30 hover:shadow-sm transition-all"
+        className={`text-left p-4 border rounded-xl cursor-pointer hover:border-[#827096]/30 hover:shadow-sm transition-all ${cardClass}`}
       >
         {content}
       </button>
@@ -90,7 +103,7 @@ function DutyRoleCard({
   }
 
   return (
-    <div className="p-4 bg-white border border-gray-100 rounded-xl">
+    <div className={`p-4 border rounded-xl ${cardClass}`}>
       {content}
     </div>
   );
@@ -100,10 +113,12 @@ export default function CommitteeAboutSection({
   committee,
   isAdminView = false,
   onCommitteeUpdate,
+  currentUserId,
 }: {
   committee: Committee;
   isAdminView?: boolean;
   onCommitteeUpdate?: (updated: Committee) => void;
+  currentUserId?: string;
 }) {
   const [editingRole, setEditingRole] = useState<CommitteeDutyRole | null | undefined>(undefined);
   const canManage = Boolean(isAdminView && committee.status === "active" && onCommitteeUpdate);
@@ -148,6 +163,7 @@ export default function CommitteeAboutSection({
               assigneeName={getAssigneeName(role.assigneeId)}
               canManage={canManage}
               onSelect={canManage ? () => setEditingRole(role) : undefined}
+              isYourRole={currentUserId != null && role.assigneeId === currentUserId}
             />
           ))}
         </div>

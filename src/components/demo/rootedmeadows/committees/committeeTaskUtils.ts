@@ -1,4 +1,4 @@
-import type { CommitteeMember, CommitteeTask, CommitteeTaskStatus } from "./types";
+import type { Committee, CommitteeDutyRole, CommitteeMember, CommitteeTask, CommitteeTaskStatus } from "./types";
 
 export const TASK_STATUS_LABELS: Record<CommitteeTaskStatus, string> = {
   open: "Open",
@@ -28,4 +28,12 @@ export function resolveTaskAssignee(task: CommitteeTask, members: CommitteeMembe
   if (task.assigneeId) return members.find((m) => m.id === task.assigneeId);
   if (task.assigneeName) return members.find((m) => m.name === task.assigneeName);
   return undefined;
+}
+
+export function getMemberDutyRoles(committee: Committee, memberId: string): CommitteeDutyRole[] {
+  return committee.dutyRoles.filter((r) => r.assigneeId === memberId);
+}
+
+export function getMemberTasks(committee: Committee, memberId: string): CommitteeTask[] {
+  return committee.tasks.filter((t) => t.assigneeId === memberId);
 }

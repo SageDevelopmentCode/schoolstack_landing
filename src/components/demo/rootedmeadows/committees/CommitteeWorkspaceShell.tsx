@@ -144,13 +144,18 @@ export default function CommitteeWorkspaceShell({
             }
           >
             {activeSection === "home" && (
-              <CommitteeHomeSection committee={committee} onNavigate={onSectionChange} />
+              <CommitteeHomeSection
+                committee={committee}
+                onNavigate={onSectionChange}
+                currentUserId={currentUserId}
+              />
             )}
             {activeSection === "about" && (
               <CommitteeAboutSection
                 committee={committee}
                 isAdminView={isAdminView}
                 onCommitteeUpdate={onCommitteeUpdate}
+                currentUserId={currentUserId}
               />
             )}
             {activeSection === "resources" && (

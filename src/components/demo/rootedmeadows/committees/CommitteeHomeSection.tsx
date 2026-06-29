@@ -2,19 +2,31 @@
 
 import { ArrowRight, CalendarDays, CheckSquare, FileText, MessageCircle } from "lucide-react";
 import type { Committee, CommitteeWorkspaceSection } from "./types";
+import {
+  getMemberDutyRoles,
+  getMemberTasks,
+  TASK_STATUS_LABELS,
+} from "./committeeTaskUtils";
 
 export default function CommitteeHomeSection({
   committee,
   onNavigate,
+  currentUserId,
 }: {
   committee: Committee;
   onNavigate: (section: CommitteeWorkspaceSection) => void;
+  currentUserId?: string;
 }) {
   const upcomingEvents = committee.events.slice(0, 3);
-  const urgentTasks = committee.tasks
-    .filter((t) => t.status !== "done")
-    .slice(0, 4);
+  const myDutyRoles = currentUserId ? getMemberDutyRoles(committee, currentUserId) : [];
+  const myTasks = currentUserId
+    ? getMemberTasks(committee, currentUserId).filter((t) => t.status !== "done").slice(0, 4)
+    : [];
+  const urgentTasks = currentUserId
+    ? myTasks
+    : committee.tasks.filter((t) => t.status !== "done").slice(0, 4);
   const leaders = committee.members.filter((m) => m.role === "lead");
+  const tasksPanelTitle = currentUserId ? "Your tasks" : "Action items";
 
   return (
     <div className="space-y-6">
@@ -28,6 +40,14 @@ export default function CommitteeHomeSection({
         <p className="text-sm text-gray-600 leading-relaxed max-w-2xl">
           {committee.description}
         </p>
+        {myDutyRoles.length > 0 && (
+          <p className="text-xs text-gray-500 mt-3">
+            Your role:{" "}
+            <span className="inline-flex items-center font-semibold text-[#827096] bg-[#827096]/10 px-2 py-0.5 rounded-full">
+              {myDutyRoles.map((r) => r.title).join(", ")}
+            </span>
+          </p>
+        )}
         {leaders.length > 0 && (
           <p className="text-xs text-gray-500 mt-3">
             Committee lead{leaders.length > 1 ? "s" : ""}:{" "}
@@ -98,7 +118,7 @@ export default function CommitteeHomeSection({
 
         <section className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-800">Action items</h3>
+            <h3 className="text-sm font-semibold text-gray-800">{tasksPanelTitle}</h3>
             <button
               onClick={() => onNavigate("tasks")}
               className="text-xs text-[#827096] font-medium hover:underline cursor-pointer"
@@ -107,23 +127,33 @@ export default function CommitteeHomeSection({
             </button>
           </div>
           <div className="space-y-2">
-            {urgentTasks.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-3 p-3 rounded-xl bg-gray-50"
-              >
-                <CheckSquare className="w-4 h-4 text-[#827096] flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-800 truncate">{t.title}</p>
-                  <p className="text-xs text-gray-400">
-                    {t.assigneeName ? `${t.assigneeName} · ` : ""}
-                    {t.dueDate
-                      ? `Due ${new Date(t.dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                      : "No due date"}
-                  </p>
+            {urgentTasks.length === 0 ? (
+              <p className="text-sm text-gray-400 italic py-2">
+                {currentUserId ? "No tasks assigned to you yet." : "No open tasks."}
+              </p>
+            ) : (
+              urgentTasks.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50"
+                >
+                  <CheckSquare className="w-4 h-4 text-[#827096] flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-800 truncate">{t.title}</p>
+                    <p className="text-xs text-gray-400">
+                      {currentUserId
+                        ? `${TASK_STATUS_LABELS[t.status]} · `
+                        : t.assigneeName
+                          ? `${t.assigneeName} · `
+                          : ""}
+                      {t.dueDate
+                        ? `Due ${new Date(t.dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                        : "No due date"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
       </div>
