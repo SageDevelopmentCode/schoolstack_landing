@@ -898,10 +898,10 @@ const EMMA_STUDENT_EXTRAS: Pick<
   ],
   parent_contacts: [
     {
-      name: "Maria Rivera",
+      name: "Sarah Rivera",
       relationship: "Mother",
       phone: "(512) 555-0142",
-      email: "maria.rivera@email.com",
+      email: "sarah.rivera@email.com",
       isPrimary: true,
     },
     {
@@ -925,6 +925,34 @@ const EMMA_STUDENT_EXTRAS: Pick<
   ],
 };
 
+const MARCUS_STUDENT_EXTRAS: Partial<
+  Pick<
+    DemoStudent,
+    | "current_teachers"
+    | "teacher_history"
+    | "attendance_history"
+    | "parent_contacts"
+    | "authorized_pickups"
+  >
+> = {
+  parent_contacts: [
+    {
+      name: "David Chen",
+      relationship: "Father",
+      phone: "(512) 555-0198",
+      email: "david.chen@email.com",
+      isPrimary: true,
+    },
+  ],
+  authorized_pickups: [
+    {
+      name: "David Chen",
+      relationship: "Father",
+      phone: "(512) 555-0198",
+    },
+  ],
+};
+
 function enrichStudent(
   base: DemoStudentBase,
   overrides?: Partial<
@@ -942,7 +970,14 @@ function enrichStudent(
 }
 
 const DEMO_STUDENTS: DemoStudent[] = DEMO_STUDENTS_BASE.map((base) =>
-  enrichStudent(base, base.id === "s1" ? EMMA_STUDENT_EXTRAS : undefined),
+  enrichStudent(
+    base,
+    base.id === "s1"
+      ? EMMA_STUDENT_EXTRAS
+      : base.id === "s2"
+        ? MARCUS_STUDENT_EXTRAS
+        : undefined,
+  ),
 );
 
 // ─── Sidebar Primitives (inlined) ─────────────────────────────────────────────
@@ -1023,6 +1058,114 @@ function attendanceStatusStyles(status: DemoAttendanceRecord["status"]) {
     case "early_dismissal":
       return "bg-sky-50 text-sky-600";
   }
+}
+
+function ParentChildrenSidebar({
+  parentName,
+  students,
+  onClose,
+  onSelectStudent,
+}: {
+  parentName: string;
+  students: DemoStudent[];
+  onClose: () => void;
+  onSelectStudent: (student: DemoStudent) => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <AnimatePresence>
+      {students.length > 0 && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 z-40 backdrop-blur-sm"
+            style={{ background: "rgba(0,0,0,0.15)" }}
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 280 }}
+            className="absolute top-0 right-0 bottom-0 w-[420px] z-50 flex flex-col overflow-hidden bg-white border-l border-gray-100 shadow-xl"
+          >
+            <div className="flex-shrink-0 px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-white">
+              <div>
+                <h2 className="text-base font-semibold text-gray-800 font-body leading-tight">
+                  {parentName}&apos;s Children
+                </h2>
+                <p className="text-xs text-gray-400 font-body mt-0.5">
+                  {students.length} enrolled student
+                  {students.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="flex flex-col divide-y divide-gray-50">
+                {students.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => onSelectStudent(s)}
+                    className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
+                    <StudentAvatar name={s.name} color={s.color} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 font-body">
+                        {s.name}
+                      </p>
+                      <p className="text-xs text-gray-400 font-body mt-0.5">
+                        {s.grade}
+                      </p>
+                    </div>
+                    <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full shrink-0 font-body">
+                      {s.classroom}
+                    </span>
+                    {s.attendance_status === "checked_in" && (
+                      <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#827096]/10 text-[#827096] shrink-0 font-body">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#827096] animate-pulse" />
+                        Checked In
+                      </span>
+                    )}
+                    {s.attendance_status === "checked_out" && (
+                      <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-400 shrink-0 font-body">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                        Checked Out
+                      </span>
+                    )}
+                    {s.attendance_status === "absent" && (
+                      <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-500 shrink-0 font-body">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        Not Checked In
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 }
 
 function StudentDetailSidebar({
@@ -2457,6 +2600,7 @@ type DemoConvo = {
   lastMsg: string;
   lastTime: string;
   unread: number;
+  linkedStudentIds?: string[];
 };
 type DemoMsg = { id: string; from: "me" | "them"; body: string; time: string };
 
@@ -2469,6 +2613,7 @@ const DEMO_CONVOS: DemoConvo[] = [
     lastMsg: "Thank you so much, that's great to hear!",
     lastTime: "2m ago",
     unread: 2,
+    linkedStudentIds: ["s1"],
   },
   {
     id: "c2",
@@ -2478,6 +2623,7 @@ const DEMO_CONVOS: DemoConvo[] = [
     lastMsg: "Could we reschedule our conference?",
     lastTime: "Yesterday",
     unread: 1,
+    linkedStudentIds: ["s2"],
   },
   {
     id: "c3",
@@ -2594,6 +2740,12 @@ const DEMO_THREADS: Record<string, DemoMsg[]> = {
   ],
 };
 
+function getStudentsForConvo(convo: DemoConvo): DemoStudent[] {
+  return (convo.linkedStudentIds ?? [])
+    .map((id) => DEMO_STUDENTS.find((s) => s.id === id))
+    .filter((s): s is DemoStudent => s != null);
+}
+
 function initialsFrom(name: string) {
   return name
     .trim()
@@ -2619,10 +2771,13 @@ function MessagesPage({
   const setDraft = setExternalDraft ?? setInternalDraft;
   const [convos, setConvos] = useState<DemoConvo[]>(DEMO_CONVOS);
   const [mobileView, setMobileView] = useState<"list" | "chat">("chat");
+  const [childrenPanelOpen, setChildrenPanelOpen] = useState(false);
+  const [detailStudent, setDetailStudent] = useState<DemoStudent | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const active = convos.find((c) => c.id === activeId) ?? null;
+  const linkedStudents = active ? getStudentsForConvo(active) : [];
   const messages = threads[activeId] ?? [];
   const filtered = convos.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
@@ -2633,6 +2788,11 @@ function MessagesPage({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [activeId, messages.length]);
+
+  useEffect(() => {
+    setChildrenPanelOpen(false);
+    setDetailStudent(null);
+  }, [activeId]);
 
   function sendMsg() {
     const body = draft.trim();
@@ -2669,7 +2829,7 @@ function MessagesPage({
   }
 
   return (
-    <div className="flex flex-1 h-full border-t border-gray-100 overflow-hidden bg-white">
+    <div className="relative flex flex-1 h-full border-t border-gray-100 overflow-hidden bg-white">
       {/* Conversation list */}
       <div
         className={`w-72 shrink-0 border-r border-gray-100 flex flex-col ${mobileView === "chat" ? "hidden sm:flex" : "flex"}`}
@@ -2749,7 +2909,7 @@ function MessagesPage({
               >
                 {initialsFrom(active.name)}
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold font-body text-gray-800">
                   {active.name}
                 </p>
@@ -2757,6 +2917,17 @@ function MessagesPage({
                   {active.role}
                 </p>
               </div>
+              {active.role === "Parent" && linkedStudents.length > 0 && (
+                <button
+                  type="button"
+                  data-tour-id="messages-view-children"
+                  onClick={() => setChildrenPanelOpen(true)}
+                  className="ml-auto flex items-center gap-2 px-3 py-2 rounded-lg border border-[#827096]/20 bg-[#827096]/5 text-[#827096] text-xs font-semibold font-body hover:bg-[#827096]/10 transition-colors cursor-pointer shrink-0"
+                >
+                  <Users className="w-4 h-4" />
+                  View children info
+                </button>
+              )}
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
@@ -2812,6 +2983,23 @@ function MessagesPage({
           </div>
         )}
       </div>
+
+      {childrenPanelOpen && active?.role === "Parent" && (
+        <ParentChildrenSidebar
+          parentName={active.name}
+          students={linkedStudents}
+          onClose={() => setChildrenPanelOpen(false)}
+          onSelectStudent={(student) => {
+            setChildrenPanelOpen(false);
+            setDetailStudent(student);
+          }}
+        />
+      )}
+
+      <StudentDetailSidebar
+        student={detailStudent}
+        onClose={() => setDetailStudent(null)}
+      />
     </div>
   );
 }

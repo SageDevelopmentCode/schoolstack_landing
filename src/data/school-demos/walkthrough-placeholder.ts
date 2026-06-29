@@ -2371,6 +2371,27 @@ const rootedMeadowsArchiveCommitteeStep: DemoWalkthroughStep = {
   },
 };
 
+const rootedMeadowsTeacherMessagesStep: DemoWalkthroughStep = {
+  id: "teacher-message-parents",
+  title: "Teachers message parents",
+  description:
+    "Guides reach families directly from the teacher portal — one-on-one threads for check-ins, conferences, and day-of updates.",
+  preview: "teacher",
+  initialTeacherTab: "messages",
+  icon: "messageCircle",
+  theme: {
+    bg: "#F0EBF2",
+    bgHover: "#E8E0EC",
+    bgActive: "#E8E0EC",
+    border: "#C9BBD4",
+    iconBg: "#827096",
+    iconColor: "#FFFFFF",
+    titleColor: "#5A4D68",
+    descColor: "#6B6560",
+    connector: "#827096",
+  },
+};
+
 const rootedMeadowsTeacherStudentsStep: DemoWalkthroughStep = {
   id: "teacher-view-students",
   title: "Teachers view student details",
@@ -2438,7 +2459,12 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
         const teacherAttendance = rootedMeadowsWalkthroughPlaceholder.find(
           (s) => s.id === "teacher-attendance",
         )!;
-        return [teacherAttendance, rootedMeadowsTeacherStudentsStep, mapped];
+        return [
+          teacherAttendance,
+          rootedMeadowsTeacherStudentsStep,
+          rootedMeadowsTeacherMessagesStep,
+          mapped,
+        ];
       }
       return [mapped];
     }),
