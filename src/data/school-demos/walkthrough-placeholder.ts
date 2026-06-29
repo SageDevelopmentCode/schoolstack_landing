@@ -10,7 +10,8 @@ export type DemoWalkthroughIcon =
   | "messageCircle"
   | "badgePercent"
   | "users"
-  | "heart";
+  | "heart"
+  | "smartphone";
 
 export type DemoWalkthroughAdminPage = "myschool" | "committees";
 
@@ -59,7 +60,8 @@ export type DemoWalkthroughPreview =
   | "admin"
   | "parent"
   | "teacher"
-  | "contact";
+  | "contact"
+  | "mobile";
 
 export interface DemoWalkthroughStepTheme {
   bg: string;
@@ -2421,6 +2423,31 @@ const rootedMeadowsTeacherMessagesStep: DemoWalkthroughStep = {
   },
 };
 
+const rootedMeadowsMobileAppStep: DemoWalkthroughStep = {
+  id: "mobile-app",
+  title: "Everything in your pocket",
+  description:
+    "Messaging, attendance, and committees — all available in a mobile app built for your school community.",
+  talkingPoint:
+    "Parents and teachers get the features they use most, optimized for phones.",
+  preview: "mobile",
+  previewHint:
+    "Mobile app preview — features shown here will be available on iOS and Android.",
+  previewHintDelayMs: 800,
+  icon: "smartphone",
+  theme: {
+    bg: "#F5F3E6",
+    bgHover: "#EEEBD8",
+    bgActive: "#EEEBD8",
+    border: "#D8D9A8",
+    iconBg: "#b3b462",
+    iconColor: "#FFFFFF",
+    titleColor: "#5C5A30",
+    descColor: "#6B6840",
+    connector: "#b3b462",
+  },
+};
+
 const rootedMeadowsTeacherStudentsStep: DemoWalkthroughStep = {
   id: "teacher-view-students",
   title: "Teachers view student details",
@@ -2493,6 +2520,7 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
           teacherAttendance,
           rootedMeadowsTeacherStudentsStep,
           rootedMeadowsTeacherMessagesStep,
+          rootedMeadowsMobileAppStep,
           mapped,
         ];
       }

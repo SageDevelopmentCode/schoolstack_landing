@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgePercent, CalendarDays, ClipboardCheck, ClipboardList, CreditCard, GitBranch, Globe, Heart, LayoutDashboard, Link2, MessageCircle, MousePointerClick, Users } from "lucide-react";
+import { BadgePercent, CalendarDays, ClipboardCheck, ClipboardList, CreditCard, GitBranch, Globe, Heart, LayoutDashboard, Link2, MessageCircle, MousePointerClick, Smartphone, Users } from "lucide-react";
 import Image from "next/image";
 import type { ComponentType, CSSProperties } from "react";
 import SchoolDemoWordmark, {
@@ -24,6 +24,7 @@ const STEP_ICONS: Record<DemoWalkthroughIcon, ComponentType<{ className?: string
   badgePercent: BadgePercent,
   users: Users,
   heart: Heart,
+  smartphone: Smartphone,
 };
 
 interface Props {

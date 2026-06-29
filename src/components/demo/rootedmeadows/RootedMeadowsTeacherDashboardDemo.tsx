@@ -4651,6 +4651,206 @@ function AttendanceTab() {
   );
 }
 
+function AttendanceMobileDayView() {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [dayIndex, setDayIndex] = useState(0);
+  const [records, setRecords] = useState<AttendanceRecord[]>(buildInitialAttendance);
+  const [search, setSearch] = useState("");
+
+  const weekDates = useMemo(() => {
+    return ATTENDANCE_BASE_DATES.map((d) => {
+      const date = new Date(d + "T00:00:00");
+      date.setDate(date.getDate() + weekOffset * 7);
+      return date.toISOString().slice(0, 10);
+    });
+  }, [weekOffset]);
+
+  const activeDate = weekDates[dayIndex];
+
+  const filteredStudents = useMemo(
+    () =>
+      ATTENDANCE_STUDENTS.filter((s) =>
+        s.name.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [search],
+  );
+
+  function getRecord(studentId: string, date: string) {
+    return records.find((r) => r.studentId === studentId && r.date === date);
+  }
+
+  function togglePresent(studentId: string, date: string) {
+    setRecords((prev) =>
+      prev.map((r) =>
+        r.studentId === studentId && r.date === date
+          ? { ...r, present: !r.present }
+          : r,
+      ),
+    );
+  }
+
+  function presentCount(date: string) {
+    return records.filter(
+      (r) =>
+        r.date === date &&
+        r.present &&
+        filteredStudents.some((s) => s.id === r.studentId),
+    ).length;
+  }
+
+  function formatDateLabel(dateStr: string) {
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  function shiftDay(delta: number) {
+    const next = dayIndex + delta;
+    if (next < 0) {
+      if (weekOffset > 0) {
+        setWeekOffset((o) => o - 1);
+        setDayIndex(4);
+      }
+      return;
+    }
+    if (next > 4) {
+      if (weekOffset < ATTENDANCE_TOTAL_WEEKS - 1) {
+        setWeekOffset((o) => o + 1);
+        setDayIndex(0);
+      }
+      return;
+    }
+    setDayIndex(next);
+  }
+
+  const present = presentCount(activeDate);
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden bg-white">
+      <div className="px-4 pt-4 pb-3 border-b border-gray-100 shrink-0">
+        <h1 className="text-lg font-bold font-heading text-gray-800">Attendance</h1>
+        <p className="text-xs text-gray-400 font-body mt-0.5">
+          {filteredStudents.length} students
+        </p>
+      </div>
+
+      <div className="px-4 py-3 border-b border-gray-100 shrink-0 bg-[#fafaf9]">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={() => shiftDay(-1)}
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="text-center min-w-0 flex-1">
+            <p className="text-sm font-bold font-body text-gray-800 truncate">
+              {formatDateLabel(activeDate)}
+            </p>
+            <p className="text-[11px] text-gray-400 font-body mt-0.5">
+              {present} of {filteredStudents.length} present
+            </p>
+          </div>
+          <button
+            onClick={() => shiftDay(1)}
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer"
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="mt-3 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+          <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search students..."
+            className="flex-1 bg-transparent text-sm font-body text-gray-700 placeholder-gray-400 outline-none min-w-0"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+        {filteredStudents.map((student) => {
+          const rec = getRecord(student.id, activeDate);
+          const isPresent = rec?.present ?? false;
+          const isPaid = rec?.paid ?? false;
+          return (
+            <div
+              key={student.id}
+              className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                isPresent ? "bg-[#827096]/[0.04]" : "hover:bg-gray-50/80"
+              }`}
+            >
+              <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 border border-gray-100">
+                <Image
+                  src={student.avatar}
+                  alt={student.name}
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className="text-sm font-body text-gray-800 truncate">
+                    {student.name}
+                  </span>
+                  {student.homeschoolDropIn && (
+                    <span title="Homeschool drop-in">
+                      <Home className="w-3.5 h-3.5 text-[#827096] shrink-0" />
+                    </span>
+                  )}
+                </div>
+                <span
+                  className={`text-[10px] font-semibold font-body ${
+                    isPaid ? "text-[#827096]" : "text-gray-400"
+                  }`}
+                >
+                  {isPaid ? "Paid" : "Unpaid"}
+                </span>
+              </div>
+              <button
+                onClick={() => togglePresent(student.id, activeDate)}
+                className={`w-6 h-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                  isPresent
+                    ? "bg-[#827096] border-[#827096] shadow-sm"
+                    : "border-gray-300 hover:border-[#827096]/60 bg-white"
+                }`}
+                aria-label={isPresent ? "Mark absent" : "Mark present"}
+              >
+                {isPresent && (
+                  <svg
+                    className="w-3.5 h-3.5 text-white"
+                    fill="none"
+                    viewBox="0 0 12 12"
+                  >
+                    <path
+                      d="M2 6l3 3 5-5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function RootedMeadowsTeacherAttendanceMobilePreview() {
+  return <AttendanceMobileDayView />;
+}
+
 // ─── Tour Constants ───────────────────────────────────────────────────────────
 
 const TOUR_MOVE_MS = 950;

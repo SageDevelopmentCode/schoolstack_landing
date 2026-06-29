@@ -48,6 +48,7 @@ export default function CommitteeWorkspaceShell({
   onCommitteeUpdate,
   currentUserId,
   onArchive,
+  compact = false,
 }: {
   committee: Committee;
   activeSection: CommitteeWorkspaceSection;
@@ -58,6 +59,7 @@ export default function CommitteeWorkspaceShell({
   onCommitteeUpdate?: (updated: Committee) => void;
   currentUserId?: string;
   onArchive?: () => void;
+  compact?: boolean;
 }) {
   const template = getCommitteeTemplate(committee.templateId);
   const sections = (template?.sections ?? ["home", "about", "resources", "calendar", "tasks", "messages", "members"]).filter(
@@ -71,11 +73,15 @@ export default function CommitteeWorkspaceShell({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="px-6 pt-3 pb-3 border-b border-gray-100 bg-white shrink-0">
+      <div
+        className={`border-b border-gray-100 bg-white shrink-0 ${
+          compact ? "px-3 pt-2 pb-2" : "px-6 pt-3 pb-3"
+        }`}
+      >
         {onBack && (
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#827096] mb-3 cursor-pointer transition-colors"
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#827096] mb-2 cursor-pointer transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             All committees
@@ -84,7 +90,11 @@ export default function CommitteeWorkspaceShell({
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-heading font-semibold text-gray-800">
+              <h1
+                className={`font-heading font-semibold text-gray-800 ${
+                  compact ? "text-base" : "text-xl"
+                }`}
+              >
                 {committee.name}
               </h1>
               <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096]">
@@ -96,22 +106,32 @@ export default function CommitteeWorkspaceShell({
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-500 mt-1">{committee.description}</p>
-            {leaders.length > 0 && (
-              <p className="text-xs text-gray-400 mt-1">
-                Led by {leaders.map((l) => l.name).join(", ")}
-              </p>
+            {!compact && (
+              <>
+                <p className="text-sm text-gray-500 mt-1">{committee.description}</p>
+                {leaders.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Led by {leaders.map((l) => l.name).join(", ")}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
-        <nav className="flex items-center gap-1 mt-4 overflow-x-auto pb-1">
+        <nav
+          className={`flex items-center gap-1 overflow-x-auto pb-1 ${
+            compact ? "mt-2" : "mt-4"
+          }`}
+        >
           {sections.map((section) => {
             const Icon = SECTION_ICONS[section];
             return (
               <button
                 key={section}
                 onClick={() => onSectionChange(section)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
+                  compact ? "px-2 py-1" : "px-3 py-1.5"
+                } ${
                   activeSection === section
                     ? "text-[#827096] bg-[#827096]/8 font-semibold"
                     : "text-gray-500 hover:text-[#827096] hover:bg-gray-50"
@@ -129,7 +149,7 @@ export default function CommitteeWorkspaceShell({
         className={
           activeSection === "messages"
             ? "flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-50/50"
-            : "flex-1 overflow-y-auto p-6 bg-gray-50/50"
+            : `flex-1 overflow-y-auto bg-gray-50/50 ${compact ? "p-3" : "p-6"}`
         }
       >
         <AnimatePresence mode="wait">

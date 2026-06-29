@@ -9,7 +9,8 @@ type DemoPreviewVariant =
   | "admin"
   | "parent"
   | "teacher"
-  | "contact";
+  | "contact"
+  | "mobile";
 
 const VARIANT_CONFIG: Record<
   DemoPreviewVariant,
@@ -85,6 +86,15 @@ const VARIANT_CONFIG: Record<
     pillBg: "#F2E7D1",
     pillText: "#2E4A3C",
     pillBorder: "#D9C9A3",
+  },
+  mobile: {
+    label: "Mobile app",
+    emoji: "📱",
+    outerBg: "#F0EBF2",
+    cardBorder: "#C9BBD4",
+    pillBg: "#E8E0EC",
+    pillText: "#5A4D68",
+    pillBorder: "#C9BBD4",
   },
 };
 

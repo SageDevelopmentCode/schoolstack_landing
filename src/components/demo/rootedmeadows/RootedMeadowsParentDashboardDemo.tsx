@@ -3955,6 +3955,8 @@ function MessagesPage({
   setInput,
   activeConv,
   setActiveConv,
+  layout = "desktop",
+  initialMobileView = "list",
 }: {
   threads: Record<string, DemoMessage[]>;
   setThreads: (t: Record<string, DemoMessage[]>) => void;
@@ -3962,10 +3964,14 @@ function MessagesPage({
   setInput: (v: string) => void;
   activeConv: string;
   setActiveConv: (id: string) => void;
+  layout?: "desktop" | "mobile";
+  initialMobileView?: "list" | "chat";
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const conv = DEMO_CONVERSATIONS.find((c) => c.id === activeConv)!;
   const messages = threads[activeConv] || [];
+  const isMobile = layout === "mobile";
+  const [mobileView, setMobileView] = useState<"list" | "chat">(initialMobileView);
 
   const sendMsg = () => {
     if (!input.trim()) return;
@@ -3979,6 +3985,11 @@ function MessagesPage({
     setInput("");
   };
 
+  const openConversation = (id: string) => {
+    setActiveConv(id);
+    if (isMobile) setMobileView("chat");
+  };
+
   useEffect(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop =
@@ -3986,9 +3997,20 @@ function MessagesPage({
     }
   }, [messages, activeConv]);
 
+  const showList = !isMobile || mobileView === "list";
+  const showChat = !isMobile || mobileView === "chat";
+
   return (
     <div className="flex flex-1 h-full border-t border-gray-100 overflow-hidden">
-      <div className="w-64 border-r border-gray-100 flex flex-col flex-shrink-0">
+      <div
+        className={`border-r border-gray-100 flex flex-col flex-shrink-0 ${
+          isMobile
+            ? showList
+              ? "w-full"
+              : "hidden"
+            : "w-64"
+        }`}
+      >
         <div className="p-3 border-b border-gray-100">
           <p className="text-sm font-semibold text-gray-700">Messages</p>
         </div>
@@ -3997,7 +4019,7 @@ function MessagesPage({
             <button
               key={c.id}
               data-tour-id={`messages-conv-${c.id}`}
-              onClick={() => setActiveConv(c.id)}
+              onClick={() => openConversation(c.id)}
               className={`w-full flex items-start gap-3 p-3 text-left transition-colors cursor-pointer ${activeConv === c.id ? "bg-[#827096]/5" : "hover:bg-gray-50"}`}
             >
               <Avatar
@@ -4028,8 +4050,21 @@ function MessagesPage({
           ))}
         </div>
       </div>
-      <div className="flex-1 flex flex-col">
+      <div
+        className={`flex-1 flex flex-col min-w-0 ${
+          isMobile ? (showChat ? "flex" : "hidden") : "flex"
+        }`}
+      >
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+          {isMobile && (
+            <button
+              onClick={() => setMobileView("list")}
+              className="text-gray-500 cursor-pointer shrink-0"
+              aria-label="Back to conversations"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
           <Avatar
             initials={conv.name
               .split(" ")
@@ -6553,6 +6588,30 @@ export default function RootedMeadowsParentDashboardDemo({
           initial={false}
         />
       )}
+    </div>
+  );
+}
+
+export function RootedMeadowsParentMessagesMobilePreview() {
+  const [threads, setThreads] = useState(DEMO_THREADS);
+  const [input, setInput] = useState("");
+  const [activeConv, setActiveConv] = useState("c1");
+
+  return (
+    <div className="flex flex-col h-full bg-white">
+      <div className="px-4 py-3 border-b border-gray-100 shrink-0 bg-white">
+        <p className="text-base font-semibold text-gray-800">Messages</p>
+      </div>
+      <MessagesPage
+        threads={threads}
+        setThreads={setThreads}
+        input={input}
+        setInput={setInput}
+        activeConv={activeConv}
+        setActiveConv={setActiveConv}
+        layout="mobile"
+        initialMobileView="chat"
+      />
     </div>
   );
 }

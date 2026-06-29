@@ -11,6 +11,7 @@ import ScaledTeacherDemoPreview from "@/components/demo/ScaledTeacherDemoPreview
 import ScaledApplicationDemoPreview from "@/components/demo/ScaledApplicationDemoPreview";
 import ScaledObservationDemoPreview from "@/components/demo/ScaledObservationDemoPreview";
 import ScaledWebsiteDemoPreview from "@/components/demo/ScaledWebsiteDemoPreview";
+import ScaledMobileAppPreview from "@/components/demo/ScaledMobileAppPreview";
 import type { DemoWalkthroughStep } from "@/data/school-demos/walkthrough-placeholder";
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 import type { SchoolWebsiteDemoConfig } from "@/data/school-demos/types";
@@ -142,6 +143,8 @@ export default function SchoolDemoShell({
             logo={config.logo}
             variant={steps[activeStep].contactPanelVariant ?? "schedule"}
           />
+        ) : activePreview === "mobile" ? (
+          <ScaledMobileAppPreview key={steps[activeStep].id} demoSlug={config.slug} />
         ) : activePreview === "application" ? (
           <ScaledApplicationDemoPreview
             demoSlug={config.slug}
