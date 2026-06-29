@@ -3,13 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
 import RootedMeadowsMobileAppShowcase from "@/components/demo/rootedmeadows/mobile/RootedMeadowsMobileAppShowcase";
-import {
-  MOBILE_DESIGN_HEIGHT,
-  MOBILE_SHOWCASE_WIDTH,
-} from "@/components/demo/rootedmeadows/mobile/MobilePhoneFrame";
+import { MOBILE_DESIGN_HEIGHT } from "@/components/demo/rootedmeadows/mobile/MobilePhoneFrame";
 
-const SHOWCASE_WIDTH = MOBILE_SHOWCASE_WIDTH;
-const SHOWCASE_HEIGHT = MOBILE_DESIGN_HEIGHT + 200;
+const SHOWCASE_HEIGHT = MOBILE_DESIGN_HEIGHT + 160;
 
 export default function ScaledMobileAppPreview({
   demoSlug = "rooted-meadows",
@@ -17,6 +13,7 @@ export default function ScaledMobileAppPreview({
   demoSlug?: string;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(800);
   const [scale, setScale] = useState(0.7);
 
   useEffect(() => {
@@ -24,9 +21,9 @@ export default function ScaledMobileAppPreview({
     if (!el) return;
 
     const update = () => {
-      const widthScale = el.offsetWidth / SHOWCASE_WIDTH;
+      setContainerWidth(el.offsetWidth);
       const heightScale = el.offsetHeight / SHOWCASE_HEIGHT;
-      setScale(Math.min(widthScale, heightScale, 1));
+      setScale(Math.min(heightScale, 1));
     };
 
     update();
@@ -51,7 +48,7 @@ export default function ScaledMobileAppPreview({
         <div
           className="absolute left-1/2 top-1/2"
           style={{
-            width: SHOWCASE_WIDTH,
+            width: containerWidth,
             height: SHOWCASE_HEIGHT,
             transform: `translate(-50%, -50%) scale(${scale})`,
             transformOrigin: "center center",

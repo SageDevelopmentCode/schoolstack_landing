@@ -1,4 +1,5 @@
 import { Geist, Lora, Fragment_Mono, Delicious_Handrawn, Poppins } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import NavigationRestoreInit from "@/components/NavigationRestoreInit";
 import { rootMetadata } from "@/lib/metadata";
 import "./globals.css";
@@ -50,6 +51,7 @@ export default function RootLayout({
       <body className="antialiased">
         <NavigationRestoreInit />
         {children}
+        <Analytics />
       </body>
     </html>
   );

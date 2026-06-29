@@ -4,8 +4,6 @@ import type { ReactNode } from "react";
 
 export const MOBILE_DESIGN_WIDTH = 390;
 export const MOBILE_DESIGN_HEIGHT = 844;
-/** Wider than the phone — tab bar spans full showcase width */
-export const MOBILE_SHOWCASE_WIDTH = 640;
 
 export default function MobilePhoneFrame({ children }: { children: ReactNode }) {
   return (

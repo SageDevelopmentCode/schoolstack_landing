@@ -1060,6 +1060,235 @@ function attendanceStatusStyles(status: DemoAttendanceRecord["status"]) {
   }
 }
 
+function StudentDetailTabPanels({
+  student,
+  activeTab,
+}: {
+  student: DemoStudent;
+  activeTab: StudentDetailTab;
+}) {
+  if (activeTab === "profile") {
+    return (
+      <SidebarSection title="Student Info">
+        <SidebarField label="Full Name" value={student.name} />
+        <SidebarField label="Grade" value={student.grade} />
+        <SidebarField label="Date of Birth" value={student.dob} />
+        <SidebarField
+          label="Program"
+          value={PROGRAM_LABELS[student.program] ?? student.program}
+        />
+        <SidebarField label="Classroom" value={student.classroom} />
+        <SidebarField
+          label="Special Interests"
+          value={student.special_interests}
+        />
+      </SidebarSection>
+    );
+  }
+
+  if (activeTab === "learning") {
+    return (
+      <SidebarSection title="Learning Profile">
+        <SidebarField label="Learning Style" value={student.learning_style} />
+        <SidebarField
+          label="Strengths & Interests"
+          value={student.strengths}
+        />
+        <SidebarField label="Current Challenges" value={student.challenges} />
+        <SidebarField
+          label="Dysregulation Response"
+          value={student.dysregulation_response}
+        />
+        <SidebarField
+          label="Regulation Strategies"
+          value={student.regulation_strategies}
+        />
+      </SidebarSection>
+    );
+  }
+
+  if (activeTab === "health") {
+    return (
+      <SidebarSection title="Health Notes">
+        {student.allergies ? (
+          <SidebarField label="Allergies" value={student.allergies} />
+        ) : (
+          <p className="text-sm text-gray-400 font-body">No known allergies.</p>
+        )}
+        {student.medical_notes && (
+          <SidebarField label="Medical Notes" value={student.medical_notes} />
+        )}
+      </SidebarSection>
+    );
+  }
+
+  if (activeTab === "attendance") {
+    return (
+      <div className="flex flex-col gap-2">
+        {student.attendance_history.map((record) => (
+          <div
+            key={record.date}
+            className="border border-gray-100 rounded-xl px-4 py-3"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium text-gray-800 font-body">
+                {record.date}
+              </p>
+              <span
+                className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 font-body ${attendanceStatusStyles(record.status)}`}
+              >
+                {attendanceStatusLabel(record.status)}
+              </span>
+            </div>
+            {(record.checkIn || record.checkOut) && (
+              <p className="text-xs text-gray-400 font-body mt-1.5">
+                {record.checkIn && `In ${record.checkIn}`}
+                {record.checkIn && record.checkOut && " · "}
+                {record.checkOut && `Out ${record.checkOut}`}
+              </p>
+            )}
+            {record.note && (
+              <p className="text-xs text-gray-500 font-body mt-1.5 leading-relaxed">
+                {record.note}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (activeTab === "teachers") {
+    return (
+      <div className="space-y-6">
+        <SidebarSection title="Current">
+          <div className="flex flex-col gap-3">
+            {student.current_teachers.map((teacher) => (
+              <div
+                key={teacher.email ?? teacher.name}
+                className="border border-gray-100 rounded-xl p-4"
+              >
+                <p className="text-sm font-medium text-gray-800 font-body">
+                  {teacher.name}
+                </p>
+                <p className="text-xs text-gray-400 font-body mt-0.5">
+                  {teacher.role}
+                </p>
+                {teacher.email && (
+                  <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-[#827096]/5 text-[#827096] text-xs font-medium font-body">
+                    <Mail className="w-3 h-3" />
+                    {teacher.email}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </SidebarSection>
+        {student.teacher_history.length > 0 && (
+          <SidebarSection title="Previous Assignments">
+            <div className="flex flex-col gap-2">
+              {student.teacher_history.map((assignment) => (
+                <div
+                  key={`${assignment.teacher.name}-${assignment.term}`}
+                  className="border border-gray-100 rounded-xl px-4 py-3"
+                >
+                  <p className="text-sm font-medium text-gray-800 font-body">
+                    {assignment.teacher.name}
+                  </p>
+                  <p className="text-xs text-gray-400 font-body mt-0.5">
+                    {assignment.teacher.role} · {assignment.term}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </SidebarSection>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <SidebarSection title="Parent Contacts">
+        <div className="flex flex-col gap-3">
+          {student.parent_contacts.map((contact) => (
+            <div
+              key={`${contact.name}-${contact.phone}`}
+              className="border border-gray-100 rounded-xl p-4"
+            >
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-800 font-body">
+                  {contact.name}
+                </p>
+                {contact.isPrimary && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096] font-body">
+                    Primary
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 font-body mt-0.5">
+                {contact.relationship}
+              </p>
+              <div className="flex flex-col gap-1 mt-2">
+                <span className="flex items-center gap-1.5 text-xs text-gray-600 font-body">
+                  <Phone className="w-3 h-3 text-gray-400 shrink-0" />
+                  {contact.phone}
+                </span>
+                {contact.email && (
+                  <span className="flex items-center gap-1.5 text-xs text-gray-600 font-body">
+                    <Mail className="w-3 h-3 text-gray-400 shrink-0" />
+                    {contact.email}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </SidebarSection>
+      <SidebarSection title="Authorized Pickup">
+        <div className="flex flex-col gap-0">
+          {student.authorized_pickups.map((person, i) => (
+            <div
+              key={`${person.name}-${person.phone}`}
+              className={`flex items-center gap-3 py-2.5 ${
+                i < student.authorized_pickups.length - 1
+                  ? "border-b border-gray-100"
+                  : ""
+              }`}
+            >
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 font-body"
+                style={{
+                  backgroundColor: `${student.color}18`,
+                  color: student.color,
+                }}
+              >
+                {person.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 font-body">
+                  {person.name}
+                </p>
+                <p className="text-xs text-gray-400 font-body">
+                  {person.relationship}
+                </p>
+              </div>
+              <span className="flex items-center gap-1 text-xs text-gray-500 shrink-0 font-body">
+                <Phone className="w-3 h-3 text-gray-400" />
+                {person.phone}
+              </span>
+            </div>
+          ))}
+        </div>
+      </SidebarSection>
+    </div>
+  );
+}
+
 function ParentChildrenSidebar({
   parentName,
   students,
@@ -1261,227 +1490,7 @@ function StudentDetailSidebar({
 
             {/* Tab content */}
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
-              {activeTab === "profile" && (
-                <SidebarSection title="Student Info">
-                  <SidebarField label="Full Name" value={student.name} />
-                  <SidebarField label="Grade" value={student.grade} />
-                  <SidebarField label="Date of Birth" value={student.dob} />
-                  <SidebarField
-                    label="Program"
-                    value={PROGRAM_LABELS[student.program] ?? student.program}
-                  />
-                  <SidebarField label="Classroom" value={student.classroom} />
-                  <SidebarField
-                    label="Special Interests"
-                    value={student.special_interests}
-                  />
-                </SidebarSection>
-              )}
-
-              {activeTab === "learning" && (
-                <SidebarSection title="Learning Profile">
-                  <SidebarField
-                    label="Learning Style"
-                    value={student.learning_style}
-                  />
-                  <SidebarField
-                    label="Strengths & Interests"
-                    value={student.strengths}
-                  />
-                  <SidebarField
-                    label="Current Challenges"
-                    value={student.challenges}
-                  />
-                  <SidebarField
-                    label="Dysregulation Response"
-                    value={student.dysregulation_response}
-                  />
-                  <SidebarField
-                    label="Regulation Strategies"
-                    value={student.regulation_strategies}
-                  />
-                </SidebarSection>
-              )}
-
-              {activeTab === "health" && (
-                <SidebarSection title="Health Notes">
-                  {student.allergies ? (
-                    <SidebarField label="Allergies" value={student.allergies} />
-                  ) : (
-                    <p className="text-sm text-gray-400 font-body">
-                      No known allergies.
-                    </p>
-                  )}
-                  {student.medical_notes && (
-                    <SidebarField
-                      label="Medical Notes"
-                      value={student.medical_notes}
-                    />
-                  )}
-                </SidebarSection>
-              )}
-
-              {activeTab === "attendance" && (
-                <div className="flex flex-col gap-2">
-                  {student.attendance_history.map((record) => (
-                    <div
-                      key={record.date}
-                      className="border border-gray-100 rounded-xl px-4 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-gray-800 font-body">
-                          {record.date}
-                        </p>
-                        <span
-                          className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 font-body ${attendanceStatusStyles(record.status)}`}
-                        >
-                          {attendanceStatusLabel(record.status)}
-                        </span>
-                      </div>
-                      {(record.checkIn || record.checkOut) && (
-                        <p className="text-xs text-gray-400 font-body mt-1.5">
-                          {record.checkIn && `In ${record.checkIn}`}
-                          {record.checkIn && record.checkOut && " · "}
-                          {record.checkOut && `Out ${record.checkOut}`}
-                        </p>
-                      )}
-                      {record.note && (
-                        <p className="text-xs text-gray-500 font-body mt-1.5 leading-relaxed">
-                          {record.note}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === "teachers" && (
-                <div className="space-y-6">
-                  <SidebarSection title="Current">
-                    <div className="flex flex-col gap-3">
-                      {student.current_teachers.map((teacher) => (
-                        <div
-                          key={teacher.email ?? teacher.name}
-                          className="border border-gray-100 rounded-xl p-4"
-                        >
-                          <p className="text-sm font-medium text-gray-800 font-body">
-                            {teacher.name}
-                          </p>
-                          <p className="text-xs text-gray-400 font-body mt-0.5">
-                            {teacher.role}
-                          </p>
-                          {teacher.email && (
-                            <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-[#827096]/5 text-[#827096] text-xs font-medium font-body">
-                              <Mail className="w-3 h-3" />
-                              {teacher.email}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </SidebarSection>
-                  {student.teacher_history.length > 0 && (
-                    <SidebarSection title="Previous Assignments">
-                      <div className="flex flex-col gap-2">
-                        {student.teacher_history.map((assignment) => (
-                          <div
-                            key={`${assignment.teacher.name}-${assignment.term}`}
-                            className="border border-gray-100 rounded-xl px-4 py-3"
-                          >
-                            <p className="text-sm font-medium text-gray-800 font-body">
-                              {assignment.teacher.name}
-                            </p>
-                            <p className="text-xs text-gray-400 font-body mt-0.5">
-                              {assignment.teacher.role} · {assignment.term}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </SidebarSection>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "family" && (
-                <div className="space-y-6">
-                  <SidebarSection title="Parent Contacts">
-                    <div className="flex flex-col gap-3">
-                      {student.parent_contacts.map((contact) => (
-                        <div
-                          key={`${contact.name}-${contact.phone}`}
-                          className="border border-gray-100 rounded-xl p-4"
-                        >
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-gray-800 font-body">
-                              {contact.name}
-                            </p>
-                            {contact.isPrimary && (
-                              <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096] font-body">
-                                Primary
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-400 font-body mt-0.5">
-                            {contact.relationship}
-                          </p>
-                          <div className="flex flex-col gap-1 mt-2">
-                            <span className="flex items-center gap-1.5 text-xs text-gray-600 font-body">
-                              <Phone className="w-3 h-3 text-gray-400 shrink-0" />
-                              {contact.phone}
-                            </span>
-                            {contact.email && (
-                              <span className="flex items-center gap-1.5 text-xs text-gray-600 font-body">
-                                <Mail className="w-3 h-3 text-gray-400 shrink-0" />
-                                {contact.email}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </SidebarSection>
-                  <SidebarSection title="Authorized Pickup">
-                    <div className="flex flex-col gap-0">
-                      {student.authorized_pickups.map((person, i) => (
-                        <div
-                          key={`${person.name}-${person.phone}`}
-                          className={`flex items-center gap-3 py-2.5 ${
-                            i < student.authorized_pickups.length - 1
-                              ? "border-b border-gray-100"
-                              : ""
-                          }`}
-                        >
-                          <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 font-body"
-                            style={{
-                              backgroundColor: `${student.color}18`,
-                              color: student.color,
-                            }}
-                          >
-                            {person.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .slice(0, 2)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 font-body">
-                              {person.name}
-                            </p>
-                            <p className="text-xs text-gray-400 font-body">
-                              {person.relationship}
-                            </p>
-                          </div>
-                          <span className="flex items-center gap-1 text-xs text-gray-500 shrink-0 font-body">
-                            <Phone className="w-3 h-3 text-gray-400" />
-                            {person.phone}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </SidebarSection>
-                </div>
-              )}
+              <StudentDetailTabPanels student={student} activeTab={activeTab} />
             </div>
           </motion.div>
         </>
@@ -4845,6 +4854,207 @@ function AttendanceMobileDayView() {
       </div>
     </div>
   );
+}
+
+function StudentAttendanceStatusBadge({
+  status,
+}: {
+  status: DemoStudent["attendance_status"];
+}) {
+  if (status === "checked_in") {
+    return (
+      <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#827096]/10 text-[#827096] shrink-0 font-body">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#827096] animate-pulse" />
+        In
+      </span>
+    );
+  }
+  if (status === "checked_out") {
+    return (
+      <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 shrink-0 font-body">
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+        Out
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-500 shrink-0 font-body">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+      Absent
+    </span>
+  );
+}
+
+function TeacherStudentDetailMobileScreen({
+  student,
+  onBack,
+}: {
+  student: DemoStudent;
+  onBack: () => void;
+}) {
+  const [activeTab, setActiveTab] = useState<StudentDetailTab>("profile");
+
+  useEffect(() => {
+    setActiveTab("profile");
+  }, [student.id]);
+
+  return (
+    <motion.div
+      initial={{ x: "100%" }}
+      animate={{ x: 0 }}
+      exit={{ x: "100%" }}
+      transition={{ type: "spring", damping: 28, stiffness: 280 }}
+      className="absolute inset-0 z-10 flex flex-col bg-white"
+    >
+      <div className="flex-shrink-0 px-3 py-3 border-b border-gray-100 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="p-2 -ml-1 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors cursor-pointer"
+          aria-label="Back to student list"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <StudentAvatar name={student.name} color={student.color} />
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-semibold text-gray-800 font-body truncate">
+            {student.name}
+          </h2>
+          <p className="text-[11px] text-gray-400 font-body truncate">
+            {student.grade} · {student.classroom}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-shrink-0 flex gap-1.5 px-3 py-2.5 border-b border-gray-100 overflow-x-auto">
+        {STUDENT_DETAIL_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+              activeTab === tab.id
+                ? "bg-[#827096] text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+        <StudentDetailTabPanels student={student} activeTab={activeTab} />
+      </div>
+    </motion.div>
+  );
+}
+
+function TeacherStudentsMobileView() {
+  const programs = PROGRAM_ORDER.filter((p) =>
+    DEMO_STUDENTS.some((s) => s.program === p),
+  );
+  const [activeProgram, setActiveProgram] = useState(programs[0] ?? "");
+  const [selectedStudent, setSelectedStudent] = useState<DemoStudent | null>(
+    null,
+  );
+  const [search, setSearch] = useState("");
+
+  const filtered = DEMO_STUDENTS.filter(
+    (s) =>
+      s.program === activeProgram &&
+      s.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div className="relative flex flex-col h-full overflow-hidden bg-white">
+      <div className="px-4 pt-4 pb-3 border-b border-gray-100 shrink-0">
+        <h1 className="text-lg font-bold font-heading text-gray-800">
+          My Students
+        </h1>
+        <p className="text-xs text-gray-400 font-body mt-0.5">
+          {filtered.length} student{filtered.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+
+      <div className="px-4 py-2.5 border-b border-gray-100 shrink-0 bg-[#fafaf9]">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {programs.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => {
+                setActiveProgram(p);
+                setSearch("");
+              }}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium font-body transition-colors cursor-pointer whitespace-nowrap ${
+                activeProgram === p
+                  ? "bg-[#827096] text-white"
+                  : "bg-white text-gray-600 border border-gray-200 hover:border-[#827096]/30"
+              }`}
+            >
+              {PROGRAM_LABELS[p] ?? p}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2.5 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+          <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search students..."
+            className="flex-1 bg-transparent text-sm font-body text-gray-700 placeholder-gray-400 outline-none min-w-0"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+        {filtered.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-gray-400 font-body">No students found.</p>
+          </div>
+        ) : (
+          filtered.map((student) => (
+            <button
+              key={student.id}
+              type="button"
+              onClick={() => setSelectedStudent(student)}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50/80 transition-colors cursor-pointer"
+            >
+              <StudentAvatar name={student.name} color={student.color} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 font-body truncate">
+                  {student.name}
+                </p>
+                <p className="text-xs text-gray-400 font-body mt-0.5">
+                  {student.grade}
+                </p>
+              </div>
+              <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0 font-body">
+                {student.classroom}
+              </span>
+              <StudentAttendanceStatusBadge status={student.attendance_status} />
+              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+            </button>
+          ))
+        )}
+      </div>
+
+      <AnimatePresence>
+        {selectedStudent && (
+          <TeacherStudentDetailMobileScreen
+            student={selectedStudent}
+            onBack={() => setSelectedStudent(null)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export function RootedMeadowsTeacherStudentsMobilePreview() {
+  return <TeacherStudentsMobileView />;
 }
 
 export function RootedMeadowsTeacherAttendanceMobilePreview() {
