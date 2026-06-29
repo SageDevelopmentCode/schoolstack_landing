@@ -11,6 +11,7 @@ import {
 import type { Committee, CommitteeWorkspaceSection } from "./types";
 import CommitteeWorkspaceShell from "./CommitteeWorkspaceShell";
 import CreateCommitteeModal from "./CreateCommitteeModal";
+import SendAugustSignupModal from "./SendAugustSignupModal";
 import AugustSignupPanel from "./AugustSignupPanel";
 import ArchiveCommitteeModal from "./ArchiveCommitteeModal";
 
@@ -22,6 +23,8 @@ export default function CommitteesAdminPage({
   initialCommitteeSection = "home",
   openCreateModal = false,
   openCreateModalDelayMs,
+  openSendAugustSignupModal = false,
+  openSendAugustSignupModalDelayMs,
   openArchiveModal = false,
 }: {
   initialCommitteeId?: string;
@@ -29,6 +32,8 @@ export default function CommitteesAdminPage({
   initialCommitteeSection?: CommitteeWorkspaceSection;
   openCreateModal?: boolean;
   openCreateModalDelayMs?: number;
+  openSendAugustSignupModal?: boolean;
+  openSendAugustSignupModalDelayMs?: number;
   openArchiveModal?: boolean;
 }) {
   const [view, setView] = useState<CommitteeAdminView>(initialView);
@@ -39,9 +44,11 @@ export default function CommitteesAdminPage({
     initialCommitteeSection,
   );
   const [showCreate, setShowCreate] = useState(false);
+  const [showSendAugustSignup, setShowSendAugustSignup] = useState(false);
   const [showArchive, setShowArchive] = useState(openArchiveModal);
   const [committees, setCommittees] = useState(DEMO_COMMITTEES);
   const createModalOpenedRef = useRef(false);
+  const sendAugustSignupModalOpenedRef = useRef(false);
 
   useEffect(() => {
     setView(initialView);
@@ -66,6 +73,16 @@ export default function CommitteesAdminPage({
   }, [openCreateModal, openCreateModalDelayMs]);
 
   useEffect(() => {
+    if (!openSendAugustSignupModal || sendAugustSignupModalOpenedRef.current) return;
+    const delayMs = openSendAugustSignupModalDelayMs ?? 1500;
+    const t = setTimeout(() => {
+      sendAugustSignupModalOpenedRef.current = true;
+      setShowSendAugustSignup(true);
+    }, delayMs);
+    return () => clearTimeout(t);
+  }, [openSendAugustSignupModal, openSendAugustSignupModalDelayMs]);
+
+  useEffect(() => {
     if (openArchiveModal) setShowArchive(true);
   }, [openArchiveModal]);
 
@@ -81,6 +98,11 @@ export default function CommitteesAdminPage({
       setView("detail");
       setSection("home");
     }
+  };
+
+  const handleSendAugustSignup = () => {
+    setShowSendAugustSignup(false);
+    setView("signup");
   };
 
   const selected = selectedId ? getCommitteeById(selectedId) : undefined;
@@ -203,6 +225,12 @@ export default function CommitteesAdminPage({
           <CreateCommitteeModal
             onClose={() => setShowCreate(false)}
             onCreate={handleCreateWorkspace}
+          />
+        )}
+        {showSendAugustSignup && (
+          <SendAugustSignupModal
+            onClose={() => setShowSendAugustSignup(false)}
+            onSend={handleSendAugustSignup}
           />
         )}
       </AnimatePresence>

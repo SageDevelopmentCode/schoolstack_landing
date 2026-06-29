@@ -109,6 +109,8 @@ export default function ScaledAdminDemoPreview({
   initialCommitteeSection,
   openCreateCommitteeModal,
   openCreateCommitteeModalDelayMs,
+  openSendAugustSignupModal,
+  openSendAugustSignupModalDelayMs,
   openArchiveCommitteeModal,
 }: {
   demoSlug?: string;
@@ -135,6 +137,8 @@ export default function ScaledAdminDemoPreview({
   initialCommitteeSection?: DemoWalkthroughCommitteeSection;
   openCreateCommitteeModal?: boolean;
   openCreateCommitteeModalDelayMs?: number;
+  openSendAugustSignupModal?: boolean;
+  openSendAugustSignupModalDelayMs?: number;
   openArchiveCommitteeModal?: boolean;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
@@ -273,6 +277,8 @@ export default function ScaledAdminDemoPreview({
                   initialCommitteeSection,
                   openCreateCommitteeModal,
                   openCreateCommitteeModalDelayMs,
+                  openSendAugustSignupModal,
+                  openSendAugustSignupModalDelayMs,
                   openArchiveCommitteeModal,
                 }
               : {})}

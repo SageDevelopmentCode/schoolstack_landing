@@ -109,6 +109,8 @@ export interface DemoWalkthroughStep {
   initialCommitteeAdminView?: DemoWalkthroughCommitteeAdminView;
   openCreateCommitteeModal?: boolean;
   openCreateCommitteeModalDelayMs?: number;
+  openSendAugustSignupModal?: boolean;
+  openSendAugustSignupModalDelayMs?: number;
   openArchiveCommitteeModal?: boolean;
   contactPanelVariant?: "schedule" | "feedback";
   icon: DemoWalkthroughIcon;
@@ -2188,6 +2190,9 @@ const rootedMeadowsObservationStep: DemoWalkthroughStep = {
   description:
     "After submitting the application, families schedule their child's observation visit.",
   preview: "observation",
+  previewHint:
+    "You can set your own availability — families only see days and times you've opened for booking.",
+  previewHintDelayMs: 800,
   icon: "calendarDays",
   theme: {
     bg: "#F5F3E6",
@@ -2273,6 +2278,30 @@ const rootedMeadowsCreateCommitteeStep: DemoWalkthroughStep = {
     titleColor: "#5A4D68",
     descColor: "#6B6560",
     connector: "#827096",
+  },
+};
+
+const rootedMeadowsAugustSignupStep: DemoWalkthroughStep = {
+  id: "august-volunteer-signup",
+  title: "Send August signup to families",
+  description:
+    "Email the volunteer preference form to all enrolled families before placing members into committees.",
+  preview: "admin",
+  initialAdminPage: "committees",
+  initialCommitteeAdminView: "list",
+  openSendAugustSignupModal: true,
+  openSendAugustSignupModalDelayMs: 600,
+  icon: "messageCircle",
+  theme: {
+    bg: "#F5F3E6",
+    bgHover: "#EEEBD8",
+    bgActive: "#EEEBD8",
+    border: "#D8D9A8",
+    iconBg: "#b3b462",
+    iconColor: "#FFFFFF",
+    titleColor: "#5C5A30",
+    descColor: "#6B6840",
+    connector: "#b3b462",
   },
 };
 
@@ -2450,6 +2479,7 @@ export const rootedMeadowsPrototypeWalkthroughPlaceholder: DemoWalkthroughStep[]
           mapped,
           rootedMeadowsCreateCommitteeStep,
           rootedMeadowsResourceAccessStep,
+          rootedMeadowsAugustSignupStep,
           rootedMeadowsAssignTasksStep,
           rootedMeadowsParentCommitteeStep,
           rootedMeadowsArchiveCommitteeStep,

@@ -25119,6 +25119,8 @@ export default function RootedMeadowsAdminDashboardDemo({
   initialCommitteeSection,
   openCreateCommitteeModal,
   openCreateCommitteeModalDelayMs,
+  openSendAugustSignupModal,
+  openSendAugustSignupModalDelayMs,
   openArchiveCommitteeModal,
 }: {
   disableTour?: boolean
@@ -25147,6 +25149,8 @@ export default function RootedMeadowsAdminDashboardDemo({
   initialCommitteeSection?: CommitteeWorkspaceSection
   openCreateCommitteeModal?: boolean
   openCreateCommitteeModalDelayMs?: number
+  openSendAugustSignupModal?: boolean
+  openSendAugustSignupModalDelayMs?: number
   openArchiveCommitteeModal?: boolean
 }) {
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
@@ -25293,6 +25297,8 @@ export default function RootedMeadowsAdminDashboardDemo({
             initialCommitteeSection={initialCommitteeSection}
             openCreateModal={openCreateCommitteeModal}
             openCreateModalDelayMs={openCreateCommitteeModalDelayMs}
+            openSendAugustSignupModal={openSendAugustSignupModal}
+            openSendAugustSignupModalDelayMs={openSendAugustSignupModalDelayMs}
             openArchiveModal={openArchiveCommitteeModal}
           />
         );

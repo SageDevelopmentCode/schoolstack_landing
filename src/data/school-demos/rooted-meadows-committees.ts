@@ -117,6 +117,8 @@ export interface Committee {
   messages: CommitteeMessage[];
 }
 
+export const AUGUST_SIGNUP_FAMILY_COUNT = 52;
+
 export interface AugustSignupResponse {
   id: string;
   familyName: string;

@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence } from "framer-motion";
 import { useCallback, useState } from "react";
 import DemoContactPanel from "@/components/demo/DemoContactPanel";
 import DemoPreviewHint from "@/components/demo/DemoPreviewHint";
@@ -103,6 +104,10 @@ export default function SchoolDemoShell({
             openCreateCommitteeModalDelayMs={
               steps[activeStep].openCreateCommitteeModalDelayMs
             }
+            openSendAugustSignupModal={steps[activeStep].openSendAugustSignupModal}
+            openSendAugustSignupModalDelayMs={
+              steps[activeStep].openSendAugustSignupModalDelayMs
+            }
             openArchiveCommitteeModal={steps[activeStep].openArchiveCommitteeModal}
             tuitionOverride={demoTuitionOverride}
             onTuitionOverrideApplied={setDemoTuitionOverride}
@@ -151,13 +156,15 @@ export default function SchoolDemoShell({
             onDiscoveryCallClick={handleDiscoveryCallClick}
           />
         )}
-        {steps[activeStep]?.previewHint ? (
-          <DemoPreviewHint
-            key={steps[activeStep].id}
-            message={steps[activeStep].previewHint}
-            delayMs={steps[activeStep].previewHintDelayMs}
-          />
-        ) : null}
+        <AnimatePresence mode="wait">
+          {steps[activeStep]?.previewHint ? (
+            <DemoPreviewHint
+              key={steps[activeStep].id}
+              message={steps[activeStep].previewHint}
+              delayMs={steps[activeStep].previewHintDelayMs}
+            />
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
   );

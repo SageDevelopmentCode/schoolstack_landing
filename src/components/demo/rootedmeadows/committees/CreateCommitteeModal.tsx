@@ -48,7 +48,7 @@ export default function CreateCommitteeModal({
                 <button
                   key={t.id}
                   onClick={() => setSelected(t.id)}
-                  className={`w-full text-left p-3 rounded-xl border transition-colors cursor-pointer ${
+                  className={`w-full text-left p-3 rounded-lg border transition-colors cursor-pointer ${
                     selected === t.id
                       ? "border-[#827096] bg-[#827096]/5"
                       : "border-gray-100 hover:border-gray-200"
