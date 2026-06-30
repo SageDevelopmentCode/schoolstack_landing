@@ -182,12 +182,14 @@ export default function DemoWalkthroughPanel({
                         </span>
                       )}
                     </div>
-                    <p
-                      className="mt-1.5 text-xs font-secondary leading-relaxed"
-                      style={{ color: theme.descColor }}
-                    >
-                      {step.description}
-                    </p>
+                    {isActive && (
+                      <p
+                        className="mt-1.5 text-xs font-secondary leading-relaxed"
+                        style={{ color: theme.descColor }}
+                      >
+                        {step.description}
+                      </p>
+                    )}
                     {isActive && step.talkingPoint && (
                       <p
                         className="mt-2 text-xs font-secondary leading-relaxed italic"
