@@ -1,7 +1,9 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
-import { useCallback, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { resolveWalkthroughStepIndex } from "@/lib/demo-walkthrough";
 import DemoContactPanel from "@/components/demo/DemoContactPanel";
 import DemoPreviewHint from "@/components/demo/DemoPreviewHint";
 import DemoWalkthroughPanel from "@/components/demo/DemoWalkthroughPanel";
@@ -22,12 +24,33 @@ interface Props {
   steps: DemoWalkthroughStep[];
 }
 
-export default function SchoolDemoShell({
+export default function SchoolDemoShell(props: Props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-white text-sm text-gray-500">
+          Loading walkthrough…
+        </div>
+      }
+    >
+      <SchoolDemoShellInner {...props} />
+    </Suspense>
+  );
+}
+
+function SchoolDemoShellInner({
   config,
   schoolName,
   steps,
 }: Props) {
-  const [activeStep, setActiveStep] = useState(0);
+  const searchParams = useSearchParams();
+  const [activeStep, setActiveStep] = useState(() => {
+    const resolved = resolveWalkthroughStepIndex(
+      steps,
+      searchParams.get("step"),
+    );
+    return resolved ?? 0;
+  });
   const [demoTuitionOverride, setDemoTuitionOverride] =
     useState<DemoTuitionOverride | null>(null);
   const [scrollRequest, setScrollRequest] = useState<{
@@ -57,6 +80,16 @@ export default function SchoolDemoShell({
   const handlePayApplicationFeeClick = useCallback(() => {
     handleStepSelect(activeStep + 1);
   }, [activeStep, handleStepSelect]);
+
+  useEffect(() => {
+    const resolved = resolveWalkthroughStepIndex(
+      steps,
+      searchParams.get("step"),
+    );
+    if (resolved !== null) {
+      setActiveStep(resolved);
+    }
+  }, [searchParams, steps]);
 
   return (
     <div className="h-screen flex overflow-hidden">
