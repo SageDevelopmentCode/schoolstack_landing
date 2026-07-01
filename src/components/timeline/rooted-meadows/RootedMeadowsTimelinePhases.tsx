@@ -70,7 +70,7 @@ export default function RootedMeadowsTimelinePhases({
               className="font-heading mt-2 text-[clamp(1.75rem,3vw,2.5rem)] font-medium leading-tight"
               style={{ color: ROOTED_MEADOWS_TIMELINE_THEME.textPrimary }}
             >
-              What we&apos;re building, and when.
+              Our proposed timeline
             </h2>
           </div>
         </FadeInView>
