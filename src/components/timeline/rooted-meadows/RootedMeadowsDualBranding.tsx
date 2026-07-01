@@ -30,9 +30,9 @@ export default function RootedMeadowsDualBranding() {
         borderColor: ROOTED_MEADOWS_TIMELINE_THEME.border,
       }}
     >
-      <div className="mx-auto flex max-w-[1100px] items-center gap-4 px-6 py-4 lg:px-16">
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-3 sm:gap-4">
-          <div className="flex min-w-0 flex-col items-center gap-0.5">
+      <div className="mx-auto flex max-w-[1100px] justify-center px-6 py-4 lg:px-16">
+        <div className="flex items-center justify-center gap-3 sm:gap-4">
+          <div className="flex shrink-0 flex-col items-center gap-0.5">
             <Image
               src="/images/Logo.png"
               alt="MudKitchen"
@@ -52,7 +52,7 @@ export default function RootedMeadowsDualBranding() {
             style={{ backgroundColor: ROOTED_MEADOWS_TIMELINE_THEME.border }}
             aria-hidden
           />
-          <div className="flex min-w-0 flex-1 items-center justify-center">
+          <div className="flex shrink-0 items-center justify-center">
             <SchoolDemoWordmark
               logo={ROOTED_MEADOWS_ADMIN_LOGO}
               className="h-9 w-auto max-w-[160px] object-contain text-center sm:h-10 sm:max-w-[200px]"

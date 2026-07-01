@@ -11,6 +11,7 @@ import {
   type TimelinePhase,
 } from "@/data/school-demos/rooted-meadows-timeline";
 import { prototypeStepUrl } from "@/lib/demo-walkthrough";
+import { getPhaseCountdown } from "@/lib/timeline-countdown";
 
 const PERSONA_LABELS: Record<TimelinePersona, string> = {
   admin: "Admin",
@@ -33,6 +34,14 @@ function phaseAccent(phase: TimelinePhase) {
   };
 }
 
+function countdownColor(
+  status: ReturnType<typeof getPhaseCountdown>["status"],
+  accentSolid: string,
+) {
+  if (status === "in_progress") return accentSolid;
+  return ROOTED_MEADOWS_TIMELINE_THEME.textSecondary;
+}
+
 interface Props {
   activePhase: number;
   onPhaseSelect: (index: number) => void;
@@ -44,9 +53,10 @@ export default function RootedMeadowsTimelinePhases({
 }: Props) {
   const phase = ROOTED_MEADOWS_TIMELINE_PHASES[activePhase];
   const accent = phaseAccent(phase);
+  const activeCountdown = getPhaseCountdown(phase.startDate, phase.endDate);
 
   return (
-    <section className="px-6 py-10 lg:px-16 lg:py-14">
+    <section className="px-6 py-10 pb-20 lg:px-16 lg:py-14 lg:pb-24">
       <div className="mx-auto max-w-[1100px]">
         <FadeInView>
           <div className="mb-10 text-center lg:text-left">
@@ -73,6 +83,7 @@ export default function RootedMeadowsTimelinePhases({
           >
             {ROOTED_MEADOWS_TIMELINE_PHASES.map((step, i) => {
               const stepAccent = phaseAccent(step);
+              const countdown = getPhaseCountdown(step.startDate, step.endDate);
               return (
                 <button
                   key={step.id}
@@ -89,7 +100,7 @@ export default function RootedMeadowsTimelinePhases({
                     border: `1px solid ${activePhase === i ? stepAccent.solid : ROOTED_MEADOWS_TIMELINE_THEME.border}`,
                   }}
                 >
-                  {step.number} · {step.title}
+                  {step.number} · {step.title} · {countdown.compactLabel}
                 </button>
               );
             })}
@@ -109,6 +120,7 @@ export default function RootedMeadowsTimelinePhases({
               {ROOTED_MEADOWS_TIMELINE_PHASES.map((step, i) => {
                 const isActive = activePhase === i;
                 const stepAccent = phaseAccent(step);
+                const countdown = getPhaseCountdown(step.startDate, step.endDate);
                 return (
                   <button
                     key={step.id}
@@ -148,29 +160,18 @@ export default function RootedMeadowsTimelinePhases({
                         }}
                       >
                         {step.title}
-                        {step.isPriority ? (
-                          <span
-                            className="ml-2 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
-                            style={{
-                              color: ROOTED_MEADOWS_TIMELINE_THEME.oliveStepTitle,
-                              backgroundColor:
-                                ROOTED_MEADOWS_TIMELINE_THEME.clayBg,
-                            }}
-                          >
-                            Priority
-                          </span>
-                        ) : null}
                       </span>
-                      {isActive ? (
-                        <span
-                          className="font-secondary mt-0.5 block text-[11px]"
-                          style={{
-                            color: ROOTED_MEADOWS_TIMELINE_THEME.textSecondary,
-                          }}
-                        >
-                          {step.dateRange}
-                        </span>
-                      ) : null}
+                      <span
+                        className="font-secondary mt-0.5 block text-[11px] font-medium"
+                        style={{
+                          color: countdownColor(
+                            countdown.status,
+                            stepAccent.solid,
+                          ),
+                        }}
+                      >
+                        {countdown.label}
+                      </span>
                     </div>
                   </button>
                 );
@@ -183,12 +184,7 @@ export default function RootedMeadowsTimelinePhases({
             className="min-w-0 flex-1 overflow-hidden rounded-2xl border"
             style={{
               backgroundColor: "white",
-              borderColor: phase.isPriority
-                ? ROOTED_MEADOWS_TIMELINE_THEME.clayBorder
-                : ROOTED_MEADOWS_TIMELINE_THEME.border,
-              boxShadow: phase.isPriority
-                ? `0 0 0 1px ${ROOTED_MEADOWS_TIMELINE_THEME.clayBg}`
-                : undefined,
+              borderColor: ROOTED_MEADOWS_TIMELINE_THEME.border,
             }}
           >
             <AnimatePresence mode="wait">
@@ -216,18 +212,26 @@ export default function RootedMeadowsTimelinePhases({
                   >
                     {phase.dateRange}
                   </span>
-                  {phase.isPriority ? (
-                    <span
-                      className="font-secondary rounded-full border px-3 py-1 text-[11px] font-semibold"
-                      style={{
-                        color: ROOTED_MEADOWS_TIMELINE_THEME.oliveStepTitle,
-                        borderColor: ROOTED_MEADOWS_TIMELINE_THEME.clayBorder,
-                        backgroundColor: ROOTED_MEADOWS_TIMELINE_THEME.clayBg,
-                      }}
-                    >
-                      Priority focus
-                    </span>
-                  ) : null}
+                  <span
+                    className="font-secondary rounded-full px-3 py-1 text-[11px] font-semibold"
+                    style={{
+                      color: countdownColor(
+                        activeCountdown.status,
+                        accent.solid,
+                      ),
+                      backgroundColor:
+                        activeCountdown.status === "in_progress"
+                          ? accent.bg
+                          : ROOTED_MEADOWS_TIMELINE_THEME.pageBg,
+                      border: `1px solid ${
+                        activeCountdown.status === "in_progress"
+                          ? `${accent.solid}44`
+                          : ROOTED_MEADOWS_TIMELINE_THEME.border
+                      }`,
+                    }}
+                  >
+                    {activeCountdown.label}
+                  </span>
                 </div>
 
                 <h3

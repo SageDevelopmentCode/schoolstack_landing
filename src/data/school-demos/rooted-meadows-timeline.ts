@@ -1,10 +1,4 @@
 import { ROOTED_MEADOWS_ADMIN_COLORS } from "./rootedmeadows-admin-demo";
-import {
-  ROOTED_MEADOWS_ACTIVITIES_FEE,
-  ROOTED_MEADOWS_SCHOOL_YEAR_ANNUAL,
-  ROOTED_MEADOWS_SCHOOL_YEAR_PAYMENTS,
-  ROOTED_MEADOWS_SUPPLY_FEE,
-} from "./rooted-meadows-tuition";
 
 export const ROOTED_MEADOWS_TIMELINE_START = new Date("2026-06-30");
 export const ROOTED_MEADOWS_TIMELINE_V1 = new Date("2026-08-15");
@@ -22,11 +16,12 @@ export type TimelinePhase = {
   number: string;
   title: string;
   dateRange: string;
+  startDate: string;
+  endDate: string;
   goal: string;
   summary: string;
   personas: TimelinePersona[];
   features: TimelineFeature[];
-  isPriority?: boolean;
   accent: "purple" | "olive";
 };
 
@@ -36,16 +31,23 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     number: "01",
     title: "Foundation",
     dateRange: "Jul 1 – 10",
-    goal: "Set up your school records",
+    startDate: "2026-07-01",
+    endDate: "2026-07-10",
+    goal: "Set up records and bring in what you already have",
     summary:
-      "Before admissions or billing can run, your admin portal needs student profiles, programs, classrooms, and staff in one place.",
+      "Before admissions or billing can run, we set up your admin portal and import any existing student, family, and staff data you already have — spreadsheets, prior rosters, or contact lists — so you're not starting from scratch.",
     personas: ["admin"],
     accent: "purple",
     features: [
       {
         title: "Student & family records",
         description:
-          "Profiles with health, paperwork, immunizations, and authorized pickup contacts.",
+          "Profiles with health, paperwork, immunizations, and authorized pickup contacts — for new or imported families.",
+      },
+      {
+        title: "Import existing data",
+        description:
+          "Bring in spreadsheets, prior-year rosters, family contact lists, and staff info you already maintain. We'll map fields, clean duplicates, and load records into MudKitchen so your team isn't re-entering everything by hand.",
       },
       {
         title: "Programs & classrooms",
@@ -70,6 +72,8 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     number: "02",
     title: "Admissions",
     dateRange: "Jul 11 – 20",
+    startDate: "2026-07-11",
+    endDate: "2026-07-20",
     goal: "Application through enrollment contract",
     summary:
       "Families apply, book an observation visit, and receive their enrollment contract — all without spreadsheets or email chains.",
@@ -107,14 +111,18 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     number: "03",
     title: "Tuition & billing",
     dateRange: "Jul 21 – 31",
+    startDate: "2026-07-21",
+    endDate: "2026-07-31",
     goal: "Custom rates and family payments",
-    summary: `Tuition at $${ROOTED_MEADOWS_SCHOOL_YEAR_ANNUAL.toLocaleString()}/yr (${ROOTED_MEADOWS_SCHOOL_YEAR_PAYMENTS} payments), with per-family overrides and parent self-service billing.`,
+    summary:
+      "Set up tuition plans, per-family rate overrides, and parent self-service billing so families can view invoices and pay online.",
     personas: ["admin", "parent"],
     accent: "purple",
     features: [
       {
         title: "Tuition plans",
-        description: `Standard school-year pricing with ${ROOTED_MEADOWS_SCHOOL_YEAR_PAYMENTS}-payment schedule, supply fee ($${ROOTED_MEADOWS_SUPPLY_FEE}), and activities fee ($${ROOTED_MEADOWS_ACTIVITIES_FEE}).`,
+        description:
+          "Configure school-year tuition schedules, supply fees, and activities fees from the admin portal.",
       },
       {
         title: "Per-family rate overrides",
@@ -135,12 +143,13 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     number: "04",
     title: "Committees",
     dateRange: "Aug 1 – 8",
+    startDate: "2026-08-01",
+    endDate: "2026-08-08",
     goal: "Full committee workflow",
     summary:
       "Create workspaces from templates, run August volunteer signup, assign tasks, and give parents a dedicated committee home.",
     personas: ["admin", "parent"],
     accent: "olive",
-    isPriority: true,
     features: [
       {
         title: "Create committee workspace",
@@ -184,7 +193,9 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     id: "teacher",
     number: "05",
     title: "Teacher portal",
-    dateRange: "Aug 9 – 12",
+    dateRange: "Aug 9 – 10",
+    startDate: "2026-08-09",
+    endDate: "2026-08-10",
     goal: "Day-to-day classroom tools",
     summary:
       "Guides take Mon–Thu attendance, view student profiles, and message parents — all from one portal.",
@@ -212,15 +223,49 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     ],
   },
   {
-    id: "launch",
+    id: "mobile",
     number: "06",
+    title: "Mobile app",
+    dateRange: "Aug 11 – 13",
+    startDate: "2026-08-11",
+    endDate: "2026-08-13",
+    goal: "School-branded mobile for families and guides",
+    summary:
+      "A Rooted Meadows-branded mobile app for parents and teachers — the features they reach for most, optimized for phone.",
+    personas: ["parent", "teacher"],
+    accent: "olive",
+    features: [
+      {
+        title: "Parent mobile",
+        description:
+          "Tuition, messages, committees, and enrollment — accessible on iOS and Android.",
+        prototypeStepId: "mobile-app",
+      },
+      {
+        title: "Teacher mobile",
+        description:
+          "Attendance, student profiles, and parent messaging on the go from the classroom.",
+        prototypeStepId: "mobile-app",
+      },
+      {
+        title: "Branded app build",
+        description:
+          "Rooted Meadows branding, app store setup, and rollout to families and staff.",
+      },
+    ],
+  },
+  {
+    id: "launch",
+    number: "07",
     title: "v1 launch prep",
-    dateRange: "Aug 13 – 15",
+    dateRange: "Aug 14 – 15",
+    startDate: "2026-08-14",
+    endDate: "2026-08-15",
     goal: "Go-live ready",
     summary:
-      "Parent portal polish, mobile access, training, and a final launch checklist so your team is ready on day one.",
+      "Parent portal polish, training, and a final launch checklist so your team is ready on day one.",
     personas: ["admin", "parent", "teacher"],
-    accent: "olive",
+    accent: "purple",
     features: [
       {
         title: "Parent portal",
@@ -229,15 +274,9 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
         prototypeStepId: "parent-pays-tuition",
       },
       {
-        title: "Mobile app",
+        title: "Team training",
         description:
-          "Parents and teachers get messaging, tuition, attendance, and student profiles on mobile.",
-        prototypeStepId: "mobile-app",
-      },
-      {
-        title: "Training & data import",
-        description:
-          "Onboarding sessions for admin and staff, plus student and family data migration.",
+          "Walkthroughs for admin and staff, plus parent portal orientation so everyone knows where to go on day one.",
       },
       {
         title: "Launch checklist",
@@ -247,15 +286,6 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     ],
   },
 ];
-
-export const ROOTED_MEADOWS_POST_V1_FEATURES = [
-  "Finances (expenses, revenue, insights)",
-  "Payroll",
-  "Marketing tools",
-  "Calendar & school feed polish",
-] as const;
-
-export const ROOTED_MEADOWS_OUT_OF_SCOPE = ["Website"] as const;
 
 export const ROOTED_MEADOWS_TIMELINE_THEME = {
   ...ROOTED_MEADOWS_ADMIN_COLORS,
