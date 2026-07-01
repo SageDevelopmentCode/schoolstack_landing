@@ -34,8 +34,8 @@ export default function RootedMeadowsTimelineHero() {
             className="font-secondary mx-auto mt-5 max-w-[560px] text-[17px] leading-relaxed"
             style={{ color: ROOTED_MEADOWS_TIMELINE_THEME.textSecondary }}
           >
-            Full MudKitchen platform — admissions, tuition, committees, admin,
-            parent and teacher portals — built for Rooted Meadows Waldorf
+            Full MudKitchen platform, admissions, tuition, committees, admin,
+            parent and teacher portals, built for Rooted Meadows Waldorf
             School.
           </p>
         </FadeInView>
