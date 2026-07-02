@@ -1,7 +1,7 @@
 import { ROOTED_MEADOWS_ADMIN_COLORS } from "./rootedmeadows-admin-demo";
 
 export const ROOTED_MEADOWS_TIMELINE_START = new Date("2026-06-30");
-export const ROOTED_MEADOWS_TIMELINE_V1 = new Date("2026-08-15");
+export const ROOTED_MEADOWS_TIMELINE_V1 = new Date("2026-08-24");
 
 export type TimelinePersona = "admin" | "parent" | "teacher";
 
@@ -30,9 +30,9 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     id: "foundation",
     number: "01",
     title: "Foundation",
-    dateRange: "Jul 1 – 10",
+    dateRange: "Jul 1 – 12",
     startDate: "2026-07-01",
-    endDate: "2026-07-10",
+    endDate: "2026-07-12",
     goal: "Set up records and bring in what you already have",
     summary:
       "Before admissions or billing can run, we set up your admin portal and import any existing student, family, and staff data you already have — spreadsheets, prior rosters, or contact lists — so you're not starting from scratch.",
@@ -71,9 +71,9 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     id: "admissions",
     number: "02",
     title: "Admissions",
-    dateRange: "Jul 11 – 20",
-    startDate: "2026-07-11",
-    endDate: "2026-07-20",
+    dateRange: "Jul 13 – 22",
+    startDate: "2026-07-13",
+    endDate: "2026-07-22",
     goal: "Application through enrollment contract",
     summary:
       "Families apply, book an observation visit, and receive their enrollment contract — all without spreadsheets or email chains.",
@@ -110,8 +110,8 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     id: "tuition",
     number: "03",
     title: "Tuition & billing",
-    dateRange: "Jul 21 – 31",
-    startDate: "2026-07-21",
+    dateRange: "Jul 23 – 31",
+    startDate: "2026-07-23",
     endDate: "2026-07-31",
     goal: "Custom rates and family payments",
     summary:
@@ -142,9 +142,9 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     id: "committees",
     number: "04",
     title: "Committees",
-    dateRange: "Aug 1 – 8",
+    dateRange: "Aug 1 – 10",
     startDate: "2026-08-01",
-    endDate: "2026-08-08",
+    endDate: "2026-08-10",
     goal: "Full committee workflow",
     summary:
       "Create workspaces from templates, run August volunteer signup, assign tasks, and give parents a dedicated committee home.",
@@ -193,9 +193,9 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     id: "teacher",
     number: "05",
     title: "Teacher portal",
-    dateRange: "Aug 9 – 10",
-    startDate: "2026-08-09",
-    endDate: "2026-08-10",
+    dateRange: "Aug 11 – 14",
+    startDate: "2026-08-11",
+    endDate: "2026-08-14",
     goal: "Day-to-day classroom tools",
     summary:
       "Guides take Mon–Thu attendance, view student profiles, and message parents — all from one portal.",
@@ -226,9 +226,9 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     id: "mobile",
     number: "06",
     title: "Mobile app",
-    dateRange: "Aug 11 – 13",
-    startDate: "2026-08-11",
-    endDate: "2026-08-13",
+    dateRange: "Aug 15 – 19",
+    startDate: "2026-08-15",
+    endDate: "2026-08-19",
     goal: "School-branded mobile for families and guides",
     summary:
       "A Rooted Meadows-branded mobile app for parents and teachers — the features they reach for most, optimized for phone.",
@@ -258,9 +258,9 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
     id: "launch",
     number: "07",
     title: "v1 launch prep",
-    dateRange: "Aug 14 – 15",
-    startDate: "2026-08-14",
-    endDate: "2026-08-15",
+    dateRange: "Aug 20 – 24",
+    startDate: "2026-08-20",
+    endDate: "2026-08-24",
     goal: "Go-live ready",
     summary:
       "Parent portal polish, training, and a final launch checklist so your team is ready on day one.",
