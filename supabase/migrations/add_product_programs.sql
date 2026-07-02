@@ -5,8 +5,9 @@ create table if not exists public.programs (
   id               uuid primary key default gen_random_uuid(),
   organization_id  uuid not null references public.organizations(id) on delete cascade,
   name             text not null,
-  type             text not null
-                     check (type in ('school_year', 'summer', 'homeschool_drop_in')),
+  -- Free-form category slug per school (e.g. school_year, summer, camp, after_school).
+  -- Not an enum — organizations define their own types; group/filter in app by this field.
+  type             text not null,
   status           text not null default 'draft'
                      check (status in ('draft', 'open', 'waitlist', 'full', 'closed')),
   start_date       date,

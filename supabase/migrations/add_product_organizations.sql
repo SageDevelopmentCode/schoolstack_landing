@@ -1,5 +1,13 @@
 -- Product foundation: organizations (tenant root)
--- Run after: existing CRM migrations (requires public.handle_updated_at)
+-- Open access for now. Safe to run standalone in Supabase SQL Editor.
+
+create or replace function public.handle_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
 
 create table if not exists public.organizations (
   id              uuid primary key default gen_random_uuid(),
@@ -26,3 +34,24 @@ drop trigger if exists on_organizations_updated on public.organizations;
 create trigger on_organizations_updated
   before update on public.organizations
   for each row execute procedure public.handle_updated_at();
+
+alter table public.organizations enable row level security;
+
+drop policy if exists "Allow all access" on public.organizations;
+create policy "Allow all access"
+  on public.organizations
+  for all
+  using (true)
+  with check (true);
+
+
+-- Rooted Meadows (skip if already inserted)
+insert into public.organizations (slug, name, status, timezone, crm_school_id)
+values (
+  'rooted-meadows-school',
+  'Rooted Meadows Waldorf School',
+  'onboarding',
+  'America/Chicago',
+  'rooted-meadows-school'
+)
+on conflict (slug) do nothing;
