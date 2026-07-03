@@ -1,19 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  School,
   HelpCircle,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import {
-  buildAdminNavGroups,
-  getAdminPageLabel,
-  getFirstAdminNavPage,
-} from "@/lib/organization-settings/admin-nav";
+import { buildAdminNavGroups } from "@/lib/organization-settings/admin-nav";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
@@ -24,71 +22,26 @@ import type {
 } from "@/lib/organization-settings/types";
 
 type SchoolAdminBaselineProps = {
-  schoolName: string;
+  slug: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
+  children: ReactNode;
 };
-
-function ComingSoonPage({
-  C,
-  pageName,
-}: {
-  C: AdminThemeTokens;
-  pageName: string;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[320px] text-center px-6">
-      <div
-        className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-        style={{ backgroundColor: C.accentGlow }}
-      >
-        <School className="w-6 h-6" style={{ color: C.accent }} />
-      </div>
-      <h2
-        className="text-lg font-semibold mb-2"
-        style={{ color: C.textPrimary }}
-      >
-        {pageName}
-      </h2>
-      <p className="text-sm max-w-sm" style={{ color: C.textSecondary }}>
-        This section is coming soon. Check back as we roll out more admin
-        features for your school.
-      </p>
-    </div>
-  );
-}
-
-function EmptyNavState({ C }: { C: AdminThemeTokens }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[320px] text-center px-6">
-      <h2
-        className="text-lg font-semibold mb-2"
-        style={{ color: C.textPrimary }}
-      >
-        No admin features enabled
-      </h2>
-      <p className="text-sm max-w-sm" style={{ color: C.textSecondary }}>
-        Enable admin portal features in organization settings to see navigation
-        here.
-      </p>
-    </div>
-  );
-}
 
 function Sidebar({
   C,
   branding,
+  slug,
   navGroups,
-  activePage,
-  onNavigate,
+  pathname,
   isExpanded,
   onToggleExpand,
 }: {
   C: AdminThemeTokens;
   branding: OrganizationBranding;
+  slug: string;
   navGroups: ReturnType<typeof buildAdminNavGroups>;
-  activePage: string | null;
-  onNavigate: (page: string) => void;
+  pathname: string;
   isExpanded: boolean;
   onToggleExpand: () => void;
 }) {
@@ -176,13 +129,13 @@ function Sidebar({
             )}
             <div className="space-y-0.5">
               {group.items.map((item) => {
-                const active = activePage === item.key;
+                const href = schoolAdminPath(slug, item.key);
+                const active = pathname === href;
                 const Icon = item.icon;
                 return (
-                  <button
+                  <Link
                     key={item.key}
-                    type="button"
-                    onClick={() => onNavigate(item.key)}
+                    href={href}
                     title={item.name}
                     className="w-full flex items-center transition-colors duration-150"
                     style={{
@@ -195,7 +148,7 @@ function Sidebar({
                         ? `1px solid ${C.secondaryBtnBorder}`
                         : "1px solid transparent",
                       color: active ? C.accent : C.textSecondary,
-                      cursor: "pointer",
+                      textDecoration: "none",
                     }}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
@@ -204,7 +157,7 @@ function Sidebar({
                         {item.name}
                       </span>
                     )}
-                  </button>
+                  </Link>
                 );
               })}
             </div>
@@ -249,9 +202,13 @@ function Sidebar({
 }
 
 export default function SchoolAdminBaseline({
+  slug,
   branding,
   features,
+  children,
 }: SchoolAdminBaselineProps) {
+  const pathname = usePathname();
+
   const navGroups = useMemo(
     () =>
       buildAdminNavGroups(
@@ -261,38 +218,12 @@ export default function SchoolAdminBaseline({
     [features.admin, features.feature_nav?.admin],
   );
 
-  const firstPage = useMemo(
-    () =>
-      getFirstAdminNavPage(
-        features.admin,
-        features.feature_nav?.admin,
-      ),
-    [features.admin, features.feature_nav?.admin],
-  );
-
-  const [activePage, setActivePage] = useState<string | null>(firstPage);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
   const bodyFont =
     branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
-
-  function renderPage() {
-    if (!activePage) {
-      return <EmptyNavState C={C} />;
-    }
-
-    return (
-      <ComingSoonPage
-        C={C}
-        pageName={getAdminPageLabel(
-          activePage,
-          features.feature_nav?.admin,
-        )}
-      />
-    );
-  }
 
   return (
     <div
@@ -302,9 +233,9 @@ export default function SchoolAdminBaseline({
       <Sidebar
         C={C}
         branding={branding}
+        slug={slug}
         navGroups={navGroups}
-        activePage={activePage}
-        onNavigate={setActivePage}
+        pathname={pathname}
         isExpanded={sidebarExpanded}
         onToggleExpand={() => setSidebarExpanded((v) => !v)}
       />
@@ -313,14 +244,14 @@ export default function SchoolAdminBaseline({
         <div className="relative h-full overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div
-              key={activePage ?? "empty"}
+              key={pathname}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="h-full p-6"
             >
-              {renderPage()}
+              {children}
             </motion.div>
           </AnimatePresence>
         </div>
