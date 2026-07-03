@@ -22,7 +22,7 @@ export default function RootedMeadowsTimelineProgressLog({ entries }: Props) {
   };
 
   return (
-    <section className="px-6 py-10 lg:px-16 lg:py-14">
+    <section className="px-6 py-10 pb-20 lg:px-16 lg:py-14 lg:pb-24">
       <div className="mx-auto max-w-[1100px]">
         <FadeInView>
           <div className="mb-10 text-center lg:text-left">
