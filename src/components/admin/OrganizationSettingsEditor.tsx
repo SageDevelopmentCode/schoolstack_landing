@@ -70,6 +70,9 @@ const EMPTY_CUSTOM_FORM: NewCustomFeatureForm = {
   group: "Main",
 };
 
+const FEATURE_PORTALS = ["admin", "teacher", "parent", "additional"] as const;
+type FeaturePortalTab = (typeof FEATURE_PORTALS)[number];
+
 type Props = {
   organizationId: string;
   organizationSlug: string;
@@ -132,6 +135,8 @@ export default function OrganizationSettingsEditor({
   const [newSubsectionNames, setNewSubsectionNames] = useState<
     Partial<Record<Portal, string>>
   >({});
+  const [activeFeaturePortal, setActiveFeaturePortal] =
+    useState<FeaturePortalTab>("admin");
 
   useEffect(() => {
     if (settingsLoading) return;
@@ -154,6 +159,7 @@ export default function OrganizationSettingsEditor({
     setSaveMessage(null);
     setError(null);
     setLogoOpen(Boolean(mergedBranding.logo?.src?.trim()));
+    setActiveFeaturePortal("admin");
   }, [organizationId, initialRow, settingsLoading]);
 
   const isDirty = useMemo(
@@ -502,7 +508,30 @@ export default function OrganizationSettingsEditor({
           Features
         </h2>
 
-        {(["admin", "teacher", "parent", "additional"] as const).map(
+        <div
+          role="tablist"
+          aria-label="Feature portals"
+          className="flex gap-4 overflow-x-auto border-b border-border"
+        >
+          {FEATURE_PORTALS.map((portal) => (
+            <button
+              key={portal}
+              type="button"
+              role="tab"
+              aria-selected={activeFeaturePortal === portal}
+              onClick={() => setActiveFeaturePortal(portal)}
+              className={`text-sm font-medium py-2 border-b-2 transition-colors whitespace-nowrap font-secondary ${
+                activeFeaturePortal === portal
+                  ? "border-clay text-clay"
+                  : "border-transparent text-text-muted hover:text-text"
+              }`}
+            >
+              {PORTAL_LABELS[portal]}
+            </button>
+          ))}
+        </div>
+
+        {FEATURE_PORTALS.filter((portal) => portal === activeFeaturePortal).map(
           (portal) => {
             const defs = featuresByPortal.get(portal) ?? [];
             if (defs.length === 0) return null;
@@ -529,11 +558,7 @@ export default function OrganizationSettingsEditor({
               customForm.group.trim().length > 0;
 
             return (
-              <div key={portal} className="space-y-3 border-t border-border pt-4 first:border-t-0 first:pt-0">
-                <h3 className="text-xs font-medium text-text-muted font-secondary">
-                  {PORTAL_LABELS[portal]}
-                </h3>
-
+              <div key={portal} className="space-y-3">
                 {isNavPortal && portalNav ? (
                   <div className="rounded-lg border border-border bg-bg/50 p-3 space-y-2">
                     <p className="text-xs font-medium text-text-muted font-secondary">
