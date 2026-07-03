@@ -1,44 +1,17 @@
 import { rootedMeadowsConfig } from "./rooted-meadows";
 
-export type ApplicationFieldType =
-  | "text"
-  | "email"
-  | "tel"
-  | "date"
-  | "select"
-  | "textarea"
-  | "radio"
-  | "checkbox"
-  | "file";
-
-export interface ApplicationFieldOption {
-  value: string;
-  label: string;
-}
-
-export interface ApplicationField {
-  id: string;
-  label: string;
-  type: ApplicationFieldType;
-  placeholder?: string;
-  required?: boolean;
-  width?: "full" | "half";
-  options?: ApplicationFieldOption[];
-  rows?: number;
-  helpText?: string;
-}
-
-export interface ApplicationSection {
-  id: string;
-  title: string;
-  description?: string;
-  fields: ApplicationField[];
-}
-
-export interface ApplicationAcknowledgment {
-  id: string;
-  label: string;
-}
+export type {
+  ApplicationAcknowledgment,
+  ApplicationField,
+  ApplicationFieldOption,
+  ApplicationFieldType,
+  ApplicationSection,
+} from "@/lib/admissions/application-form-schema";
+import type {
+  ApplicationAcknowledgment,
+  ApplicationFieldOption,
+  ApplicationSection,
+} from "@/lib/admissions/application-form-schema";
 
 export const ROOTED_MEADOWS_APPLICATION_FEE = "$50";
 

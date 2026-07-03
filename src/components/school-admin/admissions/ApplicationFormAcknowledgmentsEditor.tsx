@@ -1,0 +1,118 @@
+"use client";
+
+import { Plus, Trash2 } from "lucide-react";
+import {
+  newAdmissionsId,
+  type ApplicationAcknowledgment,
+} from "@/lib/admissions/application-form-schema";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+
+type ApplicationFormAcknowledgmentsEditorProps = {
+  C: AdminThemeTokens;
+  acknowledgments: ApplicationAcknowledgment[];
+  readOnly: boolean;
+  onChange: (acknowledgments: ApplicationAcknowledgment[]) => void;
+};
+
+export default function ApplicationFormAcknowledgmentsEditor({
+  C,
+  acknowledgments,
+  readOnly,
+  onChange,
+}: ApplicationFormAcknowledgmentsEditorProps) {
+  const inputStyle: React.CSSProperties = {
+    backgroundColor: C.input,
+    border: `1px solid ${C.inputBorder}`,
+    color: C.textPrimary,
+    borderRadius: C.r.sm,
+    fontSize: "12px",
+    padding: "8px 10px",
+    width: "100%",
+    boxSizing: "border-box",
+  };
+
+  const updateAck = (id: string, label: string) => {
+    onChange(
+      acknowledgments.map((ack) => (ack.id === id ? { ...ack, label } : ack)),
+    );
+  };
+
+  const removeAck = (id: string) => {
+    onChange(acknowledgments.filter((ack) => ack.id !== id));
+  };
+
+  const addAck = () => {
+    onChange([
+      ...acknowledgments,
+      {
+        id: newAdmissionsId(),
+        label: "I understand and agree to the admissions policies.",
+      },
+    ]);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+          Parent acknowledgments
+        </p>
+        <p className="text-[11px] mt-0.5" style={{ color: C.textTertiary }}>
+          Checkbox statements families must confirm before submitting.
+        </p>
+      </div>
+
+      {acknowledgments.length === 0 ? (
+        <p className="text-[11px]" style={{ color: C.textTertiary }}>
+          No acknowledgments yet.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {acknowledgments.map((ack, index) => (
+            <div key={ack.id} className="flex gap-2 items-start">
+              <span
+                className="mt-2 text-[10px] font-bold shrink-0"
+                style={{ color: C.textTertiary }}
+              >
+                {index + 1}.
+              </span>
+              <textarea
+                rows={2}
+                value={ack.label}
+                disabled={readOnly}
+                onChange={(e) => updateAck(ack.id, e.target.value)}
+                style={{ ...inputStyle, resize: "vertical" }}
+              />
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => removeAck(ack.id)}
+                  className="mt-1 rounded p-1.5 shrink-0"
+                  style={{ color: C.error, backgroundColor: C.errorBg }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={addAck}
+          className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+          style={{
+            backgroundColor: C.accentLight,
+            color: C.accent,
+            border: `1px solid ${C.secondaryBtnBorder}`,
+          }}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add acknowledgment
+        </button>
+      )}
+    </div>
+  );
+}
