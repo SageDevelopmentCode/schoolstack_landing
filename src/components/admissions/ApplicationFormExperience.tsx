@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
+import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import {
   formatFeeAmount,
@@ -315,6 +316,17 @@ function SectionStep({
   values: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
 }) {
+  const topNotice =
+    section.stepNotice?.body.trim() &&
+    section.stepNotice.placement === "top"
+      ? section.stepNotice.body.trim()
+      : null;
+  const bottomNotice =
+    section.stepNotice?.body.trim() &&
+    section.stepNotice.placement === "bottom"
+      ? section.stepNotice.body.trim()
+      : null;
+
   return (
     <div>
       <h2 className="text-xl font-semibold" style={{ color: C.accentDark }}>
@@ -324,6 +336,9 @@ function SectionStep({
         <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
           {section.description}
         </p>
+      ) : null}
+      {topNotice ? (
+        <ApplicationStepNotice body={topNotice} C={C} className="mt-5" />
       ) : null}
       <div className="mt-5 grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2">
         {section.fields.map((field) => (
@@ -355,6 +370,9 @@ function SectionStep({
           </label>
         ))}
       </div>
+      {bottomNotice ? (
+        <ApplicationStepNotice body={bottomNotice} C={C} className="mt-5" />
+      ) : null}
     </div>
   );
 }

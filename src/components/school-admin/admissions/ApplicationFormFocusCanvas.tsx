@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import type { ProgramOption } from "@/lib/admissions/application-forms";
 import type {
   ApplicationField,
@@ -242,6 +243,76 @@ function StepView({
             style={{ ...inputStyle(C), resize: "vertical" }}
           />
         </div>
+        <div className="space-y-2">
+          <FieldLabel
+            C={C}
+            hint="Shown to families as a highlighted callout on this step."
+          >
+            Step message
+          </FieldLabel>
+          <textarea
+            rows={2}
+            value={step.stepNotice?.body ?? ""}
+            disabled={readOnly}
+            onChange={(e) => {
+              const body = e.target.value;
+              if (!body.trim()) {
+                onUpdateStep({ stepNotice: undefined });
+                return;
+              }
+              onUpdateStep({
+                stepNotice: {
+                  body,
+                  placement: step.stepNotice?.placement ?? "bottom",
+                },
+              });
+            }}
+            placeholder="Optional callout message for families…"
+            style={{ ...inputStyle(C), resize: "vertical" }}
+          />
+        </div>
+        {step.stepNotice?.body.trim() ? (
+          <div className="space-y-2">
+            <FieldLabel C={C}>Message placement</FieldLabel>
+            <div className="flex flex-wrap gap-4">
+              {(
+                [
+                  { value: "top", label: "Top of step" },
+                  { value: "bottom", label: "Bottom of step" },
+                ] as const
+              ).map((option) => (
+                <label
+                  key={option.value}
+                  className="inline-flex items-center gap-2 text-sm"
+                  style={{ color: C.textPrimary }}
+                >
+                  <input
+                    type="radio"
+                    name={`step-notice-placement-${step.id}`}
+                    value={option.value}
+                    checked={step.stepNotice?.placement === option.value}
+                    disabled={readOnly}
+                    onChange={() =>
+                      onUpdateStep({
+                        stepNotice: {
+                          body: step.stepNotice!.body,
+                          placement: option.value,
+                        },
+                      })
+                    }
+                    className="h-4 w-4"
+                    style={{ accentColor: C.accent }}
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+            <ApplicationStepNotice
+              body={step.stepNotice.body.trim()}
+              C={C}
+            />
+          </div>
+        ) : null}
       </div>
 
       <ApplicationFormQuestionList

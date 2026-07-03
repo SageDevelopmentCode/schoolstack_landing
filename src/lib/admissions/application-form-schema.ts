@@ -28,10 +28,18 @@ export interface ApplicationField {
   accept?: string;
 }
 
+export type ApplicationStepNoticePlacement = "top" | "bottom";
+
+export interface ApplicationStepNotice {
+  body: string;
+  placement: ApplicationStepNoticePlacement;
+}
+
 export interface ApplicationSection {
   id: string;
   title: string;
   description?: string;
+  stepNotice?: ApplicationStepNotice;
   fields: ApplicationField[];
 }
 
