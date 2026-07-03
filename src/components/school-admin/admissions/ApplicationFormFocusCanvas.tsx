@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Trash2 } from "lucide-react";
+import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import type { ProgramOption } from "@/lib/admissions/application-forms";
 import type {
   ApplicationField,
@@ -37,6 +39,10 @@ type ApplicationFormFocusCanvasProps = {
   ) => void;
   onDeleteStep: (stepId: string) => void;
 };
+
+type PendingDelete =
+  | { kind: "step"; stepId: string; stepTitle: string; questionCount: number }
+  | { kind: "field"; stepId: string; fieldId: string; fieldLabel: string };
 
 const canvasTransition = {
   initial: { opacity: 0, x: 8 },
@@ -169,9 +175,8 @@ function StepView({
   selectedFieldId,
   onFocusChange,
   onUpdateStep,
-  onDeleteStep,
+  onRequestDeleteStep,
   onAddField,
-  onDeleteField,
   onReorderFields,
 }: {
   C: AdminThemeTokens;
@@ -181,9 +186,8 @@ function StepView({
   selectedFieldId: string | null;
   onFocusChange: (focus: BuilderFocus) => void;
   onUpdateStep: (patch: Partial<ApplicationSection>) => void;
-  onDeleteStep: () => void;
+  onRequestDeleteStep: () => void;
   onAddField: (field: ApplicationField) => void;
-  onDeleteField: (fieldId: string) => void;
   onReorderFields: (fields: ApplicationField[]) => void;
 }) {
   return (
@@ -203,7 +207,7 @@ function StepView({
         {!readOnly && (
           <button
             type="button"
-            onClick={onDeleteStep}
+            onClick={onRequestDeleteStep}
             className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium shrink-0"
             style={{ color: C.error, backgroundColor: C.errorBg }}
           >
@@ -253,7 +257,6 @@ function StepView({
           onAddField(field);
           onFocusChange({ kind: "field", stepId: step.id, fieldId: field.id });
         }}
-        onDeleteField={onDeleteField}
         onReorderFields={onReorderFields}
       />
     </div>
@@ -268,7 +271,7 @@ function FieldView({
   readOnly,
   onBack,
   onUpdateField,
-  onDeleteField,
+  onRequestDeleteField,
 }: {
   C: AdminThemeTokens;
   step: ApplicationSection;
@@ -277,7 +280,7 @@ function FieldView({
   readOnly: boolean;
   onBack: () => void;
   onUpdateField: (patch: Partial<ApplicationField>) => void;
-  onDeleteField: () => void;
+  onRequestDeleteField: () => void;
 }) {
   return (
     <div className="mx-auto w-full max-w-xl space-y-6">
@@ -309,7 +312,7 @@ function FieldView({
           field={field}
           readOnly={readOnly}
           onChange={onUpdateField}
-          onDelete={onDeleteField}
+          onDelete={onRequestDeleteField}
         />
       </div>
     </div>
@@ -327,6 +330,7 @@ export default function ApplicationFormFocusCanvas({
   onUpdateSchema,
   onDeleteStep,
 }: ApplicationFormFocusCanvasProps) {
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const key = focusKey(focus);
 
   const step =
@@ -394,7 +398,34 @@ export default function ApplicationFormFocusCanvas({
     }));
   };
 
+  const handleConfirmDelete = () => {
+    if (!pendingDelete) return;
+
+    if (pendingDelete.kind === "step") {
+      onDeleteStep(pendingDelete.stepId);
+    } else {
+      deleteField(pendingDelete.stepId, pendingDelete.fieldId);
+    }
+    setPendingDelete(null);
+  };
+
+  const confirmCopy =
+    pendingDelete?.kind === "step"
+      ? {
+          title: "Delete step?",
+          description: `This removes "${pendingDelete.stepTitle}" and all ${pendingDelete.questionCount} question${pendingDelete.questionCount === 1 ? "" : "s"}. This can't be undone until you save.`,
+          confirmLabel: "Delete step",
+        }
+      : pendingDelete?.kind === "field"
+        ? {
+            title: "Delete question?",
+            description: `Remove "${pendingDelete.fieldLabel}" from this step?`,
+            confirmLabel: "Delete question",
+          }
+        : null;
+
   return (
+    <>
     <div className="flex-1 overflow-y-auto px-6 py-8" style={{ backgroundColor: C.surface }}>
       <AnimatePresence mode="wait">
         <motion.div key={key} {...canvasTransition}>
@@ -417,9 +448,15 @@ export default function ApplicationFormFocusCanvas({
               selectedFieldId={null}
               onFocusChange={onFocusChange}
               onUpdateStep={(patch) => updateStep(step.id, patch)}
-              onDeleteStep={() => onDeleteStep(step.id)}
+              onRequestDeleteStep={() =>
+                setPendingDelete({
+                  kind: "step",
+                  stepId: step.id,
+                  stepTitle: step.title || `Step ${stepIdx + 1}`,
+                  questionCount: step.fields.length,
+                })
+              }
               onAddField={(field) => addField(step.id, field)}
-              onDeleteField={(fieldId) => deleteField(step.id, fieldId)}
               onReorderFields={(fields) =>
                 updateStep(step.id, { fields })
               }
@@ -435,7 +472,14 @@ export default function ApplicationFormFocusCanvas({
               readOnly={readOnly}
               onBack={() => onFocusChange({ kind: "step", stepId: step.id })}
               onUpdateField={(patch) => updateField(step.id, field.id, patch)}
-              onDeleteField={() => deleteField(step.id, field.id)}
+              onRequestDeleteField={() =>
+                setPendingDelete({
+                  kind: "field",
+                  stepId: step.id,
+                  fieldId: field.id,
+                  fieldLabel: field.label || "Untitled question",
+                })
+              }
             />
           )}
 
@@ -496,5 +540,18 @@ export default function ApplicationFormFocusCanvas({
         </motion.div>
       </AnimatePresence>
     </div>
+
+    <ConfirmDialog
+      C={C}
+      open={pendingDelete !== null}
+      title={confirmCopy?.title ?? ""}
+      description={confirmCopy?.description ?? ""}
+      confirmLabel={confirmCopy?.confirmLabel ?? "Delete"}
+      cancelLabel="Cancel"
+      variant="destructive"
+      onConfirm={handleConfirmDelete}
+      onClose={() => setPendingDelete(null)}
+    />
+    </>
   );
 }

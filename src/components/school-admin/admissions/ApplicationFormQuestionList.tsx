@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, GripVertical, Plus } from "lucide-react";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import { fieldTypeLabel } from "@/lib/admissions/field-presets";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -19,7 +19,6 @@ type ApplicationFormQuestionListProps = {
   readOnly: boolean;
   onSelectField: (fieldId: string) => void;
   onAddField: (field: ApplicationField) => void;
-  onDeleteField: (fieldId: string) => void;
   onReorderFields: (fields: ApplicationField[]) => void;
 };
 
@@ -29,16 +28,13 @@ function QuestionRow({
   active,
   readOnly,
   onSelect,
-  onDelete,
 }: {
   C: AdminThemeTokens;
   field: ApplicationField;
   active: boolean;
   readOnly: boolean;
   onSelect: () => void;
-  onDelete: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
   const dragControls = useDragControls();
 
   return (
@@ -49,8 +45,6 @@ function QuestionRow({
       dragControls={dragControls}
       style={{ listStyle: "none" }}
       layout="position"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <div
         className="flex items-center rounded-md border transition-colors"
@@ -74,7 +68,7 @@ function QuestionRow({
         <button
           type="button"
           onClick={onSelect}
-          className="flex min-w-0 flex-1 items-center gap-2 py-3 pr-2 text-left"
+          className="flex min-w-0 flex-1 items-center gap-2 py-3 pr-3 text-left"
           style={{ paddingLeft: readOnly ? 12 : 0 }}
         >
           <span
@@ -98,20 +92,6 @@ function QuestionRow({
           )}
           <ChevronRight className="h-4 w-4 shrink-0" style={{ color: C.textQuaternary }} />
         </button>
-        {!readOnly && hovered && (
-          <button
-            type="button"
-            aria-label="Delete question"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="mr-2 rounded p-1.5 shrink-0"
-            style={{ color: C.error, backgroundColor: C.errorBg }}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
       </div>
     </Reorder.Item>
   );
@@ -125,7 +105,6 @@ export default function ApplicationFormQuestionList({
   readOnly,
   onSelectField,
   onAddField,
-  onDeleteField,
   onReorderFields,
 }: ApplicationFormQuestionListProps) {
   const [showPicker, setShowPicker] = useState(false);
@@ -176,7 +155,6 @@ export default function ApplicationFormQuestionList({
               active={selectedFieldId === field.id}
               readOnly={readOnly}
               onSelect={() => onSelectField(field.id)}
-              onDelete={() => onDeleteField(field.id)}
             />
           ))}
         </Reorder.Group>
