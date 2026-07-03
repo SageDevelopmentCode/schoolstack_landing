@@ -56,7 +56,7 @@ export default function RootedMeadowsTimelinePhases({
   const activeCountdown = getPhaseCountdown(phase.startDate, phase.endDate);
 
   return (
-    <section className="px-6 py-10 pb-20 lg:px-16 lg:py-14 lg:pb-24">
+    <section className="px-6 py-10 lg:px-16 lg:py-14">
       <div className="mx-auto max-w-[1100px]">
         <FadeInView>
           <div className="mb-10 text-center lg:text-left">

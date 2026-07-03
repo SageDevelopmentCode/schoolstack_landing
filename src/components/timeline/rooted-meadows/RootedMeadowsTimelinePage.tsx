@@ -19,11 +19,11 @@ export default function RootedMeadowsTimelinePage({ progressEntries }: Props) {
       <RootedMeadowsDualBranding />
       <main>
         <RootedMeadowsTimelineHero />
-        <RootedMeadowsTimelineProgressLog entries={progressEntries} />
         <RootedMeadowsTimelinePhases
           activePhase={activePhase}
           onPhaseSelect={setActivePhase}
         />
+        <RootedMeadowsTimelineProgressLog entries={progressEntries} />
       </main>
     </>
   );
