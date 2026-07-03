@@ -50,6 +50,7 @@ export default function ApplicationFormPreview({
 
   useEffect(() => {
     if (!open) return;
+    setPreviewValues({});
     if (!initialStepId) {
       setStepIndex(0);
       return;

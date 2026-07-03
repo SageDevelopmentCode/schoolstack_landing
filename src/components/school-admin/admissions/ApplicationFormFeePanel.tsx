@@ -9,6 +9,7 @@ type ApplicationFormFeePanelProps = {
   feeConfig: ApplicationFormFeeConfig;
   readOnly: boolean;
   onChange: (feeConfig: ApplicationFormFeeConfig) => void;
+  hideHeader?: boolean;
 };
 
 export default function ApplicationFormFeePanel({
@@ -16,6 +17,7 @@ export default function ApplicationFormFeePanel({
   feeConfig,
   readOnly,
   onChange,
+  hideHeader = false,
 }: ApplicationFormFeePanelProps) {
   const inputStyle: React.CSSProperties = {
     backgroundColor: C.input,
@@ -35,19 +37,39 @@ export default function ApplicationFormFeePanel({
 
   return (
     <div
-      className="rounded-md border p-4 space-y-3"
-      style={{ borderColor: C.border, backgroundColor: C.surface }}
+      className={hideHeader ? "space-y-4" : "rounded-lg border p-5 space-y-4"}
+      style={
+        hideHeader
+          ? undefined
+          : { borderColor: C.border, backgroundColor: C.surface }
+      }
     >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            Application fee
-          </p>
-          <p className="text-[11px] mt-0.5" style={{ color: C.textTertiary }}>
-            Collected at the end of the application before submit.
-          </p>
+      {!hideHeader && (
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+              Application fee
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+              Collected at the end of the application before submit.
+            </p>
+          </div>
+          <label className="inline-flex items-center gap-2 text-xs font-medium" style={{ color: C.textSecondary }}>
+            <input
+              type="checkbox"
+              checked={feeConfig.enabled}
+              disabled={readOnly}
+              onChange={(e) => onChange({ ...feeConfig, enabled: e.target.checked })}
+              className="h-4 w-4 rounded"
+              style={{ accentColor: C.accent }}
+            />
+            Enabled
+          </label>
         </div>
-        <label className="inline-flex items-center gap-2 text-xs font-medium" style={{ color: C.textSecondary }}>
+      )}
+
+      {hideHeader && (
+        <label className="flex items-center gap-2 text-sm font-medium" style={{ color: C.textPrimary }}>
           <input
             type="checkbox"
             checked={feeConfig.enabled}
@@ -56,17 +78,14 @@ export default function ApplicationFormFeePanel({
             className="h-4 w-4 rounded"
             style={{ accentColor: C.accent }}
           />
-          Enabled
+          Collect an application fee
         </label>
-      </div>
+      )}
 
       {feeConfig.enabled && (
         <>
           <div>
-            <label
-              className="mb-1 block text-[10px] font-semibold uppercase tracking-wide"
-              style={{ color: C.textTertiary }}
-            >
+            <label className="mb-1.5 block text-sm font-medium" style={{ color: C.textPrimary }}>
               Fee label
             </label>
             <input
@@ -78,10 +97,7 @@ export default function ApplicationFormFeePanel({
             />
           </div>
           <div>
-            <label
-              className="mb-1 block text-[10px] font-semibold uppercase tracking-wide"
-              style={{ color: C.textTertiary }}
-            >
+            <label className="mb-1.5 block text-sm font-medium" style={{ color: C.textPrimary }}>
               Amount (USD)
             </label>
             <input
@@ -101,7 +117,7 @@ export default function ApplicationFormFeePanel({
               }}
               style={inputStyle}
             />
-            <p className="mt-1 text-[10px]" style={{ color: C.textTertiary }}>
+            <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
               Families will pay {formatFeeAmount(feeConfig.amount_cents ?? 0)}.
             </p>
           </div>

@@ -12,6 +12,7 @@ type ApplicationFormAcknowledgmentsEditorProps = {
   acknowledgments: ApplicationAcknowledgment[];
   readOnly: boolean;
   onChange: (acknowledgments: ApplicationAcknowledgment[]) => void;
+  hideHeader?: boolean;
 };
 
 export default function ApplicationFormAcknowledgmentsEditor({
@@ -19,6 +20,7 @@ export default function ApplicationFormAcknowledgmentsEditor({
   acknowledgments,
   readOnly,
   onChange,
+  hideHeader = false,
 }: ApplicationFormAcknowledgmentsEditorProps) {
   const inputStyle: React.CSSProperties = {
     backgroundColor: C.input,
@@ -52,18 +54,20 @@ export default function ApplicationFormAcknowledgmentsEditor({
   };
 
   return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-          Parent acknowledgments
-        </p>
-        <p className="text-[11px] mt-0.5" style={{ color: C.textTertiary }}>
-          Checkbox statements families must confirm before submitting.
-        </p>
-      </div>
+    <div className="space-y-4">
+      {!hideHeader && (
+        <div>
+          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+            Parent acknowledgments
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+            Checkbox statements families must confirm before submitting.
+          </p>
+        </div>
+      )}
 
       {acknowledgments.length === 0 ? (
-        <p className="text-[11px]" style={{ color: C.textTertiary }}>
+        <p className="text-sm" style={{ color: C.textTertiary }}>
           No acknowledgments yet.
         </p>
       ) : (
