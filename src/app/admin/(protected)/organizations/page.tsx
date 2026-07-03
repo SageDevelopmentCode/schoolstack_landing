@@ -341,6 +341,7 @@ export default function AdminOrganizationsPage() {
 
             <OrganizationSettingsEditor
               organizationId={selected.id}
+              organizationSlug={selected.slug}
               organizationName={selected.name}
               initialRow={settingsRow}
               settingsLoading={settingsLoading}
@@ -375,6 +376,23 @@ export default function AdminOrganizationsPage() {
                 Quick links
               </h2>
               <ul className="space-y-2">
+                <li>
+                  <Link
+                    href={`/school/${selected.slug}/admin`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 text-sm text-clay hover:underline font-secondary group"
+                  >
+                    <span>School admin</span>
+                    <ArrowUpRight
+                      className="w-3.5 h-3.5 shrink-0 opacity-60 group-hover:opacity-100"
+                      aria-hidden
+                    />
+                  </Link>
+                  <p className="text-xs text-text-faint mt-0.5">
+                    /school/{selected.slug}/admin
+                  </p>
+                </li>
                 <li>
                   <Link
                     href={`/timeline/${selected.slug}`}

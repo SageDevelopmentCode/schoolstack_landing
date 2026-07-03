@@ -1,0 +1,29 @@
+-- Documentation: feature_nav inside organization_settings.features (jsonb)
+-- No schema change required. Apply manually in Supabase SQL Editor if needed.
+--
+-- Example: add a custom admin feature "students" under a "Records" subsection
+--
+-- update public.organization_settings os
+-- set features = jsonb_set(
+--   jsonb_set(
+--     os.features,
+--     '{admin,students}',
+--     'true'::jsonb,
+--     true
+--   ),
+--   '{feature_nav,admin}',
+--   '{
+--     "groups": ["Main", "Records", "Tools"],
+--     "items": {
+--       "students": {
+--         "group": "Records",
+--         "label": "Students",
+--         "icon": "users"
+--       }
+--     }
+--   }'::jsonb,
+--   true
+-- )
+-- from public.organizations o
+-- where os.organization_id = o.id
+--   and o.slug = 'rooted-meadows-school';

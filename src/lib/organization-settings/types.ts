@@ -1,4 +1,5 @@
 export type Portal = "admin" | "teacher" | "parent";
+export type FeaturePortal = Portal | "additional";
 
 export type BrandingColors = {
   accent: string;
@@ -78,8 +79,26 @@ export type OrganizationFeatures = {
   admin: AdminFeatures;
   teacher: TeacherFeatures;
   parent: ParentFeatures;
+  feature_nav?: FeatureNavConfig;
 } & Partial<AdditionalFeatures> &
-  Record<string, boolean | AdminFeatures | TeacherFeatures | ParentFeatures>;
+  Record<string, boolean | AdminFeatures | TeacherFeatures | ParentFeatures | FeatureNavConfig>;
+
+export type FeatureNavItemConfig = {
+  group: string;
+  label?: string;
+  icon?: string;
+};
+
+export type PortalFeatureNav = {
+  groups: string[];
+  items: Record<string, FeatureNavItemConfig>;
+};
+
+export type FeatureNavConfig = {
+  admin?: PortalFeatureNav;
+  teacher?: PortalFeatureNav;
+  parent?: PortalFeatureNav;
+};
 
 export type OrganizationSettingsRow = {
   organization_id: string;

@@ -7,12 +7,34 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import Link from "next/link";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import {
+  addCustomPortalFeature,
+  canAddPortalFeatureKey,
+  extractCustomPortalFeatureKeys,
+  humanizeFeatureKey,
+  normalizeFeatureKey,
+  removeCustomPortalFeature,
+  updateFeatureNavItemForPortal,
+} from "@/lib/organization-settings/features";
+import {
+  addPortalGroup,
+  countFeaturesInGroup,
+  ensurePortalNav,
+  removePortalGroup,
+  resolveFeatureNavItem,
+  updatePortalNav,
+} from "@/lib/organization-settings/feature-nav";
+import {
+  DEFAULT_FEATURE_ICON_SLUG,
+  FEATURE_ICON_OPTIONS,
+  getFeatureIcon,
+} from "@/lib/organization-settings/icon-registry";
+import {
   BRANDING_FIELDS,
   FEATURE_CATALOG,
-  KNOWN_FEATURE_ROOT_KEYS,
   PORTAL_LABELS,
 } from "@/lib/organization-settings/catalog";
 import {
@@ -31,30 +53,35 @@ import type {
   OrganizationFeatures,
   OrganizationSettingsRow,
   Portal,
+  FeaturePortal,
 } from "@/lib/organization-settings/types";
+
+type NewCustomFeatureForm = {
+  key: string;
+  label: string;
+  icon: string;
+  group: string;
+};
+
+const EMPTY_CUSTOM_FORM: NewCustomFeatureForm = {
+  key: "",
+  label: "",
+  icon: DEFAULT_FEATURE_ICON_SLUG,
+  group: "Main",
+};
 
 type Props = {
   organizationId: string;
+  organizationSlug: string;
   organizationName: string;
   initialRow: OrganizationSettingsRow | null;
   settingsLoading?: boolean;
   onSaved?: () => void | Promise<void>;
 };
 
-function extractCustomFeatureKeys(features: OrganizationFeatures): string[] {
-  const catalogKeys = new Set(
-    FEATURE_CATALOG.filter((f) => f.portal === "additional").map((f) => f.key),
-  );
-  return Object.keys(features).filter(
-    (key) =>
-      !KNOWN_FEATURE_ROOT_KEYS.has(key) &&
-      typeof features[key] === "boolean" &&
-      !catalogKeys.has(key),
-  );
-}
-
 export default function OrganizationSettingsEditor({
   organizationId,
+  organizationSlug,
   organizationName,
   initialRow,
   settingsLoading = false,
@@ -71,15 +98,6 @@ export default function OrganizationSettingsEditor({
     initialRow
       ? mergeFeatures(initialRow.features as unknown as Record<string, unknown>)
       : getDefaultSettings().features,
-  );
-  const [customKeys, setCustomKeys] = useState<string[]>(() =>
-    initialRow
-      ? extractCustomFeatureKeys(
-          mergeFeatures(
-            initialRow.features as unknown as Record<string, unknown>,
-          ),
-        )
-      : [],
   );
   const [savedSnapshot, setSavedSnapshot] = useState(() =>
     serializeSettings(
@@ -105,8 +123,15 @@ export default function OrganizationSettingsEditor({
     ),
   );
   const [typographyOpen, setTypographyOpen] = useState(false);
-  const [additionalOpen, setAdditionalOpen] = useState(false);
-  const [newFeatureKey, setNewFeatureKey] = useState("");
+  const [newPortalFeatureKeys, setNewPortalFeatureKeys] = useState<
+    Partial<Record<FeaturePortal, string>>
+  >({});
+  const [newCustomFeatureForms, setNewCustomFeatureForms] = useState<
+    Partial<Record<Portal, NewCustomFeatureForm>>
+  >({});
+  const [newSubsectionNames, setNewSubsectionNames] = useState<
+    Partial<Record<Portal, string>>
+  >({});
 
   useEffect(() => {
     if (settingsLoading) return;
@@ -116,12 +141,10 @@ export default function OrganizationSettingsEditor({
     const mergedFeatures = initialRow
       ? mergeFeatures(initialRow.features as unknown as Record<string, unknown>)
       : getDefaultSettings().features;
-    const custom = initialRow ? extractCustomFeatureKeys(mergedFeatures) : [];
 
     setHasRow(!!initialRow);
     setBranding(mergedBranding);
     setFeatures(mergedFeatures);
-    setCustomKeys(custom);
     setSavedSnapshot(
       serializeSettings(
         mergedBranding,
@@ -166,7 +189,9 @@ export default function OrganizationSettingsEditor({
     const defaults = getDefaultSettings();
     setBranding(defaults.branding);
     setFeatures(defaults.features);
-    setCustomKeys([]);
+    setNewPortalFeatureKeys({});
+    setNewCustomFeatureForms({});
+    setNewSubsectionNames({});
     setError(null);
     setSaveMessage(null);
   }, []);
@@ -220,23 +245,69 @@ export default function OrganizationSettingsEditor({
     setFeatures((prev) => ({ ...prev, [key]: enabled }));
   };
 
-  const addCustomFeature = () => {
-    const key = newFeatureKey.trim().replace(/\s+/g, "_").toLowerCase();
-    if (!key || KNOWN_FEATURE_ROOT_KEYS.has(key) || customKeys.includes(key)) {
-      return;
-    }
-    setCustomKeys((prev) => [...prev, key]);
-    setFeatures((prev) => ({ ...prev, [key]: false }));
-    setNewFeatureKey("");
+  const updatePortalNavItem = (
+    portal: Portal,
+    key: string,
+    patch: { group?: string; label?: string; icon?: string },
+  ) => {
+    setFeatures((prev) => updateFeatureNavItemForPortal(prev, portal, key, patch));
   };
 
-  const removeCustomFeature = (key: string) => {
-    setCustomKeys((prev) => prev.filter((k) => k !== key));
+  const addSubsection = (portal: Portal) => {
+    const name = (newSubsectionNames[portal] ?? "").trim();
+    if (!name) return;
+
     setFeatures((prev) => {
-      const next = { ...prev };
-      delete next[key];
-      return next;
+      const nav = ensurePortalNav(prev, portal);
+      return updatePortalNav(prev, portal, addPortalGroup(nav, name));
     });
+    setNewSubsectionNames((prev) => ({ ...prev, [portal]: "" }));
+  };
+
+  const deleteSubsection = (portal: Portal, groupName: string) => {
+    setFeatures((prev) => {
+      const nav = ensurePortalNav(prev, portal);
+      if (countFeaturesInGroup(nav, groupName) > 0) return prev;
+      return updatePortalNav(prev, portal, removePortalGroup(nav, groupName));
+    });
+  };
+
+  const addCustomPortalFeatureKey = (portal: FeaturePortal) => {
+    if (portal === "additional") {
+      const raw = newPortalFeatureKeys[portal] ?? "";
+      const key = normalizeFeatureKey(raw);
+      if (!canAddPortalFeatureKey(portal, features, key)) return;
+      setFeatures((prev) => addCustomPortalFeature(prev, portal, key));
+      setNewPortalFeatureKeys((prev) => ({ ...prev, [portal]: "" }));
+      return;
+    }
+
+    const form = newCustomFeatureForms[portal] ?? EMPTY_CUSTOM_FORM;
+    const key = normalizeFeatureKey(form.key);
+    const label = form.label.trim();
+    const group = form.group.trim() || ensurePortalNav(features, portal).groups[0] || "Main";
+
+    if (!canAddPortalFeatureKey(portal, features, key) || !label) return;
+
+    setFeatures((prev) =>
+      addCustomPortalFeature(prev, portal, key, {
+        label,
+        icon: form.icon || DEFAULT_FEATURE_ICON_SLUG,
+        group,
+      }),
+    );
+    setNewCustomFeatureForms((prev) => ({
+      ...prev,
+      [portal]: {
+        ...EMPTY_CUSTOM_FORM,
+        group,
+        icon: form.icon || DEFAULT_FEATURE_ICON_SLUG,
+      },
+    }));
+  };
+
+  const removeCustomPortalFeatureKey = (portal: FeaturePortal, key: string) => {
+    setFeatures((prev) => removeCustomPortalFeature(prev, portal, key));
   };
 
   if (settingsLoading) {
@@ -254,8 +325,8 @@ export default function OrganizationSettingsEditor({
       {!hasRow ? (
         <div className="bg-clay-soft/30 border border-clay/20 rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-text-muted font-secondary">
-            No settings row yet for {organizationName}. Initialize defaults, then
-            save.
+            No settings row yet for {organizationName}. Edit below and click
+            Save settings to create one.
           </p>
           <button
             type="button"
@@ -435,12 +506,92 @@ export default function OrganizationSettingsEditor({
           (portal) => {
             const defs = featuresByPortal.get(portal) ?? [];
             if (defs.length === 0) return null;
+
+            const customKeys = extractCustomPortalFeatureKeys(portal, features);
+            const isNavPortal = portal !== "additional";
+            const portalNav = isNavPortal
+              ? ensurePortalNav(features, portal)
+              : null;
+            const newKey = newPortalFeatureKeys[portal] ?? "";
+            const canAddAdditional =
+              portal === "additional" &&
+              canAddPortalFeatureKey(portal, features, newKey);
+            const customForm = isNavPortal
+              ? (newCustomFeatureForms[portal] ?? {
+                  ...EMPTY_CUSTOM_FORM,
+                  group: portalNav?.groups[0] ?? "Main",
+                })
+              : EMPTY_CUSTOM_FORM;
+            const canAddCustom =
+              isNavPortal &&
+              canAddPortalFeatureKey(portal, features, customForm.key) &&
+              customForm.label.trim().length > 0 &&
+              customForm.group.trim().length > 0;
+
             return (
-              <div key={portal} className="space-y-2">
+              <div key={portal} className="space-y-3 border-t border-border pt-4 first:border-t-0 first:pt-0">
                 <h3 className="text-xs font-medium text-text-muted font-secondary">
                   {PORTAL_LABELS[portal]}
                 </h3>
-                <ul className="space-y-2">
+
+                {isNavPortal && portalNav ? (
+                  <div className="rounded-lg border border-border bg-bg/50 p-3 space-y-2">
+                    <p className="text-xs font-medium text-text-muted font-secondary">
+                      Subsections
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {portalNav.groups.map((group) => {
+                        const assignedCount = countFeaturesInGroup(
+                          portalNav,
+                          group,
+                        );
+                        return (
+                          <span
+                            key={group}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-border bg-surface font-secondary"
+                          >
+                            {group}
+                            {assignedCount === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => deleteSubsection(portal, group)}
+                                className="text-text-faint hover:text-clay"
+                                aria-label={`Remove ${group}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            ) : null}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newSubsectionNames[portal] ?? ""}
+                        onChange={(e) =>
+                          setNewSubsectionNames((prev) => ({
+                            ...prev,
+                            [portal]: e.target.value,
+                          }))
+                        }
+                        placeholder="New subsection name"
+                        className="flex-1 text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addSubsection(portal)}
+                        disabled={!(newSubsectionNames[portal] ?? "").trim()}
+                        className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add subsection
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <ul className="space-y-3">
                   {defs.map((def) => {
                     const enabled =
                       portal === "additional"
@@ -453,102 +604,306 @@ export default function OrganizationSettingsEditor({
                               >
                             )?.[def.key],
                           );
+                    const navItem =
+                      isNavPortal && portalNav
+                        ? resolveFeatureNavItem(portal, def.key, portalNav)
+                        : null;
+
                     return (
                       <li
                         key={`${portal}-${def.key}`}
-                        className="flex items-start justify-between gap-3 py-1"
+                        className="rounded-lg border border-border p-3 space-y-2"
                       >
-                        <div className="min-w-0">
-                          <p className="text-sm text-text font-secondary">
-                            {def.label}
-                          </p>
-                          {def.description ? (
-                            <p className="text-xs text-text-faint font-secondary">
-                              {def.description}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm text-text font-secondary">
+                              {def.label}
                             </p>
-                          ) : null}
+                            {def.description ? (
+                              <p className="text-xs text-text-faint font-secondary">
+                                {def.description}
+                              </p>
+                            ) : null}
+                          </div>
+                          <Toggle
+                            checked={enabled}
+                            onChange={(checked) => {
+                              if (portal === "additional") {
+                                setAdditionalFeature(def.key, checked);
+                              } else {
+                                setPortalFeature(
+                                  def.portal as Portal,
+                                  def.key,
+                                  checked,
+                                );
+                              }
+                            }}
+                            label={def.label}
+                          />
                         </div>
-                        <Toggle
-                          checked={enabled}
-                          onChange={(checked) => {
-                            if (portal === "additional") {
-                              setAdditionalFeature(def.key, checked);
-                            } else {
-                              setPortalFeature(
-                                def.portal as Portal,
-                                def.key,
-                                checked,
-                              );
-                            }
-                          }}
-                          label={def.label}
-                        />
+                        {isNavPortal && portalNav && navItem ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <label className="block space-y-1">
+                              <span className="text-xs text-text-muted font-secondary">
+                                Subsection
+                              </span>
+                              <select
+                                value={navItem.group}
+                                onChange={(e) =>
+                                  updatePortalNavItem(portal, def.key, {
+                                    group: e.target.value,
+                                  })
+                                }
+                                className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+                              >
+                                {portalNav.groups.map((group) => (
+                                  <option key={group} value={group}>
+                                    {group}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <FeatureIconPicker
+                              value={navItem.icon ?? DEFAULT_FEATURE_ICON_SLUG}
+                              onChange={(icon) =>
+                                updatePortalNavItem(portal, def.key, { icon })
+                              }
+                              label="Icon"
+                            />
+                          </div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+
+                  {customKeys.map((key) => {
+                    const enabled =
+                      portal === "additional"
+                        ? Boolean(features[key])
+                        : Boolean(
+                            (
+                              features[portal] as Record<string, boolean>
+                            )?.[key],
+                          );
+                    const navItem =
+                      isNavPortal && portalNav
+                        ? resolveFeatureNavItem(portal, key, portalNav)
+                        : null;
+                    const displayLabel =
+                      navItem?.label ?? humanizeFeatureKey(key);
+
+                    return (
+                      <li
+                        key={`${portal}-custom-${key}`}
+                        className="rounded-lg border border-border p-3 space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm text-text font-secondary">
+                              {displayLabel}
+                            </p>
+                            <p className="text-xs text-text-faint font-mono">
+                              {key}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Toggle
+                              checked={enabled}
+                              onChange={(checked) => {
+                                if (portal === "additional") {
+                                  setAdditionalFeature(key, checked);
+                                } else {
+                                  setPortalFeature(portal, key, checked);
+                                }
+                              }}
+                              label={displayLabel}
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeCustomPortalFeatureKey(portal, key)
+                              }
+                              className="p-1 text-text-faint hover:text-clay"
+                              aria-label={`Remove ${key}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        {isNavPortal && portalNav && navItem ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <label className="block space-y-1">
+                              <span className="text-xs text-text-muted font-secondary">
+                                Display label
+                              </span>
+                              <input
+                                type="text"
+                                value={navItem.label ?? displayLabel}
+                                onChange={(e) =>
+                                  updatePortalNavItem(portal, key, {
+                                    label: e.target.value,
+                                  })
+                                }
+                                className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+                              />
+                            </label>
+                            <label className="block space-y-1">
+                              <span className="text-xs text-text-muted font-secondary">
+                                Subsection
+                              </span>
+                              <select
+                                value={navItem.group}
+                                onChange={(e) =>
+                                  updatePortalNavItem(portal, key, {
+                                    group: e.target.value,
+                                  })
+                                }
+                                className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+                              >
+                                {portalNav.groups.map((group) => (
+                                  <option key={group} value={group}>
+                                    {group}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <FeatureIconPicker
+                              value={navItem.icon ?? DEFAULT_FEATURE_ICON_SLUG}
+                              onChange={(icon) =>
+                                updatePortalNavItem(portal, key, { icon })
+                              }
+                              label="Icon"
+                            />
+                          </div>
+                        ) : null}
                       </li>
                     );
                   })}
                 </ul>
+
+                {portal === "additional" ? (
+                  <div className="flex gap-2 pt-1">
+                    <input
+                      type="text"
+                      value={newKey}
+                      onChange={(e) =>
+                        setNewPortalFeatureKeys((prev) => ({
+                          ...prev,
+                          [portal]: e.target.value,
+                        }))
+                      }
+                      placeholder="feature_key"
+                      className="flex-1 text-sm border border-border rounded-lg px-2 py-1.5 font-mono bg-bg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addCustomPortalFeatureKey(portal)}
+                      disabled={!canAddAdditional}
+                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
+                    <p className="text-xs font-medium text-text-muted font-secondary">
+                      Add custom feature
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label className="block space-y-1">
+                        <span className="text-xs text-text-muted font-secondary">
+                          Feature key
+                        </span>
+                        <input
+                          type="text"
+                          value={customForm.key}
+                          onChange={(e) =>
+                            setNewCustomFeatureForms((prev) => ({
+                              ...prev,
+                              [portal]: {
+                                ...customForm,
+                                key: e.target.value,
+                              },
+                            }))
+                          }
+                          placeholder="students"
+                          className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-mono bg-bg"
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-xs text-text-muted font-secondary">
+                          Display label
+                        </span>
+                        <input
+                          type="text"
+                          value={customForm.label}
+                          onChange={(e) =>
+                            setNewCustomFeatureForms((prev) => ({
+                              ...prev,
+                              [portal]: {
+                                ...customForm,
+                                label: e.target.value,
+                              },
+                            }))
+                          }
+                          placeholder="Students"
+                          className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-xs text-text-muted font-secondary">
+                          Subsection
+                        </span>
+                        <select
+                          value={customForm.group}
+                          onChange={(e) =>
+                            setNewCustomFeatureForms((prev) => ({
+                              ...prev,
+                              [portal]: {
+                                ...customForm,
+                                group: e.target.value,
+                              },
+                            }))
+                          }
+                          className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+                        >
+                          {(portalNav?.groups ?? ["Main"]).map((group) => (
+                            <option key={group} value={group}>
+                              {group}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <FeatureIconPicker
+                        value={customForm.icon}
+                        onChange={(icon) =>
+                          setNewCustomFeatureForms((prev) => ({
+                            ...prev,
+                            [portal]: {
+                              ...customForm,
+                              icon,
+                            },
+                          }))
+                        }
+                        label="Icon"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addCustomPortalFeatureKey(portal)}
+                      disabled={!canAddCustom}
+                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add feature
+                    </button>
+                  </div>
+                )}
               </div>
             );
           },
         )}
-
-        <CollapsibleSection
-          title="Custom feature flags"
-          open={additionalOpen}
-          onToggle={() => setAdditionalOpen((v) => !v)}
-        >
-          <p className="text-xs text-text-faint font-secondary pt-1 pb-2">
-            Org-specific boolean flags at the root of features JSON.
-          </p>
-          <ul className="space-y-2 mb-3">
-            {customKeys.map((key) => (
-              <li
-                key={key}
-                className="flex items-center justify-between gap-2"
-              >
-                <code className="text-xs font-mono text-text-muted">{key}</code>
-                <div className="flex items-center gap-2">
-                  <Toggle
-                    checked={Boolean(features[key])}
-                    onChange={(checked) => setAdditionalFeature(key, checked)}
-                    label={key}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeCustomFeature(key)}
-                    className="p-1 text-text-faint hover:text-clay"
-                    aria-label={`Remove ${key}`}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </li>
-            ))}
-            {customKeys.length === 0 ? (
-              <li className="text-xs text-text-faint font-secondary">
-                No custom flags yet.
-              </li>
-            ) : null}
-          </ul>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newFeatureKey}
-              onChange={(e) => setNewFeatureKey(e.target.value)}
-              placeholder="feature_key"
-              className="flex-1 text-sm border border-border rounded-lg px-2 py-1.5 font-mono bg-bg"
-            />
-            <button
-              type="button"
-              onClick={addCustomFeature}
-              disabled={!newFeatureKey.trim()}
-              className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add
-            </button>
-          </div>
-        </CollapsibleSection>
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -570,8 +925,16 @@ export default function OrganizationSettingsEditor({
           </button>
         ) : null}
         {saveMessage ? (
-          <span className="text-sm text-accent font-secondary">
+          <span className="text-sm text-accent font-secondary flex items-center gap-2">
             {saveMessage}
+            <Link
+              href={`/school/${organizationSlug}/admin`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-clay hover:underline"
+            >
+              Preview school admin
+            </Link>
           </span>
         ) : null}
         {error ? (
@@ -662,6 +1025,40 @@ function CollapsibleSection({
       </button>
       {open ? children : null}
     </div>
+  );
+}
+
+function FeatureIconPicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (slug: string) => void;
+  label: string;
+}) {
+  const SelectedIcon = getFeatureIcon(value);
+
+  return (
+    <label className="block space-y-1">
+      <span className="text-xs text-text-muted font-secondary">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="w-8 h-8 rounded border border-border bg-bg flex items-center justify-center shrink-0">
+          <SelectedIcon className="w-4 h-4 text-text-muted" />
+        </span>
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+        >
+          {FEATURE_ICON_OPTIONS.map((option) => (
+            <option key={option.slug} value={option.slug}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </label>
   );
 }
 

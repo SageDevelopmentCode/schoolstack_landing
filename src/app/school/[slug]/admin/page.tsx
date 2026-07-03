@@ -5,6 +5,8 @@ import SchoolAdminBaseline from "@/components/school-admin/SchoolAdminBaseline";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   params: Promise<{ slug: string }>;
 };

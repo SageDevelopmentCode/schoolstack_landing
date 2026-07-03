@@ -52,10 +52,18 @@ export function mergeFeatures(
       key !== "admin" &&
       key !== "teacher" &&
       key !== "parent" &&
+      key !== "feature_nav" &&
       typeof value === "boolean"
     ) {
       merged[key] = value;
     }
+  }
+
+  if (isPlainObject(stored?.feature_nav)) {
+    merged.feature_nav = deepMerge(
+      {} as Record<string, unknown>,
+      stored.feature_nav as Record<string, unknown>,
+    ) as OrganizationFeatures["feature_nav"];
   }
 
   return merged;
