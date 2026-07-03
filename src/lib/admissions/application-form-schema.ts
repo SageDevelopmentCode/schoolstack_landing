@@ -24,6 +24,8 @@ export interface ApplicationField {
   options?: ApplicationFieldOption[];
   rows?: number;
   helpText?: string;
+  maxFiles?: number;
+  accept?: string;
 }
 
 export interface ApplicationSection {

@@ -148,17 +148,48 @@ export default function ApplicationFormFieldEditor({
       )}
 
       {field.type === "file" && (
-        <div>
-          <FieldLabel C={C}>Help text</FieldLabel>
-          <input
-            type="text"
-            value={field.helpText ?? ""}
-            disabled={readOnly}
-            onChange={(e) => onChange({ helpText: e.target.value })}
-            placeholder="e.g. Upload up to 5 files"
-            style={style}
-          />
-        </div>
+        <>
+          <div>
+            <FieldLabel C={C}>Help text</FieldLabel>
+            <input
+              type="text"
+              value={field.helpText ?? ""}
+              disabled={readOnly}
+              onChange={(e) => onChange({ helpText: e.target.value })}
+              placeholder="e.g. Upload up to 5 files"
+              style={style}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <FieldLabel C={C}>Max files</FieldLabel>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={field.maxFiles ?? 5}
+                disabled={readOnly}
+                onChange={(e) =>
+                  onChange({
+                    maxFiles: Math.max(1, Number(e.target.value) || 1),
+                  })
+                }
+                style={style}
+              />
+            </div>
+            <div>
+              <FieldLabel C={C}>Accepted types</FieldLabel>
+              <input
+                type="text"
+                value={field.accept ?? ".pdf,.jpg,.jpeg,.png"}
+                disabled={readOnly}
+                onChange={(e) => onChange({ accept: e.target.value })}
+                placeholder=".pdf,.jpg,.jpeg,.png"
+                style={style}
+              />
+            </div>
+          </div>
+        </>
       )}
 
       {needsOptions && (
