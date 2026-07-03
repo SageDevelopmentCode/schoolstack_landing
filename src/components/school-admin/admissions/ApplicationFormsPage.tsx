@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Copy, Loader2, Save, Send } from "lucide-react";
+import { Copy, Eye, Loader2, Save, Send } from "lucide-react";
 import {
   createDraftForm,
   duplicateForm,
@@ -34,6 +34,8 @@ import {
 type ApplicationFormsPageProps = {
   organizationId: string;
   branding: OrganizationBranding;
+  schoolName: string;
+  slug: string;
 };
 
 type EditableFormState = {
@@ -81,6 +83,8 @@ function sanitizeFocus(
 export default function ApplicationFormsPage({
   organizationId,
   branding,
+  schoolName,
+  slug,
 }: ApplicationFormsPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -311,6 +315,19 @@ export default function ApplicationFormsPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                style={{
+                  border: `1px solid ${C.border}`,
+                  color: C.textSecondary,
+                  backgroundColor: C.bg,
+                }}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Preview
+              </button>
               {readOnly ? (
                 <button
                   type="button"
@@ -417,15 +434,25 @@ export default function ApplicationFormsPage({
       )}
 
       <ApplicationFormPreview
-        C={C}
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        branding={branding}
+        schoolName={schoolName}
+        slug={slug}
         title={editable?.title ?? selectedForm?.title ?? "Application"}
-        intro={editable?.intro ?? selectedForm?.intro ?? null}
+        intro={
+          editable?.intro.trim()
+            ? editable.intro
+            : selectedForm?.intro ?? null
+        }
         schema={
           editable?.schema ??
           selectedForm?.schema ?? { sections: [], acknowledgments: [] }
         }
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
+        feeConfig={
+          editable?.feeConfig ??
+          selectedForm?.fee_config ?? { enabled: false }
+        }
       />
     </div>
   );

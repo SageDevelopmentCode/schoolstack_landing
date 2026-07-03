@@ -69,6 +69,8 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
       <ApplicationFormsPage
         organizationId={org.id}
         branding={org.branding}
+        schoolName={org.name}
+        slug={slug}
       />
     );
   }
