@@ -27,17 +27,56 @@ export type TimelinePhase = {
 
 export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
   {
-    id: "foundation",
+    id: "admissions",
     number: "01",
-    title: "Foundation",
+    title: "Admissions",
     dateRange: "Jul 1 – 12",
     startDate: "2026-07-01",
     endDate: "2026-07-12",
+    goal: "Application through enrollment contract",
+    summary:
+      "Families apply, book an observation visit, and receive their enrollment contract — all without spreadsheets or email chains.",
+    personas: ["admin", "parent"],
+    accent: "purple",
+    features: [
+      {
+        title: "MudKitchen-hosted application",
+        description:
+          "Customizable application form with acknowledgments and application fee collection.",
+        prototypeStepId: "submit-application",
+      },
+      {
+        title: "Observation visit booking",
+        description:
+          "Parents schedule their child's observation from available afternoon slots you set.",
+        prototypeStepId: "book-observation",
+      },
+      {
+        title: "Send enrollment contract",
+        description:
+          "After observation, admin sends the contract from the admissions pipeline.",
+        prototypeStepId: "send-enrollment-contract",
+      },
+      {
+        title: "Parent enrollment checklist",
+        description:
+          "Families sign agreements and complete health forms, photo release, and supply fees.",
+        prototypeStepId: "parent-enrollment",
+      },
+    ],
+  },
+  {
+    id: "foundation",
+    number: "02",
+    title: "Foundation",
+    dateRange: "Jul 13 – 22",
+    startDate: "2026-07-13",
+    endDate: "2026-07-22",
     goal: "Set up records and bring in what you already have",
     summary:
-      "Before admissions or billing can run, we set up your admin portal and import any existing student, family, and staff data you already have — spreadsheets, prior rosters, or contact lists — so you're not starting from scratch.",
+      "With your application form live, we set up your admin portal and import any existing student, family, and staff data you already have — spreadsheets, prior rosters, or contact lists — so admissions and billing can run on real records, not spreadsheets.",
     personas: ["admin"],
-    accent: "purple",
+    accent: "olive",
     features: [
       {
         title: "Student & family records",
@@ -64,45 +103,6 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
         description:
           "A single home for leads, school setup, and day-one orientation for your team.",
         prototypeStepId: "send-enrollment-contract",
-      },
-    ],
-  },
-  {
-    id: "admissions",
-    number: "02",
-    title: "Admissions",
-    dateRange: "Jul 13 – 22",
-    startDate: "2026-07-13",
-    endDate: "2026-07-22",
-    goal: "Application through enrollment contract",
-    summary:
-      "Families apply, book an observation visit, and receive their enrollment contract — all without spreadsheets or email chains.",
-    personas: ["admin", "parent"],
-    accent: "olive",
-    features: [
-      {
-        title: "MudKitchen-hosted application",
-        description:
-          "Customizable application form with acknowledgments and application fee collection.",
-        prototypeStepId: "submit-application",
-      },
-      {
-        title: "Observation visit booking",
-        description:
-          "Parents schedule their child's observation from available afternoon slots you set.",
-        prototypeStepId: "book-observation",
-      },
-      {
-        title: "Send enrollment contract",
-        description:
-          "After observation, admin sends the contract from the admissions pipeline.",
-        prototypeStepId: "send-enrollment-contract",
-      },
-      {
-        title: "Parent enrollment checklist",
-        description:
-          "Families sign agreements and complete health forms, photo release, and supply fees.",
-        prototypeStepId: "parent-enrollment",
       },
     ],
   },

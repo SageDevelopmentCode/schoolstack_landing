@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
+import type { OrganizationSettingsRow } from "@/lib/organization-settings/types";
 
 type OrganizationStatus = "onboarding" | "live" | "paused" | "churned";
 
@@ -74,6 +76,10 @@ export default function AdminOrganizationsPage() {
     "",
   );
   const [saving, setSaving] = useState(false);
+  const [settingsRow, setSettingsRow] = useState<OrganizationSettingsRow | null>(
+    null,
+  );
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -91,6 +97,40 @@ export default function AdminOrganizationsPage() {
     }
     load();
   }, [supabase]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setSettingsRow(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadSettings() {
+      setSettingsLoading(true);
+      const { data, error: settingsError } = await supabase
+        .from("organization_settings")
+        .select("*")
+        .eq("organization_id", selectedId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (settingsError) {
+        console.error("Failed to load organization settings:", settingsError.message);
+        setSettingsRow(null);
+      } else {
+        setSettingsRow((data as OrganizationSettingsRow | null) ?? null);
+      }
+      setSettingsLoading(false);
+    }
+
+    loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, supabase]);
 
   const updateOrganization = useCallback(
     async (
@@ -230,7 +270,7 @@ export default function AdminOrganizationsPage() {
             Select an organization
           </div>
         ) : (
-          <div className="max-w-2xl mx-auto p-6 space-y-6">
+          <div className="max-w-3xl mx-auto p-6 space-y-6">
             <div>
               <h1 className="text-lg font-semibold text-text font-display">
                 {selected.name}
@@ -298,6 +338,21 @@ export default function AdminOrganizationsPage() {
                 </label>
               </div>
             </section>
+
+            <OrganizationSettingsEditor
+              organizationId={selected.id}
+              organizationName={selected.name}
+              initialRow={settingsRow}
+              settingsLoading={settingsLoading}
+              onSaved={async () => {
+                const { data } = await supabase
+                  .from("organization_settings")
+                  .select("*")
+                  .eq("organization_id", selected.id)
+                  .maybeSingle();
+                setSettingsRow((data as OrganizationSettingsRow | null) ?? null);
+              }}
+            />
 
             <section className="bg-surface border border-border rounded-lg p-4 space-y-3">
               <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">

@@ -1,0 +1,106 @@
+export type Portal = "admin" | "teacher" | "parent";
+
+export type BrandingColors = {
+  accent: string;
+  accentBright: string;
+  accentMid: string;
+  accentDark: string;
+  accentLight: string;
+  accentGlow: string;
+  bg: string;
+  border: string;
+  borderStrong: string;
+  textPrimary: string;
+  textSecondary: string;
+  clay: string;
+  clayBg: string;
+  clayBorder: string;
+  secondaryBtnBorder: string;
+};
+
+export type BrandingLogo = {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+};
+
+export type BrandingTypography = {
+  headingFont: string;
+  bodyFont: string;
+};
+
+export type OrganizationBranding = {
+  colors: BrandingColors;
+  logo: BrandingLogo;
+  typography: BrandingTypography;
+};
+
+export type AdminFeatures = {
+  dashboard: boolean;
+  admissions: boolean;
+  my_school: boolean;
+  committees: boolean;
+  finances: boolean;
+  marketing: boolean;
+};
+
+export type TeacherFeatures = {
+  dashboard: boolean;
+  my_students: boolean;
+  my_hours: boolean;
+  messages: boolean;
+  calendar: boolean;
+  attendance: boolean;
+  feed: boolean;
+  payroll: boolean;
+  forms_documents: boolean;
+};
+
+export type ParentFeatures = {
+  portal: boolean;
+  enrollment_checklist: boolean;
+  billing: boolean;
+  messages: boolean;
+  calendar: boolean;
+  attendance: boolean;
+  feed: boolean;
+  children: boolean;
+  committees: boolean;
+};
+
+export type AdditionalFeatures = {
+  observation_booking: boolean;
+  homeschool_drop_in: boolean;
+};
+
+export type OrganizationFeatures = {
+  admin: AdminFeatures;
+  teacher: TeacherFeatures;
+  parent: ParentFeatures;
+} & Partial<AdditionalFeatures> &
+  Record<string, boolean | AdminFeatures | TeacherFeatures | ParentFeatures>;
+
+export type OrganizationSettingsRow = {
+  organization_id: string;
+  branding: OrganizationBranding;
+  features: OrganizationFeatures;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type BrandingFieldType = "color" | "text" | "number";
+
+export type BrandingFieldDef = {
+  path: string;
+  label: string;
+  type: BrandingFieldType;
+  group: string;
+};
+
+export type FeatureDef = {
+  portal: Portal | "additional";
+  key: string;
+  label: string;
+  description?: string;
+};
