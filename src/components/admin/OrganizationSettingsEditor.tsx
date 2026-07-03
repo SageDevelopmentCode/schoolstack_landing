@@ -70,6 +70,11 @@ const EMPTY_CUSTOM_FORM: NewCustomFeatureForm = {
   group: "Main",
 };
 
+const fieldClass =
+  "text-sm border border-border rounded-md px-2 py-1.5 font-secondary bg-bg";
+const compactSelectClass =
+  "text-sm border border-border rounded-md px-2 py-1 h-8 font-secondary bg-bg";
+
 const FEATURE_PORTALS = ["admin", "teacher", "parent", "additional"] as const;
 type FeaturePortalTab = (typeof FEATURE_PORTALS)[number];
 
@@ -558,256 +563,150 @@ export default function OrganizationSettingsEditor({
               customForm.group.trim().length > 0;
 
             return (
-              <div key={portal} className="space-y-3">
+              <div key={portal} className="space-y-5">
                 {isNavPortal && portalNav ? (
-                  <div className="rounded-lg border border-border bg-bg/50 p-3 space-y-2">
-                    <p className="text-xs font-medium text-text-muted font-secondary">
-                      Subsections
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {portalNav.groups.map((group) => {
-                        const assignedCount = countFeaturesInGroup(
-                          portalNav,
-                          group,
-                        );
-                        return (
-                          <span
-                            key={group}
-                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-border bg-surface font-secondary"
-                          >
-                            {group}
-                            {assignedCount === 0 ? (
-                              <button
-                                type="button"
-                                onClick={() => deleteSubsection(portal, group)}
-                                className="text-text-faint hover:text-clay"
-                                aria-label={`Remove ${group}`}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            ) : null}
-                          </span>
-                        );
-                      })}
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newSubsectionNames[portal] ?? ""}
-                        onChange={(e) =>
-                          setNewSubsectionNames((prev) => ({
-                            ...prev,
-                            [portal]: e.target.value,
-                          }))
-                        }
-                        placeholder="New subsection name"
-                        className="flex-1 text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => addSubsection(portal)}
-                        disabled={!(newSubsectionNames[portal] ?? "").trim()}
-                        className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add subsection
-                      </button>
-                    </div>
-                  </div>
+                  <SubsectionsToolbar
+                    groups={portalNav.groups}
+                    getAssignedCount={(group) =>
+                      countFeaturesInGroup(portalNav, group)
+                    }
+                    newName={newSubsectionNames[portal] ?? ""}
+                    onNewNameChange={(value) =>
+                      setNewSubsectionNames((prev) => ({
+                        ...prev,
+                        [portal]: value,
+                      }))
+                    }
+                    onAdd={() => addSubsection(portal)}
+                    onDelete={(group) => deleteSubsection(portal, group)}
+                  />
                 ) : null}
 
-                <ul className="space-y-3">
-                  {defs.map((def) => {
-                    const enabled =
-                      portal === "additional"
-                        ? Boolean(features[def.key])
-                        : Boolean(
-                            (
-                              features[def.portal as Portal] as Record<
-                                string,
-                                boolean
-                              >
-                            )?.[def.key],
-                          );
-                    const navItem =
-                      isNavPortal && portalNav
-                        ? resolveFeatureNavItem(portal, def.key, portalNav)
-                        : null;
+                <div className="border border-border rounded-md divide-y divide-border">
+                  {isNavPortal ? (
+                    <div className="hidden sm:grid sm:grid-cols-[1fr_128px_148px_auto] gap-4 px-4 py-2.5 text-[11px] uppercase tracking-wide text-text-faint font-secondary">
+                      <span>Feature</span>
+                      <span>Subsection</span>
+                      <span>Icon</span>
+                      <span className="text-right">On</span>
+                    </div>
+                  ) : (
+                    <div className="hidden sm:grid sm:grid-cols-[1fr_auto] gap-4 px-4 py-2.5 text-[11px] uppercase tracking-wide text-text-faint font-secondary">
+                      <span>Feature</span>
+                      <span className="text-right">On</span>
+                    </div>
+                  )}
 
-                    return (
-                      <li
-                        key={`${portal}-${def.key}`}
-                        className="rounded-lg border border-border p-3 space-y-2"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm text-text font-secondary">
-                              {def.label}
-                            </p>
-                            {def.description ? (
-                              <p className="text-xs text-text-faint font-secondary">
-                                {def.description}
-                              </p>
-                            ) : null}
-                          </div>
-                          <Toggle
-                            checked={enabled}
-                            onChange={(checked) => {
-                              if (portal === "additional") {
-                                setAdditionalFeature(def.key, checked);
-                              } else {
-                                setPortalFeature(
-                                  def.portal as Portal,
-                                  def.key,
-                                  checked,
-                                );
-                              }
-                            }}
-                            label={def.label}
-                          />
-                        </div>
-                        {isNavPortal && portalNav && navItem ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <label className="block space-y-1">
-                              <span className="text-xs text-text-muted font-secondary">
-                                Subsection
-                              </span>
-                              <select
-                                value={navItem.group}
-                                onChange={(e) =>
-                                  updatePortalNavItem(portal, def.key, {
-                                    group: e.target.value,
-                                  })
-                                }
-                                className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
-                              >
-                                {portalNav.groups.map((group) => (
-                                  <option key={group} value={group}>
-                                    {group}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <FeatureIconPicker
-                              value={navItem.icon ?? DEFAULT_FEATURE_ICON_SLUG}
-                              onChange={(icon) =>
-                                updatePortalNavItem(portal, def.key, { icon })
-                              }
-                              label="Icon"
-                            />
-                          </div>
-                        ) : null}
-                      </li>
-                    );
-                  })}
+                  <ul>
+                    {defs.map((def) => {
+                      const enabled =
+                        portal === "additional"
+                          ? Boolean(features[def.key])
+                          : Boolean(
+                              (
+                                features[def.portal as Portal] as Record<
+                                  string,
+                                  boolean
+                                >
+                              )?.[def.key],
+                            );
+                      const navItem =
+                        isNavPortal && portalNav
+                          ? resolveFeatureNavItem(portal, def.key, portalNav)
+                          : null;
 
-                  {customKeys.map((key) => {
-                    const enabled =
-                      portal === "additional"
-                        ? Boolean(features[key])
-                        : Boolean(
-                            (
-                              features[portal] as Record<string, boolean>
-                            )?.[key],
-                          );
-                    const navItem =
-                      isNavPortal && portalNav
-                        ? resolveFeatureNavItem(portal, key, portalNav)
-                        : null;
-                    const displayLabel =
-                      navItem?.label ?? humanizeFeatureKey(key);
+                      return (
+                        <FeatureSettingsRow
+                          key={`${portal}-${def.key}`}
+                          title={def.label}
+                          subtitle={def.description}
+                          enabled={enabled}
+                          onToggle={(checked) => {
+                            if (portal === "additional") {
+                              setAdditionalFeature(def.key, checked);
+                            } else {
+                              setPortalFeature(
+                                def.portal as Portal,
+                                def.key,
+                                checked,
+                              );
+                            }
+                          }}
+                          toggleLabel={def.label}
+                          showNavControls={isNavPortal && !!navItem}
+                          navGroups={portalNav?.groups}
+                          subsection={navItem?.group}
+                          onSubsectionChange={(group) =>
+                            updatePortalNavItem(portal as Portal, def.key, {
+                              group,
+                            })
+                          }
+                          icon={navItem?.icon ?? DEFAULT_FEATURE_ICON_SLUG}
+                          onIconChange={(icon) =>
+                            updatePortalNavItem(portal as Portal, def.key, {
+                              icon,
+                            })
+                          }
+                        />
+                      );
+                    })}
 
-                    return (
-                      <li
-                        key={`${portal}-custom-${key}`}
-                        className="rounded-lg border border-border p-3 space-y-2"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm text-text font-secondary">
-                              {displayLabel}
-                            </p>
-                            <p className="text-xs text-text-faint font-mono">
-                              {key}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Toggle
-                              checked={enabled}
-                              onChange={(checked) => {
-                                if (portal === "additional") {
-                                  setAdditionalFeature(key, checked);
-                                } else {
-                                  setPortalFeature(portal, key, checked);
-                                }
-                              }}
-                              label={displayLabel}
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeCustomPortalFeatureKey(portal, key)
-                              }
-                              className="p-1 text-text-faint hover:text-clay"
-                              aria-label={`Remove ${key}`}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                        {isNavPortal && portalNav && navItem ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <label className="block space-y-1">
-                              <span className="text-xs text-text-muted font-secondary">
-                                Display label
-                              </span>
-                              <input
-                                type="text"
-                                value={navItem.label ?? displayLabel}
-                                onChange={(e) =>
-                                  updatePortalNavItem(portal, key, {
-                                    label: e.target.value,
-                                  })
-                                }
-                                className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
-                              />
-                            </label>
-                            <label className="block space-y-1">
-                              <span className="text-xs text-text-muted font-secondary">
-                                Subsection
-                              </span>
-                              <select
-                                value={navItem.group}
-                                onChange={(e) =>
-                                  updatePortalNavItem(portal, key, {
-                                    group: e.target.value,
-                                  })
-                                }
-                                className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
-                              >
-                                {portalNav.groups.map((group) => (
-                                  <option key={group} value={group}>
-                                    {group}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <FeatureIconPicker
-                              value={navItem.icon ?? DEFAULT_FEATURE_ICON_SLUG}
-                              onChange={(icon) =>
-                                updatePortalNavItem(portal, key, { icon })
-                              }
-                              label="Icon"
-                            />
-                          </div>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
+                    {customKeys.map((key) => {
+                      const enabled =
+                        portal === "additional"
+                          ? Boolean(features[key])
+                          : Boolean(
+                              (
+                                features[portal] as Record<string, boolean>
+                              )?.[key],
+                            );
+                      const navItem =
+                        isNavPortal && portalNav
+                          ? resolveFeatureNavItem(portal, key, portalNav)
+                          : null;
+                      const displayLabel =
+                        navItem?.label ?? humanizeFeatureKey(key);
+
+                      return (
+                        <FeatureSettingsRow
+                          key={`${portal}-custom-${key}`}
+                          title={displayLabel}
+                          subtitle={key}
+                          subtitleMono
+                          enabled={enabled}
+                          onToggle={(checked) => {
+                            if (portal === "additional") {
+                              setAdditionalFeature(key, checked);
+                            } else {
+                              setPortalFeature(portal, key, checked);
+                            }
+                          }}
+                          toggleLabel={displayLabel}
+                          showNavControls={isNavPortal && !!navItem}
+                          navGroups={portalNav?.groups}
+                          subsection={navItem?.group}
+                          onSubsectionChange={(group) =>
+                            updatePortalNavItem(portal as Portal, key, { group })
+                          }
+                          icon={navItem?.icon ?? DEFAULT_FEATURE_ICON_SLUG}
+                          onIconChange={(icon) =>
+                            updatePortalNavItem(portal as Portal, key, { icon })
+                          }
+                          editableLabel={isNavPortal}
+                          onLabelChange={(label) =>
+                            updatePortalNavItem(portal as Portal, key, { label })
+                          }
+                          onDelete={() =>
+                            removeCustomPortalFeatureKey(portal, key)
+                          }
+                        />
+                      );
+                    })}
+                  </ul>
+                </div>
 
                 {portal === "additional" ? (
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex gap-2 border-t border-border pt-5">
                     <input
                       type="text"
                       value={newKey}
@@ -818,112 +717,49 @@ export default function OrganizationSettingsEditor({
                         }))
                       }
                       placeholder="feature_key"
-                      className="flex-1 text-sm border border-border rounded-lg px-2 py-1.5 font-mono bg-bg"
+                      className={`flex-1 font-mono ${fieldClass}`}
                     />
                     <button
                       type="button"
                       onClick={() => addCustomPortalFeatureKey(portal)}
                       disabled={!canAddAdditional}
-                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
+                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-md border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add
                     </button>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
-                    <p className="text-xs font-medium text-text-muted font-secondary">
-                      Add custom feature
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <label className="block space-y-1">
-                        <span className="text-xs text-text-muted font-secondary">
-                          Feature key
-                        </span>
-                        <input
-                          type="text"
-                          value={customForm.key}
-                          onChange={(e) =>
-                            setNewCustomFeatureForms((prev) => ({
-                              ...prev,
-                              [portal]: {
-                                ...customForm,
-                                key: e.target.value,
-                              },
-                            }))
-                          }
-                          placeholder="students"
-                          className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-mono bg-bg"
-                        />
-                      </label>
-                      <label className="block space-y-1">
-                        <span className="text-xs text-text-muted font-secondary">
-                          Display label
-                        </span>
-                        <input
-                          type="text"
-                          value={customForm.label}
-                          onChange={(e) =>
-                            setNewCustomFeatureForms((prev) => ({
-                              ...prev,
-                              [portal]: {
-                                ...customForm,
-                                label: e.target.value,
-                              },
-                            }))
-                          }
-                          placeholder="Students"
-                          className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
-                        />
-                      </label>
-                      <label className="block space-y-1">
-                        <span className="text-xs text-text-muted font-secondary">
-                          Subsection
-                        </span>
-                        <select
-                          value={customForm.group}
-                          onChange={(e) =>
-                            setNewCustomFeatureForms((prev) => ({
-                              ...prev,
-                              [portal]: {
-                                ...customForm,
-                                group: e.target.value,
-                              },
-                            }))
-                          }
-                          className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
-                        >
-                          {(portalNav?.groups ?? ["Main"]).map((group) => (
-                            <option key={group} value={group}>
-                              {group}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <FeatureIconPicker
-                        value={customForm.icon}
-                        onChange={(icon) =>
-                          setNewCustomFeatureForms((prev) => ({
-                            ...prev,
-                            [portal]: {
-                              ...customForm,
-                              icon,
-                            },
-                          }))
-                        }
-                        label="Icon"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => addCustomPortalFeatureKey(portal)}
-                      disabled={!canAddCustom}
-                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add feature
-                    </button>
-                  </div>
+                  <AddCustomFeatureForm
+                    form={customForm}
+                    groups={portalNav?.groups ?? ["Main"]}
+                    canAdd={canAddCustom}
+                    onKeyChange={(key) =>
+                      setNewCustomFeatureForms((prev) => ({
+                        ...prev,
+                        [portal]: { ...customForm, key },
+                      }))
+                    }
+                    onLabelChange={(label) =>
+                      setNewCustomFeatureForms((prev) => ({
+                        ...prev,
+                        [portal]: { ...customForm, label },
+                      }))
+                    }
+                    onGroupChange={(group) =>
+                      setNewCustomFeatureForms((prev) => ({
+                        ...prev,
+                        [portal]: { ...customForm, group },
+                      }))
+                    }
+                    onIconChange={(icon) =>
+                      setNewCustomFeatureForms((prev) => ({
+                        ...prev,
+                        [portal]: { ...customForm, icon },
+                      }))
+                    }
+                    onAdd={() => addCustomPortalFeatureKey(portal)}
+                  />
                 )}
               </div>
             );
@@ -1053,28 +889,357 @@ function CollapsibleSection({
   );
 }
 
+function SubsectionsToolbar({
+  groups,
+  getAssignedCount,
+  newName,
+  onNewNameChange,
+  onAdd,
+  onDelete,
+}: {
+  groups: string[];
+  getAssignedCount: (group: string) => number;
+  newName: string;
+  onNewNameChange: (value: string) => void;
+  onAdd: () => void;
+  onDelete: (group: string) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+
+  const handleAdd = () => {
+    onAdd();
+    setAdding(false);
+  };
+
+  const handleCancel = () => {
+    onNewNameChange("");
+    setAdding(false);
+  };
+
+  return (
+    <div className="border-b border-border pb-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-text-muted font-secondary shrink-0">
+          Subsections:
+        </span>
+        {groups.map((group) => {
+          const assignedCount = getAssignedCount(group);
+          return (
+            <span
+              key={group}
+              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-border bg-surface font-secondary"
+            >
+              {group}
+              {assignedCount === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => onDelete(group)}
+                  className="text-text-faint hover:text-clay"
+                  aria-label={`Remove ${group}`}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              ) : null}
+            </span>
+          );
+        })}
+        {!adding ? (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-dashed border-border bg-bg hover:bg-surface-soft text-text-muted font-secondary"
+          >
+            <Plus className="w-3 h-3" />
+            Add subsection
+          </button>
+        ) : null}
+      </div>
+      {adding ? (
+        <div className="flex gap-2 mt-3">
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => onNewNameChange(e.target.value)}
+            placeholder="New subsection name"
+            className={`flex-1 ${fieldClass}`}
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!newName.trim()}
+            className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-md border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary shrink-0"
+          >
+            Add
+          </button>
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="text-sm px-3 py-1.5 text-text-muted hover:text-text font-secondary shrink-0"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FeatureSettingsRow({
+  title,
+  subtitle,
+  subtitleMono = false,
+  enabled,
+  onToggle,
+  toggleLabel,
+  showNavControls = false,
+  navGroups,
+  subsection,
+  onSubsectionChange,
+  icon,
+  onIconChange,
+  editableLabel = false,
+  onLabelChange,
+  onDelete,
+}: {
+  title: string;
+  subtitle?: string;
+  subtitleMono?: boolean;
+  enabled: boolean;
+  onToggle: (checked: boolean) => void;
+  toggleLabel: string;
+  showNavControls?: boolean;
+  navGroups?: string[];
+  subsection?: string;
+  onSubsectionChange?: (group: string) => void;
+  icon?: string;
+  onIconChange?: (icon: string) => void;
+  editableLabel?: boolean;
+  onLabelChange?: (label: string) => void;
+  onDelete?: () => void;
+}) {
+  const controlsDimmed = !enabled && showNavControls;
+  const gridCols = showNavControls
+    ? "sm:grid-cols-[1fr_128px_148px_auto]"
+    : "sm:grid-cols-[1fr_auto]";
+
+  const titleBlock = (
+    <div className="min-w-0 space-y-0.5">
+      {editableLabel && onLabelChange ? (
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => onLabelChange(e.target.value)}
+          className={`w-full ${fieldClass}`}
+        />
+      ) : (
+        <p className="text-sm text-text font-secondary">{title}</p>
+      )}
+      {subtitle ? (
+        <p
+          className={`text-xs text-text-faint ${subtitleMono ? "font-mono" : "font-secondary"}`}
+        >
+          {subtitle}
+        </p>
+      ) : null}
+    </div>
+  );
+
+  const navControls =
+    showNavControls && navGroups && subsection !== undefined ? (
+      <div
+        className={`flex gap-2 sm:contents ${controlsDimmed ? "opacity-50" : ""}`}
+      >
+        <select
+          value={subsection}
+          onChange={(e) => onSubsectionChange?.(e.target.value)}
+          className={`w-full sm:w-auto ${compactSelectClass}`}
+          aria-label="Subsection"
+        >
+          {navGroups.map((group) => (
+            <option key={group} value={group}>
+              {group}
+            </option>
+          ))}
+        </select>
+        {icon !== undefined && onIconChange ? (
+          <FeatureIconPicker
+            value={icon}
+            onChange={onIconChange}
+            compact
+          />
+        ) : null}
+      </div>
+    ) : null;
+
+  const toggleBlock = (
+    <div className="flex items-center gap-2 shrink-0 justify-end">
+      <Toggle checked={enabled} onChange={onToggle} label={toggleLabel} />
+      {onDelete ? (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="p-1 text-text-faint hover:text-clay"
+          aria-label={`Remove ${title}`}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <li className="px-4 py-3.5">
+      <div className="sm:hidden space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          {titleBlock}
+          {toggleBlock}
+        </div>
+        {navControls}
+      </div>
+      <div className={`hidden sm:grid ${gridCols} gap-4 items-center`}>
+        {titleBlock}
+        {showNavControls ? navControls : null}
+        {toggleBlock}
+      </div>
+    </li>
+  );
+}
+
+function AddCustomFeatureForm({
+  form,
+  groups,
+  canAdd,
+  onKeyChange,
+  onLabelChange,
+  onGroupChange,
+  onIconChange,
+  onAdd,
+}: {
+  form: NewCustomFeatureForm;
+  groups: string[];
+  canAdd: boolean;
+  onKeyChange: (key: string) => void;
+  onLabelChange: (label: string) => void;
+  onGroupChange: (group: string) => void;
+  onIconChange: (icon: string) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="border-t border-border pt-5 space-y-4">
+      <p className="text-xs font-medium text-text-muted font-secondary">
+        Add custom feature
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label className="block space-y-1">
+          <span className="text-xs text-text-muted font-secondary">
+            Feature key
+          </span>
+          <input
+            type="text"
+            value={form.key}
+            onChange={(e) => onKeyChange(e.target.value)}
+            placeholder="students"
+            className={`w-full font-mono ${fieldClass}`}
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs text-text-muted font-secondary">
+            Display label
+          </span>
+          <input
+            type="text"
+            value={form.label}
+            onChange={(e) => onLabelChange(e.target.value)}
+            placeholder="Students"
+            className={`w-full ${fieldClass}`}
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs text-text-muted font-secondary">
+            Subsection
+          </span>
+          <select
+            value={form.group}
+            onChange={(e) => onGroupChange(e.target.value)}
+            className={`w-full ${compactSelectClass}`}
+          >
+            {groups.map((group) => (
+              <option key={group} value={group}>
+                {group}
+              </option>
+            ))}
+          </select>
+        </label>
+        <FeatureIconPicker
+          value={form.icon}
+          onChange={onIconChange}
+          label="Icon"
+        />
+      </div>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={!canAdd}
+          className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-md border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add feature
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function FeatureIconPicker({
   value,
   onChange,
   label,
+  compact = false,
 }: {
   value: string;
   onChange: (slug: string) => void;
-  label: string;
+  label?: string;
+  compact?: boolean;
 }) {
   const SelectedIcon = getFeatureIcon(value);
 
-  return (
-    <label className="block space-y-1">
-      <span className="text-xs text-text-muted font-secondary">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className="w-8 h-8 rounded border border-border bg-bg flex items-center justify-center shrink-0">
-          <SelectedIcon className="w-4 h-4 text-text-muted" />
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="w-7 h-7 rounded-md border border-border bg-bg flex items-center justify-center shrink-0">
+          <SelectedIcon className="w-3.5 h-3.5 text-text-muted" />
         </span>
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+          className={`flex-1 min-w-0 ${compactSelectClass}`}
+          aria-label="Icon"
+        >
+          {FEATURE_ICON_OPTIONS.map((option) => (
+            <option key={option.slug} value={option.slug}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  return (
+    <label className="block space-y-1">
+      {label ? (
+        <span className="text-xs text-text-muted font-secondary">{label}</span>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <span className="w-7 h-7 rounded-md border border-border bg-bg flex items-center justify-center shrink-0">
+          <SelectedIcon className="w-3.5 h-3.5 text-text-muted" />
+        </span>
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`flex-1 ${compactSelectClass}`}
         >
           {FEATURE_ICON_OPTIONS.map((option) => (
             <option key={option.slug} value={option.slug}>
