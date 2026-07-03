@@ -1,8 +1,15 @@
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getAdminPageLabel } from "@/lib/organization-settings/admin-nav";
-import { isAdminFeatureEnabled } from "@/lib/organization-settings/admin-routes";
+import {
+  isAdminFeatureEnabled,
+  schoolAdminPath,
+} from "@/lib/organization-settings/admin-routes";
+import {
+  mergePortalFeatureNav,
+  resolveFeatureNavChildren,
+} from "@/lib/organization-settings/feature-nav";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
@@ -43,6 +50,13 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
 
   if (!org || !isAdminFeatureEnabled(org.features, feature)) {
     notFound();
+  }
+
+  const portalNav = mergePortalFeatureNav("admin", org.features.feature_nav?.admin);
+  const children = resolveFeatureNavChildren("admin", feature, portalNav);
+
+  if (children.length > 0) {
+    redirect(schoolAdminPath(slug, feature, children[0].key));
   }
 
   const pageName = getAdminPageLabel(

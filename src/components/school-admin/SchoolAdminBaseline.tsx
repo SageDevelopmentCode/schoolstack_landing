@@ -1,16 +1,20 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  ChevronDown,
   HelpCircle,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import { buildAdminNavGroups } from "@/lib/organization-settings/admin-nav";
+import {
+  buildAdminNavGroups,
+  type AdminNavItem,
+} from "@/lib/organization-settings/admin-nav";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   buildAdminThemeTokens,
@@ -27,6 +31,163 @@ type SchoolAdminBaselineProps = {
   features: OrganizationFeatures;
   children: ReactNode;
 };
+
+function isParentPathActive(
+  pathname: string,
+  slug: string,
+  parentKey: string,
+): boolean {
+  const prefix = `/school/${slug}/admin/${parentKey}`;
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function SidebarNavItem({
+  C,
+  slug,
+  item,
+  pathname,
+  isExpanded,
+  isOpen,
+  onToggleOpen,
+}: {
+  C: AdminThemeTokens;
+  slug: string;
+  item: AdminNavItem;
+  pathname: string;
+  isExpanded: boolean;
+  isOpen: boolean;
+  onToggleOpen: () => void;
+}) {
+  const Icon = item.icon;
+  const hasChildren = Boolean(item.children?.length);
+  const parentActive = isParentPathActive(pathname, slug, item.key);
+  const firstChild = item.children?.[0];
+  const parentHref = hasChildren
+    ? schoolAdminPath(slug, item.key, firstChild!.key)
+    : schoolAdminPath(slug, item.key);
+
+  if (!hasChildren) {
+    const active = pathname === parentHref;
+    return (
+      <Link
+        href={parentHref}
+        title={item.name}
+        className="w-full flex items-center transition-colors duration-150"
+        style={{
+          justifyContent: isExpanded ? "flex-start" : "center",
+          gap: isExpanded ? "8px" : 0,
+          padding: isExpanded ? "7px 10px" : "7px 0",
+          borderRadius: C.r.sm,
+          backgroundColor: active ? C.accentLight : "transparent",
+          border: active
+            ? `1px solid ${C.secondaryBtnBorder}`
+            : "1px solid transparent",
+          color: active ? C.accent : C.textSecondary,
+          textDecoration: "none",
+        }}
+      >
+        <Icon className="w-4 h-4 flex-shrink-0" />
+        {isExpanded && (
+          <span className="text-sm font-medium truncate">{item.name}</span>
+        )}
+      </Link>
+    );
+  }
+
+  return (
+    <div>
+      <div
+        className="flex items-center transition-colors duration-150"
+        style={{
+          borderRadius: C.r.sm,
+          backgroundColor: parentActive ? C.accentLight : "transparent",
+          border: parentActive
+            ? `1px solid ${C.secondaryBtnBorder}`
+            : "1px solid transparent",
+        }}
+      >
+        <Link
+          href={parentHref}
+          title={item.name}
+          className="flex flex-1 items-center min-w-0 transition-colors duration-150"
+          style={{
+            justifyContent: isExpanded ? "flex-start" : "center",
+            gap: isExpanded ? "8px" : 0,
+            padding: isExpanded ? "7px 10px" : "7px 0",
+            color: parentActive ? C.accent : C.textSecondary,
+            textDecoration: "none",
+          }}
+        >
+          <Icon className="w-4 h-4 flex-shrink-0" />
+          {isExpanded && (
+            <span className="text-sm font-medium truncate">{item.name}</span>
+          )}
+        </Link>
+        {isExpanded ? (
+          <button
+            type="button"
+            onClick={onToggleOpen}
+            className="p-1 mr-1 shrink-0"
+            style={{ color: parentActive ? C.accent : C.textTertiary }}
+            aria-label={isOpen ? "Collapse sub-tabs" : "Expand sub-tabs"}
+          >
+            <ChevronDown
+              className="w-3.5 h-3.5 transition-transform duration-150"
+              style={{
+                transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+              }}
+            />
+          </button>
+        ) : null}
+      </div>
+      <AnimatePresence initial={false}>
+        {isExpanded && isOpen ? (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <div className="flex gap-1 pt-0.5 pb-1">
+              <div
+                className="w-px ml-4 shrink-0"
+                style={{ backgroundColor: C.border }}
+              />
+              <div className="flex-1 space-y-0.5">
+                {item.children!.map((child) => {
+                  const childHref = schoolAdminPath(slug, item.key, child.key);
+                  const childActive = pathname === childHref;
+                  const ChildIcon = child.icon;
+                  return (
+                    <Link
+                      key={child.key}
+                      href={childHref}
+                      title={child.name}
+                      className="w-full flex items-center gap-2 text-left text-xs font-medium transition-colors duration-150"
+                      style={{
+                        padding: "5px 8px",
+                        borderRadius: C.r.sm,
+                        backgroundColor: childActive
+                          ? C.accentLight
+                          : "transparent",
+                        color: childActive ? C.accent : C.textTertiary,
+                        textDecoration: "none",
+                      }}
+                    >
+                      <ChildIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate">{child.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 function Sidebar({
   C,
@@ -46,6 +207,22 @@ function Sidebar({
   onToggleExpand: () => void;
 }) {
   const { logo } = branding;
+  const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    for (const group of navGroups) {
+      for (const item of group.items) {
+        if (
+          item.children?.length &&
+          isParentPathActive(pathname, slug, item.key)
+        ) {
+          next[item.key] = true;
+        }
+      }
+    }
+    setOpenParents((prev) => ({ ...prev, ...next }));
+  }, [pathname, slug, navGroups]);
 
   return (
     <motion.aside
@@ -128,38 +305,23 @@ function Sidebar({
               />
             )}
             <div className="space-y-0.5">
-              {group.items.map((item) => {
-                const href = schoolAdminPath(slug, item.key);
-                const active = pathname === href;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.key}
-                    href={href}
-                    title={item.name}
-                    className="w-full flex items-center transition-colors duration-150"
-                    style={{
-                      justifyContent: isExpanded ? "flex-start" : "center",
-                      gap: isExpanded ? "8px" : 0,
-                      padding: isExpanded ? "7px 10px" : "7px 0",
-                      borderRadius: C.r.sm,
-                      backgroundColor: active ? C.accentLight : "transparent",
-                      border: active
-                        ? `1px solid ${C.secondaryBtnBorder}`
-                        : "1px solid transparent",
-                      color: active ? C.accent : C.textSecondary,
-                      textDecoration: "none",
-                    }}
-                  >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    {isExpanded && (
-                      <span className="text-sm font-medium truncate">
-                        {item.name}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
+              {group.items.map((item) => (
+                <SidebarNavItem
+                  key={item.key}
+                  C={C}
+                  slug={slug}
+                  item={item}
+                  pathname={pathname}
+                  isExpanded={isExpanded}
+                  isOpen={openParents[item.key] ?? false}
+                  onToggleOpen={() =>
+                    setOpenParents((prev) => ({
+                      ...prev,
+                      [item.key]: !prev[item.key],
+                    }))
+                  }
+                />
+              ))}
             </div>
           </div>
         ))}

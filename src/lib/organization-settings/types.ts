@@ -83,15 +83,23 @@ export type OrganizationFeatures = {
 } & Partial<AdditionalFeatures> &
   Record<string, boolean | AdminFeatures | TeacherFeatures | ParentFeatures | FeatureNavConfig>;
 
+export type FeatureNavChildConfig = {
+  key: string;
+  label?: string;
+  icon?: string;
+};
+
 export type FeatureNavItemConfig = {
   group: string;
   label?: string;
   icon?: string;
+  children?: FeatureNavChildConfig[];
 };
 
 export type PortalFeatureNav = {
   groups: string[];
   items: Record<string, FeatureNavItemConfig>;
+  order?: string[];
 };
 
 export type FeatureNavConfig = {

@@ -14,11 +14,16 @@
 --   '{feature_nav,admin}',
 --   '{
 --     "groups": ["Main", "Records", "Tools"],
+--     "order": ["dashboard", "admissions", "students", "my_school"],
 --     "items": {
---       "students": {
---         "group": "Records",
---         "label": "Students",
---         "icon": "users"
+--       "my_school": {
+--         "group": "Main",
+--         "label": "My School",
+--         "icon": "school",
+--         "children": [
+--           { "key": "students", "label": "My Students", "icon": "users" },
+--           { "key": "programs", "label": "Programs", "icon": "book-open" }
+--         ]
 --       }
 --     }
 --   }'::jsonb,

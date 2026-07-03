@@ -3,6 +3,7 @@ import { DEFAULT_FEATURE_ICON_SLUG } from "./icon-registry";
 import {
   removeFeatureNavItem,
   setFeatureNavItem,
+  appendFeatureToOrder,
   updatePortalNav,
 } from "./feature-nav";
 import type {
@@ -144,7 +145,11 @@ export function addCustomPortalFeature(
       label: meta.label,
       icon: meta.icon || DEFAULT_FEATURE_ICON_SLUG,
     });
-    next = updatePortalNav(next, portal as Portal, updatedNav);
+    next = updatePortalNav(
+      next,
+      portal as Portal,
+      appendFeatureToOrder(updatedNav, key),
+    );
   }
 
   return next;

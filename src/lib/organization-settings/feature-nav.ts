@@ -1,6 +1,7 @@
 import { FEATURE_CATALOG } from "./catalog";
 import { DEFAULT_FEATURE_ICON_SLUG } from "./icon-registry";
 import type {
+  FeatureNavChildConfig,
   FeatureNavConfig,
   FeatureNavItemConfig,
   OrganizationFeatures,
@@ -18,11 +19,122 @@ export type PortalNavCatalogEntry = {
 const ADMIN_NAV_CATALOG_ENTRIES: PortalNavCatalogEntry[] = [
   { key: "dashboard", label: "Dashboard", group: "Main", icon: "layout-dashboard" },
   { key: "admissions", label: "Admissions", group: "Main", icon: "graduation-cap" },
-  { key: "my_school", label: "Teacher View", group: "Main", icon: "eye" },
+  { key: "my_school", label: "My School", group: "Main", icon: "school" },
   { key: "committees", label: "Committees", group: "Main", icon: "heart" },
   { key: "finances", label: "Finances", group: "Tools", icon: "dollar-sign" },
   { key: "marketing", label: "Marketing", group: "Tools", icon: "megaphone" },
 ];
+
+const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
+  my_school: [
+    { key: "students", label: "My Students", icon: "users" },
+    { key: "programs", label: "Programs", icon: "book-open" },
+    { key: "staff", label: "Staff", icon: "user-check" },
+    { key: "classrooms", label: "Classrooms", icon: "home" },
+    { key: "tuition", label: "Tuition", icon: "dollar-sign" },
+  ],
+  admissions: [
+    { key: "flows", label: "Enrollment Flows", icon: "git-branch" },
+    { key: "submissions", label: "Submissions", icon: "clipboard-list" },
+  ],
+  finances: [
+    { key: "overview", label: "Overview", icon: "layout-dashboard" },
+    { key: "expenses", label: "Expenses", icon: "credit-card" },
+    { key: "revenue", label: "Revenue", icon: "trending-up" },
+    { key: "insights", label: "Insights", icon: "lightbulb" },
+    { key: "transactions", label: "Transactions", icon: "list-filter" },
+    { key: "payroll", label: "Payroll", icon: "wallet" },
+  ],
+};
+
+const DEFAULT_CHILD_LABELS: Record<string, Record<string, string>> = {
+  my_school: Object.fromEntries(
+    DEFAULT_FEATURE_CHILDREN.my_school.map((child) => [child.key, child.label!]),
+  ),
+  admissions: Object.fromEntries(
+    DEFAULT_FEATURE_CHILDREN.admissions.map((child) => [child.key, child.label!]),
+  ),
+  finances: Object.fromEntries(
+    DEFAULT_FEATURE_CHILDREN.finances.map((child) => [child.key, child.label!]),
+  ),
+};
+
+/** Stale catalog defaults to replace when still present in saved feature_nav. */
+const LEGACY_NAV_ITEM_DEFAULTS: Record<
+  string,
+  { label?: string; icon?: string }
+> = {
+  my_school: { label: "Teacher View", icon: "eye" },
+};
+
+function applyLegacyNavItemOverrides(
+  key: string,
+  storedItem: FeatureNavItemConfig | undefined,
+  defaultItem: FeatureNavItemConfig | undefined,
+  merged: FeatureNavItemConfig,
+): FeatureNavItemConfig {
+  const legacy = LEGACY_NAV_ITEM_DEFAULTS[key];
+  if (!legacy || !storedItem) {
+    return merged;
+  }
+
+  const hadLegacyLabel =
+    legacy.label !== undefined && storedItem.label === legacy.label;
+  let label = merged.label;
+  let icon = merged.icon;
+
+  if (hadLegacyLabel) {
+    label = defaultItem?.label ?? label;
+    if (legacy.icon !== undefined && storedItem.icon === legacy.icon) {
+      icon = defaultItem?.icon ?? icon;
+    }
+  }
+
+  return { ...merged, label, icon };
+}
+
+export function getDefaultFeatureChildren(parentKey: string): FeatureNavChildConfig[] {
+  const defaults = DEFAULT_FEATURE_CHILDREN[parentKey];
+  if (!defaults) return [];
+  return defaults.map((child) => ({ ...child }));
+}
+
+export function hasDefaultFeatureChildren(parentKey: string): boolean {
+  return Boolean(DEFAULT_FEATURE_CHILDREN[parentKey]?.length);
+}
+
+function mergeFeatureNavChildren(
+  parentKey: string,
+  stored?: FeatureNavChildConfig[],
+): FeatureNavChildConfig[] | undefined {
+  const defaults = getDefaultFeatureChildren(parentKey);
+  if (defaults.length === 0) {
+    return stored?.length ? stored.map((child) => ({ ...child })) : undefined;
+  }
+
+  if (!stored?.length) {
+    return defaults;
+  }
+
+  const defaultByKey = new Map(defaults.map((child) => [child.key, child]));
+  const result: FeatureNavChildConfig[] = [];
+
+  for (const child of stored) {
+    const fallback = defaultByKey.get(child.key);
+    result.push({
+      key: child.key,
+      label: child.label ?? fallback?.label,
+      icon: child.icon ?? fallback?.icon ?? DEFAULT_FEATURE_ICON_SLUG,
+    });
+    defaultByKey.delete(child.key);
+  }
+
+  for (const child of defaultByKey.values()) {
+    result.push({ ...child });
+  }
+
+  return result;
+}
 
 const TEACHER_ICON_DEFAULTS: Record<string, string> = {
   dashboard: "layout-dashboard",
@@ -76,14 +188,89 @@ export function getDefaultPortalNav(portal: Portal): PortalFeatureNav {
 
   const items: Record<string, FeatureNavItemConfig> = {};
   for (const entry of entries) {
+    const children = mergeFeatureNavChildren(entry.key);
     items[entry.key] = {
       group: entry.group,
       label: entry.label,
       icon: entry.icon,
+      ...(children ? { children } : {}),
     };
   }
 
-  return { groups, items };
+  return {
+    groups,
+    items,
+    order: entries.map((entry) => entry.key),
+  };
+}
+
+export function getDefaultPortalFeatureOrder(
+  portal: Portal,
+  keys: string[],
+): string[] {
+  const catalogOrder = getCatalogEntriesForPortal(portal).map(
+    (entry) => entry.key,
+  );
+  const catalogKeys = new Set(catalogOrder);
+  const catalogInKeys = catalogOrder.filter((key) => keys.includes(key));
+  const custom = keys
+    .filter((key) => !catalogKeys.has(key))
+    .sort((a, b) => a.localeCompare(b));
+  return [...catalogInKeys, ...custom];
+}
+
+export function resolvePortalFeatureOrder(
+  portal: Portal,
+  keys: string[],
+  nav: PortalFeatureNav,
+): string[] {
+  const keySet = new Set(keys);
+  const defaultOrder = getDefaultPortalFeatureOrder(portal, keys);
+
+  if (!nav.order?.length) {
+    return defaultOrder;
+  }
+
+  const result: string[] = [];
+  for (const key of nav.order) {
+    if (keySet.has(key) && !result.includes(key)) {
+      result.push(key);
+    }
+  }
+  for (const key of defaultOrder) {
+    if (!result.includes(key)) {
+      result.push(key);
+    }
+  }
+  return result;
+}
+
+export function setPortalFeatureOrder(
+  nav: PortalFeatureNav,
+  order: string[],
+): PortalFeatureNav {
+  return { ...nav, order: [...order] };
+}
+
+export function appendFeatureToOrder(
+  nav: PortalFeatureNav,
+  key: string,
+): PortalFeatureNav {
+  const order = nav.order ?? [];
+  if (order.includes(key)) {
+    return nav;
+  }
+  return { ...nav, order: [...order, key] };
+}
+
+export function removeFeatureFromOrder(
+  nav: PortalFeatureNav,
+  key: string,
+): PortalFeatureNav {
+  if (!nav.order?.length) {
+    return nav;
+  }
+  return { ...nav, order: nav.order.filter((item) => item !== key) };
 }
 
 export function getPortalNavCatalog(portal: Portal): PortalNavCatalogEntry[] {
@@ -112,14 +299,20 @@ export function mergePortalFeatureNav(
   for (const key of Object.keys(items)) {
     const storedItem = stored.items[key];
     const defaultItem = defaults.items[key];
-    items[key] = {
+    const children = mergeFeatureNavChildren(key, storedItem?.children ?? defaultItem?.children);
+    items[key] = applyLegacyNavItemOverrides(key, storedItem, defaultItem, {
       group: storedItem?.group ?? defaultItem?.group ?? groups[0] ?? "Main",
       label: storedItem?.label ?? defaultItem?.label,
       icon: storedItem?.icon ?? defaultItem?.icon ?? DEFAULT_FEATURE_ICON_SLUG,
-    };
+      ...(children ? { children } : {}),
+    });
   }
 
-  return { groups, items };
+  return {
+    groups,
+    items,
+    ...(stored.order?.length ? { order: [...stored.order] } : {}),
+  };
 }
 
 export function ensurePortalNav(
@@ -201,6 +394,11 @@ export function setFeatureNavItem(
     ...existing,
     ...patch,
     group: patch.group ?? existing.group,
+    ...(patch.children !== undefined
+      ? { children: patch.children.map((child) => ({ ...child })) }
+      : existing.children
+        ? { children: existing.children.map((child) => ({ ...child })) }
+        : {}),
   };
 
   const groups = nav.groups.includes(nextItem.group)
@@ -219,7 +417,7 @@ export function removeFeatureNavItem(
 ): PortalFeatureNav {
   const items = { ...nav.items };
   delete items[key];
-  return { ...nav, items };
+  return removeFeatureFromOrder({ ...nav, items }, key);
 }
 
 export function countFeaturesInGroup(
@@ -241,15 +439,64 @@ export function resolveFeatureNavItem(
   );
   const stored = portalNav?.items[key];
 
-  return {
-    group: stored?.group ?? catalogEntry?.group ?? defaults.groups[0] ?? "Main",
-    label: stored?.label ?? catalogEntry?.label,
-    icon:
-      stored?.icon ??
-      catalogEntry?.icon ??
-      defaults.items[key]?.icon ??
-      DEFAULT_FEATURE_ICON_SLUG,
-  };
+  const children = mergeFeatureNavChildren(
+    key,
+    stored?.children ?? defaults.items[key]?.children,
+  );
+
+  return applyLegacyNavItemOverrides(
+    key,
+    stored,
+    defaults.items[key],
+    {
+      group: stored?.group ?? catalogEntry?.group ?? defaults.groups[0] ?? "Main",
+      label: stored?.label ?? catalogEntry?.label,
+      icon:
+        stored?.icon ??
+        catalogEntry?.icon ??
+        defaults.items[key]?.icon ??
+        DEFAULT_FEATURE_ICON_SLUG,
+      ...(children ? { children } : {}),
+    },
+  );
 }
 
-export { ADMIN_NAV_CATALOG_ENTRIES };
+export function resolveFeatureNavChildren(
+  portal: Portal,
+  parentKey: string,
+  portalNav: PortalFeatureNav | undefined,
+): FeatureNavChildConfig[] {
+  const item = resolveFeatureNavItem(portal, parentKey, portalNav);
+  return item.children ?? [];
+}
+
+export function getFeatureNavChildLabel(
+  parentKey: string,
+  childKey: string,
+  child?: FeatureNavChildConfig,
+): string {
+  if (child?.label) return child.label;
+  return DEFAULT_CHILD_LABELS[parentKey]?.[childKey] ?? childKey
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export function setFeatureNavChildren(
+  nav: PortalFeatureNav,
+  parentKey: string,
+  children: FeatureNavChildConfig[],
+): PortalFeatureNav {
+  const existing = nav.items[parentKey] ?? {
+    group: nav.groups[0] ?? "Main",
+    icon: DEFAULT_FEATURE_ICON_SLUG,
+  };
+
+  return setFeatureNavItem(nav, parentKey, {
+    ...existing,
+    children: children.map((child) => ({ ...child })),
+  });
+}
+
+export { ADMIN_NAV_CATALOG_ENTRIES, DEFAULT_FEATURE_CHILDREN };

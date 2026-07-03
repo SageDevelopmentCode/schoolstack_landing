@@ -5,10 +5,12 @@ import {
   useEffect,
   useMemo,
   useState,
+  Fragment,
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { Reorder, useDragControls } from "framer-motion";
+import { ChevronDown, ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import {
   addCustomPortalFeature,
@@ -23,8 +25,14 @@ import {
   addPortalGroup,
   countFeaturesInGroup,
   ensurePortalNav,
+  getFeatureNavChildLabel,
+  hasDefaultFeatureChildren,
   removePortalGroup,
+  resolveFeatureNavChildren,
   resolveFeatureNavItem,
+  resolvePortalFeatureOrder,
+  setFeatureNavChildren,
+  setPortalFeatureOrder,
   updatePortalNav,
 } from "@/lib/organization-settings/feature-nav";
 import {
@@ -54,6 +62,7 @@ import type {
   OrganizationSettingsRow,
   Portal,
   FeaturePortal,
+  FeatureNavChildConfig,
 } from "@/lib/organization-settings/types";
 
 type NewCustomFeatureForm = {
@@ -142,6 +151,9 @@ export default function OrganizationSettingsEditor({
   >({});
   const [activeFeaturePortal, setActiveFeaturePortal] =
     useState<FeaturePortalTab>("admin");
+  const [expandedSubtabParents, setExpandedSubtabParents] = useState<
+    Partial<Record<Portal, Record<string, boolean>>>
+  >({});
 
   useEffect(() => {
     if (settingsLoading) return;
@@ -262,6 +274,53 @@ export default function OrganizationSettingsEditor({
     patch: { group?: string; label?: string; icon?: string },
   ) => {
     setFeatures((prev) => updateFeatureNavItemForPortal(prev, portal, key, patch));
+  };
+
+  const reorderPortalFeatures = (portal: Portal, order: string[]) => {
+    setFeatures((prev) => {
+      const nav = ensurePortalNav(prev, portal);
+      return updatePortalNav(prev, portal, setPortalFeatureOrder(nav, order));
+    });
+  };
+
+  const reorderFeatureChildren = (
+    portal: Portal,
+    parentKey: string,
+    childKeys: string[],
+  ) => {
+    setFeatures((prev) => {
+      const nav = ensurePortalNav(prev, portal);
+      const children = resolveFeatureNavChildren(portal, parentKey, nav);
+      const byKey = new Map(children.map((child) => [child.key, child]));
+      const nextChildren = childKeys
+        .map((key) => byKey.get(key))
+        .filter((child): child is FeatureNavChildConfig => Boolean(child));
+      return updatePortalNav(
+        prev,
+        portal,
+        setFeatureNavChildren(nav, parentKey, nextChildren),
+      );
+    });
+  };
+
+  const updateFeatureChild = (
+    portal: Portal,
+    parentKey: string,
+    childKey: string,
+    patch: Partial<FeatureNavChildConfig>,
+  ) => {
+    setFeatures((prev) => {
+      const nav = ensurePortalNav(prev, portal);
+      const children = resolveFeatureNavChildren(portal, parentKey, nav);
+      const nextChildren = children.map((child) =>
+        child.key === childKey ? { ...child, ...patch } : child,
+      );
+      return updatePortalNav(
+        prev,
+        portal,
+        setFeatureNavChildren(nav, parentKey, nextChildren),
+      );
+    });
   };
 
   const addSubsection = (portal: Portal) => {
@@ -561,6 +620,182 @@ export default function OrganizationSettingsEditor({
               canAddPortalFeatureKey(portal, features, customForm.key) &&
               customForm.label.trim().length > 0 &&
               customForm.group.trim().length > 0;
+            const catalogKeys = defs.map((def) => def.key);
+            const allFeatureKeys = [...catalogKeys, ...customKeys];
+            const orderedFeatureKeys =
+              isNavPortal && portalNav
+                ? resolvePortalFeatureOrder(portal, allFeatureKeys, portalNav)
+                : allFeatureKeys;
+            const defsByKey = new Map(defs.map((def) => [def.key, def]));
+
+            const renderFeatureRow = (
+              key: string,
+              options?: { sortable?: boolean },
+            ) => {
+              const sortable = options?.sortable ?? false;
+              const rowKey = `${portal}-${key}`;
+              const catalogDef = defsByKey.get(key);
+              if (catalogDef) {
+                const enabled =
+                  portal === "additional"
+                    ? Boolean(features[catalogDef.key])
+                    : Boolean(
+                        (
+                          features[catalogDef.portal as Portal] as Record<
+                            string,
+                            boolean
+                          >
+                        )?.[catalogDef.key],
+                      );
+                const navItem =
+                  isNavPortal && portalNav
+                    ? resolveFeatureNavItem(portal, catalogDef.key, portalNav)
+                    : null;
+                const hasSubtabs =
+                  isNavPortal && hasDefaultFeatureChildren(catalogDef.key);
+                const subtabsExpanded =
+                  expandedSubtabParents[portal as Portal]?.[catalogDef.key] ??
+                  false;
+                const subtabs =
+                  hasSubtabs && portalNav
+                    ? resolveFeatureNavChildren(
+                        portal,
+                        catalogDef.key,
+                        portalNav,
+                      )
+                    : [];
+
+                return (
+                  <FeatureSettingsRow
+                    key={rowKey}
+                    sortable={sortable}
+                    reorderValue={sortable ? key : undefined}
+                    title={navItem?.label ?? catalogDef.label}
+                    subtitle={catalogDef.description}
+                    enabled={enabled}
+                    onToggle={(checked) => {
+                      if (portal === "additional") {
+                        setAdditionalFeature(catalogDef.key, checked);
+                      } else {
+                        setPortalFeature(
+                          catalogDef.portal as Portal,
+                          catalogDef.key,
+                          checked,
+                        );
+                      }
+                    }}
+                    toggleLabel={navItem?.label ?? catalogDef.label}
+                    showNavControls={isNavPortal && !!navItem}
+                    navGroups={portalNav?.groups}
+                    subsection={navItem?.group}
+                    onSubsectionChange={(group) =>
+                      updatePortalNavItem(portal as Portal, catalogDef.key, {
+                        group,
+                      })
+                    }
+                    icon={navItem?.icon ?? DEFAULT_FEATURE_ICON_SLUG}
+                    onIconChange={(icon) =>
+                      updatePortalNavItem(portal as Portal, catalogDef.key, {
+                        icon,
+                      })
+                    }
+                    hasSubtabs={hasSubtabs}
+                    subtabsExpanded={subtabsExpanded}
+                    onToggleSubtabs={() =>
+                      setExpandedSubtabParents((prev) => ({
+                        ...prev,
+                        [portal]: {
+                          ...prev[portal as Portal],
+                          [catalogDef.key]: !subtabsExpanded,
+                        },
+                      }))
+                    }
+                    subtabsFooter={
+                      hasSubtabs && subtabsExpanded ? (
+                        <FeatureSubtabsEditor
+                          parentKey={catalogDef.key}
+                          children={subtabs}
+                          onReorder={(childKeys) =>
+                            reorderFeatureChildren(
+                              portal as Portal,
+                              catalogDef.key,
+                              childKeys,
+                            )
+                          }
+                          onLabelChange={(childKey, label) =>
+                            updateFeatureChild(
+                              portal as Portal,
+                              catalogDef.key,
+                              childKey,
+                              { label },
+                            )
+                          }
+                          onIconChange={(childKey, icon) =>
+                            updateFeatureChild(
+                              portal as Portal,
+                              catalogDef.key,
+                              childKey,
+                              { icon },
+                            )
+                          }
+                        />
+                      ) : null
+                    }
+                  />
+                );
+              }
+
+              if (!customKeys.includes(key)) {
+                return null;
+              }
+
+              const enabled =
+                portal === "additional"
+                  ? Boolean(features[key])
+                  : Boolean(
+                      (features[portal] as Record<string, boolean>)?.[key],
+                    );
+              const navItem =
+                isNavPortal && portalNav
+                  ? resolveFeatureNavItem(portal, key, portalNav)
+                  : null;
+              const displayLabel = navItem?.label ?? humanizeFeatureKey(key);
+
+              return (
+                <FeatureSettingsRow
+                  key={rowKey}
+                  sortable={sortable}
+                  reorderValue={sortable ? key : undefined}
+                  title={displayLabel}
+                  subtitle={key}
+                  subtitleMono
+                  enabled={enabled}
+                  onToggle={(checked) => {
+                    if (portal === "additional") {
+                      setAdditionalFeature(key, checked);
+                    } else {
+                      setPortalFeature(portal, key, checked);
+                    }
+                  }}
+                  toggleLabel={displayLabel}
+                  showNavControls={isNavPortal && !!navItem}
+                  navGroups={portalNav?.groups}
+                  subsection={navItem?.group}
+                  onSubsectionChange={(group) =>
+                    updatePortalNavItem(portal as Portal, key, { group })
+                  }
+                  icon={navItem?.icon ?? DEFAULT_FEATURE_ICON_SLUG}
+                  onIconChange={(icon) =>
+                    updatePortalNavItem(portal as Portal, key, { icon })
+                  }
+                  editableLabel={isNavPortal}
+                  onLabelChange={(label) =>
+                    updatePortalNavItem(portal as Portal, key, { label })
+                  }
+                  onDelete={() => removeCustomPortalFeatureKey(portal, key)}
+                />
+              );
+            };
 
             return (
               <div key={portal} className="space-y-5">
@@ -584,7 +819,8 @@ export default function OrganizationSettingsEditor({
 
                 <div className="border border-border rounded-md divide-y divide-border">
                   {isNavPortal ? (
-                    <div className="hidden sm:grid sm:grid-cols-[1fr_128px_148px_auto] gap-4 px-4 py-2.5 text-[11px] uppercase tracking-wide text-text-faint font-secondary">
+                    <div className="hidden sm:grid sm:grid-cols-[auto_1fr_128px_148px_auto] gap-4 px-4 py-2.5 text-[11px] uppercase tracking-wide text-text-faint font-secondary">
+                      <span aria-hidden="true" />
                       <span>Feature</span>
                       <span>Subsection</span>
                       <span>Icon</span>
@@ -597,112 +833,28 @@ export default function OrganizationSettingsEditor({
                     </div>
                   )}
 
-                  <ul>
-                    {defs.map((def) => {
-                      const enabled =
-                        portal === "additional"
-                          ? Boolean(features[def.key])
-                          : Boolean(
-                              (
-                                features[def.portal as Portal] as Record<
-                                  string,
-                                  boolean
-                                >
-                              )?.[def.key],
-                            );
-                      const navItem =
-                        isNavPortal && portalNav
-                          ? resolveFeatureNavItem(portal, def.key, portalNav)
-                          : null;
-
-                      return (
-                        <FeatureSettingsRow
-                          key={`${portal}-${def.key}`}
-                          title={def.label}
-                          subtitle={def.description}
-                          enabled={enabled}
-                          onToggle={(checked) => {
-                            if (portal === "additional") {
-                              setAdditionalFeature(def.key, checked);
-                            } else {
-                              setPortalFeature(
-                                def.portal as Portal,
-                                def.key,
-                                checked,
-                              );
-                            }
-                          }}
-                          toggleLabel={def.label}
-                          showNavControls={isNavPortal && !!navItem}
-                          navGroups={portalNav?.groups}
-                          subsection={navItem?.group}
-                          onSubsectionChange={(group) =>
-                            updatePortalNavItem(portal as Portal, def.key, {
-                              group,
-                            })
-                          }
-                          icon={navItem?.icon ?? DEFAULT_FEATURE_ICON_SLUG}
-                          onIconChange={(icon) =>
-                            updatePortalNavItem(portal as Portal, def.key, {
-                              icon,
-                            })
-                          }
-                        />
-                      );
-                    })}
-
-                    {customKeys.map((key) => {
-                      const enabled =
-                        portal === "additional"
-                          ? Boolean(features[key])
-                          : Boolean(
-                              (
-                                features[portal] as Record<string, boolean>
-                              )?.[key],
-                            );
-                      const navItem =
-                        isNavPortal && portalNav
-                          ? resolveFeatureNavItem(portal, key, portalNav)
-                          : null;
-                      const displayLabel =
-                        navItem?.label ?? humanizeFeatureKey(key);
-
-                      return (
-                        <FeatureSettingsRow
-                          key={`${portal}-custom-${key}`}
-                          title={displayLabel}
-                          subtitle={key}
-                          subtitleMono
-                          enabled={enabled}
-                          onToggle={(checked) => {
-                            if (portal === "additional") {
-                              setAdditionalFeature(key, checked);
-                            } else {
-                              setPortalFeature(portal, key, checked);
-                            }
-                          }}
-                          toggleLabel={displayLabel}
-                          showNavControls={isNavPortal && !!navItem}
-                          navGroups={portalNav?.groups}
-                          subsection={navItem?.group}
-                          onSubsectionChange={(group) =>
-                            updatePortalNavItem(portal as Portal, key, { group })
-                          }
-                          icon={navItem?.icon ?? DEFAULT_FEATURE_ICON_SLUG}
-                          onIconChange={(icon) =>
-                            updatePortalNavItem(portal as Portal, key, { icon })
-                          }
-                          editableLabel={isNavPortal}
-                          onLabelChange={(label) =>
-                            updatePortalNavItem(portal as Portal, key, { label })
-                          }
-                          onDelete={() =>
-                            removeCustomPortalFeatureKey(portal, key)
-                          }
-                        />
-                      );
-                    })}
-                  </ul>
+                  {isNavPortal ? (
+                    <Reorder.Group
+                      axis="y"
+                      values={orderedFeatureKeys}
+                      onReorder={(nextOrder) =>
+                        reorderPortalFeatures(portal, nextOrder)
+                      }
+                      as="ul"
+                    >
+                      {orderedFeatureKeys.map((key) =>
+                        renderFeatureRow(key, { sortable: true }),
+                      )}
+                    </Reorder.Group>
+                  ) : (
+                    <ul>
+                      {orderedFeatureKeys.map((key) => (
+                        <Fragment key={`${portal}-${key}`}>
+                          {renderFeatureRow(key)}
+                        </Fragment>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 {portal === "additional" ? (
@@ -985,6 +1137,96 @@ function SubsectionsToolbar({
   );
 }
 
+function FeatureSubtabsEditor({
+  parentKey,
+  children: subtabs,
+  onReorder,
+  onLabelChange,
+  onIconChange,
+}: {
+  parentKey: string;
+  children: FeatureNavChildConfig[];
+  onReorder: (childKeys: string[]) => void;
+  onLabelChange: (childKey: string, label: string) => void;
+  onIconChange: (childKey: string, icon: string) => void;
+}) {
+  const childKeys = subtabs.map((child) => child.key);
+
+  return (
+    <div className="mt-3 ml-5 pl-3 border-l border-border space-y-2">
+      <p className="text-[11px] uppercase tracking-wide text-text-faint font-secondary">
+        Sub-tabs
+      </p>
+      <Reorder.Group
+        axis="y"
+        values={childKeys}
+        onReorder={onReorder}
+        className="space-y-2"
+      >
+        {subtabs.map((child) => (
+          <FeatureSubtabRow
+            key={child.key}
+            parentKey={parentKey}
+            child={child}
+            onLabelChange={(label) => onLabelChange(child.key, label)}
+            onIconChange={(icon) => onIconChange(child.key, icon)}
+          />
+        ))}
+      </Reorder.Group>
+    </div>
+  );
+}
+
+function FeatureSubtabRow({
+  parentKey,
+  child,
+  onLabelChange,
+  onIconChange,
+}: {
+  parentKey: string;
+  child: FeatureNavChildConfig;
+  onLabelChange: (label: string) => void;
+  onIconChange: (icon: string) => void;
+}) {
+  const dragControls = useDragControls();
+  const label =
+    child.label ?? getFeatureNavChildLabel(parentKey, child.key, child);
+
+  return (
+    <Reorder.Item
+      value={child.key}
+      dragListener={false}
+      dragControls={dragControls}
+      className="list-none rounded-md border border-border bg-bg/60 px-3 py-2"
+    >
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="cursor-grab active:cursor-grabbing text-text-faint hover:text-text-muted p-1 shrink-0 touch-none"
+          onPointerDown={(event) => dragControls.start(event)}
+          aria-label="Drag to reorder sub-tab"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+        <input
+          type="text"
+          value={label}
+          onChange={(e) => onLabelChange(e.target.value)}
+          className={`flex-1 min-w-0 ${fieldClass}`}
+        />
+        <FeatureIconPicker
+          value={child.icon ?? DEFAULT_FEATURE_ICON_SLUG}
+          onChange={onIconChange}
+          compact
+        />
+      </div>
+      <p className="text-[11px] text-text-faint font-mono mt-1 pl-8">
+        {child.key}
+      </p>
+    </Reorder.Item>
+  );
+}
+
 function FeatureSettingsRow({
   title,
   subtitle,
@@ -1001,6 +1243,12 @@ function FeatureSettingsRow({
   editableLabel = false,
   onLabelChange,
   onDelete,
+  sortable = false,
+  reorderValue,
+  hasSubtabs = false,
+  subtabsExpanded = false,
+  onToggleSubtabs,
+  subtabsFooter,
 }: {
   title: string;
   subtitle?: string;
@@ -1017,29 +1265,79 @@ function FeatureSettingsRow({
   editableLabel?: boolean;
   onLabelChange?: (label: string) => void;
   onDelete?: () => void;
+  sortable?: boolean;
+  reorderValue?: string;
+  hasSubtabs?: boolean;
+  subtabsExpanded?: boolean;
+  onToggleSubtabs?: () => void;
+  subtabsFooter?: ReactNode;
 }) {
+  const dragControls = useDragControls();
   const controlsDimmed = !enabled && showNavControls;
-  const gridCols = showNavControls
-    ? "sm:grid-cols-[1fr_128px_148px_auto]"
-    : "sm:grid-cols-[1fr_auto]";
+  const gridCols = (() => {
+    if (sortable && showNavControls) {
+      return "sm:grid-cols-[auto_1fr_128px_148px_auto]";
+    }
+    if (sortable) {
+      return "sm:grid-cols-[auto_1fr_auto]";
+    }
+    if (showNavControls) {
+      return "sm:grid-cols-[1fr_128px_148px_auto]";
+    }
+    return "sm:grid-cols-[1fr_auto]";
+  })();
+
+  const dragHandle = sortable ? (
+    <button
+      type="button"
+      className="cursor-grab active:cursor-grabbing text-text-faint hover:text-text-muted p-1 shrink-0 touch-none"
+      onPointerDown={(event) => dragControls.start(event)}
+      aria-label="Drag to reorder"
+    >
+      <GripVertical className="w-4 h-4" />
+    </button>
+  ) : null;
 
   const titleBlock = (
     <div className="min-w-0 space-y-0.5">
-      {editableLabel && onLabelChange ? (
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => onLabelChange(e.target.value)}
-          className={`w-full ${fieldClass}`}
-        />
-      ) : (
-        <p className="text-sm text-text font-secondary">{title}</p>
-      )}
+      <div className="flex items-center gap-1 min-w-0">
+        {hasSubtabs ? (
+          <button
+            type="button"
+            onClick={onToggleSubtabs}
+            className="p-0.5 text-text-faint hover:text-text-muted shrink-0"
+            aria-label={subtabsExpanded ? "Hide sub-tabs" : "Show sub-tabs"}
+          >
+            {subtabsExpanded ? (
+              <ChevronDown className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5" />
+            )}
+          </button>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          {editableLabel && onLabelChange ? (
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => onLabelChange(e.target.value)}
+              className={`w-full ${fieldClass}`}
+            />
+          ) : (
+            <p className="text-sm text-text font-secondary">{title}</p>
+          )}
+        </div>
+      </div>
       {subtitle ? (
         <p
-          className={`text-xs text-text-faint ${subtitleMono ? "font-mono" : "font-secondary"}`}
+          className={`text-xs text-text-faint ${subtitleMono ? "font-mono" : "font-secondary"} ${hasSubtabs ? "pl-5" : ""}`}
         >
           {subtitle}
+        </p>
+      ) : null}
+      {hasSubtabs ? (
+        <p className={`text-xs text-text-faint font-secondary ${hasSubtabs ? "pl-5" : ""}`}>
+          Sub-tabs appear in the school admin sidebar under this feature.
         </p>
       ) : null}
     </div>
@@ -1088,22 +1386,43 @@ function FeatureSettingsRow({
     </div>
   );
 
-  return (
-    <li className="px-4 py-3.5">
+  const rowContent = (
+    <>
       <div className="sm:hidden space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          {titleBlock}
-          {toggleBlock}
+        <div className="flex items-start gap-2">
+          {dragHandle}
+          <div className="flex flex-1 items-start justify-between gap-3 min-w-0">
+            {titleBlock}
+            {toggleBlock}
+          </div>
         </div>
         {navControls}
       </div>
       <div className={`hidden sm:grid ${gridCols} gap-4 items-center`}>
+        {dragHandle}
         {titleBlock}
         {showNavControls ? navControls : null}
         {toggleBlock}
       </div>
-    </li>
+      {subtabsFooter}
+    </>
   );
+
+  if (sortable && reorderValue) {
+    return (
+      <Reorder.Item
+        value={reorderValue}
+        dragListener={false}
+        dragControls={dragControls}
+        as="li"
+        className="list-none px-4 py-3.5"
+      >
+        {rowContent}
+      </Reorder.Item>
+    );
+  }
+
+  return <li className="px-4 py-3.5">{rowContent}</li>;
 }
 
 function AddCustomFeatureForm({

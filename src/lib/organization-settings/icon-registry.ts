@@ -5,17 +5,23 @@ import {
   CalendarDays,
   ClipboardList,
   Clock,
+  CreditCard,
   DollarSign,
   Eye,
   FileText,
+  GitBranch,
   GraduationCap,
   Heart,
   Home,
   LayoutDashboard,
+  Lightbulb,
+  ListFilter,
   Megaphone,
   MessageSquare,
   Puzzle,
   School,
+  TrendingUp,
+  UserCheck,
   Users,
   Wallet,
 } from "lucide-react";
@@ -45,6 +51,12 @@ const ICON_MAP: Record<string, LucideIcon> = {
   clock: Clock,
   wallet: Wallet,
   "bar-chart-2": BarChart2,
+  "git-branch": GitBranch,
+  "user-check": UserCheck,
+  "trending-up": TrendingUp,
+  lightbulb: Lightbulb,
+  "list-filter": ListFilter,
+  "credit-card": CreditCard,
 };
 
 export const FEATURE_ICON_OPTIONS: FeatureIconOption[] = [
@@ -66,6 +78,12 @@ export const FEATURE_ICON_OPTIONS: FeatureIconOption[] = [
   { slug: "wallet", label: "Wallet", icon: Wallet },
   { slug: "bar-chart-2", label: "Chart", icon: BarChart2 },
   { slug: "puzzle", label: "Puzzle", icon: Puzzle },
+  { slug: "git-branch", label: "Branch", icon: GitBranch },
+  { slug: "user-check", label: "User check", icon: UserCheck },
+  { slug: "trending-up", label: "Trending up", icon: TrendingUp },
+  { slug: "lightbulb", label: "Lightbulb", icon: Lightbulb },
+  { slug: "list-filter", label: "List filter", icon: ListFilter },
+  { slug: "credit-card", label: "Credit card", icon: CreditCard },
 ];
 
 export function getFeatureIcon(slug: string | undefined): LucideIcon {
