@@ -129,7 +129,7 @@ function SetupView({
     : publicApplicationFormPath(orgSlug, "your-slug");
 
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6">
+    <div className="w-full max-w-3xl space-y-6">
       <div>
         <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
           Form setup
@@ -267,7 +267,7 @@ function StepView({
   onReorderFields: (fields: ApplicationField[]) => void;
 }) {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6">
+    <div className="w-full max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
@@ -429,7 +429,7 @@ function FieldView({
   onRequestDeleteField: () => void;
 }) {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-6">
+    <div className="w-full max-w-3xl space-y-6">
       <button
         type="button"
         onClick={onBack}
@@ -575,7 +575,7 @@ export default function ApplicationFormFocusCanvas({
 
   return (
     <>
-    <div className="flex-1 overflow-y-auto px-6 py-8" style={{ backgroundColor: C.surface }}>
+    <div className="flex-1 overflow-y-auto px-5 py-4" style={{ backgroundColor: C.surface }}>
       <AnimatePresence mode="wait">
         <motion.div key={key} {...canvasTransition}>
           {focus.kind === "setup" && (
@@ -636,7 +636,7 @@ export default function ApplicationFormFocusCanvas({
           )}
 
           {focus.kind === "fee" && (
-            <div className="mx-auto w-full max-w-xl space-y-6">
+            <div className="w-full max-w-3xl space-y-6">
               <div>
                 <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
                   Application fee
@@ -656,7 +656,7 @@ export default function ApplicationFormFocusCanvas({
           )}
 
           {focus.kind === "acknowledgments" && (
-            <div className="mx-auto w-full max-w-xl space-y-6">
+            <div className="w-full max-w-3xl space-y-6">
               <div>
                 <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
                   Acknowledgments
@@ -678,7 +678,7 @@ export default function ApplicationFormFocusCanvas({
           )}
 
           {focus.kind === "field" && step && !field && (
-            <div className="mx-auto max-w-xl text-sm" style={{ color: C.textTertiary }}>
+            <div className="w-full max-w-3xl text-sm" style={{ color: C.textTertiary }}>
               Question not found.{" "}
               <button
                 type="button"

@@ -29,4 +29,9 @@ Each script is idempotent — it only runs when `jsonb_array_length(schema->'sec
 
 ## Progress log
 
-`add_organization_progress_log_2026_07_02.sql` is independent of the form seeds. Run it after `add_product_organization_progress_log.sql`.
+Run after `add_product_organization_progress_log.sql`. Independent of the form seeds.
+
+| File | Date |
+|------|------|
+| `add_organization_progress_log_2026_07_02.sql` | July 2 — admissions kickoff |
+| `add_organization_progress_log_2026_07_03.sql` | July 3 — application form and public apply link |

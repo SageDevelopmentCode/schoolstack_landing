@@ -411,7 +411,7 @@ export default function SchoolAdminBaseline({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="h-full p-6"
+              className="h-full"
             >
               {children}
             </motion.div>
