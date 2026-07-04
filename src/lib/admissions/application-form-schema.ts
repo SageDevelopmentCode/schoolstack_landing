@@ -71,6 +71,7 @@ export interface ApplicationFormVersion {
   status: ApplicationFormStatus;
   title: string;
   intro: string | null;
+  public_slug: string | null;
   schema: ApplicationFormSchema;
   fee_config: ApplicationFormFeeConfig;
   published_at: string | null;
@@ -217,6 +218,37 @@ export function validateApplicationFormSchema(
   return errors;
 }
 
+const PUBLIC_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function normalizePublicSlug(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+export function slugifyFormTitle(title: string): string {
+  const slug = normalizePublicSlug(title);
+  return slug.length >= 2 ? slug : "";
+}
+
+export function validatePublicSlug(slug: string | null | undefined): string | null {
+  if (!slug || !slug.trim()) {
+    return "A public URL slug is required to publish.";
+  }
+
+  const normalized = normalizePublicSlug(slug);
+  if (normalized.length < 2 || normalized.length > 48) {
+    return "Slug must be 2–48 characters.";
+  }
+  if (!PUBLIC_SLUG_PATTERN.test(normalized)) {
+    return "Use lowercase letters, numbers, and hyphens only.";
+  }
+  return null;
+}
+
 export function applicationFormFromRow(row: Record<string, unknown>): ApplicationFormVersion {
   return {
     id: String(row.id),
@@ -226,6 +258,7 @@ export function applicationFormFromRow(row: Record<string, unknown>): Applicatio
     status: row.status as ApplicationFormStatus,
     title: String(row.title),
     intro: row.intro ? String(row.intro) : null,
+    public_slug: row.public_slug ? String(row.public_slug) : null,
     schema: parseApplicationFormSchema(row.schema),
     fee_config: parseApplicationFormFeeConfig(row.fee_config),
     published_at: row.published_at ? String(row.published_at) : null,

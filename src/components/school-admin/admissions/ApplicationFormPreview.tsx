@@ -3,6 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import ApplicationFormExperience from "@/components/admissions/ApplicationFormExperience";
+import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
+import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
 import type {
   ApplicationFormFeeConfig,
   ApplicationFormSchema,
@@ -16,6 +18,7 @@ type ApplicationFormPreviewProps = {
   branding: OrganizationBranding;
   schoolName: string;
   slug: string;
+  publicSlug: string | null;
   title: string;
   intro: string | null;
   schema: ApplicationFormSchema;
@@ -28,12 +31,16 @@ export default function ApplicationFormPreview({
   branding,
   schoolName,
   slug,
+  publicSlug,
   title,
   intro,
   schema,
   feeConfig,
 }: ApplicationFormPreviewProps) {
   const C = buildAdminThemeTokens(branding);
+  const previewPath = publicSlug
+    ? publicApplicationFormPath(slug, publicSlug)
+    : `${slug}/forms/your-slug`;
 
   return (
     <AnimatePresence>
@@ -61,7 +68,7 @@ export default function ApplicationFormPreview({
                   Preview
                 </span>
                 <span className="truncate text-sm" style={{ color: C.textTertiary }}>
-                  {slug}/apply
+                  {previewPath}
                 </span>
               </div>
               <p className="mt-0.5 truncate text-xs" style={{ color: C.textSecondary }}>
@@ -84,14 +91,17 @@ export default function ApplicationFormPreview({
           </div>
 
           <div className="min-h-0 flex-1">
-            <ApplicationFormExperience
-              branding={branding}
-              schoolName={schoolName}
-              title={title}
-              intro={intro}
-              schema={schema}
-              feeConfig={feeConfig}
-            />
+            <ApplicationFormPageShell branding={branding} className="h-full">
+              <ApplicationFormExperience
+                branding={branding}
+                schoolName={schoolName}
+                title={title}
+                intro={intro}
+                schema={schema}
+                feeConfig={feeConfig}
+                mode="preview"
+              />
+            </ApplicationFormPageShell>
           </div>
         </motion.div>
       )}

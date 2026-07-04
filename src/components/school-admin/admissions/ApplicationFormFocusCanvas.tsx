@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import type { ProgramOption } from "@/lib/admissions/application-forms";
+import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
 import type {
   ApplicationField,
   ApplicationFormFeeConfig,
@@ -23,6 +24,7 @@ export type EditableFormSlice = {
   title: string;
   intro: string;
   programId: string | null;
+  publicSlug: string;
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
 };
@@ -32,7 +34,10 @@ type ApplicationFormFocusCanvasProps = {
   focus: BuilderFocus;
   editable: EditableFormSlice;
   programs: ProgramOption[];
+  orgSlug: string;
   readOnly: boolean;
+  setupHighlight?: "publicSlug" | null;
+  slugError?: string | null;
   onFocusChange: (focus: BuilderFocus) => void;
   onEditableChange: (patch: Partial<EditableFormSlice>) => void;
   onUpdateSchema: (
@@ -93,15 +98,36 @@ function SetupView({
   C,
   editable,
   programs,
+  orgSlug,
   readOnly,
+  setupHighlight,
+  slugError,
   onEditableChange,
 }: {
   C: AdminThemeTokens;
   editable: EditableFormSlice;
   programs: ProgramOption[];
+  orgSlug: string;
   readOnly: boolean;
+  setupHighlight?: "publicSlug" | null;
+  slugError?: string | null;
   onEditableChange: (patch: Partial<EditableFormSlice>) => void;
 }) {
+  const slugInputRef = useRef<HTMLInputElement>(null);
+  const slugHighlighted = setupHighlight === "publicSlug";
+
+  useEffect(() => {
+    if (!slugHighlighted) return;
+    const input = slugInputRef.current;
+    if (!input) return;
+    input.focus();
+    input.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [slugHighlighted]);
+
+  const previewPath = editable.publicSlug.trim()
+    ? publicApplicationFormPath(orgSlug, editable.publicSlug)
+    : publicApplicationFormPath(orgSlug, "your-slug");
+
   return (
     <div className="mx-auto w-full max-w-xl space-y-6">
       <div>
@@ -139,6 +165,55 @@ function SetupView({
           placeholder="Welcome families and explain what to expect…"
           style={{ ...inputStyle(C), resize: "vertical" }}
         />
+      </div>
+
+      <div
+        className="space-y-2 rounded-md p-3 -mx-3"
+        style={
+          slugHighlighted
+            ? {
+                backgroundColor: C.errorBg,
+                border: `1px solid ${C.errorBorder}`,
+              }
+            : undefined
+        }
+      >
+        <FieldLabel
+          C={C}
+          hint="Used in the public URL. Lowercase letters, numbers, and hyphens only."
+        >
+          Public URL slug
+        </FieldLabel>
+        <div className="flex items-center gap-2">
+          <span
+            className="shrink-0 text-xs"
+            style={{ color: C.textTertiary }}
+          >
+            /school/{orgSlug}/forms/
+          </span>
+          <input
+            ref={slugInputRef}
+            type="text"
+            value={editable.publicSlug}
+            disabled={readOnly}
+            onChange={(e) => onEditableChange({ publicSlug: e.target.value })}
+            placeholder="e.g. apply"
+            style={{
+              ...inputStyle(C),
+              flex: 1,
+              border: `1px solid ${slugHighlighted ? C.errorBorder : C.inputBorder}`,
+            }}
+          />
+        </div>
+        {slugHighlighted && slugError ? (
+          <p className="text-xs font-medium" style={{ color: C.error }}>
+            {slugError}
+          </p>
+        ) : (
+          <p className="text-xs" style={{ color: C.textTertiary }}>
+            Families will visit {previewPath}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -395,7 +470,10 @@ export default function ApplicationFormFocusCanvas({
   focus,
   editable,
   programs,
+  orgSlug,
   readOnly,
+  setupHighlight,
+  slugError,
   onFocusChange,
   onEditableChange,
   onUpdateSchema,
@@ -505,7 +583,10 @@ export default function ApplicationFormFocusCanvas({
               C={C}
               editable={editable}
               programs={programs}
+              orgSlug={orgSlug}
               readOnly={readOnly}
+              setupHighlight={setupHighlight}
+              slugError={slugError}
               onEditableChange={onEditableChange}
             />
           )}

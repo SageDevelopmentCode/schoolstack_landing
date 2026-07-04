@@ -26,6 +26,7 @@ export type ApplicationFormExperienceProps = {
   intro: string | null;
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
+  mode?: "preview" | "live";
 };
 
 const stepVariants = {
@@ -66,7 +67,9 @@ export default function ApplicationFormExperience({
   intro,
   schema,
   feeConfig,
+  mode = "preview",
 }: ApplicationFormExperienceProps) {
+  const isLive = mode === "live";
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const steps = useMemo(
@@ -263,27 +266,33 @@ export default function ApplicationFormExperience({
             {currentStep?.kind === "fee" ? (
               <button
                 type="button"
-                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+                disabled={isLive}
+                title={isLive ? "Online payment is coming soon." : undefined}
+                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: C.accent }}
               >
-                {feeConfig.label ?? "Pay application fee"} (preview)
+                {feeConfig.label ?? "Pay application fee"}
+                {!isLive ? " (preview)" : ""}
               </button>
             ) : currentStep?.kind === "acknowledgments" && !feeConfig.enabled ? (
               <button
                 type="button"
-                disabled={!allAcknowledged}
+                disabled={!allAcknowledged || isLive}
+                title={isLive ? "Online submission is coming soon." : undefined}
                 className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: C.accent }}
               >
-                Submit application (preview)
+                Submit application{!isLive ? " (preview)" : ""}
               </button>
             ) : isLastStep ? (
               <button
                 type="button"
-                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                disabled={isLive}
+                title={isLive ? "Online submission is coming soon." : undefined}
+                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: C.accent }}
               >
-                Submit application (preview)
+                Submit application{!isLive ? " (preview)" : ""}
               </button>
             ) : (
               <button

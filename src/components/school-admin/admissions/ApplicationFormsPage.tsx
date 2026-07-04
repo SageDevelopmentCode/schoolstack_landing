@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Copy, Eye, Loader2, Save, Send } from "lucide-react";
+import { Copy, Eye, Link2, Loader2, Save, Send } from "lucide-react";
 import {
   createDraftForm,
   duplicateForm,
   listApplicationForms,
   listPrograms,
+  publicApplicationFormPath,
   publishForm,
   updateDraftForm,
   type ProgramOption,
@@ -14,7 +15,9 @@ import {
 import {
   emptyApplicationSection,
   formatFormUpdatedAt,
+  normalizePublicSlug,
   validateApplicationFormSchema,
+  validatePublicSlug,
   type ApplicationFormFeeConfig,
   type ApplicationFormSchema,
   type ApplicationFormVersion,
@@ -42,6 +45,7 @@ type EditableFormState = {
   title: string;
   intro: string;
   programId: string | null;
+  publicSlug: string;
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
 };
@@ -51,6 +55,7 @@ function toEditableState(form: ApplicationFormVersion): EditableFormState {
     title: form.title,
     intro: form.intro ?? "",
     programId: form.program_id,
+    publicSlug: form.public_slug ?? "",
     schema: {
       sections: form.schema.sections.map((section) => ({
         ...section,
@@ -101,9 +106,15 @@ export default function ApplicationFormsPage({
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedPulse, setSavedPulse] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [setupHighlight, setSetupHighlight] = useState<"publicSlug" | null>(null);
 
   const selectedForm = forms.find((f) => f.id === selectedId) ?? null;
   const readOnly = selectedForm?.status !== "draft";
+  const publishedPublicUrl =
+    selectedForm?.status === "published" && selectedForm.public_slug
+      ? publicApplicationFormPath(slug, selectedForm.public_slug)
+      : null;
 
   const loadForms = useCallback(async () => {
     setLoading(true);
@@ -138,7 +149,25 @@ export default function ApplicationFormsPage({
     const next = toEditableState(selectedForm);
     setEditable(next);
     setFocus(DEFAULT_BUILDER_FOCUS);
+    setSetupHighlight(null);
   }, [selectedForm?.id, selectedForm?.updated_at, selectedForm?.status]);
+
+  const focusSlugSetup = (errorMessage: string) => {
+    setFocus({ kind: "setup" });
+    setSetupHighlight("publicSlug");
+    setError(errorMessage);
+  };
+
+  const isSlugRelatedError = (message: string) =>
+    /slug/i.test(message);
+
+  const handleEditableChange = (patch: Partial<EditableFormState>) => {
+    if ("publicSlug" in patch) {
+      setSetupHighlight(null);
+      setError(null);
+    }
+    setEditable((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
 
   const handleCreate = async () => {
     setCreating(true);
@@ -180,6 +209,14 @@ export default function ApplicationFormsPage({
       return;
     }
 
+    const slugError = editable.publicSlug.trim()
+      ? validatePublicSlug(editable.publicSlug)
+      : null;
+    if (slugError) {
+      focusSlugSetup(slugError);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
@@ -187,6 +224,9 @@ export default function ApplicationFormsPage({
         title: editable.title,
         intro: editable.intro.trim() || null,
         program_id: editable.programId,
+        public_slug: editable.publicSlug.trim()
+          ? normalizePublicSlug(editable.publicSlug)
+          : null,
         schema: editable.schema,
         fee_config: editable.feeConfig,
       });
@@ -196,7 +236,13 @@ export default function ApplicationFormsPage({
       setSavedPulse(true);
       setTimeout(() => setSavedPulse(false), 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save form.");
+      const message =
+        err instanceof Error ? err.message : "Failed to save form.";
+      if (isSlugRelatedError(message)) {
+        focusSlugSetup(message);
+      } else {
+        setError(message);
+      }
     } finally {
       setSaving(false);
     }
@@ -213,7 +259,14 @@ export default function ApplicationFormsPage({
       return;
     }
 
+    const slugError = validatePublicSlug(editable?.publicSlug ?? selectedForm.public_slug);
+    if (slugError) {
+      focusSlugSetup(slugError);
+      return;
+    }
+
     setPublishing(true);
+    setSetupHighlight(null);
     setError(null);
     try {
       if (editable) {
@@ -221,6 +274,9 @@ export default function ApplicationFormsPage({
           title: editable.title,
           intro: editable.intro.trim() || null,
           program_id: editable.programId,
+          public_slug: editable.publicSlug.trim()
+          ? normalizePublicSlug(editable.publicSlug)
+          : null,
           schema: editable.schema,
           fee_config: editable.feeConfig,
         });
@@ -228,8 +284,15 @@ export default function ApplicationFormsPage({
       const published = await publishForm(supabase, selectedForm.id);
       await loadForms();
       setSelectedId(published.id);
+      setSetupHighlight(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to publish form.");
+      const message =
+        err instanceof Error ? err.message : "Failed to publish form.";
+      if (isSlugRelatedError(message)) {
+        focusSlugSetup(message);
+      } else {
+        setError(message);
+      }
     } finally {
       setPublishing(false);
     }
@@ -244,6 +307,21 @@ export default function ApplicationFormsPage({
       setFocus((current) => sanitizeFocus(current, schema));
       return { ...prev, schema };
     });
+  };
+
+  const handleCopyPublicLink = async () => {
+    if (!publishedPublicUrl) return;
+    const absoluteUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${publishedPublicUrl}`
+        : publishedPublicUrl;
+    try {
+      await navigator.clipboard.writeText(absoluteUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 1500);
+    } catch {
+      setError("Could not copy link to clipboard.");
+    }
   };
 
   const addStep = () => {
@@ -315,6 +393,21 @@ export default function ApplicationFormsPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {publishedPublicUrl ? (
+                <button
+                  type="button"
+                  onClick={handleCopyPublicLink}
+                  className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                  style={{
+                    border: `1px solid ${C.border}`,
+                    color: copiedLink ? C.success : C.textSecondary,
+                    backgroundColor: copiedLink ? C.successBg : C.bg,
+                  }}
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                  {copiedLink ? "Copied" : "Copy link"}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setPreviewOpen(true)}
@@ -414,11 +507,12 @@ export default function ApplicationFormsPage({
               focus={focus}
               editable={editable}
               programs={programs}
+              orgSlug={slug}
               readOnly={readOnly}
+              setupHighlight={setupHighlight}
+              slugError={setupHighlight === "publicSlug" ? error : null}
               onFocusChange={setFocus}
-              onEditableChange={(patch) =>
-                setEditable((prev) => (prev ? { ...prev, ...patch } : prev))
-              }
+              onEditableChange={handleEditableChange}
               onUpdateSchema={updateSchema}
               onDeleteStep={deleteStep}
             />
@@ -439,6 +533,11 @@ export default function ApplicationFormsPage({
         branding={branding}
         schoolName={schoolName}
         slug={slug}
+        publicSlug={
+          editable?.publicSlug.trim()
+            ? normalizePublicSlug(editable.publicSlug)
+            : selectedForm?.public_slug ?? null
+        }
         title={editable?.title ?? selectedForm?.title ?? "Application"}
         intro={
           editable?.intro.trim()

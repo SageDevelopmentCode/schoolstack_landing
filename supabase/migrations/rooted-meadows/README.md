@@ -8,8 +8,9 @@ Run these from the parent `migrations/` folder first:
 
 1. `add_product_organizations.sql` — creates the org row
 2. `add_product_application_form_versions.sql` — creates the application form table
-3. Initial draft form row must exist (`id = a57d66cf-1c0b-4052-a1cd-3067c07361d3`)
-4. For progress log: `add_product_organization_progress_log.sql`
+3. `add_application_form_public_slug.sql` — adds `public_slug` column
+4. Initial draft form row must exist (`id = a57d66cf-1c0b-4052-a1cd-3067c07361d3`)
+5. For progress log: `add_product_organization_progress_log.sql`
 
 ## Application form seeds (run in order)
 
@@ -24,6 +25,7 @@ Each script is idempotent — it only runs when `jsonb_array_length(schema->'sec
 | 5 | `seed_rooted_meadows_parent1_step.sql` | Parent 1 Information | 5 |
 | 6 | `seed_rooted_meadows_parent2_step.sql` | Parent 2 Information | 6 |
 | 7 | `seed_rooted_meadows_referral_source_step.sql` | Referral source | 7 |
+| 8 | `seed_rooted_meadows_public_slug.sql` | Public URL slug (`apply`) | any |
 
 ## Progress log
 
