@@ -114,7 +114,7 @@ export async function isPublicSlugAvailable(
     .select("id")
     .eq("organization_id", organizationId)
     .eq("public_slug", normalizedSlug)
-    .eq("status", "published");
+    .in("status", ["draft", "published"]);
 
   if (excludeFormId) {
     query = query.neq("id", excludeFormId);
@@ -123,6 +123,35 @@ export async function isPublicSlugAvailable(
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).length === 0;
+}
+
+export function slugConflictError(slug: string): string {
+  return `The slug "${slug}" is already used by another form.`;
+}
+
+async function nextAvailablePublicSlug(
+  supabase: SupabaseClient,
+  organizationId: string,
+  candidates: string[],
+): Promise<string> {
+  for (const candidate of candidates) {
+    const base = normalizePublicSlug(candidate);
+    if (!base || validatePublicSlug(base)) continue;
+
+    const variants = [base];
+    for (let i = 2; i <= 20; i++) {
+      variants.push(normalizePublicSlug(`${base}-${i}`));
+    }
+
+    for (const slug of variants) {
+      if (!slug || validatePublicSlug(slug)) continue;
+      if (await isPublicSlugAvailable(supabase, organizationId, slug)) {
+        return slug;
+      }
+    }
+  }
+
+  return normalizePublicSlug(`application-${Date.now().toString(36)}`) || "application";
 }
 
 async function suggestDefaultPublicSlug(
@@ -138,14 +167,17 @@ async function suggestDefaultPublicSlug(
 
   if (error) throw error;
 
+  const candidates: string[] = [];
   if ((data ?? []).length === 0) {
-    return "apply";
+    candidates.push("apply");
   }
+  if (title) {
+    const fromTitle = slugifyFormTitle(title);
+    if (fromTitle) candidates.push(fromTitle);
+  }
+  candidates.push("application");
 
-  const fromTitle = title ? slugifyFormTitle(title) : "";
-  if (fromTitle) return fromTitle;
-
-  return "application";
+  return nextAvailablePublicSlug(supabase, organizationId, candidates);
 }
 
 export async function listPrograms(
@@ -198,7 +230,7 @@ export async function createDraftForm(
   return applicationFormFromRow(data as Record<string, unknown>);
 }
 
-export type UpdateDraftFormInput = {
+export type UpdateApplicationFormInput = {
   title?: string;
   intro?: string | null;
   program_id?: string | null;
@@ -207,31 +239,66 @@ export type UpdateDraftFormInput = {
   fee_config?: ApplicationFormFeeConfig;
 };
 
-export async function updateDraftForm(
+/** @deprecated Use UpdateApplicationFormInput */
+export type UpdateDraftFormInput = UpdateApplicationFormInput;
+
+async function assertPublicSlugAvailable(
+  supabase: SupabaseClient,
+  organizationId: string,
+  normalizedSlug: string,
+  excludeFormId: string,
+): Promise<void> {
+  const available = await isPublicSlugAvailable(
+    supabase,
+    organizationId,
+    normalizedSlug,
+    excludeFormId,
+  );
+  if (!available) {
+    throw new Error(slugConflictError(normalizedSlug));
+  }
+}
+
+export async function updateApplicationForm(
   supabase: SupabaseClient,
   id: string,
-  input: UpdateDraftFormInput,
+  input: UpdateApplicationFormInput,
 ): Promise<ApplicationFormVersion> {
   const existing = await getApplicationForm(supabase, id);
   if (!existing) throw new Error("Application form not found.");
-  if (existing.status !== "draft") {
-    throw new Error("Only draft forms can be edited. Duplicate to create a new draft.");
+  if (existing.status === "archived") {
+    throw new Error("Archived forms cannot be edited.");
   }
 
   const patch: Record<string, unknown> = {};
   if (input.title !== undefined) patch.title = input.title.trim();
   if (input.intro !== undefined) patch.intro = input.intro;
   if (input.program_id !== undefined) patch.program_id = input.program_id;
+
+  let normalizedSlug: string | null = existing.public_slug;
   if (input.public_slug !== undefined) {
     if (!input.public_slug) {
+      if (existing.status === "published") {
+        throw new Error("A public URL slug is required for published forms.");
+      }
       patch.public_slug = null;
+      normalizedSlug = null;
     } else {
-      const normalized = normalizePublicSlug(input.public_slug);
-      const slugError = validatePublicSlug(normalized);
+      normalizedSlug = normalizePublicSlug(input.public_slug);
+      const slugError = validatePublicSlug(normalizedSlug);
       if (slugError) throw new Error(slugError);
-      patch.public_slug = normalized;
+      await assertPublicSlugAvailable(
+        supabase,
+        existing.organization_id,
+        normalizedSlug,
+        existing.id,
+      );
+      patch.public_slug = normalizedSlug;
     }
+  } else if (existing.status === "published" && existing.public_slug) {
+    normalizedSlug = normalizePublicSlug(existing.public_slug);
   }
+
   if (input.schema !== undefined) patch.schema = schemaToDbJson(input.schema);
   if (input.fee_config !== undefined) patch.fee_config = input.fee_config;
 
@@ -244,6 +311,14 @@ export async function updateDraftForm(
 
   if (error) throw error;
   return applicationFormFromRow(data as Record<string, unknown>);
+}
+
+export async function updateDraftForm(
+  supabase: SupabaseClient,
+  id: string,
+  input: UpdateDraftFormInput,
+): Promise<ApplicationFormVersion> {
+  return updateApplicationForm(supabase, id, input);
 }
 
 export async function publishForm(
@@ -260,6 +335,17 @@ export async function publishForm(
   if (slugError) throw new Error(slugError);
 
   const normalizedSlug = normalizePublicSlug(existing.public_slug!);
+
+  const { error: archiveError } = await supabase
+    .from("application_form_versions")
+    .update({ status: "archived" })
+    .eq("organization_id", existing.organization_id)
+    .eq("public_slug", normalizedSlug)
+    .eq("status", "published")
+    .neq("id", existing.id);
+
+  if (archiveError) throw archiveError;
+
   const slugAvailable = await isPublicSlugAvailable(
     supabase,
     existing.organization_id,
@@ -267,19 +353,8 @@ export async function publishForm(
     existing.id,
   );
   if (!slugAvailable) {
-    throw new Error(
-      `The slug "${normalizedSlug}" is already used by another published form.`,
-    );
+    throw new Error(slugConflictError(normalizedSlug));
   }
-
-  const { error: archiveError } = await supabase
-    .from("application_form_versions")
-    .update({ status: "archived" })
-    .eq("organization_id", existing.organization_id)
-    .eq("public_slug", normalizedSlug)
-    .eq("status", "published");
-
-  if (archiveError) throw archiveError;
 
   const { data, error } = await supabase
     .from("application_form_versions")
@@ -289,6 +364,31 @@ export async function publishForm(
       published_at: new Date().toISOString(),
     })
     .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return applicationFormFromRow(data as Record<string, unknown>);
+}
+
+export async function unpublishForm(
+  supabase: SupabaseClient,
+  id: string,
+): Promise<ApplicationFormVersion> {
+  const existing = await getApplicationForm(supabase, id);
+  if (!existing) throw new Error("Application form not found.");
+  if (existing.status !== "published") {
+    throw new Error("Only published forms can be unpublished.");
+  }
+
+  const { data, error } = await supabase
+    .from("application_form_versions")
+    .update({
+      status: "draft",
+      published_at: null,
+    })
+    .eq("id", id)
+    .eq("status", "published")
     .select("*")
     .single();
 
@@ -309,6 +409,16 @@ export async function duplicateForm(
     existing.program_id,
   );
 
+  const copyTitle = `${existing.title} (copy)`;
+  const slugCandidates = existing.public_slug
+    ? [`${existing.public_slug}-copy`, copyTitle]
+    : [copyTitle];
+  const publicSlug = await nextAvailablePublicSlug(
+    supabase,
+    existing.organization_id,
+    slugCandidates,
+  );
+
   const { data, error } = await supabase
     .from("application_form_versions")
     .insert({
@@ -316,15 +426,9 @@ export async function duplicateForm(
       program_id: existing.program_id,
       version,
       status: "draft",
-      title: `${existing.title} (copy)`,
+      title: copyTitle,
       intro: existing.intro,
-      public_slug: existing.public_slug
-        ? normalizePublicSlug(`${existing.public_slug}-copy`)
-        : await suggestDefaultPublicSlug(
-            supabase,
-            existing.organization_id,
-            `${existing.title} (copy)`,
-          ),
+      public_slug: publicSlug,
       schema: schemaToDbJson(existing.schema),
       fee_config: existing.fee_config,
     })

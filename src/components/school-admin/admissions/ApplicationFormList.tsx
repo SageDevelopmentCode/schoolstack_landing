@@ -106,6 +106,7 @@ export default function ApplicationFormList({
                   </span>
                 </div>
                 <p className="text-[10px] mt-0.5" style={{ color: C.textTertiary }}>
+                  {form.public_slug ? `/forms/${form.public_slug} · ` : ""}
                   {form.schema.sections.length} step
                   {form.schema.sections.length === 1 ? "" : "s"} ·{" "}
                   {formatFormUpdatedAt(form.updated_at)}

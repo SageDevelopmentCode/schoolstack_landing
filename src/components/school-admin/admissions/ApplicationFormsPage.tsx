@@ -1,15 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Copy, Eye, Link2, Loader2, Save, Send } from "lucide-react";
+import { Copy, Eye, EyeOff, Link2, Loader2, Save, Send } from "lucide-react";
 import {
   createDraftForm,
   duplicateForm,
+  isPublicSlugAvailable,
   listApplicationForms,
   listPrograms,
   publicApplicationFormPath,
   publishForm,
-  updateDraftForm,
+  unpublishForm,
+  updateApplicationForm,
   type ProgramOption,
 } from "@/lib/admissions/application-forms";
 import {
@@ -29,6 +31,7 @@ import ApplicationFormFocusCanvas from "./ApplicationFormFocusCanvas";
 import ApplicationFormList, { StatusBadge } from "./ApplicationFormList";
 import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
+import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import {
   DEFAULT_BUILDER_FOCUS,
   type BuilderFocus,
@@ -108,11 +111,16 @@ export default function ApplicationFormsPage({
   const [savedPulse, setSavedPulse] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [setupHighlight, setSetupHighlight] = useState<"publicSlug" | null>(null);
+  const [unpublishOpen, setUnpublishOpen] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
 
   const selectedForm = forms.find((f) => f.id === selectedId) ?? null;
-  const readOnly = selectedForm?.status !== "draft";
+  const isArchived = selectedForm?.status === "archived";
+  const isDraft = selectedForm?.status === "draft";
+  const isPublished = selectedForm?.status === "published";
+  const readOnly = isArchived;
   const publishedPublicUrl =
-    selectedForm?.status === "published" && selectedForm.public_slug
+    isPublished && selectedForm.public_slug
       ? publicApplicationFormPath(slug, selectedForm.public_slug)
       : null;
 
@@ -169,6 +177,57 @@ export default function ApplicationFormsPage({
     setEditable((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
+  const buildSaveInput = () => {
+    if (!editable) return null;
+    return {
+      title: editable.title,
+      intro: editable.intro.trim() || null,
+      program_id: editable.programId,
+      public_slug: editable.publicSlug.trim()
+        ? normalizePublicSlug(editable.publicSlug)
+        : null,
+      schema: editable.schema,
+      fee_config: editable.feeConfig,
+    };
+  };
+
+  const validateSlugForSave = async (): Promise<boolean> => {
+    if (!selectedForm || !editable) return false;
+
+    const slugValue = editable.publicSlug.trim()
+      ? editable.publicSlug
+      : isPublished
+        ? selectedForm.public_slug
+        : null;
+
+    if (isPublished && !slugValue) {
+      focusSlugSetup("A public URL slug is required for published forms.");
+      return false;
+    }
+
+    const slugError = slugValue ? validatePublicSlug(slugValue) : null;
+    if (slugError) {
+      focusSlugSetup(slugError);
+      return false;
+    }
+
+    if (slugValue) {
+      const normalized = normalizePublicSlug(slugValue);
+      const available = await isPublicSlugAvailable(
+        supabase,
+        organizationId,
+        normalized,
+        selectedForm.id,
+      );
+      if (!available) {
+        focusSlugSetup(`The slug "${normalized}" is already used by another form.`);
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleCreate = async () => {
     setCreating(true);
     setError(null);
@@ -209,27 +268,16 @@ export default function ApplicationFormsPage({
       return;
     }
 
-    const slugError = editable.publicSlug.trim()
-      ? validatePublicSlug(editable.publicSlug)
-      : null;
-    if (slugError) {
-      focusSlugSetup(slugError);
-      return;
-    }
+    const slugOk = await validateSlugForSave();
+    if (!slugOk) return;
+
+    const saveInput = buildSaveInput();
+    if (!saveInput) return;
 
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateDraftForm(supabase, selectedForm.id, {
-        title: editable.title,
-        intro: editable.intro.trim() || null,
-        program_id: editable.programId,
-        public_slug: editable.publicSlug.trim()
-          ? normalizePublicSlug(editable.publicSlug)
-          : null,
-        schema: editable.schema,
-        fee_config: editable.feeConfig,
-      });
+      const updated = await updateApplicationForm(supabase, selectedForm.id, saveInput);
       setForms((prev) =>
         prev.map((f) => (f.id === updated.id ? updated : f)),
       );
@@ -249,7 +297,7 @@ export default function ApplicationFormsPage({
   };
 
   const handlePublish = async () => {
-    if (!selectedForm || readOnly) return;
+    if (!selectedForm || !isDraft) return;
 
     const validationErrors = validateApplicationFormSchema(
       editable?.schema ?? selectedForm.schema,
@@ -265,21 +313,27 @@ export default function ApplicationFormsPage({
       return;
     }
 
+    const normalized = normalizePublicSlug(
+      editable?.publicSlug ?? selectedForm.public_slug ?? "",
+    );
+    const available = await isPublicSlugAvailable(
+      supabase,
+      organizationId,
+      normalized,
+      selectedForm.id,
+    );
+    if (!available) {
+      focusSlugSetup(`The slug "${normalized}" is already used by another form.`);
+      return;
+    }
+
     setPublishing(true);
     setSetupHighlight(null);
     setError(null);
     try {
-      if (editable) {
-        await updateDraftForm(supabase, selectedForm.id, {
-          title: editable.title,
-          intro: editable.intro.trim() || null,
-          program_id: editable.programId,
-          public_slug: editable.publicSlug.trim()
-          ? normalizePublicSlug(editable.publicSlug)
-          : null,
-          schema: editable.schema,
-          fee_config: editable.feeConfig,
-        });
+      const saveInput = buildSaveInput();
+      if (saveInput) {
+        await updateApplicationForm(supabase, selectedForm.id, saveInput);
       }
       const published = await publishForm(supabase, selectedForm.id);
       await loadForms();
@@ -295,6 +349,24 @@ export default function ApplicationFormsPage({
       }
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleUnpublish = async () => {
+    if (!selectedForm || !isPublished) return;
+
+    setUnpublishing(true);
+    setError(null);
+    try {
+      const unpublished = await unpublishForm(supabase, selectedForm.id);
+      setForms((prev) =>
+        prev.map((f) => (f.id === unpublished.id ? unpublished : f)),
+      );
+      setUnpublishOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to unpublish form.");
+    } finally {
+      setUnpublishing(false);
     }
   };
 
@@ -434,7 +506,7 @@ export default function ApplicationFormsPage({
                   }}
                 >
                   <Copy className="h-3.5 w-3.5" />
-                  Duplicate to edit
+                  Duplicate
                 </button>
               ) : (
                 <>
@@ -454,22 +526,54 @@ export default function ApplicationFormsPage({
                     ) : (
                       <Save className="h-3.5 w-3.5" />
                     )}
-                    {savedPulse ? "Saved" : "Save draft"}
+                    {savedPulse ? "Saved" : isPublished ? "Save" : "Save draft"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handlePublish}
-                    disabled={publishing}
-                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white"
-                    style={{ backgroundColor: C.accent }}
-                  >
-                    {publishing ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Send className="h-3.5 w-3.5" />
-                    )}
-                    Publish
-                  </button>
+                  {isPublished ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setUnpublishOpen(true)}
+                        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                        style={{
+                          border: `1px solid ${C.errorBorder}`,
+                          color: C.error,
+                          backgroundColor: C.errorBg,
+                        }}
+                      >
+                        <EyeOff className="h-3.5 w-3.5" />
+                        Unpublish
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDuplicate}
+                        disabled={creating}
+                        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                        style={{
+                          border: `1px solid ${C.border}`,
+                          color: C.textSecondary,
+                          backgroundColor: C.bg,
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        Duplicate
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handlePublish}
+                      disabled={publishing}
+                      className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white"
+                      style={{ backgroundColor: C.accent }}
+                    >
+                      {publishing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5" />
+                      )}
+                      Publish
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -552,6 +656,22 @@ export default function ApplicationFormsPage({
           editable?.feeConfig ??
           selectedForm?.fee_config ?? { enabled: false }
         }
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={unpublishOpen}
+        title="Unpublish this form?"
+        description={
+          publishedPublicUrl
+            ? `Families will no longer be able to access it at ${publishedPublicUrl} until you publish again.`
+            : "Families will no longer be able to access this form until you publish again."
+        }
+        confirmLabel="Unpublish"
+        variant="destructive"
+        loading={unpublishing}
+        onConfirm={handleUnpublish}
+        onClose={() => !unpublishing && setUnpublishOpen(false)}
       />
     </div>
   );
