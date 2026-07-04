@@ -4,6 +4,7 @@ import { useState } from "react";
 import ApplicationAuthGate from "@/components/admissions/ApplicationAuthGate";
 import ApplicationFormExperience from "@/components/admissions/ApplicationFormExperience";
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
+import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import type {
   ApplicationFormFeeConfig,
   ApplicationFormSchema,
@@ -17,6 +18,8 @@ type PublicApplicationFormClientProps = {
   intro: string | null;
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
+  organizationId: string;
+  formVersionId: string;
 };
 
 export default function PublicApplicationFormClient({
@@ -26,8 +29,16 @@ export default function PublicApplicationFormClient({
   intro,
   schema,
   feeConfig,
+  organizationId,
+  formVersionId,
 }: PublicApplicationFormClientProps) {
   const [authComplete, setAuthComplete] = useState(false);
+  // Held for Phase 3: wire ApplicationFormExperience to load/save responses.
+  const [, setApplicationId] = useState<string | null>(null);
+
+  const handleBootstrapped = (result: BootstrapApplicantResult) => {
+    setApplicationId(result.applicationId);
+  };
 
   return authComplete ? (
     <ApplicationFormPageShell branding={branding}>
@@ -46,6 +57,9 @@ export default function PublicApplicationFormClient({
       branding={branding}
       schoolName={schoolName}
       formTitle={title}
+      organizationId={organizationId}
+      formVersionId={formVersionId}
+      onBootstrapped={handleBootstrapped}
       onComplete={() => setAuthComplete(true)}
     />
   );

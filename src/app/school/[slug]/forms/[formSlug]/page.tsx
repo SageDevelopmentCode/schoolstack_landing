@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import PublicApplicationFormClient from "@/components/admissions/PublicApplicationFormClient";
 import { getPublishedApplicationFormBySlug } from "@/lib/admissions/application-forms";
@@ -66,6 +66,8 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
       intro={form.intro}
       schema={form.schema}
       feeConfig={form.fee_config}
+      organizationId={org.id}
+      formVersionId={form.id}
     />
   );
 }

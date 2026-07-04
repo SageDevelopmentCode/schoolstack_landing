@@ -1,26 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CircleHelp, LogIn, UserPlus } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { AUTH_GATE_PROMO } from "@/lib/site";
+import { createClient } from "@/utils/supabase/client";
 
 type AuthMode = "create" | "login";
 type AuthPhase = "choice" | "credentials" | "verify";
+
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export type ApplicationAuthGateProps = {
   branding: OrganizationBranding;
   schoolName: string;
   formTitle: string;
+  organizationId: string;
+  formVersionId: string;
   onComplete: () => void;
+  onBootstrapped?: (result: BootstrapApplicantResult) => void;
 };
 
 const stepVariants = {
@@ -53,6 +60,7 @@ function AuthField({
   onChange,
   required,
   autoComplete,
+  disabled,
   C,
 }: {
   id: string;
@@ -62,6 +70,7 @@ function AuthField({
   onChange: (value: string) => void;
   required?: boolean;
   autoComplete?: string;
+  disabled?: boolean;
   C: AdminThemeTokens;
 }) {
   return (
@@ -78,9 +87,10 @@ function AuthField({
         type={type}
         required={required}
         autoComplete={autoComplete}
+        disabled={disabled}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border px-3 py-2.5 text-sm outline-none transition focus:ring-2"
+        className="w-full rounded-md border px-3 py-2.5 text-sm outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
         style={inputStyle(C)}
       />
     </div>
@@ -111,10 +121,10 @@ function PromoSlideThumbnails({
             onClick={() => onSelectSlide(index)}
             aria-label={`Show slide ${index + 1}`}
             aria-current={isActive ? "true" : undefined}
-            className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-sm border transition ${
+            className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-sm border-2 transition ${
               isActive
-                ? "border-white ring-2 ring-white opacity-100"
-                : "border-white/20 opacity-70 hover:opacity-90"
+                ? "border-white opacity-100"
+                : "border-white/25 opacity-70 hover:border-white/40 hover:opacity-90"
             }`}
           >
             <Image src={item.image} alt="" fill className="object-cover" sizes="40px" />
@@ -190,15 +200,17 @@ function ApplicationAuthPromoPanel({
               </span>
 
               <h2
-                className={`mt-4 font-display font-medium leading-[1.08] text-white ${
+                className={`mt-4 font-display font-medium leading-[1.12] text-white ${
                   compact
-                    ? "text-[clamp(1.5rem,5vw,2rem)]"
-                    : "text-[clamp(1.75rem,2.5vw,2.5rem)]"
+                    ? "text-[clamp(1.2rem,4.2vw,1.55rem)]"
+                    : "text-[clamp(1.35rem,1.65vw,1.75rem)]"
                 }`}
               >
-                {slide.headlineLead}
-                <br />
-                <em style={{ color: "#E8D5C8", fontStyle: "italic" }}>
+                <span className="block">{slide.headlineLead}</span>
+                <em
+                  className="mt-0 block text-[#E8D5C8]"
+                  style={{ fontStyle: "italic" }}
+                >
                   {slide.headlineAccent}
                 </em>
               </h2>
@@ -250,29 +262,46 @@ export default function ApplicationAuthGate({
   branding,
   schoolName,
   formTitle,
+  organizationId,
+  formVersionId,
   onComplete,
+  onBootstrapped,
 }: ApplicationAuthGateProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const supabase = useMemo(() => createClient(), []);
   const pageBg = branding.colors.bg;
 
   const [phase, setPhase] = useState<AuthPhase>("choice");
   const [direction, setDirection] = useState(1);
   const [mode, setMode] = useState<AuthMode>("create");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [activeSlide, setActiveSlide] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => {
       setActiveSlide((index) => (index + 1) % AUTH_GATE_PROMO.slides.length);
     }, AUTH_GATE_PROMO.slideIntervalMs);
     return () => clearInterval(id);
-  }, []);
+  }, [activeSlide]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setInterval(() => {
+      setResendCooldown((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [resendCooldown]);
 
   const goToPhase = (nextPhase: AuthPhase, nextDirection: number) => {
     setDirection(nextDirection);
     setPhase(nextPhase);
+    setAuthError(null);
   };
 
   const handleChooseMode = (nextMode: AuthMode) => {
@@ -280,23 +309,113 @@ export default function ApplicationAuthGate({
     goToPhase("credentials", 1);
   };
 
-  const handleCredentialsSubmit = (e: React.FormEvent) => {
+  const sendOtp = useCallback(async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const { error } = await supabase.auth.signInWithOtp({
+      email: trimmedEmail,
+      options: {
+        shouldCreateUser: mode === "create",
+        data:
+          mode === "create"
+            ? {
+                first_name: firstName.trim(),
+                last_name: lastName.trim(),
+              }
+            : undefined,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    setResendCooldown(RESEND_COOLDOWN_SECONDS);
+  }, [email, firstName, lastName, mode, supabase.auth]);
+
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Future: supabase.auth.signInWithOtp({
-    //   email,
-    //   options: {
-    //     shouldCreateUser: mode === "create",
-    //     data: mode === "create" ? { full_name: name } : undefined,
-    //   },
-    // })
-    goToPhase("verify", 1);
-    setCode("");
+    setIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      await sendOtp();
+      goToPhase("verify", 1);
+      setCode("");
+    } catch (error) {
+      setAuthError(
+        error instanceof Error ? error.message : "Failed to send verification code.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleVerifySubmit = (e: React.FormEvent) => {
+  const bootstrapApplicant = async () => {
+    const response = await fetch("/api/admissions/applicant-bootstrap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        organizationId,
+        formVersionId,
+        firstName: mode === "create" ? firstName.trim() : undefined,
+        lastName: mode === "create" ? lastName.trim() : undefined,
+      }),
+    });
+
+    const payload = (await response.json()) as BootstrapApplicantResult & {
+      error?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Failed to set up your application.");
+    }
+
+    onBootstrapped?.(payload);
+    return payload;
+  };
+
+  const handleVerifySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Future: supabase.auth.verifyOtp({ email, token: code, type: "email" })
-    onComplete();
+    setIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: normalizedCode,
+        type: "email",
+      });
+
+      if (verifyError) {
+        throw new Error(verifyError.message);
+      }
+
+      await bootstrapApplicant();
+      onComplete();
+    } catch (error) {
+      setAuthError(
+        error instanceof Error ? error.message : "Verification failed. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (resendCooldown > 0 || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      await sendOtp();
+    } catch (error) {
+      setAuthError(
+        error instanceof Error ? error.message : "Failed to resend verification code.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleBackToChoice = () => {
@@ -311,11 +430,13 @@ export default function ApplicationAuthGate({
   const switchMode = (nextMode: AuthMode) => {
     if (nextMode !== mode) {
       setMode(nextMode);
+      setAuthError(null);
     }
   };
 
   const normalizedCode = code.replace(/\D/g, "").slice(0, 6);
-  const canVerify = normalizedCode.length === 6;
+  const canVerify = normalizedCode.length === 6 && !isSubmitting;
+  const canResend = resendCooldown <= 0 && !isSubmitting;
 
   const phaseHeading =
     phase === "choice"
@@ -373,7 +494,8 @@ export default function ApplicationAuthGate({
               <button
                 type="button"
                 onClick={phase === "credentials" ? handleBackToChoice : handleBackToCredentials}
-                className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium transition hover:opacity-80"
+                disabled={isSubmitting}
+                className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ color: C.textSecondary }}
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -405,6 +527,20 @@ export default function ApplicationAuthGate({
                 {phaseSubtext}
               </p>
             </div>
+
+            {authError ? (
+              <p
+                className="mb-4 rounded-md border px-3 py-2.5 text-sm"
+                style={{
+                  borderColor: C.border,
+                  backgroundColor: C.surface,
+                  color: "#b42318",
+                }}
+                role="alert"
+              >
+                {authError}
+              </p>
+            ) : null}
 
             <AnimatePresence mode="wait" initial={false} custom={direction}>
               {phase === "choice" ? (
@@ -485,15 +621,28 @@ export default function ApplicationAuthGate({
                 >
                   <form onSubmit={handleCredentialsSubmit} className="space-y-4">
                     {mode === "create" ? (
-                      <AuthField
-                        id="auth-name"
-                        label="Full name"
-                        value={name}
-                        onChange={setName}
-                        required
-                        autoComplete="name"
-                        C={C}
-                      />
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <AuthField
+                          id="auth-first-name"
+                          label="First name"
+                          value={firstName}
+                          onChange={setFirstName}
+                          required
+                          autoComplete="given-name"
+                          disabled={isSubmitting}
+                          C={C}
+                        />
+                        <AuthField
+                          id="auth-last-name"
+                          label="Last name"
+                          value={lastName}
+                          onChange={setLastName}
+                          required
+                          autoComplete="family-name"
+                          disabled={isSubmitting}
+                          C={C}
+                        />
+                      </div>
                     ) : null}
 
                     <AuthField
@@ -504,15 +653,17 @@ export default function ApplicationAuthGate({
                       onChange={setEmail}
                       required
                       autoComplete="email"
+                      disabled={isSubmitting}
                       C={C}
                     />
 
                     <button
                       type="submit"
-                      className="mt-2 w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                      disabled={isSubmitting}
+                      className="mt-2 w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                       style={{ backgroundColor: C.accent }}
                     >
-                      Continue
+                      {isSubmitting ? "Sending code…" : "Continue"}
                     </button>
                   </form>
 
@@ -568,6 +719,7 @@ export default function ApplicationAuthGate({
                       onChange={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))}
                       required
                       autoComplete="one-time-code"
+                      disabled={isSubmitting}
                       C={C}
                     />
 
@@ -582,7 +734,7 @@ export default function ApplicationAuthGate({
                       className="w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ backgroundColor: C.accent }}
                     >
-                      Verify and continue
+                      {isSubmitting ? "Verifying…" : "Verify and continue"}
                     </button>
                   </form>
 
@@ -590,12 +742,14 @@ export default function ApplicationAuthGate({
                     Didn&apos;t get a code?{" "}
                     <button
                       type="button"
-                      disabled
-                      title="Coming soon"
-                      className="font-medium underline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={handleResendCode}
+                      disabled={!canResend}
+                      className="font-medium underline-offset-2 enabled:hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                       style={{ color: C.accent }}
                     >
-                      Resend code
+                      {resendCooldown > 0
+                        ? `Resend in ${resendCooldown}s`
+                        : "Resend code"}
                     </button>
                   </p>
                 </motion.div>
