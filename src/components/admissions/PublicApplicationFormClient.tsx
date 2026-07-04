@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import ApplicationAuthGate from "@/components/admissions/ApplicationAuthGate";
 import ApplicationFormExperience from "@/components/admissions/ApplicationFormExperience";
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
 import type {
@@ -25,7 +27,9 @@ export default function PublicApplicationFormClient({
   schema,
   feeConfig,
 }: PublicApplicationFormClientProps) {
-  return (
+  const [authComplete, setAuthComplete] = useState(false);
+
+  return authComplete ? (
     <ApplicationFormPageShell branding={branding}>
       <ApplicationFormExperience
         branding={branding}
@@ -37,5 +41,12 @@ export default function PublicApplicationFormClient({
         mode="live"
       />
     </ApplicationFormPageShell>
+  ) : (
+    <ApplicationAuthGate
+      branding={branding}
+      schoolName={schoolName}
+      formTitle={title}
+      onComplete={() => setAuthComplete(true)}
+    />
   );
 }

@@ -153,7 +153,7 @@ export default function ApplicationFormExperience({
     >
       <div
         ref={scrollContainerRef}
-        className="min-h-0 flex-1 overflow-y-auto px-6 py-6"
+        className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6"
       >
         <div className="mx-auto max-w-3xl">
           <div className="mb-8 flex items-center gap-4">
@@ -165,7 +165,7 @@ export default function ApplicationFormExperience({
                 height: branding.logo.height,
                 text: branding.logo.src ? undefined : schoolName,
               }}
-              className="h-8 w-auto max-w-[200px] object-contain"
+              className="h-7 w-auto max-w-[min(200px,70vw)] object-contain sm:h-8"
             />
           </div>
 
@@ -183,7 +183,7 @@ export default function ApplicationFormExperience({
               >
                 {title ? (
                   <h1
-                    className="text-3xl font-semibold leading-tight"
+                    className="text-2xl font-semibold leading-tight sm:text-3xl"
                     style={{ color: C.accentDark }}
                   >
                     {title}
@@ -243,15 +243,15 @@ export default function ApplicationFormExperience({
       </div>
 
       <footer
-        className="shrink-0 border-t px-6 py-4"
+        className="shrink-0 border-t px-4 py-3 sm:px-6 sm:py-4"
         style={{ borderColor: C.border, backgroundColor: pageBg }}
       >
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
+        <div className="mx-auto flex max-w-3xl flex-col-reverse gap-3 sm:flex-row sm:items-center">
           {!isFirstStep ? (
             <button
               type="button"
               onClick={handleBack}
-              className="rounded-md border px-4 py-2.5 text-sm font-medium transition hover:opacity-90"
+              className="w-full rounded-md border px-4 py-2.5 text-center text-sm font-medium transition hover:opacity-90 sm:w-auto"
               style={{
                 borderColor: C.secondaryBtnBorder,
                 color: C.textPrimary,
@@ -262,13 +262,13 @@ export default function ApplicationFormExperience({
             </button>
           ) : null}
 
-          <div className="ml-auto flex shrink-0 gap-3">
+          <div className="flex w-full flex-col gap-3 sm:ml-auto sm:w-auto sm:flex-row">
             {currentStep?.kind === "fee" ? (
               <button
                 type="button"
                 disabled={isLive}
                 title={isLive ? "Online payment is coming soon." : undefined}
-                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 style={{ backgroundColor: C.accent }}
               >
                 {feeConfig.label ?? "Pay application fee"}
@@ -279,7 +279,7 @@ export default function ApplicationFormExperience({
                 type="button"
                 disabled={!allAcknowledged || isLive}
                 title={isLive ? "Online submission is coming soon." : undefined}
-                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 style={{ backgroundColor: C.accent }}
               >
                 Submit application{!isLive ? " (preview)" : ""}
@@ -289,7 +289,7 @@ export default function ApplicationFormExperience({
                 type="button"
                 disabled={isLive}
                 title={isLive ? "Online submission is coming soon." : undefined}
-                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 style={{ backgroundColor: C.accent }}
               >
                 Submit application{!isLive ? " (preview)" : ""}
@@ -301,7 +301,7 @@ export default function ApplicationFormExperience({
                 disabled={
                   currentStep?.kind === "acknowledgments" && !allAcknowledged
                 }
-                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 style={{ backgroundColor: C.accent }}
               >
                 {currentStep?.kind === "acknowledgments" ? "Continue" : "Save and continue"}
@@ -338,7 +338,7 @@ function SectionStep({
 
   return (
     <div>
-      <h2 className="text-xl font-semibold" style={{ color: C.accentDark }}>
+      <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
         {section.title}
       </h2>
       {section.description ? (
@@ -399,7 +399,7 @@ function AcknowledgmentsStep({
 }) {
   return (
     <div>
-      <h2 className="text-xl font-semibold" style={{ color: C.accentDark }}>
+      <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
         Parent acknowledgments
       </h2>
       <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
@@ -440,7 +440,7 @@ function FeeStep({
 
   return (
     <div>
-      <h2 className="text-xl font-semibold" style={{ color: C.accentDark }}>
+      <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
         Application fee
       </h2>
       <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
