@@ -1,12 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { CheckCircle2, CreditCard, Loader2, AlertCircle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Circle,
+  CreditCard,
+  Loader2,
+} from "lucide-react";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import type { OrganizationPaymentAccount } from "@/lib/stripe/organization-payment-account";
-import { createClient } from "@/utils/supabase/client";
+import type { ConnectStatusResult } from "@/lib/stripe/connect-status";
 
 type PaymentsSetupPageProps = {
   organizationId: string;
@@ -15,17 +21,44 @@ type PaymentsSetupPageProps = {
   schoolName: string;
 };
 
-function accountFromRow(row: Record<string, unknown>): OrganizationPaymentAccount {
-  return {
-    organizationId: String(row.organization_id),
-    stripeConnectAccountId:
-      typeof row.stripe_connect_account_id === "string"
-        ? row.stripe_connect_account_id
-        : null,
-    onboardingStatus: row.onboarding_status as OrganizationPaymentAccount["onboardingStatus"],
-    chargesEnabled: Boolean(row.charges_enabled),
-    payoutsEnabled: Boolean(row.payouts_enabled),
-  };
+function ChecklistRow({
+  done,
+  label,
+  hint,
+  C,
+}: {
+  done: boolean;
+  label: string;
+  hint?: string;
+  C: ReturnType<typeof buildAdminThemeTokens>;
+}) {
+  return (
+    <li className="flex items-start gap-2.5">
+      {done ? (
+        <CheckCircle2
+          className="mt-0.5 h-4 w-4 shrink-0"
+          style={{ color: "#16A34A" }}
+          aria-hidden
+        />
+      ) : (
+        <Circle
+          className="mt-0.5 h-4 w-4 shrink-0"
+          style={{ color: C.textTertiary }}
+          aria-hidden
+        />
+      )}
+      <div>
+        <span className="text-sm" style={{ color: C.textPrimary }}>
+          {label}
+        </span>
+        {hint ? (
+          <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+            {hint}
+          </p>
+        ) : null}
+      </div>
+    </li>
+  );
 }
 
 export default function PaymentsSetupPage({
@@ -35,62 +68,110 @@ export default function PaymentsSetupPage({
   schoolName,
 }: PaymentsSetupPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-  const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [account, setAccount] = useState<OrganizationPaymentAccount | null>(null);
+  const [status, setStatus] = useState<ConnectStatusResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const returnHandledRef = useRef(false);
 
-  const loadAccount = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadStatus = useCallback(
+    async (options?: { handleReturn?: boolean }) => {
+      setLoading(true);
+      setError(null);
 
-    const { data, error: loadError } = await supabase
-      .from("organization_payment_accounts")
-      .select(
-        "organization_id, stripe_connect_account_id, onboarding_status, charges_enabled, payouts_enabled",
-      )
-      .eq("organization_id", organizationId)
-      .maybeSingle();
+      try {
+        const response = await fetch(
+          `/api/stripe/connect/status?organizationId=${encodeURIComponent(organizationId)}`,
+        );
+        const payload = (await response.json()) as ConnectStatusResult & {
+          error?: string;
+        };
 
-    if (loadError) {
-      setError(loadError.message);
-      setAccount(null);
-    } else {
-      setAccount(data ? accountFromRow(data as Record<string, unknown>) : null);
-    }
+        if (!response.ok) {
+          throw new Error(
+            payload.error ?? "Failed to load payment setup status.",
+          );
+        }
 
-    setLoading(false);
-  }, [organizationId, supabase]);
+        setStatus(payload);
 
-  useEffect(() => {
-    void loadAccount();
-  }, [loadAccount]);
+        if (options?.handleReturn) {
+          const connected = searchParams.get("connected");
+          if (connected === "1") {
+            if (payload.isReady) {
+              setNotice(
+                "Stripe is connected. You're ready to collect application fees.",
+              );
+            } else if (payload.pendingMessage) {
+              setNotice(payload.pendingMessage);
+            } else {
+              setNotice(
+                "Stripe setup updated. Finish any remaining steps below.",
+              );
+            }
+          } else if (connected === "0") {
+            setError("We could not confirm your Stripe setup. Please try again.");
+          }
+        }
+
+        return payload;
+      } catch (loadError) {
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Failed to load payment setup status.",
+        );
+        setStatus(null);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [organizationId, searchParams],
+  );
 
   useEffect(() => {
     const connected = searchParams.get("connected");
-    if (connected === "1") {
-      setNotice("Stripe setup updated. If payments are not ready yet, finish any remaining steps in Stripe.");
-      void loadAccount();
-    } else if (connected === "0") {
-      setError("We could not confirm your Stripe setup. Please try again.");
+
+    if (
+      (connected === "1" || connected === "0") &&
+      !returnHandledRef.current
+    ) {
+      returnHandledRef.current = true;
+      void loadStatus({ handleReturn: true }).then(() => {
+        router.replace(`/school/${orgSlug}/admin/admissions/payments`, {
+          scroll: false,
+        });
+      });
+      return;
     }
-  }, [loadAccount, searchParams]);
 
-  const isReady = Boolean(
-    account?.stripeConnectAccountId && account.chargesEnabled,
-  );
+    void loadStatus();
+  }, [loadStatus, orgSlug, router, searchParams]);
 
-  const statusLabel = loading
+  const isReady = Boolean(status?.isReady);
+  const hasAccount = Boolean(status?.checklist.accountCreated);
+
+  const stateHeading = loading
     ? "Checking status…"
     : isReady
       ? "Ready to accept payments"
-      : account?.stripeConnectAccountId
-        ? "Setup in progress"
-        : "Not connected";
+      : hasAccount
+        ? "Almost there"
+        : "Connect Stripe to collect application fees";
+
+  const stateSubtext = loading
+    ? "Syncing with Stripe…"
+    : isReady
+      ? "Families can pay application fees when they apply."
+      : hasAccount
+        ? status?.pendingMessage ??
+          "Complete the remaining steps to start accepting payments."
+        : "Application fees are collected at checkout when families apply.";
 
   const handleConnect = async () => {
     setConnecting(true);
@@ -126,9 +207,9 @@ export default function PaymentsSetupPage({
           Payments
         </h1>
         <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-          Connect Stripe so {schoolName} can collect application fees online. Funds
-          go to your school&apos;s Stripe account; {schoolName} facilitates checkout
-          for families.
+          Connect Stripe so {schoolName} can collect application fees online.
+          Funds go to your school&apos;s Stripe account; {schoolName} facilitates
+          checkout for families.
         </p>
       </div>
 
@@ -141,7 +222,10 @@ export default function PaymentsSetupPage({
             color: C.textPrimary,
           }}
         >
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" style={{ color: C.accent }} />
+          <CheckCircle2
+            className="mt-0.5 h-4 w-4 shrink-0"
+            style={{ color: C.accent }}
+          />
           <span>{notice}</span>
         </div>
       ) : null}
@@ -176,39 +260,131 @@ export default function PaymentsSetupPage({
             <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
               Stripe Connect
             </p>
-            <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-              {statusLabel}
+            <p
+              className="mt-0.5 text-sm font-medium"
+              style={{ color: isReady ? "#16A34A" : C.textPrimary }}
+            >
+              {stateHeading}
+            </p>
+            <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>
+              {stateSubtext}
             </p>
           </div>
-          {isReady ? (
-            <CheckCircle2 className="h-5 w-5 shrink-0" style={{ color: "#16A34A" }} />
+          {isReady && !loading ? (
+            <CheckCircle2
+              className="h-5 w-5 shrink-0"
+              style={{ color: "#16A34A" }}
+            />
           ) : null}
         </div>
 
-        <ul className="space-y-2 text-sm" style={{ color: C.textSecondary }}>
-          <li>Application fees from your enrollment flows are collected at checkout.</li>
-          <li>You will complete identity and payout details in Stripe&apos;s secure flow.</li>
-          <li>Publishing a fee-enabled form requires payments to be ready.</li>
-        </ul>
+        {loading ? (
+          <div
+            className="flex items-center gap-2 text-sm"
+            style={{ color: C.textTertiary }}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading payment status…
+          </div>
+        ) : hasAccount && status ? (
+          <ul className="space-y-3 border-t pt-4" style={{ borderColor: C.border }}>
+            <ChecklistRow
+              done={status.checklist.accountCreated}
+              label="Stripe account connected"
+              C={C}
+            />
+            <ChecklistRow
+              done={status.checklist.detailsSubmitted}
+              label="Identity and business details submitted"
+              C={C}
+            />
+            <ChecklistRow
+              done={status.checklist.chargesEnabled}
+              label="Charges enabled"
+              hint="Required to collect application fees"
+              C={C}
+            />
+            <ChecklistRow
+              done={status.checklist.payoutsEnabled}
+              label="Payouts enabled"
+              hint="Informational — payouts go to your Stripe account"
+              C={C}
+            />
+          </ul>
+        ) : !hasAccount ? (
+          <ul className="space-y-2 text-sm" style={{ color: C.textSecondary }}>
+            <li>
+              Application fees from your enrollment flows are collected at
+              checkout.
+            </li>
+            <li>
+              You will complete identity and payout details in Stripe&apos;s
+              secure flow.
+            </li>
+            <li>Publishing a fee-enabled form requires payments to be ready.</li>
+          </ul>
+        ) : null}
 
-        <button
-          type="button"
-          onClick={handleConnect}
-          disabled={connecting || loading}
-          className="inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          style={{ backgroundColor: C.accent }}
-        >
-          {connecting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Opening Stripe…
-            </>
-          ) : account?.stripeConnectAccountId ? (
-            "Continue Stripe setup"
-          ) : (
-            "Connect Stripe"
-          )}
-        </button>
+        {!isReady && !loading ? (
+          <button
+            type="button"
+            onClick={handleConnect}
+            disabled={connecting}
+            className="inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            style={{ backgroundColor: C.accent }}
+          >
+            {connecting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Opening Stripe…
+              </>
+            ) : hasAccount ? (
+              "Continue in Stripe"
+            ) : (
+              "Connect Stripe"
+            )}
+          </button>
+        ) : null}
+
+        {isReady && !loading && status && status.nextSteps.length > 0 ? (
+          <div
+            className="space-y-3 border-t pt-4"
+            style={{ borderColor: C.border }}
+          >
+            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+              What&apos;s next
+            </p>
+            <ul className="space-y-2">
+              {status.nextSteps.map((step) => {
+                const isExternal = step.href.startsWith("http");
+
+                return (
+                  <li key={step.href}>
+                    {isExternal ? (
+                      <a
+                        href={step.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm underline-offset-2 hover:underline"
+                        style={{ color: C.accent }}
+                      >
+                        {step.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={step.href}
+                        className="text-sm underline-offset-2 hover:underline"
+                        style={{ color: C.accent }}
+                      >
+                        {step.label}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </div>
   );
