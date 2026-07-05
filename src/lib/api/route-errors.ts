@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { notifyWebsiteApiError } from "@/lib/discord";
 
 function stackFromCause(cause: unknown): string | undefined {
@@ -45,6 +46,14 @@ export function apiError(
       code: opts.code,
       stack: stackFromCause(opts.cause),
     });
+
+    Sentry.captureException(
+      opts.cause instanceof Error ? opts.cause : new Error(opts.error),
+      {
+        tags: { route, status: String(opts.status) },
+        extra: { code: opts.code, method },
+      },
+    );
   }
 
   return NextResponse.json(
