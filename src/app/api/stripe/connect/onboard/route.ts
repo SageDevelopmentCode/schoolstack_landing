@@ -1,10 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import {
-  AuthError,
-  requireAuthenticatedUser,
-  userIsOrgAdmin,
-} from "@/lib/admissions/application-auth";
+import { AuthError, requireAuthenticatedUser } from "@/lib/admissions/application-auth";
+import { canManageOrganization } from "@/lib/school-admin/access";
 import { apiError } from "@/lib/api/route-errors";
 import { getSiteUrl, getStripeClient } from "@/lib/stripe/client";
 import {
@@ -53,8 +50,12 @@ export async function POST(request: Request) {
       });
     }
 
-    const isAdmin = await userIsOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
+    const canManage = await canManageOrganization(
+      supabase,
+      user.id,
+      organizationId,
+    );
+    if (!canManage) {
       return apiError(ROUTE, {
         request,
         status: 403,

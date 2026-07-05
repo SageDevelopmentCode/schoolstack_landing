@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
   HelpCircle,
+  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import {
   type AdminNavItem,
 } from "@/lib/organization-settings/admin-nav";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
+import { schoolAdminLoginPath } from "@/lib/school-admin/access";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
@@ -24,12 +26,14 @@ import type {
   OrganizationBranding,
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
+import { createClient } from "@/utils/supabase/client";
 
 type SchoolAdminBaselineProps = {
   slug: string;
   schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
+  userEmail?: string | null;
   children: ReactNode;
 };
 
@@ -199,6 +203,8 @@ function Sidebar({
   pathname,
   isExpanded,
   onToggleExpand,
+  userEmail,
+  onSignOut,
 }: {
   C: AdminThemeTokens;
   branding: OrganizationBranding;
@@ -208,6 +214,8 @@ function Sidebar({
   pathname: string;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  userEmail?: string | null;
+  onSignOut: () => void;
 }) {
   const { logo } = branding;
   const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
@@ -346,6 +354,34 @@ function Sidebar({
           padding: isExpanded ? "10px 12px" : "10px 6px",
         }}
       >
+        {isExpanded && userEmail ? (
+          <p
+            className="mb-2 truncate px-2 text-xs"
+            style={{ color: C.textTertiary }}
+            title={userEmail}
+          >
+            {userEmail}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          onClick={onSignOut}
+          title="Sign out"
+          className="mb-2 w-full flex items-center transition-colors duration-150"
+          style={{
+            justifyContent: isExpanded ? "flex-start" : "center",
+            gap: isExpanded ? "8px" : 0,
+            padding: "6px 8px",
+            borderRadius: C.r.sm,
+            color: C.textTertiary,
+            cursor: "pointer",
+            backgroundColor: "transparent",
+            border: "none",
+          }}
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          {isExpanded && <span className="text-xs font-medium">Sign out</span>}
+        </button>
         <button
           type="button"
           onClick={onToggleExpand}
@@ -381,9 +417,12 @@ export default function SchoolAdminBaseline({
   schoolName,
   branding,
   features,
+  userEmail,
   children,
 }: SchoolAdminBaselineProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
   const navGroups = useMemo(
     () =>
@@ -401,6 +440,12 @@ export default function SchoolAdminBaseline({
   const bodyFont =
     branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push(schoolAdminLoginPath(slug));
+    router.refresh();
+  };
+
   return (
     <div
       className="flex h-dvh w-full overflow-hidden"
@@ -415,6 +460,8 @@ export default function SchoolAdminBaseline({
         pathname={pathname}
         isExpanded={sidebarExpanded}
         onToggleExpand={() => setSidebarExpanded((v) => !v)}
+        userEmail={userEmail}
+        onSignOut={handleSignOut}
       />
 
       <main className="flex-1 overflow-hidden">

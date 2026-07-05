@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
+import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import type { OrganizationSettingsRow } from "@/lib/organization-settings/types";
 
 type OrganizationStatus = "onboarding" | "live" | "paused" | "churned";
@@ -353,6 +354,11 @@ export default function AdminOrganizationsPage() {
                   .maybeSingle();
                 setSettingsRow((data as OrganizationSettingsRow | null) ?? null);
               }}
+            />
+
+            <OrganizationAccessPanel
+              organizationId={selected.id}
+              organizationName={selected.name}
             />
 
             <section className="bg-surface border border-border rounded-lg p-4 space-y-3">
