@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api/route-errors";
 import {
   notifyRootedMeadowsVerificationCodeSent,
   type ApplyAuthMode,
 } from "@/lib/discord";
+
+const ROUTE = "/api/admissions/notify-verification-code-sent";
 
 type NotifyRequestBody = {
   schoolName?: string;
@@ -24,7 +27,7 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as NotifyRequestBody;
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid request body." });
   }
 
   const schoolName = body.schoolName?.trim();
@@ -32,18 +35,19 @@ export async function POST(request: Request) {
   const mode = body.mode;
 
   if (!schoolName) {
-    return NextResponse.json({ error: "schoolName is required." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "schoolName is required." });
   }
 
   if (!email || !EMAIL_PATTERN.test(email)) {
-    return NextResponse.json({ error: "A valid email is required." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "A valid email is required." });
   }
 
   if (!mode || !isApplyAuthMode(mode)) {
-    return NextResponse.json(
-      { error: "mode must be create or login." },
-      { status: 400 },
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "mode must be create or login.",
+    });
   }
 
   try {
@@ -58,10 +62,11 @@ export async function POST(request: Request) {
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("notify-verification-code-sent failed:", error);
-    return NextResponse.json(
-      { error: "Failed to send notification." },
-      { status: 500 },
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: "Failed to send notification.",
+      cause: error,
+    });
   }
 }

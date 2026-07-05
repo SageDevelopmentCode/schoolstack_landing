@@ -6,6 +6,7 @@ import PublicApplicationFormClient from "@/components/admissions/PublicApplicati
 import { getPublishedApplicationFormBySlug } from "@/lib/admissions/application-forms";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -70,15 +71,17 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
   }
 
   return (
-    <PublicApplicationFormClient
-      branding={org.branding}
-      schoolName={org.name}
-      title={form.title}
-      intro={form.intro}
-      schema={form.schema}
-      feeConfig={form.fee_config}
-      organizationId={org.id}
-      formVersionId={form.id}
-    />
+    <Suspense>
+      <PublicApplicationFormClient
+        branding={org.branding}
+        schoolName={org.name}
+        title={form.title}
+        intro={form.intro}
+        schema={form.schema}
+        feeConfig={form.fee_config}
+        organizationId={org.id}
+        formVersionId={form.id}
+      />
+    </Suspense>
   );
 }

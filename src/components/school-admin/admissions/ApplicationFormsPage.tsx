@@ -14,6 +14,7 @@ import {
   updateApplicationForm,
   type ProgramOption,
 } from "@/lib/admissions/application-forms";
+import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
 import {
   emptyApplicationSection,
   formatFormUpdatedAt,
@@ -113,6 +114,7 @@ export default function ApplicationFormsPage({
   const [setupHighlight, setSetupHighlight] = useState<"publicSlug" | null>(null);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
+  const [stripePaymentsReady, setStripePaymentsReady] = useState(true);
 
   const selectedForm = forms.find((f) => f.id === selectedId) ?? null;
   const isArchived = selectedForm?.status === "archived";
@@ -128,12 +130,14 @@ export default function ApplicationFormsPage({
     setLoading(true);
     setError(null);
     try {
-      const [formRows, programRows] = await Promise.all([
+      const [formRows, programRows, paymentsReady] = await Promise.all([
         listApplicationForms(supabase, organizationId),
         listPrograms(supabase, organizationId),
+        orgPaymentsReadyForFees(supabase, organizationId),
       ]);
       setForms(formRows);
       setPrograms(programRows);
+      setStripePaymentsReady(paymentsReady);
       setSelectedId((prev) => {
         if (prev && formRows.some((f) => f.id === prev)) return prev;
         return formRows[0]?.id ?? null;
@@ -615,6 +619,7 @@ export default function ApplicationFormsPage({
               readOnly={readOnly}
               setupHighlight={setupHighlight}
               slugError={setupHighlight === "publicSlug" ? error : null}
+              stripePaymentsReady={stripePaymentsReady}
               onFocusChange={setFocus}
               onEditableChange={handleEditableChange}
               onUpdateSchema={updateSchema}

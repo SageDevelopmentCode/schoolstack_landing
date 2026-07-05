@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   getAdminPageLabel,
   getAdminSubtabLabel,
@@ -8,6 +9,7 @@ import {
 import { isAdminNavPathEnabled } from "@/lib/organization-settings/admin-routes";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import ApplicationFormsPage from "@/components/school-admin/admissions/ApplicationFormsPage";
+import PaymentsSetupPage from "@/components/school-admin/admissions/PaymentsSetupPage";
 import ProgramsPage from "@/components/school-admin/admissions/ProgramsPage";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
@@ -86,6 +88,19 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
         schoolName={org.name}
         slug={slug}
       />
+    );
+  }
+
+  if (feature === "admissions" && subtab === "payments") {
+    return (
+      <Suspense>
+        <PaymentsSetupPage
+          organizationId={org.id}
+          orgSlug={slug}
+          branding={org.branding}
+          schoolName={org.name}
+        />
+      </Suspense>
     );
   }
 

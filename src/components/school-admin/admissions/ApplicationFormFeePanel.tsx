@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import type { ApplicationFormFeeConfig } from "@/lib/admissions/application-form-schema";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ApplicationFormFeePanelProps = {
@@ -10,6 +12,8 @@ type ApplicationFormFeePanelProps = {
   readOnly: boolean;
   onChange: (feeConfig: ApplicationFormFeeConfig) => void;
   hideHeader?: boolean;
+  orgSlug?: string;
+  stripePaymentsReady?: boolean;
 };
 
 export default function ApplicationFormFeePanel({
@@ -18,6 +22,8 @@ export default function ApplicationFormFeePanel({
   readOnly,
   onChange,
   hideHeader = false,
+  orgSlug,
+  stripePaymentsReady = true,
 }: ApplicationFormFeePanelProps) {
   const inputStyle: React.CSSProperties = {
     backgroundColor: C.input,
@@ -81,6 +87,26 @@ export default function ApplicationFormFeePanel({
           Collect an application fee
         </label>
       )}
+
+      {feeConfig.enabled && !stripePaymentsReady && orgSlug ? (
+        <div
+          className="rounded-md border px-3 py-2.5 text-xs leading-relaxed"
+          style={{
+            borderColor: C.errorBorder,
+            backgroundColor: C.errorBg,
+            color: C.error,
+          }}
+        >
+          Connect Stripe before publishing a form with a fee.{" "}
+          <Link
+            href={schoolAdminPath(orgSlug, "admissions", "payments")}
+            className="font-medium underline underline-offset-2"
+            style={{ color: C.accent }}
+          >
+            Set up payments
+          </Link>
+        </div>
+      ) : null}
 
       {feeConfig.enabled && (
         <>

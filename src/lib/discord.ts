@@ -21,11 +21,16 @@ interface DiscordEmbed {
 
 export type ApplyAuthMode = "create" | "login";
 
-async function sendDiscordEmbedToWebhook(webhookUrl: string, embed: DiscordEmbed) {
+async function sendDiscordEmbedToWebhook(
+  webhookUrl: string,
+  embed: DiscordEmbed,
+  options?: { content?: string },
+) {
   const response = await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      ...(options?.content ? { content: options.content } : {}),
       embeds: [
         {
           color: BRAND_COLOR,
@@ -61,6 +66,58 @@ async function sendRootedMeadowsDiscordEmbed(embed: DiscordEmbed) {
   }
 
   await sendDiscordEmbedToWebhook(webhookUrl, embed);
+}
+
+async function sendWebsiteNotificationDiscordEmbed(
+  embed: DiscordEmbed,
+  options?: { content?: string },
+) {
+  const webhookUrl = process.env.ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn(
+      "ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL is not set; skipping Discord notification.",
+    );
+    return;
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
+}
+
+export async function notifyWebsiteApiError(payload: {
+  route: string;
+  method: string;
+  status: number;
+  error: string;
+  code?: string;
+  stack?: string;
+  digest?: string;
+}) {
+  const fields: DiscordEmbedField[] = [
+    { name: "Route", value: truncate(payload.route), inline: true },
+    { name: "Method", value: payload.method, inline: true },
+    { name: "Status", value: String(payload.status), inline: true },
+    { name: "Error", value: truncate(payload.error) },
+  ];
+
+  if (payload.code) {
+    fields.push({ name: "Code", value: truncate(payload.code), inline: true });
+  }
+
+  if (payload.digest) {
+    fields.push({ name: "Digest", value: truncate(payload.digest), inline: true });
+  }
+
+  if (payload.stack) {
+    fields.push({ name: "Stack", value: truncate(payload.stack, 900) });
+  }
+
+  await sendWebsiteNotificationDiscordEmbed(
+    {
+      title: `API error · ${payload.status}`,
+      fields,
+    },
+    { content: "@everyone" },
+  );
 }
 
 export async function notifyRootedMeadowsVerificationCodeSent(payload: {

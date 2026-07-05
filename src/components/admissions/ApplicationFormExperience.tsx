@@ -2,9 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import type { SaveApplicationDraftInput } from "@/lib/admissions/application-draft";
+import type { ApplicationFileUploadContext } from "@/lib/admissions/application-file-storage";
 import {
   formatFeeAmount,
   type ApplicationFormFeeConfig,
@@ -13,6 +17,7 @@ import {
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { createClient } from "@/utils/supabase/client";
 
 type ExperienceStep =
   | { kind: "section"; sectionIndex: number }
@@ -27,6 +32,16 @@ export type ApplicationFormExperienceProps = {
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
   mode?: "preview" | "live";
+  applicationId?: string;
+  organizationId?: string;
+  initialValues?: Record<string, string>;
+  initialAcknowledgments?: Record<string, boolean>;
+  initialStepIndex?: number;
+  initialFeeStatus?: string;
+  initialStatus?: string;
+  paymentReturnPending?: boolean;
+  onSaveDraft?: (input: SaveApplicationDraftInput) => Promise<void>;
+  onSubmitted?: () => void;
 };
 
 const stepVariants = {
@@ -68,21 +83,51 @@ export default function ApplicationFormExperience({
   schema,
   feeConfig,
   mode = "preview",
+  applicationId,
+  organizationId,
+  initialValues,
+  initialAcknowledgments,
+  initialStepIndex = 0,
+  initialFeeStatus = "not_required",
+  initialStatus = "draft",
+  paymentReturnPending = false,
+  onSaveDraft,
+  onSubmitted,
 }: ApplicationFormExperienceProps) {
   const isLive = mode === "live";
+  const canPersist = isLive && Boolean(applicationId && onSaveDraft);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const supabase = useMemo(
+    () => (canPersist ? createClient() : null),
+    [canPersist],
+  );
+  const uploadContext = useMemo<ApplicationFileUploadContext | undefined>(() => {
+    if (!canPersist || !applicationId || !organizationId) return undefined;
+    return { applicationId, organizationId };
+  }, [applicationId, canPersist, organizationId]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const steps = useMemo(
     () => buildSteps(schema, feeConfig),
     [schema, feeConfig],
   );
 
-  const [stepIndex, setStepIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [acknowledgments, setAcknowledgments] = useState<Record<string, boolean>>(
-    {},
+  const [stepIndex, setStepIndex] = useState(() =>
+    Math.min(Math.max(0, initialStepIndex), Math.max(0, buildSteps(schema, feeConfig).length - 1)),
   );
+  const [direction, setDirection] = useState(1);
+  const [values, setValues] = useState<Record<string, string>>(
+    () => initialValues ?? {},
+  );
+  const [acknowledgments, setAcknowledgments] = useState<Record<string, boolean>>(
+    () => initialAcknowledgments ?? {},
+  );
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [feeStatus, setFeeStatus] = useState(initialFeeStatus);
+  const [applicationStatus, setApplicationStatus] = useState(initialStatus);
+  const [awaitingPaymentConfirmation, setAwaitingPaymentConfirmation] =
+    useState(paymentReturnPending);
 
   const currentStep = steps[stepIndex];
   const totalSteps = steps.length;
@@ -106,29 +151,152 @@ export default function ApplicationFormExperience({
 
   const updateValue = (fieldId: string, value: string) => {
     setValues((prev) => ({ ...prev, [fieldId]: value }));
+    setSaveError(null);
   };
 
-  const handleContinue = () => {
-    if (stepIndex < totalSteps - 1) {
-      setDirection(1);
-      setStepIndex((current) => current + 1);
-      scrollToTop();
-    }
+  const persistDraft = async (nextStepIndex: number) => {
+    if (!onSaveDraft) return;
+    await onSaveDraft({
+      responses: values,
+      acknowledgments,
+      stepIndex: nextStepIndex,
+    });
   };
 
-  const handleBack = () => {
-    if (stepIndex > 0) {
-      setDirection(-1);
-      setStepIndex((current) => current - 1);
-      scrollToTop();
+  const handleContinue = async () => {
+    if (stepIndex >= totalSteps - 1) return;
+
+    const nextStepIndex = stepIndex + 1;
+
+    if (canPersist) {
+      setSaving(true);
+      setSaveError(null);
+      try {
+        await persistDraft(nextStepIndex);
+        setDirection(1);
+        setStepIndex(nextStepIndex);
+        scrollToTop();
+      } catch (error) {
+        setSaveError(
+          error instanceof Error ? error.message : "Failed to save your progress.",
+        );
+      } finally {
+        setSaving(false);
+      }
+      return;
     }
+
+    setDirection(1);
+    setStepIndex(nextStepIndex);
+    scrollToTop();
+  };
+
+  const handleBack = async () => {
+    if (stepIndex <= 0) return;
+
+    const previousStepIndex = stepIndex - 1;
+
+    if (canPersist) {
+      setSaving(true);
+      setSaveError(null);
+      try {
+        await persistDraft(previousStepIndex);
+        setDirection(-1);
+        setStepIndex(previousStepIndex);
+        scrollToTop();
+      } catch (error) {
+        setSaveError(
+          error instanceof Error ? error.message : "Failed to save your progress.",
+        );
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    setDirection(-1);
+    setStepIndex(previousStepIndex);
+    scrollToTop();
   };
 
   const allAcknowledged =
     schema.acknowledgments.length === 0 ||
     schema.acknowledgments.every((item) => acknowledgments[item.id]);
 
+  const handlePayFee = async () => {
+    if (!applicationId || !isLive) return;
+
+    setActionLoading(true);
+    setSaveError(null);
+
+    try {
+      if (canPersist) {
+        await persistDraft(stepIndex);
+      }
+
+      const response = await fetch(
+        `/api/admissions/applications/${applicationId}/checkout`,
+        { method: "POST" },
+      );
+      const payload = (await response.json()) as { url?: string; error?: string };
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? "Failed to start checkout.");
+      }
+
+      window.location.href = payload.url;
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to start checkout.",
+      );
+      setActionLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!applicationId || !isLive) return;
+
+    setActionLoading(true);
+    setSaveError(null);
+
+    try {
+      if (canPersist) {
+        await persistDraft(stepIndex);
+      }
+
+      const response = await fetch(
+        `/api/admissions/applications/${applicationId}/submit`,
+        { method: "POST" },
+      );
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to submit application.");
+      }
+
+      setApplicationStatus("submitted");
+      onSubmitted?.();
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to submit application.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const pageBg = branding.colors.bg;
+
+  if (applicationStatus !== "draft") {
+    return (
+      <SubmittedConfirmation
+        branding={branding}
+        schoolName={schoolName}
+        title={title}
+        awaitingPaymentConfirmation={awaitingPaymentConfirmation}
+      />
+    );
+  }
 
   if (schema.sections.length === 0) {
     return (
@@ -233,9 +401,16 @@ export default function ApplicationFormExperience({
                   }
                 />
               ) : currentStep?.kind === "fee" ? (
-                <FeeStep C={C} feeConfig={feeConfig} />
+                <FeeStep C={C} feeConfig={feeConfig} feeStatus={feeStatus} />
               ) : section ? (
-                <SectionStep C={C} section={section} values={values} onChange={updateValue} />
+                <SectionStep
+                  C={C}
+                  section={section}
+                  values={values}
+                  onChange={updateValue}
+                  supabase={supabase ?? undefined}
+                  uploadContext={uploadContext}
+                />
               ) : null}
             </motion.div>
           </AnimatePresence>
@@ -246,12 +421,28 @@ export default function ApplicationFormExperience({
         className="shrink-0 border-t px-4 py-3 sm:px-6 sm:py-4"
         style={{ borderColor: C.border, backgroundColor: pageBg }}
       >
-        <div className="mx-auto flex max-w-3xl flex-col-reverse gap-3 sm:flex-row sm:items-center">
+        <div className="mx-auto max-w-3xl">
+          {saveError ? (
+            <p
+              className="mb-3 rounded-md border px-3 py-2 text-sm"
+              style={{
+                borderColor: C.errorBorder,
+                backgroundColor: C.surface,
+                color: C.error,
+              }}
+              role="alert"
+            >
+              {saveError}
+            </p>
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
           {!isFirstStep ? (
             <button
               type="button"
               onClick={handleBack}
-              className="w-full rounded-md border px-4 py-2.5 text-center text-sm font-medium transition hover:opacity-90 sm:w-auto"
+              disabled={saving}
+              className="w-full rounded-md border px-4 py-2.5 text-center text-sm font-medium transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               style={{
                 borderColor: C.secondaryBtnBorder,
                 color: C.textPrimary,
@@ -266,47 +457,67 @@ export default function ApplicationFormExperience({
             {currentStep?.kind === "fee" ? (
               <button
                 type="button"
-                disabled={isLive}
-                title={isLive ? "Online payment is coming soon." : undefined}
+                onClick={handlePayFee}
+                disabled={
+                  !isLive
+                    ? false
+                    : actionLoading ||
+                      saving ||
+                      feeStatus === "paid" ||
+                      (feeConfig.amount_cents ?? 0) <= 0
+                }
                 className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 style={{ backgroundColor: C.accent }}
               >
-                {feeConfig.label ?? "Pay application fee"}
+                {actionLoading || saving
+                  ? "Preparing checkout…"
+                  : feeConfig.label ?? "Pay application fee"}
                 {!isLive ? " (preview)" : ""}
               </button>
             ) : currentStep?.kind === "acknowledgments" && !feeConfig.enabled ? (
               <button
                 type="button"
-                disabled={!allAcknowledged || isLive}
-                title={isLive ? "Online submission is coming soon." : undefined}
+                onClick={isLive ? handleSubmit : undefined}
+                disabled={
+                  !allAcknowledged ||
+                  (isLive && (actionLoading || saving))
+                }
                 className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 style={{ backgroundColor: C.accent }}
               >
-                Submit application{!isLive ? " (preview)" : ""}
+                {actionLoading ? "Submitting…" : "Submit application"}
+                {!isLive ? " (preview)" : ""}
               </button>
             ) : isLastStep ? (
               <button
                 type="button"
-                disabled={isLive}
-                title={isLive ? "Online submission is coming soon." : undefined}
+                onClick={isLive ? handleSubmit : undefined}
+                disabled={isLive && (actionLoading || saving)}
                 className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 style={{ backgroundColor: C.accent }}
               >
-                Submit application{!isLive ? " (preview)" : ""}
+                {actionLoading ? "Submitting…" : "Submit application"}
+                {!isLive ? " (preview)" : ""}
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleContinue}
                 disabled={
-                  currentStep?.kind === "acknowledgments" && !allAcknowledged
+                  saving ||
+                  (currentStep?.kind === "acknowledgments" && !allAcknowledged)
                 }
                 className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 style={{ backgroundColor: C.accent }}
               >
-                {currentStep?.kind === "acknowledgments" ? "Continue" : "Save and continue"}
+                {saving
+                  ? "Saving…"
+                  : currentStep?.kind === "acknowledgments"
+                    ? "Continue"
+                    : "Save and continue"}
               </button>
             )}
+          </div>
           </div>
         </div>
       </footer>
@@ -319,11 +530,15 @@ function SectionStep({
   section,
   values,
   onChange,
+  supabase,
+  uploadContext,
 }: {
   C: ReturnType<typeof buildAdminThemeTokens>;
   section: ApplicationSection;
   values: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
+  supabase?: SupabaseClient;
+  uploadContext?: ApplicationFileUploadContext;
 }) {
   const topNotice =
     section.stepNotice?.body.trim() &&
@@ -375,6 +590,8 @@ function SectionStep({
               value={values[field.id] ?? ""}
               onChange={(value) => onChange(field.id, value)}
               C={C}
+              supabase={supabase}
+              uploadContext={uploadContext}
             />
           </label>
         ))}
@@ -432,9 +649,11 @@ function AcknowledgmentsStep({
 function FeeStep({
   C,
   feeConfig,
+  feeStatus,
 }: {
   C: ReturnType<typeof buildAdminThemeTokens>;
   feeConfig: ApplicationFormFeeConfig;
+  feeStatus?: string;
 }) {
   const amount = formatFeeAmount(feeConfig.amount_cents ?? 0);
 
@@ -444,7 +663,9 @@ function FeeStep({
         Application fee
       </h2>
       <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
-        Review the application fee before submitting.
+        {feeStatus === "paid"
+          ? "Your application fee has been paid."
+          : "Review the application fee before submitting."}
       </p>
       <div
         className="mt-6 rounded-lg border px-5 py-4"
@@ -457,6 +678,73 @@ function FeeStep({
           {amount}
         </p>
       </div>
+    </div>
+  );
+}
+
+function SubmittedConfirmation({
+  branding,
+  schoolName,
+  title,
+  awaitingPaymentConfirmation,
+}: {
+  branding: OrganizationBranding;
+  schoolName: string;
+  title: string;
+  awaitingPaymentConfirmation: boolean;
+}) {
+  const C = buildAdminThemeTokens(branding);
+  const pageBg = branding.colors.bg;
+
+  return (
+    <div
+      className="flex h-full min-h-dvh flex-col items-center justify-center px-6 py-12 text-center"
+      style={{ backgroundColor: pageBg, color: C.textPrimary }}
+    >
+      <SchoolDemoWordmark
+        logo={{
+          src: branding.logo.src,
+          alt: branding.logo.alt || schoolName,
+          width: branding.logo.width,
+          height: branding.logo.height,
+          text: branding.logo.src ? undefined : schoolName,
+        }}
+        className="mb-8 h-8 w-auto max-w-[200px] object-contain"
+      />
+      {awaitingPaymentConfirmation ? (
+        <>
+          <Loader2
+            className="mx-auto h-8 w-8 animate-spin"
+            style={{ color: C.accent }}
+          />
+          <h1
+            className="mt-6 text-xl font-semibold sm:text-2xl"
+            style={{ color: C.accentDark }}
+          >
+            Confirming your payment…
+          </h1>
+          <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+            This usually takes a few seconds. Please keep this page open.
+          </p>
+        </>
+      ) : (
+        <>
+          <CheckCircle2 className="mx-auto h-10 w-10" style={{ color: C.accent }} />
+          <h1
+            className="mt-6 text-xl font-semibold sm:text-2xl"
+            style={{ color: C.accentDark }}
+          >
+            Application submitted
+          </h1>
+          <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+            Thank you for submitting{" "}
+            <span className="font-medium" style={{ color: C.textPrimary }}>
+              {title}
+            </span>
+            . {schoolName} will be in touch about next steps.
+          </p>
+        </>
+      )}
     </div>
   );
 }

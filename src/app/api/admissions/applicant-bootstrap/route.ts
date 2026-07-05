@@ -4,12 +4,15 @@ import {
   bootstrapApplicant,
   BootstrapApplicantError,
 } from "@/lib/admissions/applicant-bootstrap";
+import { apiError } from "@/lib/api/route-errors";
 import {
   notifyRootedMeadowsParentApplicationStarted,
   type ApplyAuthMode,
 } from "@/lib/discord";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+
+const ROUTE = "/api/admissions/applicant-bootstrap";
 
 type BootstrapRequestBody = {
   organizationId?: string;
@@ -35,41 +38,46 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return NextResponse.json(
-      { error: "You must be signed in to continue.", code: "unauthenticated" },
-      { status: 401 },
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 401,
+      error: "You must be signed in to continue.",
+      code: "unauthenticated",
+    });
   }
 
   let body: BootstrapRequestBody;
   try {
     body = (await request.json()) as BootstrapRequestBody;
   } catch {
-    return NextResponse.json(
-      { error: "Invalid request body.", code: "invalid_body" },
-      { status: 400 },
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "Invalid request body.",
+      code: "invalid_body",
+    });
   }
 
   const organizationId = body.organizationId?.trim();
   const formVersionId = body.formVersionId?.trim();
 
   if (!organizationId || !formVersionId) {
-    return NextResponse.json(
-      {
-        error: "organizationId and formVersionId are required.",
-        code: "missing_fields",
-      },
-      { status: 400 },
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "organizationId and formVersionId are required.",
+      code: "missing_fields",
+    });
   }
 
   const email = user.email;
   if (!email) {
-    return NextResponse.json(
-      { error: "Your account has no email address.", code: "missing_email" },
-      { status: 400 },
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "Your account has no email address.",
+      code: "missing_email",
+    });
   }
 
   try {
@@ -106,16 +114,21 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof BootstrapApplicantError) {
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: error.status },
-      );
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
     }
 
-    console.error("applicant-bootstrap failed:", error);
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again.", code: "internal_error" },
-      { status: 500 },
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: "Something went wrong. Please try again.",
+      code: "internal_error",
+      cause: error,
+    });
   }
 }

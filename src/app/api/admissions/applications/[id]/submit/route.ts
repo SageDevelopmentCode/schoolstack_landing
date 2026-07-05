@@ -1,0 +1,116 @@
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import {
+  AuthError,
+  requireAuthenticatedUser,
+  userOwnsApplication,
+} from "@/lib/admissions/application-auth";
+import {
+  getApplicationForSubmit,
+  loadPublishedFormForApplication,
+  submitApplicationRecord,
+  validateAcknowledgmentsComplete,
+} from "@/lib/admissions/application-submit";
+import { apiError } from "@/lib/api/route-errors";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient } from "@/utils/supabase/server";
+
+const ROUTE = "/api/admissions/applications/[id]/submit";
+
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function POST(request: Request, context: RouteContext) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const { id: applicationId } = await context.params;
+
+  try {
+    const user = await requireAuthenticatedUser(supabase);
+    const ownsApplication = await userOwnsApplication(
+      supabase,
+      user.id,
+      applicationId,
+    );
+
+    if (!ownsApplication) {
+      return apiError(ROUTE, {
+        request,
+        status: 404,
+        error: "Application not found.",
+        code: "not_found",
+      });
+    }
+
+    const admin = createAdminClient();
+    const application = await getApplicationForSubmit(admin, applicationId);
+
+    if (!application) {
+      return apiError(ROUTE, {
+        request,
+        status: 404,
+        error: "Application not found.",
+        code: "not_found",
+      });
+    }
+
+    if (application.status !== "draft") {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "This application has already been submitted.",
+        code: "not_draft",
+      });
+    }
+
+    const { schema, feeConfig } = await loadPublishedFormForApplication(
+      admin,
+      application,
+    );
+
+    if (feeConfig.enabled && application.feeStatus === "pending") {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Please pay the application fee before submitting.",
+        code: "fee_required",
+      });
+    }
+
+    const ackError = validateAcknowledgmentsComplete(
+      schema,
+      application.acknowledgments,
+    );
+    if (ackError) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: ackError,
+        code: "acknowledgments_incomplete",
+      });
+    }
+
+    await submitApplicationRecord(admin, applicationId);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: "Failed to submit application.",
+      code: "internal_error",
+      cause: error,
+    });
+  }
+}

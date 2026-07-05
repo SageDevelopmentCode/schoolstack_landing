@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiError } from "@/lib/api/route-errors";
 import { todayKey } from "@/lib/demo-scheduler";
 import { createClient } from "@/utils/supabase/server";
 
-export async function GET() {
+const ROUTE = "/api/availability";
+
+export async function GET(request: Request) {
   const today = todayKey();
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -16,8 +19,12 @@ export async function GET() {
     .order("time_slot");
 
   if (slotsError) {
-    console.error("Availability fetch failed:", slotsError.message);
-    return NextResponse.json({ error: slotsError.message }, { status: 500 });
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: slotsError.message,
+      cause: slotsError,
+    });
   }
 
   if (!openSlots?.length) {
@@ -33,8 +40,12 @@ export async function GET() {
     .in("scheduled_date", dates);
 
   if (bookingsError) {
-    console.error("Bookings fetch failed:", bookingsError.message);
-    return NextResponse.json({ error: bookingsError.message }, { status: 500 });
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: bookingsError.message,
+      cause: bookingsError,
+    });
   }
 
   const booked = new Set(

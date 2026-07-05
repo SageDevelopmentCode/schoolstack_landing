@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api/route-errors";
 import { exchangeAuthCode, getZohoAccountId } from "@/lib/zoho";
+
+const ROUTE = "/api/zoho/callback";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const error = request.nextUrl.searchParams.get("error");
 
   if (error) {
-    return NextResponse.json({ error }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error });
   }
 
   if (!code) {
-    return NextResponse.json({ error: "No authorization code" }, { status: 400 });
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "No authorization code",
+    });
   }
 
   const tokenData = await exchangeAuthCode(code);

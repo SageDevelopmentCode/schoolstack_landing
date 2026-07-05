@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { schoolDemoRegistry } from "@/data/school-demos";
 import { isPastDate } from "@/lib/demo-scheduler";
+import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoBooking } from "@/lib/discord";
 import { sendDemoBookingConfirmation } from "@/lib/emails";
 import { createClient } from "@/utils/supabase/server";
+
+const ROUTE = "/api/demo-requests";
 
 const VALID_ROLES = new Set([
   "starting",
@@ -46,7 +49,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid request body." });
   }
 
   const name = body.name?.trim() ?? "";
@@ -58,19 +61,19 @@ export async function POST(request: Request) {
   const scheduledTime = body.scheduledTime?.trim() ?? "";
 
   if (!name || !email || !schoolName || !role || !scheduledDate || !scheduledTime) {
-    return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Missing required fields." });
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid email address." });
   }
 
   if (!VALID_ROLES.has(role)) {
-    return NextResponse.json({ error: "Invalid role." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid role." });
   }
 
   if (priorities.length === 0 || !priorities.every((p) => VALID_PRIORITIES.has(p))) {
-    return NextResponse.json({ error: "Invalid priorities." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid priorities." });
   }
 
   const launchTimeline = body.launchTimeline?.trim() || null;
@@ -82,14 +85,15 @@ export async function POST(request: Request) {
   const conceptDemoSlug = body.conceptDemoSlug?.trim() || null;
 
   if (conceptDemoSlug && !schoolDemoRegistry[conceptDemoSlug]) {
-    return NextResponse.json({ error: "Invalid concept demo." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid concept demo." });
   }
 
   if (isPastDate(scheduledDate)) {
-    return NextResponse.json(
-      { error: "Cannot book a date in the past." },
-      { status: 400 }
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "Cannot book a date in the past.",
+    });
   }
 
   const cookieStore = await cookies();
@@ -103,15 +107,20 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (slotError) {
-    console.error("Availability check failed:", slotError.message);
-    return NextResponse.json({ error: slotError.message }, { status: 500 });
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: slotError.message,
+      cause: slotError,
+    });
   }
 
   if (!slotRow) {
-    return NextResponse.json(
-      { error: "That time slot is no longer available." },
-      { status: 409 }
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 409,
+      error: "That time slot is no longer available.",
+    });
   }
 
   const { data: existingBooking, error: bookingCheckError } = await supabase
@@ -123,15 +132,20 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (bookingCheckError) {
-    console.error("Booking check failed:", bookingCheckError.message);
-    return NextResponse.json({ error: bookingCheckError.message }, { status: 500 });
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: bookingCheckError.message,
+      cause: bookingCheckError,
+    });
   }
 
   if (existingBooking) {
-    return NextResponse.json(
-      { error: "That time slot has already been booked." },
-      { status: 409 }
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 409,
+      error: "That time slot has already been booked.",
+    });
   }
 
   const { error } = await supabase.from("demo_requests").insert({
@@ -151,14 +165,19 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    console.error("Supabase insert failed:", error.message);
     if (error.code === "23505") {
-      return NextResponse.json(
-        { error: "That time slot has already been booked." },
-        { status: 409 }
-      );
+      return apiError(ROUTE, {
+        request,
+        status: 409,
+        error: "That time slot has already been booked.",
+      });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: error.message,
+      cause: error,
+    });
   }
 
   try {

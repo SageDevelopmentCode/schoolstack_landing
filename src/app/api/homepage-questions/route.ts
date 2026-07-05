@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { apiError } from "@/lib/api/route-errors";
 import { notifyHomepageQuestion } from "@/lib/discord";
 import { sendHomepageQuestionConfirmation } from "@/lib/emails";
 import { createClient } from "@/utils/supabase/server";
 
+const ROUTE = "/api/homepage-questions";
 const MAX_MESSAGE_LENGTH = 5000;
 const HOMEPAGE_SLUG = "homepage";
 const HOMEPAGE_NAME = "MudKitchen Homepage";
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid request body." });
   }
 
   const name = body.name?.trim() ?? "";
@@ -29,15 +31,15 @@ export async function POST(request: Request) {
   const message = body.message?.trim() ?? "";
 
   if (!name || !email || !message) {
-    return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Missing required fields." });
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid email address." });
   }
 
   if (message.length > MAX_MESSAGE_LENGTH) {
-    return NextResponse.json({ error: "Message is too long." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Message is too long." });
   }
 
   const cookieStore = await cookies();
@@ -53,8 +55,12 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    console.error("Supabase insert failed:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: error.message,
+      cause: error,
+    });
   }
 
   try {

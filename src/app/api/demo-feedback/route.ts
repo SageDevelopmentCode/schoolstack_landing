@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { schoolDemoRegistry } from "@/data/school-demos";
+import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoFeedback } from "@/lib/discord";
 import { sendDemoFeedbackConfirmation } from "@/lib/emails";
 import { createClient } from "@/utils/supabase/server";
 
+const ROUTE = "/api/demo-feedback";
 const MAX_MESSAGE_LENGTH = 5000;
 
 interface DemoFeedbackBody {
@@ -22,7 +24,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid request body." });
   }
 
   const schoolSlug = body.schoolSlug?.trim() ?? "";
@@ -32,19 +34,19 @@ export async function POST(request: Request) {
   const message = body.message?.trim() ?? "";
 
   if (!schoolSlug || !schoolName || !message) {
-    return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Missing required fields." });
   }
 
   if (!schoolDemoRegistry[schoolSlug]) {
-    return NextResponse.json({ error: "Invalid school." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid school." });
   }
 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Invalid email address." });
   }
 
   if (message.length > MAX_MESSAGE_LENGTH) {
-    return NextResponse.json({ error: "Message is too long." }, { status: 400 });
+    return apiError(ROUTE, { request, status: 400, error: "Message is too long." });
   }
 
   const isPrototypeWalkthrough = !name && !email;
@@ -65,8 +67,12 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    console.error("Supabase insert failed:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError(ROUTE, {
+      request,
+      status: 500,
+      error: error.message,
+      cause: error,
+    });
   }
 
   try {

@@ -5,6 +5,7 @@ import {
   emptyApplicationFormSchema,
   emptyApplicationSection,
   normalizePublicSlug,
+  parseApplicationFormFeeConfig,
   schemaToDbJson,
   slugifyFormTitle,
   validatePublicSlug,
@@ -12,6 +13,7 @@ import {
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "./application-form-schema";
+import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
 export type { ProgramOption } from "./programs";
 export { listPrograms } from "./programs";
 
@@ -322,6 +324,19 @@ export async function publishForm(
 
   const slugError = validatePublicSlug(existing.public_slug);
   if (slugError) throw new Error(slugError);
+
+  const feeConfig = parseApplicationFormFeeConfig(existing.fee_config);
+  if (feeConfig.enabled) {
+    const paymentsReady = await orgPaymentsReadyForFees(
+      supabase,
+      existing.organization_id,
+    );
+    if (!paymentsReady) {
+      throw new Error(
+        "Connect Stripe under Admissions → Payments before publishing a form with an application fee.",
+      );
+    }
+  }
 
   const normalizedSlug = normalizePublicSlug(existing.public_slug!);
 

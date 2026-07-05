@@ -40,6 +40,7 @@ type ApplicationFormFocusCanvasProps = {
   readOnly: boolean;
   setupHighlight?: "publicSlug" | null;
   slugError?: string | null;
+  stripePaymentsReady?: boolean;
   onFocusChange: (focus: BuilderFocus) => void;
   onEditableChange: (patch: Partial<EditableFormSlice>) => void;
   onUpdateSchema: (
@@ -494,6 +495,7 @@ export default function ApplicationFormFocusCanvas({
   readOnly,
   setupHighlight,
   slugError,
+  stripePaymentsReady = true,
   onFocusChange,
   onEditableChange,
   onUpdateSchema,
@@ -671,6 +673,8 @@ export default function ApplicationFormFocusCanvas({
                 readOnly={readOnly}
                 onChange={(feeConfig) => onEditableChange({ feeConfig })}
                 hideHeader
+                orgSlug={orgSlug}
+                stripePaymentsReady={stripePaymentsReady}
               />
             </div>
           )}

@@ -1,23 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api/route-errors";
 import { getProfile } from "@/lib/auth";
 import { fetchEmailThread, isZohoConfigured } from "@/lib/zoho";
+
+const ROUTE = "/api/zoho/thread";
 
 export async function GET(request: NextRequest) {
   const profile = await getProfile();
   if (!profile || profile.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiError(ROUTE, { request, status: 401, error: "Unauthorized" });
   }
 
   if (!(await isZohoConfigured())) {
-    return NextResponse.json(
-      { error: "Zoho Mail API is not configured" },
-      { status: 503 }
-    );
+    return apiError(ROUTE, {
+      request,
+      status: 503,
+      error: "Zoho Mail API is not configured",
+      notify: true,
+    });
   }
 
   const email = request.nextUrl.searchParams.get("email");
   if (!email) {
-    return NextResponse.json({ error: "email query param required" }, { status: 400 });
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "email query param required",
+    });
   }
 
   const limit = parseInt(request.nextUrl.searchParams.get("limit") || "50", 10);

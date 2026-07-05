@@ -36,6 +36,7 @@ const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
   admissions: [
     { key: "programs", label: "Programs", icon: "book-open" },
     { key: "flows", label: "Enrollment Flows", icon: "git-branch" },
+    { key: "payments", label: "Payments", icon: "credit-card" },
     { key: "submissions", label: "Submissions", icon: "clipboard-list" },
   ],
   finances: [
