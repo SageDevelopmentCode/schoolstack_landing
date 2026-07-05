@@ -35,3 +35,4 @@ Run after `add_product_organization_progress_log.sql`. Independent of the form s
 |------|------|
 | `add_organization_progress_log_2026_07_02.sql` | July 2 — admissions kickoff |
 | `add_organization_progress_log_2026_07_03.sql` | July 3 — application form and public apply link |
+| `add_organization_progress_log_2026_07_04.sql` | July 4 — family sign-in before applying |
