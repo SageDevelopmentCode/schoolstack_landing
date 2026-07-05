@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import type { ProgramOption } from "@/lib/admissions/application-forms";
 import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type {
   ApplicationField,
   ApplicationFormFeeConfig,
@@ -219,7 +221,7 @@ function SetupView({
       <div className="space-y-2">
         <FieldLabel
           C={C}
-          hint="Leave as default to use one form for the whole school. Pick a program to scope this form."
+          hint="Required for the public apply flow. Each application is tied to one program."
         >
           Program
         </FieldLabel>
@@ -231,13 +233,31 @@ function SetupView({
           }
           style={inputStyle(C)}
         >
-          <option value="">All programs (school default)</option>
+          <option value="">Select a program (required)</option>
           {programs.map((program) => (
             <option key={program.id} value={program.id}>
               {program.name}
             </option>
           ))}
         </select>
+        {!editable.programId ? (
+          <p className="text-xs font-medium" style={{ color: C.error }}>
+            {programs.length === 0 ? (
+              <>
+                <Link
+                  href={schoolAdminPath(orgSlug, "admissions", "programs")}
+                  className="underline underline-offset-2"
+                  style={{ color: C.accent }}
+                >
+                  Create a program first
+                </Link>{" "}
+                before publishing the form.
+              </>
+            ) : (
+              "Select a program so families can start an application."
+            )}
+          </p>
+        ) : null}
       </div>
     </div>
   );

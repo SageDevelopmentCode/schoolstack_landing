@@ -19,13 +19,9 @@ interface DiscordEmbed {
   timestamp?: string;
 }
 
-export async function sendDiscordEmbed(embed: DiscordEmbed) {
-  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  if (!webhookUrl) {
-    console.warn("DISCORD_WEBHOOK_URL is not set; skipping Discord notification.");
-    return;
-  }
+export type ApplyAuthMode = "create" | "login";
 
+async function sendDiscordEmbedToWebhook(webhookUrl: string, embed: DiscordEmbed) {
   const response = await fetch(webhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -43,6 +39,92 @@ export async function sendDiscordEmbed(embed: DiscordEmbed) {
   if (!response.ok) {
     console.error("Discord webhook failed:", response.status, await response.text());
   }
+}
+
+export async function sendDiscordEmbed(embed: DiscordEmbed) {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn("DISCORD_WEBHOOK_URL is not set; skipping Discord notification.");
+    return;
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed);
+}
+
+async function sendRootedMeadowsDiscordEmbed(embed: DiscordEmbed) {
+  const webhookUrl = process.env.ROOTED_MEADOWS_VERIFICATION_CODE_DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn(
+      "ROOTED_MEADOWS_VERIFICATION_CODE_DISCORD_WEBHOOK_URL is not set; skipping Discord notification.",
+    );
+    return;
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed);
+}
+
+export async function notifyRootedMeadowsVerificationCodeSent(payload: {
+  schoolName: string;
+  email: string;
+  mode: ApplyAuthMode;
+  firstName?: string;
+  lastName?: string;
+  resent?: boolean;
+}) {
+  const flowLabel = payload.mode === "create" ? "Create account" : "Log in";
+  const title = payload.resent ? "Verification code sent · resent" : "Verification code sent";
+
+  const fields: DiscordEmbedField[] = [
+    { name: "School", value: truncate(payload.schoolName), inline: true },
+    { name: "Email", value: truncate(payload.email), inline: true },
+    { name: "Flow", value: flowLabel, inline: true },
+  ];
+
+  const firstName = payload.firstName?.trim();
+  const lastName = payload.lastName?.trim();
+  if (firstName || lastName) {
+    fields.push({
+      name: "Name",
+      value: truncate([firstName, lastName].filter(Boolean).join(" ")),
+      inline: true,
+    });
+  }
+
+  await sendRootedMeadowsDiscordEmbed({ title, fields });
+}
+
+export async function notifyRootedMeadowsParentApplicationStarted(payload: {
+  schoolName: string;
+  email: string;
+  mode: ApplyAuthMode;
+  applicationId: string;
+  formTitle?: string;
+  firstName?: string;
+  lastName?: string;
+}) {
+  const title =
+    payload.mode === "create" ? "Parent account created" : "Parent signed in";
+
+  const firstName = payload.firstName?.trim();
+  const lastName = payload.lastName?.trim();
+  const nameLine =
+    firstName || lastName ? [firstName, lastName].filter(Boolean).join(" ") : null;
+
+  const contactValue = nameLine
+    ? truncate(`${nameLine}\n${payload.email}`)
+    : truncate(payload.email);
+
+  const fields: DiscordEmbedField[] = [
+    { name: "School", value: truncate(payload.schoolName), inline: true },
+    { name: "Contact", value: contactValue, inline: true },
+    { name: "Application ID", value: payload.applicationId, inline: true },
+  ];
+
+  if (payload.formTitle?.trim()) {
+    fields.push({ name: "Form", value: truncate(payload.formTitle.trim()) });
+  }
+
+  await sendRootedMeadowsDiscordEmbed({ title, fields });
 }
 
 const ROLES: Record<string, string> = {

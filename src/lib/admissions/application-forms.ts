@@ -12,11 +12,8 @@ import {
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "./application-form-schema";
-
-export type ProgramOption = {
-  id: string;
-  name: string;
-};
+export type { ProgramOption } from "./programs";
+export { listPrograms } from "./programs";
 
 export function publicApplicationFormPath(
   orgSlug: string,
@@ -180,20 +177,6 @@ async function suggestDefaultPublicSlug(
   return nextAvailablePublicSlug(supabase, organizationId, candidates);
 }
 
-export async function listPrograms(
-  supabase: SupabaseClient,
-  organizationId: string,
-): Promise<ProgramOption[]> {
-  const { data, error } = await supabase
-    .from("programs")
-    .select("id, name")
-    .eq("organization_id", organizationId)
-    .order("name", { ascending: true });
-
-  if (error) throw error;
-  return (data ?? []) as ProgramOption[];
-}
-
 export async function createDraftForm(
   supabase: SupabaseClient,
   organizationId: string,
@@ -329,6 +312,12 @@ export async function publishForm(
   if (!existing) throw new Error("Application form not found.");
   if (existing.status !== "draft") {
     throw new Error("Only draft forms can be published.");
+  }
+
+  if (!existing.program_id) {
+    throw new Error(
+      "Link this form to a program before publishing. Families cannot apply until a program is selected.",
+    );
   }
 
   const slugError = validatePublicSlug(existing.public_slug);

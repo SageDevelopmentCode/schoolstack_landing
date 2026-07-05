@@ -1,0 +1,7 @@
+Supabase email template subjects (paste into dashboard Subject field)
+
+Magic Link:
+{{ .Token }} is your sign-in code
+
+Confirm signup:
+{{ .Token }} is your verification code

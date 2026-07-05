@@ -332,6 +332,26 @@ export default function ApplicationAuthGate({
     setResendCooldown(RESEND_COOLDOWN_SECONDS);
   }, [email, firstName, lastName, mode, supabase.auth]);
 
+  const notifyVerificationCodeSent = useCallback(
+    (resent: boolean) => {
+      void fetch("/api/admissions/notify-verification-code-sent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolName,
+          email: email.trim().toLowerCase(),
+          mode,
+          firstName: mode === "create" ? firstName.trim() : undefined,
+          lastName: mode === "create" ? lastName.trim() : undefined,
+          resent,
+        }),
+      }).catch(() => {
+        // Discord notification is best-effort; do not block auth flow.
+      });
+    },
+    [email, firstName, lastName, mode, schoolName],
+  );
+
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -339,6 +359,7 @@ export default function ApplicationAuthGate({
 
     try {
       await sendOtp();
+      notifyVerificationCodeSent(false);
       goToPhase("verify", 1);
       setCode("");
     } catch (error) {
@@ -359,6 +380,9 @@ export default function ApplicationAuthGate({
         formVersionId,
         firstName: mode === "create" ? firstName.trim() : undefined,
         lastName: mode === "create" ? lastName.trim() : undefined,
+        schoolName,
+        formTitle,
+        mode,
       }),
     });
 
@@ -409,6 +433,7 @@ export default function ApplicationAuthGate({
 
     try {
       await sendOtp();
+      notifyVerificationCodeSent(true);
     } catch (error) {
       setAuthError(
         error instanceof Error ? error.message : "Failed to resend verification code.",
@@ -468,7 +493,7 @@ export default function ApplicationAuthGate({
         <span className="font-medium" style={{ color: C.textPrimary }}>
           {email}
         </span>
-        .
+        . If it doesn&apos;t arrive within a minute, check your spam or junk folder.
       </>
     );
 
@@ -613,11 +638,7 @@ export default function ApplicationAuthGate({
                   animate="center"
                   exit="exit"
                   transition={stepTransition}
-                  className="rounded-xl border p-6 shadow-sm"
-                  style={{
-                    borderColor: C.border,
-                    backgroundColor: C.surface,
-                  }}
+                  className="space-y-4"
                 >
                   <form onSubmit={handleCredentialsSubmit} className="space-y-4">
                     {mode === "create" ? (
@@ -667,7 +688,7 @@ export default function ApplicationAuthGate({
                     </button>
                   </form>
 
-                  <p className="mt-4 text-center text-sm" style={{ color: C.textSecondary }}>
+                  <p className="text-sm" style={{ color: C.textSecondary }}>
                     {mode === "create" ? (
                       <>
                         Already have an account?{" "}
@@ -704,11 +725,7 @@ export default function ApplicationAuthGate({
                   animate="center"
                   exit="exit"
                   transition={stepTransition}
-                  className="rounded-xl border p-6 shadow-sm"
-                  style={{
-                    borderColor: C.border,
-                    backgroundColor: C.surface,
-                  }}
+                  className="space-y-4"
                 >
                   <form onSubmit={handleVerifySubmit} className="space-y-4">
                     <AuthField
@@ -724,8 +741,8 @@ export default function ApplicationAuthGate({
                     />
 
                     <p className="text-xs" style={{ color: C.textSecondary }}>
-                      Enter the 6-digit code from your email. Codes expire after a few
-                      minutes.
+                      Enter the 6-digit code from your email. If you don&apos;t see it,
+                      check your spam or junk folder. Codes expire after a few minutes.
                     </p>
 
                     <button
@@ -738,7 +755,7 @@ export default function ApplicationAuthGate({
                     </button>
                   </form>
 
-                  <p className="mt-4 text-center text-sm" style={{ color: C.textSecondary }}>
+                  <p className="text-sm" style={{ color: C.textSecondary }}>
                     Didn&apos;t get a code?{" "}
                     <button
                       type="button"

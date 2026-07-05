@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import ApplicationFormSetupRequired from "@/components/admissions/ApplicationFormSetupRequired";
 import PublicApplicationFormClient from "@/components/admissions/PublicApplicationFormClient";
 import { getPublishedApplicationFormBySlug } from "@/lib/admissions/application-forms";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -56,6 +57,16 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
 
   if (!form) {
     notFound();
+  }
+
+  if (!form.program_id) {
+    return (
+      <ApplicationFormSetupRequired
+        branding={org.branding}
+        schoolName={org.name}
+        formTitle={form.title}
+      />
+    );
   }
 
   return (

@@ -103,6 +103,31 @@ export function emailParagraph(text: string): string {
 </p>`;
 }
 
+export function emailMutedParagraph(text: string): string {
+  return `<p style="margin:0 0 16px;font-family:${FONT_BODY};font-size:14px;line-height:1.6;color:${COLORS.textMuted};">
+  ${text}
+</p>`;
+}
+
+/** tokenHtml is inserted raw — use `{{ .Token }}` for Supabase or a sample code for preview. */
+export function emailOtpCode(tokenHtml: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;">
+  <tr>
+    <td align="center" style="background-color:${COLORS.detailBg};border:1px solid ${COLORS.border};border-radius:12px;padding:28px 24px;">
+      <p style="margin:0 0 12px;font-family:${FONT_BODY};font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:${COLORS.textMuted};">
+        Your verification code
+      </p>
+      <p style="margin:0;font-family:${FONT_BODY};font-size:32px;font-weight:700;letter-spacing:0.25em;line-height:1.2;color:${COLORS.accent};">
+        ${tokenHtml}
+      </p>
+      <p style="margin:14px 0 0;font-family:${FONT_BODY};font-size:13px;line-height:1.5;color:${COLORS.textMuted};">
+        This code expires in one hour.
+      </p>
+    </td>
+  </tr>
+</table>`;
+}
+
 export function emailDetailCard(rows: { label: string; value: string }[]): string {
   const rowHtml = rows
     .map(

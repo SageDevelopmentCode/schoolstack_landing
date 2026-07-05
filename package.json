@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "import-schools": "tsx scripts/import-schools-csv.ts"
+    "import-schools": "tsx scripts/import-schools-csv.ts",
+    "preview:emails": "tsx scripts/preview-emails.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

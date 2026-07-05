@@ -8,6 +8,7 @@ import {
 import { isAdminNavPathEnabled } from "@/lib/organization-settings/admin-routes";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import ApplicationFormsPage from "@/components/school-admin/admissions/ApplicationFormsPage";
+import ProgramsPage from "@/components/school-admin/admissions/ProgramsPage";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -63,6 +64,19 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
     feature,
     org.features.feature_nav?.admin,
   );
+
+  if (
+    (feature === "admissions" && subtab === "programs") ||
+    (feature === "my_school" && subtab === "programs")
+  ) {
+    return (
+      <ProgramsPage
+        organizationId={org.id}
+        branding={org.branding}
+        slug={slug}
+      />
+    );
+  }
 
   if (feature === "admissions" && subtab === "flows") {
     return (
