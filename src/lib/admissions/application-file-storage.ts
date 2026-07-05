@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { compressImageForUpload } from "@/lib/images/compress-image";
 
 export const APPLICATION_FILES_BUCKET = "application-files";
 
@@ -60,18 +61,28 @@ export async function uploadApplicationFile(
   fieldId: string,
   file: File,
 ): Promise<ApplicationFileUploadMeta> {
+  const prepared =
+    file.type === "image/jpeg" || file.type === "image/png"
+      ? await compressImageForUpload(file, {
+          maxWidth: 2048,
+          maxHeight: 2048,
+          quality: 0.85,
+          skipBelowBytes: 300 * 1024,
+        })
+      : file;
+
   const fileId = crypto.randomUUID();
   const storagePath = buildApplicationFileStoragePath(
     ctx,
     fieldId,
-    file.name,
+    prepared.name,
     fileId,
   );
 
   const { error: uploadError } = await supabase.storage
     .from(APPLICATION_FILES_BUCKET)
-    .upload(storagePath, file, {
-      contentType: file.type || undefined,
+    .upload(storagePath, prepared, {
+      contentType: prepared.type || undefined,
       upsert: false,
     });
 
@@ -83,10 +94,10 @@ export async function uploadApplicationFile(
       organization_id: ctx.organizationId,
       application_id: ctx.applicationId,
       field_id: fieldId,
-      file_name: file.name,
+      file_name: prepared.name,
       storage_path: storagePath,
-      mime_type: file.type || null,
-      size_bytes: file.size,
+      mime_type: prepared.type || null,
+      size_bytes: prepared.size,
     })
     .select("id, file_name, storage_path, mime_type, size_bytes")
     .single();

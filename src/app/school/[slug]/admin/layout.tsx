@@ -46,6 +46,7 @@ export default async function SchoolAdminLayout({
   return (
     <SchoolAdminBaseline
       slug={slug}
+      schoolName={org.name}
       branding={org.branding}
       features={org.features}
     >

@@ -33,10 +33,16 @@ function deepMerge<T extends Record<string, unknown>>(
 export function mergeBranding(
   stored: Record<string, unknown> | null | undefined,
 ): OrganizationBranding {
-  return deepMerge(
+  const merged = deepMerge(
     DEFAULT_BRANDING as unknown as Record<string, unknown>,
     stored,
   ) as unknown as OrganizationBranding;
+
+  if (!merged.logo.src?.trim()) {
+    merged.logo.src = "";
+  }
+
+  return merged;
 }
 
 export function mergeFeatures(

@@ -27,6 +27,7 @@ import type {
 
 type SchoolAdminBaselineProps = {
   slug: string;
+  schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   children: ReactNode;
@@ -192,6 +193,7 @@ function SidebarNavItem({
 function Sidebar({
   C,
   branding,
+  schoolName,
   slug,
   navGroups,
   pathname,
@@ -200,6 +202,7 @@ function Sidebar({
 }: {
   C: AdminThemeTokens;
   branding: OrganizationBranding;
+  schoolName: string;
   slug: string;
   navGroups: ReturnType<typeof buildAdminNavGroups>;
   pathname: string;
@@ -243,14 +246,24 @@ function Sidebar({
           justifyContent: isExpanded ? "flex-start" : "center",
         }}
       >
-        <Image
-          src={logo.src}
-          alt={logo.alt}
-          width={isExpanded ? (logo.width ?? 160) : 36}
-          height={logo.height ?? 40}
-          className="flex-shrink-0 object-contain"
-          style={{ maxHeight: 40 }}
-        />
+        {logo.src.trim() ? (
+          <Image
+            src={logo.src.trim()}
+            alt={logo.alt || schoolName}
+            width={isExpanded ? (logo.width ?? 160) : 36}
+            height={logo.height ?? 40}
+            className="flex-shrink-0 object-contain"
+            style={{ maxHeight: 40 }}
+          />
+        ) : (
+          <span
+            className="truncate text-sm font-semibold"
+            style={{ color: C.accentDark }}
+            title={schoolName}
+          >
+            {logo.alt.trim() || schoolName}
+          </span>
+        )}
       </div>
 
       <div
@@ -365,6 +378,7 @@ function Sidebar({
 
 export default function SchoolAdminBaseline({
   slug,
+  schoolName,
   branding,
   features,
   children,
@@ -395,6 +409,7 @@ export default function SchoolAdminBaseline({
       <Sidebar
         C={C}
         branding={branding}
+        schoolName={schoolName}
         slug={slug}
         navGroups={navGroups}
         pathname={pathname}

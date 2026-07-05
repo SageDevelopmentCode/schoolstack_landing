@@ -4,13 +4,15 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   Fragment,
+  type ChangeEvent,
   type ReactNode,
 } from "react";
 import Link from "next/link";
 import { Reorder, useDragControls } from "framer-motion";
-import { ChevronDown, ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import {
   addCustomPortalFeature,
@@ -56,6 +58,10 @@ import {
   setBrandingValue,
   toColorInputValue,
 } from "@/lib/organization-settings/paths";
+import {
+  OrganizationLogoUploadError,
+  uploadOrganizationLogo,
+} from "@/lib/organization-settings/logo-storage";
 import type {
   OrganizationBranding,
   OrganizationFeatures,
@@ -131,6 +137,9 @@ export default function OrganizationSettingsEditor({
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
   const [logoOpen, setLogoOpen] = useState(() =>
     Boolean(
       initialRow?.branding &&
@@ -217,7 +226,43 @@ export default function OrganizationSettingsEditor({
     setNewSubsectionNames({});
     setError(null);
     setSaveMessage(null);
+    setLogoUploadError(null);
   }, []);
+
+  const handleLogoFileChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+
+      setLogoUploading(true);
+      setLogoUploadError(null);
+      setSaveMessage(null);
+
+      try {
+        const publicUrl = await uploadOrganizationLogo(
+          supabase,
+          organizationId,
+          file,
+        );
+        setBranding((current) =>
+          setBrandingValue(current, "logo.src", publicUrl),
+        );
+        setLogoOpen(true);
+      } catch (uploadError) {
+        setLogoUploadError(
+          uploadError instanceof OrganizationLogoUploadError
+            ? uploadError.message
+            : uploadError instanceof Error
+              ? uploadError.message
+              : "Failed to upload logo.",
+        );
+      } finally {
+        setLogoUploading(false);
+      }
+    },
+    [organizationId, supabase],
+  );
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -503,6 +548,41 @@ export default function OrganizationSettingsEditor({
         >
           <div className="pt-2 space-y-3">
             <LogoPreview branding={branding} compact />
+            <p className="text-xs text-text-faint font-secondary">
+              Used in the school admin sidebar, apply flow, and other
+              parent-facing pages. Images are optimized automatically before
+              upload.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={logoFileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={handleLogoFileChange}
+              />
+              <button
+                type="button"
+                disabled={logoUploading || saving}
+                onClick={() => logoFileInputRef.current?.click()}
+                className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border border-border bg-bg hover:bg-surface font-secondary disabled:opacity-60"
+              >
+                {logoUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {logoUploading ? "Uploading…" : "Upload logo"}
+              </button>
+              <span className="text-xs text-text-faint font-secondary">
+                PNG, JPEG, WebP, or SVG · max 2 MB
+              </span>
+            </div>
+            {logoUploadError ? (
+              <p className="text-xs text-clay font-secondary" role="alert">
+                {logoUploadError}
+              </p>
+            ) : null}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {BRANDING_FIELDS.filter((f) => f.group === "Logo").map((field) => {
               const raw = getBrandingValue(branding, field.path);
