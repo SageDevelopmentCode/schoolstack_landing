@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { ChevronRight, GripVertical, Plus } from "lucide-react";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
+import { isSystemFieldId } from "@/lib/admissions/apply-system-fields";
 import { fieldTypeLabel } from "@/lib/admissions/field-presets";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import {
@@ -17,6 +18,7 @@ type ApplicationFormQuestionListProps = {
   fields: ApplicationField[];
   selectedFieldId: string | null;
   readOnly: boolean;
+  lockSystemFields?: boolean;
   onSelectField: (fieldId: string) => void;
   onAddField: (field: ApplicationField) => void;
   onReorderFields: (fields: ApplicationField[]) => void;
@@ -27,15 +29,19 @@ function QuestionRow({
   field,
   active,
   readOnly,
+  lockSystemFields,
   onSelect,
 }: {
   C: AdminThemeTokens;
   field: ApplicationField;
   active: boolean;
   readOnly: boolean;
+  lockSystemFields: boolean;
   onSelect: () => void;
 }) {
   const dragControls = useDragControls();
+  const isLocked = lockSystemFields && (field.system === true || isSystemFieldId(field.id));
+  const canDrag = !readOnly && !isLocked;
 
   return (
     <Reorder.Item
@@ -54,7 +60,7 @@ function QuestionRow({
           boxShadow: active ? `0 0 0 1px ${C.accent}20` : "none",
         }}
       >
-        {!readOnly && (
+        {!readOnly && canDrag && (
           <button
             type="button"
             aria-label="Drag to reorder"
@@ -81,7 +87,7 @@ function QuestionRow({
             className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
             style={{ backgroundColor: C.bg, color: C.textTertiary }}
           >
-            {fieldTypeLabel(field.type)}
+            {isLocked ? "System" : fieldTypeLabel(field.type)}
           </span>
           {field.required && (
             <span
@@ -103,11 +109,23 @@ export default function ApplicationFormQuestionList({
   fields,
   selectedFieldId,
   readOnly,
+  lockSystemFields = false,
   onSelectField,
   onAddField,
   onReorderFields,
 }: ApplicationFormQuestionListProps) {
   const [showPicker, setShowPicker] = useState(false);
+  const isSystemStep = lockSystemFields && fields.some((field) => field.system || isSystemFieldId(field.id));
+
+  const handleReorder = (next: ApplicationField[]) => {
+    if (!lockSystemFields) {
+      onReorderFields(next);
+      return;
+    }
+    const systemFields = next.filter((field) => field.system || isSystemFieldId(field.id));
+    const customFields = next.filter((field) => !field.system && !isSystemFieldId(field.id));
+    onReorderFields([...systemFields, ...customFields]);
+  };
 
   const handleAddPreset = (id: string, field: ApplicationField) => {
     void id;
@@ -143,7 +161,7 @@ export default function ApplicationFormQuestionList({
         <Reorder.Group
           axis="y"
           values={fields}
-          onReorder={(next) => !readOnly && onReorderFields(next)}
+          onReorder={(next) => !readOnly && handleReorder(next)}
           className="flex flex-col gap-2"
           as="div"
         >
@@ -154,13 +172,14 @@ export default function ApplicationFormQuestionList({
               field={field}
               active={selectedFieldId === field.id}
               readOnly={readOnly}
+              lockSystemFields={lockSystemFields}
               onSelect={() => onSelectField(field.id)}
             />
           ))}
         </Reorder.Group>
       )}
 
-      {!readOnly && (
+      {!readOnly && !isSystemStep && (
         <div>
           {!showPicker ? (
             <button

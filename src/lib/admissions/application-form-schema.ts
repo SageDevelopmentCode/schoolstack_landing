@@ -26,6 +26,8 @@ export interface ApplicationField {
   helpText?: string;
   maxFiles?: number;
   accept?: string;
+  /** Locked apply-form field mapped to students table columns */
+  system?: boolean;
 }
 
 export type ApplicationStepNoticePlacement = "top" | "bottom";
@@ -41,6 +43,8 @@ export interface ApplicationSection {
   description?: string;
   stepNotice?: ApplicationStepNotice;
   fields: ApplicationField[];
+  /** Locked apply-form step containing system student fields */
+  system?: boolean;
 }
 
 export interface ApplicationAcknowledgment {

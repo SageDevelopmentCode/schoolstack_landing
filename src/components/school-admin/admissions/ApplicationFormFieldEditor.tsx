@@ -18,7 +18,7 @@ type ApplicationFormFieldEditorProps = {
   field: ApplicationField;
   readOnly?: boolean;
   onChange: (patch: Partial<ApplicationField>) => void;
-  onDelete: () => void;
+  onDelete?: () => void;
 };
 
 function controlStyle(C: AdminThemeTokens): React.CSSProperties {
@@ -221,7 +221,7 @@ export default function ApplicationFormFieldEditor({
         </div>
       )}
 
-      {!readOnly && (
+      {!readOnly && onDelete && (
         <div className="flex justify-end pt-2 border-t" style={{ borderColor: C.border }}>
           <button
             type="button"

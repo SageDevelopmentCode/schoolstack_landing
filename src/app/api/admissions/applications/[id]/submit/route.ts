@@ -5,6 +5,11 @@ import {
   requireAuthenticatedUser,
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
+import {
+  ApplicationMaterializationError,
+  materializeApplicationStudent,
+} from "@/lib/admissions/application-entity-materialization";
+import { validateStudentResponses } from "@/lib/admissions/apply-system-fields";
 import { sendApplicationSubmittedNotifications } from "@/lib/admissions/application-notifications";
 import {
   getApplicationForSubmit,
@@ -92,12 +97,33 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
+    const studentError = validateStudentResponses(application.responses);
+    if (studentError) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: studentError,
+        code: "student_fields_incomplete",
+      });
+    }
+
+    await materializeApplicationStudent(admin, applicationId);
     await submitApplicationRecord(admin, applicationId);
     void sendApplicationSubmittedNotifications(admin, applicationId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof AuthError) {
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
+    if (error instanceof ApplicationMaterializationError) {
       return apiError(ROUTE, {
         request,
         status: error.status,

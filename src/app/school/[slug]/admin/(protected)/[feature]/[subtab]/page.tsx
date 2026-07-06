@@ -9,6 +9,7 @@ import {
 import { isAdminNavPathEnabled } from "@/lib/organization-settings/admin-routes";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import ApplicationFormsPage from "@/components/school-admin/admissions/ApplicationFormsPage";
+import ApplicationSubmissionsPage from "@/components/school-admin/admissions/ApplicationSubmissionsPage";
 import PaymentsSetupPage from "@/components/school-admin/admissions/PaymentsSetupPage";
 import ProgramsPage from "@/components/school-admin/admissions/ProgramsPage";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -101,6 +102,17 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
           schoolName={org.name}
         />
       </Suspense>
+    );
+  }
+
+  if (feature === "admissions" && subtab === "submissions") {
+    return (
+      <ApplicationSubmissionsPage
+        organizationId={org.id}
+        branding={org.branding}
+        schoolName={org.name}
+        slug={slug}
+      />
     );
   }
 

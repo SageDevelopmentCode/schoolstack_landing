@@ -4,6 +4,9 @@ import {
   validateApplicationFormSchema,
   type ApplicationFormSchema,
 } from "./application-form-schema";
+import {
+  materializeApplicationStudent,
+} from "./application-entity-materialization";
 
 export type ApplicationRecord = {
   id: string;
@@ -88,6 +91,8 @@ export async function completeApplicationPaymentAndSubmit(
   supabase: SupabaseClient,
   applicationId: string,
 ): Promise<void> {
+  await materializeApplicationStudent(supabase, applicationId);
+
   const now = new Date().toISOString();
   const { error } = await supabase
     .from("applications")

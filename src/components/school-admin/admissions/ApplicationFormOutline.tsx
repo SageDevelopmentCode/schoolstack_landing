@@ -6,11 +6,13 @@ import {
   CreditCard,
   Eye,
   GripVertical,
+  Lock,
   Plus,
   Settings2,
   ShieldCheck,
 } from "lucide-react";
 import type { ApplicationSection } from "@/lib/admissions/application-form-schema";
+import { isSystemSection } from "@/lib/admissions/apply-system-fields";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import {
   focusKey,
@@ -22,6 +24,7 @@ type ApplicationFormOutlineProps = {
   sections: ApplicationSection[];
   focus: BuilderFocus;
   readOnly: boolean;
+  lockSystemStep?: boolean;
   onFocusChange: (focus: BuilderFocus) => void;
   onReorderSteps: (sections: ApplicationSection[]) => void;
   onAddStep: () => void;
@@ -92,6 +95,7 @@ function StepOutlineRow({
   stepIdx,
   active,
   readOnly,
+  lockSystemStep,
   onSelect,
 }: {
   C: AdminThemeTokens;
@@ -99,10 +103,13 @@ function StepOutlineRow({
   stepIdx: number;
   active: boolean;
   readOnly: boolean;
+  lockSystemStep: boolean;
   onSelect: () => void;
 }) {
   const dragControls = useDragControls();
   const questionCount = step.fields.length;
+  const isLocked = lockSystemStep && isSystemSection(step);
+  const canDrag = !readOnly && !isLocked;
 
   return (
     <Reorder.Item
@@ -120,7 +127,7 @@ function StepOutlineRow({
           borderLeft: active ? `2px solid ${C.accent}` : "2px solid transparent",
         }}
       >
-        {!readOnly && (
+        {canDrag ? (
           <button
             type="button"
             aria-label="Drag to reorder step"
@@ -130,6 +137,8 @@ function StepOutlineRow({
           >
             <GripVertical className="h-3.5 w-3.5" />
           </button>
+        ) : (
+          <span className="w-6 shrink-0" aria-hidden />
         )}
         <button
           type="button"
@@ -148,10 +157,19 @@ function StepOutlineRow({
           </span>
           <span className="min-w-0 flex-1">
             <span
-              className="block truncate text-xs font-medium"
+              className="flex items-center gap-1.5 truncate text-xs font-medium"
               style={{ color: active ? C.accent : C.textPrimary }}
             >
               {step.title || `Step ${stepIdx + 1}`}
+              {isLocked ? (
+                <span
+                  className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                  style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+                >
+                  <Lock className="h-2.5 w-2.5" />
+                  System
+                </span>
+              ) : null}
             </span>
             <span className="text-[10px]" style={{ color: C.textTertiary }}>
               {questionCount} question{questionCount === 1 ? "" : "s"}
@@ -172,6 +190,7 @@ export default function ApplicationFormOutline({
   sections,
   focus,
   readOnly,
+  lockSystemStep = false,
   onFocusChange,
   onReorderSteps,
   onAddStep,
@@ -218,6 +237,7 @@ export default function ApplicationFormOutline({
                 stepIdx={stepIdx}
                 active={isStepActive(step.id)}
                 readOnly={readOnly}
+                lockSystemStep={lockSystemStep}
                 onSelect={() => onFocusChange({ kind: "step", stepId: step.id })}
               />
             ))}

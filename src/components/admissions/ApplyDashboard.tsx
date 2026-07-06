@@ -5,9 +5,10 @@ import { useMemo } from "react";
 import { ArrowRight, FileText, Plus } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import {
-  APPLICATION_STATUS_LABELS,
-  type FamilyApplication,
-} from "@/lib/admissions/parent-portal-access";
+  applicationStatusBadgeStyle,
+  applicationStatusLabel,
+} from "@/lib/admissions/application-status-ui";
+import { type FamilyApplication } from "@/lib/admissions/parent-portal-access";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -18,21 +19,6 @@ type ApplyDashboardProps = {
   applications: FamilyApplication[];
   hasEnrolledAccess: boolean;
 };
-
-function statusBadgeStyle(status: string, C: ReturnType<typeof buildAdminThemeTokens>) {
-  switch (status) {
-    case "accepted":
-      return { backgroundColor: C.successBg, color: C.success };
-    case "declined":
-    case "withdrawn":
-      return { backgroundColor: C.errorBg, color: C.error };
-    case "under_review":
-    case "observation":
-      return { backgroundColor: C.infoBg, color: C.info };
-    default:
-      return { backgroundColor: C.elevated, color: C.textSecondary };
-  }
-}
 
 function formatDate(value: string | null): string | null {
   if (!value) return null;
@@ -169,9 +155,9 @@ export default function ApplyDashboard({
                         </h2>
                         <span
                           className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                          style={statusBadgeStyle(application.status, C)}
+                          style={applicationStatusBadgeStyle(application.status, C)}
                         >
-                          {APPLICATION_STATUS_LABELS[application.status] ?? application.status}
+                          {applicationStatusLabel(application.status)}
                         </span>
                       </div>
                       {dateLabel ? (

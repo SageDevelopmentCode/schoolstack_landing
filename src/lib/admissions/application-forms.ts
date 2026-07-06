@@ -9,10 +9,17 @@ import {
   schemaToDbJson,
   slugifyFormTitle,
   validatePublicSlug,
+  validateApplicationFormSchema,
   type ApplicationFormFeeConfig,
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "./application-form-schema";
+import {
+  buildApplySystemSection,
+  emptyApplyCustomSection,
+  ensureApplySystemSchema,
+  validateApplySystemSchema,
+} from "./apply-system-fields";
 import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
 export type { ProgramOption } from "./programs";
 export { listPrograms } from "./programs";
@@ -251,7 +258,8 @@ export async function createApplyForm(
   const programId = input.programId ?? null;
   const version = await nextVersion(supabase, organizationId, programId);
   const schema = emptyApplicationFormSchema();
-  schema.sections.push(emptyApplicationSection());
+  schema.sections.push(buildApplySystemSection());
+  schema.sections.push(emptyApplyCustomSection());
   const title = input.title?.trim() || "Application";
 
   const { data, error } = await supabase
@@ -347,7 +355,11 @@ export async function updateApplicationForm(
     normalizedSlug = normalizePublicSlug(existing.public_slug);
   }
 
-  if (input.schema !== undefined) patch.schema = schemaToDbJson(input.schema);
+  if (input.schema !== undefined) {
+    patch.schema = schemaToDbJson(
+      isApplyForm ? ensureApplySystemSchema(input.schema) : input.schema,
+    );
+  }
   if (input.fee_config !== undefined) patch.fee_config = input.fee_config;
 
   const { data, error } = await supabase
@@ -387,6 +399,19 @@ export async function publishForm(
 
   const slugError = validatePublicSlug(existing.public_slug);
   if (slugError) throw new Error(slugError);
+
+  const schema = isApplyFormSlug(existing.public_slug)
+    ? ensureApplySystemSchema(existing.schema)
+    : existing.schema;
+  const schemaErrors = [
+    ...validateApplicationFormSchema(schema),
+    ...(isApplyFormSlug(existing.public_slug)
+      ? validateApplySystemSchema(schema)
+      : []),
+  ];
+  if (schemaErrors.length > 0) {
+    throw new Error(schemaErrors[0]);
+  }
 
   const feeConfig = parseApplicationFormFeeConfig(existing.fee_config);
   if (feeConfig.enabled) {

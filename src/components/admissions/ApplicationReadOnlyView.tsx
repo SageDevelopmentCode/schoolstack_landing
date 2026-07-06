@@ -5,9 +5,10 @@ import { useMemo } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import {
-  APPLICATION_STATUS_LABELS,
-  type ApplicationDetail,
-} from "@/lib/admissions/parent-portal-access";
+  applicationStatusBadgeStyle,
+  applicationStatusLabel,
+} from "@/lib/admissions/application-status-ui";
+import { type ApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import type {
   ApplicationField,
   ApplicationFormSchema,
@@ -20,6 +21,7 @@ type ApplicationReadOnlyViewProps = {
   schoolName: string;
   schoolSlug: string;
   application: ApplicationDetail;
+  embedded?: boolean;
 };
 
 function formatFieldValue(field: ApplicationField, value: string | undefined): string {
@@ -143,14 +145,16 @@ function ReadOnlyContent({
   );
 }
 
-export default function ApplicationReadOnlyView({
+function ApplicationReadOnlyBody({
   branding,
   schoolName,
   schoolSlug,
   application,
+  embedded = false,
 }: ApplicationReadOnlyViewProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
+  const statusStyle = applicationStatusBadgeStyle(application.status, C);
   const submittedLabel = application.submittedAt
     ? new Date(application.submittedAt).toLocaleDateString("en-US", {
         month: "long",
@@ -159,63 +163,85 @@ export default function ApplicationReadOnlyView({
       })
     : null;
 
-  return (
-    <div
-      className="min-h-dvh px-4 py-8 sm:px-6 sm:py-10"
-      style={{ backgroundColor: pageBg, color: C.textPrimary }}
-    >
-      <div className="mx-auto max-w-3xl">
-        <Link
-          href={`/school/${schoolSlug}/apply`}
-          className="mb-6 inline-flex items-center gap-2 text-sm underline-offset-2 hover:underline"
-          style={{ color: C.textSecondary }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to applications
-        </Link>
+  const content = (
+    <>
+      {!embedded ? (
+        <>
+          <Link
+            href={`/school/${schoolSlug}/apply`}
+            className="mb-6 inline-flex items-center gap-2 text-sm underline-offset-2 hover:underline"
+            style={{ color: C.textSecondary }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to applications
+          </Link>
 
-        <SchoolDemoWordmark
-          logo={{
-            src: branding.logo.src,
-            alt: branding.logo.alt || schoolName,
-            width: branding.logo.width,
-            height: branding.logo.height,
-            text: branding.logo.src ? undefined : schoolName,
-          }}
-          className="mb-8 h-8 w-auto max-w-[200px] object-contain"
-        />
+          <SchoolDemoWordmark
+            logo={{
+              src: branding.logo.src,
+              alt: branding.logo.alt || schoolName,
+              width: branding.logo.width,
+              height: branding.logo.height,
+              text: branding.logo.src ? undefined : schoolName,
+            }}
+            className="mb-8 h-8 w-auto max-w-[200px] object-contain"
+          />
+        </>
+      ) : null}
 
+      {!embedded ? (
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold sm:text-3xl" style={{ color: C.accentDark }}>
             {application.formTitle}
           </h1>
           <span
             className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: C.elevated, color: C.textSecondary }}
+            style={statusStyle}
           >
-            {APPLICATION_STATUS_LABELS[application.status] ?? application.status}
+            {applicationStatusLabel(application.status)}
           </span>
         </div>
+      ) : null}
 
-        {submittedLabel ? (
-          <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
-            Submitted {submittedLabel}
-          </p>
-        ) : null}
+      {!embedded && submittedLabel ? (
+        <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
+          Submitted {submittedLabel}
+        </p>
+      ) : null}
 
-        <div
-          className="mt-8 rounded-lg border px-5 py-6 sm:px-6"
-          style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-        >
-          <ReadOnlyContent
-            schema={application.schema}
-            responses={application.responses}
-            acknowledgments={application.acknowledgments}
-            C={C}
-            pageBg={pageBg}
-          />
-        </div>
+      <div
+        className={embedded ? "" : "mt-8 rounded-lg border px-5 py-6 sm:px-6"}
+        style={
+          embedded
+            ? undefined
+            : { borderColor: C.border, backgroundColor: "#FFFFFF" }
+        }
+      >
+        <ReadOnlyContent
+          schema={application.schema}
+          responses={application.responses}
+          acknowledgments={application.acknowledgments}
+          C={C}
+          pageBg={pageBg}
+        />
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <div
+      className="min-h-dvh px-4 py-8 sm:px-6 sm:py-10"
+      style={{ backgroundColor: pageBg, color: C.textPrimary }}
+    >
+      <div className="mx-auto max-w-3xl">{content}</div>
     </div>
   );
+}
+
+export default function ApplicationReadOnlyView(props: ApplicationReadOnlyViewProps) {
+  return <ApplicationReadOnlyBody {...props} />;
 }

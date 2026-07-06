@@ -15,6 +15,11 @@ import type {
   ApplicationFormSchema,
   ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
+import {
+  APPLY_SYSTEM_ADMIN_CALLOUT,
+  isSystemFieldId,
+  isSystemSection,
+} from "@/lib/admissions/apply-system-fields";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ApplicationFormAcknowledgmentsEditor from "./ApplicationFormAcknowledgmentsEditor";
 import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
@@ -38,6 +43,7 @@ type ApplicationFormFocusCanvasProps = {
   programs: ProgramOption[];
   orgSlug: string;
   readOnly: boolean;
+  lockSystemFields?: boolean;
   setupHighlight?: "publicSlug" | null;
   slugError?: string | null;
   stripePaymentsReady?: boolean;
@@ -269,6 +275,7 @@ function StepView({
   step,
   stepIdx,
   readOnly,
+  lockSystemFields,
   selectedFieldId,
   onFocusChange,
   onUpdateStep,
@@ -280,6 +287,7 @@ function StepView({
   step: ApplicationSection;
   stepIdx: number;
   readOnly: boolean;
+  lockSystemFields: boolean;
   selectedFieldId: string | null;
   onFocusChange: (focus: BuilderFocus) => void;
   onUpdateStep: (patch: Partial<ApplicationSection>) => void;
@@ -287,6 +295,8 @@ function StepView({
   onAddField: (field: ApplicationField) => void;
   onReorderFields: (fields: ApplicationField[]) => void;
 }) {
+  const isLockedStep = lockSystemFields && isSystemSection(step);
+
   return (
     <div className="w-full max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -298,10 +308,12 @@ function StepView({
             {step.title || `Step ${stepIdx + 1}`}
           </h2>
           <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
-            One screen of questions in the apply flow.
+            {isLockedStep
+              ? "Required student fields for your school directory."
+              : "One screen of questions in the apply flow."}
           </p>
         </div>
-        {!readOnly && (
+        {!readOnly && !isLockedStep && (
           <button
             type="button"
             onClick={onRequestDeleteStep}
@@ -313,6 +325,19 @@ function StepView({
           </button>
         )}
       </div>
+
+      {isLockedStep ? (
+        <div
+          className="rounded-md border px-4 py-3 text-sm leading-relaxed"
+          style={{
+            borderColor: C.infoBorder,
+            backgroundColor: C.infoBg,
+            color: C.textSecondary,
+          }}
+        >
+          {APPLY_SYSTEM_ADMIN_CALLOUT}
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         <div className="space-y-2">
@@ -417,6 +442,7 @@ function StepView({
         fields={step.fields}
         selectedFieldId={selectedFieldId}
         readOnly={readOnly}
+        lockSystemFields={lockSystemFields}
         onSelectField={(fieldId) =>
           onFocusChange({ kind: "field", stepId: step.id, fieldId })
         }
@@ -436,6 +462,7 @@ function FieldView({
   stepIdx,
   field,
   readOnly,
+  lockSystemFields,
   onBack,
   onUpdateField,
   onRequestDeleteField,
@@ -445,10 +472,14 @@ function FieldView({
   stepIdx: number;
   field: ApplicationField;
   readOnly: boolean;
+  lockSystemFields: boolean;
   onBack: () => void;
   onUpdateField: (patch: Partial<ApplicationField>) => void;
   onRequestDeleteField: () => void;
 }) {
+  const isLockedField =
+    lockSystemFields && (field.system === true || isSystemFieldId(field.id));
+
   return (
     <div className="w-full max-w-3xl space-y-6">
       <button
@@ -477,9 +508,9 @@ function FieldView({
         <ApplicationFormFieldEditor
           C={C}
           field={field}
-          readOnly={readOnly}
+          readOnly={readOnly || isLockedField}
           onChange={onUpdateField}
-          onDelete={onRequestDeleteField}
+          onDelete={isLockedField ? undefined : onRequestDeleteField}
         />
       </div>
     </div>
@@ -493,6 +524,7 @@ export default function ApplicationFormFocusCanvas({
   programs,
   orgSlug,
   readOnly,
+  lockSystemFields = false,
   setupHighlight,
   slugError,
   stripePaymentsReady = true,
@@ -549,6 +581,7 @@ export default function ApplicationFormFocusCanvas({
   };
 
   const deleteField = (stepId: string, fieldId: string) => {
+    if (lockSystemFields && isSystemFieldId(fieldId)) return;
     onUpdateSchema((schema) => ({
       ...schema,
       sections: schema.sections.map((s) =>
@@ -619,17 +652,19 @@ export default function ApplicationFormFocusCanvas({
               step={step}
               stepIdx={stepIdx}
               readOnly={readOnly}
+              lockSystemFields={lockSystemFields}
               selectedFieldId={null}
               onFocusChange={onFocusChange}
               onUpdateStep={(patch) => updateStep(step.id, patch)}
-              onRequestDeleteStep={() =>
+              onRequestDeleteStep={() => {
+                if (lockSystemFields && isSystemSection(step)) return;
                 setPendingDelete({
                   kind: "step",
                   stepId: step.id,
                   stepTitle: step.title || `Step ${stepIdx + 1}`,
                   questionCount: step.fields.length,
-                })
-              }
+                });
+              }}
               onAddField={(field) => addField(step.id, field)}
               onReorderFields={(fields) =>
                 updateStep(step.id, { fields })
@@ -644,16 +679,18 @@ export default function ApplicationFormFocusCanvas({
               stepIdx={stepIdx}
               field={field}
               readOnly={readOnly}
+              lockSystemFields={lockSystemFields}
               onBack={() => onFocusChange({ kind: "step", stepId: step.id })}
               onUpdateField={(patch) => updateField(step.id, field.id, patch)}
-              onRequestDeleteField={() =>
+              onRequestDeleteField={() => {
+                if (lockSystemFields && isSystemFieldId(field.id)) return;
                 setPendingDelete({
                   kind: "field",
                   stepId: step.id,
                   fieldId: field.id,
                   fieldLabel: field.label || "Untitled question",
-                })
-              }
+                });
+              }}
             />
           )}
 

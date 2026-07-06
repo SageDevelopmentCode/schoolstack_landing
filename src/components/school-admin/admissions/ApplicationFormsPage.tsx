@@ -16,6 +16,12 @@ import {
   type ProgramOption,
 } from "@/lib/admissions/application-forms";
 import {
+  applySystemSchemaChanged,
+  ensureApplySystemSchema,
+  isSystemSection,
+  validateApplySystemSchema,
+} from "@/lib/admissions/apply-system-fields";
+import {
   createEnrollmentChecklistTemplate,
   listEnrollmentChecklistTemplates,
   type EnrollmentChecklistTemplate,
@@ -193,16 +199,69 @@ export default function ApplicationFormsPage({
     loadForms();
   }, [loadForms]);
 
+  const selectedApplyFormId =
+    selection?.kind === "apply" ? selection.id : null;
+
+  useEffect(() => {
+    setFocus(DEFAULT_BUILDER_FOCUS);
+    setSetupHighlight(null);
+  }, [selectedApplyFormId]);
+
   useEffect(() => {
     if (!selectedForm) {
       setEditable(null);
       return;
     }
-    const next = toEditableState(selectedForm);
-    setEditable(next);
-    setFocus(DEFAULT_BUILDER_FOCUS);
-    setSetupHighlight(null);
-  }, [selectedForm?.id, selectedForm?.updated_at, selectedForm?.status]);
+
+    const form = selectedForm;
+    let cancelled = false;
+
+    async function syncEditable() {
+      let next = toEditableState(form);
+      const isApply = isApplyFormSlug(form.public_slug);
+
+      if (isApply) {
+        const ensured = ensureApplySystemSchema(next.schema);
+        if (applySystemSchemaChanged(next.schema, ensured)) {
+          next = { ...next, schema: ensured };
+          if (form.status !== "archived") {
+            try {
+              const updated = await updateApplicationForm(supabase, form.id, {
+                schema: ensured,
+              });
+              if (cancelled) return;
+              setForms((prev) =>
+                prev.map((row) => (row.id === updated.id ? updated : row)),
+              );
+              next = toEditableState(updated);
+            } catch (err) {
+              if (!cancelled) {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Failed to upgrade apply form schema.",
+                );
+              }
+            }
+          }
+        }
+      }
+
+      if (cancelled) return;
+      setEditable(next);
+    }
+
+    void syncEditable();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedForm?.id,
+    selectedForm?.updated_at,
+    selectedForm?.status,
+    supabase,
+  ]);
 
   const focusSlugSetup = (errorMessage: string) => {
     setFocus({ kind: "setup" });
@@ -322,7 +381,10 @@ export default function ApplicationFormsPage({
   const handleSave = async () => {
     if (!selectedForm || !editable || readOnly) return;
 
-    const validationErrors = validateApplicationFormSchema(editable.schema);
+    const validationErrors = [
+      ...validateApplicationFormSchema(editable.schema),
+      ...(isApplyFormSelected ? validateApplySystemSchema(editable.schema) : []),
+    ];
     if (validationErrors.length > 0) {
       setError(validationErrors[0]);
       return;
@@ -359,9 +421,12 @@ export default function ApplicationFormsPage({
   const handlePublish = async () => {
     if (!selectedForm || !isDraft) return;
 
-    const validationErrors = validateApplicationFormSchema(
-      editable?.schema ?? selectedForm.schema,
-    );
+    const validationErrors = [
+      ...validateApplicationFormSchema(editable?.schema ?? selectedForm.schema),
+      ...(isApplyFormSelected
+        ? validateApplySystemSchema(editable?.schema ?? selectedForm.schema)
+        : []),
+    ];
     if (validationErrors.length > 0) {
       setError(validationErrors[0]);
       return;
@@ -468,11 +533,28 @@ export default function ApplicationFormsPage({
   };
 
   const deleteStep = (stepId: string) => {
+    if (isApplyFormSelected) {
+      const step = editable?.schema.sections.find((section) => section.id === stepId);
+      if (step && isSystemSection(step)) return;
+    }
     updateSchema((schema) => ({
       ...schema,
       sections: schema.sections.filter((s) => s.id !== stepId),
     }));
     setFocus(DEFAULT_BUILDER_FOCUS);
+  };
+
+  const reorderSteps = (sections: ApplicationFormSchema["sections"]) => {
+    if (isApplyFormSelected) {
+      const systemStep = sections.find(isSystemSection);
+      const otherSteps = sections.filter((section) => !isSystemSection(section));
+      updateSchema((schema) => ({
+        ...schema,
+        sections: systemStep ? [systemStep, ...otherSteps] : sections,
+      }));
+      return;
+    }
+    updateSchema((schema) => ({ ...schema, sections }));
   };
 
   if (loading) {
@@ -671,10 +753,9 @@ export default function ApplicationFormsPage({
               sections={editable.schema.sections}
               focus={focus}
               readOnly={readOnly}
+              lockSystemStep={isApplyFormSelected}
               onFocusChange={setFocus}
-              onReorderSteps={(sections) =>
-                updateSchema((schema) => ({ ...schema, sections }))
-              }
+              onReorderSteps={reorderSteps}
               onAddStep={addStep}
               onPreview={() => setPreviewOpen(true)}
             />
@@ -686,6 +767,7 @@ export default function ApplicationFormsPage({
               programs={programs}
               orgSlug={slug}
               readOnly={readOnly}
+              lockSystemFields={isApplyFormSelected}
               setupHighlight={setupHighlight}
               slugError={setupHighlight === "publicSlug" ? error : null}
               stripePaymentsReady={stripePaymentsReady}
