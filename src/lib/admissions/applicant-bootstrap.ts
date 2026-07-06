@@ -11,13 +11,18 @@ export type BootstrapApplicantInput = {
   formVersionId: string;
   firstName?: string;
   lastName?: string;
+  forceNew?: boolean;
 };
 
+export type BootstrapApplicantAction = "resume" | "redirect_apply_dashboard";
+
 export type BootstrapApplicantResult = {
-  applicationId: string;
+  action: BootstrapApplicantAction;
+  applicationId?: string;
   familyId: string;
   guardianId: string;
   membershipId: string;
+  createdNewApplication?: boolean;
 };
 
 export class BootstrapApplicantError extends Error {
@@ -40,8 +45,15 @@ export async function bootstrapApplicant(
   admin: SupabaseClient,
   input: BootstrapApplicantInput,
 ): Promise<BootstrapApplicantResult> {
-  const { userId, email, organizationId, formVersionId, firstName, lastName } =
-    input;
+  const {
+    userId,
+    email,
+    organizationId,
+    formVersionId,
+    firstName,
+    lastName,
+    forceNew = false,
+  } = input;
 
   const { data: formRow, error: formError } = await admin
     .from("application_form_versions")
@@ -212,11 +224,41 @@ export async function bootstrapApplicant(
 
   if (existingApplication) {
     return {
+      action: "resume",
       applicationId: existingApplication.id as string,
       familyId,
       guardianId,
       membershipId,
+      createdNewApplication: false,
     };
+  }
+
+  if (!forceNew) {
+    const { data: submittedApplications, error: submittedLookupError } = await admin
+      .from("applications")
+      .select("id")
+      .eq("created_by_user_id", userId)
+      .eq("form_version_id", formVersionId)
+      .neq("status", "draft")
+      .limit(1);
+
+    if (submittedLookupError) {
+      throw new BootstrapApplicantError(
+        submittedLookupError.message,
+        "application_lookup_failed",
+        500,
+      );
+    }
+
+    if ((submittedApplications ?? []).length > 0) {
+      return {
+        action: "redirect_apply_dashboard",
+        familyId,
+        guardianId,
+        membershipId,
+        createdNewApplication: false,
+      };
+    }
   }
 
   const { data: newApplication, error: applicationInsertError } = await admin
@@ -243,9 +285,11 @@ export async function bootstrapApplicant(
   }
 
   return {
+    action: "resume",
     applicationId: newApplication.id as string,
     familyId,
     guardianId,
     membershipId,
+    createdNewApplication: true,
   };
 }

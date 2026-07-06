@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { CopyableApplication } from "@/lib/admissions/application-copy";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
@@ -40,6 +43,13 @@ export type ApplicationFormExperienceProps = {
   initialFeeStatus?: string;
   initialStatus?: string;
   paymentReturnPending?: boolean;
+  schoolSlug?: string;
+  copyableApplications?: CopyableApplication[];
+  priorFieldValues?: Record<string, string>;
+  onImportResponses?: (
+    sourceApplicationId: string,
+    fieldIds?: string[],
+  ) => Promise<void>;
   onSaveDraft?: (input: SaveApplicationDraftInput) => Promise<void>;
   onSubmitted?: () => void;
 };
@@ -91,6 +101,10 @@ export default function ApplicationFormExperience({
   initialFeeStatus = "not_required",
   initialStatus = "draft",
   paymentReturnPending = false,
+  schoolSlug,
+  copyableApplications = [],
+  priorFieldValues = {},
+  onImportResponses,
   onSaveDraft,
   onSubmitted,
 }: ApplicationFormExperienceProps) {
@@ -128,6 +142,14 @@ export default function ApplicationFormExperience({
   const [applicationStatus, setApplicationStatus] = useState(initialStatus);
   const [awaitingPaymentConfirmation, setAwaitingPaymentConfirmation] =
     useState(paymentReturnPending);
+  const [bulkCopySourceId, setBulkCopySourceId] = useState("");
+  const [importing, setImporting] = useState(false);
+
+  useEffect(() => {
+    if (copyableApplications[0] && !bulkCopySourceId) {
+      setBulkCopySourceId(copyableApplications[0].id);
+    }
+  }, [bulkCopySourceId, copyableApplications]);
 
   const currentStep = steps[stepIndex];
   const totalSteps = steps.length;
@@ -285,6 +307,48 @@ export default function ApplicationFormExperience({
     }
   };
 
+  const handleBulkCopy = async () => {
+    if (!onImportResponses || !bulkCopySourceId) return;
+
+    setImporting(true);
+    setSaveError(null);
+    try {
+      await onImportResponses(bulkCopySourceId);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to copy previous answers.",
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleReuseField = async (fieldId: string) => {
+    const value = priorFieldValues[fieldId];
+    if (!value) return;
+
+    const nextValues = { ...values, [fieldId]: value };
+    setValues(nextValues);
+    setSaveError(null);
+
+    if (canPersist && onSaveDraft) {
+      setSaving(true);
+      try {
+        await onSaveDraft({
+          responses: nextValues,
+          acknowledgments,
+          stepIndex,
+        });
+      } catch (error) {
+        setSaveError(
+          error instanceof Error ? error.message : "Failed to save your progress.",
+        );
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
   const pageBg = branding.colors.bg;
 
   if (applicationStatus !== "draft") {
@@ -292,6 +356,7 @@ export default function ApplicationFormExperience({
       <SubmittedConfirmation
         branding={branding}
         schoolName={schoolName}
+        schoolSlug={schoolSlug}
         title={title}
         awaitingPaymentConfirmation={awaitingPaymentConfirmation}
       />
@@ -381,6 +446,48 @@ export default function ApplicationFormExperience({
             ))}
           </div>
 
+          {isFirstStep && copyableApplications.length > 0 && onImportResponses ? (
+            <div
+              className="mb-6 rounded-lg border px-4 py-4"
+              style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+            >
+              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                Applying for another child?
+              </p>
+              <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
+                Copy answers from a previous application, then update student-specific
+                details.
+              </p>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <select
+                  value={bulkCopySourceId}
+                  onChange={(event) => setBulkCopySourceId(event.target.value)}
+                  className="w-full rounded-md border px-3 py-2 text-sm sm:max-w-xs"
+                  style={{
+                    borderColor: C.inputBorder,
+                    backgroundColor: C.input,
+                    color: C.textPrimary,
+                  }}
+                >
+                  {copyableApplications.map((application) => (
+                    <option key={application.id} value={application.id}>
+                      {application.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => void handleBulkCopy()}
+                  disabled={importing || !bulkCopySourceId}
+                  className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  style={{ backgroundColor: C.accent }}
+                >
+                  {importing ? "Copying…" : "Copy answers"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <AnimatePresence mode="wait" initial={false} custom={direction}>
             <motion.div
               key={stepContentKey}
@@ -408,6 +515,8 @@ export default function ApplicationFormExperience({
                   section={section}
                   values={values}
                   onChange={updateValue}
+                  priorFieldValues={priorFieldValues}
+                  onReuseField={(fieldId) => void handleReuseField(fieldId)}
                   supabase={supabase ?? undefined}
                   uploadContext={uploadContext}
                 />
@@ -530,6 +639,8 @@ function SectionStep({
   section,
   values,
   onChange,
+  priorFieldValues,
+  onReuseField,
   supabase,
   uploadContext,
 }: {
@@ -537,6 +648,8 @@ function SectionStep({
   section: ApplicationSection;
   values: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
+  priorFieldValues?: Record<string, string>;
+  onReuseField?: (fieldId: string) => void;
   supabase?: SupabaseClient;
   uploadContext?: ApplicationFileUploadContext;
 }) {
@@ -576,12 +689,26 @@ function SectionStep({
           >
             {field.type !== "checkbox" && (
               <span
-                className="mb-1.5 block text-sm font-medium"
+                className="mb-1.5 flex items-center justify-between gap-2 text-sm font-medium"
                 style={{ color: C.textPrimary }}
               >
-                {field.label}
-                {field.required ? (
-                  <span style={{ color: C.accent }}> *</span>
+                <span>
+                  {field.label}
+                  {field.required ? (
+                    <span style={{ color: C.accent }}> *</span>
+                  ) : null}
+                </span>
+                {field.type !== "file" &&
+                priorFieldValues?.[field.id] &&
+                onReuseField ? (
+                  <button
+                    type="button"
+                    onClick={() => onReuseField(field.id)}
+                    className="text-xs font-medium underline-offset-2 hover:underline"
+                    style={{ color: C.accent }}
+                  >
+                    Reuse answer
+                  </button>
                 ) : null}
               </span>
             )}
@@ -685,16 +812,30 @@ function FeeStep({
 function SubmittedConfirmation({
   branding,
   schoolName,
+  schoolSlug,
   title,
   awaitingPaymentConfirmation,
 }: {
   branding: OrganizationBranding;
   schoolName: string;
+  schoolSlug?: string;
   title: string;
   awaitingPaymentConfirmation: boolean;
 }) {
+  const router = useRouter();
   const C = buildAdminThemeTokens(branding);
   const pageBg = branding.colors.bg;
+  const applyDashboardHref = schoolSlug ? `/school/${schoolSlug}/apply` : null;
+
+  useEffect(() => {
+    if (awaitingPaymentConfirmation || !applyDashboardHref) return;
+
+    const timer = window.setTimeout(() => {
+      router.push(applyDashboardHref);
+    }, 2500);
+
+    return () => window.clearTimeout(timer);
+  }, [applyDashboardHref, awaitingPaymentConfirmation, router]);
 
   return (
     <div
@@ -743,6 +884,15 @@ function SubmittedConfirmation({
             </span>
             . {schoolName} will be in touch about next steps.
           </p>
+          {applyDashboardHref ? (
+            <Link
+              href={applyDashboardHref}
+              className="mt-6 inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+              style={{ backgroundColor: C.accent }}
+            >
+              View your applications
+            </Link>
+          ) : null}
         </>
       )}
     </div>

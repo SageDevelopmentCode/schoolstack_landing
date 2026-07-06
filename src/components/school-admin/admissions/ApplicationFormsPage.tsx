@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Copy, Eye, EyeOff, Link2, Loader2, Save, Send } from "lucide-react";
 import {
-  createDraftForm,
+  createApplyForm,
   duplicateForm,
+  isApplyFormSlug,
   isPublicSlugAvailable,
   listApplicationForms,
   listPrograms,
@@ -14,6 +15,11 @@ import {
   updateApplicationForm,
   type ProgramOption,
 } from "@/lib/admissions/application-forms";
+import {
+  createEnrollmentChecklistTemplate,
+  listEnrollmentChecklistTemplates,
+  type EnrollmentChecklistTemplate,
+} from "@/lib/admissions/enrollment-checklist-templates";
 import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
 import {
   emptyApplicationSection,
@@ -29,9 +35,13 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import ApplicationFormFocusCanvas from "./ApplicationFormFocusCanvas";
-import ApplicationFormList, { StatusBadge } from "./ApplicationFormList";
+import ApplicationFormList, {
+  type FlowListSelection,
+} from "./ApplicationFormList";
+import { StatusBadge } from "./ApplicationFormListBadges";
 import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
+import EnrollmentChecklistStubEditor from "./EnrollmentChecklistStubEditor";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import {
   DEFAULT_BUILDER_FOCUS,
@@ -99,8 +109,9 @@ export default function ApplicationFormsPage({
   const supabase = useMemo(() => createClient(), []);
 
   const [forms, setForms] = useState<ApplicationFormVersion[]>([]);
+  const [checklists, setChecklists] = useState<EnrollmentChecklistTemplate[]>([]);
   const [programs, setPrograms] = useState<ProgramOption[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<FlowListSelection>(null);
   const [editable, setEditable] = useState<EditableFormState | null>(null);
   const [focus, setFocus] = useState<BuilderFocus>(DEFAULT_BUILDER_FOCUS);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -116,7 +127,21 @@ export default function ApplicationFormsPage({
   const [unpublishing, setUnpublishing] = useState(false);
   const [stripePaymentsReady, setStripePaymentsReady] = useState(true);
 
-  const selectedForm = forms.find((f) => f.id === selectedId) ?? null;
+  const selectedForm =
+    selection?.kind === "apply"
+      ? (forms.find((f) => f.id === selection.id) ?? null)
+      : null;
+  const selectedChecklist =
+    selection?.kind === "checklist"
+      ? (checklists.find((c) => c.id === selection.id) ?? null)
+      : null;
+  const hasApplyForm = forms.some(
+    (form) => isApplyFormSlug(form.public_slug) && form.status !== "archived",
+  );
+  const hasEnrollmentChecklist = checklists.some(
+    (checklist) => checklist.status !== "archived",
+  );
+  const isApplyFormSelected = isApplyFormSlug(selectedForm?.public_slug);
   const isArchived = selectedForm?.status === "archived";
   const isDraft = selectedForm?.status === "draft";
   const isPublished = selectedForm?.status === "published";
@@ -130,17 +155,32 @@ export default function ApplicationFormsPage({
     setLoading(true);
     setError(null);
     try {
-      const [formRows, programRows, paymentsReady] = await Promise.all([
+      const [formRows, checklistRows, programRows, paymentsReady] = await Promise.all([
         listApplicationForms(supabase, organizationId),
+        listEnrollmentChecklistTemplates(supabase, organizationId),
         listPrograms(supabase, organizationId),
         orgPaymentsReadyForFees(supabase, organizationId),
       ]);
       setForms(formRows);
+      setChecklists(checklistRows);
       setPrograms(programRows);
       setStripePaymentsReady(paymentsReady);
-      setSelectedId((prev) => {
-        if (prev && formRows.some((f) => f.id === prev)) return prev;
-        return formRows[0]?.id ?? null;
+      setSelection((prev) => {
+        if (
+          prev?.kind === "apply" &&
+          formRows.some((form) => form.id === prev.id)
+        ) {
+          return prev;
+        }
+        if (
+          prev?.kind === "checklist" &&
+          checklistRows.some((checklist) => checklist.id === prev.id)
+        ) {
+          return prev;
+        }
+        if (formRows[0]) return { kind: "apply", id: formRows[0].id };
+        if (checklistRows[0]) return { kind: "checklist", id: checklistRows[0].id };
+        return null;
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load forms.");
@@ -232,16 +272,32 @@ export default function ApplicationFormsPage({
     return true;
   };
 
-  const handleCreate = async () => {
+  const handleCreateApply = async () => {
     setCreating(true);
     setError(null);
     try {
-      const created = await createDraftForm(supabase, organizationId);
+      const created = await createApplyForm(supabase, organizationId);
       setForms((prev) => [created, ...prev]);
-      setSelectedId(created.id);
+      setSelection({ kind: "apply", id: created.id });
       setFocus(DEFAULT_BUILDER_FOCUS);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create form.");
+      setError(err instanceof Error ? err.message : "Failed to create apply form.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleCreateChecklist = async () => {
+    setCreating(true);
+    setError(null);
+    try {
+      const created = await createEnrollmentChecklistTemplate(supabase, organizationId);
+      setChecklists((prev) => [created, ...prev]);
+      setSelection({ kind: "checklist", id: created.id });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create enrollment checklist.",
+      );
     } finally {
       setCreating(false);
     }
@@ -254,7 +310,7 @@ export default function ApplicationFormsPage({
     try {
       const copy = await duplicateForm(supabase, selectedForm.id);
       setForms((prev) => [copy, ...prev]);
-      setSelectedId(copy.id);
+      setSelection({ kind: "apply", id: copy.id });
       setFocus(DEFAULT_BUILDER_FOCUS);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to duplicate form.");
@@ -341,7 +397,7 @@ export default function ApplicationFormsPage({
       }
       const published = await publishForm(supabase, selectedForm.id);
       await loadForms();
-      setSelectedId(published.id);
+      setSelection({ kind: "apply", id: published.id });
       setSetupHighlight(null);
     } catch (err) {
       const message =
@@ -436,13 +492,22 @@ export default function ApplicationFormsPage({
       <ApplicationFormList
         C={C}
         forms={forms}
-        selectedId={selectedId}
+        checklists={checklists}
+        selected={selection}
         creating={creating}
-        onSelect={setSelectedId}
-        onCreate={handleCreate}
+        hasApplyForm={hasApplyForm}
+        hasEnrollmentChecklist={hasEnrollmentChecklist}
+        onSelect={setSelection}
+        onCreateApply={handleCreateApply}
+        onCreateChecklist={handleCreateChecklist}
       />
 
-      {selectedForm && editable ? (
+      {selectedChecklist ? (
+        <EnrollmentChecklistStubEditor
+          branding={branding}
+          template={selectedChecklist}
+        />
+      ) : selectedForm && editable ? (
         <div
           className="flex flex-1 flex-col overflow-hidden"
           style={{ backgroundColor: C.surface }}
@@ -498,20 +563,22 @@ export default function ApplicationFormsPage({
                 Preview
               </button>
               {readOnly ? (
-                <button
-                  type="button"
-                  onClick={handleDuplicate}
-                  disabled={creating}
-                  className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                  style={{
-                    border: `1px solid ${C.border}`,
-                    color: C.textSecondary,
-                    backgroundColor: C.bg,
-                  }}
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                  Duplicate
-                </button>
+                !isApplyFormSelected ? (
+                  <button
+                    type="button"
+                    onClick={handleDuplicate}
+                    disabled={creating}
+                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                    style={{
+                      border: `1px solid ${C.border}`,
+                      color: C.textSecondary,
+                      backgroundColor: C.bg,
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Duplicate
+                  </button>
+                ) : null
               ) : (
                 <>
                   <button
@@ -547,20 +614,22 @@ export default function ApplicationFormsPage({
                         <EyeOff className="h-3.5 w-3.5" />
                         Unpublish
                       </button>
-                      <button
-                        type="button"
-                        onClick={handleDuplicate}
-                        disabled={creating}
-                        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                        style={{
-                          border: `1px solid ${C.border}`,
-                          color: C.textSecondary,
-                          backgroundColor: C.bg,
-                        }}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        Duplicate
-                      </button>
+                      {!isApplyFormSelected ? (
+                        <button
+                          type="button"
+                          onClick={handleDuplicate}
+                          disabled={creating}
+                          className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                          style={{
+                            border: `1px solid ${C.border}`,
+                            color: C.textSecondary,
+                            backgroundColor: C.bg,
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          Duplicate
+                        </button>
+                      ) : null}
                     </>
                   ) : (
                     <button

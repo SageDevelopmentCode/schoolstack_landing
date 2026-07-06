@@ -22,6 +22,7 @@ type BootstrapRequestBody = {
   schoolName?: string;
   formTitle?: string;
   mode?: ApplyAuthMode;
+  forceNew?: boolean;
 };
 
 function isApplyAuthMode(value: string): value is ApplyAuthMode {
@@ -89,12 +90,16 @@ export async function POST(request: Request) {
       formVersionId,
       firstName: body.firstName,
       lastName: body.lastName,
+      forceNew: body.forceNew === true,
     });
 
     if (
+      result.action === "resume" &&
+      result.createdNewApplication &&
       body.schoolName?.trim() &&
       body.mode &&
-      isApplyAuthMode(body.mode)
+      isApplyAuthMode(body.mode) &&
+      result.applicationId
     ) {
       try {
         await notifyRootedMeadowsParentApplicationStarted({

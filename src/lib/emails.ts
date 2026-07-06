@@ -146,3 +146,51 @@ export async function sendDemoFeedbackConfirmation(payload: {
     console.error("Demo feedback confirmation email failed:", result.error);
   }
 }
+
+export function buildApplicationSubmittedConfirmationHtml(payload: {
+  name: string;
+  schoolName: string;
+  formTitle: string;
+  applyDashboardUrl: string;
+}): string {
+  return composeEmail({
+    preheader: `Your application to ${payload.schoolName} was received.`,
+    contentHtml: `
+      ${emailBadge("Application Received")}
+      ${emailHeading(`Thank you, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `We received your application for ${escapeHtml(payload.formTitle)} at ${escapeHtml(payload.schoolName)}. The admissions team will review your submission and follow up with next steps.`,
+      )}
+      ${emailDetailCard([
+        { label: "School", value: payload.schoolName },
+        { label: "Application", value: payload.formTitle },
+      ])}
+      ${emailParagraph(
+        "You can check the status of your application anytime from your apply dashboard.",
+      )}
+      ${emailCta({ label: "View apply dashboard", href: payload.applyDashboardUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendApplicationSubmittedConfirmation(payload: {
+  name: string;
+  email: string;
+  schoolName: string;
+  formTitle: string;
+  applyDashboardUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildApplicationSubmittedConfirmationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Application received — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Application submitted confirmation email failed:", result.error);
+  }
+}

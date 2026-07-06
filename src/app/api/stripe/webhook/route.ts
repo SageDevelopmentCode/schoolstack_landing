@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { sendApplicationSubmittedNotifications } from "@/lib/admissions/application-notifications";
 import {
   completeApplicationPaymentAndSubmit,
   getApplicationForSubmit,
@@ -60,6 +61,7 @@ async function handleCheckoutSessionCompleted(
   }
 
   await completeApplicationPaymentAndSubmit(admin, payment.applicationId);
+  void sendApplicationSubmittedNotifications(admin, payment.applicationId);
 }
 
 async function handleAccountUpdated(account: Stripe.Account): Promise<void> {

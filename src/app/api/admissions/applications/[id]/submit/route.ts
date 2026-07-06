@@ -5,6 +5,7 @@ import {
   requireAuthenticatedUser,
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
+import { sendApplicationSubmittedNotifications } from "@/lib/admissions/application-notifications";
 import {
   getApplicationForSubmit,
   loadPublishedFormForApplication,
@@ -92,6 +93,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     await submitApplicationRecord(admin, applicationId);
+    void sendApplicationSubmittedNotifications(admin, applicationId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -24,6 +24,29 @@ export function publicApplicationFormPath(
   return `/school/${orgSlug}/forms/${formSlug}`;
 }
 
+export const APPLY_FORM_PUBLIC_SLUG = "apply";
+
+export async function orgHasApplyForm(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("application_form_versions")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("public_slug", APPLY_FORM_PUBLIC_SLUG)
+    .in("status", ["draft", "published"])
+    .limit(1);
+
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+export function isApplyFormSlug(slug: string | null | undefined): boolean {
+  if (!slug) return false;
+  return normalizePublicSlug(slug) === APPLY_FORM_PUBLIC_SLUG;
+}
+
 async function nextVersion(
   supabase: SupabaseClient,
   organizationId: string,
@@ -215,6 +238,42 @@ export async function createDraftForm(
   return applicationFormFromRow(data as Record<string, unknown>);
 }
 
+export async function createApplyForm(
+  supabase: SupabaseClient,
+  organizationId: string,
+  input: { title?: string; programId?: string | null } = {},
+): Promise<ApplicationFormVersion> {
+  const hasApply = await orgHasApplyForm(supabase, organizationId);
+  if (hasApply) {
+    throw new Error("Your school already has an apply form.");
+  }
+
+  const programId = input.programId ?? null;
+  const version = await nextVersion(supabase, organizationId, programId);
+  const schema = emptyApplicationFormSchema();
+  schema.sections.push(emptyApplicationSection());
+  const title = input.title?.trim() || "Application";
+
+  const { data, error } = await supabase
+    .from("application_form_versions")
+    .insert({
+      organization_id: organizationId,
+      program_id: programId,
+      version,
+      status: "draft",
+      title,
+      intro: null,
+      public_slug: APPLY_FORM_PUBLIC_SLUG,
+      schema: schemaToDbJson(schema),
+      fee_config: defaultApplicationFormFeeConfig(),
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return applicationFormFromRow(data as Record<string, unknown>);
+}
+
 export type UpdateApplicationFormInput = {
   title?: string;
   intro?: string | null;
@@ -261,14 +320,18 @@ export async function updateApplicationForm(
   if (input.program_id !== undefined) patch.program_id = input.program_id;
 
   let normalizedSlug: string | null = existing.public_slug;
+  const isApplyForm = isApplyFormSlug(existing.public_slug);
+
   if (input.public_slug !== undefined) {
-    if (!input.public_slug) {
+    if (isApplyForm) {
+      normalizedSlug = APPLY_FORM_PUBLIC_SLUG;
+    } else if (!input.public_slug) {
       if (existing.status === "published") {
         throw new Error("A public URL slug is required for published forms.");
       }
       patch.public_slug = null;
       normalizedSlug = null;
-    } else {
+    } else if (!isApplyForm) {
       normalizedSlug = normalizePublicSlug(input.public_slug);
       const slugError = validatePublicSlug(normalizedSlug);
       if (slugError) throw new Error(slugError);

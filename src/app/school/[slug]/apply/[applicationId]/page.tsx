@@ -1,19 +1,16 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplyAuthPage from "@/components/admissions/ApplyAuthPage";
-import ApplyDashboard from "@/components/admissions/ApplyDashboard";
-import {
-  listFamilyApplications,
-  userHasEnrolledAccess,
-} from "@/lib/admissions/parent-portal-access";
+import { loadApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: string; applicationId: string }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -27,13 +24,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `Your Applications | ${org.name}`,
-    description: `View and manage your applications to ${org.name}.`,
+    title: `Application | ${org.name}`,
   };
 }
 
-export default async function SchoolApplyDashboardPage({ params }: PageProps) {
-  const { slug } = await params;
+export default async function ApplicationDetailPage({ params }: PageProps) {
+  const { slug, applicationId } = await params;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
@@ -50,18 +46,22 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     return <ApplyAuthPage branding={org.branding} schoolName={org.name} />;
   }
 
-  const [applications, hasEnrolledAccess] = await Promise.all([
-    listFamilyApplications(supabase, org.id),
-    userHasEnrolledAccess(supabase, user.id, org.id),
-  ]);
+  const application = await loadApplicationDetail(supabase, applicationId, org.id);
+
+  if (!application) {
+    notFound();
+  }
+
+  if (application.status === "draft") {
+    notFound();
+  }
 
   return (
-    <ApplyDashboard
+    <ApplicationReadOnlyView
       branding={org.branding}
       schoolName={org.name}
       schoolSlug={slug}
-      applications={applications}
-      hasEnrolledAccess={hasEnrolledAccess}
+      application={application}
     />
   );
 }

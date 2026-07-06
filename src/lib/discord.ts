@@ -184,6 +184,50 @@ export async function notifyRootedMeadowsParentApplicationStarted(payload: {
   await sendRootedMeadowsDiscordEmbed({ title, fields });
 }
 
+export async function notifyApplicationSubmitted(payload: {
+  schoolName: string;
+  email: string;
+  applicationId: string;
+  formTitle?: string;
+  firstName?: string;
+  lastName?: string;
+  submittedAt?: string;
+}) {
+  const title = "Application submitted";
+
+  const firstName = payload.firstName?.trim();
+  const lastName = payload.lastName?.trim();
+  const nameLine =
+    firstName || lastName ? [firstName, lastName].filter(Boolean).join(" ") : null;
+
+  const contactValue = nameLine
+    ? truncate(`${nameLine}\n${payload.email}`)
+    : truncate(payload.email);
+
+  const fields: DiscordEmbedField[] = [
+    { name: "School", value: truncate(payload.schoolName), inline: true },
+    { name: "Contact", value: contactValue, inline: true },
+    { name: "Application ID", value: payload.applicationId, inline: true },
+  ];
+
+  if (payload.formTitle?.trim()) {
+    fields.push({ name: "Form", value: truncate(payload.formTitle.trim()) });
+  }
+
+  if (payload.submittedAt) {
+    fields.push({
+      name: "Submitted",
+      value: new Date(payload.submittedAt).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      inline: true,
+    });
+  }
+
+  await sendWebsiteNotificationDiscordEmbed({ title, fields });
+}
+
 const ROLES: Record<string, string> = {
   starting: "Starting a microschool",
   running: "Already running one",

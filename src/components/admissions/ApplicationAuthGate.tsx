@@ -23,11 +23,14 @@ const RESEND_COOLDOWN_SECONDS = 30;
 export type ApplicationAuthGateProps = {
   branding: OrganizationBranding;
   schoolName: string;
+  schoolSlug?: string;
   formTitle: string;
   organizationId: string;
   formVersionId: string;
+  forceNew?: boolean;
   onComplete: () => void;
   onBootstrapped?: (result: BootstrapApplicantResult) => void;
+  onRedirectApplyDashboard?: () => void;
 };
 
 const stepVariants = {
@@ -264,8 +267,10 @@ export default function ApplicationAuthGate({
   formTitle,
   organizationId,
   formVersionId,
+  forceNew = false,
   onComplete,
   onBootstrapped,
+  onRedirectApplyDashboard,
 }: ApplicationAuthGateProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -383,6 +388,7 @@ export default function ApplicationAuthGate({
         schoolName,
         formTitle,
         mode,
+        forceNew,
       }),
     });
 
@@ -392,6 +398,11 @@ export default function ApplicationAuthGate({
 
     if (!response.ok) {
       throw new Error(payload.error ?? "Failed to set up your application.");
+    }
+
+    if (payload.action === "redirect_apply_dashboard") {
+      onRedirectApplyDashboard?.();
+      return payload;
     }
 
     onBootstrapped?.(payload);
@@ -414,8 +425,10 @@ export default function ApplicationAuthGate({
         throw new Error(verifyError.message);
       }
 
-      await bootstrapApplicant();
-      onComplete();
+      const result = await bootstrapApplicant();
+      if (result.action !== "redirect_apply_dashboard") {
+        onComplete();
+      }
     } catch (error) {
       setAuthError(
         error instanceof Error ? error.message : "Verification failed. Please try again.",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import ApplicationAuthGate from "@/components/admissions/ApplicationAuthGate";
 import ApplicationFormExperience from "@/components/admissions/ApplicationFormExperience";
@@ -13,6 +13,12 @@ import {
   type ApplicationDraft,
   type SaveApplicationDraftInput,
 } from "@/lib/admissions/application-draft";
+import type { CopyableApplication } from "@/lib/admissions/application-copy";
+import {
+  getApplicationResponsesForCopy,
+  listCopyableApplications,
+  pickResponsesForCopy,
+} from "@/lib/admissions/application-copy";
 import { loadApplicationSummary } from "@/lib/admissions/application-status";
 import type {
   ApplicationFormFeeConfig,
@@ -25,6 +31,7 @@ import { createClient } from "@/utils/supabase/client";
 type PublicApplicationFormClientProps = {
   branding: OrganizationBranding;
   schoolName: string;
+  schoolSlug: string;
   title: string;
   intro: string | null;
   schema: ApplicationFormSchema;
@@ -38,6 +45,7 @@ type ClientPhase = "checking_session" | "auth" | "loading_draft" | "form" | "err
 async function bootstrapApplicant(
   organizationId: string,
   formVersionId: string,
+  options?: { forceNew?: boolean },
 ): Promise<BootstrapApplicantResult> {
   const response = await fetch("/api/admissions/applicant-bootstrap", {
     method: "POST",
@@ -46,6 +54,7 @@ async function bootstrapApplicant(
       organizationId,
       formVersionId,
       mode: "login",
+      forceNew: options?.forceNew === true,
     }),
   });
 
@@ -63,6 +72,7 @@ async function bootstrapApplicant(
 export default function PublicApplicationFormClient({
   branding,
   schoolName,
+  schoolSlug,
   title,
   intro,
   schema,
@@ -72,7 +82,9 @@ export default function PublicApplicationFormClient({
 }: PublicApplicationFormClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const forceNew = searchParams.get("new") === "1";
 
   const [phase, setPhase] = useState<ClientPhase>("checking_session");
   const [applicationId, setApplicationId] = useState<string | null>(null);
@@ -82,6 +94,11 @@ export default function PublicApplicationFormClient({
     () => searchParams.get("payment") === "success",
   );
   const [submitted, setSubmitted] = useState(false);
+  const [copyableApplications, setCopyableApplications] = useState<CopyableApplication[]>(
+    [],
+  );
+  const [priorFieldValues, setPriorFieldValues] = useState<Record<string, string>>({});
+  const [importGeneration, setImportGeneration] = useState(0);
 
   const resumeWithApplication = useCallback(
     async (nextApplicationId: string) => {
@@ -94,6 +111,25 @@ export default function PublicApplicationFormClient({
         setDraft(loaded);
         if (loaded.status !== "draft") {
           setSubmitted(true);
+        } else {
+          const copyable = await listCopyableApplications(
+            supabase,
+            organizationId,
+            formVersionId,
+            nextApplicationId,
+          );
+          setCopyableApplications(copyable);
+          if (copyable[0]) {
+            const priorResponses = await getApplicationResponsesForCopy(
+              supabase,
+              copyable[0].id,
+            );
+            setPriorFieldValues(
+              pickResponsesForCopy(priorResponses, schema),
+            );
+          } else {
+            setPriorFieldValues({});
+          }
         }
         setPhase("form");
       } catch (err) {
@@ -114,7 +150,21 @@ export default function PublicApplicationFormClient({
         setPhase("error");
       }
     },
-    [supabase],
+    [formVersionId, organizationId, schema, supabase],
+  );
+
+  const handleBootstrapResult = useCallback(
+    async (result: BootstrapApplicantResult) => {
+      if (result.action === "redirect_apply_dashboard") {
+        router.replace(`/school/${schoolSlug}/apply`);
+        return;
+      }
+
+      if (result.applicationId) {
+        await resumeWithApplication(result.applicationId);
+      }
+    },
+    [resumeWithApplication, router, schoolSlug],
   );
 
   useEffect(() => {
@@ -133,9 +183,11 @@ export default function PublicApplicationFormClient({
       }
 
       try {
-        const result = await bootstrapApplicant(organizationId, formVersionId);
+        const result = await bootstrapApplicant(organizationId, formVersionId, {
+          forceNew,
+        });
         if (cancelled) return;
-        await resumeWithApplication(result.applicationId);
+        await handleBootstrapResult(result);
       } catch (err) {
         if (cancelled) return;
         setError(
@@ -152,7 +204,13 @@ export default function PublicApplicationFormClient({
     return () => {
       cancelled = true;
     };
-  }, [formVersionId, organizationId, resumeWithApplication, supabase.auth]);
+  }, [
+    forceNew,
+    formVersionId,
+    handleBootstrapResult,
+    organizationId,
+    supabase.auth,
+  ]);
 
   useEffect(() => {
     if (!paymentReturnPending || !applicationId) return;
@@ -200,7 +258,7 @@ export default function PublicApplicationFormClient({
   }, [applicationId, paymentReturnPending, supabase]);
 
   const handleBootstrapped = (result: BootstrapApplicantResult) => {
-    void resumeWithApplication(result.applicationId);
+    void handleBootstrapResult(result);
   };
 
   const handleSaveDraft = async (input: SaveApplicationDraftInput) => {
@@ -219,6 +277,36 @@ export default function PublicApplicationFormClient({
           }
         : current,
     );
+  };
+
+  const handleImportResponses = async (
+    sourceApplicationId: string,
+    fieldIds?: string[],
+  ) => {
+    if (!applicationId || !draft) return;
+
+    const sourceResponses = await getApplicationResponsesForCopy(
+      supabase,
+      sourceApplicationId,
+    );
+    const imported = pickResponsesForCopy(sourceResponses, schema, fieldIds);
+    const nextResponses = { ...draft.responses, ...imported };
+
+    await saveApplicationDraft(supabase, applicationId, {
+      responses: nextResponses,
+      acknowledgments: draft.acknowledgments,
+      stepIndex: draft.stepIndex,
+    });
+
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            responses: nextResponses,
+          }
+        : current,
+    );
+    setImportGeneration((current) => current + 1);
   };
 
   if (phase === "checking_session" || phase === "loading_draft") {
@@ -261,7 +349,7 @@ export default function PublicApplicationFormClient({
     return (
       <ApplicationFormPageShell branding={branding}>
         <ApplicationFormExperience
-          key={applicationId}
+          key={`${applicationId}-${importGeneration}`}
           branding={branding}
           schoolName={schoolName}
           title={title}
@@ -277,6 +365,10 @@ export default function PublicApplicationFormClient({
           initialFeeStatus={draft?.feeStatus ?? "not_required"}
           initialStatus={draft?.status ?? (submitted ? "submitted" : "draft")}
           paymentReturnPending={paymentReturnPending}
+          schoolSlug={schoolSlug}
+          copyableApplications={copyableApplications}
+          priorFieldValues={priorFieldValues}
+          onImportResponses={handleImportResponses}
           onSaveDraft={draft ? handleSaveDraft : undefined}
           onSubmitted={() => setSubmitted(true)}
         />
@@ -288,12 +380,17 @@ export default function PublicApplicationFormClient({
     <ApplicationAuthGate
       branding={branding}
       schoolName={schoolName}
+      schoolSlug={schoolSlug}
       formTitle={title}
       organizationId={organizationId}
       formVersionId={formVersionId}
+      forceNew={forceNew}
       onBootstrapped={handleBootstrapped}
+      onRedirectApplyDashboard={() => {
+        router.replace(`/school/${schoolSlug}/apply`);
+      }}
       onComplete={() => {
-        // Form visibility is driven by resumeWithApplication after bootstrap.
+        // Form visibility is driven by handleBootstrapResult after bootstrap.
       }}
     />
   );

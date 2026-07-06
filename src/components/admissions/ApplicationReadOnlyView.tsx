@@ -1,0 +1,221 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo } from "react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import {
+  APPLICATION_STATUS_LABELS,
+  type ApplicationDetail,
+} from "@/lib/admissions/parent-portal-access";
+import type {
+  ApplicationField,
+  ApplicationFormSchema,
+} from "@/lib/admissions/application-form-schema";
+import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { OrganizationBranding } from "@/lib/organization-settings/types";
+
+type ApplicationReadOnlyViewProps = {
+  branding: OrganizationBranding;
+  schoolName: string;
+  schoolSlug: string;
+  application: ApplicationDetail;
+};
+
+function formatFieldValue(field: ApplicationField, value: string | undefined): string {
+  if (!value) return "—";
+
+  if (field.type === "checkbox") {
+    return value === "true" || value === "on" || value === "1" ? "Yes" : "No";
+  }
+
+  if (field.type === "select" || field.type === "radio") {
+    const option = field.options?.find((entry) => entry.value === value);
+    return option?.label ?? value;
+  }
+
+  if (field.type === "file") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((entry) => {
+            if (entry && typeof entry === "object" && "name" in entry) {
+              return String((entry as { name?: string }).name ?? "File");
+            }
+            return "File";
+          })
+          .join(", ");
+      }
+    } catch {
+      // Fall through to raw value.
+    }
+    return value;
+  }
+
+  return value;
+}
+
+function ReadOnlyField({
+  field,
+  value,
+  C,
+}: {
+  field: ApplicationField;
+  value: string | undefined;
+  C: ReturnType<typeof buildAdminThemeTokens>;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <dt className="text-xs font-medium uppercase tracking-wide" style={{ color: C.textQuaternary }}>
+        {field.label}
+      </dt>
+      <dd className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: C.textPrimary }}>
+        {formatFieldValue(field, value)}
+      </dd>
+    </div>
+  );
+}
+
+function ReadOnlyContent({
+  schema,
+  responses,
+  acknowledgments,
+  C,
+  pageBg,
+}: {
+  schema: ApplicationFormSchema;
+  responses: Record<string, string>;
+  acknowledgments: Record<string, boolean>;
+  C: ReturnType<typeof buildAdminThemeTokens>;
+  pageBg: string;
+}) {
+  return (
+    <div className="space-y-8">
+      {schema.sections.map((section) => (
+        <section key={section.id}>
+          <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
+            {section.title}
+          </h2>
+          {section.description ? (
+            <p className="mt-1 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+              {section.description}
+            </p>
+          ) : null}
+          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+            {section.fields.map((field) => (
+              <div
+                key={field.id}
+                className={field.width === "half" ? "sm:col-span-1" : "sm:col-span-2"}
+              >
+                <ReadOnlyField field={field} value={responses[field.id]} C={C} />
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+
+      {schema.acknowledgments.length > 0 ? (
+        <section>
+          <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
+            Acknowledgments
+          </h2>
+          <ul className="mt-4 space-y-3">
+            {schema.acknowledgments.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-start gap-3 rounded-md border px-4 py-3 text-sm"
+                style={{ borderColor: C.border, backgroundColor: pageBg }}
+              >
+                <CheckCircle2
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  style={{
+                    color: acknowledgments[item.id] ? C.accent : C.textQuaternary,
+                  }}
+                />
+                <span style={{ color: C.textPrimary }}>{item.label}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+export default function ApplicationReadOnlyView({
+  branding,
+  schoolName,
+  schoolSlug,
+  application,
+}: ApplicationReadOnlyViewProps) {
+  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const pageBg = branding.colors.bg;
+  const submittedLabel = application.submittedAt
+    ? new Date(application.submittedAt).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+
+  return (
+    <div
+      className="min-h-dvh px-4 py-8 sm:px-6 sm:py-10"
+      style={{ backgroundColor: pageBg, color: C.textPrimary }}
+    >
+      <div className="mx-auto max-w-3xl">
+        <Link
+          href={`/school/${schoolSlug}/apply`}
+          className="mb-6 inline-flex items-center gap-2 text-sm underline-offset-2 hover:underline"
+          style={{ color: C.textSecondary }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to applications
+        </Link>
+
+        <SchoolDemoWordmark
+          logo={{
+            src: branding.logo.src,
+            alt: branding.logo.alt || schoolName,
+            width: branding.logo.width,
+            height: branding.logo.height,
+            text: branding.logo.src ? undefined : schoolName,
+          }}
+          className="mb-8 h-8 w-auto max-w-[200px] object-contain"
+        />
+
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold sm:text-3xl" style={{ color: C.accentDark }}>
+            {application.formTitle}
+          </h1>
+          <span
+            className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+            style={{ backgroundColor: C.elevated, color: C.textSecondary }}
+          >
+            {APPLICATION_STATUS_LABELS[application.status] ?? application.status}
+          </span>
+        </div>
+
+        {submittedLabel ? (
+          <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
+            Submitted {submittedLabel}
+          </p>
+        ) : null}
+
+        <div
+          className="mt-8 rounded-lg border px-5 py-6 sm:px-6"
+          style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+        >
+          <ReadOnlyContent
+            schema={application.schema}
+            responses={application.responses}
+            acknowledgments={application.acknowledgments}
+            C={C}
+            pageBg={pageBg}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

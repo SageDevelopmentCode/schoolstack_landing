@@ -75,6 +75,7 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
       <PublicApplicationFormClient
         branding={org.branding}
         schoolName={org.name}
+        schoolSlug={slug}
         title={form.title}
         intro={form.intro}
         schema={form.schema}
