@@ -103,10 +103,6 @@ export function buildApplySystemSection(): ApplicationSection {
     title: APPLY_SYSTEM_SECTION_TITLE,
     system: true,
     description: APPLY_SYSTEM_PARENT_DESCRIPTION,
-    stepNotice: {
-      body: APPLY_SYSTEM_PARENT_DESCRIPTION,
-      placement: "top",
-    },
     fields: APPLY_SYSTEM_FIELD_IDS.map(buildSystemField),
   };
 }
@@ -141,10 +137,7 @@ function mergeSystemFields(section: ApplicationSection): ApplicationSection {
     system: true,
     title: section.title?.trim() || APPLY_SYSTEM_SECTION_TITLE,
     description: section.description?.trim() || APPLY_SYSTEM_PARENT_DESCRIPTION,
-    stepNotice: section.stepNotice ?? {
-      body: APPLY_SYSTEM_PARENT_DESCRIPTION,
-      placement: "top",
-    },
+    stepNotice: undefined,
     fields: canonicalFields,
   };
 }

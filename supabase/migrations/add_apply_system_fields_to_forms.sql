@@ -40,11 +40,6 @@ begin
       'system', true,
       'description',
         'Tell us about the student you''re applying for. This information is saved to your school''s records when you submit.',
-      'stepNotice', jsonb_build_object(
-        'body',
-          'Tell us about the student you''re applying for. This information is saved to your school''s records when you submit.',
-        'placement', 'top'
-      ),
       'fields', jsonb_build_array(
         jsonb_build_object(
           'id', 'student_first_name',
