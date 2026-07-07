@@ -3,7 +3,8 @@ export type BuilderFocus =
   | { kind: "step"; stepId: string }
   | { kind: "field"; stepId: string; fieldId: string }
   | { kind: "fee" }
-  | { kind: "acknowledgments" };
+  | { kind: "acknowledgments" }
+  | { kind: "postSubmit" };
 
 export function focusKey(focus: BuilderFocus): string {
   switch (focus.kind) {
@@ -13,6 +14,8 @@ export function focusKey(focus: BuilderFocus): string {
       return "fee";
     case "acknowledgments":
       return "acknowledgments";
+    case "postSubmit":
+      return "postSubmit";
     case "step":
       return `step:${focus.stepId}`;
     case "field":

@@ -11,6 +11,7 @@ import {
   validatePublicSlug,
   validateApplicationFormSchema,
   type ApplicationFormFeeConfig,
+  type ApplicationFormPostSubmitConfig,
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "./application-form-schema";
@@ -289,6 +290,7 @@ export type UpdateApplicationFormInput = {
   public_slug?: string | null;
   schema?: ApplicationFormSchema;
   fee_config?: ApplicationFormFeeConfig;
+  post_submit_config?: ApplicationFormPostSubmitConfig;
 };
 
 /** @deprecated Use UpdateApplicationFormInput */
@@ -361,6 +363,9 @@ export async function updateApplicationForm(
     );
   }
   if (input.fee_config !== undefined) patch.fee_config = input.fee_config;
+  if (input.post_submit_config !== undefined) {
+    patch.post_submit_config = input.post_submit_config;
+  }
 
   const { data, error } = await supabase
     .from("application_form_versions")
@@ -523,6 +528,7 @@ export async function duplicateForm(
       public_slug: publicSlug,
       schema: schemaToDbJson(existing.schema),
       fee_config: existing.fee_config,
+      post_submit_config: existing.post_submit_config,
     })
     .select("*")
     .single();

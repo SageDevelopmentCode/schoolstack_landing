@@ -1,7 +1,33 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listScheduledVisitsForApplications } from "./admissions-booking";
+import {
+  parseApplicationFormPostSubmitConfig,
+  type PostSubmitActionType,
+} from "./application-form-schema";
+import { extractStudentLabel } from "./application-submissions";
+import {
+  postSubmitActionLabel,
+  POST_SUBMIT_ACTION_TEMPLATES,
+  resolvedPostSubmitDurationMinutes,
+} from "./post-submit-templates";
 import type { ApplicationFormSchema } from "./application-form-schema";
 
 const PROGRESS_KEY = "__progress";
+
+export type ApplicationPostSubmitTask = {
+  actionId: string;
+  type: PostSubmitActionType;
+  title: string;
+  instructions: string;
+  required: boolean;
+  durationMinutes: number;
+  status: "pending" | "scheduled";
+  booking?: {
+    scheduledDate: string;
+    startTimeSlot: string;
+    durationMinutes: number;
+  };
+};
 
 export type FamilyApplication = {
   id: string;
@@ -10,6 +36,8 @@ export type FamilyApplication = {
   createdAt: string;
   formTitle: string;
   publicSlug: string | null;
+  studentName: string | null;
+  postSubmitTasks: ApplicationPostSubmitTask[];
 };
 
 export type EnrolledStudent = {
@@ -113,9 +141,11 @@ export async function listFamilyApplications(
       status,
       submitted_at,
       created_at,
+      responses,
       application_form_versions!inner (
         title,
-        public_slug
+        public_slug,
+        post_submit_config
       )
     `,
     )
@@ -124,21 +154,73 @@ export async function listFamilyApplications(
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => {
+  const rows = data ?? [];
+  const submittedIds = rows
+    .filter((row) => String(row.status) !== "draft")
+    .map((row) => String(row.id));
+  const visits = await listScheduledVisitsForApplications(supabase, submittedIds);
+  const visitsByApplicationAction = new Map(
+    visits.map((visit) => [
+      `${visit.applicationId}|${visit.postSubmitActionId}`,
+      visit,
+    ]),
+  );
+
+  return rows.map((row) => {
     const formVersion = row.application_form_versions as
-      | { title?: string; public_slug?: string | null }
-      | { title?: string; public_slug?: string | null }[]
+      | { title?: string; public_slug?: string | null; post_submit_config?: unknown }
+      | { title?: string; public_slug?: string | null; post_submit_config?: unknown }[]
       | null;
     const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
+    const responses = parseStringRecord(row.responses);
+    const status = String(row.status);
+    const applicationId = String(row.id);
+    const postSubmitConfig = parseApplicationFormPostSubmitConfig(
+      form?.post_submit_config,
+    );
+
+    const postSubmitTasks: ApplicationPostSubmitTask[] =
+      status === "draft"
+        ? []
+        : postSubmitConfig.actions
+            .filter((action) => action.enabled)
+            .map((action) => {
+              const visit = visitsByApplicationAction.get(
+                `${applicationId}|${action.id}`,
+              );
+              const templateInstructions =
+                action.instructions?.trim() ||
+                POST_SUBMIT_ACTION_TEMPLATES[action.type]?.defaultInstructions ||
+                "";
+
+              return {
+                actionId: action.id,
+                type: action.type,
+                title: postSubmitActionLabel(action),
+                instructions: templateInstructions,
+                required: action.required !== false,
+                durationMinutes: resolvedPostSubmitDurationMinutes(action),
+                status: visit ? "scheduled" : "pending",
+                booking: visit
+                  ? {
+                      scheduledDate: visit.scheduledDate,
+                      startTimeSlot: visit.startTimeSlot,
+                      durationMinutes: visit.durationMinutes,
+                    }
+                  : undefined,
+              };
+            });
 
     return {
-      id: String(row.id),
-      status: String(row.status),
+      id: applicationId,
+      status,
       submittedAt: row.submitted_at ? String(row.submitted_at) : null,
       createdAt: String(row.created_at),
       formTitle: String(form?.title ?? "Application"),
       publicSlug:
         typeof form?.public_slug === "string" ? form.public_slug : null,
+      studentName: extractStudentLabel(responses),
+      postSubmitTasks,
     };
   });
 }

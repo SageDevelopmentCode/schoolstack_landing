@@ -12,6 +12,7 @@ import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type {
   ApplicationField,
   ApplicationFormFeeConfig,
+  ApplicationFormPostSubmitConfig,
   ApplicationFormSchema,
   ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
@@ -24,6 +25,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ApplicationFormAcknowledgmentsEditor from "./ApplicationFormAcknowledgmentsEditor";
 import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
 import ApplicationFormFeePanel from "./ApplicationFormFeePanel";
+import ApplicationFormPostSubmitEditor from "./ApplicationFormPostSubmitEditor";
 import ApplicationFormQuestionList from "./ApplicationFormQuestionList";
 import { focusKey, type BuilderFocus } from "./builder-focus";
 
@@ -34,6 +36,7 @@ export type EditableFormSlice = {
   publicSlug: string;
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
+  postSubmitConfig: ApplicationFormPostSubmitConfig;
 };
 
 type ApplicationFormFocusCanvasProps = {
@@ -42,6 +45,7 @@ type ApplicationFormFocusCanvasProps = {
   editable: EditableFormSlice;
   programs: ProgramOption[];
   orgSlug: string;
+  organizationId: string;
   readOnly: boolean;
   lockSystemFields?: boolean;
   setupHighlight?: "publicSlug" | null;
@@ -523,6 +527,7 @@ export default function ApplicationFormFocusCanvas({
   editable,
   programs,
   orgSlug,
+  organizationId,
   readOnly,
   lockSystemFields = false,
   setupHighlight,
@@ -734,6 +739,26 @@ export default function ApplicationFormFocusCanvas({
                   onUpdateSchema((schema) => ({ ...schema, acknowledgments }))
                 }
                 hideHeader
+              />
+            </div>
+          )}
+
+          {focus.kind === "postSubmit" && (
+            <div className="w-full max-w-3xl space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+                  Post-submit steps
+                </h2>
+                <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
+                  Tasks families complete on their apply dashboard after submitting.
+                </p>
+              </div>
+              <ApplicationFormPostSubmitEditor
+                C={C}
+                organizationId={organizationId}
+                postSubmitConfig={editable.postSubmitConfig}
+                readOnly={readOnly}
+                onChange={(postSubmitConfig) => onEditableChange({ postSubmitConfig })}
               />
             </div>
           )}

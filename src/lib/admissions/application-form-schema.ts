@@ -65,6 +65,25 @@ export interface ApplicationFormFeeConfig {
   required_to_submit?: boolean;
 }
 
+export type PostSubmitActionType =
+  | "schedule_campus_tour"
+  | "schedule_family_interview"
+  | "schedule_observation_day";
+
+export interface PostSubmitAction {
+  id: string;
+  type: PostSubmitActionType;
+  enabled: boolean;
+  title?: string;
+  instructions?: string;
+  required?: boolean;
+  durationMinutes?: number;
+}
+
+export interface ApplicationFormPostSubmitConfig {
+  actions: PostSubmitAction[];
+}
+
 export type ApplicationFormStatus = "draft" | "published" | "archived";
 
 export interface ApplicationFormVersion {
@@ -78,6 +97,7 @@ export interface ApplicationFormVersion {
   public_slug: string | null;
   schema: ApplicationFormSchema;
   fee_config: ApplicationFormFeeConfig;
+  post_submit_config: ApplicationFormPostSubmitConfig;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -116,6 +136,61 @@ export function defaultApplicationFormFeeConfig(): ApplicationFormFeeConfig {
     amount_cents: 0,
     required_to_submit: true,
   };
+}
+
+export function defaultApplicationFormPostSubmitConfig(): ApplicationFormPostSubmitConfig {
+  return { actions: [] };
+}
+
+function parsePostSubmitAction(raw: unknown): PostSubmitAction | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+
+  const record = raw as Record<string, unknown>;
+  const type = record.type;
+  if (
+    type !== "schedule_campus_tour" &&
+    type !== "schedule_family_interview" &&
+    type !== "schedule_observation_day"
+  ) {
+    return null;
+  }
+
+  if (typeof record.id !== "string" || !record.id.trim()) return null;
+
+  const durationMinutes =
+    typeof record.durationMinutes === "number" &&
+    Number.isFinite(record.durationMinutes) &&
+    record.durationMinutes > 0
+      ? Math.floor(record.durationMinutes)
+      : undefined;
+
+  return {
+    id: record.id,
+    type,
+    enabled: record.enabled !== undefined ? Boolean(record.enabled) : true,
+    title: typeof record.title === "string" ? record.title : undefined,
+    instructions:
+      typeof record.instructions === "string" ? record.instructions : undefined,
+    required: record.required !== undefined ? Boolean(record.required) : true,
+    durationMinutes,
+  };
+}
+
+export function parseApplicationFormPostSubmitConfig(
+  raw: unknown,
+): ApplicationFormPostSubmitConfig {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return defaultApplicationFormPostSubmitConfig();
+  }
+
+  const record = raw as Record<string, unknown>;
+  const actions = Array.isArray(record.actions)
+    ? record.actions
+        .map(parsePostSubmitAction)
+        .filter((action): action is PostSubmitAction => action !== null)
+    : [];
+
+  return { actions };
 }
 
 export function emptyApplicationSection(title = "Step 1"): ApplicationSection {
@@ -265,6 +340,7 @@ export function applicationFormFromRow(row: Record<string, unknown>): Applicatio
     public_slug: row.public_slug ? String(row.public_slug) : null,
     schema: parseApplicationFormSchema(row.schema),
     fee_config: parseApplicationFormFeeConfig(row.fee_config),
+    post_submit_config: parseApplicationFormPostSubmitConfig(row.post_submit_config),
     published_at: row.published_at ? String(row.published_at) : null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),

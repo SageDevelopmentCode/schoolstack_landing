@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Eye, EyeOff, Link2, Loader2, Save, Send } from "lucide-react";
 import {
   createApplyForm,
@@ -34,6 +34,7 @@ import {
   validateApplicationFormSchema,
   validatePublicSlug,
   type ApplicationFormFeeConfig,
+  type ApplicationFormPostSubmitConfig,
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
@@ -68,6 +69,7 @@ type EditableFormState = {
   publicSlug: string;
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
+  postSubmitConfig: ApplicationFormPostSubmitConfig;
 };
 
 function toEditableState(form: ApplicationFormVersion): EditableFormState {
@@ -87,6 +89,9 @@ function toEditableState(form: ApplicationFormVersion): EditableFormState {
       acknowledgments: form.schema.acknowledgments.map((ack) => ({ ...ack })),
     },
     feeConfig: { ...form.fee_config },
+    postSubmitConfig: {
+      actions: form.post_submit_config.actions.map((action) => ({ ...action })),
+    },
   };
 }
 
@@ -132,6 +137,7 @@ export default function ApplicationFormsPage({
   const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [stripePaymentsReady, setStripePaymentsReady] = useState(true);
+  const dirtyRef = useRef(false);
 
   const selectedForm =
     selection?.kind === "apply"
@@ -205,6 +211,7 @@ export default function ApplicationFormsPage({
   useEffect(() => {
     setFocus(DEFAULT_BUILDER_FOCUS);
     setSetupHighlight(null);
+    dirtyRef.current = false;
   }, [selectedApplyFormId]);
 
   useEffect(() => {
@@ -248,7 +255,9 @@ export default function ApplicationFormsPage({
       }
 
       if (cancelled) return;
-      setEditable(next);
+      if (!dirtyRef.current) {
+        setEditable(next);
+      }
     }
 
     void syncEditable();
@@ -277,6 +286,7 @@ export default function ApplicationFormsPage({
       setSetupHighlight(null);
       setError(null);
     }
+    dirtyRef.current = true;
     setEditable((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
@@ -291,6 +301,7 @@ export default function ApplicationFormsPage({
         : null,
       schema: editable.schema,
       fee_config: editable.feeConfig,
+      post_submit_config: editable.postSubmitConfig,
     };
   };
 
@@ -403,6 +414,8 @@ export default function ApplicationFormsPage({
       setForms((prev) =>
         prev.map((f) => (f.id === updated.id ? updated : f)),
       );
+      setEditable(toEditableState(updated));
+      dirtyRef.current = false;
       setSavedPulse(true);
       setTimeout(() => setSavedPulse(false), 1500);
     } catch (err) {
@@ -461,6 +474,8 @@ export default function ApplicationFormsPage({
         await updateApplicationForm(supabase, selectedForm.id, saveInput);
       }
       const published = await publishForm(supabase, selectedForm.id);
+      setEditable(toEditableState(published));
+      dirtyRef.current = false;
       await loadForms();
       setSelection({ kind: "apply", id: published.id });
       setSetupHighlight(null);
@@ -498,6 +513,7 @@ export default function ApplicationFormsPage({
   const updateSchema = (
     updater: (schema: ApplicationFormSchema) => ApplicationFormSchema,
   ) => {
+    dirtyRef.current = true;
     setEditable((prev) => {
       if (!prev) return prev;
       const schema = updater(prev.schema);
@@ -754,6 +770,7 @@ export default function ApplicationFormsPage({
               focus={focus}
               readOnly={readOnly}
               lockSystemStep={isApplyFormSelected}
+              postSubmitActionCount={editable.postSubmitConfig.actions.length}
               onFocusChange={setFocus}
               onReorderSteps={reorderSteps}
               onAddStep={addStep}
@@ -766,6 +783,7 @@ export default function ApplicationFormsPage({
               editable={editable}
               programs={programs}
               orgSlug={slug}
+              organizationId={organizationId}
               readOnly={readOnly}
               lockSystemFields={isApplyFormSelected}
               setupHighlight={setupHighlight}

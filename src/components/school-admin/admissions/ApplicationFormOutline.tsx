@@ -7,6 +7,7 @@ import {
   Eye,
   GripVertical,
   Lock,
+  ListChecks,
   Plus,
   Settings2,
   ShieldCheck,
@@ -25,6 +26,7 @@ type ApplicationFormOutlineProps = {
   focus: BuilderFocus;
   readOnly: boolean;
   lockSystemStep?: boolean;
+  postSubmitActionCount?: number;
   onFocusChange: (focus: BuilderFocus) => void;
   onReorderSteps: (sections: ApplicationSection[]) => void;
   onAddStep: () => void;
@@ -191,6 +193,7 @@ export default function ApplicationFormOutline({
   focus,
   readOnly,
   lockSystemStep = false,
+  postSubmitActionCount = 0,
   onFocusChange,
   onReorderSteps,
   onAddStep,
@@ -274,6 +277,16 @@ export default function ApplicationFormOutline({
           onClick={() => onFocusChange({ kind: "acknowledgments" })}
           icon={ShieldCheck}
           label="Acknowledgments"
+        />
+
+        <OutlineSectionLabel C={C}>After submit</OutlineSectionLabel>
+        <NavButton
+          C={C}
+          active={activeKey === "postSubmit"}
+          onClick={() => onFocusChange({ kind: "postSubmit" })}
+          icon={ListChecks}
+          label="Post-submit steps"
+          meta={postSubmitActionCount > 0 ? String(postSubmitActionCount) : undefined}
         />
       </div>
 

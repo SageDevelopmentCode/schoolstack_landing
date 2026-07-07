@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { ArrowRight, FileText, Plus } from "lucide-react";
+import ApplyRequiredActionsSection from "@/components/admissions/ApplyRequiredActionsSection";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
 import { type FamilyApplication } from "@/lib/admissions/parent-portal-access";
+import { formatInstantInTimezone } from "@/lib/admissions/admissions-availability";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -16,17 +19,18 @@ type ApplyDashboardProps = {
   branding: OrganizationBranding;
   schoolName: string;
   schoolSlug: string;
+  timezone: string;
   applications: FamilyApplication[];
+  applicationsWithTasks: FamilyApplication[];
   hasEnrolledAccess: boolean;
 };
 
-function formatDate(value: string | null): string | null {
+function formatApplicationDate(
+  value: string | null,
+  timezone: string,
+): string | null {
   if (!value) return null;
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatInstantInTimezone(value, timezone);
 }
 
 function applicationAction(
@@ -50,9 +54,12 @@ export default function ApplyDashboard({
   branding,
   schoolName,
   schoolSlug,
+  timezone,
   applications,
+  applicationsWithTasks,
   hasEnrolledAccess,
 }: ApplyDashboardProps) {
+  const router = useRouter();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
 
@@ -136,8 +143,8 @@ export default function ApplyDashboard({
           <div className="mt-8 space-y-3">
             {applications.map((application) => {
               const action = applicationAction(application, schoolSlug);
-              const submittedLabel = formatDate(application.submittedAt);
-              const createdLabel = formatDate(application.createdAt);
+              const submittedLabel = formatApplicationDate(application.submittedAt, timezone);
+              const createdLabel = formatApplicationDate(application.createdAt, timezone);
               const dateLabel =
                 submittedLabel ?? (application.status === "draft" ? `Started ${createdLabel}` : null);
 
@@ -160,6 +167,11 @@ export default function ApplyDashboard({
                           {applicationStatusLabel(application.status)}
                         </span>
                       </div>
+                      {application.studentName ? (
+                        <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
+                          {application.studentName}
+                        </p>
+                      ) : null}
                       {dateLabel ? (
                         <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
                           {application.status === "draft" ? dateLabel : `Submitted ${submittedLabel}`}
@@ -189,6 +201,15 @@ export default function ApplyDashboard({
             })}
           </div>
         )}
+
+        {applicationsWithTasks.length > 0 ? (
+          <ApplyRequiredActionsSection
+            C={C}
+            timezone={timezone}
+            applications={applicationsWithTasks}
+            onBooked={() => router.refresh()}
+          />
+        ) : null}
       </div>
     </div>
   );

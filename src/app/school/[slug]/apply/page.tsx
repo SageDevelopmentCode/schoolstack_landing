@@ -50,17 +50,31 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     return <ApplyAuthPage branding={org.branding} schoolName={org.name} />;
   }
 
-  const [applications, hasEnrolledAccess] = await Promise.all([
+  const [applications, hasEnrolledAccess, timezoneResult] = await Promise.all([
     listFamilyApplications(supabase, org.id),
     userHasEnrolledAccess(supabase, user.id, org.id),
+    supabase.from("organizations").select("timezone").eq("id", org.id).maybeSingle(),
   ]);
+
+  const timezone =
+    typeof timezoneResult.data?.timezone === "string" &&
+    timezoneResult.data.timezone.trim()
+      ? timezoneResult.data.timezone
+      : "America/Chicago";
+
+  const applicationsWithTasks = applications.filter(
+    (application) =>
+      application.status !== "draft" && application.postSubmitTasks.length > 0,
+  );
 
   return (
     <ApplyDashboard
       branding={org.branding}
       schoolName={org.name}
       schoolSlug={slug}
+      timezone={timezone}
       applications={applications}
+      applicationsWithTasks={applicationsWithTasks}
       hasEnrolledAccess={hasEnrolledAccess}
     />
   );
