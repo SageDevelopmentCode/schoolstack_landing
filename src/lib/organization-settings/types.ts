@@ -42,6 +42,7 @@ export type AdminFeatures = {
   admissions: boolean;
   my_school: boolean;
   committees: boolean;
+  schedule: boolean;
   finances: boolean;
   marketing: boolean;
 };
