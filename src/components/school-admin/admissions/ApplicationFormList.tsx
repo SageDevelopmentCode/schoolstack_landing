@@ -7,7 +7,11 @@ import {
   type ApplicationFormStatus,
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
-import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
+import {
+  ENROLLMENT_CHECKLIST_PATH,
+  enrollmentChecklistRelativePath,
+  type EnrollmentChecklistTemplate,
+} from "@/lib/admissions/enrollment-checklist-templates";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 const STATUS_STYLES: Record<
@@ -135,7 +139,7 @@ export default function ApplicationFormList({
                 <span>
                   <span className="block font-semibold">Enrollment checklist</span>
                   <span className="block" style={{ color: C.textTertiary }}>
-                    /enrollment
+                    {enrollmentChecklistRelativePath(ENROLLMENT_CHECKLIST_PATH)}
                   </span>
                 </span>
               </button>
@@ -241,7 +245,7 @@ export default function ApplicationFormList({
                     Checklist
                   </p>
                   <p className="mt-0.5 text-[11px]" style={{ color: C.textTertiary }}>
-                    /enrollment/{checklist.enrollmentPath} ·{" "}
+                    {enrollmentChecklistRelativePath(checklist.enrollmentPath)} ·{" "}
                     {formatFormUpdatedAt(checklist.updatedAt)}
                   </p>
                 </button>

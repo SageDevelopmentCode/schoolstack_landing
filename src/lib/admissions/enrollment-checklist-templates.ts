@@ -2,6 +2,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const ENROLLMENT_CHECKLIST_PATH = "enrollment";
 
+export function publicEnrollmentChecklistPath(
+  orgSlug: string,
+  path = ENROLLMENT_CHECKLIST_PATH,
+): string {
+  return `/school/${orgSlug}/forms/${path}`;
+}
+
+export function enrollmentChecklistRelativePath(
+  path = ENROLLMENT_CHECKLIST_PATH,
+): string {
+  return `/forms/${path}`;
+}
+
 export type EnrollmentChecklistTemplate = {
   id: string;
   organizationId: string;

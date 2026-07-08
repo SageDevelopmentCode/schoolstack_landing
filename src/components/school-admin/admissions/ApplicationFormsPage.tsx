@@ -48,7 +48,7 @@ import ApplicationFormList, {
 import { StatusBadge } from "./ApplicationFormListBadges";
 import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
-import EnrollmentChecklistStubEditor from "./EnrollmentChecklistStubEditor";
+import EnrollmentChecklistBuilder from "./EnrollmentChecklistBuilder";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import {
   DEFAULT_BUILDER_FOCUS,
@@ -608,9 +608,11 @@ export default function ApplicationFormsPage({
       />
 
       {selectedChecklist ? (
-        <EnrollmentChecklistStubEditor
+        <EnrollmentChecklistBuilder
           branding={branding}
           template={selectedChecklist}
+          orgSlug={slug}
+          stripePaymentsReady={stripePaymentsReady}
         />
       ) : selectedForm && editable ? (
         <div
