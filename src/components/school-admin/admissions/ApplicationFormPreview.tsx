@@ -90,8 +90,8 @@ export default function ApplicationFormPreview({
             </button>
           </div>
 
-          <div className="min-h-0 flex-1">
-            <ApplicationFormPageShell branding={branding} className="h-full">
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <ApplicationFormPageShell branding={branding} fillParent>
               <ApplicationFormExperience
                 branding={branding}
                 schoolName={schoolName}
