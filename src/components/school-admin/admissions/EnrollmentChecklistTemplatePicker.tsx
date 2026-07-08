@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import {
@@ -23,6 +23,8 @@ type EnrollmentChecklistTemplatePickerProps = {
   onSelectBlank: (type: ChecklistItemType) => void;
 };
 
+const TEMPLATE_PREVIEW_COUNT = 4;
+
 const BLANK_TYPES: ChecklistItemType[] = [
   "document_sign",
   "form",
@@ -38,14 +40,24 @@ export default function EnrollmentChecklistTemplatePicker({
   onSelectTemplate,
   onSelectBlank,
 }: EnrollmentChecklistTemplatePickerProps) {
+  const [showAllTemplates, setShowAllTemplates] = useState(false);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setShowAllTemplates(false);
+      return;
+    }
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
+
+  const visibleTemplates = showAllTemplates
+    ? CHECKLIST_ITEM_TEMPLATES
+    : CHECKLIST_ITEM_TEMPLATES.slice(0, TEMPLATE_PREVIEW_COUNT);
+  const hiddenCount = CHECKLIST_ITEM_TEMPLATES.length - TEMPLATE_PREVIEW_COUNT;
 
   return (
     <AnimatePresence>
@@ -101,7 +113,7 @@ export default function EnrollmentChecklistTemplatePicker({
                   Suggested templates
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {CHECKLIST_ITEM_TEMPLATES.map((template) => (
+                  {visibleTemplates.map((template) => (
                     <button
                       key={template.id}
                       type="button"
@@ -142,6 +154,20 @@ export default function EnrollmentChecklistTemplatePicker({
                     </button>
                   ))}
                 </div>
+                {hiddenCount > 0 && !showAllTemplates ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllTemplates(true)}
+                    className="mt-2 flex w-full items-center justify-center rounded-sm py-2 text-[11px] font-medium"
+                    style={{
+                      border: `1px dashed ${C.borderStrong}`,
+                      color: C.accent,
+                      backgroundColor: "transparent",
+                    }}
+                  >
+                    +{hiddenCount} more
+                  </button>
+                ) : null}
               </div>
 
               <div>
