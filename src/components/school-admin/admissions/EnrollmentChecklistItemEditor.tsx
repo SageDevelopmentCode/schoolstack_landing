@@ -14,6 +14,7 @@ type EnrollmentChecklistItemEditorProps = {
   item: EnrollmentChecklistItem;
   orgSlug?: string;
   stripePaymentsReady?: boolean;
+  readOnly?: boolean;
   onChange: (item: EnrollmentChecklistItem) => void;
   onSelectField: (fieldId: string) => void;
 };
@@ -58,12 +59,14 @@ export default function EnrollmentChecklistItemEditor({
   item,
   orgSlug,
   stripePaymentsReady = true,
+  readOnly = false,
   onChange,
   onSelectField,
 }: EnrollmentChecklistItemEditorProps) {
   const style = inputStyle(C);
 
   const patch = (updates: Partial<EnrollmentChecklistItem>) => {
+    if (readOnly) return;
     onChange({ ...item, ...updates });
   };
 
@@ -77,6 +80,7 @@ export default function EnrollmentChecklistItemEditor({
           value={item.label}
           onChange={(e) => patch({ label: e.target.value })}
           placeholder="e.g. Photo Release Form"
+          disabled={readOnly}
           style={style}
         />
       </LabeledField>
@@ -86,6 +90,7 @@ export default function EnrollmentChecklistItemEditor({
           type="checkbox"
           checked={item.required}
           onChange={(e) => patch({ required: e.target.checked })}
+          disabled={readOnly}
           className="h-4 w-4 rounded"
           style={{ accentColor: C.accent }}
         />
@@ -106,26 +111,28 @@ export default function EnrollmentChecklistItemEditor({
           stepId={item.formSchema.id}
           fields={fields}
           selectedFieldId={null}
-          readOnly={false}
+          readOnly={readOnly}
           onSelectField={onSelectField}
-          onAddField={(field: ApplicationField) =>
+          onAddField={(field: ApplicationField) => {
+            if (readOnly) return;
             onChange({
               ...item,
               formSchema: {
                 ...item.formSchema!,
                 fields: [...fields, field],
               },
-            })
-          }
-          onReorderFields={(nextFields) =>
+            });
+          }}
+          onReorderFields={(nextFields) => {
+            if (readOnly) return;
             onChange({
               ...item,
               formSchema: {
                 ...item.formSchema!,
                 fields: nextFields,
               },
-            })
-          }
+            });
+          }}
         />
       ) : null}
 
@@ -140,6 +147,7 @@ export default function EnrollmentChecklistItemEditor({
                   fileUpload: { ...item.fileUpload!, helpText: e.target.value },
                 })
               }
+              disabled={readOnly}
               style={{ ...style, resize: "vertical" }}
             />
           </LabeledField>
@@ -153,6 +161,7 @@ export default function EnrollmentChecklistItemEditor({
                 })
               }
               placeholder=".pdf,.jpg,.jpeg,.png"
+              disabled={readOnly}
               style={style}
             />
           </LabeledField>
@@ -170,6 +179,7 @@ export default function EnrollmentChecklistItemEditor({
                   },
                 })
               }
+              disabled={readOnly}
               style={style}
             />
           </LabeledField>
@@ -188,7 +198,7 @@ export default function EnrollmentChecklistItemEditor({
             amount_cents: item.payment.amountCents,
             required_to_submit: item.required,
           }}
-          readOnly={false}
+          readOnly={readOnly}
           onChange={(feeConfig) =>
             patch({
               payment: {

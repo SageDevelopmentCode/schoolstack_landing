@@ -23,9 +23,18 @@ import {
 } from "@/lib/admissions/apply-system-fields";
 import {
   createEnrollmentChecklistTemplate,
+  enrollmentChecklistRelativePath,
+  getEnrollmentChecklistWithItems,
   listEnrollmentChecklistTemplates,
+  publishEnrollmentChecklistTemplate,
+  saveEnrollmentChecklistItems,
+  unpublishEnrollmentChecklistTemplate,
+  updateEnrollmentChecklistTemplate,
+  validateEnrollmentChecklistItems,
   type EnrollmentChecklistTemplate,
 } from "@/lib/admissions/enrollment-checklist-templates";
+import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
 import {
   emptyApplicationSection,
@@ -71,6 +80,47 @@ type EditableFormState = {
   feeConfig: ApplicationFormFeeConfig;
   postSubmitConfig: ApplicationFormPostSubmitConfig;
 };
+
+type ChecklistEditableState = {
+  name: string;
+  programId: string | null;
+  items: EnrollmentChecklistItem[];
+};
+
+function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentChecklistItem[] {
+  return items.map((item) => ({
+    ...item,
+    metadata: { ...item.metadata },
+    document: item.document
+      ? item.document.kind === "pdf"
+        ? { ...item.document }
+        : {
+            ...item.document,
+            sections: item.document.sections.map((section) => ({ ...section })),
+            consentOptions: item.document.consentOptions?.map((option) => ({
+              ...option,
+            })),
+          }
+      : undefined,
+    formSchema: item.formSchema
+      ? {
+          ...item.formSchema,
+          fields: item.formSchema.fields.map((field) => ({
+            ...field,
+            options: field.options ? [...field.options] : undefined,
+          })),
+        }
+      : undefined,
+    fileUpload: item.fileUpload ? { ...item.fileUpload } : undefined,
+    payment: item.payment ? { ...item.payment } : undefined,
+    acknowledgment: item.acknowledgment
+      ? {
+          ...item.acknowledgment,
+          options: item.acknowledgment.options?.map((option) => ({ ...option })),
+        }
+      : undefined,
+  }));
+}
 
 function toEditableState(form: ApplicationFormVersion): EditableFormState {
   return {
@@ -135,9 +185,14 @@ export default function ApplicationFormsPage({
   const [copiedLink, setCopiedLink] = useState(false);
   const [setupHighlight, setSetupHighlight] = useState<"publicSlug" | null>(null);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
+  const [checklistUnpublishOpen, setChecklistUnpublishOpen] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [stripePaymentsReady, setStripePaymentsReady] = useState(true);
+  const [checklistEditable, setChecklistEditable] = useState<ChecklistEditableState | null>(
+    null,
+  );
   const dirtyRef = useRef(false);
+  const checklistDirtyRef = useRef(false);
 
   const selectedForm =
     selection?.kind === "apply"
@@ -162,6 +217,13 @@ export default function ApplicationFormsPage({
     isPublished && selectedForm.public_slug
       ? publicApplicationFormPath(slug, selectedForm.public_slug)
       : null;
+  const checklistIsArchived = selectedChecklist?.status === "archived";
+  const checklistIsDraft = selectedChecklist?.status === "draft";
+  const checklistIsPublished = selectedChecklist?.status === "published";
+  const checklistReadOnly = checklistIsArchived;
+  const checklistPath = selectedChecklist
+    ? enrollmentChecklistRelativePath(selectedChecklist.enrollmentPath)
+    : null;
 
   const loadForms = useCallback(async () => {
     setLoading(true);
@@ -213,6 +275,57 @@ export default function ApplicationFormsPage({
     setSetupHighlight(null);
     dirtyRef.current = false;
   }, [selectedApplyFormId]);
+
+  const selectedChecklistId =
+    selection?.kind === "checklist" ? selection.id : null;
+
+  useEffect(() => {
+    checklistDirtyRef.current = false;
+  }, [selectedChecklistId]);
+
+  useEffect(() => {
+    if (!selectedChecklist) {
+      setChecklistEditable(null);
+      return;
+    }
+
+    const checklist = selectedChecklist;
+    let cancelled = false;
+
+    async function syncChecklistEditable() {
+      try {
+        const loaded = await getEnrollmentChecklistWithItems(supabase, checklist.id);
+        if (cancelled) return;
+
+        const items = loaded?.items ?? [];
+
+        if (!checklistDirtyRef.current) {
+          setChecklistEditable({
+            name: checklist.name,
+            programId: checklist.programId,
+            items: cloneChecklistItems(items),
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load enrollment checklist.",
+          );
+        }
+      }
+    }
+
+    void syncChecklistEditable();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedChecklist?.id,
+    selectedChecklist?.updatedAt,
+    selectedChecklist?.status,
+    supabase,
+  ]);
 
   useEffect(() => {
     if (!selectedForm) {
@@ -517,6 +630,136 @@ export default function ApplicationFormsPage({
     }
   };
 
+  const handleChecklistEditableChange = (patch: Partial<ChecklistEditableState>) => {
+    checklistDirtyRef.current = true;
+    setChecklistEditable((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
+
+  const handleChecklistItemsChange = (items: EnrollmentChecklistItem[]) => {
+    checklistDirtyRef.current = true;
+    setChecklistEditable((prev) => (prev ? { ...prev, items } : prev));
+  };
+
+  const handleChecklistSave = async () => {
+    if (!selectedChecklist || !checklistEditable || checklistReadOnly) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const updatedTemplate = await updateEnrollmentChecklistTemplate(
+        supabase,
+        selectedChecklist.id,
+        {
+          name: checklistEditable.name,
+          program_id: checklistEditable.programId,
+        },
+        { logActivity: true },
+      );
+      const savedItems = await saveEnrollmentChecklistItems(
+        supabase,
+        selectedChecklist.id,
+        checklistEditable.items,
+      );
+      setChecklists((prev) =>
+        prev.map((checklist) =>
+          checklist.id === updatedTemplate.id ? updatedTemplate : checklist,
+        ),
+      );
+      setChecklistEditable({
+        name: updatedTemplate.name,
+        programId: updatedTemplate.programId,
+        items: savedItems,
+      });
+      checklistDirtyRef.current = false;
+      setSavedPulse(true);
+      setTimeout(() => setSavedPulse(false), 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save checklist.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChecklistPublish = async () => {
+    if (!selectedChecklist || !checklistEditable || !checklistIsDraft) return;
+
+    const validationErrors = validateEnrollmentChecklistItems(checklistEditable.items, {
+      paymentsReady: stripePaymentsReady,
+    });
+    if (validationErrors.length > 0) {
+      setError(validationErrors[0]);
+      return;
+    }
+
+    if (!checklistEditable.programId) {
+      setError(
+        "Link this checklist to a program before publishing. Families cannot enroll until a program is selected.",
+      );
+      return;
+    }
+
+    setPublishing(true);
+    setError(null);
+    try {
+      await updateEnrollmentChecklistTemplate(supabase, selectedChecklist.id, {
+        name: checklistEditable.name,
+        program_id: checklistEditable.programId,
+      });
+      await saveEnrollmentChecklistItems(
+        supabase,
+        selectedChecklist.id,
+        checklistEditable.items,
+      );
+      const published = await publishEnrollmentChecklistTemplate(
+        supabase,
+        selectedChecklist.id,
+      );
+      const loaded = await getEnrollmentChecklistWithItems(supabase, published.id);
+      setChecklists((prev) =>
+        prev.map((checklist) =>
+          checklist.id === published.id ? published : checklist,
+        ),
+      );
+      if (loaded) {
+        setChecklistEditable({
+          name: published.name,
+          programId: published.programId,
+          items: loaded.items,
+        });
+      }
+      checklistDirtyRef.current = false;
+      await loadForms();
+      setSelection({ kind: "checklist", id: published.id });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to publish checklist.");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleChecklistUnpublish = async () => {
+    if (!selectedChecklist || !checklistIsPublished) return;
+
+    setUnpublishing(true);
+    setError(null);
+    try {
+      const unpublished = await unpublishEnrollmentChecklistTemplate(
+        supabase,
+        selectedChecklist.id,
+      );
+      setChecklists((prev) =>
+        prev.map((checklist) =>
+          checklist.id === unpublished.id ? unpublished : checklist,
+        ),
+      );
+      setChecklistUnpublishOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to unpublish checklist.");
+    } finally {
+      setUnpublishing(false);
+    }
+  };
+
   const updateSchema = (
     updater: (schema: ApplicationFormSchema) => ApplicationFormSchema,
   ) => {
@@ -607,14 +850,176 @@ export default function ApplicationFormsPage({
         onCreateChecklist={handleCreateChecklist}
       />
 
-      {selectedChecklist ? (
-        <EnrollmentChecklistBuilder
-          branding={branding}
-          schoolName={schoolName}
-          template={selectedChecklist}
-          orgSlug={slug}
-          stripePaymentsReady={stripePaymentsReady}
-        />
+      {selectedChecklist && checklistEditable ? (
+        <div
+          className="flex flex-1 flex-col overflow-hidden"
+          style={{ backgroundColor: C.surface }}
+        >
+          <div
+            className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b px-5 py-3"
+            style={{ borderColor: C.border }}
+          >
+            <div className="min-w-0 flex-1">
+              <input
+                type="text"
+                value={checklistEditable.name}
+                onChange={(e) =>
+                  handleChecklistEditableChange({ name: e.target.value })
+                }
+                disabled={checklistReadOnly}
+                className="w-full truncate bg-transparent text-base font-semibold outline-none"
+                style={{ color: C.textPrimary }}
+                placeholder="Enrollment checklist"
+              />
+              <div
+                className="mt-1 flex flex-wrap items-center gap-2 text-[11px]"
+                style={{ color: C.textTertiary }}
+              >
+                <StatusBadge C={C} status={selectedChecklist.status} />
+                <span>Checklist</span>
+                {checklistPath ? <span>{checklistPath}</span> : null}
+                <span>Updated {formatFormUpdatedAt(selectedChecklist.updatedAt)}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-2 text-[11px]" style={{ color: C.textSecondary }}>
+                <span className="font-medium">Program</span>
+                <select
+                  value={checklistEditable.programId ?? ""}
+                  onChange={(e) =>
+                    handleChecklistEditableChange({
+                      programId: e.target.value || null,
+                    })
+                  }
+                  disabled={checklistReadOnly}
+                  className="rounded-sm px-2 py-1.5 text-[11px]"
+                  style={{
+                    border: `1px solid ${C.border}`,
+                    backgroundColor: C.input,
+                    color: C.textPrimary,
+                  }}
+                >
+                  <option value="">Select a program</option>
+                  {programs.map((program) => (
+                    <option key={program.id} value={program.id}>
+                      {program.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {checklistReadOnly ? null : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleChecklistSave}
+                    disabled={saving}
+                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                    style={{
+                      border: `1px solid ${C.secondaryBtnBorder}`,
+                      color: C.accent,
+                      backgroundColor: savedPulse ? C.successBg : C.accentLight,
+                    }}
+                  >
+                    {saving ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
+                    {savedPulse ? "Saved" : checklistIsPublished ? "Save" : "Save draft"}
+                  </button>
+                  {checklistIsPublished ? (
+                    <button
+                      type="button"
+                      onClick={() => setChecklistUnpublishOpen(true)}
+                      className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                      style={{
+                        border: `1px solid ${C.errorBorder}`,
+                        color: C.error,
+                        backgroundColor: C.errorBg,
+                      }}
+                    >
+                      <EyeOff className="h-3.5 w-3.5" />
+                      Unpublish
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleChecklistPublish}
+                      disabled={publishing}
+                      className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white"
+                      style={{ backgroundColor: C.accent }}
+                    >
+                      {publishing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5" />
+                      )}
+                      Publish
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {!checklistEditable.programId && !checklistReadOnly ? (
+            <div
+              className="mx-5 mt-3 rounded-md px-3 py-2 text-xs"
+              style={{
+                backgroundColor: C.warningBg,
+                color: C.warning,
+                border: `1px solid ${C.border}`,
+              }}
+            >
+              {programs.length === 0 ? (
+                <>
+                  <a
+                    href={schoolAdminPath(slug, "admissions", "programs")}
+                    className="font-semibold underline"
+                  >
+                    Create a program first
+                  </a>{" "}
+                  before publishing this checklist.
+                </>
+              ) : (
+                "Select a program before publishing this checklist."
+              )}
+            </div>
+          ) : null}
+
+          {error && selection?.kind === "checklist" ? (
+            <div
+              className="mx-5 mt-3 rounded-md px-3 py-2 text-xs"
+              style={{
+                backgroundColor: C.errorBg,
+                color: C.error,
+                border: `1px solid ${C.errorBorder}`,
+              }}
+            >
+              {error}
+            </div>
+          ) : null}
+
+          <EnrollmentChecklistBuilder
+            branding={branding}
+            schoolName={schoolName}
+            template={selectedChecklist}
+            orgSlug={slug}
+            stripePaymentsReady={stripePaymentsReady}
+            items={checklistEditable.items}
+            onItemsChange={handleChecklistItemsChange}
+            readOnly={checklistReadOnly}
+          />
+        </div>
+      ) : selectedChecklist ? (
+        <div
+          className="flex flex-1 items-center justify-center gap-2 text-sm"
+          style={{ color: C.textSecondary }}
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading enrollment checklist…
+        </div>
       ) : selectedForm && editable ? (
         <div
           className="flex flex-1 flex-col overflow-hidden"
@@ -856,6 +1261,18 @@ export default function ApplicationFormsPage({
         loading={unpublishing}
         onConfirm={handleUnpublish}
         onClose={() => !unpublishing && setUnpublishOpen(false)}
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={checklistUnpublishOpen}
+        title="Unpublish this checklist?"
+        description="Families will not be able to access this enrollment checklist until you publish again."
+        confirmLabel="Unpublish"
+        variant="destructive"
+        loading={unpublishing}
+        onConfirm={handleChecklistUnpublish}
+        onClose={() => !unpublishing && setChecklistUnpublishOpen(false)}
       />
     </div>
   );

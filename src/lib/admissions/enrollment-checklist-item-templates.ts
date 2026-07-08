@@ -259,21 +259,6 @@ export const CHECKLIST_ITEM_TEMPLATES: ChecklistItemTemplate[] = TEMPLATE_DEFS.m
   }),
 );
 
-export function createDefaultChecklistItems(): EnrollmentChecklistItem[] {
-  const defaultIds: ChecklistItemTemplateId[] = [
-    "standard_enrollment_agreement",
-    "health_emergency_form",
-    "medication_plan",
-    "immunization_records",
-    "health_information",
-    "photo_release",
-    "assumption_of_risk",
-    "authorized_pickup",
-    "registration_fee",
-  ];
-  return defaultIds.map((id) => createItemFromTemplate(id));
-}
-
 export function createItemFromTemplate(
   templateId: ChecklistItemTemplateId,
 ): EnrollmentChecklistItem {

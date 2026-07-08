@@ -8,7 +8,6 @@ import {
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
 import {
-  ENROLLMENT_CHECKLIST_PATH,
   enrollmentChecklistRelativePath,
   type EnrollmentChecklistTemplate,
 } from "@/lib/admissions/enrollment-checklist-templates";
@@ -111,16 +110,11 @@ export default function ApplicationFormList({
                   setMenuOpen(false);
                   onCreateApply();
                 }}
-                className="flex w-full items-start gap-2 px-3 py-2 text-left text-xs disabled:opacity-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs disabled:opacity-50"
                 style={{ color: C.textPrimary }}
               >
-                <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} />
-                <span>
-                  <span className="block font-semibold">Apply form</span>
-                  <span className="block" style={{ color: C.textTertiary }}>
-                    /forms/apply
-                  </span>
-                </span>
+                <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} />
+                <span className="font-semibold">Apply form</span>
               </button>
               <button
                 type="button"
@@ -129,19 +123,14 @@ export default function ApplicationFormList({
                   setMenuOpen(false);
                   onCreateChecklist();
                 }}
-                className="flex w-full items-start gap-2 px-3 py-2 text-left text-xs disabled:opacity-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs disabled:opacity-50"
                 style={{ color: C.textPrimary }}
               >
                 <ClipboardList
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                  className="h-3.5 w-3.5 shrink-0"
                   style={{ color: C.accent }}
                 />
-                <span>
-                  <span className="block font-semibold">Enrollment checklist</span>
-                  <span className="block" style={{ color: C.textTertiary }}>
-                    {enrollmentChecklistRelativePath(ENROLLMENT_CHECKLIST_PATH)}
-                  </span>
-                </span>
+                <span className="font-semibold">Enrollment checklist</span>
               </button>
             </div>
           ) : null}

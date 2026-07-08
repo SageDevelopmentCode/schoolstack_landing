@@ -6,7 +6,6 @@ import { ArrowLeft, ArrowRight, ChevronLeft, Eye, Trash2 } from "lucide-react";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import {
   CHECKLIST_ITEM_TYPE_LABELS,
-  getChecklistItemSummary,
   type EnrollmentChecklistItem,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -31,6 +30,7 @@ type EnrollmentChecklistFocusCanvasProps = {
   items: EnrollmentChecklistItem[];
   orgSlug?: string;
   stripePaymentsReady?: boolean;
+  readOnly?: boolean;
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
   onUpdateItem: (item: EnrollmentChecklistItem) => void;
   onDeleteItem: (itemId: string) => void;
@@ -54,6 +54,7 @@ function ItemView({
   totalItems,
   orgSlug,
   stripePaymentsReady,
+  readOnly,
   onUpdateItem,
   onRequestDelete,
   onFocusChange,
@@ -65,6 +66,7 @@ function ItemView({
   totalItems: number;
   orgSlug?: string;
   stripePaymentsReady?: boolean;
+  readOnly?: boolean;
   onUpdateItem: (item: EnrollmentChecklistItem) => void;
   onRequestDelete: () => void;
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
@@ -77,30 +79,15 @@ function ItemView({
           <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
             Item {itemIdx + 1} of {totalItems}
           </p>
-          <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-            {item.label}
-          </h2>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="mt-0.5 flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+              {item.label}
+            </h2>
             <span
               className="rounded px-1.5 py-0.5 text-[10px] font-medium"
               style={{ backgroundColor: C.bg, color: C.textTertiary }}
             >
               {CHECKLIST_ITEM_TYPE_LABELS[item.type]}
-            </span>
-            {!item.required ? (
-              <span
-                className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                style={{
-                  backgroundColor: C.surface,
-                  color: C.textTertiary,
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                Optional
-              </span>
-            ) : null}
-            <span className="text-[11px]" style={{ color: C.textTertiary }}>
-              {getChecklistItemSummary(item)}
             </span>
           </div>
         </div>
@@ -118,15 +105,17 @@ function ItemView({
             <Eye className="h-3.5 w-3.5" />
             Preview
           </button>
-          <button
-            type="button"
-            onClick={onRequestDelete}
-            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium shrink-0"
-            style={{ color: C.error, backgroundColor: C.errorBg }}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Remove
-          </button>
+          {!readOnly ? (
+            <button
+              type="button"
+              onClick={onRequestDelete}
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium shrink-0"
+              style={{ color: C.error, backgroundColor: C.errorBg }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Remove
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -135,6 +124,7 @@ function ItemView({
         item={item}
         orgSlug={orgSlug}
         stripePaymentsReady={stripePaymentsReady}
+        readOnly={readOnly}
         onChange={onUpdateItem}
         onSelectField={(fieldId) =>
           onFocusChange({ kind: "field", itemId: item.id, fieldId })
@@ -149,6 +139,7 @@ function FieldView({
   item,
   itemIdx,
   field,
+  readOnly,
   onBack,
   onUpdateField,
   onRequestDelete,
@@ -157,6 +148,7 @@ function FieldView({
   item: EnrollmentChecklistItem;
   itemIdx: number;
   field: ApplicationField;
+  readOnly?: boolean;
   onBack: () => void;
   onUpdateField: (patch: Partial<ApplicationField>) => void;
   onRequestDelete: () => void;
@@ -185,8 +177,9 @@ function FieldView({
       <ApplicationFormFieldEditor
         C={C}
         field={field}
+        readOnly={readOnly}
         onChange={onUpdateField}
-        onDelete={onRequestDelete}
+        onDelete={readOnly ? undefined : onRequestDelete}
       />
     </div>
   );
@@ -198,6 +191,7 @@ export default function EnrollmentChecklistFocusCanvas({
   items,
   orgSlug,
   stripePaymentsReady = true,
+  readOnly = false,
   onFocusChange,
   onUpdateItem,
   onDeleteItem,
@@ -312,6 +306,7 @@ export default function EnrollmentChecklistFocusCanvas({
                   totalItems={items.length}
                   orgSlug={orgSlug}
                   stripePaymentsReady={stripePaymentsReady}
+                  readOnly={readOnly}
                   onUpdateItem={onUpdateItem}
                   onRequestDelete={() => setPendingDeleteItemId(item.id)}
                   onFocusChange={onFocusChange}
@@ -325,6 +320,7 @@ export default function EnrollmentChecklistFocusCanvas({
                   item={item}
                   itemIdx={itemIdx}
                   field={field}
+                  readOnly={readOnly}
                   onBack={() => onFocusChange({ kind: "item", itemId: item.id })}
                   onUpdateField={(patch) => updateField(item.id, field.id, patch)}
                   onRequestDelete={() =>

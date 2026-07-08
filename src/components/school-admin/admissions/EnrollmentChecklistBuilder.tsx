@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
-import { enrollmentChecklistRelativePath } from "@/lib/admissions/enrollment-checklist-templates";
-import { createDefaultChecklistItems } from "@/lib/admissions/enrollment-checklist-item-templates";
 import {
   createBlankChecklistItem,
   type ChecklistItemType,
@@ -30,6 +28,9 @@ type EnrollmentChecklistBuilderProps = {
   template: EnrollmentChecklistTemplate;
   orgSlug: string;
   stripePaymentsReady?: boolean;
+  items: EnrollmentChecklistItem[];
+  onItemsChange: (items: EnrollmentChecklistItem[]) => void;
+  readOnly?: boolean;
 };
 
 function resolveFocusAfterDelete(
@@ -70,54 +71,48 @@ export default function EnrollmentChecklistBuilder({
   template,
   orgSlug,
   stripePaymentsReady = true,
+  items,
+  onItemsChange,
+  readOnly = false,
 }: EnrollmentChecklistBuilderProps) {
   const C = buildAdminThemeTokens(branding);
-  const defaultItems = createDefaultChecklistItems();
-  const [items, setItems] = useState<EnrollmentChecklistItem[]>(() => defaultItems);
   const [focus, setFocus] = useState<ChecklistBuilderFocus | null>(() =>
-    initialChecklistFocus(defaultItems),
+    initialChecklistFocus(items),
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewInitialItemId, setPreviewInitialItemId] = useState<string | undefined>();
 
-  const checklistPath = enrollmentChecklistRelativePath(template.enrollmentPath);
-
-  const statusStyle =
-    template.status === "published"
-      ? { backgroundColor: C.successBg, color: C.success, label: "Published" }
-      : template.status === "archived"
-        ? { backgroundColor: C.elevated, color: C.textTertiary, label: "Archived" }
-        : { backgroundColor: C.warningBg, color: C.warning, label: "Draft" };
-
   const addFromTemplate = (templateId: ChecklistItemTemplateId) => {
+    if (readOnly) return;
     const item = createItemFromTemplate(templateId);
-    setItems((prev) => [...prev, item]);
+    onItemsChange([...items, item]);
     setFocus({ kind: "item", itemId: item.id });
   };
 
   const addBlank = (type: ChecklistItemType) => {
+    if (readOnly) return;
     const item = createBlankChecklistItem(type);
-    setItems((prev) => [...prev, item]);
+    onItemsChange([...items, item]);
     setFocus({ kind: "item", itemId: item.id });
   };
 
   const updateItem = (updated: EnrollmentChecklistItem) => {
-    setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    if (readOnly) return;
+    onItemsChange(items.map((item) => (item.id === updated.id ? updated : item)));
   };
 
   const requestDeleteItem = (itemId: string) => {
+    if (readOnly) return;
     setDeleteTargetId(itemId);
   };
 
   const confirmDelete = () => {
-    if (!deleteTargetId) return;
-    setItems((prev) => {
-      const next = prev.filter((item) => item.id !== deleteTargetId);
-      setFocus((current) => resolveFocusAfterDelete(prev, deleteTargetId, current));
-      return next;
-    });
+    if (!deleteTargetId || readOnly) return;
+    const next = items.filter((item) => item.id !== deleteTargetId);
+    onItemsChange(next);
+    setFocus((current) => resolveFocusAfterDelete(items, deleteTargetId, current));
     setDeleteTargetId(null);
   };
 
@@ -127,54 +122,18 @@ export default function EnrollmentChecklistBuilder({
   };
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden" style={{ backgroundColor: C.surface }}>
+    <div className="flex flex-1 flex-col overflow-hidden">
       <div
-        className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b px-5 py-3"
+        className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b px-5 py-2.5"
         style={{ borderColor: C.border }}
       >
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold" style={{ color: C.textPrimary }}>
-            {template.name}
-          </p>
-          <div
-            className="mt-1 flex flex-wrap items-center gap-2 text-[11px]"
-            style={{ color: C.textTertiary }}
-          >
-            <span
-              className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-              style={{
-                backgroundColor: statusStyle.backgroundColor,
-                color: statusStyle.color,
-              }}
-            >
-              {statusStyle.label}
-            </span>
-            <span>Checklist</span>
-            <span>{checklistPath}</span>
-          </div>
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <EnrollmentChecklistItemsMenu
-            C={C}
-            items={items}
-            focus={focus}
-            onFocusChange={setFocus}
-          />
-          <button
-            type="button"
-            onClick={() => openPreview(items[0]?.id)}
-            disabled={items.length === 0}
-            title={items.length === 0 ? "Add an item to preview" : undefined}
-            className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:opacity-40"
-            style={{
-              border: `1px solid ${C.border}`,
-              color: C.textSecondary,
-              backgroundColor: C.bg,
-            }}
-          >
-            <Eye className="h-3.5 w-3.5" />
-            Preview
-          </button>
+        <EnrollmentChecklistItemsMenu
+          C={C}
+          items={items}
+          focus={focus}
+          onFocusChange={setFocus}
+        />
+        {!readOnly ? (
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
@@ -188,10 +147,10 @@ export default function EnrollmentChecklistBuilder({
             <Plus className="h-3.5 w-3.5" />
             Add item
           </button>
-        </div>
-        <p className="text-[10px]" style={{ color: C.textTertiary }}>
-          Changes are local for now — saving comes later.
-        </p>
+        ) : null}
+        <span className="text-[11px]" style={{ color: C.textTertiary }}>
+          {items.length} item{items.length === 1 ? "" : "s"}
+        </span>
       </div>
 
       <EnrollmentChecklistFocusCanvas
@@ -200,6 +159,7 @@ export default function EnrollmentChecklistBuilder({
         items={items}
         orgSlug={orgSlug}
         stripePaymentsReady={stripePaymentsReady}
+        readOnly={readOnly}
         onFocusChange={setFocus}
         onUpdateItem={updateItem}
         onDeleteItem={requestDeleteItem}
