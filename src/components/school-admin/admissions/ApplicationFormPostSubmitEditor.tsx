@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, Reorder, motion, useDragControls } from "framer-motion";
 import {
   CalendarClock,
@@ -262,31 +262,33 @@ export default function ApplicationFormPostSubmitEditor({
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadCount() {
-      try {
-        const timezone = await getOrganizationTimezone(supabase, organizationId);
-        const { year, month } = todayMonthYearInTimezone(timezone);
-        const count = await countAdmissionsAvailabilitySlotsInMonth(
-          supabase,
-          organizationId,
-          year,
-          month,
-        );
-        if (!cancelled) setMonthSlotCount(count);
-      } catch {
-        if (!cancelled) setMonthSlotCount(0);
-      }
+  const refreshCurrentMonthSlotCount = useCallback(async () => {
+    try {
+      const timezone = await getOrganizationTimezone(supabase, organizationId);
+      const { year, month } = todayMonthYearInTimezone(timezone);
+      const count = await countAdmissionsAvailabilitySlotsInMonth(
+        supabase,
+        organizationId,
+        year,
+        month,
+      );
+      setMonthSlotCount(count);
+    } catch {
+      setMonthSlotCount(0);
     }
-
-    void loadCount();
-
-    return () => {
-      cancelled = true;
-    };
   }, [organizationId, supabase]);
+
+  useEffect(() => {
+    void refreshCurrentMonthSlotCount();
+  }, [refreshCurrentMonthSlotCount]);
+
+  const canAddStep = !readOnly && monthSlotCount !== null && monthSlotCount > 0;
+
+  useEffect(() => {
+    if (!canAddStep && showPicker) {
+      setShowPicker(false);
+    }
+  }, [canAddStep, showPicker]);
 
   const inputStyle: React.CSSProperties = {
     backgroundColor: C.input,
@@ -369,7 +371,21 @@ export default function ApplicationFormPostSubmitEditor({
             {monthSlotCount} open slot{monthSlotCount === 1 ? "" : "s"} this month
           </span>
         ) : null}
+        {monthSlotCount === 0 ? (
+          <span
+            className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+            style={{ backgroundColor: C.warningBg, color: C.warning }}
+          >
+            No open slots this month
+          </span>
+        ) : null}
       </div>
+
+      {monthSlotCount === 0 ? (
+        <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+          Open at least one visit time this month before adding a scheduling step.
+        </p>
+      ) : null}
 
       <AnimatePresence initial={false}>
         {showAvailability ? (
@@ -388,7 +404,9 @@ export default function ApplicationFormPostSubmitEditor({
                 C={C}
                 organizationId={organizationId}
                 readOnly={readOnly}
-                onMonthSlotCountChange={setMonthSlotCount}
+                onMonthSlotCountChange={() => {
+                  void refreshCurrentMonthSlotCount();
+                }}
               />
             </div>
           </motion.div>
@@ -410,19 +428,29 @@ export default function ApplicationFormPostSubmitEditor({
             <ListChecks className="mb-2 h-6 w-6 opacity-40" />
             <p className="mb-3 text-sm">No post-submit steps yet.</p>
             {!readOnly ? (
-              <button
-                type="button"
-                onClick={() => setShowPicker(true)}
-                className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
-                style={{
-                  backgroundColor: C.accentLight,
-                  color: C.accent,
-                  border: `1px solid ${C.secondaryBtnBorder}`,
-                }}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add step
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (canAddStep) setShowPicker(true);
+                  }}
+                  disabled={!canAddStep}
+                  className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{
+                    backgroundColor: C.accentLight,
+                    color: C.accent,
+                    border: `1px solid ${C.secondaryBtnBorder}`,
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add step
+                </button>
+                {monthSlotCount === 0 ? (
+                  <p className="mt-2 max-w-xs text-center text-[11px] leading-relaxed">
+                    Set availability above to add your first step.
+                  </p>
+                ) : null}
+              </>
             ) : null}
           </div>
         ) : (
@@ -445,7 +473,7 @@ export default function ApplicationFormPostSubmitEditor({
       </Reorder.Group>
 
       <AnimatePresence initial={false}>
-        {showPicker && !readOnly && availableTypes.length > 0 ? (
+        {showPicker && canAddStep && availableTypes.length > 0 ? (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -518,8 +546,11 @@ export default function ApplicationFormPostSubmitEditor({
       !showPicker ? (
         <button
           type="button"
-          onClick={() => setShowPicker(true)}
-          className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+          onClick={() => {
+            if (canAddStep) setShowPicker(true);
+          }}
+          disabled={!canAddStep}
+          className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             backgroundColor: C.accentLight,
             color: C.accent,
