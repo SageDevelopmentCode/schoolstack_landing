@@ -40,7 +40,7 @@ function EmptyView({ C }: { C: AdminThemeTokens }) {
   return (
     <div className="w-full max-w-2xl">
       <p className="text-sm" style={{ color: C.textSecondary }}>
-        No checklist items yet. Add one from the outline.
+        No checklist items yet. Add one using Add item.
       </p>
     </div>
   );
@@ -68,7 +68,7 @@ function ItemView({
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
 }) {
   return (
-    <div className="w-full max-w-3xl space-y-6">
+    <div className="w-full max-w-5xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
@@ -144,7 +144,7 @@ function FieldView({
   onRequestDelete: () => void;
 }) {
   return (
-    <div className="w-full max-w-3xl space-y-6">
+    <div className="w-full max-w-5xl space-y-6">
       <button
         type="button"
         onClick={onBack}

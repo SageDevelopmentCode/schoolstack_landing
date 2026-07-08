@@ -92,10 +92,6 @@ export default function EnrollmentChecklistItemEditor({
         Required for enrollment completion
       </label>
 
-      <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
-        Families complete this item inline on the enrollment page.
-      </p>
-
       {item.type === "document_sign" && item.document ? (
         <EnrollmentAgreementEditor
           C={C}

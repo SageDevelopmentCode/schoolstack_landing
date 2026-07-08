@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import { enrollmentChecklistRelativePath } from "@/lib/admissions/enrollment-checklist-templates";
 import { createDefaultChecklistItems } from "@/lib/admissions/enrollment-checklist-item-templates";
@@ -19,7 +20,7 @@ import {
   type ChecklistBuilderFocus,
 } from "./checklist-builder-focus";
 import EnrollmentChecklistFocusCanvas from "./EnrollmentChecklistFocusCanvas";
-import EnrollmentChecklistOutline from "./EnrollmentChecklistOutline";
+import EnrollmentChecklistItemsMenu from "./EnrollmentChecklistItemsMenu";
 import EnrollmentChecklistTemplatePicker from "./EnrollmentChecklistTemplatePicker";
 
 type EnrollmentChecklistBuilderProps = {
@@ -142,34 +143,42 @@ export default function EnrollmentChecklistBuilder({
             <span>{checklistPath}</span>
           </div>
         </div>
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <EnrollmentChecklistItemsMenu
+            C={C}
+            items={items}
+            focus={focus}
+            onFocusChange={setFocus}
+          />
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+            style={{
+              border: `1px dashed ${C.borderStrong}`,
+              color: C.accent,
+              backgroundColor: "transparent",
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add item
+          </button>
+        </div>
         <p className="text-[10px]" style={{ color: C.textTertiary }}>
           Changes are local for now — saving comes later.
         </p>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        <EnrollmentChecklistOutline
-          C={C}
-          items={items}
-          focus={focus}
-          checklistPath={checklistPath}
-          onFocusChange={setFocus}
-          onReorderItems={setItems}
-          onAddItem={() => setPickerOpen(true)}
-          onDeleteItem={requestDeleteItem}
-        />
-
-        <EnrollmentChecklistFocusCanvas
-          C={C}
-          focus={focus}
-          items={items}
-          orgSlug={orgSlug}
-          stripePaymentsReady={stripePaymentsReady}
-          onFocusChange={setFocus}
-          onUpdateItem={updateItem}
-          onDeleteItem={requestDeleteItem}
-        />
-      </div>
+      <EnrollmentChecklistFocusCanvas
+        C={C}
+        focus={focus}
+        items={items}
+        orgSlug={orgSlug}
+        stripePaymentsReady={stripePaymentsReady}
+        onFocusChange={setFocus}
+        onUpdateItem={updateItem}
+        onDeleteItem={requestDeleteItem}
+      />
 
       <EnrollmentChecklistTemplatePicker
         C={C}

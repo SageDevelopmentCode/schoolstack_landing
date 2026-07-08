@@ -216,10 +216,6 @@ export default function EnrollmentAgreementEditor({
             </div>
           )}
 
-          <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
-            Edit one section at a time. Each section requires a parent signature.
-          </p>
-
           {document.sections.length === 0 ? (
             <div
               className="rounded-md px-3 py-6 text-center text-[11px]"
