@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 import { compressImageForUpload } from "@/lib/images/compress-image";
 
 export const APPLICATION_FILES_BUCKET = "application-files";
@@ -132,7 +136,7 @@ export async function uploadApplicationFile(
     throw insertError;
   }
 
-  return {
+  const meta = {
     id: String(row.id),
     fileName: String(row.file_name),
     storagePath: String(row.storage_path),
@@ -142,6 +146,24 @@ export async function uploadApplicationFile(
         ? null
         : Number(row.size_bytes),
   };
+
+  void logActivityEvent(supabase, {
+    organizationId: ctx.organizationId,
+    actorType: "parent",
+    surface: "public_apply",
+    action: ACTIVITY_ACTIONS.APPLICATION_FILE_UPLOADED,
+    entityType: "application_file",
+    entityId: meta.id,
+    summary: `Uploaded file “${meta.fileName}”`,
+    metadata: {
+      applicationId: ctx.applicationId,
+      fieldId,
+      fileName: meta.fileName,
+      sizeBytes: meta.sizeBytes,
+    },
+  });
+
+  return meta;
 }
 
 export async function removeApplicationFile(
@@ -160,6 +182,19 @@ export async function removeApplicationFile(
     .eq("id", file.id);
 
   if (deleteError) throw deleteError;
+
+  void logActivityEvent(supabase, {
+    actorType: "parent",
+    surface: "public_apply",
+    action: ACTIVITY_ACTIONS.APPLICATION_FILE_REMOVED,
+    entityType: "application_file",
+    entityId: file.id,
+    summary: `Removed file “${file.fileName}”`,
+    metadata: {
+      fileName: file.fileName,
+      storagePath: file.storagePath,
+    },
+  });
 }
 
 export function validateApplicationFileSelection(

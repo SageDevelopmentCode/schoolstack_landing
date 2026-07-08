@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 
 export type AdmissionsAvailabilitySlotKey = `${string}|${string}`;
 
@@ -228,17 +232,29 @@ export async function toggleAdmissionsAvailabilitySlot(
       time_slot: timeSlot,
     });
     if (error) throw error;
-    return;
+  } else {
+    const { error } = await supabase
+      .from("admissions_availability_slots")
+      .delete()
+      .eq("organization_id", organizationId)
+      .eq("date", date)
+      .eq("time_slot", timeSlot);
+
+    if (error) throw error;
   }
 
-  const { error } = await supabase
-    .from("admissions_availability_slots")
-    .delete()
-    .eq("organization_id", organizationId)
-    .eq("date", date)
-    .eq("time_slot", timeSlot);
-
-  if (error) throw error;
+  void logActivityEvent(supabase, {
+    organizationId,
+    actorType: "school_admin",
+    surface: "school_admin",
+    action: ACTIVITY_ACTIONS.AVAILABILITY_SLOT_TOGGLED,
+    summary: `${open ? "Opened" : "Closed"} availability slot on ${date} at ${timeSlot}`,
+    metadata: {
+      date,
+      timeSlot,
+      open,
+    },
+  });
 }
 
 export function slotsToAvailabilityMap(

@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 
 export type ProgramStatus = "draft" | "open" | "waitlist" | "full" | "closed";
 
@@ -139,7 +143,21 @@ export async function createProgram(
     .single();
 
   if (error) throw error;
-  return programFromRow(data as Record<string, unknown>);
+  const program = programFromRow(data as Record<string, unknown>);
+  void logActivityEvent(supabase, {
+    organizationId,
+    actorType: "school_admin",
+    surface: "school_admin",
+    action: ACTIVITY_ACTIONS.PROGRAM_CREATED,
+    entityType: "program",
+    entityId: program.id,
+    summary: `Created program “${program.name}”`,
+    metadata: {
+      type: program.type,
+      status: program.status,
+    },
+  });
+  return program;
 }
 
 export async function updateProgram(
@@ -170,7 +188,21 @@ export async function updateProgram(
     .single();
 
   if (error) throw error;
-  return programFromRow(data as Record<string, unknown>);
+  const program = programFromRow(data as Record<string, unknown>);
+  void logActivityEvent(supabase, {
+    organizationId,
+    actorType: "school_admin",
+    surface: "school_admin",
+    action: ACTIVITY_ACTIONS.PROGRAM_UPDATED,
+    entityType: "program",
+    entityId: program.id,
+    summary: `Updated program “${program.name}”`,
+    metadata: {
+      type: program.type,
+      status: program.status,
+    },
+  });
+  return program;
 }
 
 export async function deleteProgram(
@@ -178,6 +210,15 @@ export async function deleteProgram(
   programId: string,
   organizationId: string,
 ): Promise<void> {
+  const { data: existing, error: lookupError } = await supabase
+    .from("programs")
+    .select("name")
+    .eq("id", programId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (lookupError) throw lookupError;
+
   const { error } = await supabase
     .from("programs")
     .delete()
@@ -191,6 +232,21 @@ export async function deleteProgram(
       );
     }
     throw error;
+  }
+
+  if (existing?.name) {
+    void logActivityEvent(supabase, {
+      organizationId,
+      actorType: "school_admin",
+      surface: "school_admin",
+      action: ACTIVITY_ACTIONS.PROGRAM_DELETED,
+      entityType: "program",
+      entityId: programId,
+      summary: `Deleted program “${String(existing.name)}”`,
+      metadata: {
+        programId,
+      },
+    });
   }
 }
 

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 import { notifyWebsiteApiError } from "@/lib/discord";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 function stackFromCause(cause: unknown): string | undefined {
   if (cause instanceof Error && cause.stack) {
@@ -45,6 +50,20 @@ export function apiError(
       error: opts.error,
       code: opts.code,
       stack: stackFromCause(opts.cause),
+    });
+
+    void logActivityEvent(createAdminClient(), {
+      actorType: "system",
+      surface: "api",
+      action: ACTIVITY_ACTIONS.API_ERROR,
+      summary: `${method} ${route} returned ${opts.status}: ${opts.error}`,
+      severity: "error",
+      metadata: {
+        route,
+        method,
+        status: opts.status,
+        code: opts.code ?? null,
+      },
     });
 
     Sentry.captureException(

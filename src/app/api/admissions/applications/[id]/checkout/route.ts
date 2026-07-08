@@ -10,6 +10,10 @@ import {
   loadPublishedFormForApplication,
 } from "@/lib/admissions/application-submit";
 import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
   attachCheckoutSessionToPayment,
@@ -202,6 +206,23 @@ export async function POST(request: Request, context: RouteContext) {
         code: "checkout_failed",
       });
     }
+
+    void logActivityEvent(admin, {
+      organizationId: application.organizationId,
+      actorType: "parent",
+      actorUserId: user.id,
+      actorEmail: user.email,
+      surface: "public_apply",
+      action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_STARTED,
+      entityType: "application",
+      entityId: application.id,
+      summary: `Application fee checkout started ($${(amountCents / 100).toFixed(2)})`,
+      metadata: {
+        paymentId: payment.id,
+        amountCents,
+        checkoutSessionId: session.id,
+      },
+    });
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

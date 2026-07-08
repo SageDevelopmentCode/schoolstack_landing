@@ -17,6 +17,10 @@ import {
   submitApplicationRecord,
   validateAcknowledgmentsComplete,
 } from "@/lib/admissions/application-submit";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -110,6 +114,29 @@ export async function POST(request: Request, context: RouteContext) {
     await materializeApplicationStudent(admin, applicationId);
     await submitApplicationRecord(admin, applicationId);
     void sendApplicationSubmittedNotifications(admin, applicationId);
+
+    const { data: formRow } = await admin
+      .from("application_form_versions")
+      .select("title")
+      .eq("id", application.formVersionId)
+      .maybeSingle();
+
+    void logActivityEvent(admin, {
+      organizationId: application.organizationId,
+      actorType: "parent",
+      actorUserId: user.id,
+      actorEmail: user.email,
+      surface: "public_apply",
+      action: ACTIVITY_ACTIONS.APPLICATION_SUBMITTED,
+      entityType: "application",
+      entityId: applicationId,
+      summary: `Application submitted${formRow?.title ? ` for “${String(formRow.title)}”` : ""}`,
+      metadata: {
+        formVersionId: application.formVersionId,
+        programId: application.programId,
+        formTitle: formRow?.title ? String(formRow.title) : null,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

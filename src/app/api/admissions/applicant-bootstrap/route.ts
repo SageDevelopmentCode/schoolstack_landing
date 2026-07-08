@@ -4,6 +4,10 @@ import {
   bootstrapApplicant,
   BootstrapApplicantError,
 } from "@/lib/admissions/applicant-bootstrap";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
   notifyRootedMeadowsParentApplicationStarted,
@@ -92,6 +96,24 @@ export async function POST(request: Request) {
       lastName: body.lastName,
       forceNew: body.forceNew === true,
     });
+
+    if (result.createdNewApplication && result.applicationId) {
+      void logActivityEvent(admin, {
+        organizationId,
+        actorType: "parent",
+        actorUserId: user.id,
+        actorEmail: email,
+        surface: "public_apply",
+        action: ACTIVITY_ACTIONS.APPLICATION_STARTED,
+        entityType: "application",
+        entityId: result.applicationId,
+        summary: `Application started${body.formTitle?.trim() ? ` for “${body.formTitle.trim()}”` : ""}`,
+        metadata: {
+          formVersionId,
+          formTitle: body.formTitle?.trim() ?? null,
+        },
+      });
+    }
 
     if (
       result.action === "resume" &&

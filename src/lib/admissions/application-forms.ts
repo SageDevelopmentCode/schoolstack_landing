@@ -22,6 +22,10 @@ import {
   validateApplySystemSchema,
 } from "./apply-system-fields";
 import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 export type { ProgramOption } from "./programs";
 export { listPrograms } from "./programs";
 
@@ -280,7 +284,21 @@ export async function createApplyForm(
     .single();
 
   if (error) throw error;
-  return applicationFormFromRow(data as Record<string, unknown>);
+  const form = applicationFormFromRow(data as Record<string, unknown>);
+  void logActivityEvent(supabase, {
+    organizationId,
+    actorType: "school_admin",
+    surface: "school_admin",
+    action: ACTIVITY_ACTIONS.FORM_CREATED,
+    entityType: "application_form_version",
+    entityId: form.id,
+    summary: `Created application form “${form.title}”`,
+    metadata: {
+      publicSlug: form.public_slug,
+      version: form.version,
+    },
+  });
+  return form;
 }
 
 export type UpdateApplicationFormInput = {
@@ -295,6 +313,10 @@ export type UpdateApplicationFormInput = {
 
 /** @deprecated Use UpdateApplicationFormInput */
 export type UpdateDraftFormInput = UpdateApplicationFormInput;
+
+export type UpdateApplicationFormOptions = {
+  logActivity?: boolean;
+};
 
 async function assertPublicSlugAvailable(
   supabase: SupabaseClient,
@@ -317,6 +339,7 @@ export async function updateApplicationForm(
   supabase: SupabaseClient,
   id: string,
   input: UpdateApplicationFormInput,
+  options?: UpdateApplicationFormOptions,
 ): Promise<ApplicationFormVersion> {
   const existing = await getApplicationForm(supabase, id);
   if (!existing) throw new Error("Application form not found.");
@@ -375,15 +398,33 @@ export async function updateApplicationForm(
     .single();
 
   if (error) throw error;
-  return applicationFormFromRow(data as Record<string, unknown>);
+  const form = applicationFormFromRow(data as Record<string, unknown>);
+  if (options?.logActivity) {
+    void logActivityEvent(supabase, {
+      organizationId: form.organization_id,
+      actorType: "school_admin",
+      surface: "school_admin",
+      action: ACTIVITY_ACTIONS.FORM_SAVED,
+      entityType: "application_form_version",
+      entityId: form.id,
+      summary: `Saved application form “${form.title}”`,
+      metadata: {
+        publicSlug: form.public_slug,
+        version: form.version,
+        status: form.status,
+      },
+    });
+  }
+  return form;
 }
 
 export async function updateDraftForm(
   supabase: SupabaseClient,
   id: string,
   input: UpdateDraftFormInput,
+  options?: UpdateApplicationFormOptions,
 ): Promise<ApplicationFormVersion> {
-  return updateApplicationForm(supabase, id, input);
+  return updateApplicationForm(supabase, id, input, options);
 }
 
 export async function publishForm(
@@ -465,7 +506,21 @@ export async function publishForm(
     .single();
 
   if (error) throw error;
-  return applicationFormFromRow(data as Record<string, unknown>);
+  const form = applicationFormFromRow(data as Record<string, unknown>);
+  void logActivityEvent(supabase, {
+    organizationId: form.organization_id,
+    actorType: "school_admin",
+    surface: "school_admin",
+    action: ACTIVITY_ACTIONS.FORM_PUBLISHED,
+    entityType: "application_form_version",
+    entityId: form.id,
+    summary: `Published application form “${form.title}”`,
+    metadata: {
+      publicSlug: form.public_slug,
+      version: form.version,
+    },
+  });
+  return form;
 }
 
 export async function unpublishForm(
@@ -490,7 +545,21 @@ export async function unpublishForm(
     .single();
 
   if (error) throw error;
-  return applicationFormFromRow(data as Record<string, unknown>);
+  const form = applicationFormFromRow(data as Record<string, unknown>);
+  void logActivityEvent(supabase, {
+    organizationId: form.organization_id,
+    actorType: "school_admin",
+    surface: "school_admin",
+    action: ACTIVITY_ACTIONS.FORM_UNPUBLISHED,
+    entityType: "application_form_version",
+    entityId: form.id,
+    summary: `Unpublished application form “${form.title}”`,
+    metadata: {
+      publicSlug: form.public_slug,
+      version: form.version,
+    },
+  });
+  return form;
 }
 
 export async function duplicateForm(
@@ -534,5 +603,20 @@ export async function duplicateForm(
     .single();
 
   if (error) throw error;
-  return applicationFormFromRow(data as Record<string, unknown>);
+  const form = applicationFormFromRow(data as Record<string, unknown>);
+  void logActivityEvent(supabase, {
+    organizationId: form.organization_id,
+    actorType: "school_admin",
+    surface: "school_admin",
+    action: ACTIVITY_ACTIONS.FORM_DUPLICATED,
+    entityType: "application_form_version",
+    entityId: form.id,
+    summary: `Duplicated application form as “${form.title}”`,
+    metadata: {
+      sourceFormId: id,
+      publicSlug: form.public_slug,
+      version: form.version,
+    },
+  });
+  return form;
 }

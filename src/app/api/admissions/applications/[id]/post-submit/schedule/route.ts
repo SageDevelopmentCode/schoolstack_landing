@@ -10,6 +10,10 @@ import {
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
 import { sendPostSubmitVisitScheduledNotifications } from "@/lib/admissions/application-notifications";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -83,6 +87,26 @@ export async function POST(request: Request, context: RouteContext) {
     );
 
     void sendPostSubmitVisitScheduledNotifications(admin, applicationId, booking);
+
+    void logActivityEvent(admin, {
+      organizationId: booking.organizationId,
+      actorType: "parent",
+      actorUserId: user.id,
+      actorEmail: user.email,
+      surface: "parent_portal",
+      action: ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED,
+      entityType: "admissions_scheduled_visit",
+      entityId: booking.id,
+      summary: `Visit scheduled for ${booking.scheduledDate} at ${booking.startTimeSlot}`,
+      metadata: {
+        applicationId,
+        actionId,
+        actionType: booking.actionType,
+        scheduledDate: booking.scheduledDate,
+        startTimeSlot: booking.startTimeSlot,
+        durationMinutes: booking.durationMinutes,
+      },
+    });
 
     return NextResponse.json({
       booking: {

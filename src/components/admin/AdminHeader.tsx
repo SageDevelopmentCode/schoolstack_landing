@@ -10,6 +10,7 @@ import {
   CircleHelp,
   Building2,
   School,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ const NAV: {
   { href: "/admin/demos", label: "Demos", icon: LayoutGrid, color: "#d97706" },
   { href: "/admin/homepage-questions", label: "Questions", icon: CircleHelp, color: "#0891b2" },
   { href: "/admin/organizations", label: "Organizations", icon: School, color: "#4f46e5" },
+  { href: "/admin/activity", label: "Activity", icon: ScrollText, color: "#0f766e" },
   { href: "/admin/research", label: "CRM", icon: Building2, color: "#db2777" },
 ];
 

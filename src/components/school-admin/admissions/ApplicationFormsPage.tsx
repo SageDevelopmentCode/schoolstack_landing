@@ -410,7 +410,12 @@ export default function ApplicationFormsPage({
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateApplicationForm(supabase, selectedForm.id, saveInput);
+      const updated = await updateApplicationForm(
+        supabase,
+        selectedForm.id,
+        saveInput,
+        { logActivity: true },
+      );
       setForms((prev) =>
         prev.map((f) => (f.id === updated.id ? updated : f)),
       );
@@ -471,7 +476,9 @@ export default function ApplicationFormsPage({
     try {
       const saveInput = buildSaveInput();
       if (saveInput) {
-        await updateApplicationForm(supabase, selectedForm.id, saveInput);
+        await updateApplicationForm(supabase, selectedForm.id, saveInput, {
+          logActivity: true,
+        });
       }
       const published = await publishForm(supabase, selectedForm.id);
       setEditable(toEditableState(published));

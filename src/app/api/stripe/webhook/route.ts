@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+} from "@/lib/activity-log";
 import { sendApplicationSubmittedNotifications } from "@/lib/admissions/application-notifications";
 import {
   completeApplicationPaymentAndSubmit,
@@ -62,11 +66,52 @@ async function handleCheckoutSessionCompleted(
 
   await completeApplicationPaymentAndSubmit(admin, payment.applicationId);
   void sendApplicationSubmittedNotifications(admin, payment.applicationId);
+
+  void logActivityEvent(admin, {
+    organizationId: application.organizationId,
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+    entityType: "application",
+    entityId: payment.applicationId,
+    summary: `Application fee payment completed`,
+    metadata: {
+      paymentId: payment.id,
+      checkoutSessionId,
+      amountCents: payment.amountCents,
+    },
+  });
 }
 
 async function handleAccountUpdated(account: Stripe.Account): Promise<void> {
   const admin = createAdminClient();
+
+  const { data: existing } = await admin
+    .from("organization_payment_accounts")
+    .select("organization_id, charges_enabled")
+    .eq("stripe_connect_account_id", account.id)
+    .maybeSingle();
+
+  const wasChargesEnabled = Boolean(existing?.charges_enabled);
+  const chargesNowEnabled = Boolean(account.charges_enabled);
+
   await syncPaymentAccountFromStripe(admin, account.id, account);
+
+  if (!wasChargesEnabled && chargesNowEnabled && existing?.organization_id) {
+    void logActivityEvent(admin, {
+      organizationId: String(existing.organization_id),
+      actorType: "system",
+      surface: "system",
+      action: ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED,
+      entityType: "organization_payment_account",
+      summary: "Stripe Connect account is ready to accept payments",
+      metadata: {
+        stripeConnectAccountId: account.id,
+        chargesEnabled: chargesNowEnabled,
+        payoutsEnabled: Boolean(account.payouts_enabled),
+      },
+    });
+  }
 }
 
 export async function POST(request: Request) {
