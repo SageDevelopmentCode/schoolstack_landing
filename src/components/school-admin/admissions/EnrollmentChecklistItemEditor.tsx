@@ -1,13 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { newAdmissionsId } from "@/lib/admissions/application-form-schema";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ApplicationFormFeePanel from "./ApplicationFormFeePanel";
-import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
 import ApplicationFormQuestionList from "./ApplicationFormQuestionList";
 import EnrollmentAgreementEditor from "./EnrollmentAgreementEditor";
 
@@ -17,6 +15,7 @@ type EnrollmentChecklistItemEditorProps = {
   orgSlug?: string;
   stripePaymentsReady?: boolean;
   onChange: (item: EnrollmentChecklistItem) => void;
+  onSelectField: (fieldId: string) => void;
 };
 
 function inputStyle(C: AdminThemeTokens): React.CSSProperties {
@@ -60,8 +59,8 @@ export default function EnrollmentChecklistItemEditor({
   orgSlug,
   stripePaymentsReady = true,
   onChange,
+  onSelectField,
 }: EnrollmentChecklistItemEditorProps) {
-  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const style = inputStyle(C);
 
   const patch = (updates: Partial<EnrollmentChecklistItem>) => {
@@ -69,20 +68,6 @@ export default function EnrollmentChecklistItemEditor({
   };
 
   const fields = item.formSchema?.fields ?? [];
-  const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null;
-
-  const updateField = (fieldId: string, patchField: Partial<ApplicationField>) => {
-    if (!item.formSchema) return;
-    onChange({
-      ...item,
-      formSchema: {
-        ...item.formSchema,
-        fields: item.formSchema.fields.map((f) =>
-          f.id === fieldId ? { ...f, ...patchField } : f,
-        ),
-      },
-    });
-  };
 
   return (
     <div className="space-y-4">
@@ -120,70 +105,32 @@ export default function EnrollmentChecklistItemEditor({
       ) : null}
 
       {item.type === "form" && item.formSchema ? (
-        <div className="space-y-3">
-          {selectedField ? (
-            <div
-              className="rounded-md border p-3 space-y-3"
-              style={{ borderColor: C.border, backgroundColor: C.bg }}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold" style={{ color: C.textPrimary }}>
-                  Edit question
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setSelectedFieldId(null)}
-                  className="text-[10px] font-medium"
-                  style={{ color: C.accent }}
-                >
-                  Done
-                </button>
-              </div>
-              <ApplicationFormFieldEditor
-                C={C}
-                field={selectedField}
-                onChange={(fieldPatch) => updateField(selectedField.id, fieldPatch)}
-                onDelete={() => {
-                  onChange({
-                    ...item,
-                    formSchema: {
-                      ...item.formSchema!,
-                      fields: fields.filter((f) => f.id !== selectedField.id),
-                    },
-                  });
-                  setSelectedFieldId(null);
-                }}
-              />
-            </div>
-          ) : (
-            <ApplicationFormQuestionList
-              C={C}
-              stepId={item.formSchema.id}
-              fields={fields}
-              selectedFieldId={selectedFieldId}
-              readOnly={false}
-              onSelectField={setSelectedFieldId}
-              onAddField={(field) =>
-                onChange({
-                  ...item,
-                  formSchema: {
-                    ...item.formSchema!,
-                    fields: [...fields, field],
-                  },
-                })
-              }
-              onReorderFields={(nextFields) =>
-                onChange({
-                  ...item,
-                  formSchema: {
-                    ...item.formSchema!,
-                    fields: nextFields,
-                  },
-                })
-              }
-            />
-          )}
-        </div>
+        <ApplicationFormQuestionList
+          C={C}
+          stepId={item.formSchema.id}
+          fields={fields}
+          selectedFieldId={null}
+          readOnly={false}
+          onSelectField={onSelectField}
+          onAddField={(field: ApplicationField) =>
+            onChange({
+              ...item,
+              formSchema: {
+                ...item.formSchema!,
+                fields: [...fields, field],
+              },
+            })
+          }
+          onReorderFields={(nextFields) =>
+            onChange({
+              ...item,
+              formSchema: {
+                ...item.formSchema!,
+                fields: nextFields,
+              },
+            })
+          }
+        />
       ) : null}
 
       {item.type === "file_upload" && item.fileUpload ? (

@@ -14,7 +14,6 @@ import {
   type ChecklistItemType,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { CHECKLIST_STEP_ICON_COLORS } from "./enrollment-checklist-icons";
 
 type EnrollmentChecklistTemplatePickerProps = {
   C: AdminThemeTokens;
@@ -102,61 +101,46 @@ export default function EnrollmentChecklistTemplatePicker({
                   Suggested templates
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {CHECKLIST_ITEM_TEMPLATES.map((template) => {
-                    const iconColors = CHECKLIST_STEP_ICON_COLORS[template.icon];
-                    const Icon = template.Icon;
-                    return (
-                      <button
-                        key={template.id}
-                        type="button"
-                        onClick={() => {
-                          onSelectTemplate(template.id);
-                          onClose();
-                        }}
-                        className="flex items-start gap-3 rounded-md border p-3 text-left transition-colors"
-                        style={{ borderColor: C.border, backgroundColor: C.surface }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = C.accent;
-                          e.currentTarget.style.backgroundColor = C.accentLight;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = C.border;
-                          e.currentTarget.style.backgroundColor = C.surface;
-                        }}
+                  {CHECKLIST_ITEM_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => {
+                        onSelectTemplate(template.id);
+                        onClose();
+                      }}
+                      className="rounded-md border p-3 text-left transition-colors"
+                      style={{ borderColor: C.border, backgroundColor: C.surface }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = C.accent;
+                        e.currentTarget.style.backgroundColor = C.accentLight;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = C.border;
+                        e.currentTarget.style.backgroundColor = C.surface;
+                      }}
+                    >
+                      <p
+                        className="text-[11px] font-semibold leading-snug"
+                        style={{ color: C.textPrimary }}
                       >
-                        <div
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm"
-                          style={{
-                            backgroundColor: iconColors.bg,
-                            color: iconColors.color,
-                          }}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p
-                            className="text-[11px] font-semibold leading-snug"
-                            style={{ color: C.textPrimary }}
-                          >
-                            {template.label}
-                          </p>
-                          <p
-                            className="mt-0.5 text-[10px] leading-relaxed"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {template.description}
-                          </p>
-                          <span
-                            className="mt-1.5 inline-block rounded px-1.5 py-0.5 text-[9px] font-medium"
-                            style={{ backgroundColor: C.bg, color: C.textTertiary }}
-                          >
-                            {CHECKLIST_ITEM_TYPE_LABELS[template.type]}
-                            {!template.required ? " · Optional" : ""}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
+                        {template.label}
+                      </p>
+                      <p
+                        className="mt-0.5 text-[10px] leading-relaxed"
+                        style={{ color: C.textTertiary }}
+                      >
+                        {template.description}
+                      </p>
+                      <span
+                        className="mt-1.5 inline-block rounded px-1.5 py-0.5 text-[9px] font-medium"
+                        style={{ backgroundColor: C.bg, color: C.textTertiary }}
+                      >
+                        {CHECKLIST_ITEM_TYPE_LABELS[template.type]}
+                        {!template.required ? " · Optional" : ""}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
 

@@ -8,18 +8,6 @@ export type ChecklistItemType =
   | "payment"
   | "acknowledgment";
 
-export type ChecklistStepIconKey =
-  | "fileText"
-  | "users"
-  | "heart"
-  | "pill"
-  | "shieldCheck"
-  | "clipboardList"
-  | "camera"
-  | "alertTriangle"
-  | "userPlus"
-  | "creditCard";
-
 export type EnrollmentContractSection = {
   id: string;
   title: string;
@@ -67,7 +55,6 @@ export type EnrollmentChecklistItem = {
   label: string;
   type: ChecklistItemType;
   required: boolean;
-  icon: ChecklistStepIconKey;
   document?: DocumentConfig;
   formSchema?: ApplicationSection;
   fileUpload?: ChecklistFileUploadConfig;
@@ -104,7 +91,6 @@ export function createBlankChecklistItem(
     label,
     type,
     required: true,
-    icon: defaultIconForType(type),
     metadata: {},
   };
 
@@ -149,21 +135,6 @@ export function createBlankChecklistItem(
   }
 
   return item;
-}
-
-export function defaultIconForType(type: ChecklistItemType): ChecklistStepIconKey {
-  switch (type) {
-    case "document_sign":
-      return "fileText";
-    case "form":
-      return "heart";
-    case "file_upload":
-      return "shieldCheck";
-    case "payment":
-      return "creditCard";
-    case "acknowledgment":
-      return "clipboardList";
-  }
 }
 
 export function getChecklistItemSummary(item: EnrollmentChecklistItem): string {

@@ -1,21 +1,8 @@
-import {
-  AlertTriangle,
-  Camera,
-  ClipboardList,
-  CreditCard,
-  FileText,
-  Heart,
-  Pill,
-  ShieldCheck,
-  UserPlus,
-  type LucideIcon,
-} from "lucide-react";
 import { ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS } from "@/data/school-demos/rooted-meadows-enrollment-contracts";
 import { newAdmissionsId } from "./application-form-schema";
 import {
   createChecklistItemKey,
   type ChecklistItemType,
-  type ChecklistStepIconKey,
   type EnrollmentChecklistItem,
 } from "./enrollment-checklist-schema";
 
@@ -35,8 +22,6 @@ export type ChecklistItemTemplate = {
   label: string;
   description: string;
   type: ChecklistItemType;
-  icon: ChecklistStepIconKey;
-  Icon: LucideIcon;
   required: boolean;
   build: () => EnrollmentChecklistItem;
 };
@@ -68,7 +53,7 @@ const ASSUMPTION_OF_RISK_SECTIONS = [
 ];
 
 function buildFromTemplate(
-  template: Pick<ChecklistItemTemplate, "label" | "type" | "icon" | "required">,
+  template: Pick<ChecklistItemTemplate, "label" | "type" | "required">,
   overrides: Partial<EnrollmentChecklistItem> = {},
 ): EnrollmentChecklistItem {
   const id = newAdmissionsId();
@@ -78,7 +63,6 @@ function buildFromTemplate(
     label: template.label,
     type: template.type,
     required: template.required,
-    icon: template.icon,
     metadata: {},
     ...overrides,
   };
@@ -90,8 +74,6 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
     label: "Standard Enrollment Agreement",
     description: "Multi-section agreement with per-section signatures.",
     type: "document_sign",
-    icon: "fileText",
-    Icon: FileText,
     required: true,
   },
   {
@@ -99,8 +81,6 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
     label: "Photo Release Form",
     description: "Consent levels with signature acknowledgment.",
     type: "document_sign",
-    icon: "camera",
-    Icon: Camera,
     required: true,
   },
   {
@@ -108,8 +88,6 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
     label: "Assumption of Risk",
     description: "Warning banner with liability release signature.",
     type: "document_sign",
-    icon: "alertTriangle",
-    Icon: AlertTriangle,
     required: true,
   },
   {
@@ -117,8 +95,6 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
     label: "Emergency Contact, Health & Immunization Form",
     description: "Emergency contacts, physician, and insurance fields.",
     type: "form",
-    icon: "heart",
-    Icon: Heart,
     required: true,
   },
   {
@@ -126,8 +102,6 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
     label: "Emergency Medication Plan",
     description: "Medication details with parent signature.",
     type: "form",
-    icon: "pill",
-    Icon: Pill,
     required: false,
   },
   {
@@ -135,8 +109,6 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
     label: "Proof of Immunizations",
     description: "Families upload immunization records.",
     type: "file_upload",
-    icon: "shieldCheck",
-    Icon: ShieldCheck,
     required: true,
   },
   {
@@ -144,8 +116,6 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
     label: "Health Information Form",
     description: "Health exam options with parent signature.",
     type: "acknowledgment",
-    icon: "clipboardList",
-    Icon: ClipboardList,
     required: true,
   },
   {
@@ -153,8 +123,6 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
     label: "Additional Authorized Pickup",
     description: "Authorized pickup contacts with signature.",
     type: "form",
-    icon: "userPlus",
-    Icon: UserPlus,
     required: false,
   },
   {
@@ -162,8 +130,6 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
     label: "Pay Registration Fee",
     description: "Collect a one-time enrollment fee.",
     type: "payment",
-    icon: "creditCard",
-    Icon: CreditCard,
     required: true,
   },
 ];

@@ -14,7 +14,12 @@ import { createItemFromTemplate } from "@/lib/admissions/enrollment-checklist-it
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import EnrollmentChecklistItemList from "./EnrollmentChecklistItemList";
+import {
+  initialChecklistFocus,
+  type ChecklistBuilderFocus,
+} from "./checklist-builder-focus";
+import EnrollmentChecklistFocusCanvas from "./EnrollmentChecklistFocusCanvas";
+import EnrollmentChecklistOutline from "./EnrollmentChecklistOutline";
 import EnrollmentChecklistTemplatePicker from "./EnrollmentChecklistTemplatePicker";
 
 type EnrollmentChecklistBuilderProps = {
@@ -24,6 +29,38 @@ type EnrollmentChecklistBuilderProps = {
   stripePaymentsReady?: boolean;
 };
 
+function resolveFocusAfterDelete(
+  items: EnrollmentChecklistItem[],
+  deletedId: string,
+  currentFocus: ChecklistBuilderFocus | null,
+): ChecklistBuilderFocus | null {
+  if (!currentFocus) return null;
+
+  const deletedIdx = items.findIndex((i) => i.id === deletedId);
+  if (deletedIdx < 0) return currentFocus;
+
+  const remaining = items.filter((i) => i.id !== deletedId);
+  if (remaining.length === 0) return null;
+
+  const isFocusedOnDeleted =
+    (currentFocus.kind === "item" && currentFocus.itemId === deletedId) ||
+    (currentFocus.kind === "field" && currentFocus.itemId === deletedId);
+
+  if (!isFocusedOnDeleted) {
+    if (currentFocus.kind === "field") {
+      const itemStillExists = remaining.some((i) => i.id === currentFocus.itemId);
+      if (!itemStillExists) {
+        const nextIdx = Math.min(deletedIdx, remaining.length - 1);
+        return { kind: "item", itemId: remaining[nextIdx].id };
+      }
+    }
+    return currentFocus;
+  }
+
+  const nextIdx = Math.min(deletedIdx, remaining.length - 1);
+  return { kind: "item", itemId: remaining[nextIdx].id };
+}
+
 export default function EnrollmentChecklistBuilder({
   branding,
   template,
@@ -31,12 +68,15 @@ export default function EnrollmentChecklistBuilder({
   stripePaymentsReady = true,
 }: EnrollmentChecklistBuilderProps) {
   const C = buildAdminThemeTokens(branding);
-  const [items, setItems] = useState<EnrollmentChecklistItem[]>(() =>
-    createDefaultChecklistItems(),
+  const defaultItems = createDefaultChecklistItems();
+  const [items, setItems] = useState<EnrollmentChecklistItem[]>(() => defaultItems);
+  const [focus, setFocus] = useState<ChecklistBuilderFocus | null>(() =>
+    initialChecklistFocus(defaultItems),
   );
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  const checklistPath = enrollmentChecklistRelativePath(template.enrollmentPath);
 
   const statusStyle =
     template.status === "published"
@@ -48,23 +88,30 @@ export default function EnrollmentChecklistBuilder({
   const addFromTemplate = (templateId: ChecklistItemTemplateId) => {
     const item = createItemFromTemplate(templateId);
     setItems((prev) => [...prev, item]);
-    setExpandedItemId(item.id);
+    setFocus({ kind: "item", itemId: item.id });
   };
 
   const addBlank = (type: ChecklistItemType) => {
     const item = createBlankChecklistItem(type);
     setItems((prev) => [...prev, item]);
-    setExpandedItemId(item.id);
+    setFocus({ kind: "item", itemId: item.id });
   };
 
   const updateItem = (updated: EnrollmentChecklistItem) => {
     setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   };
 
+  const requestDeleteItem = (itemId: string) => {
+    setDeleteTargetId(itemId);
+  };
+
   const confirmDelete = () => {
     if (!deleteTargetId) return;
-    setItems((prev) => prev.filter((item) => item.id !== deleteTargetId));
-    setExpandedItemId((prev) => (prev === deleteTargetId ? null : prev));
+    setItems((prev) => {
+      const next = prev.filter((item) => item.id !== deleteTargetId);
+      setFocus((current) => resolveFocusAfterDelete(prev, deleteTargetId, current));
+      return next;
+    });
     setDeleteTargetId(null);
   };
 
@@ -92,7 +139,7 @@ export default function EnrollmentChecklistBuilder({
               {statusStyle.label}
             </span>
             <span>Checklist</span>
-            <span>{enrollmentChecklistRelativePath(template.enrollmentPath)}</span>
+            <span>{checklistPath}</span>
           </div>
         </div>
         <p className="text-[10px]" style={{ color: C.textTertiary }}>
@@ -100,18 +147,27 @@ export default function EnrollmentChecklistBuilder({
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4">
-        <EnrollmentChecklistItemList
+      <div className="flex flex-1 overflow-hidden">
+        <EnrollmentChecklistOutline
           C={C}
           items={items}
-          expandedItemId={expandedItemId}
+          focus={focus}
+          checklistPath={checklistPath}
+          onFocusChange={setFocus}
+          onReorderItems={setItems}
+          onAddItem={() => setPickerOpen(true)}
+          onDeleteItem={requestDeleteItem}
+        />
+
+        <EnrollmentChecklistFocusCanvas
+          C={C}
+          focus={focus}
+          items={items}
           orgSlug={orgSlug}
           stripePaymentsReady={stripePaymentsReady}
-          onExpandItem={setExpandedItemId}
-          onReorderItems={setItems}
+          onFocusChange={setFocus}
           onUpdateItem={updateItem}
-          onDeleteItem={setDeleteTargetId}
-          onAddItem={() => setPickerOpen(true)}
+          onDeleteItem={requestDeleteItem}
         />
       </div>
 

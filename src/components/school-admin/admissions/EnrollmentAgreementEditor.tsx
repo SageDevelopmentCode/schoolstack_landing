@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { FileText, GripVertical, Plus, Trash2, Upload } from "lucide-react";
 import { newAdmissionsId } from "@/lib/admissions/application-form-schema";
@@ -29,19 +29,22 @@ function inputStyle(C: AdminThemeTokens): React.CSSProperties {
   };
 }
 
-function SectionRow({
+function SectionListRow({
   C,
   section,
-  onChange,
+  sectionIdx,
+  active,
+  onSelect,
   onDelete,
 }: {
   C: AdminThemeTokens;
   section: EnrollmentContractSection;
-  onChange: (patch: Partial<EnrollmentContractSection>) => void;
+  sectionIdx: number;
+  active: boolean;
+  onSelect: () => void;
   onDelete: () => void;
 }) {
   const dragControls = useDragControls();
-  const style = inputStyle(C);
 
   return (
     <Reorder.Item
@@ -53,48 +56,45 @@ function SectionRow({
       layout="position"
     >
       <div
-        className="rounded-md border p-3 space-y-2"
-        style={{ borderColor: C.border, backgroundColor: C.surface }}
+        className="flex items-center gap-1 rounded-md"
+        style={{
+          backgroundColor: active ? C.accentLight : "transparent",
+          border: `1px solid ${active ? C.accent : C.border}`,
+        }}
       >
-        <div className="flex items-start gap-2">
-          <button
-            type="button"
-            aria-label="Drag to reorder section"
-            className="touch-none cursor-grab px-1 py-1 active:cursor-grabbing shrink-0 mt-1"
-            style={{ color: C.textQuaternary }}
-            onPointerDown={(e) => dragControls.start(e)}
+        <button
+          type="button"
+          aria-label="Drag to reorder section"
+          className="touch-none cursor-grab px-1 py-2 active:cursor-grabbing shrink-0"
+          style={{ color: C.textQuaternary }}
+          onPointerDown={(e) => dragControls.start(e)}
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onSelect}
+          className="min-w-0 flex-1 py-2 pr-2 text-left"
+        >
+          <p
+            className="truncate text-[11px] font-medium"
+            style={{ color: active ? C.accent : C.textPrimary }}
           >
-            <GripVertical className="h-4 w-4" />
-          </button>
-          <div className="min-w-0 flex-1 space-y-2">
-            <input
-              type="text"
-              value={section.title}
-              onChange={(e) => onChange({ title: e.target.value })}
-              placeholder="Section title"
-              style={style}
-            />
-            <textarea
-              rows={4}
-              value={section.body}
-              onChange={(e) => onChange({ body: e.target.value })}
-              placeholder="Agreement text families will read..."
-              style={{ ...style, resize: "vertical" }}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="rounded p-1.5 shrink-0"
-            style={{ color: C.error, backgroundColor: C.errorBg }}
-            aria-label="Delete section"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <p className="text-[10px] pl-7" style={{ color: C.textTertiary }}>
-          Families sign each section individually.
-        </p>
+            {section.title || `Section ${sectionIdx + 1}`}
+          </p>
+          <p className="text-[10px]" style={{ color: C.textTertiary }}>
+            Signature required
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="mr-1 rounded p-1 shrink-0"
+          style={{ color: C.error }}
+          aria-label="Delete section"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
       </div>
     </Reorder.Item>
   );
@@ -106,51 +106,62 @@ export default function EnrollmentAgreementEditor({
   onChange,
 }: EnrollmentAgreementEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const style = inputStyle(C);
   const mode = document.kind;
 
   const setMode = (kind: DocumentConfig["kind"]) => {
     if (kind === "pdf") {
       onChange({ kind: "pdf", fileName: "" });
+      setActiveSectionId(null);
       return;
     }
-    onChange({
-      kind: "inline_sections",
-      sections:
-        document.kind === "inline_sections"
-          ? document.sections
-          : [
-              {
-                id: newAdmissionsId(),
-                title: "1. Section title",
-                body: "Add agreement text families will read and sign.",
-              },
-            ],
-    });
+    const sections =
+      document.kind === "inline_sections"
+        ? document.sections
+        : [
+            {
+              id: newAdmissionsId(),
+              title: "1. Section title",
+              body: "Add agreement text families will read and sign.",
+            },
+          ];
+    onChange({ kind: "inline_sections", sections });
+    setActiveSectionId(sections[0]?.id ?? null);
   };
 
   const updateSections = (sections: EnrollmentContractSection[]) => {
     if (document.kind !== "inline_sections") return;
     onChange({ ...document, sections });
+    if (activeSectionId && !sections.some((s) => s.id === activeSectionId)) {
+      setActiveSectionId(sections[0]?.id ?? null);
+    }
   };
 
   const addSection = () => {
     if (document.kind !== "inline_sections") return;
     const nextIndex = document.sections.length + 1;
-    updateSections([
-      ...document.sections,
-      {
-        id: newAdmissionsId(),
-        title: `${nextIndex}. Section title`,
-        body: "",
-      },
-    ]);
+    const newSection: EnrollmentContractSection = {
+      id: newAdmissionsId(),
+      title: `${nextIndex}. Section title`,
+      body: "",
+    };
+    updateSections([...document.sections, newSection]);
+    setActiveSectionId(newSection.id);
   };
 
   const handlePdfSelect = (file: File | null) => {
     if (!file) return;
     onChange({ kind: "pdf", fileName: file.name });
   };
+
+  const activeSection =
+    document.kind === "inline_sections"
+      ? document.sections.find((s) => s.id === activeSectionId) ??
+        document.sections[0]
+      : null;
+
+  const resolvedActiveId = activeSection?.id ?? null;
 
   return (
     <div className="space-y-4">
@@ -186,7 +197,7 @@ export default function EnrollmentAgreementEditor({
             <div
               className="rounded-md border px-3 py-2 text-[11px] leading-relaxed"
               style={{
-                borderColor: C.warningBorder ?? C.warning,
+                borderColor: C.warningBorder,
                 backgroundColor: C.warningBg,
                 color: C.warning,
               }}
@@ -206,8 +217,7 @@ export default function EnrollmentAgreementEditor({
           )}
 
           <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
-            Each section requires a parent signature. Reorder sections to match how families
-            should read the agreement.
+            Edit one section at a time. Each section requires a parent signature.
           </p>
 
           {document.sections.length === 0 ? (
@@ -221,46 +231,106 @@ export default function EnrollmentAgreementEditor({
               No sections yet.
             </div>
           ) : (
-            <Reorder.Group
-              axis="y"
-              values={document.sections}
-              onReorder={updateSections}
-              as="div"
-              className="flex flex-col gap-2"
-            >
-              {document.sections.map((section) => (
-                <SectionRow
-                  key={section.id}
-                  C={C}
-                  section={section}
-                  onChange={(patch) =>
-                    updateSections(
-                      document.sections.map((s) =>
-                        s.id === section.id ? { ...s, ...patch } : s,
-                      ),
-                    )
-                  }
-                  onDelete={() =>
-                    updateSections(document.sections.filter((s) => s.id !== section.id))
-                  }
-                />
-              ))}
-            </Reorder.Group>
+            <div className="flex gap-4">
+              <div className="w-[200px] shrink-0 space-y-1.5">
+                <Reorder.Group
+                  axis="y"
+                  values={document.sections}
+                  onReorder={updateSections}
+                  as="div"
+                  className="flex flex-col gap-1.5"
+                >
+                  {document.sections.map((section, sectionIdx) => (
+                    <SectionListRow
+                      key={section.id}
+                      C={C}
+                      section={section}
+                      sectionIdx={sectionIdx}
+                      active={resolvedActiveId === section.id}
+                      onSelect={() => setActiveSectionId(section.id)}
+                      onDelete={() =>
+                        updateSections(
+                          document.sections.filter((s) => s.id !== section.id),
+                        )
+                      }
+                    />
+                  ))}
+                </Reorder.Group>
+                <button
+                  type="button"
+                  onClick={addSection}
+                  className="flex w-full items-center justify-center gap-1 rounded-sm px-2 py-1.5 text-[10px] font-medium"
+                  style={{
+                    border: `1px dashed ${C.borderStrong}`,
+                    color: C.accent,
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                  Add section
+                </button>
+              </div>
+
+              {activeSection ? (
+                <div
+                  className="min-w-0 flex-1 rounded-md border p-4 space-y-3"
+                  style={{ borderColor: C.border, backgroundColor: C.bg }}
+                >
+                  <p className="text-[11px] font-semibold" style={{ color: C.textSecondary }}>
+                    Section content
+                  </p>
+                  <input
+                    type="text"
+                    value={activeSection.title}
+                    onChange={(e) =>
+                      updateSections(
+                        document.sections.map((s) =>
+                          s.id === activeSection.id
+                            ? { ...s, title: e.target.value }
+                            : s,
+                        ),
+                      )
+                    }
+                    placeholder="Section title"
+                    style={style}
+                  />
+                  <textarea
+                    rows={10}
+                    value={activeSection.body}
+                    onChange={(e) =>
+                      updateSections(
+                        document.sections.map((s) =>
+                          s.id === activeSection.id
+                            ? { ...s, body: e.target.value }
+                            : s,
+                        ),
+                      )
+                    }
+                    placeholder="Agreement text families will read and sign..."
+                    style={{ ...style, resize: "vertical" }}
+                  />
+                  <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                    Families sign this section before moving on.
+                  </p>
+                </div>
+              ) : null}
+            </div>
           )}
 
-          <button
-            type="button"
-            onClick={addSection}
-            className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
-            style={{
-              backgroundColor: C.accentLight,
-              color: C.accent,
-              border: `1px solid ${C.secondaryBtnBorder}`,
-            }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add section
-          </button>
+          {document.sections.length === 0 ? (
+            <button
+              type="button"
+              onClick={addSection}
+              className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+              style={{
+                backgroundColor: C.accentLight,
+                color: C.accent,
+                border: `1px solid ${C.secondaryBtnBorder}`,
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add section
+            </button>
+          ) : null}
         </>
       ) : (
         <div className="space-y-3">
