@@ -10,6 +10,7 @@ import {
   mergePortalFeatureNav,
   resolveFeatureNavChildren,
 } from "@/lib/organization-settings/feature-nav";
+import SchedulePage from "@/components/school-admin/SchedulePage";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
@@ -57,6 +58,17 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
 
   if (children.length > 0) {
     redirect(schoolAdminPath(slug, feature, children[0].key));
+  }
+
+  if (feature === "schedule") {
+    return (
+      <SchedulePage
+        organizationId={org.id}
+        branding={org.branding}
+        schoolName={org.name}
+        slug={slug}
+      />
+    );
   }
 
   const pageName = getAdminPageLabel(

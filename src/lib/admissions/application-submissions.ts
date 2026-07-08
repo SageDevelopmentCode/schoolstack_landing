@@ -121,64 +121,43 @@ export function formatShortDate(value: string): string {
   });
 }
 
-export async function listOrgApplicationSubmissions(
-  supabase: SupabaseClient,
-  organizationId: string,
-): Promise<AdminApplicationSubmission[]> {
-  const { data, error } = await supabase
-    .from("applications")
-    .select(
-      `
-      id,
-      status,
-      fee_status,
-      responses,
-      created_at,
-      submitted_at,
-      updated_at,
-      application_form_versions!inner (
-        title,
-        public_slug,
-        schema,
-        fee_config,
-        post_submit_config
-      ),
-      guardians:primary_guardian_id (
-        first_name,
-        last_name,
-        email
-      ),
-      families (
-        name,
-        primary_email
-      ),
-      programs (
-        name
-      ),
-      students:student_id (
-        first_name,
-        last_name
-      )
-    `,
-    )
-    .eq("organization_id", organizationId)
-    .order("updated_at", { ascending: false });
+const APPLICATION_SUBMISSION_SELECT = `
+  id,
+  status,
+  fee_status,
+  responses,
+  created_at,
+  submitted_at,
+  updated_at,
+  application_form_versions!inner (
+    title,
+    public_slug,
+    schema,
+    fee_config,
+    post_submit_config
+  ),
+  guardians:primary_guardian_id (
+    first_name,
+    last_name,
+    email
+  ),
+  families (
+    name,
+    primary_email
+  ),
+  programs (
+    name
+  ),
+  students:student_id (
+    first_name,
+    last_name
+  )
+`;
 
-  if (error) throw error;
-
-  const rows = data ?? [];
-  const submittedIds = rows
-    .filter((row) => String(row.status) !== "draft")
-    .map((row) => String(row.id));
-  const visits = await listScheduledVisitsForApplications(supabase, submittedIds);
-  const visitsByApplicationId = new Map<string, typeof visits>();
-  for (const visit of visits) {
-    const existing = visitsByApplicationId.get(visit.applicationId) ?? [];
-    existing.push(visit);
-    visitsByApplicationId.set(visit.applicationId, existing);
-  }
-
-  return rows.map((row) => {
+function mapApplicationRowToAdminSubmission(
+  row: Record<string, unknown>,
+  visitsByApplicationId: Map<string, Awaited<ReturnType<typeof listScheduledVisitsForApplications>>>,
+): AdminApplicationSubmission {
     const formVersion = row.application_form_versions as
       | {
           title?: string;
@@ -266,5 +245,64 @@ export async function listOrgApplicationSubmissions(
       hasPostSubmitActions,
       postSubmitSummary,
     };
-  });
+}
+
+export async function listOrgApplicationSubmissions(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<AdminApplicationSubmission[]> {
+  const { data, error } = await supabase
+    .from("applications")
+    .select(APPLICATION_SUBMISSION_SELECT)
+    .eq("organization_id", organizationId)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+
+  const rows = data ?? [];
+  const submittedIds = rows
+    .filter((row) => String(row.status) !== "draft")
+    .map((row) => String(row.id));
+  const visits = await listScheduledVisitsForApplications(supabase, submittedIds);
+  const visitsByApplicationId = new Map<string, typeof visits>();
+  for (const visit of visits) {
+    const existing = visitsByApplicationId.get(visit.applicationId) ?? [];
+    existing.push(visit);
+    visitsByApplicationId.set(visit.applicationId, existing);
+  }
+
+  return rows.map((row) =>
+    mapApplicationRowToAdminSubmission(
+      row as Record<string, unknown>,
+      visitsByApplicationId,
+    ),
+  );
+}
+
+export async function getOrgApplicationSubmissionById(
+  supabase: SupabaseClient,
+  organizationId: string,
+  applicationId: string,
+): Promise<AdminApplicationSubmission | null> {
+  const { data, error } = await supabase
+    .from("applications")
+    .select(APPLICATION_SUBMISSION_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const status = String(data.status);
+  const visits =
+    status === "draft"
+      ? []
+      : await listScheduledVisitsForApplications(supabase, [applicationId]);
+  const visitsByApplicationId = new Map([[applicationId, visits]]);
+
+  return mapApplicationRowToAdminSubmission(
+    data as Record<string, unknown>,
+    visitsByApplicationId,
+  );
 }

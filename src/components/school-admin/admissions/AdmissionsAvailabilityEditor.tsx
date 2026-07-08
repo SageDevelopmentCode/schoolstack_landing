@@ -26,6 +26,7 @@ type AdmissionsAvailabilityEditorProps = {
   organizationId: string;
   readOnly?: boolean;
   timezone?: string;
+  compactLayout?: boolean;
   onMonthSlotCountChange?: (count: number) => void;
 };
 
@@ -34,6 +35,7 @@ export default function AdmissionsAvailabilityEditor({
   organizationId,
   readOnly = false,
   timezone: timezoneProp,
+  compactLayout = false,
   onMonthSlotCountChange,
 }: AdmissionsAvailabilityEditorProps) {
   const supabase = useMemo(() => createClient(), []);
@@ -245,7 +247,11 @@ export default function AdmissionsAvailabilityEditor({
       </p>
 
       <div
-        className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]"
+        className={
+          compactLayout
+            ? "grid w-full gap-4 lg:grid-cols-[3fr_2fr]"
+            : "grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]"
+        }
         style={{ borderColor: C.border }}
       >
         <div

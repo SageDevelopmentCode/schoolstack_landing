@@ -160,6 +160,64 @@ export function todayMonthYearInTimezone(timezone: string): { year: number; mont
   return { year, month: month - 1 };
 }
 
+export type ScheduledVisitTiming = "upcoming" | "happening" | "past";
+
+/** Parse "6:00 AM" style slot labels to minutes since midnight. */
+export function parseAdmissionsTimeSlot(timeSlot: string): number | null {
+  const match = timeSlot.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const period = match[3].toUpperCase();
+
+  if (period === "AM") {
+    if (hour === 12) hour = 0;
+  } else if (hour !== 12) {
+    hour += 12;
+  }
+
+  return hour * 60 + minute;
+}
+
+function nowMinutesInTimezone(timezone: string, now = new Date()): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? 0);
+  return hour * 60 + minute;
+}
+
+export function classifyScheduledVisitTiming(
+  visit: {
+    scheduledDate: string;
+    startTimeSlot: string;
+    durationMinutes: number;
+  },
+  timezone: string,
+  now = new Date(),
+): ScheduledVisitTiming {
+  const today = todayKeyInTimezone(timezone);
+  const startMinutes = parseAdmissionsTimeSlot(visit.startTimeSlot);
+
+  if (visit.scheduledDate < today) return "past";
+  if (visit.scheduledDate > today) return "upcoming";
+
+  if (startMinutes === null) return "happening";
+
+  const nowMinutes = nowMinutesInTimezone(timezone, now);
+  const endMinutes = startMinutes + visit.durationMinutes;
+
+  if (nowMinutes < startMinutes) return "upcoming";
+  if (nowMinutes >= endMinutes) return "past";
+  return "happening";
+}
+
 export async function getOrganizationTimezone(
   supabase: SupabaseClient,
   organizationId: string,
