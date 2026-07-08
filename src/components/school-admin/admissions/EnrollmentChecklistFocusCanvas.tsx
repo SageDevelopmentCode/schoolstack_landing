@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ChevronLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, Eye, Trash2 } from "lucide-react";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import {
   CHECKLIST_ITEM_TYPE_LABELS,
@@ -34,11 +34,12 @@ type EnrollmentChecklistFocusCanvasProps = {
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
   onUpdateItem: (item: EnrollmentChecklistItem) => void;
   onDeleteItem: (itemId: string) => void;
+  onPreviewItem: (itemId: string) => void;
 };
 
 function EmptyView({ C }: { C: AdminThemeTokens }) {
   return (
-    <div className="w-full max-w-2xl">
+    <div className="w-full">
       <p className="text-sm" style={{ color: C.textSecondary }}>
         No checklist items yet. Add one using Add item.
       </p>
@@ -56,6 +57,7 @@ function ItemView({
   onUpdateItem,
   onRequestDelete,
   onFocusChange,
+  onPreviewItem,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
@@ -66,9 +68,10 @@ function ItemView({
   onUpdateItem: (item: EnrollmentChecklistItem) => void;
   onRequestDelete: () => void;
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
+  onPreviewItem: (itemId: string) => void;
 }) {
   return (
-    <div className="w-full max-w-5xl space-y-6">
+    <div className="w-full space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
@@ -101,15 +104,30 @@ function ItemView({
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onRequestDelete}
-          className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium shrink-0"
-          style={{ color: C.error, backgroundColor: C.errorBg }}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Remove
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onPreviewItem(item.id)}
+            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium"
+            style={{
+              color: C.textSecondary,
+              backgroundColor: C.bg,
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Preview
+          </button>
+          <button
+            type="button"
+            onClick={onRequestDelete}
+            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium shrink-0"
+            style={{ color: C.error, backgroundColor: C.errorBg }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Remove
+          </button>
+        </div>
       </div>
 
       <EnrollmentChecklistItemEditor
@@ -144,7 +162,7 @@ function FieldView({
   onRequestDelete: () => void;
 }) {
   return (
-    <div className="w-full max-w-5xl space-y-6">
+    <div className="w-full space-y-6">
       <button
         type="button"
         onClick={onBack}
@@ -183,6 +201,7 @@ export default function EnrollmentChecklistFocusCanvas({
   onFocusChange,
   onUpdateItem,
   onDeleteItem,
+  onPreviewItem,
 }: EnrollmentChecklistFocusCanvasProps) {
   const [pendingDeleteItemId, setPendingDeleteItemId] = useState<string | null>(null);
   const [pendingDeleteField, setPendingDeleteField] = useState<{
@@ -296,6 +315,7 @@ export default function EnrollmentChecklistFocusCanvas({
                   onUpdateItem={onUpdateItem}
                   onRequestDelete={() => setPendingDeleteItemId(item.id)}
                   onFocusChange={onFocusChange}
+                  onPreviewItem={onPreviewItem}
                 />
               )}
 

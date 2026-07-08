@@ -610,6 +610,7 @@ export default function ApplicationFormsPage({
       {selectedChecklist ? (
         <EnrollmentChecklistBuilder
           branding={branding}
+          schoolName={schoolName}
           template={selectedChecklist}
           orgSlug={slug}
           stripePaymentsReady={stripePaymentsReady}

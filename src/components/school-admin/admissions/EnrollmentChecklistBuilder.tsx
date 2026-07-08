@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Eye, Plus } from "lucide-react";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import { enrollmentChecklistRelativePath } from "@/lib/admissions/enrollment-checklist-templates";
 import { createDefaultChecklistItems } from "@/lib/admissions/enrollment-checklist-item-templates";
@@ -21,10 +21,12 @@ import {
 } from "./checklist-builder-focus";
 import EnrollmentChecklistFocusCanvas from "./EnrollmentChecklistFocusCanvas";
 import EnrollmentChecklistItemsMenu from "./EnrollmentChecklistItemsMenu";
+import EnrollmentChecklistPreview from "./EnrollmentChecklistPreview";
 import EnrollmentChecklistTemplatePicker from "./EnrollmentChecklistTemplatePicker";
 
 type EnrollmentChecklistBuilderProps = {
   branding: OrganizationBranding;
+  schoolName: string;
   template: EnrollmentChecklistTemplate;
   orgSlug: string;
   stripePaymentsReady?: boolean;
@@ -64,6 +66,7 @@ function resolveFocusAfterDelete(
 
 export default function EnrollmentChecklistBuilder({
   branding,
+  schoolName,
   template,
   orgSlug,
   stripePaymentsReady = true,
@@ -76,6 +79,8 @@ export default function EnrollmentChecklistBuilder({
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewInitialItemId, setPreviewInitialItemId] = useState<string | undefined>();
 
   const checklistPath = enrollmentChecklistRelativePath(template.enrollmentPath);
 
@@ -116,6 +121,11 @@ export default function EnrollmentChecklistBuilder({
     setDeleteTargetId(null);
   };
 
+  const openPreview = (initialItemId?: string) => {
+    setPreviewInitialItemId(initialItemId);
+    setPreviewOpen(true);
+  };
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden" style={{ backgroundColor: C.surface }}>
       <div
@@ -152,6 +162,21 @@ export default function EnrollmentChecklistBuilder({
           />
           <button
             type="button"
+            onClick={() => openPreview(items[0]?.id)}
+            disabled={items.length === 0}
+            title={items.length === 0 ? "Add an item to preview" : undefined}
+            className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:opacity-40"
+            style={{
+              border: `1px solid ${C.border}`,
+              color: C.textSecondary,
+              backgroundColor: C.bg,
+            }}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Preview
+          </button>
+          <button
+            type="button"
             onClick={() => setPickerOpen(true)}
             className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium"
             style={{
@@ -178,6 +203,19 @@ export default function EnrollmentChecklistBuilder({
         onFocusChange={setFocus}
         onUpdateItem={updateItem}
         onDeleteItem={requestDeleteItem}
+        onPreviewItem={(itemId) => openPreview(itemId)}
+      />
+
+      <EnrollmentChecklistPreview
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        branding={branding}
+        schoolName={schoolName}
+        slug={orgSlug}
+        enrollmentPath={template.enrollmentPath}
+        title={template.name}
+        items={items}
+        initialItemId={previewInitialItemId}
       />
 
       <EnrollmentChecklistTemplatePicker

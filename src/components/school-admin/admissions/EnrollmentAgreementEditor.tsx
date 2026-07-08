@@ -290,7 +290,7 @@ export default function EnrollmentAgreementEditor({
                     style={style}
                   />
                   <textarea
-                    rows={10}
+                    rows={16}
                     value={activeSection.body}
                     onChange={(e) =>
                       updateSections(
