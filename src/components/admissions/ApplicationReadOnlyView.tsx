@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import ApplicationUploadedFileList from "@/components/admissions/ApplicationUploadedFileList";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
+import { parseApplicationFileFieldValue } from "@/lib/admissions/application-file-storage";
 import { type ApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import type {
   ApplicationField,
@@ -36,25 +38,6 @@ function formatFieldValue(field: ApplicationField, value: string | undefined): s
     return option?.label ?? value;
   }
 
-  if (field.type === "file") {
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      if (Array.isArray(parsed)) {
-        return parsed
-          .map((entry) => {
-            if (entry && typeof entry === "object" && "name" in entry) {
-              return String((entry as { name?: string }).name ?? "File");
-            }
-            return "File";
-          })
-          .join(", ");
-      }
-    } catch {
-      // Fall through to raw value.
-    }
-    return value;
-  }
-
   return value;
 }
 
@@ -67,13 +50,27 @@ function ReadOnlyField({
   value: string | undefined;
   C: ReturnType<typeof buildAdminThemeTokens>;
 }) {
+  const fileValue =
+    field.type === "file" ? parseApplicationFileFieldValue(value ?? "") : [];
+
   return (
     <div className="flex flex-col gap-1">
       <dt className="text-xs font-medium uppercase tracking-wide" style={{ color: C.textQuaternary }}>
         {field.label}
       </dt>
-      <dd className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: C.textPrimary }}>
-        {formatFieldValue(field, value)}
+      <dd
+        className={`text-sm leading-relaxed ${field.type === "file" ? "" : "whitespace-pre-wrap"}`}
+        style={{ color: C.textPrimary }}
+      >
+        {field.type === "file" ? (
+          fileValue.length > 0 ? (
+            <ApplicationUploadedFileList files={fileValue} C={C} />
+          ) : (
+            "—"
+          )
+        ) : (
+          formatFieldValue(field, value)
+        )}
       </dd>
     </div>
   );

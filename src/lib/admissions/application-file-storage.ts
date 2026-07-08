@@ -6,6 +6,7 @@ export const APPLICATION_FILES_BUCKET = "application-files";
 export const DEFAULT_APPLICATION_FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png";
 export const DEFAULT_APPLICATION_FILE_MAX_COUNT = 5;
 export const DEFAULT_APPLICATION_FILE_MAX_BYTES = 10 * 1024 * 1024;
+export const DEFAULT_APPLICATION_FILE_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 export type ApplicationFileUploadMeta = {
   id: string;
@@ -53,6 +54,30 @@ export function serializeApplicationFileFieldValue(
   files: ApplicationFileUploadMeta[],
 ): string {
   return JSON.stringify(files);
+}
+
+export function formatApplicationFileSize(bytes: number | null): string | null {
+  if (bytes === null || bytes < 0) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export async function getApplicationFileSignedUrl(
+  supabase: SupabaseClient,
+  storagePath: string,
+  expiresIn = DEFAULT_APPLICATION_FILE_SIGNED_URL_TTL_SECONDS,
+): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(APPLICATION_FILES_BUCKET)
+    .createSignedUrl(storagePath, expiresIn);
+
+  if (error) throw error;
+  if (!data?.signedUrl) {
+    throw new Error("Failed to create a download link for this file.");
+  }
+
+  return data.signedUrl;
 }
 
 export async function uploadApplicationFile(

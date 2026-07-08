@@ -144,13 +144,7 @@ export default function PostSubmitStepCard({
               <Icon className="h-5 w-5" aria-hidden />
             </div>
             <div className="min-w-0">
-              <p
-                className="text-[11px] font-semibold uppercase tracking-wide"
-                style={{ color: presentation.accentText(C) }}
-              >
-                {presentation.eyebrow}
-              </p>
-              <div className="mt-0.5 flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-semibold" style={{ color: C.accentDark }}>
                   {task.title}
                 </h3>
