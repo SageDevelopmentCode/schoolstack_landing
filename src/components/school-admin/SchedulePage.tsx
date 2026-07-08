@@ -135,21 +135,21 @@ export default function SchedulePage({
             <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
           </div>
         ) : null}
-
-        <AnimatePresence>
-          {selectedSubmission ? (
-            <ApplicationSubmissionDetailPanel
-              key={selectedSubmission.id}
-              submission={selectedSubmission}
-              organizationId={organizationId}
-              branding={branding}
-              schoolName={schoolName}
-              schoolSlug={slug}
-              onClose={handleClosePanel}
-            />
-          ) : null}
-        </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {selectedSubmission ? (
+          <ApplicationSubmissionDetailPanel
+            key={selectedSubmission.id}
+            submission={selectedSubmission}
+            organizationId={organizationId}
+            branding={branding}
+            schoolName={schoolName}
+            schoolSlug={slug}
+            onClose={handleClosePanel}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

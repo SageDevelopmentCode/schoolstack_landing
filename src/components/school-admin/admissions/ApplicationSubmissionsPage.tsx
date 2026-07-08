@@ -378,20 +378,21 @@ export default function ApplicationSubmissionsPage({
           </div>
         )}
 
-        <AnimatePresence>
-          {selectedSubmission ? (
-            <ApplicationSubmissionDetailPanel
-              key={selectedSubmission.id}
-              submission={selectedSubmission}
-              organizationId={organizationId}
-              branding={branding}
-              schoolName={schoolName}
-              schoolSlug={slug}
-              onClose={() => setSelectedId(null)}
-            />
-          ) : null}
-        </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {selectedSubmission ? (
+          <ApplicationSubmissionDetailPanel
+            key={selectedSubmission.id}
+            submission={selectedSubmission}
+            organizationId={organizationId}
+            branding={branding}
+            schoolName={schoolName}
+            schoolSlug={slug}
+            onClose={() => setSelectedId(null)}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

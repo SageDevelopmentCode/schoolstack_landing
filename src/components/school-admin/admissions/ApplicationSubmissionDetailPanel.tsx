@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplicationSubmissionPostSubmitSection from "@/components/admissions/ApplicationSubmissionPostSubmitSection";
@@ -73,18 +73,31 @@ export default function ApplicationSubmissionDetailPanel({
 
   return (
     <motion.div
-      initial={{ x: "100%", opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: "100%", opacity: 0 }}
-      transition={{ type: "spring", damping: 28, stiffness: 300 }}
-      className="absolute inset-y-0 right-0 flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden"
-      style={{
-        backgroundColor: C.surface,
-        borderLeft: `1px solid ${C.border}`,
-        boxShadow: C.shadowMedium,
-        zIndex: 15,
-      }}
+      className="fixed inset-0 z-[100]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
     >
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <motion.div
+        initial={{ x: "100%", opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: "100%", opacity: 0 }}
+        transition={{ type: "spring", damping: 28, stiffness: 300 }}
+        className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden"
+        style={{
+          backgroundColor: C.surface,
+          borderLeft: `1px solid ${C.border}`,
+          boxShadow: C.shadowMedium,
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
       <div
         className="flex flex-shrink-0 items-start justify-between gap-3 px-4 py-3 sm:px-5"
         style={{ borderBottom: `1px solid ${C.border}` }}
@@ -166,6 +179,7 @@ export default function ApplicationSubmissionDetailPanel({
           <span>Fee {FEE_STATUS_LABELS[submission.feeStatus] ?? submission.feeStatus}</span>
         ) : null}
       </div>
+      </motion.div>
     </motion.div>
   );
 }
