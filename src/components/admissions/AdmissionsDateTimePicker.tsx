@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import AdmissionsDateTimePickerSkeleton from "@/components/admissions/AdmissionsDateTimePickerSkeleton";
 import { CalendarGrid } from "@/components/scheduler/CalendarGrid";
 import {
   ADMISSIONS_TIME_SLOT_GROUPS,
@@ -191,9 +192,7 @@ export default function AdmissionsDateTimePicker({
           </div>
 
           {loading ? (
-            <p className="py-8 text-center text-xs" style={{ color: C.textTertiary }}>
-              Loading dates…
-            </p>
+            <AdmissionsDateTimePickerSkeleton C={C} variant="calendar" />
           ) : (
             <CalendarGrid
               year={viewYear}
@@ -211,116 +210,118 @@ export default function AdmissionsDateTimePicker({
           className="flex min-h-[280px] flex-col rounded-sm border"
           style={{ borderColor: C.border, backgroundColor: C.surface }}
         >
-          <div className="border-b px-4 py-3" style={{ borderColor: C.border }}>
-            {selectedDate ? (
-              <>
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: C.textQuaternary }}
-                >
-                  Time slots
-                </p>
-                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                  {formatSelectedDate(selectedDate)}
-                </p>
-                <p className="mt-0.5 text-[11px]" style={{ color: C.textTertiary }}>
-                  {timezoneLabel}
-                </p>
-              </>
-            ) : (
-              <p className="text-sm" style={{ color: C.textTertiary }}>
-                Select a date with open times
-              </p>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3">
-            {!selectedDate ? (
-              <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
-                Click a highlighted date
-              </p>
-            ) : loading ? (
-              <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
-                Loading times…
-              </p>
-            ) : selectedTimeSlots.length === 0 ? (
-              <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
-                No times available for this date.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <div
-                  className="flex rounded-sm border p-0.5"
-                  style={{ borderColor: C.border, backgroundColor: C.bg }}
-                  role="tablist"
-                  aria-label="Time of day"
-                >
-                  {ADMISSIONS_TIME_SLOT_GROUPS.map((group) => {
-                    const isActive = activePeriod === group.id;
-                    const openCount = group.slots.filter((slot) =>
-                      selectedTimeSlots.includes(slot),
-                    ).length;
-
-                    return (
-                      <button
-                        key={group.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={isActive}
-                        onClick={() => setActivePeriod(group.id)}
-                        className="flex flex-1 flex-col items-center rounded-sm px-1 py-1.5 text-[10px] font-medium transition-colors"
-                        style={{
-                          backgroundColor: isActive ? C.surface : "transparent",
-                          color: isActive ? C.accent : C.textTertiary,
-                          boxShadow: isActive ? `0 0 0 1px ${C.border}` : "none",
-                        }}
-                      >
-                        <span>{group.label}</span>
-                        {openCount > 0 ? (
-                          <span
-                            className="text-[9px] font-normal"
-                            style={{ color: C.textQuaternary }}
-                          >
-                            {openCount}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {visibleTimeSlots.length === 0 ? (
+          {loading ? (
+            <AdmissionsDateTimePickerSkeleton C={C} variant="times" />
+          ) : (
+            <>
+              <div className="border-b px-4 py-3" style={{ borderColor: C.border }}>
+                {selectedDate ? (
+                  <>
                     <p
-                      className="py-4 text-center text-xs"
-                      style={{ color: C.textTertiary }}
+                      className="text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: C.textQuaternary }}
                     >
-                      No times in this period.
+                      Time slots
                     </p>
-                  ) : (
-                    visibleTimeSlots.map((slot) => {
-                      const isSelected = selectedTime === slot;
-                      return (
-                        <button
-                          key={slot}
-                          type="button"
-                          onClick={() => onTimeChange(isSelected ? null : slot)}
-                          className="h-9 rounded-sm border text-xs font-medium transition-colors"
-                          style={{
-                            borderColor: isSelected ? C.accent : C.border,
-                            backgroundColor: isSelected ? C.accentLight : C.bg,
-                            color: isSelected ? C.accent : C.textSecondary,
-                          }}
-                        >
-                          {slot}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
+                    <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                      {formatSelectedDate(selectedDate)}
+                    </p>
+                    <p className="mt-0.5 text-[11px]" style={{ color: C.textTertiary }}>
+                      {timezoneLabel}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm" style={{ color: C.textTertiary }}>
+                    Select a date with open times
+                  </p>
+                )}
               </div>
-            )}
-          </div>
+
+              <div className="flex-1 overflow-y-auto p-3">
+                {!selectedDate ? (
+                  <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
+                    Click a highlighted date
+                  </p>
+                ) : selectedTimeSlots.length === 0 ? (
+                  <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
+                    No times available for this date.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <div
+                      className="flex rounded-sm border p-0.5"
+                      style={{ borderColor: C.border, backgroundColor: C.bg }}
+                      role="tablist"
+                      aria-label="Time of day"
+                    >
+                      {ADMISSIONS_TIME_SLOT_GROUPS.map((group) => {
+                        const isActive = activePeriod === group.id;
+                        const openCount = group.slots.filter((slot) =>
+                          selectedTimeSlots.includes(slot),
+                        ).length;
+
+                        return (
+                          <button
+                            key={group.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={isActive}
+                            onClick={() => setActivePeriod(group.id)}
+                            className="flex flex-1 flex-col items-center rounded-sm px-1 py-1.5 text-[10px] font-medium transition-colors"
+                            style={{
+                              backgroundColor: isActive ? C.surface : "transparent",
+                              color: isActive ? C.accent : C.textTertiary,
+                              boxShadow: isActive ? `0 0 0 1px ${C.border}` : "none",
+                            }}
+                          >
+                            <span>{group.label}</span>
+                            {openCount > 0 ? (
+                              <span
+                                className="text-[9px] font-normal"
+                                style={{ color: C.textQuaternary }}
+                              >
+                                {openCount}
+                              </span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {visibleTimeSlots.length === 0 ? (
+                        <p
+                          className="py-4 text-center text-xs"
+                          style={{ color: C.textTertiary }}
+                        >
+                          No times in this period.
+                        </p>
+                      ) : (
+                        visibleTimeSlots.map((slot) => {
+                          const isSelected = selectedTime === slot;
+                          return (
+                            <button
+                              key={slot}
+                              type="button"
+                              onClick={() => onTimeChange(isSelected ? null : slot)}
+                              className="h-9 rounded-sm border text-xs font-medium transition-colors"
+                              style={{
+                                borderColor: isSelected ? C.accent : C.border,
+                                backgroundColor: isSelected ? C.accentLight : C.bg,
+                                color: isSelected ? C.accent : C.textSecondary,
+                              }}
+                            >
+                              {slot}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

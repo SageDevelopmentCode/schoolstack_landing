@@ -21,6 +21,7 @@ export type ApplicationPostSubmitTask = {
   instructions: string;
   required: boolean;
   durationMinutes: number;
+  sortIndex: number;
   status: "pending" | "scheduled";
   booking?: {
     scheduledDate: string;
@@ -184,7 +185,7 @@ export async function listFamilyApplications(
         ? []
         : postSubmitConfig.actions
             .filter((action) => action.enabled)
-            .map((action) => {
+            .map((action, sortIndex) => {
               const visit = visitsByApplicationAction.get(
                 `${applicationId}|${action.id}`,
               );
@@ -200,6 +201,7 @@ export async function listFamilyApplications(
                 instructions: templateInstructions,
                 required: action.required !== false,
                 durationMinutes: resolvedPostSubmitDurationMinutes(action),
+                sortIndex,
                 status: visit ? "scheduled" : "pending",
                 booking: visit
                   ? {
