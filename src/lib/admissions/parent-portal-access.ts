@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { buildAdminPostSubmitSteps, type AdminPostSubmitStep } from "./admin-post-submit-steps";
 import { listScheduledVisitsForApplications } from "./admissions-booking";
 import {
   parseApplicationFormPostSubmitConfig,
@@ -56,6 +57,7 @@ export type ApplicationDetail = {
   schema: ApplicationFormSchema;
   responses: Record<string, string>;
   acknowledgments: Record<string, boolean>;
+  postSubmitSteps: AdminPostSubmitStep[];
 };
 
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
@@ -320,7 +322,8 @@ export async function loadApplicationDetail(
       acknowledgments,
       application_form_versions!inner (
         title,
-        schema
+        schema,
+        post_submit_config
       )
     `,
     )
@@ -332,14 +335,22 @@ export async function loadApplicationDetail(
   if (!data) return null;
 
   const formVersion = data.application_form_versions as
-    | { title?: string; schema?: ApplicationFormSchema }
-    | { title?: string; schema?: ApplicationFormSchema }[]
+    | { title?: string; schema?: ApplicationFormSchema; post_submit_config?: unknown }
+    | { title?: string; schema?: ApplicationFormSchema; post_submit_config?: unknown }[]
     | null;
   const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
+  const applicationStatus = String(data.status);
+  const postSubmitConfig = parseApplicationFormPostSubmitConfig(form?.post_submit_config);
+  const visits = await listScheduledVisitsForApplications(supabase, [applicationId]);
+  const postSubmitSteps = buildAdminPostSubmitSteps(
+    postSubmitConfig,
+    visits,
+    applicationStatus,
+  );
 
   return {
     id: String(data.id),
-    status: String(data.status),
+    status: applicationStatus,
     submittedAt: data.submitted_at ? String(data.submitted_at) : null,
     formTitle: String(form?.title ?? "Application"),
     schema: (form?.schema as ApplicationFormSchema) ?? {
@@ -348,5 +359,6 @@ export async function loadApplicationDetail(
     },
     responses: parseStringRecord(data.responses),
     acknowledgments: parseBooleanRecord(data.acknowledgments),
+    postSubmitSteps,
   };
 }

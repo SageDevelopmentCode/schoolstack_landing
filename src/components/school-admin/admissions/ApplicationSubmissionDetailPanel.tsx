@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
+import ApplicationSubmissionPostSubmitSection from "@/components/admissions/ApplicationSubmissionPostSubmitSection";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
@@ -136,13 +137,19 @@ export default function ApplicationSubmissionDetailPanel({
             {error}
           </p>
         ) : detail ? (
-          <ApplicationReadOnlyView
-            branding={branding}
-            schoolName={schoolName}
-            schoolSlug={schoolSlug}
-            application={detail}
-            embedded
-          />
+          <>
+            <ApplicationSubmissionPostSubmitSection
+              C={C}
+              steps={detail.postSubmitSteps}
+            />
+            <ApplicationReadOnlyView
+              branding={branding}
+              schoolName={schoolName}
+              schoolSlug={schoolSlug}
+              application={detail}
+              embedded
+            />
+          </>
         ) : null}
       </div>
 

@@ -1,6 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  buildAdminPostSubmitSteps,
+  formHasEnabledPostSubmitActions,
+  summarizePostSubmitSteps,
+  type PostSubmitSummary,
+} from "./admin-post-submit-steps";
+import { listScheduledVisitsForApplications } from "./admissions-booking";
 import type { ApplicationFormSchema } from "./application-form-schema";
-import { parseApplicationFormFeeConfig } from "./application-form-schema";
+import { parseApplicationFormFeeConfig, parseApplicationFormPostSubmitConfig } from "./application-form-schema";
 
 const PROGRESS_KEY = "__progress";
 
@@ -28,6 +35,8 @@ export type AdminApplicationSubmission = {
   createdAt: string;
   submittedAt: string | null;
   updatedAt: string;
+  hasPostSubmitActions: boolean;
+  postSubmitSummary: PostSubmitSummary | null;
 };
 
 function parseStringRecord(value: unknown): Record<string, string> {
@@ -131,7 +140,8 @@ export async function listOrgApplicationSubmissions(
         title,
         public_slug,
         schema,
-        fee_config
+        fee_config,
+        post_submit_config
       ),
       guardians:primary_guardian_id (
         first_name,
@@ -156,19 +166,33 @@ export async function listOrgApplicationSubmissions(
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => {
+  const rows = data ?? [];
+  const submittedIds = rows
+    .filter((row) => String(row.status) !== "draft")
+    .map((row) => String(row.id));
+  const visits = await listScheduledVisitsForApplications(supabase, submittedIds);
+  const visitsByApplicationId = new Map<string, typeof visits>();
+  for (const visit of visits) {
+    const existing = visitsByApplicationId.get(visit.applicationId) ?? [];
+    existing.push(visit);
+    visitsByApplicationId.set(visit.applicationId, existing);
+  }
+
+  return rows.map((row) => {
     const formVersion = row.application_form_versions as
       | {
           title?: string;
           public_slug?: string | null;
           schema?: ApplicationFormSchema;
           fee_config?: unknown;
+          post_submit_config?: unknown;
         }
       | {
           title?: string;
           public_slug?: string | null;
           schema?: ApplicationFormSchema;
           fee_config?: unknown;
+          post_submit_config?: unknown;
         }[]
       | null;
     const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
@@ -206,9 +230,23 @@ export async function listOrgApplicationSubmissions(
       ? [studentRow.first_name, studentRow.last_name].filter(Boolean).join(" ") || null
       : null;
 
+    const applicationId = String(row.id);
+    const applicationStatus = String(row.status);
+    const postSubmitConfig = parseApplicationFormPostSubmitConfig(form?.post_submit_config);
+    const hasPostSubmitActions =
+      applicationStatus !== "draft" && formHasEnabledPostSubmitActions(postSubmitConfig);
+    const postSubmitSteps = buildAdminPostSubmitSteps(
+      postSubmitConfig,
+      visitsByApplicationId.get(applicationId) ?? [],
+      applicationStatus,
+    );
+    const postSubmitSummary = hasPostSubmitActions
+      ? summarizePostSubmitSteps(postSubmitSteps)
+      : null;
+
     return {
-      id: String(row.id),
-      status: String(row.status),
+      id: applicationId,
+      status: applicationStatus,
       feeStatus: String(row.fee_status),
       feeEnabled: feeConfig.enabled,
       formTitle: String(form?.title ?? "Application"),
@@ -225,6 +263,8 @@ export async function listOrgApplicationSubmissions(
       createdAt: String(row.created_at),
       submittedAt: row.submitted_at ? String(row.submitted_at) : null,
       updatedAt: String(row.updated_at),
+      hasPostSubmitActions,
+      postSubmitSummary,
     };
   });
 }

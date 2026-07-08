@@ -11,6 +11,7 @@ import {
   APPLICATION_STATUS_FILTER_ORDER,
   FEE_STATUS_LABELS,
 } from "@/lib/admissions/application-status-ui";
+import { postSubmitSummaryBadgeStyle } from "@/lib/admissions/admin-post-submit-steps";
 import {
   formatShortDate,
   formatSubmissionProgress,
@@ -149,6 +150,8 @@ export default function ApplicationSubmissionsPage({
     (row) => row.feeEnabled && row.feeStatus !== "not_required",
   );
 
+  const showPostSubmitColumn = submissions.some((row) => row.hasPostSubmitActions);
+
   const applyFormSlug = submissions.find((row) => row.formSlug)?.formSlug ?? null;
   const applyPublicPath = applyFormSlug
     ? publicApplicationFormPath(slug, applyFormSlug)
@@ -264,7 +267,7 @@ export default function ApplicationSubmissionsPage({
           </p>
         ) : (
           <div className="h-full overflow-auto">
-            <table className="w-full min-w-[880px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[1020px] border-collapse text-left text-sm">
               <thead
                 className="sticky top-0 z-[1]"
                 style={{ backgroundColor: C.bg, borderBottom: `1px solid ${C.border}` }}
@@ -276,6 +279,7 @@ export default function ApplicationSubmissionsPage({
                     "Contact",
                     "Student",
                     "Status",
+                    ...(showPostSubmitColumn ? ["Post-submit"] : []),
                     "Progress",
                     ...(showFeeColumn ? ["Fee"] : []),
                     "Updated",
@@ -335,6 +339,24 @@ export default function ApplicationSubmissionsPage({
                           {applicationStatusLabel(submission.status)}
                         </span>
                       </td>
+                      {showPostSubmitColumn ? (
+                        <td className="px-4 py-3 sm:px-5">
+                          {submission.postSubmitSummary ? (
+                            <span
+                              className="inline-flex max-w-[12rem] truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                              style={postSubmitSummaryBadgeStyle(
+                                submission.postSubmitSummary.tone,
+                                C,
+                              )}
+                              title={submission.postSubmitSummary.label}
+                            >
+                              {submission.postSubmitSummary.label}
+                            </span>
+                          ) : (
+                            <span style={{ color: C.textTertiary }}>—</span>
+                          )}
+                        </td>
+                      ) : null}
                       <td className="px-4 py-3 sm:px-5" style={{ color: C.textSecondary }}>
                         {formatSubmissionProgress(submission)}
                       </td>

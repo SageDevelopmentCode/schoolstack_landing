@@ -90,9 +90,20 @@ export default function PostSubmitStepCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: (stepNumber - 1) * 0.06 }}
     >
-      <div className="flex w-8 shrink-0 flex-col items-center">
+      <div className="relative flex w-8 shrink-0 items-center justify-center self-stretch">
+        {!isLast ? (
+          <div
+            className="absolute left-1/2 w-0.5 -translate-x-1/2"
+            style={{
+              top: "calc(50% + 1rem)",
+              bottom: "-1rem",
+              backgroundColor: isScheduled ? C.successBorder : C.border,
+            }}
+            aria-hidden
+          />
+        ) : null}
         <div
-          className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
+          className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
           style={
             isScheduled
               ? {
@@ -113,14 +124,6 @@ export default function PostSubmitStepCard({
             <span>{stepNumber}</span>
           )}
         </div>
-        {!isLast ? (
-          <div
-            className="mt-1 w-0.5 flex-1 min-h-6"
-            style={{
-              backgroundColor: isScheduled ? C.successBorder : C.border,
-            }}
-          />
-        ) : null}
       </div>
 
       <article
