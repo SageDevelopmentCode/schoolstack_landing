@@ -1,8 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import {
+  Camera,
+  CreditCard,
+  FileSignature,
+  HeartPulse,
+  Pill,
+  ShieldAlert,
+  Stethoscope,
+  Syringe,
+  UserCheck,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import {
   CHECKLIST_ITEM_TEMPLATES,
   createItemFromTemplate,
@@ -23,8 +35,6 @@ type EnrollmentChecklistTemplatePickerProps = {
   onSelectBlank: (type: ChecklistItemType) => void;
 };
 
-const TEMPLATE_PREVIEW_COUNT = 4;
-
 const BLANK_TYPES: ChecklistItemType[] = [
   "document_sign",
   "form",
@@ -33,6 +43,68 @@ const BLANK_TYPES: ChecklistItemType[] = [
   "acknowledgment",
 ];
 
+const BLANK_TYPE_DESCRIPTIONS: Record<ChecklistItemType, string> = {
+  document_sign: "Multi-section contract families read and sign",
+  form: "Custom questions for families to complete",
+  file_upload: "Request documents from families",
+  payment: "Collect a fee during enrollment",
+  acknowledgment: "Simple sign-off or consent",
+};
+
+type TemplateBadgeStyle = {
+  icon: LucideIcon;
+  color: string;
+  backgroundColor: string;
+};
+
+const TEMPLATE_BADGE_STYLES: Record<ChecklistItemTemplateId, TemplateBadgeStyle> = {
+  standard_enrollment_agreement: {
+    icon: FileSignature,
+    color: "#4F46E5",
+    backgroundColor: "#EEF2FF",
+  },
+  photo_release: {
+    icon: Camera,
+    color: "#7C3AED",
+    backgroundColor: "#F5F3FF",
+  },
+  assumption_of_risk: {
+    icon: ShieldAlert,
+    color: "#D97706",
+    backgroundColor: "#FFFBEB",
+  },
+  health_emergency_form: {
+    icon: HeartPulse,
+    color: "#E11D48",
+    backgroundColor: "#FFF1F2",
+  },
+  medication_plan: {
+    icon: Pill,
+    color: "#0D9488",
+    backgroundColor: "#F0FDFA",
+  },
+  immunization_records: {
+    icon: Syringe,
+    color: "#16A34A",
+    backgroundColor: "#F0FDF4",
+  },
+  health_information: {
+    icon: Stethoscope,
+    color: "#DB2777",
+    backgroundColor: "#FDF2F8",
+  },
+  authorized_pickup: {
+    icon: UserCheck,
+    color: "#0284C7",
+    backgroundColor: "#F0F9FF",
+  },
+  registration_fee: {
+    icon: CreditCard,
+    color: "#059669",
+    backgroundColor: "#ECFDF5",
+  },
+};
+
 export default function EnrollmentChecklistTemplatePicker({
   C,
   open,
@@ -40,24 +112,14 @@ export default function EnrollmentChecklistTemplatePicker({
   onSelectTemplate,
   onSelectBlank,
 }: EnrollmentChecklistTemplatePickerProps) {
-  const [showAllTemplates, setShowAllTemplates] = useState(false);
-
   useEffect(() => {
-    if (!open) {
-      setShowAllTemplates(false);
-      return;
-    }
+    if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
-
-  const visibleTemplates = showAllTemplates
-    ? CHECKLIST_ITEM_TEMPLATES
-    : CHECKLIST_ITEM_TEMPLATES.slice(0, TEMPLATE_PREVIEW_COUNT);
-  const hiddenCount = CHECKLIST_ITEM_TEMPLATES.length - TEMPLATE_PREVIEW_COUNT;
 
   return (
     <AnimatePresence>
@@ -91,7 +153,7 @@ export default function EnrollmentChecklistTemplatePicker({
                   Add checklist item
                 </p>
                 <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-                  Start from a suggested template or add a blank item.
+                  Add a blank item or start from a suggested template.
                 </p>
               </div>
               <button
@@ -110,15 +172,15 @@ export default function EnrollmentChecklistTemplatePicker({
                   className="mb-2 text-[11px] font-semibold uppercase tracking-wide"
                   style={{ color: C.textTertiary }}
                 >
-                  Suggested templates
+                  Blank item
                 </p>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {visibleTemplates.map((template) => (
+                  {BLANK_TYPES.map((type) => (
                     <button
-                      key={template.id}
+                      key={type}
                       type="button"
                       onClick={() => {
-                        onSelectTemplate(template.id);
+                        onSelectBlank(type);
                         onClose();
                       }}
                       className="rounded-md border p-3 text-left transition-colors"
@@ -136,38 +198,23 @@ export default function EnrollmentChecklistTemplatePicker({
                         className="text-[11px] font-semibold leading-snug"
                         style={{ color: C.textPrimary }}
                       >
-                        {template.label}
+                        {CHECKLIST_ITEM_TYPE_LABELS[type]}
                       </p>
                       <p
                         className="mt-0.5 text-[10px] leading-relaxed"
                         style={{ color: C.textTertiary }}
                       >
-                        {template.description}
+                        {BLANK_TYPE_DESCRIPTIONS[type]}
                       </p>
                       <span
                         className="mt-1.5 inline-block rounded px-1.5 py-0.5 text-[9px] font-medium"
                         style={{ backgroundColor: C.bg, color: C.textTertiary }}
                       >
-                        {CHECKLIST_ITEM_TYPE_LABELS[template.type]}
-                        {!template.required ? " · Optional" : ""}
+                        {CHECKLIST_ITEM_TYPE_LABELS[type]}
                       </span>
                     </button>
                   ))}
                 </div>
-                {hiddenCount > 0 && !showAllTemplates ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllTemplates(true)}
-                    className="mt-2 flex w-full items-center justify-center rounded-sm py-2 text-[11px] font-medium"
-                    style={{
-                      border: `1px dashed ${C.borderStrong}`,
-                      color: C.accent,
-                      backgroundColor: "transparent",
-                    }}
-                  >
-                    +{hiddenCount} more
-                  </button>
-                ) : null}
               </div>
 
               <div>
@@ -175,35 +222,49 @@ export default function EnrollmentChecklistTemplatePicker({
                   className="mb-2 text-[11px] font-semibold uppercase tracking-wide"
                   style={{ color: C.textTertiary }}
                 >
-                  Blank item
+                  Suggested templates
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {BLANK_TYPES.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => {
-                        onSelectBlank(type);
-                        onClose();
-                      }}
-                      className="rounded-md px-3 py-1.5 text-[11px] font-medium"
-                      style={{
-                        border: `1px solid ${C.border}`,
-                        color: C.textSecondary,
-                        backgroundColor: C.surface,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = C.accent;
-                        e.currentTarget.style.color = C.accent;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = C.border;
-                        e.currentTarget.style.color = C.textSecondary;
-                      }}
-                    >
-                      + {CHECKLIST_ITEM_TYPE_LABELS[type]}
-                    </button>
-                  ))}
+                  {CHECKLIST_ITEM_TEMPLATES.map((template) => {
+                    const badgeStyle = TEMPLATE_BADGE_STYLES[template.id];
+                    const Icon = badgeStyle.icon;
+
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => {
+                          onSelectTemplate(template.id);
+                          onClose();
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium"
+                        style={{
+                          border: `1px solid ${C.border}`,
+                          color: C.textSecondary,
+                          backgroundColor: C.surface,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = C.accent;
+                          e.currentTarget.style.color = C.accent;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = C.border;
+                          e.currentTarget.style.color = C.textSecondary;
+                        }}
+                      >
+                        <span
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded"
+                          style={{
+                            backgroundColor: badgeStyle.backgroundColor,
+                            color: badgeStyle.color,
+                          }}
+                        >
+                          <Icon className="h-3 w-3" />
+                        </span>
+                        <span>{template.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

@@ -71,6 +71,24 @@ export const CHECKLIST_ITEM_TYPE_LABELS: Record<ChecklistItemType, string> = {
   acknowledgment: "Acknowledgment",
 };
 
+const CHECKLIST_ITEM_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isChecklistItemId(value: string): boolean {
+  return CHECKLIST_ITEM_ID_PATTERN.test(value);
+}
+
+export function newChecklistItemId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const random = (Math.random() * 16) | 0;
+    const value = char === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
 export function createChecklistItemKey(label: string): string {
   const base = label
     .toLowerCase()
@@ -84,7 +102,7 @@ export function createBlankChecklistItem(
   type: ChecklistItemType,
   label = "New checklist item",
 ): EnrollmentChecklistItem {
-  const id = newAdmissionsId();
+  const id = newChecklistItemId();
   const item: EnrollmentChecklistItem = {
     id,
     itemKey: createChecklistItemKey(label),

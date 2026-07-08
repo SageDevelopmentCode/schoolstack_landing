@@ -127,12 +127,14 @@ export default function EnrollmentChecklistBuilder({
         className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b px-5 py-2.5"
         style={{ borderColor: C.border }}
       >
-        <EnrollmentChecklistItemsMenu
-          C={C}
-          items={items}
-          focus={focus}
-          onFocusChange={setFocus}
-        />
+        {items.length > 0 ? (
+          <EnrollmentChecklistItemsMenu
+            C={C}
+            items={items}
+            focus={focus}
+            onFocusChange={setFocus}
+          />
+        ) : null}
         {!readOnly ? (
           <button
             type="button"

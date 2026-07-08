@@ -2,6 +2,7 @@ import { ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS } from "@/data/school-demos
 import { newAdmissionsId } from "./application-form-schema";
 import {
   createChecklistItemKey,
+  newChecklistItemId,
   type ChecklistItemType,
   type EnrollmentChecklistItem,
 } from "./enrollment-checklist-schema";
@@ -56,7 +57,7 @@ function buildFromTemplate(
   template: Pick<ChecklistItemTemplate, "label" | "type" | "required">,
   overrides: Partial<EnrollmentChecklistItem> = {},
 ): EnrollmentChecklistItem {
-  const id = newAdmissionsId();
+  const id = newChecklistItemId();
   return {
     id,
     itemKey: createChecklistItemKey(template.label),

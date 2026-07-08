@@ -47,7 +47,7 @@ import {
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import ApplicationFormFocusCanvas from "./ApplicationFormFocusCanvas";
@@ -122,6 +122,18 @@ function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentCheckl
   }));
 }
 
+function formatSupabaseError(err: unknown, fallback: string): string {
+  if (err && typeof err === "object") {
+    const error = err as { message?: string; details?: string; hint?: string };
+    const parts = [error.message, error.details, error.hint].filter(
+      (part): part is string => Boolean(part && part.trim()),
+    );
+    if (parts.length > 0) return parts.join(" — ");
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 function toEditableState(form: ApplicationFormVersion): EditableFormState {
   return {
     title: form.title,
@@ -158,6 +170,68 @@ function sanitizeFocus(
     }
   }
   return focus;
+}
+
+function EnrollmentChecklistProgramGate({
+  C,
+  slug,
+  programs,
+  programId,
+  onProgramChange,
+}: {
+  C: AdminThemeTokens;
+  slug: string;
+  programs: ProgramOption[];
+  programId: string | null;
+  onProgramChange: (programId: string | null) => void;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-5 text-center">
+      {programs.length === 0 ? (
+        <div className="max-w-sm">
+          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+            Create a program first
+          </p>
+          <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>
+            You need at least one program before setting up this enrollment checklist.
+          </p>
+          <a
+            href={schoolAdminPath(slug, "admissions", "programs")}
+            className="mt-4 inline-flex rounded-sm px-4 py-2 text-xs font-semibold text-white"
+            style={{ backgroundColor: C.accent }}
+          >
+            Go to Programs
+          </a>
+        </div>
+      ) : (
+        <div className="max-w-sm">
+          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+            Select a program
+          </p>
+          <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>
+            Choose a program before adding checklist items.
+          </p>
+          <select
+            value={programId ?? ""}
+            onChange={(e) => onProgramChange(e.target.value || null)}
+            className="mt-4 w-full max-w-xs rounded-sm px-3 py-2 text-xs font-medium"
+            style={{
+              border: `1px solid ${C.border}`,
+              backgroundColor: C.input,
+              color: C.textPrimary,
+            }}
+          >
+            <option value="">Select a program</option>
+            {programs.map((program) => (
+              <option key={program.id} value={program.id}>
+                {program.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ApplicationFormsPage({
@@ -674,7 +748,7 @@ export default function ApplicationFormsPage({
       setSavedPulse(true);
       setTimeout(() => setSavedPulse(false), 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save checklist.");
+      setError(formatSupabaseError(err, "Failed to save checklist."));
     } finally {
       setSaving(false);
     }
@@ -731,7 +805,7 @@ export default function ApplicationFormsPage({
       await loadForms();
       setSelection({ kind: "checklist", id: published.id });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to publish checklist.");
+      setError(formatSupabaseError(err, "Failed to publish checklist."));
     } finally {
       setPublishing(false);
     }
@@ -963,31 +1037,6 @@ export default function ApplicationFormsPage({
             </div>
           </div>
 
-          {!checklistEditable.programId && !checklistReadOnly ? (
-            <div
-              className="mx-5 mt-3 rounded-md px-3 py-2 text-xs"
-              style={{
-                backgroundColor: C.warningBg,
-                color: C.warning,
-                border: `1px solid ${C.border}`,
-              }}
-            >
-              {programs.length === 0 ? (
-                <>
-                  <a
-                    href={schoolAdminPath(slug, "admissions", "programs")}
-                    className="font-semibold underline"
-                  >
-                    Create a program first
-                  </a>{" "}
-                  before publishing this checklist.
-                </>
-              ) : (
-                "Select a program before publishing this checklist."
-              )}
-            </div>
-          ) : null}
-
           {error && selection?.kind === "checklist" ? (
             <div
               className="mx-5 mt-3 rounded-md px-3 py-2 text-xs"
@@ -1001,16 +1050,28 @@ export default function ApplicationFormsPage({
             </div>
           ) : null}
 
-          <EnrollmentChecklistBuilder
-            branding={branding}
-            schoolName={schoolName}
-            template={selectedChecklist}
-            orgSlug={slug}
-            stripePaymentsReady={stripePaymentsReady}
-            items={checklistEditable.items}
-            onItemsChange={handleChecklistItemsChange}
-            readOnly={checklistReadOnly}
-          />
+          {checklistEditable.programId || checklistReadOnly ? (
+            <EnrollmentChecklistBuilder
+              branding={branding}
+              schoolName={schoolName}
+              template={selectedChecklist}
+              orgSlug={slug}
+              stripePaymentsReady={stripePaymentsReady}
+              items={checklistEditable.items}
+              onItemsChange={handleChecklistItemsChange}
+              readOnly={checklistReadOnly}
+            />
+          ) : (
+            <EnrollmentChecklistProgramGate
+              C={C}
+              slug={slug}
+              programs={programs}
+              programId={checklistEditable.programId}
+              onProgramChange={(programId) =>
+                handleChecklistEditableChange({ programId })
+              }
+            />
+          )}
         </div>
       ) : selectedChecklist ? (
         <div

@@ -12,6 +12,7 @@ import type {
   EnrollmentChecklistItem,
   InlineDocumentConfig,
 } from "./enrollment-checklist-schema";
+import { isChecklistItemId, newChecklistItemId } from "./enrollment-checklist-schema";
 
 const METADATA_DOCUMENT_TEMPLATE_ID = "documentTemplateId";
 const METADATA_FEE_DEFINITION_ID = "feeDefinitionId";
@@ -523,9 +524,10 @@ export async function saveEnrollmentChecklistItems(
       if (updateError) throw updateError;
       savedRow = data as unknown as TemplateItemRow;
     } else {
+      const itemId = isChecklistItemId(item.id) ? item.id : newChecklistItemId();
       const { data, error: insertError } = await supabase
         .from("enrollment_checklist_template_items")
-        .insert({ ...rowPayload, id: item.id })
+        .insert({ ...rowPayload, id: itemId })
         .select(
           `
           *,
