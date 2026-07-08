@@ -8,6 +8,7 @@ import {
   emailSignOff,
   escapeHtml,
 } from "@/lib/email-layout";
+import { formatDurationLabel } from "@/lib/admissions/admissions-availability";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { isZohoConfigured, sendZohoEmail } from "@/lib/zoho";
 
@@ -192,5 +193,67 @@ export async function sendApplicationSubmittedConfirmation(payload: {
 
   if (!result.success) {
     console.error("Application submitted confirmation email failed:", result.error);
+  }
+}
+
+export function buildPostSubmitVisitConfirmationHtml(payload: {
+  name: string;
+  schoolName: string;
+  stepTitle: string;
+  scheduledDate: string;
+  startTimeSlot: string;
+  timezoneLabel: string;
+  durationLabel: string;
+  applyDashboardUrl: string;
+}): string {
+  const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.startTimeSlot} (${payload.timezoneLabel})`;
+
+  return composeEmail({
+    preheader: `Your ${payload.stepTitle} at ${payload.schoolName} is confirmed.`,
+    contentHtml: `
+      ${emailBadge("Visit Confirmed")}
+      ${emailHeading(`Your ${escapeHtml(payload.stepTitle)} is confirmed, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `Thank you for scheduling with ${escapeHtml(payload.schoolName)}. We look forward to seeing your family.`,
+      )}
+      ${emailDetailCard([
+        { label: "When", value: when },
+        { label: "School", value: payload.schoolName },
+        { label: "Duration", value: payload.durationLabel },
+      ])}
+      ${emailParagraph(
+        "You can review your application and any remaining steps from your apply dashboard.",
+      )}
+      ${emailCta({ label: "View apply dashboard", href: payload.applyDashboardUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendPostSubmitVisitConfirmation(payload: {
+  name: string;
+  email: string;
+  schoolName: string;
+  stepTitle: string;
+  scheduledDate: string;
+  startTimeSlot: string;
+  timezoneLabel: string;
+  durationMinutes: number;
+  applyDashboardUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildPostSubmitVisitConfirmationHtml({
+    ...payload,
+    durationLabel: formatDurationLabel(payload.durationMinutes),
+  });
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `${payload.stepTitle} confirmed — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Post-submit visit confirmation email failed:", result.error);
   }
 }

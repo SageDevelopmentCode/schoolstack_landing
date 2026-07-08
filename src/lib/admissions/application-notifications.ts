@@ -1,6 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { notifyApplicationSubmitted } from "@/lib/discord";
-import { sendApplicationSubmittedConfirmation } from "@/lib/emails";
+import { formatOrganizationTimezoneLabel } from "@/lib/admissions/admissions-availability";
+import type { ScheduledVisitRecord } from "@/lib/admissions/admissions-booking";
+import { parseApplicationFormPostSubmitConfig } from "@/lib/admissions/application-form-schema";
+import { extractStudentLabel } from "@/lib/admissions/application-submissions";
+import {
+  POST_SUBMIT_ACTION_TEMPLATES,
+  postSubmitActionLabel,
+} from "@/lib/admissions/post-submit-templates";
+import { notifyApplicationSubmitted, notifyPostSubmitVisitScheduled } from "@/lib/discord";
+import {
+  sendApplicationSubmittedConfirmation,
+  sendPostSubmitVisitConfirmation,
+} from "@/lib/emails";
 import { SITE_URL } from "@/lib/site";
 
 type ApplicantContact = {
@@ -142,5 +153,119 @@ export async function sendApplicationSubmittedNotifications(
     ]);
   } catch (error) {
     console.error("Application submitted notifications failed:", error);
+  }
+}
+
+function resolvePostSubmitStepTitle(
+  postSubmitConfig: ReturnType<typeof parseApplicationFormPostSubmitConfig>,
+  booking: ScheduledVisitRecord,
+): string {
+  const action = postSubmitConfig.actions.find(
+    (entry) => entry.id === booking.postSubmitActionId,
+  );
+  if (action) {
+    return postSubmitActionLabel(action);
+  }
+  return POST_SUBMIT_ACTION_TEMPLATES[booking.actionType]?.label ?? "Scheduled visit";
+}
+
+export async function sendPostSubmitVisitScheduledNotifications(
+  admin: SupabaseClient,
+  applicationId: string,
+  booking: ScheduledVisitRecord,
+): Promise<void> {
+  try {
+    const { data: application, error } = await admin
+      .from("applications")
+      .select(
+        `
+        id,
+        responses,
+        organization_id,
+        created_by_user_id,
+        primary_guardian_id,
+        application_form_versions (post_submit_config)
+      `,
+      )
+      .eq("id", applicationId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!application) {
+      console.warn("Post-submit visit notifications: application not found", applicationId);
+      return;
+    }
+
+    const { data: org, error: orgError } = await admin
+      .from("organizations")
+      .select("name, slug, timezone")
+      .eq("id", application.organization_id)
+      .maybeSingle();
+
+    if (orgError) throw orgError;
+    if (!org) {
+      console.warn("Post-submit visit notifications: organization not found", applicationId);
+      return;
+    }
+
+    const contact = await resolveApplicantContact(admin, application);
+    if (!contact) {
+      console.warn("Post-submit visit notifications: no applicant contact", applicationId);
+      return;
+    }
+
+    const formVersion = application.application_form_versions as
+      | { post_submit_config?: unknown }
+      | { post_submit_config?: unknown }[]
+      | null;
+    const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
+    const postSubmitConfig = parseApplicationFormPostSubmitConfig(form?.post_submit_config);
+    const stepTitle = resolvePostSubmitStepTitle(postSubmitConfig, booking);
+
+    const schoolName = String(org.name);
+    const schoolSlug = String(org.slug);
+    const timezone = typeof org.timezone === "string" ? org.timezone : "America/Chicago";
+    const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
+    const applyDashboardUrl = `${SITE_URL}/school/${schoolSlug}/apply`;
+
+    const responses =
+      application.responses && typeof application.responses === "object" && !Array.isArray(application.responses)
+        ? (application.responses as Record<string, unknown>)
+        : {};
+    const stringResponses: Record<string, string> = {};
+    for (const [key, value] of Object.entries(responses)) {
+      if (typeof value === "string") stringResponses[key] = value;
+      else if (value != null) stringResponses[key] = String(value);
+    }
+    const studentName = extractStudentLabel(stringResponses) ?? undefined;
+
+    await Promise.allSettled([
+      notifyPostSubmitVisitScheduled({
+        schoolName,
+        email: contact.email,
+        applicationId,
+        actionType: booking.actionType,
+        stepTitle,
+        scheduledDate: booking.scheduledDate,
+        startTimeSlot: booking.startTimeSlot,
+        timezoneLabel,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        studentName,
+      }),
+      sendPostSubmitVisitConfirmation({
+        name: contact.displayName,
+        email: contact.email,
+        schoolName,
+        stepTitle,
+        scheduledDate: booking.scheduledDate,
+        startTimeSlot: booking.startTimeSlot,
+        timezoneLabel,
+        durationMinutes: booking.durationMinutes,
+        applyDashboardUrl,
+      }),
+    ]);
+  } catch (error) {
+    console.error("Post-submit visit notifications failed:", error);
   }
 }

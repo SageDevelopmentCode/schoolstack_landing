@@ -9,6 +9,7 @@ import {
   requireAuthenticatedUser,
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
+import { sendPostSubmitVisitScheduledNotifications } from "@/lib/admissions/application-notifications";
 import { apiError } from "@/lib/api/route-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -80,6 +81,8 @@ export async function POST(request: Request, context: RouteContext) {
       scheduledDate,
       startTimeSlot,
     );
+
+    void sendPostSubmitVisitScheduledNotifications(admin, applicationId, booking);
 
     return NextResponse.json({
       booking: {

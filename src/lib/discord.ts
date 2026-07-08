@@ -228,6 +228,58 @@ export async function notifyApplicationSubmitted(payload: {
   await sendWebsiteNotificationDiscordEmbed({ title, fields });
 }
 
+const POST_SUBMIT_VISIT_DISCORD_TITLES: Record<string, string> = {
+  schedule_campus_tour: "Campus tour scheduled",
+  schedule_family_interview: "Family interview scheduled",
+  schedule_observation_day: "Observation day scheduled",
+};
+
+export async function notifyPostSubmitVisitScheduled(payload: {
+  schoolName: string;
+  email: string;
+  applicationId: string;
+  actionType: string;
+  stepTitle: string;
+  scheduledDate: string;
+  startTimeSlot: string;
+  timezoneLabel: string;
+  firstName?: string;
+  lastName?: string;
+  studentName?: string;
+}) {
+  const title =
+    POST_SUBMIT_VISIT_DISCORD_TITLES[payload.actionType] ?? "Post-submit visit scheduled";
+
+  const firstName = payload.firstName?.trim();
+  const lastName = payload.lastName?.trim();
+  const nameLine =
+    firstName || lastName ? [firstName, lastName].filter(Boolean).join(" ") : null;
+
+  const contactValue = nameLine
+    ? truncate(`${nameLine}\n${payload.email}`)
+    : truncate(payload.email);
+
+  const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.startTimeSlot} (${payload.timezoneLabel})`;
+
+  const fields: DiscordEmbedField[] = [
+    { name: "School", value: truncate(payload.schoolName), inline: true },
+    { name: "Contact", value: contactValue, inline: true },
+    { name: "Application ID", value: payload.applicationId, inline: true },
+    { name: "Step", value: truncate(payload.stepTitle) },
+    { name: "When", value: when },
+  ];
+
+  if (payload.studentName?.trim()) {
+    fields.push({
+      name: "Student",
+      value: truncate(payload.studentName.trim()),
+      inline: true,
+    });
+  }
+
+  await sendWebsiteNotificationDiscordEmbed({ title, fields });
+}
+
 const ROLES: Record<string, string> = {
   starting: "Starting a microschool",
   running: "Already running one",
