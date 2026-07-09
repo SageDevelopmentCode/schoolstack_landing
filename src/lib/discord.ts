@@ -120,6 +120,70 @@ export async function notifyWebsiteApiError(payload: {
   );
 }
 
+export async function notifySchoolAdminOperationError(payload: {
+  operation: string;
+  error: string;
+  organizationId?: string;
+  organizationName?: string;
+  organizationSlug?: string;
+  actorEmail?: string;
+  code?: string;
+  details?: string;
+  entityType?: string;
+  entityId?: string;
+}) {
+  const fields: DiscordEmbedField[] = [
+    { name: "Operation", value: truncate(payload.operation), inline: true },
+    { name: "Error", value: truncate(payload.error) },
+  ];
+
+  if (payload.organizationId) {
+    const schoolParts = [
+      payload.organizationName,
+      payload.organizationSlug ? `(${payload.organizationSlug})` : null,
+      payload.organizationId,
+    ].filter(Boolean);
+    fields.push({
+      name: "School",
+      value: truncate(schoolParts.join("\n")),
+      inline: true,
+    });
+  }
+
+  if (payload.actorEmail) {
+    fields.push({
+      name: "Actor",
+      value: truncate(payload.actorEmail),
+      inline: true,
+    });
+  }
+
+  if (payload.code) {
+    fields.push({ name: "Code", value: truncate(payload.code), inline: true });
+  }
+
+  if (payload.details) {
+    fields.push({ name: "Details", value: truncate(payload.details) });
+  }
+
+  if (payload.entityType || payload.entityId) {
+    const entityParts = [payload.entityType, payload.entityId].filter(Boolean);
+    fields.push({
+      name: "Entity",
+      value: truncate(entityParts.join(" · ")),
+      inline: true,
+    });
+  }
+
+  await sendWebsiteNotificationDiscordEmbed(
+    {
+      title: `School admin error · ${payload.operation}`,
+      fields,
+    },
+    { content: "@everyone" },
+  );
+}
+
 export async function notifyRootedMeadowsVerificationCodeSent(payload: {
   schoolName: string;
   email: string;

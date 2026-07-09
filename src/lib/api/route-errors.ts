@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import * as Sentry from "@sentry/nextjs";
 import {
-  ACTIVITY_ACTIONS,
-  logActivityEvent,
-} from "@/lib/activity-log";
-import { notifyWebsiteApiError } from "@/lib/discord";
+  reportOperationalError,
+} from "@/lib/operational-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 function stackFromCause(cause: unknown): string | undefined {
@@ -43,36 +40,28 @@ export function apiError(
   }
 
   if (shouldNotify(opts.status, opts.notify)) {
-    void notifyWebsiteApiError({
-      route,
-      method,
-      status: opts.status,
-      error: opts.error,
-      code: opts.code,
-      stack: stackFromCause(opts.cause),
-    });
-
-    void logActivityEvent(createAdminClient(), {
-      actorType: "system",
+    void reportOperationalError({
+      supabase: createAdminClient(),
       surface: "api",
-      action: ACTIVITY_ACTIONS.API_ERROR,
-      summary: `${method} ${route} returned ${opts.status}: ${opts.error}`,
-      severity: "error",
-      metadata: {
+      operation: route,
+      error: opts.error,
+      code: opts.code ?? null,
+      notify: true,
+      actor: { type: "system" },
+      cause: opts.cause,
+      api: {
         route,
         method,
         status: opts.status,
-        code: opts.code ?? null,
+        stack: stackFromCause(opts.cause),
+        digest:
+          opts.cause instanceof Error &&
+          "digest" in opts.cause &&
+          typeof opts.cause.digest === "string"
+            ? opts.cause.digest
+            : undefined,
       },
     });
-
-    Sentry.captureException(
-      opts.cause instanceof Error ? opts.cause : new Error(opts.error),
-      {
-        tags: { route, status: String(opts.status) },
-        extra: { code: opts.code, method },
-      },
-    );
   }
 
   return NextResponse.json(

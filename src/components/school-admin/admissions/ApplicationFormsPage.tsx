@@ -63,6 +63,11 @@ import {
   DEFAULT_BUILDER_FOCUS,
   type BuilderFocus,
 } from "./builder-focus";
+import {
+  isUnexpectedOperationalError,
+  parseOperationalError,
+  reportClientOperationalError,
+} from "@/lib/operational-errors-client";
 
 type ApplicationFormsPageProps = {
   organizationId: string;
@@ -123,15 +128,27 @@ function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentCheckl
 }
 
 function formatSupabaseError(err: unknown, fallback: string): string {
-  if (err && typeof err === "object") {
-    const error = err as { message?: string; details?: string; hint?: string };
-    const parts = [error.message, error.details, error.hint].filter(
-      (part): part is string => Boolean(part && part.trim()),
-    );
-    if (parts.length > 0) return parts.join(" — ");
-  }
-  if (err instanceof Error && err.message) return err.message;
-  return fallback;
+  const parsed = parseOperationalError(err);
+  return parsed.message === "Unknown error" ? fallback : parsed.message;
+}
+
+async function reportChecklistOperationalError(
+  organizationId: string,
+  operation: string,
+  checklistId: string,
+  err: unknown,
+) {
+  const parsed = parseOperationalError(err);
+  await reportClientOperationalError({
+    organizationId,
+    operation,
+    error: parsed.message,
+    code: parsed.code,
+    details: parsed.details,
+    entityType: "enrollment_checklist_template",
+    entityId: checklistId,
+    notify: isUnexpectedOperationalError(err),
+  });
 }
 
 function toEditableState(form: ApplicationFormVersion): EditableFormState {
@@ -749,6 +766,12 @@ export default function ApplicationFormsPage({
       setTimeout(() => setSavedPulse(false), 1500);
     } catch (err) {
       setError(formatSupabaseError(err, "Failed to save checklist."));
+      void reportChecklistOperationalError(
+        organizationId,
+        "checklist.save",
+        selectedChecklist.id,
+        err,
+      );
     } finally {
       setSaving(false);
     }
@@ -806,6 +829,12 @@ export default function ApplicationFormsPage({
       setSelection({ kind: "checklist", id: published.id });
     } catch (err) {
       setError(formatSupabaseError(err, "Failed to publish checklist."));
+      void reportChecklistOperationalError(
+        organizationId,
+        "checklist.publish",
+        selectedChecklist.id,
+        err,
+      );
     } finally {
       setPublishing(false);
     }
@@ -828,7 +857,13 @@ export default function ApplicationFormsPage({
       );
       setChecklistUnpublishOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to unpublish checklist.");
+      setError(formatSupabaseError(err, "Failed to unpublish checklist."));
+      void reportChecklistOperationalError(
+        organizationId,
+        "checklist.unpublish",
+        selectedChecklist.id,
+        err,
+      );
     } finally {
       setUnpublishing(false);
     }

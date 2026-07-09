@@ -22,6 +22,7 @@ export const ACTIVITY_ACTIONS = {
   AVAILABILITY_SLOT_TOGGLED: "availability.slot_toggled",
   PAYMENTS_STRIPE_CONNECTED: "payments.stripe_connected",
   API_ERROR: "api.error",
+  ADMIN_OPERATION_FAILED: "admin.operation_failed",
 } as const;
 
 export type ActivityAction =
@@ -109,6 +110,7 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.AVAILABILITY_SLOT_TOGGLED]: "Availability updated",
   [ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED]: "Stripe connected",
   [ACTIVITY_ACTIONS.API_ERROR]: "API error",
+  [ACTIVITY_ACTIONS.ADMIN_OPERATION_FAILED]: "Admin operation failed",
 };
 
 const PARENT_SURFACES: ActivitySurface[] = ["parent_portal", "public_apply"];
