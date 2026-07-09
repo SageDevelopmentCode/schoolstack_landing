@@ -317,6 +317,8 @@ function FormItemPanel({
   const formSchema = item.formSchema;
   const fields = formSchema?.fields ?? [];
   const allowMultiple = formSchema?.allowMultiple ?? false;
+  const stepHeading =
+    item.label.trim() || formSchema?.title?.trim() || "Entry";
   const [values, setValues] = useState<Record<string, string>>({});
   const [entries, setEntries] = useState<ChecklistFormEntry[]>(() =>
     createEmptyEntries(),
@@ -343,7 +345,7 @@ function FormItemPanel({
           C={C}
           fields={fields}
           entries={entries}
-          entryLabel={formSchema?.entryLabel}
+          stepHeading={stepHeading}
           required={item.required}
           onChange={setEntries}
         />

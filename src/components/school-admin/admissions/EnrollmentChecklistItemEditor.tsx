@@ -120,26 +120,6 @@ export default function EnrollmentChecklistItemEditor({
             />
             Allow multiple entries
           </label>
-
-          {item.formSchema.allowMultiple ? (
-            <LabeledField C={C} label="Entry label">
-              <input
-                type="text"
-                value={item.formSchema.entryLabel ?? ""}
-                onChange={(e) =>
-                  patch({
-                    formSchema: {
-                      ...item.formSchema!,
-                      entryLabel: e.target.value,
-                    },
-                  })
-                }
-                disabled={readOnly}
-                placeholder="e.g. Emergency contact, Authorized person"
-                style={style}
-              />
-            </LabeledField>
-          ) : null}
         </>
       ) : null}
 

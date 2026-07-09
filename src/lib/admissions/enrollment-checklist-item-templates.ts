@@ -178,6 +178,7 @@ function buildItemForTemplate(def: Omit<ChecklistItemTemplate, "build">): Enroll
         formSchema: {
           id: newAdmissionsId(),
           title: def.label,
+          allowMultiple: true,
           fields: [
             { id: newAdmissionsId(), label: "Emergency contact name", type: "text", required: true },
             { id: newAdmissionsId(), label: "Emergency contact phone", type: "tel", required: true },
@@ -237,7 +238,6 @@ function buildItemForTemplate(def: Omit<ChecklistItemTemplate, "build">): Enroll
           id: newAdmissionsId(),
           title: def.label,
           allowMultiple: true,
-          entryLabel: "Authorized person",
           fields: [
             { id: newAdmissionsId(), label: "Authorized person name", type: "text", required: true },
             { id: newAdmissionsId(), label: "Relationship", type: "text", required: true },

@@ -13,17 +13,14 @@ type RepeatableFormEntriesProps = {
   C: AdminThemeTokens;
   fields: ApplicationField[];
   entries: ChecklistFormEntry[];
-  entryLabel?: string;
+  stepHeading: string;
   required: boolean;
   onChange: (entries: ChecklistFormEntry[]) => void;
 };
 
-function entryHeaderLabel(
-  entryLabel: string | undefined,
-  index: number,
-): string {
-  if (entryLabel?.trim()) {
-    return entryLabel.trim();
+function entryHeaderLabel(stepHeading: string, index: number): string {
+  if (stepHeading.trim()) {
+    return stepHeading.trim();
   }
   return `Entry ${index + 1}`;
 }
@@ -32,11 +29,11 @@ export default function RepeatableFormEntries({
   C,
   fields,
   entries,
-  entryLabel,
+  stepHeading,
   required,
   onChange,
 }: RepeatableFormEntriesProps) {
-  const addEntryLabel = entryLabel?.trim() || "entry";
+  const addStepHeading = stepHeading.trim() || "Entry";
 
   const updateEntryValue = (
     entryId: string,
@@ -77,7 +74,7 @@ export default function RepeatableFormEntries({
               className="text-xs font-semibold uppercase tracking-wide"
               style={{ color: C.textTertiary }}
             >
-              {entryHeaderLabel(entryLabel, index)}
+              {entryHeaderLabel(stepHeading, index)}
             </span>
             <button
               type="button"
@@ -85,7 +82,7 @@ export default function RepeatableFormEntries({
               disabled={!canRemoveEntry()}
               className="rounded p-1.5 disabled:cursor-not-allowed disabled:opacity-40"
               style={{ color: C.error, backgroundColor: C.errorBg }}
-              aria-label={`Remove ${entryHeaderLabel(entryLabel, index)}`}
+              aria-label={`Remove ${entryHeaderLabel(stepHeading, index)}`}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -124,7 +121,7 @@ export default function RepeatableFormEntries({
         style={{ color: C.accent }}
       >
         <Plus className="h-4 w-4" />
-        Add {addEntryLabel}
+        Add {addStepHeading}
       </button>
     </div>
   );
