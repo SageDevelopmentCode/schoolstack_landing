@@ -74,20 +74,6 @@ export default function ApplicationFormFeePanel({
         </div>
       )}
 
-      {hideHeader && (
-        <label className="flex items-center gap-2 text-sm font-medium" style={{ color: C.textPrimary }}>
-          <input
-            type="checkbox"
-            checked={feeConfig.enabled}
-            disabled={readOnly}
-            onChange={(e) => onChange({ ...feeConfig, enabled: e.target.checked })}
-            className="h-4 w-4 rounded"
-            style={{ accentColor: C.accent }}
-          />
-          Collect an application fee
-        </label>
-      )}
-
       {feeConfig.enabled && !stripePaymentsReady && orgSlug ? (
         <div
           className="rounded-md border px-3 py-2.5 text-xs leading-relaxed"

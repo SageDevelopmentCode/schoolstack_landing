@@ -77,11 +77,6 @@ export const CHECKLIST_ITEM_TYPE_LABELS: Record<ChecklistItemType, string> = {
   acknowledgment: "Acknowledgment",
 };
 
-const BLANK_ITEM_DEFAULT_LABELS: Partial<Record<ChecklistItemType, string>> = {
-  document_sign: "New agreement",
-  document_sign_pdf: "New agreement PDF",
-};
-
 export function isPdfAgreementItem(item: EnrollmentChecklistItem): boolean {
   return (
     item.type === "document_sign_pdf" ||
@@ -136,8 +131,7 @@ export function createBlankChecklistItem(
   type: ChecklistItemType,
   label?: string,
 ): EnrollmentChecklistItem {
-  const resolvedLabel =
-    label ?? BLANK_ITEM_DEFAULT_LABELS[type] ?? "New checklist item";
+  const resolvedLabel = label ?? CHECKLIST_ITEM_TYPE_LABELS[type];
   const id = newChecklistItemId();
   const item: EnrollmentChecklistItem = {
     id,
