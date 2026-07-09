@@ -85,17 +85,6 @@ export default function EnrollmentChecklistItemEditor({
 
   return (
     <div className="space-y-4">
-      <LabeledField C={C} label="Checklist item title">
-        <input
-          type="text"
-          value={item.label}
-          onChange={(e) => patch({ label: e.target.value })}
-          placeholder="e.g. Photo Release Form"
-          disabled={readOnly}
-          style={style}
-        />
-      </LabeledField>
-
       <label className="flex items-center gap-2 text-[11px] font-medium" style={{ color: C.textSecondary }}>
         <input
           type="checkbox"

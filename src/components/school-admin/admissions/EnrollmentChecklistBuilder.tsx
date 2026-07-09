@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import {
   createBlankChecklistItem,
@@ -18,7 +17,6 @@ import {
   type ChecklistBuilderFocus,
 } from "./checklist-builder-focus";
 import EnrollmentChecklistFocusCanvas from "./EnrollmentChecklistFocusCanvas";
-import EnrollmentChecklistItemsMenu from "./EnrollmentChecklistItemsMenu";
 import EnrollmentChecklistPreview from "./EnrollmentChecklistPreview";
 import EnrollmentChecklistTemplatePicker from "./EnrollmentChecklistTemplatePicker";
 
@@ -125,38 +123,6 @@ export default function EnrollmentChecklistBuilder({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <div
-        className="flex flex-shrink-0 flex-wrap items-center gap-2 border-b px-5 py-2.5"
-        style={{ borderColor: C.border }}
-      >
-        {items.length > 0 ? (
-          <EnrollmentChecklistItemsMenu
-            C={C}
-            items={items}
-            focus={focus}
-            onFocusChange={setFocus}
-          />
-        ) : null}
-        {!readOnly ? (
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium"
-            style={{
-              border: `1px dashed ${C.borderStrong}`,
-              color: C.accent,
-              backgroundColor: "transparent",
-            }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add item
-          </button>
-        ) : null}
-        <span className="text-[11px]" style={{ color: C.textTertiary }}>
-          {items.length} item{items.length === 1 ? "" : "s"}
-        </span>
-      </div>
-
       <EnrollmentChecklistFocusCanvas
         C={C}
         focus={focus}
@@ -170,6 +136,7 @@ export default function EnrollmentChecklistBuilder({
         onUpdateItem={updateItem}
         onDeleteItem={requestDeleteItem}
         onPreviewItem={(itemId) => openPreview(itemId)}
+        onOpenPicker={() => setPickerOpen(true)}
       />
 
       <EnrollmentChecklistPreview

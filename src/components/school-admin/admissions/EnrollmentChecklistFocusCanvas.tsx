@@ -2,12 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ChevronLeft, Eye, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft } from "lucide-react";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
-import {
-  CHECKLIST_ITEM_TYPE_LABELS,
-  type EnrollmentChecklistItem,
-} from "@/lib/admissions/enrollment-checklist-schema";
+import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
@@ -16,6 +13,7 @@ import {
   type ChecklistBuilderFocus,
 } from "./checklist-builder-focus";
 import EnrollmentChecklistItemEditor from "./EnrollmentChecklistItemEditor";
+import EnrollmentChecklistOutline from "./EnrollmentChecklistOutline";
 
 const canvasTransition = {
   initial: { opacity: 0, x: 8 },
@@ -37,108 +35,44 @@ type EnrollmentChecklistFocusCanvasProps = {
   onUpdateItem: (item: EnrollmentChecklistItem) => void;
   onDeleteItem: (itemId: string) => void;
   onPreviewItem: (itemId: string) => void;
+  onOpenPicker: () => void;
 };
-
-function EmptyView({ C }: { C: AdminThemeTokens }) {
-  return (
-    <div className="w-full">
-      <p className="text-sm" style={{ color: C.textSecondary }}>
-        No checklist items yet. Add one using Add item.
-      </p>
-    </div>
-  );
-}
 
 function ItemView({
   C,
   item,
-  itemIdx,
-  totalItems,
   organizationId,
   templateId,
   orgSlug,
   stripePaymentsReady,
   readOnly,
   onUpdateItem,
-  onRequestDelete,
   onFocusChange,
-  onPreviewItem,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
-  itemIdx: number;
-  totalItems: number;
   organizationId: string;
   templateId: string;
   orgSlug?: string;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
   onUpdateItem: (item: EnrollmentChecklistItem) => void;
-  onRequestDelete: () => void;
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
-  onPreviewItem: (itemId: string) => void;
 }) {
   return (
-    <div className="w-full space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
-            Item {itemIdx + 1} of {totalItems}
-          </p>
-          <div className="mt-0.5 flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-              {item.label}
-            </h2>
-            <span
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium"
-              style={{ backgroundColor: C.bg, color: C.textTertiary }}
-            >
-              {CHECKLIST_ITEM_TYPE_LABELS[item.type]}
-            </span>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onPreviewItem(item.id)}
-            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium"
-            style={{
-              color: C.textSecondary,
-              backgroundColor: C.bg,
-              border: `1px solid ${C.border}`,
-            }}
-          >
-            <Eye className="h-3.5 w-3.5" />
-            Preview
-          </button>
-          {!readOnly ? (
-            <button
-              type="button"
-              onClick={onRequestDelete}
-              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium shrink-0"
-              style={{ color: C.error, backgroundColor: C.errorBg }}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Remove
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      <EnrollmentChecklistItemEditor
-        C={C}
-        item={item}
-        organizationId={organizationId}
-        templateId={templateId}
-        orgSlug={orgSlug}
-        stripePaymentsReady={stripePaymentsReady}
-        readOnly={readOnly}
-        onChange={onUpdateItem}
-        onSelectField={(fieldId) =>
-          onFocusChange({ kind: "field", itemId: item.id, fieldId })
-        }
-      />
-    </div>
+    <EnrollmentChecklistItemEditor
+      C={C}
+      item={item}
+      organizationId={organizationId}
+      templateId={templateId}
+      orgSlug={orgSlug}
+      stripePaymentsReady={stripePaymentsReady}
+      readOnly={readOnly}
+      onChange={onUpdateItem}
+      onSelectField={(fieldId) =>
+        onFocusChange({ kind: "field", itemId: item.id, fieldId })
+      }
+    />
   );
 }
 
@@ -162,22 +96,21 @@ function FieldView({
   onRequestDelete: () => void;
 }) {
   return (
-    <div className="w-full space-y-6">
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-xs font-medium"
-        style={{ color: C.accent }}
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        Back to {item.label || `Item ${itemIdx + 1}`}
-      </button>
-
-      <div>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-xs font-medium"
+          style={{ color: C.accent }}
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to {item.label || `Item ${itemIdx + 1}`}
+        </button>
         <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
           Item {itemIdx + 1} · Question
         </p>
-        <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+        <h2 className="text-lg font-bold" style={{ color: C.textPrimary }}>
           {field.label || "Untitled question"}
         </h2>
       </div>
@@ -190,6 +123,14 @@ function FieldView({
         onDelete={readOnly ? undefined : onRequestDelete}
       />
     </div>
+  );
+}
+
+function EmptyCanvasView({ C }: { C: AdminThemeTokens }) {
+  return (
+    <p className="text-sm" style={{ color: C.textSecondary }}>
+      Select a checklist item to edit.
+    </p>
   );
 }
 
@@ -206,6 +147,7 @@ export default function EnrollmentChecklistFocusCanvas({
   onUpdateItem,
   onDeleteItem,
   onPreviewItem,
+  onOpenPicker,
 }: EnrollmentChecklistFocusCanvasProps) {
   const [pendingDeleteItemId, setPendingDeleteItemId] = useState<string | null>(null);
   const [pendingDeleteField, setPendingDeleteField] = useState<{
@@ -213,6 +155,8 @@ export default function EnrollmentChecklistFocusCanvas({
     fieldId: string;
     fieldLabel: string;
   } | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingDraftLabel, setEditingDraftLabel] = useState("");
 
   const key = checklistFocusKey(focus);
 
@@ -232,6 +176,7 @@ export default function EnrollmentChecklistFocusCanvas({
     if (itemIdx < 0) return;
     const nextIdx = itemIdx + delta;
     if (nextIdx < 0 || nextIdx >= items.length) return;
+    setEditingItemId(null);
     onFocusChange({ kind: "item", itemId: items[nextIdx].id });
   };
 
@@ -240,7 +185,7 @@ export default function EnrollmentChecklistFocusCanvas({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!focus || focus.kind === "field") return;
+      if (!focus || focus.kind === "field" || editingItemId) return;
       if (event.key === "ArrowLeft" && canGoPrev) {
         event.preventDefault();
         navigateItem(-1);
@@ -274,6 +219,9 @@ export default function EnrollmentChecklistFocusCanvas({
 
   const handleConfirmDeleteItem = () => {
     if (!pendingDeleteItemId) return;
+    if (editingItemId === pendingDeleteItemId) {
+      setEditingItemId(null);
+    }
     onDeleteItem(pendingDeleteItemId);
     setPendingDeleteItemId(null);
   };
@@ -302,90 +250,105 @@ export default function EnrollmentChecklistFocusCanvas({
 
   return (
     <>
-      <div className="flex flex-1 flex-col overflow-hidden" style={{ backgroundColor: C.surface }}>
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          <AnimatePresence mode="wait">
-            <motion.div key={key} {...canvasTransition}>
-              {!focus && <EmptyView C={C} />}
+      <div className="flex flex-1 overflow-hidden" style={{ backgroundColor: C.surface }}>
+        <EnrollmentChecklistOutline
+          C={C}
+          items={items}
+          focus={focus}
+          readOnly={readOnly}
+          editingItemId={editingItemId}
+          editingDraftLabel={editingDraftLabel}
+          onEditingItemIdChange={setEditingItemId}
+          onEditingDraftLabelChange={setEditingDraftLabel}
+          onFocusChange={onFocusChange}
+          onUpdateItem={onUpdateItem}
+          onPreviewItem={onPreviewItem}
+          onRequestDeleteItem={setPendingDeleteItemId}
+          onOpenPicker={onOpenPicker}
+        />
 
-              {focus?.kind === "item" && item && itemIdx >= 0 && (
-                <ItemView
-                  C={C}
-                  item={item}
-                  itemIdx={itemIdx}
-                  totalItems={items.length}
-                  organizationId={organizationId}
-                  templateId={templateId}
-                  orgSlug={orgSlug}
-                  stripePaymentsReady={stripePaymentsReady}
-                  readOnly={readOnly}
-                  onUpdateItem={onUpdateItem}
-                  onRequestDelete={() => setPendingDeleteItemId(item.id)}
-                  onFocusChange={onFocusChange}
-                  onPreviewItem={onPreviewItem}
-                />
-              )}
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-5 pb-4 pt-6">
+            <AnimatePresence mode="wait">
+              <motion.div key={key} {...canvasTransition}>
+                {focus?.kind === "item" && item && itemIdx >= 0 && (
+                  <ItemView
+                    key={item.id}
+                    C={C}
+                    item={item}
+                    organizationId={organizationId}
+                    templateId={templateId}
+                    orgSlug={orgSlug}
+                    stripePaymentsReady={stripePaymentsReady}
+                    readOnly={readOnly}
+                    onUpdateItem={onUpdateItem}
+                    onFocusChange={onFocusChange}
+                  />
+                )}
 
-              {focus?.kind === "field" && item && field && itemIdx >= 0 && (
-                <FieldView
-                  C={C}
-                  item={item}
-                  itemIdx={itemIdx}
-                  field={field}
-                  readOnly={readOnly}
-                  onBack={() => onFocusChange({ kind: "item", itemId: item.id })}
-                  onUpdateField={(patch) => updateField(item.id, field.id, patch)}
-                  onRequestDelete={() =>
-                    setPendingDeleteField({
-                      itemId: item.id,
-                      fieldId: field.id,
-                      fieldLabel: field.label || "Untitled question",
-                    })
-                  }
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+                {focus?.kind === "field" && item && field && itemIdx >= 0 && (
+                  <FieldView
+                    C={C}
+                    item={item}
+                    itemIdx={itemIdx}
+                    field={field}
+                    readOnly={readOnly}
+                    onBack={() => onFocusChange({ kind: "item", itemId: item.id })}
+                    onUpdateField={(patch) => updateField(item.id, field.id, patch)}
+                    onRequestDelete={() =>
+                      setPendingDeleteField({
+                        itemId: item.id,
+                        fieldId: field.id,
+                        fieldLabel: field.label || "Untitled question",
+                      })
+                    }
+                  />
+                )}
 
-        {focus && (focus.kind === "item" || focus.kind === "field") && items.length > 1 ? (
-          <div
-            className="flex shrink-0 items-center justify-between gap-3 border-t px-5 py-3"
-            style={{ borderColor: C.border, backgroundColor: C.bg }}
-          >
-            <button
-              type="button"
-              disabled={!canGoPrev}
-              onClick={() => navigateItem(-1)}
-              className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:opacity-40"
-              style={{
-                border: `1px solid ${C.border}`,
-                color: C.textSecondary,
-                backgroundColor: C.surface,
-              }}
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              Previous
-            </button>
-            <span className="text-[11px]" style={{ color: C.textTertiary }}>
-              {itemIdx + 1} of {items.length}
-            </span>
-            <button
-              type="button"
-              disabled={!canGoNext}
-              onClick={() => navigateItem(1)}
-              className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:opacity-40"
-              style={{
-                border: `1px solid ${C.border}`,
-                color: C.textSecondary,
-                backgroundColor: C.surface,
-              }}
-            >
-              Next
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+                {!focus && <EmptyCanvasView C={C} />}
+              </motion.div>
+            </AnimatePresence>
           </div>
-        ) : null}
+
+          {focus && (focus.kind === "item" || focus.kind === "field") && items.length > 1 ? (
+            <div
+              className="flex shrink-0 items-center justify-between gap-3 border-t px-5 py-3"
+              style={{ borderColor: C.border, backgroundColor: C.bg }}
+            >
+              <button
+                type="button"
+                disabled={!canGoPrev}
+                onClick={() => navigateItem(-1)}
+                className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:opacity-40"
+                style={{
+                  border: `1px solid ${C.border}`,
+                  color: C.textSecondary,
+                  backgroundColor: C.surface,
+                }}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Previous
+              </button>
+              <span className="text-[11px]" style={{ color: C.textTertiary }}>
+                {itemIdx + 1} of {items.length}
+              </span>
+              <button
+                type="button"
+                disabled={!canGoNext}
+                onClick={() => navigateItem(1)}
+                className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:opacity-40"
+                style={{
+                  border: `1px solid ${C.border}`,
+                  color: C.textSecondary,
+                  backgroundColor: C.surface,
+                }}
+              >
+                Next
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <ConfirmDialog
