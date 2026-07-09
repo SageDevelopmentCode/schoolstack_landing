@@ -236,6 +236,8 @@ function buildItemForTemplate(def: Omit<ChecklistItemTemplate, "build">): Enroll
         formSchema: {
           id: newAdmissionsId(),
           title: def.label,
+          allowMultiple: true,
+          entryLabel: "Authorized person",
           fields: [
             { id: newAdmissionsId(), label: "Authorized person name", type: "text", required: true },
             { id: newAdmissionsId(), label: "Relationship", type: "text", required: true },

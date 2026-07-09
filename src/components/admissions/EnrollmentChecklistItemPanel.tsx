@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Loader2, Upload } from "lucide-react";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
+import RepeatableFormEntries from "@/components/admissions/RepeatableFormEntries";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
+import {
+  createEmptyEntries,
+  type ChecklistFormEntry,
+} from "@/lib/admissions/checklist-form-responses";
 import {
   buildEmbeddedPdfViewerUrl,
   getEnrollmentChecklistPdfSignedUrl,
@@ -309,8 +314,13 @@ function FormItemPanel({
   mode: "preview" | "live";
 }) {
   const isLive = mode === "live";
-  const fields = item.formSchema?.fields ?? [];
+  const formSchema = item.formSchema;
+  const fields = formSchema?.fields ?? [];
+  const allowMultiple = formSchema?.allowMultiple ?? false;
   const [values, setValues] = useState<Record<string, string>>({});
+  const [entries, setEntries] = useState<ChecklistFormEntry[]>(() =>
+    createEmptyEntries(),
+  );
 
   if (fields.length === 0) {
     return (
@@ -322,29 +332,42 @@ function FormItemPanel({
 
   return (
     <div className="space-y-5">
-      {item.formSchema?.title ? (
+      {formSchema?.title ? (
         <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-          {item.formSchema.title}
+          {formSchema.title}
         </h2>
       ) : null}
-      {fields.map((field) => (
-        <div key={field.id}>
-          <label className="mb-1.5 block text-sm font-medium" style={{ color: C.textPrimary }}>
-            {field.label}
-            {field.required ? (
-              <span style={{ color: C.error }}> *</span>
-            ) : null}
-          </label>
-          <ApplicationFieldInput
-            field={field}
-            value={values[field.id] ?? ""}
-            onChange={(value) =>
-              setValues((prev) => ({ ...prev, [field.id]: value }))
-            }
-            C={C}
-          />
-        </div>
-      ))}
+
+      {allowMultiple ? (
+        <RepeatableFormEntries
+          C={C}
+          fields={fields}
+          entries={entries}
+          entryLabel={formSchema?.entryLabel}
+          required={item.required}
+          onChange={setEntries}
+        />
+      ) : (
+        fields.map((field) => (
+          <div key={field.id}>
+            <label className="mb-1.5 block text-sm font-medium" style={{ color: C.textPrimary }}>
+              {field.label}
+              {field.required ? (
+                <span style={{ color: C.error }}> *</span>
+              ) : null}
+            </label>
+            <ApplicationFieldInput
+              field={field}
+              value={values[field.id] ?? ""}
+              onChange={(value) =>
+                setValues((prev) => ({ ...prev, [field.id]: value }))
+              }
+              C={C}
+            />
+          </div>
+        ))
+      )}
+
       <button
         type="button"
         disabled={isLive}

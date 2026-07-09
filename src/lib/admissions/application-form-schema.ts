@@ -45,6 +45,10 @@ export interface ApplicationSection {
   fields: ApplicationField[];
   /** Locked apply-form step containing system student fields */
   system?: boolean;
+  /** When true, families can add multiple entries with the same field set */
+  allowMultiple?: boolean;
+  /** Card header label for each entry when allowMultiple is true */
+  entryLabel?: string;
 }
 
 export interface ApplicationAcknowledgment {

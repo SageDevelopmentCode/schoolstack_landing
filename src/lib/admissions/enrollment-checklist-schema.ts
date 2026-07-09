@@ -211,8 +211,13 @@ export function getChecklistItemSummary(item: EnrollmentChecklistItem): string {
     }
     case "form": {
       const count = item.formSchema?.fields.length ?? 0;
-      if (count === 0) return item.required ? "Required item" : "Optional item";
-      return `${count} question${count === 1 ? "" : "s"}`;
+      const multipleSuffix = item.formSchema?.allowMultiple
+        ? " · multiple entries"
+        : "";
+      if (count === 0) {
+        return item.required ? "Required item" : "Optional item";
+      }
+      return `${count} question${count === 1 ? "" : "s"}${multipleSuffix}`;
     }
     case "file_upload":
       return item.fileUpload?.helpText || "File upload";

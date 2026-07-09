@@ -97,6 +97,52 @@ export default function EnrollmentChecklistItemEditor({
         Required for enrollment completion
       </label>
 
+      {item.type === "form" && item.formSchema ? (
+        <>
+          <label
+            className="flex items-center gap-2 text-[11px] font-medium"
+            style={{ color: C.textSecondary }}
+          >
+            <input
+              type="checkbox"
+              checked={item.formSchema.allowMultiple ?? false}
+              onChange={(e) =>
+                patch({
+                  formSchema: {
+                    ...item.formSchema!,
+                    allowMultiple: e.target.checked,
+                  },
+                })
+              }
+              disabled={readOnly}
+              className="h-4 w-4 rounded"
+              style={{ accentColor: C.accent }}
+            />
+            Allow multiple entries
+          </label>
+
+          {item.formSchema.allowMultiple ? (
+            <LabeledField C={C} label="Entry label">
+              <input
+                type="text"
+                value={item.formSchema.entryLabel ?? ""}
+                onChange={(e) =>
+                  patch({
+                    formSchema: {
+                      ...item.formSchema!,
+                      entryLabel: e.target.value,
+                    },
+                  })
+                }
+                disabled={readOnly}
+                placeholder="e.g. Emergency contact, Authorized person"
+                style={style}
+              />
+            </LabeledField>
+          ) : null}
+        </>
+      ) : null}
+
       {isInlineAgreementItem(item) && item.document?.kind === "inline_sections" ? (
         <EnrollmentInlineAgreementEditor
           C={C}
@@ -165,18 +211,9 @@ export default function EnrollmentChecklistItemEditor({
             />
           </LabeledField>
           <LabeledField C={C} label="Accepted file types">
-            <input
-              type="text"
-              value={item.fileUpload.accept}
-              onChange={(e) =>
-                patch({
-                  fileUpload: { ...item.fileUpload!, accept: e.target.value },
-                })
-              }
-              placeholder=".pdf,.jpg,.jpeg,.png"
-              disabled={readOnly}
-              style={style}
-            />
+            <p className="text-[12px]" style={{ color: C.textSecondary }}>
+              {item.fileUpload.accept}
+            </p>
           </LabeledField>
           <LabeledField C={C} label="Maximum files">
             <input
