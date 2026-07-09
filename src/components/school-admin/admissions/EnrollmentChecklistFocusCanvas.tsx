@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ChevronLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -172,33 +172,6 @@ export default function EnrollmentChecklistFocusCanvas({
       ? item.formSchema.fields.find((f) => f.id === focus.fieldId)
       : undefined;
 
-  const navigateItem = (delta: number) => {
-    if (itemIdx < 0) return;
-    const nextIdx = itemIdx + delta;
-    if (nextIdx < 0 || nextIdx >= items.length) return;
-    setEditingItemId(null);
-    onFocusChange({ kind: "item", itemId: items[nextIdx].id });
-  };
-
-  const canGoPrev = itemIdx > 0;
-  const canGoNext = itemIdx >= 0 && itemIdx < items.length - 1;
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!focus || focus.kind === "field" || editingItemId) return;
-      if (event.key === "ArrowLeft" && canGoPrev) {
-        event.preventDefault();
-        navigateItem(-1);
-      }
-      if (event.key === "ArrowRight" && canGoNext) {
-        event.preventDefault();
-        navigateItem(1);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  });
-
   const updateField = (
     itemId: string,
     fieldId: string,
@@ -267,87 +240,46 @@ export default function EnrollmentChecklistFocusCanvas({
           onOpenPicker={onOpenPicker}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-5 pb-4 pt-6">
-            <AnimatePresence mode="wait">
-              <motion.div key={key} {...canvasTransition}>
-                {focus?.kind === "item" && item && itemIdx >= 0 && (
-                  <ItemView
-                    key={item.id}
-                    C={C}
-                    item={item}
-                    organizationId={organizationId}
-                    templateId={templateId}
-                    orgSlug={orgSlug}
-                    stripePaymentsReady={stripePaymentsReady}
-                    readOnly={readOnly}
-                    onUpdateItem={onUpdateItem}
-                    onFocusChange={onFocusChange}
-                  />
-                )}
+        <div className="min-w-0 flex-1 overflow-y-auto px-5 pb-4 pt-6">
+          <AnimatePresence mode="wait">
+            <motion.div key={key} {...canvasTransition}>
+              {focus?.kind === "item" && item && itemIdx >= 0 && (
+                <ItemView
+                  key={item.id}
+                  C={C}
+                  item={item}
+                  organizationId={organizationId}
+                  templateId={templateId}
+                  orgSlug={orgSlug}
+                  stripePaymentsReady={stripePaymentsReady}
+                  readOnly={readOnly}
+                  onUpdateItem={onUpdateItem}
+                  onFocusChange={onFocusChange}
+                />
+              )}
 
-                {focus?.kind === "field" && item && field && itemIdx >= 0 && (
-                  <FieldView
-                    C={C}
-                    item={item}
-                    itemIdx={itemIdx}
-                    field={field}
-                    readOnly={readOnly}
-                    onBack={() => onFocusChange({ kind: "item", itemId: item.id })}
-                    onUpdateField={(patch) => updateField(item.id, field.id, patch)}
-                    onRequestDelete={() =>
-                      setPendingDeleteField({
-                        itemId: item.id,
-                        fieldId: field.id,
-                        fieldLabel: field.label || "Untitled question",
-                      })
-                    }
-                  />
-                )}
+              {focus?.kind === "field" && item && field && itemIdx >= 0 && (
+                <FieldView
+                  C={C}
+                  item={item}
+                  itemIdx={itemIdx}
+                  field={field}
+                  readOnly={readOnly}
+                  onBack={() => onFocusChange({ kind: "item", itemId: item.id })}
+                  onUpdateField={(patch) => updateField(item.id, field.id, patch)}
+                  onRequestDelete={() =>
+                    setPendingDeleteField({
+                      itemId: item.id,
+                      fieldId: field.id,
+                      fieldLabel: field.label || "Untitled question",
+                    })
+                  }
+                />
+              )}
 
-                {!focus && <EmptyCanvasView C={C} />}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {focus && (focus.kind === "item" || focus.kind === "field") && items.length > 1 ? (
-            <div
-              className="flex shrink-0 items-center justify-between gap-3 border-t px-5 py-3"
-              style={{ borderColor: C.border, backgroundColor: C.bg }}
-            >
-              <button
-                type="button"
-                disabled={!canGoPrev}
-                onClick={() => navigateItem(-1)}
-                className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:opacity-40"
-                style={{
-                  border: `1px solid ${C.border}`,
-                  color: C.textSecondary,
-                  backgroundColor: C.surface,
-                }}
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Previous
-              </button>
-              <span className="text-[11px]" style={{ color: C.textTertiary }}>
-                {itemIdx + 1} of {items.length}
-              </span>
-              <button
-                type="button"
-                disabled={!canGoNext}
-                onClick={() => navigateItem(1)}
-                className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:opacity-40"
-                style={{
-                  border: `1px solid ${C.border}`,
-                  color: C.textSecondary,
-                  backgroundColor: C.surface,
-                }}
-              >
-                Next
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ) : null}
+              {!focus && <EmptyCanvasView C={C} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
