@@ -28,6 +28,8 @@ type EnrollmentChecklistFocusCanvasProps = {
   C: AdminThemeTokens;
   focus: ChecklistBuilderFocus | null;
   items: EnrollmentChecklistItem[];
+  organizationId: string;
+  templateId: string;
   orgSlug?: string;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
@@ -52,6 +54,8 @@ function ItemView({
   item,
   itemIdx,
   totalItems,
+  organizationId,
+  templateId,
   orgSlug,
   stripePaymentsReady,
   readOnly,
@@ -64,6 +68,8 @@ function ItemView({
   item: EnrollmentChecklistItem;
   itemIdx: number;
   totalItems: number;
+  organizationId: string;
+  templateId: string;
   orgSlug?: string;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
@@ -122,6 +128,8 @@ function ItemView({
       <EnrollmentChecklistItemEditor
         C={C}
         item={item}
+        organizationId={organizationId}
+        templateId={templateId}
         orgSlug={orgSlug}
         stripePaymentsReady={stripePaymentsReady}
         readOnly={readOnly}
@@ -189,6 +197,8 @@ export default function EnrollmentChecklistFocusCanvas({
   C,
   focus,
   items,
+  organizationId,
+  templateId,
   orgSlug,
   stripePaymentsReady = true,
   readOnly = false,
@@ -304,6 +314,8 @@ export default function EnrollmentChecklistFocusCanvas({
                   item={item}
                   itemIdx={itemIdx}
                   totalItems={items.length}
+                  organizationId={organizationId}
+                  templateId={templateId}
                   orgSlug={orgSlug}
                   stripePaymentsReady={stripePaymentsReady}
                   readOnly={readOnly}

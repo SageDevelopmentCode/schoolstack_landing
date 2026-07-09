@@ -1,19 +1,39 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { FileText, GripVertical, Plus, Trash2, Upload } from "lucide-react";
+import { FileText, GripVertical, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { newAdmissionsId } from "@/lib/admissions/application-form-schema";
+import {
+  buildEmbeddedPdfViewerUrl,
+  deleteEnrollmentChecklistPdf,
+  getEnrollmentChecklistPdfSignedUrl,
+  uploadEnrollmentChecklistPdf,
+} from "@/lib/admissions/enrollment-checklist-document-storage";
 import type {
-  DocumentConfig,
   EnrollmentContractSection,
+  InlineDocumentConfig,
+  PdfDocumentConfig,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { createClient } from "@/utils/supabase/client";
 
-type EnrollmentAgreementEditorProps = {
+type EditorBaseProps = {
   C: AdminThemeTokens;
-  document: DocumentConfig;
-  onChange: (document: DocumentConfig) => void;
+  readOnly?: boolean;
+};
+
+type InlineEditorProps = EditorBaseProps & {
+  document: InlineDocumentConfig;
+  onChange: (document: InlineDocumentConfig) => void;
+};
+
+type PdfEditorProps = EditorBaseProps & {
+  document: PdfDocumentConfig;
+  onChange: (document: PdfDocumentConfig) => void;
+  organizationId: string;
+  templateId: string;
+  itemId: string;
 };
 
 function inputStyle(C: AdminThemeTokens): React.CSSProperties {
@@ -100,38 +120,16 @@ function SectionListRow({
   );
 }
 
-export default function EnrollmentAgreementEditor({
+export function EnrollmentInlineAgreementEditor({
   C,
   document,
   onChange,
-}: EnrollmentAgreementEditorProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  readOnly = false,
+}: InlineEditorProps) {
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const style = inputStyle(C);
-  const mode = document.kind;
-
-  const setMode = (kind: DocumentConfig["kind"]) => {
-    if (kind === "pdf") {
-      onChange({ kind: "pdf", fileName: "" });
-      setActiveSectionId(null);
-      return;
-    }
-    const sections =
-      document.kind === "inline_sections"
-        ? document.sections
-        : [
-            {
-              id: newAdmissionsId(),
-              title: "1. Section title",
-              body: "Add agreement text families will read and sign.",
-            },
-          ];
-    onChange({ kind: "inline_sections", sections });
-    setActiveSectionId(sections[0]?.id ?? null);
-  };
 
   const updateSections = (sections: EnrollmentContractSection[]) => {
-    if (document.kind !== "inline_sections") return;
     onChange({ ...document, sections });
     if (activeSectionId && !sections.some((s) => s.id === activeSectionId)) {
       setActiveSectionId(sections[0]?.id ?? null);
@@ -139,7 +137,6 @@ export default function EnrollmentAgreementEditor({
   };
 
   const addSection = () => {
-    if (document.kind !== "inline_sections") return;
     const nextIndex = document.sections.length + 1;
     const newSection: EnrollmentContractSection = {
       id: newAdmissionsId(),
@@ -150,219 +147,279 @@ export default function EnrollmentAgreementEditor({
     setActiveSectionId(newSection.id);
   };
 
-  const handlePdfSelect = (file: File | null) => {
-    if (!file) return;
-    onChange({ kind: "pdf", fileName: file.name });
-  };
-
   const activeSection =
-    document.kind === "inline_sections"
-      ? document.sections.find((s) => s.id === activeSectionId) ??
-        document.sections[0]
-      : null;
-
+    document.sections.find((s) => s.id === activeSectionId) ?? document.sections[0];
   const resolvedActiveId = activeSection?.id ?? null;
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-[11px] font-semibold mb-2" style={{ color: C.textSecondary }}>
-          Agreement format
-        </p>
-        <div className="flex gap-2">
-          {(["inline_sections", "pdf"] as const).map((kind) => {
-            const active = mode === kind;
-            return (
+      {document.showWarningBanner && (
+        <div
+          className="rounded-md border px-3 py-2 text-[11px] leading-relaxed"
+          style={{
+            borderColor: C.warningBorder,
+            backgroundColor: C.warningBg,
+            color: C.warning,
+          }}
+        >
+          Families will see a warning banner before signing this agreement.
+        </div>
+      )}
+
+      {document.consentOptions && document.consentOptions.length > 0 && (
+        <div
+          className="rounded-md border px-3 py-2 text-[11px] leading-relaxed"
+          style={{ borderColor: C.border, backgroundColor: C.bg, color: C.textTertiary }}
+        >
+          Includes {document.consentOptions.length} consent options families choose before
+          signing.
+        </div>
+      )}
+
+      {document.sections.length === 0 ? (
+        <div
+          className="rounded-md px-3 py-6 text-center text-[11px]"
+          style={{
+            border: `1px dashed ${C.borderStrong}`,
+            color: C.textTertiary,
+          }}
+        >
+          No sections yet.
+        </div>
+      ) : (
+        <div className="flex gap-4">
+          <div className="w-[200px] shrink-0 space-y-1.5">
+            <Reorder.Group
+              axis="y"
+              values={document.sections}
+              onReorder={updateSections}
+              as="div"
+              className="flex flex-col gap-1.5"
+            >
+              {document.sections.map((section, sectionIdx) => (
+                <SectionListRow
+                  key={section.id}
+                  C={C}
+                  section={section}
+                  sectionIdx={sectionIdx}
+                  active={resolvedActiveId === section.id}
+                  onSelect={() => setActiveSectionId(section.id)}
+                  onDelete={() =>
+                    updateSections(document.sections.filter((s) => s.id !== section.id))
+                  }
+                />
+              ))}
+            </Reorder.Group>
+            {!readOnly ? (
               <button
-                key={kind}
                 type="button"
-                onClick={() => setMode(kind)}
-                className="rounded-md px-3 py-1.5 text-[11px] font-medium transition-colors"
+                onClick={addSection}
+                className="flex w-full items-center justify-center gap-1 rounded-sm px-2 py-1.5 text-[10px] font-medium"
                 style={{
-                  backgroundColor: active ? C.accentLight : C.surface,
-                  color: active ? C.accent : C.textSecondary,
-                  border: `1px solid ${active ? C.accent : C.border}`,
+                  border: `1px dashed ${C.borderStrong}`,
+                  color: C.accent,
                 }}
               >
-                {kind === "inline_sections" ? "Write sections" : "Upload PDF"}
+                <Plus className="h-3 w-3" />
+                Add section
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ) : null}
+          </div>
 
-      {document.kind === "inline_sections" ? (
-        <>
-          {document.showWarningBanner && (
+          {activeSection ? (
             <div
-              className="rounded-md border px-3 py-2 text-[11px] leading-relaxed"
-              style={{
-                borderColor: C.warningBorder,
-                backgroundColor: C.warningBg,
-                color: C.warning,
-              }}
+              className="min-w-0 flex-1 rounded-md border p-4 space-y-3"
+              style={{ borderColor: C.border, backgroundColor: C.bg }}
             >
-              Families will see a warning banner before signing this agreement.
+              <p className="text-[11px] font-semibold" style={{ color: C.textSecondary }}>
+                Section content
+              </p>
+              <input
+                type="text"
+                value={activeSection.title}
+                onChange={(e) =>
+                  updateSections(
+                    document.sections.map((s) =>
+                      s.id === activeSection.id ? { ...s, title: e.target.value } : s,
+                    ),
+                  )
+                }
+                placeholder="Section title"
+                disabled={readOnly}
+                style={style}
+              />
+              <textarea
+                rows={16}
+                value={activeSection.body}
+                onChange={(e) =>
+                  updateSections(
+                    document.sections.map((s) =>
+                      s.id === activeSection.id ? { ...s, body: e.target.value } : s,
+                    ),
+                  )
+                }
+                placeholder="Agreement text families will read and sign..."
+                disabled={readOnly}
+                style={{ ...style, resize: "vertical" }}
+              />
+              <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                Families sign this section before moving on.
+              </p>
             </div>
-          )}
-
-          {document.consentOptions && document.consentOptions.length > 0 && (
-            <div
-              className="rounded-md border px-3 py-2 text-[11px] leading-relaxed"
-              style={{ borderColor: C.border, backgroundColor: C.bg, color: C.textTertiary }}
-            >
-              Includes {document.consentOptions.length} consent options families choose before
-              signing.
-            </div>
-          )}
-
-          {document.sections.length === 0 ? (
-            <div
-              className="rounded-md px-3 py-6 text-center text-[11px]"
-              style={{
-                border: `1px dashed ${C.borderStrong}`,
-                color: C.textTertiary,
-              }}
-            >
-              No sections yet.
-            </div>
-          ) : (
-            <div className="flex gap-4">
-              <div className="w-[200px] shrink-0 space-y-1.5">
-                <Reorder.Group
-                  axis="y"
-                  values={document.sections}
-                  onReorder={updateSections}
-                  as="div"
-                  className="flex flex-col gap-1.5"
-                >
-                  {document.sections.map((section, sectionIdx) => (
-                    <SectionListRow
-                      key={section.id}
-                      C={C}
-                      section={section}
-                      sectionIdx={sectionIdx}
-                      active={resolvedActiveId === section.id}
-                      onSelect={() => setActiveSectionId(section.id)}
-                      onDelete={() =>
-                        updateSections(
-                          document.sections.filter((s) => s.id !== section.id),
-                        )
-                      }
-                    />
-                  ))}
-                </Reorder.Group>
-                <button
-                  type="button"
-                  onClick={addSection}
-                  className="flex w-full items-center justify-center gap-1 rounded-sm px-2 py-1.5 text-[10px] font-medium"
-                  style={{
-                    border: `1px dashed ${C.borderStrong}`,
-                    color: C.accent,
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                  Add section
-                </button>
-              </div>
-
-              {activeSection ? (
-                <div
-                  className="min-w-0 flex-1 rounded-md border p-4 space-y-3"
-                  style={{ borderColor: C.border, backgroundColor: C.bg }}
-                >
-                  <p className="text-[11px] font-semibold" style={{ color: C.textSecondary }}>
-                    Section content
-                  </p>
-                  <input
-                    type="text"
-                    value={activeSection.title}
-                    onChange={(e) =>
-                      updateSections(
-                        document.sections.map((s) =>
-                          s.id === activeSection.id
-                            ? { ...s, title: e.target.value }
-                            : s,
-                        ),
-                      )
-                    }
-                    placeholder="Section title"
-                    style={style}
-                  />
-                  <textarea
-                    rows={16}
-                    value={activeSection.body}
-                    onChange={(e) =>
-                      updateSections(
-                        document.sections.map((s) =>
-                          s.id === activeSection.id
-                            ? { ...s, body: e.target.value }
-                            : s,
-                        ),
-                      )
-                    }
-                    placeholder="Agreement text families will read and sign..."
-                    style={{ ...style, resize: "vertical" }}
-                  />
-                  <p className="text-[10px]" style={{ color: C.textTertiary }}>
-                    Families sign this section before moving on.
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          )}
-
-          {document.sections.length === 0 ? (
-            <button
-              type="button"
-              onClick={addSection}
-              className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
-              style={{
-                backgroundColor: C.accentLight,
-                color: C.accent,
-                border: `1px solid ${C.secondaryBtnBorder}`,
-              }}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add section
-            </button>
           ) : null}
-        </>
-      ) : (
-        <div className="space-y-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,application/pdf"
-            className="hidden"
-            onChange={(e) => handlePdfSelect(e.target.files?.[0] ?? null)}
-          />
-          <div
-            className="flex flex-col items-center justify-center rounded-md px-4 py-8 text-center"
-            style={{
-              border: `2px dashed ${C.borderStrong}`,
-              backgroundColor: C.bg,
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const file = e.dataTransfer.files[0];
-              if (file?.type === "application/pdf" || file?.name.endsWith(".pdf")) {
-                handlePdfSelect(file);
-              }
-            }}
-          >
+        </div>
+      )}
+
+      {document.sections.length === 0 && !readOnly ? (
+        <button
+          type="button"
+          onClick={addSection}
+          className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+          style={{
+            backgroundColor: C.accentLight,
+            color: C.accent,
+            border: `1px solid ${C.secondaryBtnBorder}`,
+          }}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add section
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+export function EnrollmentPdfAgreementEditor({
+  C,
+  document,
+  onChange,
+  organizationId,
+  templateId,
+  itemId,
+  readOnly = false,
+}: PdfEditorProps) {
+  const supabase = useMemo(() => createClient(), []);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!document.storagePath) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    void getEnrollmentChecklistPdfSignedUrl(supabase, document.storagePath)
+      .then((url) => {
+        if (!cancelled) setPreviewUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setPreviewUrl(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [document.storagePath, supabase]);
+
+  const handlePdfSelect = async (file: File | null) => {
+    if (!file || readOnly) return;
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      if (document.storagePath) {
+        await deleteEnrollmentChecklistPdf(supabase, document.storagePath);
+      }
+
+      const uploaded = await uploadEnrollmentChecklistPdf(
+        supabase,
+        { organizationId, templateId, itemId },
+        file,
+      );
+
+      onChange({
+        kind: "pdf",
+        fileName: uploaded.fileName,
+        storagePath: uploaded.storagePath,
+        mimeType: uploaded.mimeType,
+        sizeBytes: uploaded.sizeBytes,
+        requireSignature: document.requireSignature !== false,
+      });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Failed to upload PDF.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handlePdfRemove = async () => {
+    if (readOnly) return;
+    setUploadError(null);
+
+    try {
+      if (document.storagePath) {
+        await deleteEnrollmentChecklistPdf(supabase, document.storagePath);
+      }
+      onChange({ kind: "pdf", fileName: "", requireSignature: true });
+      setPreviewUrl(null);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Failed to remove PDF.");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        className="hidden"
+        disabled={readOnly || uploading}
+        onChange={(e) => void handlePdfSelect(e.target.files?.[0] ?? null)}
+      />
+
+      {!document.storagePath ? (
+        <div
+          className="flex flex-col items-center justify-center rounded-md px-4 py-8 text-center"
+          style={{
+            border: `2px dashed ${C.borderStrong}`,
+            backgroundColor: C.bg,
+            opacity: uploading ? 0.7 : 1,
+          }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            if (readOnly || uploading) return;
+            const file = e.dataTransfer.files[0];
+            if (file?.type === "application/pdf" || file?.name.endsWith(".pdf")) {
+              void handlePdfSelect(file);
+            }
+          }}
+        >
+          {uploading ? (
+            <Loader2 className="mb-2 h-6 w-6 animate-spin" style={{ color: C.accent }} />
+          ) : (
             <Upload className="mb-2 h-6 w-6" style={{ color: C.textQuaternary }} />
-            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-              Drop a PDF here
-            </p>
-            <p className="mt-1 text-[11px]" style={{ color: C.textTertiary }}>
-              Families will read and sign the uploaded document.
-            </p>
+          )}
+          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+            {uploading ? "Uploading PDF…" : "Drop a PDF here"}
+          </p>
+          <p className="mt-1 text-[11px]" style={{ color: C.textTertiary }}>
+            Families will read the uploaded document and sign below if required.
+          </p>
+          {!readOnly ? (
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="mt-3 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold"
+              disabled={uploading}
+              className="mt-3 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold disabled:opacity-50"
               style={{
                 backgroundColor: C.accentLight,
                 color: C.accent,
@@ -372,31 +429,85 @@ export default function EnrollmentAgreementEditor({
               <FileText className="h-3.5 w-3.5" />
               Choose PDF
             </button>
-          </div>
-          {document.fileName ? (
-            <div
-              className="flex items-center gap-2 rounded-md border px-3 py-2 text-[11px]"
-              style={{ borderColor: C.border, backgroundColor: C.surface }}
-            >
-              <FileText className="h-4 w-4 shrink-0" style={{ color: C.accent }} />
-              <span className="truncate font-medium" style={{ color: C.textPrimary }}>
-                {document.fileName}
-              </span>
+          ) : null}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div
+            className="flex items-center gap-2 rounded-md border px-3 py-2 text-[11px]"
+            style={{ borderColor: C.border, backgroundColor: C.surface }}
+          >
+            <FileText className="h-4 w-4 shrink-0" style={{ color: C.accent }} />
+            <span className="truncate font-medium" style={{ color: C.textPrimary }}>
+              {document.fileName}
+            </span>
+            {!readOnly ? (
               <button
                 type="button"
-                onClick={() => onChange({ kind: "pdf", fileName: "" })}
-                className="ml-auto text-[10px] font-medium"
+                onClick={() => void handlePdfRemove()}
+                disabled={uploading}
+                className="ml-auto text-[10px] font-medium disabled:opacity-50"
                 style={{ color: C.error }}
               >
                 Remove
               </button>
-            </div>
+            ) : null}
+          </div>
+
+          {previewUrl ? (
+            <iframe
+              title={document.fileName || "PDF preview"}
+              src={buildEmbeddedPdfViewerUrl(previewUrl)}
+              className="min-h-[480px] h-[560px] w-full rounded-md border"
+              style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+            />
           ) : null}
-          <p className="text-[10px]" style={{ color: C.textTertiary }}>
-            PDF upload is preview-only for now — files are not saved yet.
-          </p>
+
+          {!readOnly ? (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="text-[11px] font-medium disabled:opacity-50"
+              style={{ color: C.accent }}
+            >
+              {uploading ? "Uploading…" : "Replace PDF"}
+            </button>
+          ) : null}
         </div>
       )}
+
+      {uploadError ? (
+        <p className="text-[11px]" style={{ color: C.error }}>
+          {uploadError}
+        </p>
+      ) : null}
+
+      {document.storagePath ? (
+        <label
+          className="flex items-center gap-2 text-[11px] font-medium"
+          style={{ color: C.textSecondary }}
+        >
+          <input
+            type="checkbox"
+            checked={document.requireSignature !== false}
+            disabled={readOnly}
+            onChange={(e) =>
+              onChange({
+                ...document,
+                requireSignature: e.target.checked,
+              })
+            }
+            className="h-4 w-4 rounded"
+            style={{ accentColor: C.accent }}
+          />
+          Require parent signature below the PDF
+        </label>
+      ) : null}
+
+      <p className="text-[10px]" style={{ color: C.textTertiary }}>
+        PDFs upload immediately. Click Save draft to keep this item linked to your checklist.
+      </p>
     </div>
   );
 }

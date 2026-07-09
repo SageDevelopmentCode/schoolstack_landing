@@ -1,11 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { FileText, Upload } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FileText, Loader2, Upload } from "lucide-react";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
+import {
+  buildEmbeddedPdfViewerUrl,
+  getEnrollmentChecklistPdfSignedUrl,
+} from "@/lib/admissions/enrollment-checklist-document-storage";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
+import { isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { createClient } from "@/utils/supabase/client";
 
 type EnrollmentChecklistItemPanelProps = {
   C: AdminThemeTokens;
@@ -20,6 +26,8 @@ function panelButtonStyle(C: AdminThemeTokens, disabled: boolean) {
     cursor: disabled ? "not-allowed" : "pointer",
   } as const;
 }
+
+const PDF_VIEWER_HEIGHT_CLASS = "min-h-[560px] h-[min(720px,calc(100vh-240px))]";
 
 function DocumentSignInlinePanel({
   C,
@@ -158,26 +166,135 @@ function DocumentSignInlinePanel({
 function DocumentSignPdfPanel({
   C,
   item,
+  mode,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
+  mode: "preview" | "live";
 }) {
-  const fileName =
-    item.document?.kind === "pdf" ? item.document.fileName : null;
+  const supabase = useMemo(() => createClient(), []);
+  const pdfDocument = item.document?.kind === "pdf" ? item.document : null;
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [signature, setSignature] = useState("");
+  const isLive = mode === "live";
+  const requireSignature = pdfDocument?.requireSignature !== false;
+
+  useEffect(() => {
+    if (!pdfDocument?.storagePath) {
+      setSignedUrl(null);
+      setLoadError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+
+    void getEnrollmentChecklistPdfSignedUrl(supabase, pdfDocument.storagePath)
+      .then((url) => {
+        if (!cancelled) {
+          setSignedUrl(url);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLoadError(
+            err instanceof Error ? err.message : "Failed to load PDF preview.",
+          );
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pdfDocument?.storagePath, supabase]);
+
+  if (!pdfDocument?.storagePath) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center rounded-lg border px-6 py-12 text-center"
+        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+      >
+        <FileText className="mb-3 h-10 w-10" style={{ color: C.textQuaternary }} />
+        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+          {pdfDocument?.fileName || "PDF agreement"}
+        </p>
+        <p className="mt-2 max-w-sm text-sm" style={{ color: C.textSecondary }}>
+          Upload a PDF in the checklist builder to preview it here.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className="flex flex-col items-center justify-center rounded-lg border px-6 py-12 text-center"
-      style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-    >
-      <FileText className="mb-3 h-10 w-10" style={{ color: C.textQuaternary }} />
-      <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-        {fileName || "PDF agreement"}
-      </p>
-      <p className="mt-2 max-w-sm text-sm" style={{ color: C.textSecondary }}>
-        PDF preview unavailable until the file is saved. Families will read and sign
-        the uploaded document here.
-      </p>
+    <div className="flex h-full min-h-0 flex-col space-y-4">
+      <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+        {item.label}
+      </h2>
+
+      <div
+        className={`${PDF_VIEWER_HEIGHT_CLASS} overflow-hidden rounded-lg border`}
+        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+      >
+        {loading ? (
+          <div className={`flex ${PDF_VIEWER_HEIGHT_CLASS} items-center justify-center`}>
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: C.accent }} />
+          </div>
+        ) : loadError ? (
+          <div
+            className={`flex ${PDF_VIEWER_HEIGHT_CLASS} flex-col items-center justify-center px-6 text-center`}
+          >
+            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+              {pdfDocument.fileName}
+            </p>
+            <p className="mt-2 text-sm" style={{ color: C.error }}>
+              {loadError}
+            </p>
+          </div>
+        ) : signedUrl ? (
+          <iframe
+            title={pdfDocument.fileName || "PDF agreement"}
+            src={buildEmbeddedPdfViewerUrl(signedUrl)}
+            className={`${PDF_VIEWER_HEIGHT_CLASS} w-full`}
+          />
+        ) : null}
+      </div>
+
+      {requireSignature ? (
+        <div className="space-y-3">
+          <label
+            className="mb-1.5 block text-xs font-medium"
+            style={{ color: C.textSecondary }}
+          >
+            Type your full legal name to sign
+          </label>
+          <input
+            type="text"
+            value={signature}
+            onChange={(e) => setSignature(e.target.value)}
+            disabled={!isLive}
+            placeholder="Full legal name"
+            className="w-full rounded-md border px-3 py-2.5 text-sm outline-none"
+            style={{
+              borderColor: C.inputBorder,
+              backgroundColor: isLive ? "#FFFFFF" : C.input,
+              color: C.textPrimary,
+            }}
+          />
+          <button
+            type="button"
+            disabled={!isLive || !signature.trim()}
+            className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+            style={panelButtonStyle(C, !isLive || !signature.trim())}
+          >
+            Complete agreement{!isLive ? " (preview)" : ""}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -408,17 +525,25 @@ export default function EnrollmentChecklistItemPanel({
   mode,
 }: EnrollmentChecklistItemPanelProps) {
   const content = useMemo(() => {
+    if (isPdfAgreementItem(item)) {
+      if (!item.document || item.document.kind !== "pdf") {
+        return (
+          <p className="text-sm" style={{ color: C.textSecondary }}>
+            Agreement PDF not configured.
+          </p>
+        );
+      }
+      return <DocumentSignPdfPanel C={C} item={item} mode={mode} />;
+    }
+
     switch (item.type) {
       case "document_sign":
-        if (!item.document) {
+        if (!item.document || item.document.kind !== "inline_sections") {
           return (
             <p className="text-sm" style={{ color: C.textSecondary }}>
               Agreement content not configured.
             </p>
           );
-        }
-        if (item.document.kind === "pdf") {
-          return <DocumentSignPdfPanel C={C} item={item} />;
         }
         return <DocumentSignInlinePanel C={C} item={item} mode={mode} />;
       case "form":

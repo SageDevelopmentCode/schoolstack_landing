@@ -6,6 +6,7 @@ import {
   Check,
   ClipboardList,
   CreditCard,
+  FileSignature,
   FileText,
   PenLine,
   Upload,
@@ -35,6 +36,8 @@ const panelTransition = {
 function itemIcon(type: EnrollmentChecklistItem["type"]) {
   switch (type) {
     case "document_sign":
+      return FileSignature;
+    case "document_sign_pdf":
       return FileText;
     case "form":
       return ClipboardList;

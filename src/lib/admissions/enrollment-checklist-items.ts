@@ -12,7 +12,11 @@ import type {
   EnrollmentChecklistItem,
   InlineDocumentConfig,
 } from "./enrollment-checklist-schema";
-import { isChecklistItemId, newChecklistItemId } from "./enrollment-checklist-schema";
+import {
+  createChecklistItemKeyForItem,
+  isChecklistItemId,
+  newChecklistItemId,
+} from "./enrollment-checklist-schema";
 
 const METADATA_DOCUMENT_TEMPLATE_ID = "documentTemplateId";
 const METADATA_FEE_DEFINITION_ID = "feeDefinitionId";
@@ -52,10 +56,21 @@ function documentFromTemplateRow(
   content: Record<string, unknown>,
 ): DocumentConfig | undefined {
   if (kind === "pdf") {
-    return {
-      kind: "pdf",
+    const doc = {
+      kind: "pdf" as const,
       fileName: typeof content.fileName === "string" ? content.fileName : "",
+      ...(typeof content.storagePath === "string"
+        ? { storagePath: content.storagePath }
+        : {}),
+      ...(typeof content.mimeType === "string" ? { mimeType: content.mimeType } : {}),
+      ...(typeof content.sizeBytes === "number" ? { sizeBytes: content.sizeBytes } : {}),
+      ...(content.requireSignature === false
+        ? { requireSignature: false }
+        : content.requireSignature === true
+          ? { requireSignature: true }
+          : {}),
     };
+    return doc;
   }
 
   const sections = Array.isArray(content.sections)
@@ -142,7 +157,10 @@ export function itemFromRow(row: TemplateItemRow): EnrollmentChecklistItem {
     metadata,
   };
 
-  if (row.type === "document_sign" && row.document_templates) {
+  if (
+    (row.type === "document_sign" || row.type === "document_sign_pdf") &&
+    row.document_templates
+  ) {
     item.document = documentFromTemplateRow(
       row.document_templates.kind,
       row.document_templates.content ?? {},
@@ -190,7 +208,22 @@ function documentContentFromItem(item: EnrollmentChecklistItem): Record<string, 
   if (!item.document) return {};
 
   if (item.document.kind === "pdf") {
-    return { fileName: item.document.fileName };
+    const content: Record<string, unknown> = {
+      fileName: item.document.fileName,
+    };
+    if (item.document.storagePath) {
+      content.storagePath = item.document.storagePath;
+    }
+    if (item.document.mimeType) {
+      content.mimeType = item.document.mimeType;
+    }
+    if (item.document.sizeBytes != null) {
+      content.sizeBytes = item.document.sizeBytes;
+    }
+    if (item.document.requireSignature !== undefined) {
+      content.requireSignature = item.document.requireSignature;
+    }
+    return content;
   }
 
   const content: Record<string, unknown> = {
@@ -211,7 +244,12 @@ async function syncDocumentTemplate(
   item: EnrollmentChecklistItem,
   existingDocumentTemplateId: string | null,
 ): Promise<string | null> {
-  if (item.type !== "document_sign" || !item.document) return null;
+  if (
+    (item.type !== "document_sign" && item.type !== "document_sign_pdf") ||
+    !item.document
+  ) {
+    return null;
+  }
 
   const kind = item.document.kind === "pdf" ? "pdf" : "inline_sections";
   const content = documentContentFromItem(item);
@@ -328,22 +366,30 @@ export function validateEnrollmentChecklistItems(
 
     switch (item.type) {
       case "document_sign": {
-        if (!item.document) {
+        if (!item.document || item.document.kind !== "inline_sections") {
           errors.push(`"${item.label}" needs agreement content.`);
           break;
         }
-        if (item.document.kind === "inline_sections") {
-          if (item.document.sections.length === 0) {
-            errors.push(`"${item.label}" needs at least one agreement section.`);
+        if (item.document.sections.length === 0) {
+          errors.push(`"${item.label}" needs at least one agreement section.`);
+        }
+        for (const section of item.document.sections) {
+          if (!section.title.trim() || !section.body.trim()) {
+            errors.push(
+              `Every agreement section in "${item.label}" needs a title and body.`,
+            );
+            break;
           }
-          for (const section of item.document.sections) {
-            if (!section.title.trim() || !section.body.trim()) {
-              errors.push(
-                `Every agreement section in "${item.label}" needs a title and body.`,
-              );
-              break;
-            }
-          }
+        }
+        break;
+      }
+      case "document_sign_pdf": {
+        if (!item.document || item.document.kind !== "pdf") {
+          errors.push(`"${item.label}" needs agreement PDF content.`);
+          break;
+        }
+        if (!item.document.storagePath?.trim()) {
+          errors.push(`"${item.label}" needs an uploaded PDF before publishing.`);
         }
         break;
       }
@@ -384,6 +430,43 @@ export function validateEnrollmentChecklistItems(
   }
 
   return errors;
+}
+
+export function hasDuplicateChecklistItemKeys(
+  items: EnrollmentChecklistItem[],
+): boolean {
+  const keys = new Set<string>();
+  for (const item of items) {
+    if (keys.has(item.itemKey)) {
+      return true;
+    }
+    keys.add(item.itemKey);
+  }
+  return false;
+}
+
+export function ensureUniqueChecklistItemKeys(
+  items: EnrollmentChecklistItem[],
+): EnrollmentChecklistItem[] {
+  const used = new Set<string>();
+
+  return items.map((item) => {
+    let key = item.itemKey;
+
+    if (used.has(key)) {
+      key = createChecklistItemKeyForItem(item.label, item.id);
+      if (used.has(key)) {
+        let suffix = 2;
+        while (used.has(`${key}_${suffix}`)) {
+          suffix += 1;
+        }
+        key = `${key}_${suffix}`;
+      }
+    }
+
+    used.add(key);
+    return key === item.itemKey ? item : { ...item, itemKey: key };
+  });
 }
 
 export type EnrollmentChecklistWithItems = {
@@ -430,6 +513,8 @@ export async function saveEnrollmentChecklistItems(
     throw new Error("Archived checklists cannot be edited.");
   }
 
+  const normalizedItems = ensureUniqueChecklistItemKeys(items);
+
   const { data: existingRows, error: existingError } = await supabase
     .from("enrollment_checklist_template_items")
     .select("id, document_template_id, fee_definition_id")
@@ -451,7 +536,7 @@ export async function saveEnrollmentChecklistItems(
     ]),
   );
 
-  const incomingIds = new Set(items.map((item) => item.id));
+  const incomingIds = new Set(normalizedItems.map((item) => item.id));
   const idsToDelete = (existingRows ?? [])
     .map((row) => String(row.id))
     .filter((id) => !incomingIds.has(id));
@@ -466,8 +551,8 @@ export async function saveEnrollmentChecklistItems(
 
   const savedItems: EnrollmentChecklistItem[] = [];
 
-  for (let sortOrder = 0; sortOrder < items.length; sortOrder += 1) {
-    const item = items[sortOrder];
+  for (let sortOrder = 0; sortOrder < normalizedItems.length; sortOrder += 1) {
+    const item = normalizedItems[sortOrder];
     const existing = existingById.get(item.id);
     const existingDocumentTemplateId =
       (typeof item.metadata[METADATA_DOCUMENT_TEMPLATE_ID] === "string"

@@ -3,6 +3,7 @@ import { newAdmissionsId } from "./application-form-schema";
 
 export type ChecklistItemType =
   | "document_sign"
+  | "document_sign_pdf"
   | "form"
   | "file_upload"
   | "payment"
@@ -24,6 +25,10 @@ export type InlineDocumentConfig = {
 export type PdfDocumentConfig = {
   kind: "pdf";
   fileName: string;
+  storagePath?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  requireSignature?: boolean;
 };
 
 export type DocumentConfig = InlineDocumentConfig | PdfDocumentConfig;
@@ -65,11 +70,31 @@ export type EnrollmentChecklistItem = {
 
 export const CHECKLIST_ITEM_TYPE_LABELS: Record<ChecklistItemType, string> = {
   document_sign: "Agreement",
+  document_sign_pdf: "Agreement PDF",
   form: "Form",
   file_upload: "File upload",
   payment: "Payment",
   acknowledgment: "Acknowledgment",
 };
+
+const BLANK_ITEM_DEFAULT_LABELS: Partial<Record<ChecklistItemType, string>> = {
+  document_sign: "New agreement",
+  document_sign_pdf: "New agreement PDF",
+};
+
+export function isPdfAgreementItem(item: EnrollmentChecklistItem): boolean {
+  return (
+    item.type === "document_sign_pdf" ||
+    (item.type === "document_sign" && item.document?.kind === "pdf")
+  );
+}
+
+export function isInlineAgreementItem(item: EnrollmentChecklistItem): boolean {
+  return (
+    item.type === "document_sign" &&
+    (!item.document || item.document.kind === "inline_sections")
+  );
+}
 
 const CHECKLIST_ITEM_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -98,15 +123,26 @@ export function createChecklistItemKey(label: string): string {
   return base || `item_${newAdmissionsId().slice(0, 8)}`;
 }
 
+export function createChecklistItemKeyForItem(
+  label: string,
+  itemId: string,
+): string {
+  const suffix = itemId.replace(/-/g, "").slice(0, 8);
+  const base = createChecklistItemKey(label).slice(0, 40 - suffix.length - 1);
+  return `${base}_${suffix}`;
+}
+
 export function createBlankChecklistItem(
   type: ChecklistItemType,
-  label = "New checklist item",
+  label?: string,
 ): EnrollmentChecklistItem {
+  const resolvedLabel =
+    label ?? BLANK_ITEM_DEFAULT_LABELS[type] ?? "New checklist item";
   const id = newChecklistItemId();
   const item: EnrollmentChecklistItem = {
     id,
-    itemKey: createChecklistItemKey(label),
-    label,
+    itemKey: createChecklistItemKeyForItem(resolvedLabel, id),
+    label: resolvedLabel,
     type,
     required: true,
     metadata: {},
@@ -125,10 +161,17 @@ export function createBlankChecklistItem(
         ],
       };
       break;
+    case "document_sign_pdf":
+      item.document = {
+        kind: "pdf",
+        fileName: "",
+        requireSignature: true,
+      };
+      break;
     case "form":
       item.formSchema = {
         id: newAdmissionsId(),
-        title: label,
+        title: resolvedLabel,
         fields: [],
       };
       break;
@@ -158,14 +201,19 @@ export function createBlankChecklistItem(
 export function getChecklistItemSummary(item: EnrollmentChecklistItem): string {
   switch (item.type) {
     case "document_sign": {
-      if (!item.document) return "Agreement";
-      if (item.document.kind === "pdf") {
-        return item.document.fileName
-          ? `PDF · ${item.document.fileName}`
-          : "PDF · no file selected";
+      if (!item.document || item.document.kind !== "inline_sections") {
+        return "Agreement";
       }
       const count = item.document.sections.length;
       return `${count} section${count === 1 ? "" : "s"} · signatures required`;
+    }
+    case "document_sign_pdf": {
+      if (!item.document || item.document.kind !== "pdf") {
+        return "Agreement PDF";
+      }
+      return item.document.fileName
+        ? `PDF · ${item.document.fileName}`
+        : "PDF · no file selected";
     }
     case "form": {
       const count = item.formSchema?.fields.length ?? 0;

@@ -1,7 +1,7 @@
 import { ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS } from "@/data/school-demos/rooted-meadows-enrollment-contracts";
 import { newAdmissionsId } from "./application-form-schema";
 import {
-  createChecklistItemKey,
+  createChecklistItemKeyForItem,
   newChecklistItemId,
   type ChecklistItemType,
   type EnrollmentChecklistItem,
@@ -60,7 +60,7 @@ function buildFromTemplate(
   const id = newChecklistItemId();
   return {
     id,
-    itemKey: createChecklistItemKey(template.label),
+    itemKey: createChecklistItemKeyForItem(template.label, id),
     label: template.label,
     type: template.type,
     required: template.required,

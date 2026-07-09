@@ -25,6 +25,7 @@ import EnrollmentChecklistTemplatePicker from "./EnrollmentChecklistTemplatePick
 type EnrollmentChecklistBuilderProps = {
   branding: OrganizationBranding;
   schoolName: string;
+  organizationId: string;
   template: EnrollmentChecklistTemplate;
   orgSlug: string;
   stripePaymentsReady?: boolean;
@@ -68,6 +69,7 @@ function resolveFocusAfterDelete(
 export default function EnrollmentChecklistBuilder({
   branding,
   schoolName,
+  organizationId,
   template,
   orgSlug,
   stripePaymentsReady = true,
@@ -159,6 +161,8 @@ export default function EnrollmentChecklistBuilder({
         C={C}
         focus={focus}
         items={items}
+        organizationId={organizationId}
+        templateId={template.id}
         orgSlug={orgSlug}
         stripePaymentsReady={stripePaymentsReady}
         readOnly={readOnly}

@@ -4,14 +4,23 @@ import { Plus, Trash2 } from "lucide-react";
 import { newAdmissionsId } from "@/lib/admissions/application-form-schema";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
+import {
+  isInlineAgreementItem,
+  isPdfAgreementItem,
+} from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ApplicationFormFeePanel from "./ApplicationFormFeePanel";
 import ApplicationFormQuestionList from "./ApplicationFormQuestionList";
-import EnrollmentAgreementEditor from "./EnrollmentAgreementEditor";
+import {
+  EnrollmentInlineAgreementEditor,
+  EnrollmentPdfAgreementEditor,
+} from "./EnrollmentAgreementEditor";
 
 type EnrollmentChecklistItemEditorProps = {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
+  organizationId: string;
+  templateId: string;
   orgSlug?: string;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
@@ -57,6 +66,8 @@ function LabeledField({
 export default function EnrollmentChecklistItemEditor({
   C,
   item,
+  organizationId,
+  templateId,
   orgSlug,
   stripePaymentsReady = true,
   readOnly = false,
@@ -97,10 +108,23 @@ export default function EnrollmentChecklistItemEditor({
         Required for enrollment completion
       </label>
 
-      {item.type === "document_sign" && item.document ? (
-        <EnrollmentAgreementEditor
+      {isInlineAgreementItem(item) && item.document?.kind === "inline_sections" ? (
+        <EnrollmentInlineAgreementEditor
           C={C}
           document={item.document}
+          readOnly={readOnly}
+          onChange={(document) => patch({ document })}
+        />
+      ) : null}
+
+      {isPdfAgreementItem(item) && item.document?.kind === "pdf" ? (
+        <EnrollmentPdfAgreementEditor
+          C={C}
+          document={item.document}
+          organizationId={organizationId}
+          templateId={templateId}
+          itemId={item.id}
+          readOnly={readOnly}
           onChange={(document) => patch({ document })}
         />
       ) : null}

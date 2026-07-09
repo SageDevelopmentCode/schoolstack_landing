@@ -10,7 +10,9 @@ import {
 } from "./enrollment-checklist-items";
 
 export {
+  ensureUniqueChecklistItemKeys,
   getEnrollmentChecklistWithItems,
+  hasDuplicateChecklistItemKeys,
   saveEnrollmentChecklistItems,
   validateEnrollmentChecklistItems,
   type EnrollmentChecklistWithItems,

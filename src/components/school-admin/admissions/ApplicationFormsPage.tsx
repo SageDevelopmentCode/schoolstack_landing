@@ -31,6 +31,8 @@ import {
   unpublishEnrollmentChecklistTemplate,
   updateEnrollmentChecklistTemplate,
   validateEnrollmentChecklistItems,
+  ensureUniqueChecklistItemKeys,
+  hasDuplicateChecklistItemKeys,
   type EnrollmentChecklistTemplate,
 } from "@/lib/admissions/enrollment-checklist-templates";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
@@ -734,6 +736,13 @@ export default function ApplicationFormsPage({
   const handleChecklistSave = async () => {
     if (!selectedChecklist || !checklistEditable || checklistReadOnly) return;
 
+    const itemsToSave = ensureUniqueChecklistItemKeys(checklistEditable.items);
+    if (hasDuplicateChecklistItemKeys(checklistEditable.items)) {
+      setChecklistEditable((prev) =>
+        prev ? { ...prev, items: itemsToSave } : prev,
+      );
+    }
+
     setSaving(true);
     setError(null);
     try {
@@ -749,7 +758,7 @@ export default function ApplicationFormsPage({
       const savedItems = await saveEnrollmentChecklistItems(
         supabase,
         selectedChecklist.id,
-        checklistEditable.items,
+        itemsToSave,
       );
       setChecklists((prev) =>
         prev.map((checklist) =>
@@ -1089,6 +1098,7 @@ export default function ApplicationFormsPage({
             <EnrollmentChecklistBuilder
               branding={branding}
               schoolName={schoolName}
+              organizationId={organizationId}
               template={selectedChecklist}
               orgSlug={slug}
               stripePaymentsReady={stripePaymentsReady}

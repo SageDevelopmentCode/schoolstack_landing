@@ -37,6 +37,7 @@ type EnrollmentChecklistTemplatePickerProps = {
 
 const BLANK_TYPES: ChecklistItemType[] = [
   "document_sign",
+  "document_sign_pdf",
   "form",
   "file_upload",
   "payment",
@@ -44,7 +45,9 @@ const BLANK_TYPES: ChecklistItemType[] = [
 ];
 
 const BLANK_TYPE_DESCRIPTIONS: Record<ChecklistItemType, string> = {
-  document_sign: "Multi-section contract families read and sign",
+  document_sign: "Write agreement sections in the builder for families to read and sign",
+  document_sign_pdf:
+    "Upload a PDF for families to read; optionally require a signature below it",
   form: "Custom questions for families to complete",
   file_upload: "Request documents from families",
   payment: "Collect a fee during enrollment",
