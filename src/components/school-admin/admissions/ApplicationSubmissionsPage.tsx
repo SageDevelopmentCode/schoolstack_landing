@@ -305,12 +305,12 @@ export default function ApplicationSubmissionsPage({
             No submissions match the current filters.
           </p>
         ) : (
-          <div className="h-full overflow-auto">
+          <div className="h-full overflow-auto" style={{ backgroundColor: C.surface }}>
             <table className="w-full min-w-[1020px] border-collapse text-left text-sm">
               <thead
                 className="sticky top-0 z-[1]"
                 style={{
-                  backgroundColor: C.elevated,
+                  backgroundColor: C.surface,
                   borderBottom: `2px solid ${C.border}`,
                 }}
               >
@@ -365,7 +365,7 @@ export default function ApplicationSubmissionsPage({
                           ? C.accentLight
                           : hoveredId === submission.id
                             ? C.elevated
-                            : "transparent",
+                            : C.surface,
                         borderBottom: `1px solid ${C.border}`,
                         borderLeft: `3px solid ${isSelected ? C.accent : "transparent"}`,
                       }}
