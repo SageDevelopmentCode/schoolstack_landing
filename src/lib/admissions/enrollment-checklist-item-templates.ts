@@ -87,7 +87,7 @@ const TEMPLATE_DEFS: Omit<ChecklistItemTemplate, "build">[] = [
   {
     id: "assumption_of_risk",
     label: "Assumption of Risk",
-    description: "Warning banner with liability release signature.",
+    description: "Liability release signature.",
     type: "document_sign",
     required: true,
   },
@@ -170,7 +170,6 @@ function buildItemForTemplate(def: Omit<ChecklistItemTemplate, "build">): Enroll
             ...s,
             id: newAdmissionsId(),
           })),
-          showWarningBanner: true,
         },
       });
     case "health_emergency_form":

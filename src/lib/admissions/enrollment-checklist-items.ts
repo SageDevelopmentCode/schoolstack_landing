@@ -86,10 +86,6 @@ function documentFromTemplateRow(
 
   const doc: InlineDocumentConfig = { kind: "inline_sections", sections };
 
-  if (content.showWarningBanner === true) {
-    doc.showWarningBanner = true;
-  }
-
   if (Array.isArray(content.consentOptions)) {
     doc.consentOptions = content.consentOptions
       .filter(isRecord)
@@ -230,9 +226,6 @@ function documentContentFromItem(item: EnrollmentChecklistItem): Record<string, 
   const content: Record<string, unknown> = {
     sections: item.document.sections,
   };
-  if (item.document.showWarningBanner) {
-    content.showWarningBanner = true;
-  }
   if (item.document.consentOptions?.length) {
     content.consentOptions = item.document.consentOptions;
   }

@@ -18,7 +18,6 @@ export type EnrollmentContractSection = {
 export type InlineDocumentConfig = {
   kind: "inline_sections";
   sections: EnrollmentContractSection[];
-  showWarningBanner?: boolean;
   consentOptions?: { value: string; label: string }[];
 };
 

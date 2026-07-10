@@ -177,19 +177,6 @@ export function EnrollmentInlineAgreementEditor({
 
   return (
     <div className="space-y-4">
-      {document.showWarningBanner && (
-        <div
-          className="rounded-md border px-3 py-2 text-[11px] leading-relaxed"
-          style={{
-            borderColor: C.warningBorder,
-            backgroundColor: C.warningBg,
-            color: C.warning,
-          }}
-        >
-          Families will see a warning banner before signing this agreement.
-        </div>
-      )}
-
       {document.consentOptions && document.consentOptions.length > 0 && (
         <div
           className="rounded-md border px-3 py-2 text-[11px] leading-relaxed"

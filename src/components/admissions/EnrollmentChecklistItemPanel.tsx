@@ -87,19 +87,6 @@ function DocumentSignInlinePanel({
           {section.body}
         </p>
 
-        {item.document?.kind === "inline_sections" && item.document.showWarningBanner ? (
-          <div
-            className="mt-4 rounded-md border px-3 py-2 text-xs"
-            style={{
-              borderColor: C.warning,
-              backgroundColor: C.warningBg,
-              color: C.warning,
-            }}
-          >
-            Please read this section carefully before signing.
-          </div>
-        ) : null}
-
         <div className="mt-6">
           <label
             className="mb-1.5 block text-xs font-medium"
