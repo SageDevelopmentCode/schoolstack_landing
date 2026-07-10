@@ -5,6 +5,10 @@ import {
   summarizePostSubmitSteps,
   type PostSubmitSummary,
 } from "./admin-post-submit-steps";
+import {
+  listEnrollmentProgressForApplications,
+  type EnrollmentProgressSummary,
+} from "./enrollment-checklist-materialization";
 import { listScheduledVisitsForApplications } from "./admissions-booking";
 import type { ApplicationFormSchema } from "./application-form-schema";
 import { parseApplicationFormFeeConfig, parseApplicationFormPostSubmitConfig } from "./application-form-schema";
@@ -37,6 +41,7 @@ export type AdminApplicationSubmission = {
   updatedAt: string;
   hasPostSubmitActions: boolean;
   postSubmitSummary: PostSubmitSummary | null;
+  enrollmentSummary: EnrollmentProgressSummary | null;
 };
 
 function parseStringRecord(value: unknown): Record<string, string> {
@@ -157,6 +162,7 @@ const APPLICATION_SUBMISSION_SELECT = `
 function mapApplicationRowToAdminSubmission(
   row: Record<string, unknown>,
   visitsByApplicationId: Map<string, Awaited<ReturnType<typeof listScheduledVisitsForApplications>>>,
+  enrollmentByApplicationId: Map<string, EnrollmentProgressSummary>,
 ): AdminApplicationSubmission {
     const formVersion = row.application_form_versions as
       | {
@@ -244,6 +250,7 @@ function mapApplicationRowToAdminSubmission(
       updatedAt: String(row.updated_at),
       hasPostSubmitActions,
       postSubmitSummary,
+      enrollmentSummary: enrollmentByApplicationId.get(applicationId) ?? null,
     };
 }
 
@@ -263,7 +270,13 @@ export async function listOrgApplicationSubmissions(
   const submittedIds = rows
     .filter((row) => String(row.status) !== "draft")
     .map((row) => String(row.id));
+  const applicationIds = rows.map((row) => String(row.id));
   const visits = await listScheduledVisitsForApplications(supabase, submittedIds);
+  const enrollmentByApplicationId = await listEnrollmentProgressForApplications(
+    supabase,
+    organizationId,
+    applicationIds,
+  );
   const visitsByApplicationId = new Map<string, typeof visits>();
   for (const visit of visits) {
     const existing = visitsByApplicationId.get(visit.applicationId) ?? [];
@@ -275,6 +288,7 @@ export async function listOrgApplicationSubmissions(
     mapApplicationRowToAdminSubmission(
       row as Record<string, unknown>,
       visitsByApplicationId,
+      enrollmentByApplicationId,
     ),
   );
 }
@@ -300,9 +314,15 @@ export async function getOrgApplicationSubmissionById(
       ? []
       : await listScheduledVisitsForApplications(supabase, [applicationId]);
   const visitsByApplicationId = new Map([[applicationId, visits]]);
+  const enrollmentByApplicationId = await listEnrollmentProgressForApplications(
+    supabase,
+    organizationId,
+    [applicationId],
+  );
 
   return mapApplicationRowToAdminSubmission(
     data as Record<string, unknown>,
     visitsByApplicationId,
+    enrollmentByApplicationId,
   );
 }

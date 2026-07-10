@@ -11,6 +11,7 @@ import {
   APPLICATION_STATUS_FILTER_ORDER,
   FEE_STATUS_LABELS,
 } from "@/lib/admissions/application-status-ui";
+import { enrollmentProgressBadgeStyle } from "@/lib/admissions/admin-enrollment-progress";
 import { postSubmitSummaryBadgeStyle } from "@/lib/admissions/admin-post-submit-steps";
 import {
   formatShortDate,
@@ -152,6 +153,8 @@ export default function ApplicationSubmissionsPage({
 
   const showPostSubmitColumn = submissions.some((row) => row.hasPostSubmitActions);
 
+  const showEnrollmentColumn = submissions.some((row) => row.enrollmentSummary !== null);
+
   const applyFormSlug = submissions.find((row) => row.formSlug)?.formSlug ?? null;
   const applyPublicPath = applyFormSlug
     ? publicApplicationFormPath(slug, applyFormSlug)
@@ -275,10 +278,10 @@ export default function ApplicationSubmissionsPage({
                 <tr>
                   {[
                     "Form",
-                    "Family",
                     "Contact",
                     "Student",
                     "Status",
+                    ...(showEnrollmentColumn ? ["Enrollment"] : []),
                     ...(showPostSubmitColumn ? ["Post-submit"] : []),
                     "Progress",
                     ...(showFeeColumn ? ["Fee"] : []),
@@ -298,7 +301,6 @@ export default function ApplicationSubmissionsPage({
                 {filteredSubmissions.map((submission) => {
                   const isSelected = submission.id === selectedId;
                   const statusStyle = applicationStatusBadgeStyle(submission.status, C);
-                  const familyLabel = submission.guardianName ?? submission.studentLabel ?? "—";
 
                   return (
                     <tr
@@ -322,9 +324,6 @@ export default function ApplicationSubmissionsPage({
                           </div>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 sm:px-5" style={{ color: C.textPrimary }}>
-                        {familyLabel}
-                      </td>
                       <td className="px-4 py-3 sm:px-5" style={{ color: C.textSecondary }}>
                         {submission.contactEmail ?? "—"}
                       </td>
@@ -339,6 +338,24 @@ export default function ApplicationSubmissionsPage({
                           {applicationStatusLabel(submission.status)}
                         </span>
                       </td>
+                      {showEnrollmentColumn ? (
+                        <td className="px-4 py-3 sm:px-5">
+                          {submission.enrollmentSummary ? (
+                            <span
+                              className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                              style={enrollmentProgressBadgeStyle(
+                                submission.enrollmentSummary.tone,
+                                C,
+                              )}
+                              title={submission.enrollmentSummary.label}
+                            >
+                              {submission.enrollmentSummary.label}
+                            </span>
+                          ) : (
+                            <span style={{ color: C.textTertiary }}>—</span>
+                          )}
+                        </td>
+                      ) : null}
                       {showPostSubmitColumn ? (
                         <td className="px-4 py-3 sm:px-5">
                           {submission.postSubmitSummary ? (

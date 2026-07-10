@@ -6,6 +6,7 @@ import {
 import { getEnrollmentChecklistWithItems } from "./enrollment-checklist-items";
 import type {
   ChecklistItemInstanceStatus,
+  ChecklistVariantResolution,
   EnrollmentChecklistItem,
   EnrollmentChecklistItemInstance,
   EnrollmentChecklistMetadata,
@@ -356,6 +357,151 @@ export function computeChecklistProgress(
   }
 
   return { completed, total: requiredItems.length };
+}
+
+export type EnrollmentProgressSummaryTone =
+  | "complete"
+  | "in_progress"
+  | "not_started";
+
+export type EnrollmentProgressSummary = {
+  label: string;
+  tone: EnrollmentProgressSummaryTone;
+  completed: number;
+  total: number;
+  checklistStatus: string;
+};
+
+export function summarizeEnrollmentProgress(
+  completed: number,
+  total: number,
+  checklistStatus: string,
+): EnrollmentProgressSummary {
+  const label = `${completed}/${total} complete`;
+
+  let tone: EnrollmentProgressSummaryTone;
+  if (total > 0 && completed === total) {
+    tone = "complete";
+  } else if (completed > 0) {
+    tone = "in_progress";
+  } else {
+    tone = "not_started";
+  }
+
+  return { label, tone, completed, total, checklistStatus };
+}
+
+function filterVisibleChecklistItemsAndInstances(
+  templateItems: EnrollmentChecklistItem[],
+  instances: EnrollmentChecklistItemInstance[],
+  resolutions: Record<string, ChecklistVariantResolution>,
+): {
+  items: EnrollmentChecklistItem[];
+  instances: EnrollmentChecklistItemInstance[];
+} {
+  const visibleItems = templateItems.filter((item) =>
+    isVariantItemSelected(item, resolutions),
+  );
+  const visibleInstances = instances.filter((instance) => {
+    const templateItem = templateItems.find(
+      (item) => item.id === instance.templateItemId,
+    );
+    if (!templateItem) return false;
+    return (
+      isVariantItemSelected(templateItem, resolutions) &&
+      instance.status !== "waived"
+    );
+  });
+
+  return { items: visibleItems, instances: visibleInstances };
+}
+
+export async function listEnrollmentProgressForApplications(
+  supabase: SupabaseClient,
+  organizationId: string,
+  applicationIds: string[],
+): Promise<Map<string, EnrollmentProgressSummary>> {
+  const result = new Map<string, EnrollmentProgressSummary>();
+  if (applicationIds.length === 0) return result;
+
+  const { data: checklistRows, error: checklistError } = await supabase
+    .from("enrollment_checklists")
+    .select("id, application_id, template_id, status, metadata")
+    .eq("organization_id", organizationId)
+    .in("application_id", applicationIds);
+
+  if (checklistError) throw checklistError;
+  if (!checklistRows || checklistRows.length === 0) return result;
+
+  const checklists = checklistRows.map((row) => ({
+    checklistId: String(row.id),
+    applicationId: String(row.application_id),
+    templateId: String(row.template_id),
+    status: String(row.status),
+    metadata: parseChecklistMetadata(row.metadata),
+  }));
+
+  const checklistIds = checklists.map((checklist) => checklist.checklistId);
+  const { data: instanceRows, error: instanceError } = await supabase
+    .from("enrollment_checklist_items")
+    .select("*")
+    .in("checklist_id", checklistIds);
+
+  if (instanceError) throw instanceError;
+
+  const instancesByChecklistId = new Map<
+    string,
+    EnrollmentChecklistItemInstance[]
+  >();
+  for (const row of instanceRows ?? []) {
+    const checklistId = String(row.checklist_id);
+    const existing = instancesByChecklistId.get(checklistId) ?? [];
+    existing.push(instanceFromRow(row as Record<string, unknown>));
+    instancesByChecklistId.set(checklistId, existing);
+  }
+
+  const templateCache = new Map<
+    string,
+    Awaited<ReturnType<typeof getEnrollmentChecklistWithItems>>
+  >();
+  const uniqueTemplateIds = [...new Set(checklists.map((checklist) => checklist.templateId))];
+
+  for (const templateId of uniqueTemplateIds) {
+    const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
+    templateCache.set(templateId, loaded);
+  }
+
+  for (const checklist of checklists) {
+    const loaded = templateCache.get(checklist.templateId);
+    if (!loaded) {
+      result.set(
+        checklist.applicationId,
+        summarizeEnrollmentProgress(0, 0, checklist.status),
+      );
+      continue;
+    }
+
+    const resolutions = checklist.metadata.variantResolutions ?? {};
+    const instances = instancesByChecklistId.get(checklist.checklistId) ?? [];
+    const { items: visibleItems, instances: visibleInstances } =
+      filterVisibleChecklistItemsAndInstances(
+        loaded.items,
+        instances,
+        resolutions,
+      );
+
+    const progress = computeChecklistProgress(visibleItems, visibleInstances);
+    result.set(
+      checklist.applicationId,
+      summarizeEnrollmentProgress(
+        progress.completed,
+        progress.total,
+        checklist.status,
+      ),
+    );
+  }
+
+  return result;
 }
 
 export async function recomputeChecklistStatus(

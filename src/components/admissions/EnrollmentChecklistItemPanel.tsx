@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, Loader2, Upload } from "lucide-react";
+import ApplicationUploadedFileList from "@/components/admissions/ApplicationUploadedFileList";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import TypedSignatureField, {
   parseStoredSignerName,
 } from "@/components/admissions/TypedSignatureField";
 import RepeatableFormEntries from "@/components/admissions/RepeatableFormEntries";
+import type { ApplicationFileUploadMeta } from "@/lib/admissions/application-file-storage";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   createEmptyEntries,
@@ -18,6 +20,7 @@ import {
 } from "@/lib/admissions/enrollment-checklist-form-validation";
 import {
   parseChecklistFileResponses,
+  removeChecklistFile,
   uploadChecklistFile,
 } from "@/lib/admissions/enrollment-checklist-file-storage";
 import {
@@ -493,6 +496,7 @@ function FileUploadPanel({
   const supabase = useMemo(() => createClient(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const config = item.fileUpload;
+  const maxFiles = config?.maxFiles ?? 3;
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
   const [files, setFiles] = useState(() => parseChecklistFileResponses(existingResponses));
@@ -500,9 +504,17 @@ function FileUploadPanel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputDisabled = !isLive || uploading || isCompleted;
+  const atLimit = files.length >= maxFiles;
+  const canAddMore = !atLimit && !fileInputDisabled;
+  const limitLabel =
+    files.length === 0
+      ? `Up to ${maxFiles} file${maxFiles === 1 ? "" : "s"}`
+      : atLimit
+        ? `${maxFiles} of ${maxFiles} files`
+        : `${files.length} of ${maxFiles} files`;
 
   function openFilePicker() {
-    if (fileInputDisabled) return;
+    if (fileInputDisabled || atLimit) return;
     fileInputRef.current?.click();
   }
 
@@ -511,11 +523,17 @@ function FileUploadPanel({
       return;
     }
 
+    const selectedFiles = Array.from(selected);
+    if (files.length + selectedFiles.length > maxFiles) {
+      setError(`You can upload up to ${maxFiles} file${maxFiles === 1 ? "" : "s"} for this step.`);
+      return;
+    }
+
     setUploading(true);
     setError(null);
     try {
       const uploaded = [...files];
-      for (const file of Array.from(selected)) {
+      for (const file of selectedFiles) {
         const meta = await uploadChecklistFile(
           supabase,
           {
@@ -536,6 +554,14 @@ function FileUploadPanel({
     } finally {
       setUploading(false);
     }
+  }
+
+  async function handleRemoveFile(file: ApplicationFileUploadMeta) {
+    if (!isLive || isCompleted) return;
+
+    await removeChecklistFile(supabase, file);
+    setFiles((current) => current.filter((entry) => entry.id !== file.id));
+    setError(null);
   }
 
   async function handleComplete() {
@@ -565,84 +591,126 @@ function FileUploadPanel({
     }
   }
 
+  const hiddenFileInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      multiple={maxFiles > 1}
+      accept={config?.accept}
+      disabled={fileInputDisabled || atLimit}
+      className="hidden"
+      onChange={(event) => {
+        void handleFileSelect(event.target.files);
+        event.target.value = "";
+      }}
+    />
+  );
+
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
         {item.label}
       </h2>
-      <div
-        className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center"
-        style={{
-          borderColor: C.borderStrong,
-          backgroundColor: "#FFFFFF",
-          opacity: fileInputDisabled ? 0.7 : 1,
-        }}
-        onDragOver={(event) => {
-          event.preventDefault();
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          if (fileInputDisabled) return;
-          void handleFileSelect(event.dataTransfer.files);
-        }}
-        onClick={openFilePicker}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            openFilePicker();
-          }
-        }}
-        role="button"
-        tabIndex={fileInputDisabled ? -1 : 0}
-        aria-disabled={fileInputDisabled}
-      >
-        <Upload className="mb-3 h-8 w-8" style={{ color: C.textQuaternary }} />
-        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-          Drop files here or click to upload
-        </p>
-        <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
-          {config?.helpText || "Upload required documents."}
-        </p>
-        {config?.accept ? (
-          <p className="mt-2 text-[11px]" style={{ color: C.textTertiary }}>
-            Accepted: {config.accept}
-          </p>
-        ) : null}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple={Boolean(config?.maxFiles && config.maxFiles > 1)}
-          accept={config?.accept}
-          disabled={fileInputDisabled}
-          className="hidden"
-          onChange={(event) => {
-            void handleFileSelect(event.target.files);
-            event.target.value = "";
-          }}
-          onClick={(event) => event.stopPropagation()}
-        />
-        <button
-          type="button"
-          disabled={fileInputDisabled}
-          onClick={(event) => {
-            event.stopPropagation();
-            openFilePicker();
-          }}
-          className="mt-4 rounded-md px-4 py-2 text-sm font-semibold text-white"
-          style={panelButtonStyle(C, fileInputDisabled)}
-        >
-          {uploading ? "Uploading…" : "Choose files"}
-          {!isLive ? " (preview)" : ""}
-        </button>
-      </div>
 
-      {files.length > 0 ? (
-        <ul className="space-y-2 text-sm" style={{ color: C.textSecondary }}>
-          {files.map((file) => (
-            <li key={file.id}>{file.fileName}</li>
-          ))}
-        </ul>
-      ) : null}
+      {files.length === 0 ? (
+        <div
+          className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center"
+          style={{
+            borderColor: C.borderStrong,
+            backgroundColor: "#FFFFFF",
+            opacity: fileInputDisabled ? 0.7 : 1,
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (fileInputDisabled || atLimit) return;
+            void handleFileSelect(event.dataTransfer.files);
+          }}
+          onClick={openFilePicker}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openFilePicker();
+            }
+          }}
+          role="button"
+          tabIndex={fileInputDisabled ? -1 : 0}
+          aria-disabled={fileInputDisabled}
+        >
+          <Upload className="mb-3 h-8 w-8" style={{ color: C.textQuaternary }} />
+          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+            Drop files here or click to upload
+          </p>
+          <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
+            {config?.helpText || "Upload required documents."}
+          </p>
+          {config?.accept ? (
+            <p className="mt-2 text-[11px]" style={{ color: C.textTertiary }}>
+              Accepted: {config.accept}
+            </p>
+          ) : null}
+          <p className="mt-2 text-[11px] font-medium" style={{ color: C.textSecondary }}>
+            {limitLabel}
+          </p>
+          {hiddenFileInput}
+          <button
+            type="button"
+            disabled={fileInputDisabled}
+            onClick={(event) => {
+              event.stopPropagation();
+              openFilePicker();
+            }}
+            className="mt-4 rounded-md px-4 py-2 text-sm font-semibold text-white"
+            style={panelButtonStyle(C, fileInputDisabled)}
+          >
+            {uploading ? "Uploading…" : "Choose files"}
+            {!isLive ? " (preview)" : ""}
+          </button>
+        </div>
+      ) : (
+        <div
+          className="rounded-lg border px-4 py-4"
+          style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+        >
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+              Uploaded files
+            </p>
+            <p className="text-xs" style={{ color: C.textTertiary }}>
+              {limitLabel}
+              {atLimit ? " · maximum reached" : ""}
+            </p>
+          </div>
+          <ApplicationUploadedFileList
+            files={files}
+            C={C}
+            supabase={supabase}
+            removable={isLive && !isCompleted}
+            onRemove={handleRemoveFile}
+          />
+          {hiddenFileInput}
+          {canAddMore ? (
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={openFilePicker}
+              className="mt-4 rounded-md border px-4 py-2 text-sm font-semibold"
+              style={{
+                borderColor: C.borderStrong,
+                color: C.textPrimary,
+                backgroundColor: C.elevated,
+                opacity: uploading ? 0.7 : 1,
+                cursor: uploading ? "not-allowed" : "pointer",
+              }}
+            >
+              {uploading ? "Uploading…" : "Add another file"}
+              {!isLive ? " (preview)" : ""}
+            </button>
+          ) : null}
+        </div>
+      )}
 
       {error ? (
         <p className="text-sm" style={{ color: C.error }}>
