@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CalendarGrid } from "@/components/scheduler/CalendarGrid";
 import {
@@ -52,6 +52,11 @@ export default function AdmissionsAvailabilityEditor({
 
   const today = todayKeyInTimezone(timezone);
   const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
+  const onMonthSlotCountChangeRef = useRef(onMonthSlotCountChange);
+
+  useEffect(() => {
+    onMonthSlotCountChangeRef.current = onMonthSlotCountChange;
+  }, [onMonthSlotCountChange]);
 
   useEffect(() => {
     if (timezoneProp) {
@@ -96,8 +101,8 @@ export default function AdmissionsAvailabilityEditor({
       end,
     );
     setOpenSlots(slots);
-    onMonthSlotCountChange?.(slots.size);
-  }, [organizationId, onMonthSlotCountChange, supabase, viewMonth, viewYear]);
+    onMonthSlotCountChangeRef.current?.(slots.size);
+  }, [organizationId, supabase, viewMonth, viewYear]);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,7 +202,7 @@ export default function AdmissionsAvailabilityEditor({
         viewYear,
         viewMonth,
       );
-      onMonthSlotCountChange?.(count);
+      onMonthSlotCountChangeRef.current?.(count);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update slot.");
     } finally {

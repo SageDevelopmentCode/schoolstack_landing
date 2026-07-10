@@ -283,6 +283,10 @@ export default function ApplicationFormPostSubmitEditor({
     void refreshCurrentMonthSlotCount();
   }, [refreshCurrentMonthSlotCount]);
 
+  const handleMonthSlotCountChange = useCallback((count: number) => {
+    setMonthSlotCount(count);
+  }, []);
+
   const canAddStep = !readOnly && monthSlotCount !== null && monthSlotCount > 0;
 
   useEffect(() => {
@@ -398,11 +402,10 @@ export default function ApplicationFormPostSubmitEditor({
           <AnimatePresence initial={false}>
             {showAvailability ? (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="overflow-hidden"
               >
                 <div
                   className="rounded-sm border p-4"
@@ -412,9 +415,7 @@ export default function ApplicationFormPostSubmitEditor({
                     C={C}
                     organizationId={organizationId}
                     readOnly={readOnly}
-                    onMonthSlotCountChange={() => {
-                      void refreshCurrentMonthSlotCount();
-                    }}
+                    onMonthSlotCountChange={handleMonthSlotCountChange}
                   />
                 </div>
               </motion.div>
