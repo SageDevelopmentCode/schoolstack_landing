@@ -54,6 +54,42 @@ export type ChecklistAcknowledgmentConfig = {
   options?: ChecklistAcknowledgmentOption[];
 };
 
+/** Agreement variant within a checklist item group (stored in item.metadata.variant). */
+export type ChecklistVariantConfig = {
+  groupId: string;
+  groupLabel: string;
+  variantKey: string;
+  isDefault?: boolean;
+};
+
+export type ChecklistVariantResolution = {
+  templateItemId: string;
+  variantKey: string;
+  resolvedBy: "admin";
+  resolvedAt: string;
+};
+
+export type EnrollmentChecklistMetadata = {
+  variantResolutions?: Record<string, ChecklistVariantResolution>;
+};
+
+export const CHECKLIST_VARIANT_METADATA_KEY = "variant";
+
+export type ChecklistItemInstanceStatus =
+  | "not_started"
+  | "in_progress"
+  | "completed"
+  | "waived";
+
+export type EnrollmentChecklistItemInstance = {
+  id: string;
+  checklistId: string;
+  templateItemId: string;
+  itemKey: string;
+  status: ChecklistItemInstanceStatus;
+  responses: Record<string, unknown>;
+};
+
 export type EnrollmentChecklistItem = {
   id: string;
   itemKey: string;
@@ -89,6 +125,88 @@ export function isInlineAgreementItem(item: EnrollmentChecklistItem): boolean {
     item.type === "document_sign" &&
     (!item.document || item.document.kind === "inline_sections")
   );
+}
+
+export function isAgreementItemType(type: ChecklistItemType): boolean {
+  return type === "document_sign" || type === "document_sign_pdf";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function deriveVariantKey(item: EnrollmentChecklistItem): string {
+  const fromLabel = sanitizeVariantKey(item.label);
+  const idPart = item.id.replace(/-/g, "").slice(0, 8);
+  return fromLabel ? `${fromLabel}_${idPart}` : `option_${idPart}`;
+}
+
+export function getItemVariantConfig(
+  item: EnrollmentChecklistItem,
+): ChecklistVariantConfig | null {
+  const draft = readItemVariantDraft(item);
+  if (!draft) return null;
+  const groupId = draft.groupId.trim();
+  const groupLabel = draft.groupLabel.trim();
+  if (!groupId || !groupLabel || !item.label.trim()) return null;
+  const storedKey = draft.variantKey.trim();
+  const variantKey = storedKey || deriveVariantKey(item);
+  return {
+    groupId,
+    groupLabel,
+    variantKey,
+    ...(draft.isDefault ? { isDefault: true } : {}),
+  };
+}
+
+export type ChecklistVariantDraft = {
+  groupId: string;
+  groupLabel: string;
+  variantKey: string;
+  isDefault?: boolean;
+};
+
+export function hasItemVariantMetadata(item: EnrollmentChecklistItem): boolean {
+  const raw = item.metadata[CHECKLIST_VARIANT_METADATA_KEY];
+  return isRecord(raw);
+}
+
+export function readItemVariantDraft(item: EnrollmentChecklistItem): ChecklistVariantDraft | null {
+  const raw = item.metadata[CHECKLIST_VARIANT_METADATA_KEY];
+  if (!isRecord(raw)) return null;
+  const groupId = typeof raw.groupId === "string" ? raw.groupId : "";
+  if (!groupId.trim()) return null;
+  return {
+    groupId,
+    groupLabel: typeof raw.groupLabel === "string" ? raw.groupLabel : "",
+    variantKey: typeof raw.variantKey === "string" ? raw.variantKey : "",
+    ...(raw.isDefault === true ? { isDefault: true } : {}),
+  };
+}
+
+export function sanitizeVariantKey(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+export function setItemVariantConfig(
+  item: EnrollmentChecklistItem,
+  variant: ChecklistVariantConfig | null,
+): EnrollmentChecklistItem {
+  const metadata = { ...item.metadata };
+  if (variant) {
+    const variantKey = variant.variantKey.trim() || deriveVariantKey(item);
+    metadata[CHECKLIST_VARIANT_METADATA_KEY] = { ...variant, variantKey };
+  } else {
+    delete metadata[CHECKLIST_VARIANT_METADATA_KEY];
+  }
+  return { ...item, metadata };
+}
+
+export function newVariantGroupId(): string {
+  return `vg_${newAdmissionsId().slice(0, 12)}`;
 }
 
 const CHECKLIST_ITEM_ID_PATTERN =

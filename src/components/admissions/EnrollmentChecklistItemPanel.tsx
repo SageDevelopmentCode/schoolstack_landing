@@ -22,6 +22,9 @@ type EnrollmentChecklistItemPanelProps = {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
   mode: "preview" | "live";
+  instanceId?: string;
+  instanceStatus?: string;
+  onComplete?: () => Promise<void> | void;
 };
 
 function panelButtonStyle(C: AdminThemeTokens, disabled: boolean) {
@@ -38,15 +41,23 @@ function DocumentSignInlinePanel({
   C,
   item,
   mode,
+  instanceId,
+  instanceStatus,
+  onComplete,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
   mode: "preview" | "live";
+  instanceId?: string;
+  instanceStatus?: string;
+  onComplete?: () => Promise<void> | void;
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
   const [sectionIndex, setSectionIndex] = useState(0);
   const [signature, setSignature] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const isLive = mode === "live";
+  const isCompleted = instanceStatus === "completed";
   const section = sections[sectionIndex];
   const isLastSection = sectionIndex >= sections.length - 1;
 
@@ -150,17 +161,37 @@ function DocumentSignInlinePanel({
         ) : null}
         <button
           type="button"
-          disabled={isLive && !signature.trim()}
-          onClick={() => {
+          disabled={(isLive && !signature.trim()) || submitting || isCompleted}
+          onClick={async () => {
             if (!isLastSection) {
               setSectionIndex((idx) => idx + 1);
               setSignature("");
+              return;
+            }
+            if (isLive && instanceId && onComplete) {
+              setSubmitting(true);
+              try {
+                await fetch(`/api/admissions/enrollment-checklist-items/${instanceId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ signerName: signature.trim() }),
+                });
+                await onComplete();
+              } finally {
+                setSubmitting(false);
+              }
             }
           }}
           className="ml-auto rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-          style={panelButtonStyle(C, isLive && !signature.trim())}
+          style={panelButtonStyle(C, (isLive && !signature.trim()) || submitting || isCompleted)}
         >
-          {isLastSection ? "Complete agreement" : "Sign & continue"}
+          {isCompleted
+            ? "Completed"
+            : isLastSection
+              ? submitting
+                ? "Saving…"
+                : "Complete agreement"
+              : "Sign & continue"}
           {!isLive ? " (preview)" : ""}
         </button>
       </div>
@@ -172,10 +203,16 @@ function DocumentSignPdfPanel({
   C,
   item,
   mode,
+  instanceId,
+  instanceStatus,
+  onComplete,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
   mode: "preview" | "live";
+  instanceId?: string;
+  instanceStatus?: string;
+  onComplete?: () => Promise<void> | void;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const pdfDocument = item.document?.kind === "pdf" ? item.document : null;
@@ -183,7 +220,9 @@ function DocumentSignPdfPanel({
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [signature, setSignature] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const isLive = mode === "live";
+  const isCompleted = instanceStatus === "completed";
   const requireSignature = pdfDocument?.requireSignature !== false;
 
   useEffect(() => {
@@ -292,11 +331,26 @@ function DocumentSignPdfPanel({
           />
           <button
             type="button"
-            disabled={!isLive || !signature.trim()}
+            disabled={!isLive || !signature.trim() || submitting || isCompleted}
+            onClick={async () => {
+              if (!isLive || !instanceId || !onComplete) return;
+              setSubmitting(true);
+              try {
+                await fetch(`/api/admissions/enrollment-checklist-items/${instanceId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ signerName: signature.trim() }),
+                });
+                await onComplete();
+              } finally {
+                setSubmitting(false);
+              }
+            }}
             className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-            style={panelButtonStyle(C, !isLive || !signature.trim())}
+            style={panelButtonStyle(C, !isLive || !signature.trim() || submitting || isCompleted)}
           >
-            Complete agreement{!isLive ? " (preview)" : ""}
+            {isCompleted ? "Completed" : submitting ? "Saving…" : "Complete agreement"}
+            {!isLive ? " (preview)" : ""}
           </button>
         </div>
       ) : null}
@@ -471,14 +525,22 @@ function AcknowledgmentPanel({
   C,
   item,
   mode,
+  instanceId,
+  instanceStatus,
+  onComplete,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
   mode: "preview" | "live";
+  instanceId?: string;
+  instanceStatus?: string;
+  onComplete?: () => Promise<void> | void;
 }) {
   const isLive = mode === "live";
+  const isCompleted = instanceStatus === "completed";
   const config = item.acknowledgment;
   const [signature, setSignature] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -534,11 +596,26 @@ function AcknowledgmentPanel({
       </div>
       <button
         type="button"
-        disabled={!isLive}
+        disabled={!isLive || !signature.trim() || submitting || isCompleted}
+        onClick={async () => {
+          if (!isLive || !instanceId || !onComplete) return;
+          setSubmitting(true);
+          try {
+            await fetch(`/api/admissions/enrollment-checklist-items/${instanceId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ signerName: signature.trim() }),
+            });
+            await onComplete();
+          } finally {
+            setSubmitting(false);
+          }
+        }}
         className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-        style={panelButtonStyle(C, !isLive)}
+        style={panelButtonStyle(C, !isLive || !signature.trim() || submitting || isCompleted)}
       >
-        Sign acknowledgment{!isLive ? " (preview)" : ""}
+        {isCompleted ? "Completed" : submitting ? "Saving…" : "Sign acknowledgment"}
+        {!isLive ? " (preview)" : ""}
       </button>
     </div>
   );
@@ -548,6 +625,9 @@ export default function EnrollmentChecklistItemPanel({
   C,
   item,
   mode,
+  instanceId,
+  instanceStatus,
+  onComplete,
 }: EnrollmentChecklistItemPanelProps) {
   const content = useMemo(() => {
     if (isPdfAgreementItem(item)) {
@@ -558,7 +638,16 @@ export default function EnrollmentChecklistItemPanel({
           </p>
         );
       }
-      return <DocumentSignPdfPanel C={C} item={item} mode={mode} />;
+      return (
+        <DocumentSignPdfPanel
+          C={C}
+          item={item}
+          mode={mode}
+          instanceId={instanceId}
+          instanceStatus={instanceStatus}
+          onComplete={onComplete}
+        />
+      );
     }
 
     switch (item.type) {
@@ -570,7 +659,16 @@ export default function EnrollmentChecklistItemPanel({
             </p>
           );
         }
-        return <DocumentSignInlinePanel C={C} item={item} mode={mode} />;
+        return (
+          <DocumentSignInlinePanel
+            C={C}
+            item={item}
+            mode={mode}
+            instanceId={instanceId}
+            instanceStatus={instanceStatus}
+            onComplete={onComplete}
+          />
+        );
       case "form":
         return <FormItemPanel C={C} item={item} mode={mode} />;
       case "file_upload":
@@ -578,11 +676,20 @@ export default function EnrollmentChecklistItemPanel({
       case "payment":
         return <PaymentPanel C={C} item={item} mode={mode} />;
       case "acknowledgment":
-        return <AcknowledgmentPanel C={C} item={item} mode={mode} />;
+        return (
+          <AcknowledgmentPanel
+            C={C}
+            item={item}
+            mode={mode}
+            instanceId={instanceId}
+            instanceStatus={instanceStatus}
+            onComplete={onComplete}
+          />
+        );
       default:
         return null;
     }
-  }, [C, item, mode]);
+  }, [C, instanceId, instanceStatus, item, mode, onComplete]);
 
   return <div className="flex h-full min-h-0 flex-col">{content}</div>;
 }

@@ -390,6 +390,7 @@ export default function ApplicationSubmissionsPage({
             schoolName={schoolName}
             schoolSlug={slug}
             onClose={() => setSelectedId(null)}
+            onSubmissionUpdated={loadSubmissions}
           />
         ) : null}
       </AnimatePresence>

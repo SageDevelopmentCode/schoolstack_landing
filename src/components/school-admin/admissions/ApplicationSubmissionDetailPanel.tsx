@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplicationSubmissionPostSubmitSection from "@/components/admissions/ApplicationSubmissionPostSubmitSection";
+import EnrollmentStatusCard from "./EnrollmentStatusCard";
+import StartEnrollmentModal from "./StartEnrollmentModal";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
@@ -15,6 +17,7 @@ import {
   formatSubmissionProgress,
   type AdminApplicationSubmission,
 } from "@/lib/admissions/application-submissions";
+import { getChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import { loadApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -27,6 +30,7 @@ type ApplicationSubmissionDetailPanelProps = {
   schoolName: string;
   schoolSlug: string;
   onClose: () => void;
+  onSubmissionUpdated?: () => void;
 };
 
 export default function ApplicationSubmissionDetailPanel({
@@ -36,12 +40,21 @@ export default function ApplicationSubmissionDetailPanel({
   schoolName,
   schoolSlug,
   onClose,
+  onSubmissionUpdated,
 }: ApplicationSubmissionDetailPanelProps) {
   const C = buildAdminThemeTokens(branding);
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadApplicationDetail>>>(null);
+  const [hasChecklist, setHasChecklist] = useState(false);
+  const [startEnrollmentOpen, setStartEnrollmentOpen] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState(submission.status);
+
+  const loadChecklistState = useCallback(async () => {
+    const checklist = await getChecklistForApplication(supabase, submission.id);
+    setHasChecklist(Boolean(checklist));
+  }, [submission.id, supabase]);
 
   const loadDetail = useCallback(async () => {
     setLoading(true);
@@ -54,22 +67,27 @@ export default function ApplicationSubmissionDetailPanel({
         return;
       }
       setDetail(row);
+      setCurrentStatus(row.status);
+      await loadChecklistState();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load application.");
       setDetail(null);
     } finally {
       setLoading(false);
     }
-  }, [organizationId, submission.id, supabase]);
+  }, [loadChecklistState, organizationId, submission.id, supabase]);
 
   useEffect(() => {
     loadDetail();
   }, [loadDetail]);
 
-  const statusStyle = applicationStatusBadgeStyle(submission.status, C);
+  const statusStyle = applicationStatusBadgeStyle(currentStatus, C);
   const familyLabel =
     submission.guardianName || submission.studentLabel || "Application";
   const contactLabel = submission.contactEmail ?? "No contact email";
+  const canStartEnrollment = currentStatus === "accepted" && !hasChecklist;
+  const showEnrollmentStatus =
+    currentStatus === "enrolling" || hasChecklist;
 
   return (
     <motion.div
@@ -111,7 +129,7 @@ export default function ApplicationSubmissionDetailPanel({
               className="rounded-full px-2 py-0.5 text-[11px] font-medium"
               style={statusStyle}
             >
-              {applicationStatusLabel(submission.status)}
+              {applicationStatusLabel(currentStatus)}
             </span>
           </div>
           <p className="mt-0.5 truncate text-xs" style={{ color: C.textTertiary }}>
@@ -151,6 +169,30 @@ export default function ApplicationSubmissionDetailPanel({
           </p>
         ) : detail ? (
           <>
+            {canStartEnrollment ? (
+              <div className="mb-5">
+                <button
+                  type="button"
+                  onClick={() => setStartEnrollmentOpen(true)}
+                  className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+                  style={{ backgroundColor: C.accent }}
+                >
+                  Start enrollment
+                </button>
+                <p className="mt-2 text-xs" style={{ color: C.textTertiary }}>
+                  Choose the enrollment agreement and send the checklist to the family.
+                </p>
+              </div>
+            ) : null}
+
+            {showEnrollmentStatus ? (
+              <EnrollmentStatusCard
+                C={C}
+                organizationId={organizationId}
+                applicationId={submission.id}
+              />
+            ) : null}
+
             <ApplicationSubmissionPostSubmitSection
               C={C}
               steps={detail.postSubmitSteps}
@@ -180,6 +222,21 @@ export default function ApplicationSubmissionDetailPanel({
         ) : null}
       </div>
       </motion.div>
+
+      <StartEnrollmentModal
+        C={C}
+        open={startEnrollmentOpen}
+        applicationId={submission.id}
+        studentLabel={submission.studentLabel}
+        contactEmail={submission.contactEmail}
+        onClose={() => setStartEnrollmentOpen(false)}
+        onStarted={() => {
+          setCurrentStatus("enrolling");
+          setHasChecklist(true);
+          onSubmissionUpdated?.();
+          void loadDetail();
+        }}
+      />
     </motion.div>
   );
 }

@@ -16,6 +16,8 @@ export const ACTIVITY_ACTIONS = {
   CHECKLIST_SAVED: "checklist.saved",
   CHECKLIST_PUBLISHED: "checklist.published",
   CHECKLIST_UNPUBLISHED: "checklist.unpublished",
+  ENROLLMENT_STARTED: "enrollment.started",
+  ENROLLMENT_CHECKLIST_ITEM_COMPLETED: "enrollment.checklist_item_completed",
   PROGRAM_CREATED: "program.created",
   PROGRAM_UPDATED: "program.updated",
   PROGRAM_DELETED: "program.deleted",

@@ -36,6 +36,8 @@ type EnrollmentChecklistFocusCanvasProps = {
   onDeleteItem: (itemId: string) => void;
   onPreviewItem: (itemId: string) => void;
   onOpenPicker: () => void;
+  onAddVariant?: (itemId: string) => void;
+  onSetDefaultVariant?: (itemId: string) => void;
 };
 
 function ItemView({
@@ -48,6 +50,9 @@ function ItemView({
   readOnly,
   onUpdateItem,
   onFocusChange,
+  onAddVariant,
+  onSetDefaultVariant,
+  allItems,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
@@ -58,6 +63,9 @@ function ItemView({
   readOnly?: boolean;
   onUpdateItem: (item: EnrollmentChecklistItem) => void;
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
+  onAddVariant?: (itemId: string) => void;
+  onSetDefaultVariant?: (itemId: string) => void;
+  allItems: EnrollmentChecklistItem[];
 }) {
   return (
     <EnrollmentChecklistItemEditor
@@ -72,6 +80,11 @@ function ItemView({
       onSelectField={(fieldId) =>
         onFocusChange({ kind: "field", itemId: item.id, fieldId })
       }
+      onAddVariant={onAddVariant ? () => onAddVariant(item.id) : undefined}
+      onSetDefaultVariant={
+        onSetDefaultVariant ? () => onSetDefaultVariant(item.id) : undefined
+      }
+      allItems={allItems}
     />
   );
 }
@@ -148,6 +161,8 @@ export default function EnrollmentChecklistFocusCanvas({
   onDeleteItem,
   onPreviewItem,
   onOpenPicker,
+  onAddVariant,
+  onSetDefaultVariant,
 }: EnrollmentChecklistFocusCanvasProps) {
   const [pendingDeleteItemId, setPendingDeleteItemId] = useState<string | null>(null);
   const [pendingDeleteField, setPendingDeleteField] = useState<{
@@ -255,6 +270,9 @@ export default function EnrollmentChecklistFocusCanvas({
                   readOnly={readOnly}
                   onUpdateItem={onUpdateItem}
                   onFocusChange={onFocusChange}
+                  onAddVariant={onAddVariant}
+                  onSetDefaultVariant={onSetDefaultVariant}
+                  allItems={items}
                 />
               )}
 

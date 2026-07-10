@@ -13,7 +13,11 @@ import {
 } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import EnrollmentChecklistItemPanel from "@/components/admissions/EnrollmentChecklistItemPanel";
-import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
+import type {
+  EnrollmentChecklistItem,
+  EnrollmentChecklistItemInstance,
+} from "@/lib/admissions/enrollment-checklist-schema";
+import { computeChecklistProgress } from "@/lib/admissions/enrollment-checklist-materialization";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -24,6 +28,8 @@ export type EnrollmentChecklistExperienceProps = {
   items: EnrollmentChecklistItem[];
   mode?: "preview" | "live";
   initialItemId?: string;
+  instances?: EnrollmentChecklistItemInstance[];
+  onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
 };
 
 const panelTransition = {
@@ -68,19 +74,44 @@ export default function EnrollmentChecklistExperience({
   items,
   mode = "preview",
   initialItemId,
+  instances = [],
+  onInstancesChange,
 }: EnrollmentChecklistExperienceProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
   const [activeItemId, setActiveItemId] = useState<string | null>(() =>
     resolveInitialItemId(items, initialItemId),
   );
+  const [localInstances, setLocalInstances] = useState(instances);
+
+  useEffect(() => {
+    setLocalInstances(instances);
+  }, [instances]);
 
   useEffect(() => {
     setActiveItemId(resolveInitialItemId(items, initialItemId));
   }, [items, initialItemId]);
 
+  const instanceByTemplateId = useMemo(
+    () => new Map(localInstances.map((instance) => [instance.templateItemId, instance])),
+    [localInstances],
+  );
+
   const requiredItems = items.filter((item) => item.required);
+  const progress = computeChecklistProgress(items, localInstances);
   const activeItem = items.find((item) => item.id === activeItemId) ?? null;
+  const activeInstance = activeItem ? instanceByTemplateId.get(activeItem.id) : undefined;
+
+  const handleComplete = async () => {
+    if (!activeItem || !activeInstance) return;
+    const nextInstances = localInstances.map((instance) =>
+      instance.id === activeInstance.id
+        ? { ...instance, status: "completed" as const }
+        : instance,
+    );
+    setLocalInstances(nextInstances);
+    onInstancesChange?.(nextInstances);
+  };
 
   if (items.length === 0) {
     return (
@@ -97,6 +128,9 @@ export default function EnrollmentChecklistExperience({
       </div>
     );
   }
+
+  const progressPct =
+    progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
   return (
     <div
@@ -135,11 +169,14 @@ export default function EnrollmentChecklistExperience({
                 Progress
               </p>
               <span className="text-xs" style={{ color: C.textTertiary }}>
-                0/{requiredItems.length}
+                {progress.completed}/{progress.total}
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: C.border }}>
-              <div className="h-full w-0 rounded-full" style={{ backgroundColor: C.accent }} />
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ backgroundColor: C.accent, width: `${progressPct}%` }}
+              />
             </div>
           </div>
 
@@ -147,6 +184,8 @@ export default function EnrollmentChecklistExperience({
             {items.map((item) => {
               const Icon = itemIcon(item.type);
               const isActive = item.id === activeItemId;
+              const instance = instanceByTemplateId.get(item.id);
+              const isComplete = instance?.status === "completed";
               return (
                 <button
                   key={item.id}
@@ -179,7 +218,7 @@ export default function EnrollmentChecklistExperience({
                     ) : null}
                   </div>
                   <Check
-                    className="h-3.5 w-3.5 shrink-0 opacity-0"
+                    className={`h-3.5 w-3.5 shrink-0 ${isComplete ? "opacity-100" : "opacity-0"}`}
                     style={{ color: C.success }}
                   />
                 </button>
@@ -197,7 +236,14 @@ export default function EnrollmentChecklistExperience({
                   className="mx-auto h-full max-w-3xl"
                   {...panelTransition}
                 >
-                  <EnrollmentChecklistItemPanel C={C} item={activeItem} mode={mode} />
+                  <EnrollmentChecklistItemPanel
+                    C={C}
+                    item={activeItem}
+                    mode={mode}
+                    instanceId={activeInstance?.id}
+                    instanceStatus={activeInstance?.status}
+                    onComplete={mode === "live" ? handleComplete : undefined}
+                  />
                 </motion.div>
               ) : null}
             </AnimatePresence>

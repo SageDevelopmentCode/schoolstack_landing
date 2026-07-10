@@ -44,6 +44,13 @@ function applicationAction(
     };
   }
 
+  if (application.status === "enrolling") {
+    return {
+      label: "Complete enrollment",
+      href: `/school/${schoolSlug}/apply/${application.id}/enrollment`,
+    };
+  }
+
   return {
     label: "View",
     href: `/school/${schoolSlug}/apply/${application.id}`,
@@ -179,8 +186,14 @@ export default function ApplyDashboard({
                       ) : null}
                       {application.status === "accepted" ? (
                         <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
-                          Congratulations — your application was accepted. The school will complete
-                          enrollment before your parent portal opens.
+                          Congratulations — your application was accepted. The school will
+                          start your enrollment checklist soon.
+                        </p>
+                      ) : null}
+                      {application.status === "enrolling" ? (
+                        <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
+                          Your enrollment checklist is ready. Complete the remaining steps to
+                          finish enrollment.
                         </p>
                       ) : null}
                     </div>

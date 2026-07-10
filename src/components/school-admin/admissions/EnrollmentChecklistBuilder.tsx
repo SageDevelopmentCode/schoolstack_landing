@@ -4,11 +4,22 @@ import { useState } from "react";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import {
   createBlankChecklistItem,
+  createChecklistItemKeyForItem,
+  deriveVariantKey,
+  newChecklistItemId,
+  readItemVariantDraft,
+  setItemVariantConfig,
   type ChecklistItemType,
   type EnrollmentChecklistItem,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { ChecklistItemTemplateId } from "@/lib/admissions/enrollment-checklist-item-templates";
 import { createItemFromTemplate } from "@/lib/admissions/enrollment-checklist-item-templates";
+import {
+  buildDefaultResolutions,
+  buildVariantResolutions,
+  getVariantGroups,
+  resolveVisibleTemplateItems,
+} from "@/lib/admissions/enrollment-checklist-variants";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
@@ -100,7 +111,99 @@ export default function EnrollmentChecklistBuilder({
 
   const updateItem = (updated: EnrollmentChecklistItem) => {
     if (readOnly) return;
-    onItemsChange(items.map((item) => (item.id === updated.id ? updated : item)));
+    const draft = readItemVariantDraft(updated);
+    let nextUpdated = updated;
+
+    if (draft) {
+      const prev = items.find((item) => item.id === updated.id);
+      if (prev && prev.label !== updated.label) {
+        nextUpdated = setItemVariantConfig(updated, {
+          ...draft,
+          variantKey: deriveVariantKey(updated),
+        });
+      }
+    }
+
+    let nextItems = items.map((item) => {
+      if (item.id !== nextUpdated.id) return item;
+      return nextUpdated;
+    });
+
+    if (draft) {
+      const syncedDraft = readItemVariantDraft(nextUpdated);
+      if (syncedDraft) {
+        nextItems = nextItems.map((item) => {
+          if (item.id === nextUpdated.id) return item;
+          const itemDraft = readItemVariantDraft(item);
+          if (itemDraft?.groupId !== syncedDraft.groupId) return item;
+          return setItemVariantConfig(item, {
+            ...itemDraft,
+            groupLabel: syncedDraft.groupLabel,
+          });
+        });
+      }
+    }
+
+    onItemsChange(nextItems);
+  };
+
+  const addVariantSibling = (sourceItemId: string) => {
+    if (readOnly) return;
+    const source = items.find((item) => item.id === sourceItemId);
+    if (!source) return;
+    const sourceDraft = readItemVariantDraft(source);
+    if (!sourceDraft) return;
+
+    const sourceIdx = items.findIndex((item) => item.id === sourceItemId);
+    const lastSiblingIdx = items.reduce((maxIdx, item, idx) => {
+      const draft = readItemVariantDraft(item);
+      return draft?.groupId === sourceDraft.groupId ? idx : maxIdx;
+    }, sourceIdx);
+
+    const siblingCount = items.filter((item) => {
+      const draft = readItemVariantDraft(item);
+      return draft?.groupId === sourceDraft.groupId;
+    }).length;
+
+    const id = newChecklistItemId();
+    const label = `Option ${siblingCount + 1}`;
+    const blank = createBlankChecklistItem(source.type, label);
+    const sibling: EnrollmentChecklistItem = {
+      ...blank,
+      id,
+      itemKey: createChecklistItemKeyForItem(label, id),
+      label,
+      required: source.required,
+      metadata: {},
+    };
+    const withVariant = setItemVariantConfig(sibling, {
+      groupId: sourceDraft.groupId,
+      groupLabel: sourceDraft.groupLabel,
+      variantKey: deriveVariantKey(sibling),
+      isDefault: false,
+    });
+
+    const next = [...items];
+    next.splice(lastSiblingIdx + 1, 0, withVariant);
+    onItemsChange(next);
+    setFocus({ kind: "item", itemId: withVariant.id });
+  };
+
+  const setDefaultVariantOption = (itemId: string) => {
+    if (readOnly) return;
+    const target = items.find((item) => item.id === itemId);
+    const draft = target ? readItemVariantDraft(target) : null;
+    if (!draft) return;
+
+    const nextItems = items.map((item) => {
+      const itemDraft = readItemVariantDraft(item);
+      if (itemDraft?.groupId !== draft.groupId) return item;
+      return setItemVariantConfig(item, {
+        ...itemDraft,
+        isDefault: item.id === itemId,
+      });
+    });
+    onItemsChange(nextItems);
   };
 
   const requestDeleteItem = (itemId: string) => {
@@ -121,6 +224,22 @@ export default function EnrollmentChecklistBuilder({
     setPreviewOpen(true);
   };
 
+  const groups = getVariantGroups(items);
+  const resolutionMap = buildDefaultResolutions(groups);
+  if (previewInitialItemId) {
+    const clickedItem = items.find((item) => item.id === previewInitialItemId);
+    const clickedDraft = clickedItem ? readItemVariantDraft(clickedItem) : null;
+    if (clickedDraft) {
+      resolutionMap[clickedDraft.groupId] = previewInitialItemId;
+    }
+  }
+  const defaultResolutions = buildVariantResolutions(
+    items,
+    resolutionMap,
+    new Date().toISOString(),
+  );
+  const previewItems = resolveVisibleTemplateItems(items, defaultResolutions);
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <EnrollmentChecklistFocusCanvas
@@ -137,6 +256,8 @@ export default function EnrollmentChecklistBuilder({
         onDeleteItem={requestDeleteItem}
         onPreviewItem={(itemId) => openPreview(itemId)}
         onOpenPicker={() => setPickerOpen(true)}
+        onAddVariant={addVariantSibling}
+        onSetDefaultVariant={setDefaultVariantOption}
       />
 
       <EnrollmentChecklistPreview
@@ -147,7 +268,7 @@ export default function EnrollmentChecklistBuilder({
         slug={orgSlug}
         enrollmentPath={template.enrollmentPath}
         title={template.name}
-        items={items}
+        items={previewItems}
         initialItemId={previewInitialItemId}
       />
 

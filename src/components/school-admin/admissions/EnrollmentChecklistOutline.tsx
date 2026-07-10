@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Check, Eye, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, ChevronRight, Eye, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
+import { getItemVariantConfig } from "@/lib/admissions/enrollment-checklist-schema";
+import { buildChecklistOutlineEntries } from "@/lib/admissions/enrollment-checklist-variants";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ChecklistBuilderFocus } from "./checklist-builder-focus";
 
@@ -47,6 +49,9 @@ function ChecklistOutlineRow({
   readOnly,
   isEditing,
   draftLabel,
+  indent = false,
+  variantBadge,
+  variantOptionPrefix,
   onSelect,
   onStartEdit,
   onDraftChange,
@@ -62,6 +67,9 @@ function ChecklistOutlineRow({
   readOnly?: boolean;
   isEditing: boolean;
   draftLabel: string;
+  indent?: boolean;
+  variantBadge?: string;
+  variantOptionPrefix?: string;
   onSelect: () => void;
   onStartEdit: () => void;
   onDraftChange: (label: string) => void;
@@ -86,15 +94,25 @@ function ChecklistOutlineRow({
         style={{
           backgroundColor: C.accentLight,
           borderLeft: `2px solid ${C.accent}`,
+          paddingLeft: indent ? "1.5rem" : undefined,
         }}
       >
         <div className="flex items-center gap-1">
-          <span
-            className="shrink-0 tabular-nums text-[10px] font-medium"
-            style={{ color: C.accent }}
-          >
-            {itemIdx + 1}.
-          </span>
+          {!indent ? (
+            <span
+              className="shrink-0 tabular-nums text-[10px] font-medium"
+              style={{ color: C.accent }}
+            >
+              {itemIdx + 1}.
+            </span>
+          ) : variantOptionPrefix ? (
+            <span
+              className="shrink-0 tabular-nums text-[10px] font-medium"
+              style={{ color: C.textTertiary }}
+            >
+              {variantOptionPrefix}.
+            </span>
+          ) : null}
           <input
             ref={inputRef}
             type="text"
@@ -149,21 +167,43 @@ function ChecklistOutlineRow({
       style={{
         backgroundColor: active ? C.accentLight : "transparent",
         borderLeft: active ? `2px solid ${C.accent}` : "2px solid transparent",
+        paddingLeft: indent ? "1.5rem" : undefined,
       }}
     >
       <button
         type="button"
         onClick={onSelect}
-        className="min-w-0 flex-1 flex items-center gap-2 px-3 py-2 text-left text-xs"
-        style={{ color: active ? C.accent : C.textPrimary }}
+        className="min-w-0 flex-1 flex items-center gap-2 py-2 text-left text-xs"
+        style={{
+          color: active ? C.accent : C.textPrimary,
+          paddingLeft: indent ? "0.75rem" : "0.75rem",
+          paddingRight: "0.25rem",
+        }}
       >
-        <span
-          className="shrink-0 tabular-nums font-medium"
-          style={{ color: active ? C.accent : C.textTertiary }}
-        >
-          {itemIdx + 1}.
-        </span>
+        {indent && variantOptionPrefix ? (
+          <span
+            className="shrink-0 tabular-nums text-[10px] font-medium"
+            style={{ color: active ? C.accent : C.textTertiary }}
+          >
+            {variantOptionPrefix}.
+          </span>
+        ) : !indent ? (
+          <span
+            className="shrink-0 tabular-nums font-medium"
+            style={{ color: active ? C.accent : C.textTertiary }}
+          >
+            {itemIdx + 1}.
+          </span>
+        ) : null}
         <span className="min-w-0 truncate font-medium">{item.label}</span>
+        {variantBadge ? (
+          <span
+            className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium uppercase"
+            style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+          >
+            {variantBadge}
+          </span>
+        ) : null}
       </button>
       <div className="flex shrink-0 items-center gap-0.5 pr-2">
         <button
@@ -226,6 +266,8 @@ export default function EnrollmentChecklistOutline({
   onRequestDeleteItem,
   onOpenPicker,
 }: EnrollmentChecklistOutlineProps) {
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
   const isItemActive = (itemId: string) =>
     focus?.kind === "item"
       ? focus.itemId === itemId
@@ -244,6 +286,8 @@ export default function EnrollmentChecklistOutline({
     onEditingItemIdChange(null);
   };
 
+  const entries = buildChecklistOutlineEntries(items);
+
   return (
     <div
       className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r"
@@ -252,34 +296,137 @@ export default function EnrollmentChecklistOutline({
       <div className="flex-1 overflow-y-auto">
         <OutlineSectionLabel C={C}>Checklist items</OutlineSectionLabel>
 
-        {items.length === 0 ? (
+        {entries.length === 0 ? (
           <p className="px-3 py-2 text-[11px]" style={{ color: C.textTertiary }}>
             No items yet
           </p>
         ) : (
-          items.map((item, itemIdx) => (
-            <ChecklistOutlineRow
-              key={item.id}
-              C={C}
-              item={item}
-              itemIdx={itemIdx}
-              active={isItemActive(item.id)}
-              readOnly={readOnly}
-              isEditing={editingItemId === item.id}
-              draftLabel={editingDraftLabel}
-              onSelect={() => onFocusChange({ kind: "item", itemId: item.id })}
-              onStartEdit={() => {
-                onFocusChange({ kind: "item", itemId: item.id });
-                onEditingDraftLabelChange(item.label);
-                onEditingItemIdChange(item.id);
-              }}
-              onDraftChange={onEditingDraftLabelChange}
-              onCommitEdit={() => commitEdit(item)}
-              onCancelEdit={() => cancelEdit(item)}
-              onPreview={() => onPreviewItem(item.id)}
-              onRemove={() => onRequestDeleteItem(item.id)}
-            />
-          ))
+          entries.map((entry) => {
+            if (entry.kind === "item") {
+              const { item, itemIdx } = entry;
+              return (
+                <ChecklistOutlineRow
+                  key={item.id}
+                  C={C}
+                  item={item}
+                  itemIdx={itemIdx}
+                  active={isItemActive(item.id)}
+                  readOnly={readOnly}
+                  isEditing={editingItemId === item.id}
+                  draftLabel={editingDraftLabel}
+                  onSelect={() => onFocusChange({ kind: "item", itemId: item.id })}
+                  onStartEdit={() => {
+                    onFocusChange({ kind: "item", itemId: item.id });
+                    onEditingDraftLabelChange(item.label);
+                    onEditingItemIdChange(item.id);
+                  }}
+                  onDraftChange={onEditingDraftLabelChange}
+                  onCommitEdit={() => commitEdit(item)}
+                  onCancelEdit={() => cancelEdit(item)}
+                  onPreview={() => onPreviewItem(item.id)}
+                  onRemove={() => onRequestDeleteItem(item.id)}
+                />
+              );
+            }
+
+            const { group, itemIdx } = entry;
+            const expanded = expandedGroups[group.groupId] ?? true;
+            const groupActive = group.variants.some((variant) => isItemActive(variant.id));
+
+            return (
+              <div key={group.groupId}>
+                <div
+                  className="group flex items-center gap-0.5"
+                  style={{
+                    backgroundColor: groupActive ? C.accentLight : "transparent",
+                    borderLeft: groupActive
+                      ? `2px solid ${C.accent}`
+                      : "2px solid transparent",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedGroups((prev) => ({
+                        ...prev,
+                        [group.groupId]: !expanded,
+                      }))
+                    }
+                    className="shrink-0 px-2 py-2"
+                    style={{ color: C.textTertiary }}
+                    aria-label={expanded ? "Collapse variants" : "Expand variants"}
+                  >
+                    {expanded ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                  </button>
+                  <div className="min-w-0 flex-1 py-2 pr-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate font-medium" style={{ color: C.textPrimary }}>
+                        <span
+                          className="mr-1.5 tabular-nums font-medium"
+                          style={{ color: C.textTertiary }}
+                        >
+                          {itemIdx + 1}.
+                        </span>
+                        {group.groupLabel}
+                      </p>
+                      {group.needsSetup ? (
+                        <span
+                          className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium uppercase"
+                          style={{ backgroundColor: C.warningBg, color: C.warning }}
+                        >
+                          needs setup
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 text-[10px]" style={{ color: C.textTertiary }}>
+                      {group.variants.length} agreement option
+                      {group.variants.length === 1 ? "" : "s"} · staff picks one per student
+                    </p>
+                  </div>
+                </div>
+
+                {expanded
+                  ? group.variants.map((item, variantIdx) => {
+                      const variant = getItemVariantConfig(item);
+                      const badge = variant?.isDefault ? "default" : undefined;
+                      const optionPrefix = String.fromCharCode(97 + variantIdx);
+                      return (
+                        <ChecklistOutlineRow
+                          key={item.id}
+                          C={C}
+                          item={item}
+                          itemIdx={itemIdx}
+                          indent
+                          active={isItemActive(item.id)}
+                          readOnly={readOnly}
+                          isEditing={editingItemId === item.id}
+                          draftLabel={editingDraftLabel}
+                          variantBadge={badge}
+                          variantOptionPrefix={optionPrefix}
+                          onSelect={() =>
+                            onFocusChange({ kind: "item", itemId: item.id })
+                          }
+                          onStartEdit={() => {
+                            onFocusChange({ kind: "item", itemId: item.id });
+                            onEditingDraftLabelChange(item.label);
+                            onEditingItemIdChange(item.id);
+                          }}
+                          onDraftChange={onEditingDraftLabelChange}
+                          onCommitEdit={() => commitEdit(item)}
+                          onCancelEdit={() => cancelEdit(item)}
+                          onPreview={() => onPreviewItem(item.id)}
+                          onRemove={() => onRequestDeleteItem(item.id)}
+                        />
+                      );
+                    })
+                  : null}
+              </div>
+            );
+          })
         )}
 
         {!readOnly ? (

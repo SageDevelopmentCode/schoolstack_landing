@@ -10,6 +10,7 @@ export const APPLICATION_STATUS_FILTER_ORDER = [
   "under_review",
   "observation",
   "accepted",
+  "enrolling",
   "declined",
   "withdrawn",
 ] as const;
@@ -25,6 +26,8 @@ export function applicationStatusBadgeStyle(
   switch (status) {
     case "accepted":
       return { backgroundColor: C.successBg, color: C.success };
+    case "enrolling":
+      return { backgroundColor: C.infoBg, color: C.info };
     case "declined":
     case "withdrawn":
       return { backgroundColor: C.errorBg, color: C.error };

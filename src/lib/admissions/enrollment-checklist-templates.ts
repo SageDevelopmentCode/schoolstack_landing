@@ -280,3 +280,22 @@ export async function unpublishEnrollmentChecklistTemplate(
 
   return unpublished;
 }
+
+export async function getPublishedEnrollmentChecklistForProgram(
+  supabase: SupabaseClient,
+  organizationId: string,
+  programId: string,
+) {
+  const { data, error } = await supabase
+    .from("enrollment_checklist_templates")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("program_id", programId)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return getEnrollmentChecklistWithItems(supabase, String(data.id));
+}

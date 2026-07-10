@@ -17,6 +17,7 @@ import {
   isChecklistItemId,
   newChecklistItemId,
 } from "./enrollment-checklist-schema";
+import { validateVariantGroups } from "./enrollment-checklist-variants";
 
 const METADATA_DOCUMENT_TEMPLATE_ID = "documentTemplateId";
 const METADATA_FEE_DEFINITION_ID = "feeDefinitionId";
@@ -428,6 +429,8 @@ export function validateEnrollmentChecklistItems(
         break;
     }
   }
+
+  errors.push(...validateVariantGroups(items));
 
   return errors;
 }
