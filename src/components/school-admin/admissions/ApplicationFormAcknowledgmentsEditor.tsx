@@ -6,6 +6,7 @@ import {
   type ApplicationAcknowledgment,
 } from "@/lib/admissions/application-form-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { BuilderQuestionCard } from "./builder-question-card";
 
 type ApplicationFormAcknowledgmentsEditorProps = {
   C: AdminThemeTokens;
@@ -53,19 +54,8 @@ export default function ApplicationFormAcknowledgmentsEditor({
     ]);
   };
 
-  return (
-    <div className="space-y-4">
-      {!hideHeader && (
-        <div>
-          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            Parent acknowledgments
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-            Checkbox statements families must confirm before submitting.
-          </p>
-        </div>
-      )}
-
+  const editorBody = (
+    <>
       {acknowledgments.length === 0 ? (
         <p className="text-sm" style={{ color: C.textTertiary }}>
           No acknowledgments yet.
@@ -87,7 +77,7 @@ export default function ApplicationFormAcknowledgmentsEditor({
                 onChange={(e) => updateAck(ack.id, e.target.value)}
                 style={{ ...inputStyle, resize: "vertical" }}
               />
-              {!readOnly && (
+              {!readOnly ? (
                 <button
                   type="button"
                   onClick={() => removeAck(ack.id)}
@@ -96,13 +86,13 @@ export default function ApplicationFormAcknowledgmentsEditor({
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-              )}
+              ) : null}
             </div>
           ))}
         </div>
       )}
 
-      {!readOnly && (
+      {!readOnly ? (
         <button
           type="button"
           onClick={addAck}
@@ -116,7 +106,34 @@ export default function ApplicationFormAcknowledgmentsEditor({
           <Plus className="h-3.5 w-3.5" />
           Add acknowledgment
         </button>
-      )}
+      ) : null}
+    </>
+  );
+
+  if (hideHeader) {
+    return (
+      <BuilderQuestionCard
+        C={C}
+        tone="accent"
+        question="What must families agree to before they submit?"
+        helper="Each item appears as a checkbox on the final review screen."
+      >
+        <div className="space-y-4">{editorBody}</div>
+      </BuilderQuestionCard>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+          Parent acknowledgments
+        </p>
+        <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+          Checkbox statements families must confirm before submitting.
+        </p>
+      </div>
+      {editorBody}
     </div>
   );
 }

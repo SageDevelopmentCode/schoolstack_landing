@@ -34,6 +34,7 @@ import {
 } from "@/lib/admissions/admissions-availability";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
+import { BuilderQuestionCard } from "./builder-question-card";
 
 type ApplicationFormPostSubmitEditorProps = {
   C: AdminThemeTokens;
@@ -346,74 +347,90 @@ export default function ApplicationFormPostSubmitEditor({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        {!readOnly ? (
-          <button
-            type="button"
-            onClick={() => setShowAvailability((open) => !open)}
-            className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium"
-            style={{
-              backgroundColor: showAvailability ? C.accentLight : C.surface,
-              color: C.accent,
-              border: `1px solid ${C.secondaryBtnBorder}`,
-            }}
-          >
-            <CalendarClock className="h-3.5 w-3.5" />
-            {showAvailability ? "Hide availability" : "Set availability"}
-          </button>
-        ) : null}
-        {monthSlotCount !== null && monthSlotCount > 0 ? (
-          <span
-            className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
-          >
-            {monthSlotCount} open slot{monthSlotCount === 1 ? "" : "s"} this month
-          </span>
-        ) : null}
-        {monthSlotCount === 0 ? (
-          <span
-            className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-            style={{ backgroundColor: C.warningBg, color: C.warning }}
-          >
-            No open slots this month
-          </span>
-        ) : null}
-      </div>
-
-      {monthSlotCount === 0 ? (
-        <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
-          Open at least one visit time this month before adding a scheduling step.
-        </p>
-      ) : null}
-
-      <AnimatePresence initial={false}>
-        {showAvailability ? (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.15 }}
-            className="overflow-hidden"
-          >
-            <div
-              className="rounded-sm border p-4"
-              style={{ borderColor: C.border, backgroundColor: C.elevated }}
-            >
-              <AdmissionsAvailabilityEditor
-                C={C}
-                organizationId={organizationId}
-                readOnly={readOnly}
-                onMonthSlotCountChange={() => {
-                  void refreshCurrentMonthSlotCount();
+    <div className="space-y-5">
+      <BuilderQuestionCard
+        C={C}
+        tone="info"
+        question="When are you available for visits?"
+        helper="Set open times so families can schedule visits after they apply."
+      >
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {!readOnly ? (
+              <button
+                type="button"
+                onClick={() => setShowAvailability((open) => !open)}
+                className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+                style={{
+                  backgroundColor: showAvailability ? C.accentLight : C.surface,
+                  color: C.accent,
+                  border: `1px solid ${C.secondaryBtnBorder}`,
                 }}
-              />
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+              >
+                <CalendarClock className="h-3.5 w-3.5" />
+                {showAvailability ? "Hide availability" : "Set availability"}
+              </button>
+            ) : null}
+            {monthSlotCount !== null && monthSlotCount > 0 ? (
+              <span
+                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                style={{ backgroundColor: C.accentLight, color: C.accent }}
+              >
+                {monthSlotCount} open slot{monthSlotCount === 1 ? "" : "s"} this month
+              </span>
+            ) : null}
+            {monthSlotCount === 0 ? (
+              <span
+                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                style={{ backgroundColor: C.warningBg, color: C.warning }}
+              >
+                No open slots this month
+              </span>
+            ) : null}
+          </div>
 
-      <Reorder.Group
+          {monthSlotCount === 0 ? (
+            <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+              Open at least one visit time this month before adding a scheduling step.
+            </p>
+          ) : null}
+
+          <AnimatePresence initial={false}>
+            {showAvailability ? (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.15 }}
+                className="overflow-hidden"
+              >
+                <div
+                  className="rounded-sm border p-4"
+                  style={{ borderColor: C.border, backgroundColor: C.elevated }}
+                >
+                  <AdmissionsAvailabilityEditor
+                    C={C}
+                    organizationId={organizationId}
+                    readOnly={readOnly}
+                    onMonthSlotCountChange={() => {
+                      void refreshCurrentMonthSlotCount();
+                    }}
+                  />
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
+      </BuilderQuestionCard>
+
+      <BuilderQuestionCard
+        C={C}
+        tone="success"
+        question="What should families do after they submit?"
+        helper="These tasks appear on the family's apply dashboard after submission."
+      >
+        <div className="space-y-4">
+          <Reorder.Group
         axis="y"
         values={postSubmitConfig.actions}
         onReorder={handleReorder}
@@ -561,6 +578,8 @@ export default function ApplicationFormPostSubmitEditor({
           Add step
         </button>
       ) : null}
+        </div>
+      </BuilderQuestionCard>
 
       <ConfirmDialog
         C={C}

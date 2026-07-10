@@ -12,6 +12,7 @@ import {
   fieldFromPreset,
 } from "@/lib/admissions/field-presets";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { BuilderQuestionCard } from "./builder-question-card";
 
 type ApplicationFormFieldEditorProps = {
   C: AdminThemeTokens;
@@ -35,20 +36,6 @@ function controlStyle(C: AdminThemeTokens): React.CSSProperties {
   };
 }
 
-function FieldLabel({
-  children,
-  C,
-}: {
-  children: React.ReactNode;
-  C: AdminThemeTokens;
-}) {
-  return (
-    <label className="mb-1.5 block text-sm font-medium" style={{ color: C.textPrimary }}>
-      {children}
-    </label>
-  );
-}
-
 export default function ApplicationFormFieldEditor({
   C,
   field,
@@ -61,8 +48,12 @@ export default function ApplicationFormFieldEditor({
 
   return (
     <div className="space-y-5">
-      <div>
-        <FieldLabel C={C}>Question label</FieldLabel>
+      <BuilderQuestionCard
+        C={C}
+        tone="accent"
+        question="What question do you want families to answer?"
+        helper="This is the label families see above the answer field."
+      >
         <input
           type="text"
           value={field.label}
@@ -71,10 +62,14 @@ export default function ApplicationFormFieldEditor({
           placeholder="What families see on the form"
           style={style}
         />
-      </div>
+      </BuilderQuestionCard>
 
-      <div>
-        <FieldLabel C={C}>Answer type</FieldLabel>
+      <BuilderQuestionCard
+        C={C}
+        tone="clay"
+        question="How should they answer?"
+        helper="Choose the input type that best fits this question."
+      >
         <div className="relative">
           <select
             value={field.type}
@@ -95,10 +90,14 @@ export default function ApplicationFormFieldEditor({
             style={{ color: C.textQuaternary }}
           />
         </div>
-      </div>
+      </BuilderQuestionCard>
 
-      <div>
-        <FieldLabel C={C}>Required?</FieldLabel>
+      <BuilderQuestionCard
+        C={C}
+        tone="info"
+        question="Is an answer required?"
+        helper="Required questions must be answered before families can continue."
+      >
         <div
           className="flex gap-1 rounded-lg border p-1"
           style={{ borderColor: C.border, backgroundColor: C.bg }}
@@ -128,14 +127,18 @@ export default function ApplicationFormFieldEditor({
             Required
           </button>
         </div>
-      </div>
+      </BuilderQuestionCard>
 
       {(field.type === "text" ||
         field.type === "email" ||
         field.type === "tel" ||
         field.type === "textarea") && (
-        <div>
-          <FieldLabel C={C}>Placeholder</FieldLabel>
+        <BuilderQuestionCard
+          C={C}
+          tone="clay"
+          question="Any placeholder or hint text?"
+          helper="Optional text shown inside the empty field."
+        >
           <input
             type="text"
             value={field.placeholder ?? ""}
@@ -144,60 +147,16 @@ export default function ApplicationFormFieldEditor({
             placeholder="Optional hint text inside the field"
             style={style}
           />
-        </div>
-      )}
-
-      {field.type === "file" && (
-        <>
-          <div>
-            <FieldLabel C={C}>Help text</FieldLabel>
-            <input
-              type="text"
-              value={field.helpText ?? ""}
-              disabled={readOnly}
-              onChange={(e) => onChange({ helpText: e.target.value })}
-              placeholder="e.g. Upload up to 5 files"
-              style={style}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <FieldLabel C={C}>Max files</FieldLabel>
-              <input
-                type="number"
-                min={1}
-                max={10}
-                value={field.maxFiles ?? 5}
-                disabled={readOnly}
-                onChange={(e) =>
-                  onChange({
-                    maxFiles: Math.max(1, Number(e.target.value) || 1),
-                  })
-                }
-                style={style}
-              />
-            </div>
-            <div>
-              <FieldLabel C={C}>Accepted types</FieldLabel>
-              <input
-                type="text"
-                value={field.accept ?? ".pdf,.jpg,.jpeg,.png"}
-                disabled={readOnly}
-                onChange={(e) => onChange({ accept: e.target.value })}
-                placeholder=".pdf,.jpg,.jpeg,.png"
-                style={style}
-              />
-            </div>
-          </div>
-        </>
+        </BuilderQuestionCard>
       )}
 
       {needsOptions && (
-        <div>
-          <FieldLabel C={C}>Options</FieldLabel>
-          <p className="mb-2 text-xs" style={{ color: C.textTertiary }}>
-            One per line: value|Label (e.g. k|Kindergarten)
-          </p>
+        <BuilderQuestionCard
+          C={C}
+          tone="info"
+          question="What choices can they pick from?"
+          helper="One per line: value|Label (e.g. k|Kindergarten)"
+        >
           <textarea
             rows={4}
             disabled={readOnly}
@@ -218,10 +177,65 @@ export default function ApplicationFormFieldEditor({
             }}
             style={{ ...style, resize: "vertical" }}
           />
-        </div>
+        </BuilderQuestionCard>
       )}
 
-      {!readOnly && onDelete && (
+      {field.type === "file" && (
+        <BuilderQuestionCard
+          C={C}
+          tone="warning"
+          question="How should file uploads work?"
+          helper="Set limits and accepted file types for this upload."
+        >
+          <div className="space-y-3">
+            <div>
+              <input
+                type="text"
+                value={field.helpText ?? ""}
+                disabled={readOnly}
+                onChange={(e) => onChange({ helpText: e.target.value })}
+                placeholder="e.g. Upload up to 5 files"
+                style={style}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="mb-1.5 text-xs font-medium" style={{ color: C.textSecondary }}>
+                  Max files
+                </p>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={field.maxFiles ?? 5}
+                  disabled={readOnly}
+                  onChange={(e) =>
+                    onChange({
+                      maxFiles: Math.max(1, Number(e.target.value) || 1),
+                    })
+                  }
+                  style={style}
+                />
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-medium" style={{ color: C.textSecondary }}>
+                  Accepted types
+                </p>
+                <input
+                  type="text"
+                  value={field.accept ?? ".pdf,.jpg,.jpeg,.png"}
+                  disabled={readOnly}
+                  onChange={(e) => onChange({ accept: e.target.value })}
+                  placeholder=".pdf,.jpg,.jpeg,.png"
+                  style={style}
+                />
+              </div>
+            </div>
+          </div>
+        </BuilderQuestionCard>
+      )}
+
+      {!readOnly && onDelete ? (
         <div className="flex justify-end pt-2 border-t" style={{ borderColor: C.border }}>
           <button
             type="button"
@@ -233,7 +247,7 @@ export default function ApplicationFormFieldEditor({
             Delete question
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

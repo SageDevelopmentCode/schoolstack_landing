@@ -26,6 +26,10 @@ import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
 import ApplicationFormFeePanel from "./ApplicationFormFeePanel";
 import ApplicationFormPostSubmitEditor from "./ApplicationFormPostSubmitEditor";
 import ApplicationFormQuestionList from "./ApplicationFormQuestionList";
+import {
+  BuilderQuestionCard,
+  BuilderSectionIntro,
+} from "./builder-question-card";
 import { focusKey, type BuilderFocus } from "./builder-focus";
 
 export type EditableFormSlice = {
@@ -69,29 +73,6 @@ const canvasTransition = {
   transition: { duration: 0.18, ease: "easeOut" as const },
 };
 
-function FieldLabel({
-  children,
-  hint,
-  C,
-}: {
-  children: React.ReactNode;
-  hint?: string;
-  C: AdminThemeTokens;
-}) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
-        {children}
-      </label>
-      {hint ? (
-        <p className="text-xs" style={{ color: C.textTertiary }}>
-          {hint}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
 function inputStyle(C: AdminThemeTokens): React.CSSProperties {
   return {
     backgroundColor: C.input,
@@ -104,59 +85,6 @@ function inputStyle(C: AdminThemeTokens): React.CSSProperties {
     boxSizing: "border-box",
     outline: "none",
   };
-}
-
-const SETUP_CARD_TONES = {
-  accent: (C: AdminThemeTokens) => ({
-    bg: C.accentLight,
-    border: C.secondaryBtnBorder,
-  }),
-  clay: (C: AdminThemeTokens) => ({ bg: C.clayBg, border: C.clayBorder }),
-  info: (C: AdminThemeTokens) => ({ bg: C.infoBg, border: C.infoBorder }),
-  success: (C: AdminThemeTokens) => ({
-    bg: C.successBg,
-    border: C.successBorder,
-  }),
-} as const;
-
-type SetupCardTone = keyof typeof SETUP_CARD_TONES;
-
-function SetupQuestionCard({
-  C,
-  tone,
-  question,
-  helper,
-  highlightError = false,
-  children,
-}: {
-  C: AdminThemeTokens;
-  tone: SetupCardTone;
-  question: string;
-  helper: string;
-  highlightError?: boolean;
-  children: React.ReactNode;
-}) {
-  const cardTone = SETUP_CARD_TONES[tone](C);
-
-  return (
-    <div
-      className="rounded-lg border p-5 space-y-4"
-      style={{
-        borderColor: highlightError ? C.errorBorder : cardTone.border,
-        backgroundColor: highlightError ? C.errorBg : cardTone.bg,
-      }}
-    >
-      <div className="space-y-1">
-        <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
-          {question}
-        </p>
-        <p className="text-xs" style={{ color: C.textTertiary }}>
-          {helper}
-        </p>
-      </div>
-      <div>{children}</div>
-    </div>
-  );
 }
 
 function SetupView({
@@ -191,16 +119,13 @@ function SetupView({
 
   return (
     <div className="w-full max-w-3xl space-y-5">
-      <div>
-        <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-          Form setup
-        </h2>
-        <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
-          Answer a few questions to set up what families see when they start applying.
-        </p>
-      </div>
+      <BuilderSectionIntro
+        C={C}
+        title="Form setup"
+        subtitle="Answer a few questions to set up what families see when they start applying."
+      />
 
-      <SetupQuestionCard
+      <BuilderQuestionCard
         C={C}
         tone="accent"
         question="What should families call this application?"
@@ -214,9 +139,9 @@ function SetupView({
           placeholder="e.g. Application for Fall 2026"
           style={inputStyle(C)}
         />
-      </SetupQuestionCard>
+      </BuilderQuestionCard>
 
-      <SetupQuestionCard
+      <BuilderQuestionCard
         C={C}
         tone="clay"
         question="What should families read when they first open the form?"
@@ -230,9 +155,9 @@ function SetupView({
           placeholder="Welcome families and explain what to expect…"
           style={{ ...inputStyle(C), resize: "vertical" }}
         />
-      </SetupQuestionCard>
+      </BuilderQuestionCard>
 
-      <SetupQuestionCard
+      <BuilderQuestionCard
         C={C}
         tone="info"
         question="What link will families use to apply?"
@@ -267,9 +192,9 @@ function SetupView({
             </p>
           ) : null}
         </div>
-      </SetupQuestionCard>
+      </BuilderQuestionCard>
 
-      <SetupQuestionCard
+      <BuilderQuestionCard
         C={C}
         tone="success"
         question="Which admissions program is this application for?"
@@ -310,7 +235,7 @@ function SetupView({
             </p>
           ) : null}
         </div>
-      </SetupQuestionCard>
+      </BuilderQuestionCard>
     </div>
   );
 }
@@ -343,32 +268,29 @@ function StepView({
   const isLockedStep = lockSystemFields && isSystemSection(step);
 
   return (
-    <div className="w-full max-w-3xl space-y-6">
+    <div className="w-full max-w-3xl space-y-5">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
-            Step {stepIdx + 1}
-          </p>
-          <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-            {step.title || `Step ${stepIdx + 1}`}
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
-            {isLockedStep
+        <BuilderSectionIntro
+          C={C}
+          eyebrow={`Step ${stepIdx + 1}`}
+          title={step.title || `Step ${stepIdx + 1}`}
+          subtitle={
+            isLockedStep
               ? "Required student fields for your school directory."
-              : "One screen of questions in the apply flow."}
-          </p>
-        </div>
-        {!readOnly && !isLockedStep && (
+              : "Set up what families see and answer on this screen."
+          }
+        />
+        {!readOnly && !isLockedStep ? (
           <button
             type="button"
             onClick={onRequestDeleteStep}
-            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium shrink-0"
+            className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium"
             style={{ color: C.error, backgroundColor: C.errorBg }}
           >
             <Trash2 className="h-3.5 w-3.5" />
             Delete step
           </button>
-        )}
+        ) : null}
       </div>
 
       {isLockedStep ? (
@@ -384,119 +306,140 @@ function StepView({
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <FieldLabel C={C}>Step title</FieldLabel>
-          <input
-            type="text"
-            value={step.title}
-            disabled={readOnly}
-            onChange={(e) => onUpdateStep({ title: e.target.value })}
-            placeholder="e.g. Parent information"
-            style={inputStyle(C)}
-          />
-        </div>
-        <div className="space-y-2">
-          <FieldLabel C={C} hint="Optional instructions at the top of this step.">
-            Step intro
-          </FieldLabel>
-          <textarea
-            rows={2}
-            value={step.description ?? ""}
-            disabled={readOnly}
-            onChange={(e) => onUpdateStep({ description: e.target.value })}
-            placeholder="Optional instructions for this step…"
-            style={{ ...inputStyle(C), resize: "vertical" }}
-          />
-        </div>
-        <div className="space-y-2">
-          <FieldLabel
+      {!isLockedStep ? (
+        <>
+          <BuilderQuestionCard
             C={C}
-            hint="Shown to families as a highlighted callout on this step."
+            tone="accent"
+            question="What should families call this step?"
+            helper="This is the heading families see at the top of this screen."
           >
-            Step message
-          </FieldLabel>
-          <textarea
-            rows={2}
-            value={step.stepNotice?.body ?? ""}
-            disabled={readOnly}
-            onChange={(e) => {
-              const body = e.target.value;
-              if (!body.trim()) {
-                onUpdateStep({ stepNotice: undefined });
-                return;
-              }
-              onUpdateStep({
-                stepNotice: {
-                  body,
-                  placement: step.stepNotice?.placement ?? "bottom",
-                },
-              });
-            }}
-            placeholder="Optional callout message for families…"
-            style={{ ...inputStyle(C), resize: "vertical" }}
-          />
-        </div>
-        {step.stepNotice?.body.trim() ? (
-          <div className="space-y-2">
-            <FieldLabel C={C}>Message placement</FieldLabel>
-            <div className="flex flex-wrap gap-4">
-              {(
-                [
-                  { value: "top", label: "Top of step" },
-                  { value: "bottom", label: "Bottom of step" },
-                ] as const
-              ).map((option) => (
-                <label
-                  key={option.value}
-                  className="inline-flex items-center gap-2 text-sm"
-                  style={{ color: C.textPrimary }}
-                >
-                  <input
-                    type="radio"
-                    name={`step-notice-placement-${step.id}`}
-                    value={option.value}
-                    checked={step.stepNotice?.placement === option.value}
-                    disabled={readOnly}
-                    onChange={() =>
-                      onUpdateStep({
-                        stepNotice: {
-                          body: step.stepNotice!.body,
-                          placement: option.value,
-                        },
-                      })
-                    }
-                    className="h-4 w-4"
-                    style={{ accentColor: C.accent }}
-                  />
-                  {option.label}
-                </label>
-              ))}
-            </div>
-            <ApplicationStepNotice
-              body={step.stepNotice.body.trim()}
-              C={C}
+            <input
+              type="text"
+              value={step.title}
+              disabled={readOnly}
+              onChange={(e) => onUpdateStep({ title: e.target.value })}
+              placeholder="e.g. Parent information"
+              style={inputStyle(C)}
             />
-          </div>
-        ) : null}
-      </div>
+          </BuilderQuestionCard>
 
-      <ApplicationFormQuestionList
+          <BuilderQuestionCard
+            C={C}
+            tone="clay"
+            question="What instructions should appear at the top of this step?"
+            helper="Optional — add context before families start answering questions."
+          >
+            <textarea
+              rows={2}
+              value={step.description ?? ""}
+              disabled={readOnly}
+              onChange={(e) => onUpdateStep({ description: e.target.value })}
+              placeholder="Optional instructions for this step…"
+              style={{ ...inputStyle(C), resize: "vertical" }}
+            />
+          </BuilderQuestionCard>
+
+          <BuilderQuestionCard
+            C={C}
+            tone="info"
+            question="Is there a message you want to highlight on this step?"
+            helper="Optional callout shown to families on this step."
+          >
+            <div className="space-y-3">
+              <textarea
+                rows={2}
+                value={step.stepNotice?.body ?? ""}
+                disabled={readOnly}
+                onChange={(e) => {
+                  const body = e.target.value;
+                  if (!body.trim()) {
+                    onUpdateStep({ stepNotice: undefined });
+                    return;
+                  }
+                  onUpdateStep({
+                    stepNotice: {
+                      body,
+                      placement: step.stepNotice?.placement ?? "bottom",
+                    },
+                  });
+                }}
+                placeholder="Optional callout message for families…"
+                style={{ ...inputStyle(C), resize: "vertical" }}
+              />
+              {step.stepNotice?.body.trim() ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                    Show this message at the…
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    {(
+                      [
+                        { value: "top", label: "Top of step" },
+                        { value: "bottom", label: "Bottom of step" },
+                      ] as const
+                    ).map((option) => (
+                      <label
+                        key={option.value}
+                        className="inline-flex items-center gap-2 text-sm"
+                        style={{ color: C.textPrimary }}
+                      >
+                        <input
+                          type="radio"
+                          name={`step-notice-placement-${step.id}`}
+                          value={option.value}
+                          checked={step.stepNotice?.placement === option.value}
+                          disabled={readOnly}
+                          onChange={() =>
+                            onUpdateStep({
+                              stepNotice: {
+                                body: step.stepNotice!.body,
+                                placement: option.value,
+                              },
+                            })
+                          }
+                          className="h-4 w-4"
+                          style={{ accentColor: C.accent }}
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
+                  <ApplicationStepNotice
+                    body={step.stepNotice.body.trim()}
+                    C={C}
+                  />
+                </div>
+              ) : null}
+            </div>
+          </BuilderQuestionCard>
+        </>
+      ) : null}
+
+      <BuilderQuestionCard
         C={C}
-        stepId={step.id}
-        fields={step.fields}
-        selectedFieldId={selectedFieldId}
-        readOnly={readOnly}
-        lockSystemFields={lockSystemFields}
-        onSelectField={(fieldId) =>
-          onFocusChange({ kind: "field", stepId: step.id, fieldId })
-        }
-        onAddField={(field) => {
-          onAddField(field);
-          onFocusChange({ kind: "field", stepId: step.id, fieldId: field.id });
-        }}
-        onReorderFields={onReorderFields}
-      />
+        tone="success"
+        question="What questions should families answer on this step?"
+        helper="Click a question to edit it. Families answer these on this screen."
+      >
+        <ApplicationFormQuestionList
+          C={C}
+          stepId={step.id}
+          fields={step.fields}
+          selectedFieldId={selectedFieldId}
+          readOnly={readOnly}
+          lockSystemFields={lockSystemFields}
+          onSelectField={(fieldId) =>
+            onFocusChange({ kind: "field", stepId: step.id, fieldId })
+          }
+          onAddField={(field) => {
+            onAddField(field);
+            onFocusChange({ kind: "field", stepId: step.id, fieldId: field.id });
+          }}
+          onReorderFields={onReorderFields}
+          hideHeader
+        />
+      </BuilderQuestionCard>
     </div>
   );
 }
@@ -526,7 +469,7 @@ function FieldView({
     lockSystemFields && (field.system === true || isSystemFieldId(field.id));
 
   return (
-    <div className="w-full max-w-3xl space-y-6">
+    <div className="w-full max-w-3xl space-y-5">
       <button
         type="button"
         onClick={onBack}
@@ -537,27 +480,20 @@ function FieldView({
         Back to {step.title || `Step ${stepIdx + 1}`}
       </button>
 
-      <div>
-        <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
-          Step {stepIdx + 1} · Question
-        </p>
-        <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-          Edit question
-        </h2>
-      </div>
+      <BuilderSectionIntro
+        C={C}
+        eyebrow={`Step ${stepIdx + 1} · Question`}
+        title="Edit question"
+        subtitle="Set up what families see and how they answer this question."
+      />
 
-      <div
-        className="rounded-lg border p-5"
-        style={{ borderColor: C.border, backgroundColor: C.surface }}
-      >
-        <ApplicationFormFieldEditor
-          C={C}
-          field={field}
-          readOnly={readOnly || isLockedField}
-          onChange={onUpdateField}
-          onDelete={isLockedField ? undefined : onRequestDeleteField}
-        />
-      </div>
+      <ApplicationFormFieldEditor
+        C={C}
+        field={field}
+        readOnly={readOnly || isLockedField}
+        onChange={onUpdateField}
+        onDelete={isLockedField ? undefined : onRequestDeleteField}
+      />
     </div>
   );
 }
@@ -741,15 +677,12 @@ export default function ApplicationFormFocusCanvas({
           )}
 
           {focus.kind === "fee" && (
-            <div className="w-full max-w-3xl space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-                  Application fee
-                </h2>
-                <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
-                  Optional fee collected before families submit.
-                </p>
-              </div>
+            <div className="w-full max-w-3xl space-y-5">
+              <BuilderSectionIntro
+                C={C}
+                title="Application fee"
+                subtitle="Decide whether families pay before they can submit."
+              />
               <ApplicationFormFeePanel
                 C={C}
                 feeConfig={editable.feeConfig}
@@ -763,15 +696,12 @@ export default function ApplicationFormFocusCanvas({
           )}
 
           {focus.kind === "acknowledgments" && (
-            <div className="w-full max-w-3xl space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-                  Acknowledgments
-                </h2>
-                <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
-                  Checkbox statements families must confirm before submitting.
-                </p>
-              </div>
+            <div className="w-full max-w-3xl space-y-5">
+              <BuilderSectionIntro
+                C={C}
+                title="Acknowledgments"
+                subtitle="Add agreements families must confirm before submitting."
+              />
               <ApplicationFormAcknowledgmentsEditor
                 C={C}
                 acknowledgments={editable.schema.acknowledgments}
@@ -785,15 +715,12 @@ export default function ApplicationFormFocusCanvas({
           )}
 
           {focus.kind === "postSubmit" && (
-            <div className="w-full max-w-3xl space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-                  Post-submit steps
-                </h2>
-                <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
-                  Tasks families complete on their apply dashboard after submitting.
-                </p>
-              </div>
+            <div className="w-full max-w-3xl space-y-5">
+              <BuilderSectionIntro
+                C={C}
+                title="Post-submit steps"
+                subtitle="Guide families on what to do after they submit."
+              />
               <ApplicationFormPostSubmitEditor
                 C={C}
                 organizationId={organizationId}

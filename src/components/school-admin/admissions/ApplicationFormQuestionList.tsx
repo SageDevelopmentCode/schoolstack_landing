@@ -19,6 +19,7 @@ type ApplicationFormQuestionListProps = {
   selectedFieldId: string | null;
   readOnly: boolean;
   lockSystemFields?: boolean;
+  hideHeader?: boolean;
   onSelectField: (fieldId: string) => void;
   onAddField: (field: ApplicationField) => void;
   onReorderFields: (fields: ApplicationField[]) => void;
@@ -110,6 +111,7 @@ export default function ApplicationFormQuestionList({
   selectedFieldId,
   readOnly,
   lockSystemFields = false,
+  hideHeader = false,
   onSelectField,
   onAddField,
   onReorderFields,
@@ -140,15 +142,17 @@ export default function ApplicationFormQuestionList({
   };
 
   return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-          Questions
-        </p>
-        <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-          Click a question to edit it. Families answer these on this step.
-        </p>
-      </div>
+    <div className={hideHeader ? "space-y-3" : "space-y-3"}>
+      {!hideHeader ? (
+        <div>
+          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+            Questions
+          </p>
+          <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+            Click a question to edit it. Families answer these on this step.
+          </p>
+        </div>
+      ) : null}
 
       {fields.length === 0 ? (
         <div
