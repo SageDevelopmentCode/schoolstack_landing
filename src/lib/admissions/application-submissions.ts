@@ -7,9 +7,11 @@ import {
 } from "./admin-post-submit-steps";
 import {
   listEnrollmentProgressForApplications,
+  type EnrollmentProgressSummaryTone,
   type EnrollmentProgressSummary,
 } from "./enrollment-checklist-materialization";
 import { listScheduledVisitsForApplications } from "./admissions-booking";
+import { applicationStatusLabel } from "./application-status-ui";
 import type { ApplicationFormSchema } from "./application-form-schema";
 import { parseApplicationFormFeeConfig, parseApplicationFormPostSubmitConfig } from "./application-form-schema";
 
@@ -43,6 +45,41 @@ export type AdminApplicationSubmission = {
   postSubmitSummary: PostSubmitSummary | null;
   enrollmentSummary: EnrollmentProgressSummary | null;
 };
+
+export type FamilyAdmissionHistoryEntry = {
+  id: string;
+  kind: "application" | "enrollment";
+  applicationId: string;
+  applicationStatus: string;
+  title: string;
+  studentLabel: string | null;
+  programName: string | null;
+  statusLabel: string;
+  progressLabel: string;
+  updatedAt: string;
+  applicationBadgeStatus?: string;
+  enrollmentTone?: EnrollmentProgressSummaryTone;
+};
+
+function enrollmentChecklistStatusLabel(status: string): string {
+  switch (status) {
+    case "completed":
+      return "Completed";
+    case "in_progress":
+      return "In progress";
+    case "not_started":
+      return "Not started";
+    default:
+      return status.replace(/_/g, " ");
+  }
+}
+
+function formatEnrollmentProgressLabel(summary: EnrollmentProgressSummary | null): string {
+  if (!summary || summary.total === 0) {
+    return "No required items";
+  }
+  return `${summary.completed}/${summary.total} required items`;
+}
 
 function parseStringRecord(value: unknown): Record<string, string> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -324,5 +361,202 @@ export async function getOrgApplicationSubmissionById(
     data as Record<string, unknown>,
     visitsByApplicationId,
     enrollmentByApplicationId,
+  );
+}
+
+export async function resolveApplicationFamilyId(
+  supabase: SupabaseClient,
+  organizationId: string,
+  applicationId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("applications")
+    .select("family_id, primary_guardian_id")
+    .eq("organization_id", organizationId)
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  if (data.family_id) {
+    return String(data.family_id);
+  }
+
+  if (!data.primary_guardian_id) {
+    return null;
+  }
+
+  const { data: guardian, error: guardianError } = await supabase
+    .from("guardians")
+    .select("family_id")
+    .eq("id", data.primary_guardian_id)
+    .maybeSingle();
+
+  if (guardianError) throw guardianError;
+  return guardian?.family_id ? String(guardian.family_id) : null;
+}
+
+async function mapApplicationRowsToAdminSubmissions(
+  supabase: SupabaseClient,
+  organizationId: string,
+  rows: Record<string, unknown>[],
+): Promise<AdminApplicationSubmission[]> {
+  const submittedIds = rows
+    .filter((row) => String(row.status) !== "draft")
+    .map((row) => String(row.id));
+  const applicationIds = rows.map((row) => String(row.id));
+  const visits = await listScheduledVisitsForApplications(supabase, submittedIds);
+  const enrollmentByApplicationId = await listEnrollmentProgressForApplications(
+    supabase,
+    organizationId,
+    applicationIds,
+  );
+  const visitsByApplicationId = new Map<string, typeof visits>();
+  for (const visit of visits) {
+    const existing = visitsByApplicationId.get(visit.applicationId) ?? [];
+    existing.push(visit);
+    visitsByApplicationId.set(visit.applicationId, existing);
+  }
+
+  return rows.map((row) =>
+    mapApplicationRowToAdminSubmission(row, visitsByApplicationId, enrollmentByApplicationId),
+  );
+}
+
+export async function listApplicationSubmissionsForFamily(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<AdminApplicationSubmission[]> {
+  const { data: guardians, error: guardiansError } = await supabase
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("family_id", familyId);
+
+  if (guardiansError) throw guardiansError;
+
+  const guardianIds = (guardians ?? []).map((row) => String(row.id));
+
+  let query = supabase
+    .from("applications")
+    .select(APPLICATION_SUBMISSION_SELECT)
+    .eq("organization_id", organizationId)
+    .order("updated_at", { ascending: false });
+
+  if (guardianIds.length > 0) {
+    query = query.or(
+      `family_id.eq.${familyId},primary_guardian_id.in.(${guardianIds.join(",")})`,
+    );
+  } else {
+    query = query.eq("family_id", familyId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return mapApplicationRowsToAdminSubmissions(
+    supabase,
+    organizationId,
+    (data ?? []) as Record<string, unknown>[],
+  );
+}
+
+export async function listFamilyAdmissionHistory(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<FamilyAdmissionHistoryEntry[]> {
+  const applications = await listApplicationSubmissionsForFamily(
+    supabase,
+    organizationId,
+    familyId,
+  );
+  if (applications.length === 0) return [];
+
+  const applicationIds = applications.map((application) => application.id);
+  const applicationsById = new Map(
+    applications.map((application) => [application.id, application]),
+  );
+
+  const { data: checklistRows, error: checklistError } = await supabase
+    .from("enrollment_checklists")
+    .select(
+      `
+      id,
+      application_id,
+      status,
+      updated_at,
+      enrollment_checklist_templates ( name )
+    `,
+    )
+    .eq("organization_id", organizationId)
+    .in("application_id", applicationIds);
+
+  if (checklistError) throw checklistError;
+
+  const checklistApplicationIds = new Set(
+    (checklistRows ?? []).map((row) => String(row.application_id)),
+  );
+
+  const entries: FamilyAdmissionHistoryEntry[] = [];
+
+  for (const application of applications) {
+    const hasChecklist = checklistApplicationIds.has(application.id);
+    const displayStatus =
+      application.status === "enrolling" && hasChecklist
+        ? "submitted"
+        : application.status;
+    const progressSource =
+      displayStatus === "submitted" && application.status === "enrolling"
+        ? { ...application, status: "submitted" }
+        : application;
+
+    entries.push({
+      id: application.id,
+      kind: "application",
+      applicationId: application.id,
+      applicationStatus: application.status,
+      title: application.formTitle,
+      studentLabel: application.studentLabel,
+      programName: application.programName,
+      statusLabel: applicationStatusLabel(displayStatus),
+      progressLabel: formatSubmissionProgress(progressSource),
+      updatedAt: application.submittedAt ?? application.updatedAt,
+      applicationBadgeStatus: displayStatus,
+    });
+  }
+
+  for (const row of checklistRows ?? []) {
+    const applicationId = String(row.application_id);
+    const application = applicationsById.get(applicationId);
+    const template = row.enrollment_checklist_templates as
+      | { name?: string }
+      | { name?: string }[]
+      | null;
+    const templateRow = Array.isArray(template) ? template[0] : template;
+    const checklistStatus = String(row.status);
+    const summary = application?.enrollmentSummary ?? null;
+
+    entries.push({
+      id: String(row.id),
+      kind: "enrollment",
+      applicationId,
+      applicationStatus: application?.status ?? "enrolling",
+      title: String(templateRow?.name ?? "Enrollment checklist"),
+      studentLabel: application?.studentLabel ?? null,
+      programName: application?.programName ?? null,
+      statusLabel: enrollmentChecklistStatusLabel(checklistStatus),
+      progressLabel: formatEnrollmentProgressLabel(summary),
+      updatedAt: String(row.updated_at),
+      enrollmentTone: summary?.tone ?? "not_started",
+    });
+  }
+
+  return entries.sort(
+    (left, right) =>
+      new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
   );
 }

@@ -14,6 +14,7 @@ import { type ApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import type {
   ApplicationField,
   ApplicationFormSchema,
+  ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -24,6 +25,8 @@ type ApplicationReadOnlyViewProps = {
   schoolSlug: string;
   application: ApplicationDetail;
   embedded?: boolean;
+  view?: "full" | "section" | "acknowledgments";
+  sectionId?: string;
 };
 
 function formatFieldValue(field: ApplicationField, value: string | undefined): string {
@@ -76,68 +79,131 @@ function ReadOnlyField({
   );
 }
 
+function ReadOnlySection({
+  section,
+  responses,
+  C,
+}: {
+  section: ApplicationSection;
+  responses: Record<string, string>;
+  C: ReturnType<typeof buildAdminThemeTokens>;
+}) {
+  return (
+    <section>
+      <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
+        {section.title}
+      </h2>
+      {section.description ? (
+        <p className="mt-1 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+          {section.description}
+        </p>
+      ) : null}
+      <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+        {section.fields.map((field) => (
+          <div
+            key={field.id}
+            className={field.width === "half" ? "sm:col-span-1" : "sm:col-span-2"}
+          >
+            <ReadOnlyField field={field} value={responses[field.id]} C={C} />
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function ReadOnlyAcknowledgments({
+  schema,
+  acknowledgments,
+  C,
+  pageBg,
+}: {
+  schema: ApplicationFormSchema;
+  acknowledgments: Record<string, boolean>;
+  C: ReturnType<typeof buildAdminThemeTokens>;
+  pageBg: string;
+}) {
+  if (schema.acknowledgments.length === 0) return null;
+
+  return (
+    <section>
+      <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
+        Acknowledgments
+      </h2>
+      <ul className="mt-4 space-y-3">
+        {schema.acknowledgments.map((item) => (
+          <li
+            key={item.id}
+            className="flex items-start gap-3 rounded-md border px-4 py-3 text-sm"
+            style={{ borderColor: C.border, backgroundColor: pageBg }}
+          >
+            <CheckCircle2
+              className="mt-0.5 h-4 w-4 shrink-0"
+              style={{
+                color: acknowledgments[item.id] ? C.accent : C.textQuaternary,
+              }}
+            />
+            <span style={{ color: C.textPrimary }}>{item.label}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function ReadOnlyContent({
   schema,
   responses,
   acknowledgments,
   C,
   pageBg,
+  view = "full",
+  sectionId,
 }: {
   schema: ApplicationFormSchema;
   responses: Record<string, string>;
   acknowledgments: Record<string, boolean>;
   C: ReturnType<typeof buildAdminThemeTokens>;
   pageBg: string;
+  view?: "full" | "section" | "acknowledgments";
+  sectionId?: string;
 }) {
+  if (view === "section") {
+    const section = schema.sections.find((entry) => entry.id === sectionId);
+    if (!section) return null;
+
+    return (
+      <ReadOnlySection section={section} responses={responses} C={C} />
+    );
+  }
+
+  if (view === "acknowledgments") {
+    return (
+      <ReadOnlyAcknowledgments
+        schema={schema}
+        acknowledgments={acknowledgments}
+        C={C}
+        pageBg={pageBg}
+      />
+    );
+  }
+
   return (
     <div className="space-y-8">
       {schema.sections.map((section) => (
-        <section key={section.id}>
-          <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
-            {section.title}
-          </h2>
-          {section.description ? (
-            <p className="mt-1 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-              {section.description}
-            </p>
-          ) : null}
-          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-            {section.fields.map((field) => (
-              <div
-                key={field.id}
-                className={field.width === "half" ? "sm:col-span-1" : "sm:col-span-2"}
-              >
-                <ReadOnlyField field={field} value={responses[field.id]} C={C} />
-              </div>
-            ))}
-          </dl>
-        </section>
+        <ReadOnlySection
+          key={section.id}
+          section={section}
+          responses={responses}
+          C={C}
+        />
       ))}
-
-      {schema.acknowledgments.length > 0 ? (
-        <section>
-          <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
-            Acknowledgments
-          </h2>
-          <ul className="mt-4 space-y-3">
-            {schema.acknowledgments.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-start gap-3 rounded-md border px-4 py-3 text-sm"
-                style={{ borderColor: C.border, backgroundColor: pageBg }}
-              >
-                <CheckCircle2
-                  className="mt-0.5 h-4 w-4 shrink-0"
-                  style={{
-                    color: acknowledgments[item.id] ? C.accent : C.textQuaternary,
-                  }}
-                />
-                <span style={{ color: C.textPrimary }}>{item.label}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <ReadOnlyAcknowledgments
+        schema={schema}
+        acknowledgments={acknowledgments}
+        C={C}
+        pageBg={pageBg}
+      />
     </div>
   );
 }
@@ -148,6 +214,8 @@ function ApplicationReadOnlyBody({
   schoolSlug,
   application,
   embedded = false,
+  view = "full",
+  sectionId,
 }: ApplicationReadOnlyViewProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
@@ -220,6 +288,8 @@ function ApplicationReadOnlyBody({
           acknowledgments={application.acknowledgments}
           C={C}
           pageBg={pageBg}
+          view={view}
+          sectionId={sectionId}
         />
       </div>
     </>
