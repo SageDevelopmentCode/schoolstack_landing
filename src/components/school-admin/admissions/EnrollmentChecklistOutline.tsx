@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, Eye, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
-import { getItemVariantConfig } from "@/lib/admissions/enrollment-checklist-schema";
+import {
+  CHECKLIST_ITEM_TYPE_LABELS,
+  getItemVariantConfig,
+} from "@/lib/admissions/enrollment-checklist-schema";
 import { buildChecklistOutlineEntries } from "@/lib/admissions/enrollment-checklist-variants";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ChecklistBuilderFocus } from "./checklist-builder-focus";
@@ -24,6 +27,14 @@ type EnrollmentChecklistOutlineProps = {
   onRequestDeleteItem: (itemId: string) => void;
   onOpenPicker: () => void;
 };
+
+function itemOutlineSubtitle(item: EnrollmentChecklistItem): string {
+  if (item.type === "form" && item.formSchema?.fields) {
+    const count = item.formSchema.fields.length;
+    return `${count} question${count === 1 ? "" : "s"}`;
+  }
+  return CHECKLIST_ITEM_TYPE_LABELS[item.type];
+}
 
 function OutlineSectionLabel({
   children,
@@ -91,7 +102,7 @@ function ChecklistOutlineRow({
   if (isEditing) {
     return (
       <div
-        className={`mb-1.5 rounded-sm px-2 py-1.5 ${indent ? "ml-6 mr-3 w-[calc(100%-36px)]" : "mx-3 w-[calc(100%-24px)]"}`}
+        className={`mb-1.5 rounded-sm px-3 py-2 ${indent ? "ml-6 mr-3 w-[calc(100%-36px)]" : "mx-3 w-[calc(100%-24px)]"}`}
         style={outlineItemCardStyle(C, true)}
       >
         <div className="flex items-center gap-1">
@@ -176,10 +187,7 @@ function ChecklistOutlineRow({
       <button
         type="button"
         onClick={onSelect}
-        className="min-w-0 flex-1 flex items-center gap-2 px-2.5 py-2 text-left text-xs"
-        style={{
-          color: active ? C.accent : C.textPrimary,
-        }}
+        className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
       >
         {indent && variantOptionPrefix ? (
           <span
@@ -190,23 +198,36 @@ function ChecklistOutlineRow({
           </span>
         ) : !indent ? (
           <span
-            className="shrink-0 tabular-nums font-medium"
-            style={{ color: active ? C.accent : C.textTertiary }}
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+            style={{
+              backgroundColor: active ? C.accent : C.accentLight,
+              color: active ? "#fff" : C.accent,
+            }}
           >
-            {itemIdx + 1}.
+            {itemIdx + 1}
           </span>
         ) : null}
-        <span className="min-w-0 truncate font-medium">{item.label}</span>
-        {variantBadge ? (
+        <span className="min-w-0 flex-1">
           <span
-            className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium uppercase"
-            style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+            className="flex items-center gap-1.5 truncate text-xs font-medium"
+            style={{ color: active ? C.accent : C.textPrimary }}
           >
-            {variantBadge}
+            {item.label}
+            {variantBadge ? (
+              <span
+                className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium uppercase"
+                style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+              >
+                {variantBadge}
+              </span>
+            ) : null}
           </span>
-        ) : null}
+          <span className="text-[10px]" style={{ color: C.textTertiary }}>
+            {itemOutlineSubtitle(item)}
+          </span>
+        </span>
       </button>
-      <div className="flex shrink-0 items-center gap-0.5 pr-2.5">
+      <div className="flex shrink-0 items-center gap-0.5 pr-3">
         <button
           type="button"
           onClick={(e) => {
@@ -291,7 +312,7 @@ export default function EnrollmentChecklistOutline({
 
   return (
     <div
-      className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r"
+      className="flex h-full w-[280px] shrink-0 flex-col overflow-hidden border-r"
       style={{ borderColor: C.border, backgroundColor: C.bg }}
     >
       <div className="flex-1 overflow-y-auto">
@@ -358,7 +379,7 @@ export default function EnrollmentChecklistOutline({
                         [group.groupId]: !expanded,
                       }))
                     }
-                    className="shrink-0 px-2.5 py-2"
+                    className="shrink-0 px-3 py-2"
                     style={{ color: C.textTertiary }}
                     aria-label={expanded ? "Collapse variants" : "Expand variants"}
                   >
@@ -368,15 +389,18 @@ export default function EnrollmentChecklistOutline({
                       <ChevronRight className="h-3 w-3" />
                     )}
                   </button>
-                  <div className="min-w-0 flex-1 py-2 pr-2.5 text-xs">
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                    style={{
+                      backgroundColor: groupActive ? C.accent : C.accentLight,
+                      color: groupActive ? "#fff" : C.accent,
+                    }}
+                  >
+                    {itemIdx + 1}
+                  </span>
+                  <div className="min-w-0 flex-1 py-2 pr-3 text-xs">
                     <div className="flex items-center gap-1.5">
                       <p className="truncate font-medium" style={{ color: C.textPrimary }}>
-                        <span
-                          className="mr-1.5 tabular-nums font-medium"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {itemIdx + 1}.
-                        </span>
                         {group.groupLabel}
                       </p>
                       {group.needsSetup ? (
