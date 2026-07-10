@@ -63,6 +63,10 @@
   --font-handwritten: var(--font-delicious), "Delicious Handrawn", cursive;
 }
 
+@theme inline {
+  --font-signature: var(--font-great-vibes), "Great Vibes", cursive;
+}
+
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;

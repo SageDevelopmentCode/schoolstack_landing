@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, Loader2, Upload } from "lucide-react";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
+import TypedSignatureField, {
+  parseStoredSignerName,
+} from "@/components/admissions/TypedSignatureField";
 import RepeatableFormEntries from "@/components/admissions/RepeatableFormEntries";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
@@ -55,6 +58,7 @@ function DocumentSignInlinePanel({
   mode,
   instanceId,
   instanceStatus,
+  existingResponses,
   onComplete,
 }: {
   C: AdminThemeTokens;
@@ -62,11 +66,14 @@ function DocumentSignInlinePanel({
   mode: "preview" | "live";
   instanceId?: string;
   instanceStatus?: string;
+  existingResponses?: Record<string, unknown>;
   onComplete?: () => Promise<void> | void;
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
   const [sectionIndex, setSectionIndex] = useState(0);
-  const [signature, setSignature] = useState("");
+  const [signature, setSignature] = useState(() =>
+    instanceStatus === "completed" ? parseStoredSignerName(existingResponses) : "",
+  );
   const [submitting, setSubmitting] = useState(false);
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
@@ -100,24 +107,12 @@ function DocumentSignInlinePanel({
         </p>
 
         <div className="mt-6">
-          <label
-            className="mb-1.5 block text-xs font-medium"
-            style={{ color: C.textSecondary }}
-          >
-            Type your full legal name to sign
-          </label>
-          <input
-            type="text"
+          <TypedSignatureField
+            C={C}
+            id={`signature-inline-${item.id}`}
             value={signature}
-            onChange={(e) => setSignature(e.target.value)}
-            disabled={!isLive}
-            placeholder="Full legal name"
-            className="w-full rounded-md border px-3 py-2.5 text-sm outline-none"
-            style={{
-              borderColor: C.inputBorder,
-              backgroundColor: isLive ? "#FFFFFF" : C.input,
-              color: C.textPrimary,
-            }}
+            onChange={setSignature}
+            disabled={!isLive || isCompleted}
           />
         </div>
 
@@ -204,6 +199,7 @@ function DocumentSignPdfPanel({
   mode,
   instanceId,
   instanceStatus,
+  existingResponses,
   onComplete,
 }: {
   C: AdminThemeTokens;
@@ -211,6 +207,7 @@ function DocumentSignPdfPanel({
   mode: "preview" | "live";
   instanceId?: string;
   instanceStatus?: string;
+  existingResponses?: Record<string, unknown>;
   onComplete?: () => Promise<void> | void;
 }) {
   const supabase = useMemo(() => createClient(), []);
@@ -218,7 +215,9 @@ function DocumentSignPdfPanel({
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [signature, setSignature] = useState("");
+  const [signature, setSignature] = useState(() =>
+    instanceStatus === "completed" ? parseStoredSignerName(existingResponses) : "",
+  );
   const [submitting, setSubmitting] = useState(false);
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
@@ -309,24 +308,12 @@ function DocumentSignPdfPanel({
 
       {requireSignature ? (
         <div className="space-y-3">
-          <label
-            className="mb-1.5 block text-xs font-medium"
-            style={{ color: C.textSecondary }}
-          >
-            Type your full legal name to sign
-          </label>
-          <input
-            type="text"
+          <TypedSignatureField
+            C={C}
+            id={`signature-pdf-${item.id}`}
             value={signature}
-            onChange={(e) => setSignature(e.target.value)}
-            disabled={!isLive}
-            placeholder="Full legal name"
-            className="w-full rounded-md border px-3 py-2.5 text-sm outline-none"
-            style={{
-              borderColor: C.inputBorder,
-              backgroundColor: isLive ? "#FFFFFF" : C.input,
-              color: C.textPrimary,
-            }}
+            onChange={setSignature}
+            disabled={!isLive || isCompleted}
           />
           <button
             type="button"
@@ -504,6 +491,7 @@ function FileUploadPanel({
   onComplete?: () => Promise<void> | void;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const config = item.fileUpload;
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
@@ -511,6 +499,12 @@ function FileUploadPanel({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputDisabled = !isLive || uploading || isCompleted;
+
+  function openFilePicker() {
+    if (fileInputDisabled) return;
+    fileInputRef.current?.click();
+  }
 
   async function handleFileSelect(selected: FileList | null) {
     if (!selected?.length || !isLive || !organizationId || !instanceId || !checklistId) {
@@ -576,9 +570,31 @@ function FileUploadPanel({
       <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
         {item.label}
       </h2>
-      <label
+      <div
         className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center"
-        style={{ borderColor: C.borderStrong, backgroundColor: "#FFFFFF" }}
+        style={{
+          borderColor: C.borderStrong,
+          backgroundColor: "#FFFFFF",
+          opacity: fileInputDisabled ? 0.7 : 1,
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          if (fileInputDisabled) return;
+          void handleFileSelect(event.dataTransfer.files);
+        }}
+        onClick={openFilePicker}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openFilePicker();
+          }
+        }}
+        role="button"
+        tabIndex={fileInputDisabled ? -1 : 0}
+        aria-disabled={fileInputDisabled}
       >
         <Upload className="mb-3 h-8 w-8" style={{ color: C.textQuaternary }} />
         <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
@@ -593,14 +609,32 @@ function FileUploadPanel({
           </p>
         ) : null}
         <input
+          ref={fileInputRef}
           type="file"
           multiple={Boolean(config?.maxFiles && config.maxFiles > 1)}
           accept={config?.accept}
-          disabled={!isLive || uploading || isCompleted}
-          className="mt-4 text-xs"
-          onChange={(event) => void handleFileSelect(event.target.files)}
+          disabled={fileInputDisabled}
+          className="hidden"
+          onChange={(event) => {
+            void handleFileSelect(event.target.files);
+            event.target.value = "";
+          }}
+          onClick={(event) => event.stopPropagation()}
         />
-      </label>
+        <button
+          type="button"
+          disabled={fileInputDisabled}
+          onClick={(event) => {
+            event.stopPropagation();
+            openFilePicker();
+          }}
+          className="mt-4 rounded-md px-4 py-2 text-sm font-semibold text-white"
+          style={panelButtonStyle(C, fileInputDisabled)}
+        >
+          {uploading ? "Uploading…" : "Choose files"}
+          {!isLive ? " (preview)" : ""}
+        </button>
+      </div>
 
       {files.length > 0 ? (
         <ul className="space-y-2 text-sm" style={{ color: C.textSecondary }}>
@@ -722,6 +756,7 @@ function AcknowledgmentPanel({
   mode,
   instanceId,
   instanceStatus,
+  existingResponses,
   onComplete,
 }: {
   C: AdminThemeTokens;
@@ -729,12 +764,15 @@ function AcknowledgmentPanel({
   mode: "preview" | "live";
   instanceId?: string;
   instanceStatus?: string;
+  existingResponses?: Record<string, unknown>;
   onComplete?: () => Promise<void> | void;
 }) {
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
   const config = item.acknowledgment;
-  const [signature, setSignature] = useState("");
+  const [signature, setSignature] = useState(() =>
+    instanceStatus === "completed" ? parseStoredSignerName(existingResponses) : "",
+  );
   const [submitting, setSubmitting] = useState(false);
 
   return (
@@ -768,27 +806,13 @@ function AcknowledgmentPanel({
           ))}
         </div>
       ) : null}
-      <div>
-        <label
-          className="mb-1.5 block text-xs font-medium"
-          style={{ color: C.textSecondary }}
-        >
-          Type your full legal name to sign
-        </label>
-        <input
-          type="text"
-          value={signature}
-          onChange={(e) => setSignature(e.target.value)}
-          disabled={!isLive}
-          placeholder="Full legal name"
-          className="w-full rounded-md border px-3 py-2.5 text-sm outline-none"
-          style={{
-            borderColor: C.inputBorder,
-            backgroundColor: isLive ? "#FFFFFF" : C.input,
-            color: C.textPrimary,
-          }}
-        />
-      </div>
+      <TypedSignatureField
+        C={C}
+        id={`signature-ack-${item.id}`}
+        value={signature}
+        onChange={setSignature}
+        disabled={!isLive || isCompleted}
+      />
       <button
         type="button"
         disabled={!isLive || !signature.trim() || submitting || isCompleted}
@@ -844,6 +868,7 @@ export default function EnrollmentChecklistItemPanel({
           mode={mode}
           instanceId={instanceId}
           instanceStatus={instanceStatus}
+          existingResponses={existingResponses}
           onComplete={onComplete}
         />
       );
@@ -865,6 +890,7 @@ export default function EnrollmentChecklistItemPanel({
             mode={mode}
             instanceId={instanceId}
             instanceStatus={instanceStatus}
+            existingResponses={existingResponses}
             onComplete={onComplete}
           />
         );
@@ -912,6 +938,7 @@ export default function EnrollmentChecklistItemPanel({
             mode={mode}
             instanceId={instanceId}
             instanceStatus={instanceStatus}
+            existingResponses={existingResponses}
             onComplete={onComplete}
           />
         );
