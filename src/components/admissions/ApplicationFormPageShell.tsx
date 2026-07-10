@@ -24,7 +24,7 @@ export default function ApplicationFormPageShell({
       className={`flex flex-col ${heightClass} ${className}`.trim()}
       style={{ backgroundColor: branding.colors.bg }}
     >
-      <div className="min-h-0 flex-1">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }

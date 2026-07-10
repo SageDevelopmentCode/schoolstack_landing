@@ -120,7 +120,7 @@ export default function EnrollmentChecklistExperience({
   if (items.length === 0) {
     return (
       <div
-        className="flex h-full flex-col items-center justify-center px-6 py-12 text-center"
+        className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-12 text-center"
         style={{ backgroundColor: pageBg }}
       >
         <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
@@ -138,7 +138,7 @@ export default function EnrollmentChecklistExperience({
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col"
+      className="flex min-h-0 flex-1 flex-col"
       style={{ backgroundColor: pageBg, color: C.textPrimary }}
     >
       <div className="shrink-0 border-b px-4 py-4 sm:px-6" style={{ borderColor: C.border }}>

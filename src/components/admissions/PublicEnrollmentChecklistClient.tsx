@@ -43,7 +43,7 @@ export default function PublicEnrollmentChecklistClient({
   );
 
   return (
-    <ApplicationFormPageShell branding={branding} fillParent>
+    <ApplicationFormPageShell branding={branding}>
       <EnrollmentChecklistExperience
         branding={branding}
         schoolName={schoolName}
