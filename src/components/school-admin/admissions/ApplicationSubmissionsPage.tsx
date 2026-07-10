@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
 import { ExternalLink, Loader2 } from "lucide-react";
@@ -21,7 +21,10 @@ import {
 } from "@/lib/admissions/application-submissions";
 import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  buildAdminThemeTokens,
+  type AdminThemeTokens,
+} from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -34,6 +37,32 @@ type ApplicationSubmissionsPageProps = {
 
 type StatusFilter = "all" | string;
 type FormFilter = "all" | string;
+
+function columnDividerStyle(C: AdminThemeTokens, isLast: boolean): CSSProperties {
+  return isLast ? {} : { borderRight: `1px solid ${C.border}` };
+}
+
+function submissionColumnHeaderBadgeStyle(
+  heading: string,
+  C: AdminThemeTokens,
+): CSSProperties {
+  switch (heading) {
+    case "Status":
+      return { backgroundColor: C.accentLight, color: C.accent };
+    case "Enrollment":
+      return { backgroundColor: C.infoBg, color: C.info };
+    case "Post-submit":
+      return { backgroundColor: C.successBg, color: C.success };
+    case "Fee":
+      return { backgroundColor: C.warningBg, color: C.warning };
+    default:
+      return {
+        backgroundColor: C.bg,
+        color: C.textTertiary,
+        border: `1px solid ${C.border}`,
+      };
+  }
+}
 
 function FilterChip({
   active,
@@ -90,6 +119,7 @@ export default function ApplicationSubmissionsPage({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [formFilter, setFormFilter] = useState<FormFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const flowsPath = schoolAdminPath(slug, "admissions", "flows");
 
@@ -179,8 +209,14 @@ export default function ApplicationSubmissionsPage({
             href={applyPublicPath}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-semibold"
-            style={{ backgroundColor: C.elevated, color: C.textSecondary }}
+            className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+            style={{ backgroundColor: C.accent, boxShadow: C.shadowCard }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = C.accentDark;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = C.accent;
+            }}
           >
             Public apply link
             <ExternalLink className="h-3.5 w-3.5" />
@@ -193,7 +229,7 @@ export default function ApplicationSubmissionsPage({
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.textQuaternary }}>
+          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.accentDark }}>
             Status
           </span>
           <FilterChip
@@ -219,7 +255,7 @@ export default function ApplicationSubmissionsPage({
 
         {formOptions.length > 1 ? (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.textQuaternary }}>
+            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.accentDark }}>
               Form
             </span>
             <FilterChip
@@ -273,7 +309,10 @@ export default function ApplicationSubmissionsPage({
             <table className="w-full min-w-[1020px] border-collapse text-left text-sm">
               <thead
                 className="sticky top-0 z-[1]"
-                style={{ backgroundColor: C.bg, borderBottom: `1px solid ${C.border}` }}
+                style={{
+                  backgroundColor: C.elevated,
+                  borderBottom: `2px solid ${C.border}`,
+                }}
               >
                 <tr>
                   {[
@@ -286,15 +325,23 @@ export default function ApplicationSubmissionsPage({
                     "Progress",
                     ...(showFeeColumn ? ["Fee"] : []),
                     "Updated",
-                  ].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide sm:px-5"
-                      style={{ color: C.textQuaternary }}
-                    >
-                      {heading}
-                    </th>
-                  ))}
+                  ].map((heading, index, headings) => {
+                    const isLast = index === headings.length - 1;
+                    return (
+                      <th
+                        key={heading}
+                        className="px-3 py-2.5 sm:px-4"
+                        style={columnDividerStyle(C, isLast)}
+                      >
+                        <span
+                          className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                          style={submissionColumnHeaderBadgeStyle(heading, C)}
+                        >
+                          {heading}
+                        </span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -310,13 +357,23 @@ export default function ApplicationSubmissionsPage({
                           prev === submission.id ? null : submission.id,
                         )
                       }
+                      onMouseEnter={() => setHoveredId(submission.id)}
+                      onMouseLeave={() => setHoveredId(null)}
                       className="cursor-pointer transition-colors"
                       style={{
-                        backgroundColor: isSelected ? C.accentLight : "transparent",
+                        backgroundColor: isSelected
+                          ? C.accentLight
+                          : hoveredId === submission.id
+                            ? C.elevated
+                            : "transparent",
                         borderBottom: `1px solid ${C.border}`,
+                        borderLeft: `3px solid ${isSelected ? C.accent : "transparent"}`,
                       }}
                     >
-                      <td className="px-4 py-3 sm:px-5" style={{ color: C.textPrimary }}>
+                      <td
+                        className="px-3 py-3 sm:px-4"
+                        style={{ color: C.textPrimary, ...columnDividerStyle(C, false) }}
+                      >
                         <div className="font-medium">{submission.formTitle}</div>
                         {submission.programName ? (
                           <div className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
@@ -324,13 +381,22 @@ export default function ApplicationSubmissionsPage({
                           </div>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 sm:px-5" style={{ color: C.textSecondary }}>
+                      <td
+                        className="px-3 py-3 sm:px-4"
+                        style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
+                      >
                         {submission.contactEmail ?? "—"}
                       </td>
-                      <td className="px-4 py-3 sm:px-5" style={{ color: C.textSecondary }}>
+                      <td
+                        className="px-3 py-3 sm:px-4"
+                        style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
+                      >
                         {submission.studentLabel ?? "—"}
                       </td>
-                      <td className="px-4 py-3 sm:px-5">
+                      <td
+                        className="px-3 py-3 sm:px-4"
+                        style={columnDividerStyle(C, false)}
+                      >
                         <span
                           className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
                           style={statusStyle}
@@ -339,7 +405,10 @@ export default function ApplicationSubmissionsPage({
                         </span>
                       </td>
                       {showEnrollmentColumn ? (
-                        <td className="px-4 py-3 sm:px-5">
+                        <td
+                          className="px-3 py-3 sm:px-4"
+                          style={columnDividerStyle(C, false)}
+                        >
                           {submission.enrollmentSummary ? (
                             <span
                               className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
@@ -357,7 +426,10 @@ export default function ApplicationSubmissionsPage({
                         </td>
                       ) : null}
                       {showPostSubmitColumn ? (
-                        <td className="px-4 py-3 sm:px-5">
+                        <td
+                          className="px-3 py-3 sm:px-4"
+                          style={columnDividerStyle(C, false)}
+                        >
                           {submission.postSubmitSummary ? (
                             <span
                               className="inline-flex max-w-[12rem] truncate rounded-full px-2 py-0.5 text-xs font-medium"
@@ -374,17 +446,26 @@ export default function ApplicationSubmissionsPage({
                           )}
                         </td>
                       ) : null}
-                      <td className="px-4 py-3 sm:px-5" style={{ color: C.textSecondary }}>
+                      <td
+                        className="px-3 py-3 sm:px-4"
+                        style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
+                      >
                         {formatSubmissionProgress(submission)}
                       </td>
                       {showFeeColumn ? (
-                        <td className="px-4 py-3 sm:px-5" style={{ color: C.textSecondary }}>
+                        <td
+                          className="px-3 py-3 sm:px-4"
+                          style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
+                        >
                           {submission.feeEnabled && submission.feeStatus !== "not_required"
                             ? FEE_STATUS_LABELS[submission.feeStatus] ?? submission.feeStatus
                             : "—"}
                         </td>
                       ) : null}
-                      <td className="px-4 py-3 sm:px-5" style={{ color: C.textSecondary }}>
+                      <td
+                        className="px-3 py-3 sm:px-4"
+                        style={{ color: C.textSecondary, ...columnDividerStyle(C, true) }}
+                      >
                         {formatShortDate(submission.updatedAt)}
                       </td>
                     </tr>
