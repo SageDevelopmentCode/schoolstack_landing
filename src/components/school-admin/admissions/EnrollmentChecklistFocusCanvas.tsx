@@ -5,15 +5,38 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
+import {
+  CHECKLIST_ITEM_TYPE_LABELS,
+  type ChecklistItemType,
+} from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
+import { BuilderSectionIntro } from "./builder-question-card";
 import {
   checklistFocusKey,
   type ChecklistBuilderFocus,
 } from "./checklist-builder-focus";
 import EnrollmentChecklistItemEditor from "./EnrollmentChecklistItemEditor";
 import EnrollmentChecklistOutline from "./EnrollmentChecklistOutline";
+
+function itemTypeSubtitle(type: ChecklistItemType): string {
+  switch (type) {
+    case "document_sign":
+    case "document_sign_pdf":
+      return "Families read and sign this before completing enrollment.";
+    case "form":
+      return "Families fill out these questions as part of enrollment.";
+    case "file_upload":
+      return "Families upload documents you request here.";
+    case "payment":
+      return "Families pay this amount during enrollment.";
+    case "acknowledgment":
+      return "Families read and confirm this before moving on.";
+    default:
+      return "Configure what families see and do for this step.";
+  }
+}
 
 const canvasTransition = {
   initial: { opacity: 0, x: 8 },
@@ -43,6 +66,7 @@ type EnrollmentChecklistFocusCanvasProps = {
 function ItemView({
   C,
   item,
+  itemIdx,
   organizationId,
   templateId,
   orgSlug,
@@ -56,6 +80,7 @@ function ItemView({
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
+  itemIdx: number;
   organizationId: string;
   templateId: string;
   orgSlug?: string;
@@ -68,24 +93,32 @@ function ItemView({
   allItems: EnrollmentChecklistItem[];
 }) {
   return (
-    <EnrollmentChecklistItemEditor
-      C={C}
-      item={item}
-      organizationId={organizationId}
-      templateId={templateId}
-      orgSlug={orgSlug}
-      stripePaymentsReady={stripePaymentsReady}
-      readOnly={readOnly}
-      onChange={onUpdateItem}
-      onSelectField={(fieldId) =>
-        onFocusChange({ kind: "field", itemId: item.id, fieldId })
-      }
-      onAddVariant={onAddVariant ? () => onAddVariant(item.id) : undefined}
-      onSetDefaultVariant={
-        onSetDefaultVariant ? () => onSetDefaultVariant(item.id) : undefined
-      }
-      allItems={allItems}
-    />
+    <div className="w-full max-w-3xl space-y-5">
+      <BuilderSectionIntro
+        C={C}
+        eyebrow={`Item ${itemIdx + 1} · ${CHECKLIST_ITEM_TYPE_LABELS[item.type]}`}
+        title={item.label || "Untitled item"}
+        subtitle={itemTypeSubtitle(item.type)}
+      />
+      <EnrollmentChecklistItemEditor
+        C={C}
+        item={item}
+        organizationId={organizationId}
+        templateId={templateId}
+        orgSlug={orgSlug}
+        stripePaymentsReady={stripePaymentsReady}
+        readOnly={readOnly}
+        onChange={onUpdateItem}
+        onSelectField={(fieldId) =>
+          onFocusChange({ kind: "field", itemId: item.id, fieldId })
+        }
+        onAddVariant={onAddVariant ? () => onAddVariant(item.id) : undefined}
+        onSetDefaultVariant={
+          onSetDefaultVariant ? () => onSetDefaultVariant(item.id) : undefined
+        }
+        allItems={allItems}
+      />
+    </div>
   );
 }
 
@@ -109,24 +142,23 @@ function FieldView({
   onRequestDelete: () => void;
 }) {
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-medium"
-          style={{ color: C.accent }}
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to {item.label || `Item ${itemIdx + 1}`}
-        </button>
-        <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
-          Item {itemIdx + 1} · Question
-        </p>
-        <h2 className="text-lg font-bold" style={{ color: C.textPrimary }}>
-          {field.label || "Untitled question"}
-        </h2>
-      </div>
+    <div className="w-full max-w-3xl space-y-5">
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-sm font-medium"
+        style={{ color: C.accent }}
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to {item.label || `Item ${itemIdx + 1}`}
+      </button>
+
+      <BuilderSectionIntro
+        C={C}
+        eyebrow={`Item ${itemIdx + 1} · Question`}
+        title="Edit question"
+        subtitle="Set up what families see and how they answer this question."
+      />
 
       <ApplicationFormFieldEditor
         C={C}
@@ -263,6 +295,7 @@ export default function EnrollmentChecklistFocusCanvas({
                   key={item.id}
                   C={C}
                   item={item}
+                  itemIdx={itemIdx}
                   organizationId={organizationId}
                   templateId={templateId}
                   orgSlug={orgSlug}

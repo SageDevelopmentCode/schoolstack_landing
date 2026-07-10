@@ -9,6 +9,7 @@ import type {
   EnrollmentChecklistItem,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { BuilderQuestionCard } from "./builder-question-card";
 
 type AgreementOptionsDialogProps = {
   C: AdminThemeTokens;
@@ -39,36 +40,6 @@ function inputStyle(C: AdminThemeTokens): React.CSSProperties {
     width: "100%",
     boxSizing: "border-box",
   };
-}
-
-function LabeledField({
-  C,
-  label,
-  children,
-}: {
-  C: AdminThemeTokens;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        className="mb-1 block text-[10px] font-medium"
-        style={{ color: C.textTertiary }}
-      >
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function HelperText({ C, children }: { C: AdminThemeTokens; children: React.ReactNode }) {
-  return (
-    <p className="mt-1 text-[10px] leading-relaxed" style={{ color: C.textTertiary }}>
-      {children}
-    </p>
-  );
 }
 
 export default function AgreementOptionsDialog({
@@ -154,80 +125,78 @@ export default function AgreementOptionsDialog({
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 max-h-[70vh]">
-              <HelperText C={C}>
-                Choose whether every family signs the same agreement, or staff pick the
-                right version when starting enrollment.
-              </HelperText>
+              <BuilderQuestionCard
+                C={C}
+                tone="accent"
+                question="Same agreement for everyone, or different per student?"
+                helper="Choose whether every family signs the same agreement, or staff pick the right version when starting enrollment."
+              >
+                <div className="space-y-2">
+                  <label
+                    className="flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2.5 text-[11px]"
+                    style={{
+                      borderColor: !variantEnabled ? C.accent : C.border,
+                      backgroundColor: !variantEnabled ? C.accentLight : C.surface,
+                      color: C.textSecondary,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name={`agreement-mode-${item.id}`}
+                      checked={!variantEnabled}
+                      onChange={() => onPatchVariant(null)}
+                      disabled={readOnly}
+                      className="mt-0.5"
+                      style={{ accentColor: C.accent }}
+                    />
+                    <span>
+                      <span className="font-medium" style={{ color: C.textPrimary }}>
+                        Same agreement for everyone
+                      </span>
+                      <span className="mt-0.5 block text-[10px]" style={{ color: C.textTertiary }}>
+                        One agreement step for all families.
+                      </span>
+                    </span>
+                  </label>
 
-              <div className="space-y-2">
-                <label
-                  className="flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2.5 text-[11px]"
-                  style={{
-                    borderColor: !variantEnabled ? C.accent : C.border,
-                    backgroundColor: !variantEnabled ? C.accentLight : C.surface,
-                    color: C.textSecondary,
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name={`agreement-mode-${item.id}`}
-                    checked={!variantEnabled}
-                    onChange={() => onPatchVariant(null)}
-                    disabled={readOnly}
-                    className="mt-0.5"
-                    style={{ accentColor: C.accent }}
-                  />
-                  <span>
-                    <span className="font-medium" style={{ color: C.textPrimary }}>
-                      Same agreement for everyone
+                  <label
+                    className="flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2.5 text-[11px]"
+                    style={{
+                      borderColor: variantEnabled ? C.accent : C.border,
+                      backgroundColor: variantEnabled ? C.accentLight : C.surface,
+                      color: C.textSecondary,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name={`agreement-mode-${item.id}`}
+                      checked={variantEnabled}
+                      onChange={() => onPatchVariant({})}
+                      disabled={readOnly}
+                      className="mt-0.5"
+                      style={{ accentColor: C.accent }}
+                    />
+                    <span>
+                      <span className="font-medium" style={{ color: C.textPrimary }}>
+                        Different agreements for different students
+                      </span>
+                      <span className="mt-0.5 block text-[10px]" style={{ color: C.textTertiary }}>
+                        Staff pick the correct agreement when starting enrollment.
+                      </span>
                     </span>
-                    <span className="mt-0.5 block text-[10px]" style={{ color: C.textTertiary }}>
-                      One agreement step for all families.
-                    </span>
-                  </span>
-                </label>
-
-                <label
-                  className="flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2.5 text-[11px]"
-                  style={{
-                    borderColor: variantEnabled ? C.accent : C.border,
-                    backgroundColor: variantEnabled ? C.accentLight : C.surface,
-                    color: C.textSecondary,
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name={`agreement-mode-${item.id}`}
-                    checked={variantEnabled}
-                    onChange={() => onPatchVariant({})}
-                    disabled={readOnly}
-                    className="mt-0.5"
-                    style={{ accentColor: C.accent }}
-                  />
-                  <span>
-                    <span className="font-medium" style={{ color: C.textPrimary }}>
-                      Different agreements for different students
-                    </span>
-                    <span className="mt-0.5 block text-[10px]" style={{ color: C.textTertiary }}>
-                      Staff pick the correct agreement when starting enrollment.
-                    </span>
-                  </span>
-                </label>
-              </div>
+                  </label>
+                </div>
+              </BuilderQuestionCard>
 
               {variantEnabled ? (
-                <div
-                  className="space-y-3 rounded-md border p-3"
-                  style={{ borderColor: C.border, backgroundColor: C.elevated }}
+                <BuilderQuestionCard
+                  C={C}
+                  tone="clay"
+                  question="What should this step be called in the family checklist?"
+                  helper="Appears once in the family checklist. Give each option a distinct label below."
+                  highlightError={showGroupLabelHint}
                 >
-                  <p
-                    className="text-[10px] font-semibold uppercase tracking-wide"
-                    style={{ color: C.textTertiary }}
-                  >
-                    Checklist step
-                  </p>
-
-                  <LabeledField C={C} label="Step name families see">
+                  <div className="space-y-3">
                     <input
                       type="text"
                       value={groupLabelValue}
@@ -236,48 +205,40 @@ export default function AgreementOptionsDialog({
                       placeholder="Enrollment Agreement"
                       style={style}
                     />
-                    <HelperText C={C}>
-                      Appears once in the family checklist. Give each option a distinct label
-                      in the section below.
-                    </HelperText>
                     {showGroupLabelHint ? (
-                      <p className="mt-1 text-[10px]" style={{ color: C.warning }}>
+                      <p className="text-xs" style={{ color: C.warning }}>
                         Step name is required before publishing.
                       </p>
                     ) : null}
-                  </LabeledField>
 
-                  {!readOnly && onAddVariant ? (
-                    <button
-                      type="button"
-                      onClick={onAddVariant}
-                      className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
-                      style={{
-                        backgroundColor: C.accentLight,
-                        color: C.accent,
-                        border: `1px solid ${C.secondaryBtnBorder}`,
-                      }}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add another agreement option
-                    </button>
-                  ) : null}
-                </div>
+                    {!readOnly && onAddVariant ? (
+                      <button
+                        type="button"
+                        onClick={onAddVariant}
+                        className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+                        style={{
+                          backgroundColor: C.accentLight,
+                          color: C.accent,
+                          border: `1px solid ${C.secondaryBtnBorder}`,
+                        }}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add another agreement option
+                      </button>
+                    ) : null}
+                  </div>
+                </BuilderQuestionCard>
               ) : null}
 
               {variantEnabled ? (
-                <div
-                  className="space-y-3 rounded-md border p-3"
-                  style={{ borderColor: C.border, backgroundColor: C.elevated }}
+                <BuilderQuestionCard
+                  C={C}
+                  tone="info"
+                  question="How should staff identify this agreement option?"
+                  helper="Shown to staff when starting enrollment, e.g. Standard agreement or Disability support."
+                  highlightError={showOptionLabelHint}
                 >
-                  <p
-                    className="text-[10px] font-semibold uppercase tracking-wide"
-                    style={{ color: C.textTertiary }}
-                  >
-                    This agreement option
-                  </p>
-
-                  <LabeledField C={C} label="Option label (staff sees)">
+                  <div className="space-y-3">
                     <input
                       type="text"
                       value={item.label}
@@ -286,36 +247,32 @@ export default function AgreementOptionsDialog({
                       placeholder="Standard agreement"
                       style={style}
                     />
-                    <HelperText C={C}>
-                      Shown to staff when starting enrollment, e.g. Standard agreement or
-                      Disability support
-                    </HelperText>
                     {showOptionLabelHint ? (
-                      <p className="mt-1 text-[10px]" style={{ color: C.warning }}>
+                      <p className="text-xs" style={{ color: C.warning }}>
                         Option label is required before publishing.
                       </p>
                     ) : null}
-                  </LabeledField>
 
-                  <label
-                    className="flex items-center gap-2 text-[11px] font-medium"
-                    style={{ color: C.textSecondary }}
-                  >
-                    <input
-                      type="radio"
-                      name={`default-variant-${variantDraft?.groupId ?? item.id}`}
-                      checked={variantDraft?.isDefault ?? false}
-                      onChange={() => onSetDefaultVariant?.()}
-                      disabled={readOnly}
-                      className="h-4 w-4"
-                      style={{ accentColor: C.accent }}
-                    />
-                    Default option
-                  </label>
-                  <HelperText C={C}>
-                    Pre-selected when an admin starts enrollment.
-                  </HelperText>
-                </div>
+                    <label
+                      className="flex items-center gap-2 text-sm font-medium"
+                      style={{ color: C.textPrimary }}
+                    >
+                      <input
+                        type="radio"
+                        name={`default-variant-${variantDraft?.groupId ?? item.id}`}
+                        checked={variantDraft?.isDefault ?? false}
+                        onChange={() => onSetDefaultVariant?.()}
+                        disabled={readOnly}
+                        className="h-4 w-4"
+                        style={{ accentColor: C.accent }}
+                      />
+                      Default option
+                    </label>
+                    <p className="text-xs" style={{ color: C.textTertiary }}>
+                      Pre-selected when an admin starts enrollment.
+                    </p>
+                  </div>
+                </BuilderQuestionCard>
               ) : null}
             </div>
 

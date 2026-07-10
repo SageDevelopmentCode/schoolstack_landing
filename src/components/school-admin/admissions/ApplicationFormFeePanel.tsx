@@ -13,6 +13,7 @@ type ApplicationFormFeePanelProps = {
   readOnly: boolean;
   onChange: (feeConfig: ApplicationFormFeeConfig) => void;
   hideHeader?: boolean;
+  variant?: "application" | "enrollment";
   orgSlug?: string;
   stripePaymentsReady?: boolean;
 };
@@ -23,9 +24,13 @@ export default function ApplicationFormFeePanel({
   readOnly,
   onChange,
   hideHeader = false,
+  variant = "application",
   orgSlug,
   stripePaymentsReady = true,
 }: ApplicationFormFeePanelProps) {
+  const isEnrollment = variant === "enrollment";
+  const feeEnabled = isEnrollment || feeConfig.enabled;
+
   const inputStyle: React.CSSProperties = {
     backgroundColor: C.input,
     border: `1px solid ${C.inputBorder}`,
@@ -87,17 +92,25 @@ export default function ApplicationFormFeePanel({
     </BuilderQuestionCard>
   );
 
-  const feeFields = feeConfig.enabled ? (
+  const feeFields = feeEnabled ? (
     <>
       <BuilderQuestionCard
         C={C}
         tone="clay"
-        question="What should this fee be called?"
-        helper="This label appears on the checkout screen."
+        question={
+          isEnrollment
+            ? "What should this payment be called?"
+            : "What should this fee be called?"
+        }
+        helper={
+          isEnrollment
+            ? "Shown on the family checkout screen."
+            : "This label appears on the checkout screen."
+        }
       >
         <input
           type="text"
-          value={feeConfig.label ?? "Application fee"}
+          value={feeConfig.label ?? (isEnrollment ? "Enrollment payment" : "Application fee")}
           disabled={readOnly}
           onChange={(e) => onChange({ ...feeConfig, label: e.target.value })}
           style={inputStyle}
@@ -130,6 +143,25 @@ export default function ApplicationFormFeePanel({
           <p className="text-xs" style={{ color: C.textTertiary }}>
             Families will pay {formatFeeAmount(feeConfig.amount_cents ?? 0)}.
           </p>
+          {isEnrollment && !stripePaymentsReady && orgSlug ? (
+            <div
+              className="rounded-md border px-3 py-2.5 text-xs leading-relaxed"
+              style={{
+                borderColor: C.errorBorder,
+                backgroundColor: C.errorBg,
+                color: C.error,
+              }}
+            >
+              Connect Stripe before publishing a checklist with a payment.{" "}
+              <Link
+                href={schoolAdminPath(orgSlug, "admissions", "payments")}
+                className="font-medium underline underline-offset-2"
+                style={{ color: C.accent }}
+              >
+                Set up payments
+              </Link>
+            </div>
+          ) : null}
         </div>
       </BuilderQuestionCard>
     </>
@@ -138,7 +170,7 @@ export default function ApplicationFormFeePanel({
   if (hideHeader) {
     return (
       <div className="space-y-5">
-        {enableCard}
+        {!isEnrollment ? enableCard : null}
         {feeFields}
       </div>
     );

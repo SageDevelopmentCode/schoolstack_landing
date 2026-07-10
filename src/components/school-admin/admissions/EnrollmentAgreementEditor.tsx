@@ -41,9 +41,9 @@ function inputStyle(C: AdminThemeTokens): React.CSSProperties {
     backgroundColor: C.input,
     border: `1px solid ${C.inputBorder}`,
     color: C.textPrimary,
-    borderRadius: C.r.sm,
-    fontSize: "12px",
-    padding: "8px 10px",
+    borderRadius: C.r.md,
+    fontSize: "14px",
+    padding: "10px 12px",
     width: "100%",
     boxSizing: "border-box",
   };
@@ -435,28 +435,33 @@ export function EnrollmentPdfAgreementEditor({
       ) : null}
 
       {document.storagePath ? (
-        <label
-          className="flex items-center gap-2 text-[11px] font-medium"
-          style={{ color: C.textSecondary }}
-        >
-          <input
-            type="checkbox"
-            checked={document.requireSignature !== false}
-            disabled={readOnly}
-            onChange={(e) =>
-              onChange({
-                ...document,
-                requireSignature: e.target.checked,
-              })
-            }
-            className="h-4 w-4 rounded"
-            style={{ accentColor: C.accent }}
-          />
-          Require parent signature below the PDF
-        </label>
+        <div className="space-y-2">
+          <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
+            Require signature below the PDF?
+          </p>
+          <label
+            className="inline-flex items-center gap-2 text-sm font-medium"
+            style={{ color: C.textPrimary }}
+          >
+            <input
+              type="checkbox"
+              checked={document.requireSignature !== false}
+              disabled={readOnly}
+              onChange={(e) =>
+                onChange({
+                  ...document,
+                  requireSignature: e.target.checked,
+                })
+              }
+              className="h-4 w-4 rounded"
+              style={{ accentColor: C.accent }}
+            />
+            Yes, require parent signature
+          </label>
+        </div>
       ) : null}
 
-      <p className="text-[10px]" style={{ color: C.textTertiary }}>
+      <p className="text-xs" style={{ color: C.textTertiary }}>
         PDFs upload immediately. Click Save draft to keep this item linked to your checklist.
       </p>
     </div>
