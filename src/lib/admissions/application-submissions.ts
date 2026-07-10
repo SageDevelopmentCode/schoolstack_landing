@@ -11,7 +11,7 @@ import {
   type EnrollmentProgressSummary,
 } from "./enrollment-checklist-materialization";
 import { listScheduledVisitsForApplications } from "./admissions-booking";
-import { applicationStatusLabel } from "./application-status-ui";
+import { applicationStatusLabel, FEE_STATUS_LABELS } from "./application-status-ui";
 import type { ApplicationFormSchema } from "./application-form-schema";
 import { parseApplicationFormFeeConfig, parseApplicationFormPostSubmitConfig } from "./application-form-schema";
 
@@ -46,20 +46,25 @@ export type AdminApplicationSubmission = {
   enrollmentSummary: EnrollmentProgressSummary | null;
 };
 
-export type FamilyAdmissionHistoryEntry = {
+export type FamilyAdmissionTimelineEvent = {
   id: string;
-  kind: "application" | "enrollment";
+  kind: "created" | "submitted" | "fee_paid" | "draft" | "enrollment";
   applicationId: string;
   applicationStatus: string;
   title: string;
+  subtitle?: string;
+  occurredAt: string;
+  statusLabel?: string;
+  progressLabel?: string;
+  enrollmentProgress?: { completed: number; total: number };
   studentLabel: string | null;
   programName: string | null;
-  statusLabel: string;
-  progressLabel: string;
-  updatedAt: string;
   applicationBadgeStatus?: string;
   enrollmentTone?: EnrollmentProgressSummaryTone;
 };
+
+/** @deprecated Use FamilyAdmissionTimelineEvent */
+export type FamilyAdmissionHistoryEntry = FamilyAdmissionTimelineEvent;
 
 function enrollmentChecklistStatusLabel(status: string): string {
   switch (status) {
@@ -468,7 +473,7 @@ export async function listFamilyAdmissionHistory(
   supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
-): Promise<FamilyAdmissionHistoryEntry[]> {
+): Promise<FamilyAdmissionTimelineEvent[]> {
   const applications = await listApplicationSubmissionsForFamily(
     supabase,
     organizationId,
@@ -488,6 +493,7 @@ export async function listFamilyAdmissionHistory(
       id,
       application_id,
       status,
+      created_at,
       updated_at,
       enrollment_checklist_templates ( name )
     `,
@@ -497,66 +503,114 @@ export async function listFamilyAdmissionHistory(
 
   if (checklistError) throw checklistError;
 
-  const checklistApplicationIds = new Set(
-    (checklistRows ?? []).map((row) => String(row.application_id)),
+  const checklistByApplicationId = new Map(
+    (checklistRows ?? []).map((row) => [String(row.application_id), row]),
   );
 
-  const entries: FamilyAdmissionHistoryEntry[] = [];
+  const events: FamilyAdmissionTimelineEvent[] = [];
 
   for (const application of applications) {
-    const hasChecklist = checklistApplicationIds.has(application.id);
-    const displayStatus =
-      application.status === "enrolling" && hasChecklist
-        ? "submitted"
-        : application.status;
-    const progressSource =
-      displayStatus === "submitted" && application.status === "enrolling"
-        ? { ...application, status: "submitted" }
-        : application;
+    const { studentLabel, programName } = application;
 
-    entries.push({
-      id: application.id,
-      kind: "application",
+    events.push({
+      id: `${application.id}-created`,
+      kind: "created",
       applicationId: application.id,
       applicationStatus: application.status,
-      title: application.formTitle,
-      studentLabel: application.studentLabel,
-      programName: application.programName,
-      statusLabel: applicationStatusLabel(displayStatus),
-      progressLabel: formatSubmissionProgress(progressSource),
-      updatedAt: application.submittedAt ?? application.updatedAt,
-      applicationBadgeStatus: displayStatus,
+      title: "Application created",
+      subtitle: application.formTitle,
+      occurredAt: application.createdAt,
+      studentLabel,
+      programName,
     });
+
+    if (application.status === "draft") {
+      events.push({
+        id: `${application.id}-draft`,
+        kind: "draft",
+        applicationId: application.id,
+        applicationStatus: application.status,
+        title: "In progress",
+        subtitle: application.formTitle,
+        occurredAt: application.updatedAt,
+        progressLabel: `Step ${application.stepIndex + 1} of ${application.totalSteps}`,
+        statusLabel: applicationStatusLabel("draft"),
+        applicationBadgeStatus: "draft",
+        studentLabel,
+        programName,
+      });
+    }
+
+    if (application.submittedAt) {
+      const hasChecklist = checklistByApplicationId.has(application.id);
+      const displayStatus =
+        application.status === "enrolling" && hasChecklist
+          ? "submitted"
+          : application.status;
+
+      events.push({
+        id: `${application.id}-submitted`,
+        kind: "submitted",
+        applicationId: application.id,
+        applicationStatus: application.status,
+        title: "Submitted",
+        subtitle: application.formTitle,
+        occurredAt: application.submittedAt,
+        statusLabel: applicationStatusLabel(displayStatus),
+        applicationBadgeStatus: displayStatus,
+        studentLabel,
+        programName,
+      });
+    }
+
+    if (
+      application.feeEnabled &&
+      (application.feeStatus === "paid" || application.feeStatus === "waived")
+    ) {
+      events.push({
+        id: `${application.id}-fee`,
+        kind: "fee_paid",
+        applicationId: application.id,
+        applicationStatus: application.status,
+        title: FEE_STATUS_LABELS[application.feeStatus] ?? "Fee paid",
+        subtitle: application.formTitle,
+        occurredAt: application.submittedAt ?? application.updatedAt,
+        studentLabel,
+        programName,
+      });
+    }
+
+    const checklistRow = checklistByApplicationId.get(application.id);
+    if (checklistRow) {
+      const template = checklistRow.enrollment_checklist_templates as
+        | { name?: string }
+        | { name?: string }[]
+        | null;
+      const templateRow = Array.isArray(template) ? template[0] : template;
+      const checklistStatus = String(checklistRow.status);
+      const summary = application.enrollmentSummary ?? null;
+
+      events.push({
+        id: String(checklistRow.id),
+        kind: "enrollment",
+        applicationId: application.id,
+        applicationStatus: application.status,
+        title: String(templateRow?.name ?? "Enrollment checklist"),
+        occurredAt: String(checklistRow.created_at ?? checklistRow.updated_at),
+        statusLabel: enrollmentChecklistStatusLabel(checklistStatus),
+        progressLabel: formatEnrollmentProgressLabel(summary),
+        enrollmentProgress: summary
+          ? { completed: summary.completed, total: summary.total }
+          : undefined,
+        enrollmentTone: summary?.tone ?? "not_started",
+        studentLabel,
+        programName,
+      });
+    }
   }
 
-  for (const row of checklistRows ?? []) {
-    const applicationId = String(row.application_id);
-    const application = applicationsById.get(applicationId);
-    const template = row.enrollment_checklist_templates as
-      | { name?: string }
-      | { name?: string }[]
-      | null;
-    const templateRow = Array.isArray(template) ? template[0] : template;
-    const checklistStatus = String(row.status);
-    const summary = application?.enrollmentSummary ?? null;
-
-    entries.push({
-      id: String(row.id),
-      kind: "enrollment",
-      applicationId,
-      applicationStatus: application?.status ?? "enrolling",
-      title: String(templateRow?.name ?? "Enrollment checklist"),
-      studentLabel: application?.studentLabel ?? null,
-      programName: application?.programName ?? null,
-      statusLabel: enrollmentChecklistStatusLabel(checklistStatus),
-      progressLabel: formatEnrollmentProgressLabel(summary),
-      updatedAt: String(row.updated_at),
-      enrollmentTone: summary?.tone ?? "not_started",
-    });
-  }
-
-  return entries.sort(
+  return events.sort(
     (left, right) =>
-      new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+      new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime(),
   );
 }

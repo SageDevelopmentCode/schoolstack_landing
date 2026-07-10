@@ -5,7 +5,9 @@ import { motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplicationSubmissionPostSubmitSection from "@/components/admissions/ApplicationSubmissionPostSubmitSection";
-import ApplicationSubmissionHistorySection from "./ApplicationSubmissionHistorySection";
+import ApplicationSubmissionHistorySection, {
+  buildAdmissionHistoryContextDescription,
+} from "./ApplicationSubmissionHistorySection";
 import ApplicationFormStatusCard from "./ApplicationFormStatusCard";
 import DetailPanelSection from "./DetailPanelSection";
 import DetailPanelSectionGroup from "./DetailPanelSectionGroup";
@@ -23,7 +25,7 @@ import {
   listFamilyAdmissionHistory,
   resolveApplicationFamilyId,
   type AdminApplicationSubmission,
-  type FamilyAdmissionHistoryEntry,
+  type FamilyAdmissionTimelineEvent,
 } from "@/lib/admissions/application-submissions";
 import { getChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import { loadApplicationDetail } from "@/lib/admissions/parent-portal-access";
@@ -68,7 +70,7 @@ export default function ApplicationSubmissionDetailPanel({
   const [activeTab, setActiveTab] = useState("overview");
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyUnlinked, setHistoryUnlinked] = useState(false);
-  const [historyEntries, setHistoryEntries] = useState<FamilyAdmissionHistoryEntry[]>([]);
+  const [historyEvents, setHistoryEvents] = useState<FamilyAdmissionTimelineEvent[]>([]);
 
   const loadChecklistState = useCallback(async () => {
     const checklist = await getChecklistForApplication(supabase, submission.id);
@@ -102,7 +104,7 @@ export default function ApplicationSubmissionDetailPanel({
 
   useEffect(() => {
     setActiveTab("overview");
-    setHistoryEntries([]);
+    setHistoryEvents([]);
     setHistoryUnlinked(false);
     setHistoryLoading(false);
   }, [submission.id]);
@@ -117,7 +119,7 @@ export default function ApplicationSubmissionDetailPanel({
         submission.id,
       );
       if (!familyId) {
-        setHistoryEntries([]);
+        setHistoryEvents([]);
         setHistoryUnlinked(true);
         return;
       }
@@ -127,9 +129,9 @@ export default function ApplicationSubmissionDetailPanel({
         organizationId,
         familyId,
       );
-      setHistoryEntries(rows);
+      setHistoryEvents(rows);
     } catch {
-      setHistoryEntries([]);
+      setHistoryEvents([]);
       setHistoryUnlinked(true);
     } finally {
       setHistoryLoading(false);
@@ -141,6 +143,11 @@ export default function ApplicationSubmissionDetailPanel({
       void loadHistory();
     }
   }, [activeTab, loadHistory]);
+
+  const historyContextDescription = useMemo(
+    () => buildAdmissionHistoryContextDescription(historyEvents),
+    [historyEvents],
+  );
 
   const tabs = useMemo<DetailTab[]>(() => {
     if (!detail) return [];
@@ -240,12 +247,16 @@ export default function ApplicationSubmissionDetailPanel({
     if (tabId === "history") {
       return (
         <DetailPanelSectionGroup C={C}>
-          <DetailPanelSection C={C} title="Family applications">
+          <DetailPanelSection
+            C={C}
+            title="Admission history"
+            description={historyContextDescription}
+          >
             <ApplicationSubmissionHistorySection
               C={C}
               currentApplicationId={submission.id}
               currentApplicationStatus={currentStatus}
-              entries={historyEntries}
+              events={historyEvents}
               loading={historyLoading}
               unlinked={historyUnlinked}
               onSelect={(applicationId) => onSelectSubmission?.(applicationId)}
@@ -402,19 +413,21 @@ export default function ApplicationSubmissionDetailPanel({
         ) : null}
       </div>
 
-      <div
-        className="flex flex-shrink-0 flex-wrap gap-x-4 gap-y-1 px-4 py-3 text-xs sm:px-5"
-        style={{ borderTop: `1px solid ${C.border}`, color: C.textTertiary }}
-      >
-        <span>Created {formatShortDate(submission.createdAt)}</span>
-        {submission.submittedAt ? (
-          <span>Submitted {formatShortDate(submission.submittedAt)}</span>
-        ) : null}
-        <span>{formatSubmissionProgress(submission)}</span>
-        {submission.feeEnabled && submission.feeStatus !== "not_required" ? (
-          <span>Fee {FEE_STATUS_LABELS[submission.feeStatus] ?? submission.feeStatus}</span>
-        ) : null}
-      </div>
+      {activeTab !== "history" ? (
+        <div
+          className="flex flex-shrink-0 flex-wrap gap-x-4 gap-y-1 px-4 py-3 text-xs sm:px-5"
+          style={{ borderTop: `1px solid ${C.border}`, color: C.textTertiary }}
+        >
+          <span>Created {formatShortDate(submission.createdAt)}</span>
+          {submission.submittedAt ? (
+            <span>Submitted {formatShortDate(submission.submittedAt)}</span>
+          ) : null}
+          <span>{formatSubmissionProgress(submission)}</span>
+          {submission.feeEnabled && submission.feeStatus !== "not_required" ? (
+            <span>Fee {FEE_STATUS_LABELS[submission.feeStatus] ?? submission.feeStatus}</span>
+          ) : null}
+        </div>
+      ) : null}
       </motion.div>
 
       <StartEnrollmentModal
