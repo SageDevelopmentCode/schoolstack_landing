@@ -42,8 +42,6 @@ import {
   normalizePublicSlug,
   validateApplicationFormSchema,
   validatePublicSlug,
-  type ApplicationFormFeeConfig,
-  type ApplicationFormPostSubmitConfig,
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
@@ -68,6 +66,13 @@ import {
   parseOperationalError,
   reportClientOperationalError,
 } from "@/lib/operational-errors-client";
+import {
+  serializeChecklistEditableState,
+  serializeEditableFormState,
+  type ChecklistEditableSnapshot,
+  type EditableFormSnapshot,
+} from "@/lib/admissions/editable-snapshots";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 
 type ApplicationFormsPageProps = {
   organizationId: string;
@@ -76,21 +81,9 @@ type ApplicationFormsPageProps = {
   slug: string;
 };
 
-type EditableFormState = {
-  title: string;
-  intro: string;
-  programId: string | null;
-  publicSlug: string;
-  schema: ApplicationFormSchema;
-  feeConfig: ApplicationFormFeeConfig;
-  postSubmitConfig: ApplicationFormPostSubmitConfig;
-};
+type EditableFormState = EditableFormSnapshot;
 
-type ChecklistEditableState = {
-  name: string;
-  programId: string | null;
-  items: EnrollmentChecklistItem[];
-};
+type ChecklistEditableState = ChecklistEditableSnapshot;
 
 function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentChecklistItem[] {
   return items.map((item) => ({
@@ -282,8 +275,12 @@ export default function ApplicationFormsPage({
   const [checklistEditable, setChecklistEditable] = useState<ChecklistEditableState | null>(
     null,
   );
-  const dirtyRef = useRef(false);
-  const checklistDirtyRef = useRef(false);
+  const [applySavedSnapshot, setApplySavedSnapshot] = useState<string | null>(null);
+  const [checklistSavedSnapshot, setChecklistSavedSnapshot] = useState<string | null>(
+    null,
+  );
+  const isApplyDirtyRef = useRef(false);
+  const isChecklistDirtyRef = useRef(false);
 
   const selectedForm =
     selection?.kind === "apply"
@@ -312,6 +309,40 @@ export default function ApplicationFormsPage({
   const checklistIsDraft = selectedChecklist?.status === "draft";
   const checklistIsPublished = selectedChecklist?.status === "published";
   const checklistReadOnly = checklistIsArchived;
+
+  const isApplyDirty = useMemo(() => {
+    if (!editable || !applySavedSnapshot) return false;
+    return serializeEditableFormState(editable) !== applySavedSnapshot;
+  }, [editable, applySavedSnapshot]);
+
+  const isChecklistDirty = useMemo(() => {
+    if (!checklistEditable || !checklistSavedSnapshot) return false;
+    return (
+      serializeChecklistEditableState(checklistEditable) !== checklistSavedSnapshot
+    );
+  }, [checklistEditable, checklistSavedSnapshot]);
+
+  const isDirty =
+    selection?.kind === "apply"
+      ? isApplyDirty
+      : selection?.kind === "checklist"
+        ? isChecklistDirty
+        : false;
+
+  const guardEnabled =
+    (selection?.kind === "apply" && editable !== null) ||
+    (selection?.kind === "checklist" && checklistEditable !== null);
+
+  const { dialogOpen: leaveDialogOpen, requestAction, confirmLeave, cancelLeave } =
+    useUnsavedChangesGuard({ isDirty, enabled: guardEnabled });
+
+  useEffect(() => {
+    isApplyDirtyRef.current = isApplyDirty;
+  }, [isApplyDirty]);
+
+  useEffect(() => {
+    isChecklistDirtyRef.current = isChecklistDirty;
+  }, [isChecklistDirty]);
 
   const loadForms = useCallback(async () => {
     setLoading(true);
@@ -361,14 +392,14 @@ export default function ApplicationFormsPage({
   useEffect(() => {
     setFocus(DEFAULT_BUILDER_FOCUS);
     setSetupHighlight(null);
-    dirtyRef.current = false;
+    setApplySavedSnapshot(null);
   }, [selectedApplyFormId]);
 
   const selectedChecklistId =
     selection?.kind === "checklist" ? selection.id : null;
 
   useEffect(() => {
-    checklistDirtyRef.current = false;
+    setChecklistSavedSnapshot(null);
   }, [selectedChecklistId]);
 
   useEffect(() => {
@@ -387,12 +418,14 @@ export default function ApplicationFormsPage({
 
         const items = loaded?.items ?? [];
 
-        if (!checklistDirtyRef.current) {
-          setChecklistEditable({
+        if (!isChecklistDirtyRef.current) {
+          const nextChecklist: ChecklistEditableState = {
             name: checklist.name,
             programId: checklist.programId,
             items: cloneChecklistItems(items),
-          });
+          };
+          setChecklistEditable(nextChecklist);
+          setChecklistSavedSnapshot(serializeChecklistEditableState(nextChecklist));
         }
       } catch (err) {
         if (!cancelled) {
@@ -456,8 +489,9 @@ export default function ApplicationFormsPage({
       }
 
       if (cancelled) return;
-      if (!dirtyRef.current) {
+      if (!isApplyDirtyRef.current) {
         setEditable(next);
+        setApplySavedSnapshot(serializeEditableFormState(next));
       }
     }
 
@@ -490,7 +524,6 @@ export default function ApplicationFormsPage({
       setSetupHighlight(null);
       setError(null);
     }
-    dirtyRef.current = true;
     setEditable((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
@@ -546,7 +579,7 @@ export default function ApplicationFormsPage({
     return true;
   };
 
-  const handleCreateApply = async () => {
+  const performCreateApply = async () => {
     setCreating(true);
     setError(null);
     try {
@@ -561,7 +594,13 @@ export default function ApplicationFormsPage({
     }
   };
 
-  const handleCreateChecklist = async () => {
+  const handleCreateApply = () => {
+    requestAction(() => {
+      void performCreateApply();
+    });
+  };
+
+  const performCreateChecklist = async () => {
     setCreating(true);
     setError(null);
     try {
@@ -577,7 +616,13 @@ export default function ApplicationFormsPage({
     }
   };
 
-  const handleDuplicate = async () => {
+  const handleCreateChecklist = () => {
+    requestAction(() => {
+      void performCreateChecklist();
+    });
+  };
+
+  const performDuplicate = async () => {
     if (!selectedForm) return;
     setCreating(true);
     setError(null);
@@ -591,6 +636,16 @@ export default function ApplicationFormsPage({
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleDuplicate = () => {
+    requestAction(() => {
+      void performDuplicate();
+    });
+  };
+
+  const handleSelect = (nextSelection: FlowListSelection) => {
+    requestAction(() => setSelection(nextSelection));
   };
 
   const handleSave = async () => {
@@ -623,8 +678,9 @@ export default function ApplicationFormsPage({
       setForms((prev) =>
         prev.map((f) => (f.id === updated.id ? updated : f)),
       );
-      setEditable(toEditableState(updated));
-      dirtyRef.current = false;
+      const nextEditable = toEditableState(updated);
+      setEditable(nextEditable);
+      setApplySavedSnapshot(serializeEditableFormState(nextEditable));
       setSavedPulse(true);
       setTimeout(() => setSavedPulse(false), 1500);
     } catch (err) {
@@ -685,8 +741,9 @@ export default function ApplicationFormsPage({
         });
       }
       const published = await publishForm(supabase, selectedForm.id);
-      setEditable(toEditableState(published));
-      dirtyRef.current = false;
+      const nextEditable = toEditableState(published);
+      setEditable(nextEditable);
+      setApplySavedSnapshot(serializeEditableFormState(nextEditable));
       await loadForms();
       setSelection({ kind: "apply", id: published.id });
       setSetupHighlight(null);
@@ -722,12 +779,10 @@ export default function ApplicationFormsPage({
   };
 
   const handleChecklistEditableChange = (patch: Partial<ChecklistEditableState>) => {
-    checklistDirtyRef.current = true;
     setChecklistEditable((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
   const handleChecklistItemsChange = (items: EnrollmentChecklistItem[]) => {
-    checklistDirtyRef.current = true;
     setChecklistEditable((prev) => (prev ? { ...prev, items } : prev));
   };
 
@@ -763,12 +818,13 @@ export default function ApplicationFormsPage({
           checklist.id === updatedTemplate.id ? updatedTemplate : checklist,
         ),
       );
-      setChecklistEditable({
+      const nextChecklist: ChecklistEditableState = {
         name: updatedTemplate.name,
         programId: updatedTemplate.programId,
         items: savedItems,
-      });
-      checklistDirtyRef.current = false;
+      };
+      setChecklistEditable(nextChecklist);
+      setChecklistSavedSnapshot(serializeChecklistEditableState(nextChecklist));
       setSavedPulse(true);
       setTimeout(() => setSavedPulse(false), 1500);
     } catch (err) {
@@ -825,13 +881,14 @@ export default function ApplicationFormsPage({
         ),
       );
       if (loaded) {
-        setChecklistEditable({
+        const nextChecklist: ChecklistEditableState = {
           name: published.name,
           programId: published.programId,
           items: loaded.items,
-        });
+        };
+        setChecklistEditable(nextChecklist);
+        setChecklistSavedSnapshot(serializeChecklistEditableState(nextChecklist));
       }
-      checklistDirtyRef.current = false;
       await loadForms();
       setSelection({ kind: "checklist", id: published.id });
     } catch (err) {
@@ -879,7 +936,6 @@ export default function ApplicationFormsPage({
   const updateSchema = (
     updater: (schema: ApplicationFormSchema) => ApplicationFormSchema,
   ) => {
-    dirtyRef.current = true;
     setEditable((prev) => {
       if (!prev) return prev;
       const schema = updater(prev.schema);
@@ -961,7 +1017,7 @@ export default function ApplicationFormsPage({
         creating={creating}
         hasApplyForm={hasApplyForm}
         hasEnrollmentChecklist={hasEnrollmentChecklist}
-        onSelect={setSelection}
+        onSelect={handleSelect}
         onCreateApply={handleCreateApply}
         onCreateChecklist={handleCreateChecklist}
       />
@@ -1027,8 +1083,8 @@ export default function ApplicationFormsPage({
                   <button
                     type="button"
                     onClick={handleChecklistSave}
-                    disabled={saving}
-                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                    disabled={saving || !isChecklistDirty}
+                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                     style={{
                       border: `1px solid ${C.secondaryBtnBorder}`,
                       color: C.accent,
@@ -1198,8 +1254,8 @@ export default function ApplicationFormsPage({
                   <button
                     type="button"
                     onClick={handleSave}
-                    disabled={saving}
-                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+                    disabled={saving || !isApplyDirty}
+                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                     style={{
                       border: `1px solid ${C.secondaryBtnBorder}`,
                       color: C.accent,
@@ -1375,6 +1431,18 @@ export default function ApplicationFormsPage({
         loading={unpublishing}
         onConfirm={handleChecklistUnpublish}
         onClose={() => !unpublishing && setChecklistUnpublishOpen(false)}
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={leaveDialogOpen}
+        title="Unsaved changes"
+        description="You have unsaved changes. If you leave now, your changes will be lost."
+        confirmLabel="Leave without saving"
+        cancelLabel="Keep editing"
+        variant="destructive"
+        onConfirm={confirmLeave}
+        onClose={cancelLeave}
       />
     </div>
   );
