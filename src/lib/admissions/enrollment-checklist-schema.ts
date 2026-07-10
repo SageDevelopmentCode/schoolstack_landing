@@ -86,6 +86,7 @@ export type EnrollmentChecklistItemInstance = {
   templateItemId: string;
   itemKey: string;
   status: ChecklistItemInstanceStatus;
+  paymentStatus?: "not_required" | "pending" | "paid" | "waived";
   responses: Record<string, unknown>;
 };
 

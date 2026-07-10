@@ -9,6 +9,7 @@ import {
   completeApplicationPaymentAndSubmit,
   getApplicationForSubmit,
 } from "@/lib/admissions/application-submit";
+import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
 import { apiError } from "@/lib/api/route-errors";
 import {
   attachCheckoutSessionToPayment,
@@ -33,12 +34,41 @@ async function handleCheckoutSessionCompleted(
       ? session.payment_intent
       : session.payment_intent?.id;
 
+  const metadata = session.metadata ?? {};
+
+  if (
+    metadata.payment_type === "enrollment_checklist" &&
+    metadata.checklist_item_id &&
+    metadata.organization_id
+  ) {
+    await completeChecklistPaymentFromWebhook(admin, {
+      instanceId: metadata.checklist_item_id,
+      organizationId: metadata.organization_id,
+      checkoutSessionId,
+      paymentIntentId,
+    });
+
+    void logActivityEvent(admin, {
+      organizationId: metadata.organization_id,
+      actorType: "system",
+      surface: "system",
+      action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+      entityType: "enrollment_checklist_item",
+      entityId: metadata.checklist_item_id,
+      summary: "Enrollment checklist payment completed",
+      metadata: {
+        checkoutSessionId,
+        applicationId: metadata.application_id ?? null,
+      },
+    });
+    return;
+  }
+
   let payment = await getApplicationPaymentByCheckoutSession(
     admin,
     checkoutSessionId,
   );
 
-  const metadata = session.metadata ?? {};
   const paymentId = metadata.payment_id;
 
   if (!payment && paymentId) {

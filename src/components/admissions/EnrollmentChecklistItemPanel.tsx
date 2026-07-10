@@ -10,6 +10,14 @@ import {
   type ChecklistFormEntry,
 } from "@/lib/admissions/checklist-form-responses";
 import {
+  buildChecklistFormPayload,
+  validateChecklistFormResponses,
+} from "@/lib/admissions/enrollment-checklist-form-validation";
+import {
+  parseChecklistFileResponses,
+  uploadChecklistFile,
+} from "@/lib/admissions/enrollment-checklist-file-storage";
+import {
   buildEmbeddedPdfViewerUrl,
   getEnrollmentChecklistPdfSignedUrl,
 } from "@/lib/admissions/enrollment-checklist-document-storage";
@@ -22,8 +30,12 @@ type EnrollmentChecklistItemPanelProps = {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
   mode: "preview" | "live";
+  organizationId?: string;
+  checklistId?: string;
   instanceId?: string;
   instanceStatus?: string;
+  instancePaymentStatus?: string;
+  existingResponses?: Record<string, unknown>;
   onComplete?: () => Promise<void> | void;
 };
 
@@ -349,12 +361,19 @@ function FormItemPanel({
   C,
   item,
   mode,
+  instanceId,
+  instanceStatus,
+  onComplete,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
   mode: "preview" | "live";
+  instanceId?: string;
+  instanceStatus?: string;
+  onComplete?: () => Promise<void> | void;
 }) {
   const isLive = mode === "live";
+  const isCompleted = instanceStatus === "completed";
   const formSchema = item.formSchema;
   const fields = formSchema?.fields ?? [];
   const allowMultiple = formSchema?.allowMultiple ?? false;
@@ -364,8 +383,10 @@ function FormItemPanel({
   const [entries, setEntries] = useState<ChecklistFormEntry[]>(() =>
     createEmptyEntries(),
   );
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (fields.length === 0) {
+  if (!formSchema || fields.length === 0) {
     return (
       <p className="text-sm" style={{ color: C.textSecondary }}>
         No questions added to this form yet.
@@ -373,9 +394,39 @@ function FormItemPanel({
     );
   }
 
+  async function handleSubmit() {
+    if (!isLive || !instanceId || !onComplete || !formSchema) return;
+
+    const payload = buildChecklistFormPayload(formSchema, values, entries);
+    const validationError = validateChecklistFormResponses(formSchema, payload);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/admissions/enrollment-checklist-items/${instanceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responses: payload }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body.error ?? "Failed to submit form.");
+      }
+      await onComplete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit form.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
-      {formSchema?.title ? (
+      {formSchema.title ? (
         <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
           {formSchema.title}
         </h2>
@@ -411,13 +462,21 @@ function FormItemPanel({
         ))
       )}
 
+      {error ? (
+        <p className="text-sm" style={{ color: C.error }}>
+          {error}
+        </p>
+      ) : null}
+
       <button
         type="button"
-        disabled={isLive}
+        disabled={!isLive || submitting || isCompleted}
+        onClick={() => void handleSubmit()}
         className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-        style={panelButtonStyle(C, isLive)}
+        style={panelButtonStyle(C, !isLive || submitting || isCompleted)}
       >
-        Submit form{!isLive ? " (preview)" : ""}
+        {isCompleted ? "Completed" : submitting ? "Saving…" : "Submit form"}
+        {!isLive ? " (preview)" : ""}
       </button>
     </div>
   );
@@ -426,18 +485,98 @@ function FormItemPanel({
 function FileUploadPanel({
   C,
   item,
+  mode,
+  organizationId,
+  checklistId,
+  instanceId,
+  instanceStatus,
+  existingResponses,
+  onComplete,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
+  mode: "preview" | "live";
+  organizationId?: string;
+  checklistId?: string;
+  instanceId?: string;
+  instanceStatus?: string;
+  existingResponses?: Record<string, unknown>;
+  onComplete?: () => Promise<void> | void;
 }) {
+  const supabase = useMemo(() => createClient(), []);
   const config = item.fileUpload;
+  const isLive = mode === "live";
+  const isCompleted = instanceStatus === "completed";
+  const [files, setFiles] = useState(() => parseChecklistFileResponses(existingResponses));
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFileSelect(selected: FileList | null) {
+    if (!selected?.length || !isLive || !organizationId || !instanceId || !checklistId) {
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+    try {
+      const uploaded = [...files];
+      for (const file of Array.from(selected)) {
+        const meta = await uploadChecklistFile(
+          supabase,
+          {
+            organizationId,
+            checklistId,
+            instanceId,
+          },
+          file,
+          {
+            accept: config?.accept,
+          },
+        );
+        uploaded.push(meta);
+      }
+      setFiles(uploaded);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload file.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleComplete() {
+    if (!isLive || !instanceId || !onComplete) return;
+    if (item.required && files.length === 0) {
+      setError("Upload at least one file to continue.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/admissions/enrollment-checklist-items/${instanceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responses: { files } }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body.error ?? "Failed to save upload.");
+      }
+      await onComplete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save upload.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
         {item.label}
       </h2>
-      <div
+      <label
         className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center"
         style={{ borderColor: C.borderStrong, backgroundColor: "#FFFFFF" }}
       >
@@ -453,14 +592,45 @@ function FileUploadPanel({
             Accepted: {config.accept}
           </p>
         ) : null}
-      </div>
+        <input
+          type="file"
+          multiple={Boolean(config?.maxFiles && config.maxFiles > 1)}
+          accept={config?.accept}
+          disabled={!isLive || uploading || isCompleted}
+          className="mt-4 text-xs"
+          onChange={(event) => void handleFileSelect(event.target.files)}
+        />
+      </label>
+
+      {files.length > 0 ? (
+        <ul className="space-y-2 text-sm" style={{ color: C.textSecondary }}>
+          {files.map((file) => (
+            <li key={file.id}>{file.fileName}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {error ? (
+        <p className="text-sm" style={{ color: C.error }}>
+          {error}
+        </p>
+      ) : null}
+
       <button
         type="button"
-        disabled
+        disabled={!isLive || uploading || submitting || isCompleted}
+        onClick={() => void handleComplete()}
         className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-        style={panelButtonStyle(C, true)}
+        style={panelButtonStyle(C, !isLive || uploading || submitting || isCompleted)}
       >
-        Upload files (preview)
+        {isCompleted
+          ? "Completed"
+          : submitting
+            ? "Saving…"
+            : uploading
+              ? "Uploading…"
+              : "Save upload"}
+        {!isLive ? " (preview)" : ""}
       </button>
     </div>
   );
@@ -470,14 +640,46 @@ function PaymentPanel({
   C,
   item,
   mode,
+  instanceId,
+  instanceStatus,
+  instancePaymentStatus,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
   mode: "preview" | "live";
+  instanceId?: string;
+  instanceStatus?: string;
+  instancePaymentStatus?: string;
 }) {
   const isLive = mode === "live";
+  const isCompleted = instanceStatus === "completed" || instancePaymentStatus === "paid";
   const payment = item.payment;
   const amount = formatFeeAmount(payment?.amountCents ?? 0);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handlePay() {
+    if (!isLive || !instanceId || isCompleted) return;
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/admissions/enrollment-checklist-items/${instanceId}/checkout`,
+        { method: "POST" },
+      );
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body.error ?? "Failed to start checkout.");
+      }
+      if (body.url) {
+        window.location.href = body.url;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start checkout.");
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -495,13 +697,19 @@ function PaymentPanel({
           {amount}
         </p>
       </div>
+      {error ? (
+        <p className="text-sm" style={{ color: C.error }}>
+          {error}
+        </p>
+      ) : null}
       <button
         type="button"
-        disabled={!isLive}
+        disabled={!isLive || submitting || isCompleted}
+        onClick={() => void handlePay()}
         className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-        style={panelButtonStyle(C, !isLive)}
+        style={panelButtonStyle(C, !isLive || submitting || isCompleted)}
       >
-        Pay {amount}
+        {isCompleted ? "Paid" : submitting ? "Redirecting…" : `Pay ${amount}`}
         {!isLive ? " (preview)" : ""}
       </button>
     </div>
@@ -612,8 +820,12 @@ export default function EnrollmentChecklistItemPanel({
   C,
   item,
   mode,
+  organizationId,
+  checklistId,
   instanceId,
   instanceStatus,
+  instancePaymentStatus,
+  existingResponses,
   onComplete,
 }: EnrollmentChecklistItemPanelProps) {
   const content = useMemo(() => {
@@ -657,11 +869,41 @@ export default function EnrollmentChecklistItemPanel({
           />
         );
       case "form":
-        return <FormItemPanel C={C} item={item} mode={mode} />;
+        return (
+          <FormItemPanel
+            C={C}
+            item={item}
+            mode={mode}
+            instanceId={instanceId}
+            instanceStatus={instanceStatus}
+            onComplete={onComplete}
+          />
+        );
       case "file_upload":
-        return <FileUploadPanel C={C} item={item} />;
+        return (
+          <FileUploadPanel
+            C={C}
+            item={item}
+            mode={mode}
+            organizationId={organizationId}
+            checklistId={checklistId}
+            instanceId={instanceId}
+            instanceStatus={instanceStatus}
+            existingResponses={existingResponses}
+            onComplete={onComplete}
+          />
+        );
       case "payment":
-        return <PaymentPanel C={C} item={item} mode={mode} />;
+        return (
+          <PaymentPanel
+            C={C}
+            item={item}
+            mode={mode}
+            instanceId={instanceId}
+            instanceStatus={instanceStatus}
+            instancePaymentStatus={instancePaymentStatus}
+          />
+        );
       case "acknowledgment":
         return (
           <AcknowledgmentPanel
@@ -676,7 +918,18 @@ export default function EnrollmentChecklistItemPanel({
       default:
         return null;
     }
-  }, [C, instanceId, instanceStatus, item, mode, onComplete]);
+  }, [
+    C,
+    checklistId,
+    existingResponses,
+    instanceId,
+    instancePaymentStatus,
+    instanceStatus,
+    item,
+    mode,
+    onComplete,
+    organizationId,
+  ]);
 
   return <div className="flex h-full min-h-0 flex-col">{content}</div>;
 }

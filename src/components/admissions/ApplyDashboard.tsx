@@ -46,7 +46,7 @@ function applicationAction(
 
   if (application.status === "enrolling") {
     return {
-      label: "Complete enrollment",
+      label: "Start enrollment",
       href: `/school/${schoolSlug}/apply/${application.id}/enrollment`,
     };
   }

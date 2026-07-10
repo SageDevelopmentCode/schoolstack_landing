@@ -283,6 +283,7 @@ function instanceFromRow(row: Record<string, unknown>): EnrollmentChecklistItemI
     templateItemId: String(row.template_item_id),
     itemKey: String(row.item_key),
     status: row.status as ChecklistItemInstanceStatus,
+    paymentStatus: row.payment_status as EnrollmentChecklistItemInstance["paymentStatus"],
     responses,
   };
 }
@@ -407,6 +408,123 @@ export async function recomputeChecklistStatus(
     .from("enrollment_checklists")
     .update({ status: newStatus })
     .eq("id", checklistId);
+
+  if (allComplete) {
+    await finalizeEnrollmentIfComplete(supabase, checklistId);
+  }
+}
+
+async function finalizeEnrollmentIfComplete(
+  supabase: SupabaseClient,
+  checklistId: string,
+): Promise<void> {
+  const { data: checklist, error: checklistError } = await supabase
+    .from("enrollment_checklists")
+    .select("id, enrollment_id, application_id, organization_id")
+    .eq("id", checklistId)
+    .maybeSingle();
+
+  if (checklistError) throw checklistError;
+  if (!checklist?.enrollment_id) return;
+
+  const enrollmentId = String(checklist.enrollment_id);
+
+  const { data: enrollment, error: enrollmentError } = await supabase
+    .from("enrollments")
+    .select("id, student_id, status")
+    .eq("id", enrollmentId)
+    .maybeSingle();
+
+  if (enrollmentError) throw enrollmentError;
+  if (!enrollment || enrollment.status === "enrolled") return;
+
+  const { error: enrollmentUpdateError } = await supabase
+    .from("enrollments")
+    .update({ status: "enrolled" })
+    .eq("id", enrollmentId);
+
+  if (enrollmentUpdateError) throw enrollmentUpdateError;
+
+  if (enrollment.student_id) {
+    await supabase
+      .from("students")
+      .update({ status: "enrolled" })
+      .eq("id", enrollment.student_id);
+  }
+
+  void logActivityEvent(supabase, {
+    organizationId: String(checklist.organization_id),
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED,
+    entityType: "enrollment",
+    entityId: enrollmentId,
+    summary: "Enrollment checklist completed",
+    metadata: {
+      checklistId,
+      applicationId: checklist.application_id ?? null,
+    },
+  });
+}
+
+export async function completeChecklistPaymentFromWebhook(
+  supabase: SupabaseClient,
+  input: {
+    instanceId: string;
+    organizationId: string;
+    actorUserId?: string | null;
+    checkoutSessionId?: string;
+    paymentIntentId?: string;
+  },
+): Promise<void> {
+  const { instanceId, organizationId, checkoutSessionId, paymentIntentId } = input;
+
+  const { data: instance, error: instanceError } = await supabase
+    .from("enrollment_checklist_items")
+    .select("id, checklist_id, status, payment_status, responses")
+    .eq("id", instanceId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (instanceError) throw instanceError;
+  if (!instance) {
+    throw new EnrollmentMaterializationError(
+      "Checklist item not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  if (instance.payment_status === "paid" && instance.status === "completed") {
+    return;
+  }
+
+  const existingResponses =
+    instance.responses &&
+    typeof instance.responses === "object" &&
+    !Array.isArray(instance.responses)
+      ? (instance.responses as Record<string, unknown>)
+      : {};
+
+  const { error: paymentUpdateError } = await supabase
+    .from("enrollment_checklist_items")
+    .update({
+      payment_status: "paid",
+      responses: {
+        ...existingResponses,
+        checkoutSessionId: checkoutSessionId ?? existingResponses.checkoutSessionId,
+        paymentIntentId: paymentIntentId ?? existingResponses.paymentIntentId,
+      },
+    })
+    .eq("id", instanceId);
+
+  if (paymentUpdateError) throw paymentUpdateError;
+
+  await completeChecklistItem(supabase, {
+    instanceId,
+    actorUserId: input.actorUserId ?? undefined,
+    organizationId,
+  });
 }
 
 export async function completeChecklistItem(
@@ -415,7 +533,7 @@ export async function completeChecklistItem(
     instanceId: string;
     responses?: Record<string, unknown>;
     signerName?: string;
-    actorUserId: string;
+    actorUserId?: string;
     organizationId: string;
   },
 ): Promise<void> {
@@ -429,6 +547,8 @@ export async function completeChecklistItem(
       checklist_id,
       template_item_id,
       status,
+      payment_status,
+      responses,
       organization_id,
       enrollment_checklists!inner (
         application_id,
@@ -473,20 +593,49 @@ export async function completeChecklistItem(
 
   const checklistRow = Array.isArray(checklist) ? checklist[0] : checklist;
   const checklistId = String(instance.checklist_id);
+  const templateId = checklistRow?.template_id
+    ? String(checklistRow.template_id)
+    : null;
+
+  if (templateId) {
+    const { data: templateItem, error: templateItemError } = await supabase
+      .from("enrollment_checklist_template_items")
+      .select("type")
+      .eq("id", instance.template_item_id)
+      .maybeSingle();
+
+    if (templateItemError) throw templateItemError;
+
+    if (templateItem?.type === "payment" && instance.payment_status !== "paid") {
+      throw new EnrollmentMaterializationError(
+        "Payment must be completed before marking this item done.",
+        "payment_required",
+        400,
+      );
+    }
+  }
+
+  const existingResponses =
+    instance.responses &&
+    typeof instance.responses === "object" &&
+    !Array.isArray(instance.responses)
+      ? (instance.responses as Record<string, unknown>)
+      : {};
 
   const patch: Record<string, unknown> = {
     status: "completed",
     completed_at: new Date().toISOString(),
-    completed_by_user_id: actorUserId,
   };
 
-  if (responses) {
-    patch.responses = responses;
+  if (actorUserId) {
+    patch.completed_by_user_id = actorUserId;
   }
-  if (signerName) {
+
+  if (responses || signerName) {
     patch.responses = {
+      ...existingResponses,
       ...(responses ?? {}),
-      signerName,
+      ...(signerName ? { signerName } : {}),
     };
   }
 

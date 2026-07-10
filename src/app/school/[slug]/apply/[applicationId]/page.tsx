@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplyAuthPage from "@/components/admissions/ApplyAuthPage";
@@ -54,6 +54,10 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
 
   if (application.status === "draft") {
     notFound();
+  }
+
+  if (application.status === "enrolling") {
+    redirect(`/school/${slug}/apply/${applicationId}/enrollment`);
   }
 
   return (

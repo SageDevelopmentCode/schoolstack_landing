@@ -27,6 +27,8 @@ export type EnrollmentChecklistExperienceProps = {
   title: string;
   items: EnrollmentChecklistItem[];
   mode?: "preview" | "live";
+  organizationId?: string;
+  checklistId?: string;
   initialItemId?: string;
   instances?: EnrollmentChecklistItemInstance[];
   onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
@@ -73,6 +75,8 @@ export default function EnrollmentChecklistExperience({
   title,
   items,
   mode = "preview",
+  organizationId,
+  checklistId,
   initialItemId,
   instances = [],
   onInstancesChange,
@@ -240,8 +244,12 @@ export default function EnrollmentChecklistExperience({
                     C={C}
                     item={activeItem}
                     mode={mode}
+                    organizationId={organizationId}
+                    checklistId={checklistId}
                     instanceId={activeInstance?.id}
                     instanceStatus={activeInstance?.status}
+                    instancePaymentStatus={activeInstance?.paymentStatus}
+                    existingResponses={activeInstance?.responses}
                     onComplete={mode === "live" ? handleComplete : undefined}
                   />
                 </motion.div>

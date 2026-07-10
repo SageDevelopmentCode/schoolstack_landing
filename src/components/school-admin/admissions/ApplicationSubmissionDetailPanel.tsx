@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplicationSubmissionPostSubmitSection from "@/components/admissions/ApplicationSubmissionPostSubmitSection";
+import ApplicationDecisionSection from "./ApplicationDecisionSection";
 import EnrollmentStatusCard from "./EnrollmentStatusCard";
 import StartEnrollmentModal from "./StartEnrollmentModal";
 import {
@@ -169,6 +170,17 @@ export default function ApplicationSubmissionDetailPanel({
           </p>
         ) : detail ? (
           <>
+            <ApplicationDecisionSection
+              C={C}
+              applicationId={submission.id}
+              currentStatus={currentStatus}
+              onStatusChanged={(status) => {
+                setCurrentStatus(status);
+                onSubmissionUpdated?.();
+                void loadDetail();
+              }}
+            />
+
             {canStartEnrollment ? (
               <div className="mb-5">
                 <button
