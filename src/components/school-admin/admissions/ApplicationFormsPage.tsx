@@ -23,7 +23,6 @@ import {
 } from "@/lib/admissions/apply-system-fields";
 import {
   createEnrollmentChecklistTemplate,
-  enrollmentChecklistRelativePath,
   getEnrollmentChecklistWithItems,
   listEnrollmentChecklistTemplates,
   publishEnrollmentChecklistTemplate,
@@ -40,7 +39,6 @@ import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
 import {
   emptyApplicationSection,
-  formatFormUpdatedAt,
   normalizePublicSlug,
   validateApplicationFormSchema,
   validatePublicSlug,
@@ -56,7 +54,7 @@ import ApplicationFormFocusCanvas from "./ApplicationFormFocusCanvas";
 import ApplicationFormList, {
   type FlowListSelection,
 } from "./ApplicationFormList";
-import { StatusBadge } from "./ApplicationFormListBadges";
+import { StatusBadge, FLOW_TYPE_LABELS } from "./ApplicationFormListBadges";
 import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
 import EnrollmentChecklistBuilder from "./EnrollmentChecklistBuilder";
@@ -314,9 +312,6 @@ export default function ApplicationFormsPage({
   const checklistIsDraft = selectedChecklist?.status === "draft";
   const checklistIsPublished = selectedChecklist?.status === "published";
   const checklistReadOnly = checklistIsArchived;
-  const checklistPath = selectedChecklist
-    ? enrollmentChecklistRelativePath(selectedChecklist.enrollmentPath)
-    : null;
 
   const loadForms = useCallback(async () => {
     setLoading(true);
@@ -994,9 +989,7 @@ export default function ApplicationFormsPage({
                 style={{ color: C.textTertiary }}
               >
                 <StatusBadge C={C} status={selectedChecklist.status} />
-                <span>Checklist</span>
-                {checklistPath ? <span>{checklistPath}</span> : null}
-                <span>Updated {formatFormUpdatedAt(selectedChecklist.updatedAt)}</span>
+                <span>{FLOW_TYPE_LABELS.checklist}</span>
               </div>
             </div>
 
@@ -1147,8 +1140,7 @@ export default function ApplicationFormsPage({
                 style={{ color: C.textTertiary }}
               >
                 <StatusBadge C={C} status={selectedForm.status} />
-                <span>Version {selectedForm.version}</span>
-                <span>Updated {formatFormUpdatedAt(selectedForm.updated_at)}</span>
+                <span>{FLOW_TYPE_LABELS.apply}</span>
               </div>
             </div>
 

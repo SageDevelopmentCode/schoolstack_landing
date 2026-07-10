@@ -2,25 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ClipboardList, FileText, Plus } from "lucide-react";
-import {
-  formatFormUpdatedAt,
-  type ApplicationFormStatus,
-  type ApplicationFormVersion,
-} from "@/lib/admissions/application-form-schema";
-import {
-  enrollmentChecklistRelativePath,
-  type EnrollmentChecklistTemplate,
-} from "@/lib/admissions/enrollment-checklist-templates";
+import type { ApplicationFormVersion } from "@/lib/admissions/application-form-schema";
+import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-
-const STATUS_STYLES: Record<
-  ApplicationFormStatus,
-  { bg: string; color: string; label: string }
-> = {
-  draft: { bg: "rgba(217, 119, 6, 0.1)", color: "#D97706", label: "Draft" },
-  published: { bg: "rgba(22, 163, 74, 0.1)", color: "#16A34A", label: "Published" },
-  archived: { bg: "rgba(113, 113, 122, 0.1)", color: "#71717A", label: "Archived" },
-};
+import { FLOW_TYPE_LABELS, StatusBadge } from "./ApplicationFormListBadges";
 
 export type FlowListSelection = {
   kind: "apply" | "checklist";
@@ -147,7 +132,7 @@ export default function ApplicationFormList({
             {forms.map((form) => {
               const isActive =
                 selected?.kind === "apply" && selected.id === form.id;
-              const statusStyle = STATUS_STYLES[form.status];
+
               return (
                 <button
                   key={form.id}
@@ -168,24 +153,10 @@ export default function ApplicationFormList({
                     >
                       {form.title}
                     </p>
-                    <span
-                      className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                      style={{
-                        backgroundColor: statusStyle.bg,
-                        color: statusStyle.color,
-                      }}
-                    >
-                      {statusStyle.label}
-                    </span>
+                    <StatusBadge C={C} status={form.status} />
                   </div>
                   <p className="mt-1 text-[11px]" style={{ color: C.textTertiary }}>
-                    Apply · v{form.version}
-                  </p>
-                  <p className="mt-0.5 text-[11px]" style={{ color: C.textTertiary }}>
-                    {form.public_slug ? `/forms/${form.public_slug} · ` : ""}
-                    {form.schema.sections.length} step
-                    {form.schema.sections.length === 1 ? "" : "s"} ·{" "}
-                    {formatFormUpdatedAt(form.updated_at)}
+                    {FLOW_TYPE_LABELS.apply}
                   </p>
                 </button>
               );
@@ -193,12 +164,6 @@ export default function ApplicationFormList({
             {checklists.map((checklist) => {
               const isActive =
                 selected?.kind === "checklist" && selected.id === checklist.id;
-              const statusStyle =
-                checklist.status === "published"
-                  ? STATUS_STYLES.published
-                  : checklist.status === "archived"
-                    ? STATUS_STYLES.archived
-                    : STATUS_STYLES.draft;
 
               return (
                 <button
@@ -220,22 +185,10 @@ export default function ApplicationFormList({
                     >
                       {checklist.name}
                     </p>
-                    <span
-                      className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                      style={{
-                        backgroundColor: statusStyle.bg,
-                        color: statusStyle.color,
-                      }}
-                    >
-                      {statusStyle.label}
-                    </span>
+                    <StatusBadge C={C} status={checklist.status} />
                   </div>
                   <p className="mt-1 text-[11px]" style={{ color: C.textTertiary }}>
-                    Checklist
-                  </p>
-                  <p className="mt-0.5 text-[11px]" style={{ color: C.textTertiary }}>
-                    {enrollmentChecklistRelativePath(checklist.enrollmentPath)} ·{" "}
-                    {formatFormUpdatedAt(checklist.updatedAt)}
+                    {FLOW_TYPE_LABELS.checklist}
                   </p>
                 </button>
               );
@@ -247,4 +200,4 @@ export default function ApplicationFormList({
   );
 }
 
-export { StatusBadge } from "./ApplicationFormListBadges";
+export { FLOW_TYPE_LABELS, StatusBadge } from "./ApplicationFormListBadges";

@@ -227,29 +227,6 @@ export default function AgreementOptionsDialog({
                     Checklist step
                   </p>
 
-                  <div
-                    className="rounded-md border px-3 py-2.5 text-[10px] leading-relaxed"
-                    style={{
-                      borderColor: C.info,
-                      backgroundColor: C.infoBg,
-                      color: C.textSecondary,
-                    }}
-                  >
-                    <p className="font-medium" style={{ color: C.textPrimary }}>
-                      Example
-                    </p>
-                    <p className="mt-1">
-                      You have one checklist step called &ldquo;Enrollment Agreement.&rdquo;
-                      Some students sign the standard contract; others sign a disability
-                      support agreement. Families only see the version chosen for their
-                      child.
-                    </p>
-                    <p className="mt-2">
-                      Add at least <strong>2 options</strong> below. Mark one as the default
-                      for new enrollments.
-                    </p>
-                  </div>
-
                   <LabeledField C={C} label="Step name families see">
                     <input
                       type="text"

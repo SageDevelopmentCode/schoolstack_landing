@@ -7,7 +7,6 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import type { ProgramOption } from "@/lib/admissions/application-forms";
-import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type {
   ApplicationField,
@@ -107,6 +106,59 @@ function inputStyle(C: AdminThemeTokens): React.CSSProperties {
   };
 }
 
+const SETUP_CARD_TONES = {
+  accent: (C: AdminThemeTokens) => ({
+    bg: C.accentLight,
+    border: C.secondaryBtnBorder,
+  }),
+  clay: (C: AdminThemeTokens) => ({ bg: C.clayBg, border: C.clayBorder }),
+  info: (C: AdminThemeTokens) => ({ bg: C.infoBg, border: C.infoBorder }),
+  success: (C: AdminThemeTokens) => ({
+    bg: C.successBg,
+    border: C.successBorder,
+  }),
+} as const;
+
+type SetupCardTone = keyof typeof SETUP_CARD_TONES;
+
+function SetupQuestionCard({
+  C,
+  tone,
+  question,
+  helper,
+  highlightError = false,
+  children,
+}: {
+  C: AdminThemeTokens;
+  tone: SetupCardTone;
+  question: string;
+  helper: string;
+  highlightError?: boolean;
+  children: React.ReactNode;
+}) {
+  const cardTone = SETUP_CARD_TONES[tone](C);
+
+  return (
+    <div
+      className="rounded-lg border p-5 space-y-4"
+      style={{
+        borderColor: highlightError ? C.errorBorder : cardTone.border,
+        backgroundColor: highlightError ? C.errorBg : cardTone.bg,
+      }}
+    >
+      <div className="space-y-1">
+        <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
+          {question}
+        </p>
+        <p className="text-xs" style={{ color: C.textTertiary }}>
+          {helper}
+        </p>
+      </div>
+      <div>{children}</div>
+    </div>
+  );
+}
+
 function SetupView({
   C,
   editable,
@@ -137,25 +189,23 @@ function SetupView({
     input.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [slugHighlighted]);
 
-  const previewPath = editable.publicSlug.trim()
-    ? publicApplicationFormPath(orgSlug, editable.publicSlug)
-    : publicApplicationFormPath(orgSlug, "your-slug");
-
   return (
-    <div className="w-full max-w-3xl space-y-6">
+    <div className="w-full max-w-3xl space-y-5">
       <div>
         <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
           Form setup
         </h2>
         <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
-          Basic info families see when they start applying.
+          Answer a few questions to set up what families see when they start applying.
         </p>
       </div>
 
-      <div className="space-y-2">
-        <FieldLabel C={C} hint="Shown as the main heading on the apply page.">
-          Form title
-        </FieldLabel>
+      <SetupQuestionCard
+        C={C}
+        tone="accent"
+        question="What should families call this application?"
+        helper="This appears as the main heading on your public apply page."
+      >
         <input
           type="text"
           value={editable.title}
@@ -164,12 +214,14 @@ function SetupView({
           placeholder="e.g. Application for Fall 2026"
           style={inputStyle(C)}
         />
-      </div>
+      </SetupQuestionCard>
 
-      <div className="space-y-2">
-        <FieldLabel C={C} hint="Shown on the first screen families see.">
-          Intro
-        </FieldLabel>
+      <SetupQuestionCard
+        C={C}
+        tone="clay"
+        question="What should families read when they first open the form?"
+        helper="A short welcome message — explain what to expect or how long it takes."
+      >
         <textarea
           rows={4}
           value={editable.intro}
@@ -178,98 +230,87 @@ function SetupView({
           placeholder="Welcome families and explain what to expect…"
           style={{ ...inputStyle(C), resize: "vertical" }}
         />
-      </div>
+      </SetupQuestionCard>
 
-      <div
-        className="space-y-2 rounded-md p-3 -mx-3"
-        style={
-          slugHighlighted
-            ? {
-                backgroundColor: C.errorBg,
-                border: `1px solid ${C.errorBorder}`,
-              }
-            : undefined
-        }
+      <SetupQuestionCard
+        C={C}
+        tone="info"
+        question="What link will families use to apply?"
+        helper="Use lowercase letters, numbers, and hyphens only."
+        highlightError={slugHighlighted}
       >
-        <FieldLabel
-          C={C}
-          hint="Used in the public URL. Lowercase letters, numbers, and hyphens only."
-        >
-          Public URL slug
-        </FieldLabel>
-        <div className="flex items-center gap-2">
-          <span
-            className="shrink-0 text-xs"
-            style={{ color: C.textTertiary }}
-          >
-            /school/{orgSlug}/forms/
-          </span>
-          <input
-            ref={slugInputRef}
-            type="text"
-            value={editable.publicSlug}
-            disabled={readOnly}
-            onChange={(e) => onEditableChange({ publicSlug: e.target.value })}
-            placeholder="e.g. apply"
-            style={{
-              ...inputStyle(C),
-              flex: 1,
-              border: `1px solid ${slugHighlighted ? C.errorBorder : C.inputBorder}`,
-            }}
-          />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="shrink-0 text-xs"
+              style={{ color: C.textTertiary }}
+            >
+              /school/{orgSlug}/forms/
+            </span>
+            <input
+              ref={slugInputRef}
+              type="text"
+              value={editable.publicSlug}
+              disabled={readOnly}
+              onChange={(e) => onEditableChange({ publicSlug: e.target.value })}
+              placeholder="e.g. apply"
+              style={{
+                ...inputStyle(C),
+                flex: 1,
+                border: `1px solid ${slugHighlighted ? C.errorBorder : C.inputBorder}`,
+              }}
+            />
+          </div>
+          {slugHighlighted && slugError ? (
+            <p className="text-xs font-medium" style={{ color: C.error }}>
+              {slugError}
+            </p>
+          ) : null}
         </div>
-        {slugHighlighted && slugError ? (
-          <p className="text-xs font-medium" style={{ color: C.error }}>
-            {slugError}
-          </p>
-        ) : (
-          <p className="text-xs" style={{ color: C.textTertiary }}>
-            Families will visit {previewPath}
-          </p>
-        )}
-      </div>
+      </SetupQuestionCard>
 
-      <div className="space-y-2">
-        <FieldLabel
-          C={C}
-          hint="Required for the public apply flow. Each application is tied to one program."
-        >
-          Program
-        </FieldLabel>
-        <select
-          value={editable.programId ?? ""}
-          disabled={readOnly}
-          onChange={(e) =>
-            onEditableChange({ programId: e.target.value || null })
-          }
-          style={inputStyle(C)}
-        >
-          <option value="">Select a program (required)</option>
-          {programs.map((program) => (
-            <option key={program.id} value={program.id}>
-              {program.name}
-            </option>
-          ))}
-        </select>
-        {!editable.programId ? (
-          <p className="text-xs font-medium" style={{ color: C.error }}>
-            {programs.length === 0 ? (
-              <>
-                <Link
-                  href={schoolAdminPath(orgSlug, "admissions", "programs")}
-                  className="underline underline-offset-2"
-                  style={{ color: C.accent }}
-                >
-                  Create a program first
-                </Link>{" "}
-                before publishing the form.
-              </>
-            ) : (
-              "Select a program so families can start an application."
-            )}
-          </p>
-        ) : null}
-      </div>
+      <SetupQuestionCard
+        C={C}
+        tone="success"
+        question="Which admissions program is this application for?"
+        helper="Each submission is tied to one program. Required before you can publish."
+      >
+        <div className="space-y-2">
+          <select
+            value={editable.programId ?? ""}
+            disabled={readOnly}
+            onChange={(e) =>
+              onEditableChange({ programId: e.target.value || null })
+            }
+            style={inputStyle(C)}
+          >
+            <option value="">Select a program (required)</option>
+            {programs.map((program) => (
+              <option key={program.id} value={program.id}>
+                {program.name}
+              </option>
+            ))}
+          </select>
+          {!editable.programId ? (
+            <p className="text-xs font-medium" style={{ color: C.error }}>
+              {programs.length === 0 ? (
+                <>
+                  <Link
+                    href={schoolAdminPath(orgSlug, "admissions", "programs")}
+                    className="underline underline-offset-2"
+                    style={{ color: C.accent }}
+                  >
+                    Create a program first
+                  </Link>{" "}
+                  before publishing the form.
+                </>
+              ) : (
+                "Select a program so families can start an application."
+              )}
+            </p>
+          ) : null}
+        </div>
+      </SetupQuestionCard>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { getItemVariantConfig } from "@/lib/admissions/enrollment-checklist-sche
 import { buildChecklistOutlineEntries } from "@/lib/admissions/enrollment-checklist-variants";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ChecklistBuilderFocus } from "./checklist-builder-focus";
+import { outlineItemCardStyle } from "./outline-item-styles";
 
 type EnrollmentChecklistOutlineProps = {
   C: AdminThemeTokens;
@@ -90,12 +91,8 @@ function ChecklistOutlineRow({
   if (isEditing) {
     return (
       <div
-        className="px-2 py-1.5"
-        style={{
-          backgroundColor: C.accentLight,
-          borderLeft: `2px solid ${C.accent}`,
-          paddingLeft: indent ? "1.5rem" : undefined,
-        }}
+        className={`mb-1.5 rounded-sm px-2 py-1.5 ${indent ? "ml-6 mr-3 w-[calc(100%-36px)]" : "mx-3 w-[calc(100%-24px)]"}`}
+        style={outlineItemCardStyle(C, true)}
       >
         <div className="flex items-center gap-1">
           {!indent ? (
@@ -163,21 +160,25 @@ function ChecklistOutlineRow({
 
   return (
     <div
-      className="group flex items-center gap-0.5"
-      style={{
-        backgroundColor: active ? C.accentLight : "transparent",
-        borderLeft: active ? `2px solid ${C.accent}` : "2px solid transparent",
-        paddingLeft: indent ? "1.5rem" : undefined,
+      className={`group mb-1.5 flex items-center gap-0.5 rounded-sm transition-colors ${indent ? "ml-6 mr-3 w-[calc(100%-36px)]" : "mx-3 w-[calc(100%-24px)]"}`}
+      style={outlineItemCardStyle(C, active)}
+      onMouseEnter={(e) => {
+        if (!active) {
+          e.currentTarget.style.backgroundColor = C.elevated;
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          e.currentTarget.style.backgroundColor = C.surface;
+        }
       }}
     >
       <button
         type="button"
         onClick={onSelect}
-        className="min-w-0 flex-1 flex items-center gap-2 py-2 text-left text-xs"
+        className="min-w-0 flex-1 flex items-center gap-2 px-2.5 py-2 text-left text-xs"
         style={{
           color: active ? C.accent : C.textPrimary,
-          paddingLeft: indent ? "0.75rem" : "0.75rem",
-          paddingRight: "0.25rem",
         }}
       >
         {indent && variantOptionPrefix ? (
@@ -205,7 +206,7 @@ function ChecklistOutlineRow({
           </span>
         ) : null}
       </button>
-      <div className="flex shrink-0 items-center gap-0.5 pr-2">
+      <div className="flex shrink-0 items-center gap-0.5 pr-2.5">
         <button
           type="button"
           onClick={(e) => {
@@ -336,12 +337,17 @@ export default function EnrollmentChecklistOutline({
             return (
               <div key={group.groupId}>
                 <div
-                  className="group flex items-center gap-0.5"
-                  style={{
-                    backgroundColor: groupActive ? C.accentLight : "transparent",
-                    borderLeft: groupActive
-                      ? `2px solid ${C.accent}`
-                      : "2px solid transparent",
+                  className="group mx-3 mb-1.5 flex w-[calc(100%-24px)] items-center gap-0.5 rounded-sm transition-colors"
+                  style={outlineItemCardStyle(C, groupActive)}
+                  onMouseEnter={(e) => {
+                    if (!groupActive) {
+                      e.currentTarget.style.backgroundColor = C.elevated;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!groupActive) {
+                      e.currentTarget.style.backgroundColor = C.surface;
+                    }
                   }}
                 >
                   <button
@@ -352,7 +358,7 @@ export default function EnrollmentChecklistOutline({
                         [group.groupId]: !expanded,
                       }))
                     }
-                    className="shrink-0 px-2 py-2"
+                    className="shrink-0 px-2.5 py-2"
                     style={{ color: C.textTertiary }}
                     aria-label={expanded ? "Collapse variants" : "Expand variants"}
                   >
@@ -362,7 +368,7 @@ export default function EnrollmentChecklistOutline({
                       <ChevronRight className="h-3 w-3" />
                     )}
                   </button>
-                  <div className="min-w-0 flex-1 py-2 pr-2 text-xs">
+                  <div className="min-w-0 flex-1 py-2 pr-2.5 text-xs">
                     <div className="flex items-center gap-1.5">
                       <p className="truncate font-medium" style={{ color: C.textPrimary }}>
                         <span
@@ -433,7 +439,7 @@ export default function EnrollmentChecklistOutline({
           <button
             type="button"
             onClick={onOpenPicker}
-            className="mx-3 mt-2 flex w-[calc(100%-24px)] items-center justify-center gap-1.5 rounded-sm py-2 text-[11px] font-medium"
+            className="mx-3 mb-1.5 flex w-[calc(100%-24px)] items-center justify-center gap-1.5 rounded-sm py-2 text-[11px] font-medium"
             style={{
               border: `1px dashed ${C.borderStrong}`,
               color: C.accent,
