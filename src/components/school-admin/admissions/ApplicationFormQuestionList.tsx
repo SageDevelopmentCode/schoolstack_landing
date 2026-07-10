@@ -75,8 +75,9 @@ function QuestionRow({
         <button
           type="button"
           onClick={onSelect}
-          className="flex min-w-0 flex-1 items-center gap-2 py-3 pr-3 text-left"
-          style={{ paddingLeft: readOnly ? 12 : 0 }}
+          className={`flex min-w-0 flex-1 items-center gap-2 py-3 pr-3 text-left ${
+            canDrag && !readOnly ? "" : "pl-3"
+          }`}
         >
           <span
             className="min-w-0 flex-1 truncate text-sm font-medium"

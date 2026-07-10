@@ -483,6 +483,9 @@ export default function ApplicationFormsPage({
     /slug/i.test(message);
 
   const handleEditableChange = (patch: Partial<EditableFormState>) => {
+    if (isApplyFormSelected && "publicSlug" in patch) {
+      return;
+    }
     if ("publicSlug" in patch) {
       setSetupHighlight(null);
       setError(null);
@@ -1299,6 +1302,7 @@ export default function ApplicationFormsPage({
               organizationId={organizationId}
               readOnly={readOnly}
               lockSystemFields={isApplyFormSelected}
+              lockApplySlug={isApplyFormSelected}
               setupHighlight={setupHighlight}
               slugError={setupHighlight === "publicSlug" ? error : null}
               stripePaymentsReady={stripePaymentsReady}

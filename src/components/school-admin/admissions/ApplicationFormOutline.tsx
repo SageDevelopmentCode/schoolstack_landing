@@ -178,8 +178,11 @@ function StepOutlineRow({
             {step.title || `Step ${stepIdx + 1}`}
             {isLocked ? (
               <span
-                className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                style={{ backgroundColor: C.elevated, color: C.textTertiary }}
+                className="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                style={{
+                  backgroundColor: active ? "transparent" : C.elevated,
+                  color: active ? C.accent : C.textTertiary,
+                }}
               >
                 <Lock className="h-2.5 w-2.5" />
                 System

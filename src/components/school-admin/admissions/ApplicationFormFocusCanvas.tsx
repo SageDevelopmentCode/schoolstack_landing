@@ -6,7 +6,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
-import type { ProgramOption } from "@/lib/admissions/application-forms";
+import {
+  APPLY_FORM_PUBLIC_SLUG,
+  type ProgramOption,
+} from "@/lib/admissions/application-forms";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type {
   ApplicationField,
@@ -51,6 +54,7 @@ type ApplicationFormFocusCanvasProps = {
   organizationId: string;
   readOnly: boolean;
   lockSystemFields?: boolean;
+  lockApplySlug?: boolean;
   setupHighlight?: "publicSlug" | null;
   slugError?: string | null;
   stripePaymentsReady?: boolean;
@@ -93,6 +97,7 @@ function SetupView({
   programs,
   orgSlug,
   readOnly,
+  lockApplySlug = false,
   setupHighlight,
   slugError,
   onEditableChange,
@@ -102,12 +107,13 @@ function SetupView({
   programs: ProgramOption[];
   orgSlug: string;
   readOnly: boolean;
+  lockApplySlug?: boolean;
   setupHighlight?: "publicSlug" | null;
   slugError?: string | null;
   onEditableChange: (patch: Partial<EditableFormSlice>) => void;
 }) {
   const slugInputRef = useRef<HTMLInputElement>(null);
-  const slugHighlighted = setupHighlight === "publicSlug";
+  const slugHighlighted = !lockApplySlug && setupHighlight === "publicSlug";
 
   useEffect(() => {
     if (!slugHighlighted) return;
@@ -160,8 +166,16 @@ function SetupView({
       <BuilderQuestionCard
         C={C}
         tone="info"
-        question="What link will families use to apply?"
-        helper="Use lowercase letters, numbers, and hyphens only."
+        question={
+          lockApplySlug
+            ? "Where will families apply?"
+            : "What link will families use to apply?"
+        }
+        helper={
+          lockApplySlug
+            ? "Your main application form always uses `/apply`. This link is fixed so families always know where to start."
+            : "Use lowercase letters, numbers, and hyphens only."
+        }
         highlightError={slugHighlighted}
       >
         <div className="space-y-2">
@@ -172,19 +186,32 @@ function SetupView({
             >
               /school/{orgSlug}/forms/
             </span>
-            <input
-              ref={slugInputRef}
-              type="text"
-              value={editable.publicSlug}
-              disabled={readOnly}
-              onChange={(e) => onEditableChange({ publicSlug: e.target.value })}
-              placeholder="e.g. apply"
-              style={{
-                ...inputStyle(C),
-                flex: 1,
-                border: `1px solid ${slugHighlighted ? C.errorBorder : C.inputBorder}`,
-              }}
-            />
+            {lockApplySlug ? (
+              <span
+                className="flex-1 rounded-md px-3 py-2.5 text-sm"
+                style={{
+                  backgroundColor: C.elevated,
+                  border: `1px solid ${C.inputBorder}`,
+                  color: C.textSecondary,
+                }}
+              >
+                {APPLY_FORM_PUBLIC_SLUG}
+              </span>
+            ) : (
+              <input
+                ref={slugInputRef}
+                type="text"
+                value={editable.publicSlug}
+                disabled={readOnly}
+                onChange={(e) => onEditableChange({ publicSlug: e.target.value })}
+                placeholder="e.g. apply"
+                style={{
+                  ...inputStyle(C),
+                  flex: 1,
+                  border: `1px solid ${slugHighlighted ? C.errorBorder : C.inputBorder}`,
+                }}
+              />
+            )}
           </div>
           {slugHighlighted && slugError ? (
             <p className="text-xs font-medium" style={{ color: C.error }}>
@@ -507,6 +534,7 @@ export default function ApplicationFormFocusCanvas({
   organizationId,
   readOnly,
   lockSystemFields = false,
+  lockApplySlug = false,
   setupHighlight,
   slugError,
   stripePaymentsReady = true,
@@ -622,6 +650,7 @@ export default function ApplicationFormFocusCanvas({
               programs={programs}
               orgSlug={orgSlug}
               readOnly={readOnly}
+              lockApplySlug={lockApplySlug}
               setupHighlight={setupHighlight}
               slugError={slugError}
               onEditableChange={onEditableChange}
