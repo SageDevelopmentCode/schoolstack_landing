@@ -11,7 +11,12 @@ import {
   POST_SUBMIT_ACTION_TEMPLATES,
   resolvedPostSubmitDurationMinutes,
 } from "./post-submit-templates";
-import type { ApplicationFormSchema } from "./application-form-schema";
+import {
+  parseApplicationFormFeeConfig,
+  type ApplicationFormFeeConfig,
+  type ApplicationFormSchema,
+} from "./application-form-schema";
+import { parseApplicationFormStepIndex } from "./application-form-steps";
 
 const PROGRESS_KEY = "__progress";
 
@@ -55,6 +60,8 @@ export type ApplicationDetail = {
   submittedAt: string | null;
   formTitle: string;
   schema: ApplicationFormSchema;
+  feeConfig: ApplicationFormFeeConfig;
+  stepIndex: number;
   responses: Record<string, string>;
   acknowledgments: Record<string, boolean>;
   postSubmitSteps: AdminPostSubmitStep[];
@@ -324,6 +331,7 @@ export async function loadApplicationDetail(
       application_form_versions!inner (
         title,
         schema,
+        fee_config,
         post_submit_config
       )
     `,
@@ -336,11 +344,23 @@ export async function loadApplicationDetail(
   if (!data) return null;
 
   const formVersion = data.application_form_versions as
-    | { title?: string; schema?: ApplicationFormSchema; post_submit_config?: unknown }
-    | { title?: string; schema?: ApplicationFormSchema; post_submit_config?: unknown }[]
+    | {
+        title?: string;
+        schema?: ApplicationFormSchema;
+        fee_config?: unknown;
+        post_submit_config?: unknown;
+      }
+    | {
+        title?: string;
+        schema?: ApplicationFormSchema;
+        fee_config?: unknown;
+        post_submit_config?: unknown;
+      }[]
     | null;
   const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
   const applicationStatus = String(data.status);
+  const feeConfig = parseApplicationFormFeeConfig(form?.fee_config);
+  const stepIndex = parseApplicationFormStepIndex(data.responses);
   const postSubmitConfig = parseApplicationFormPostSubmitConfig(form?.post_submit_config);
   const visits = await listScheduledVisitsForApplications(supabase, [applicationId]);
   const postSubmitSteps = buildAdminPostSubmitSteps(
@@ -358,6 +378,8 @@ export async function loadApplicationDetail(
       sections: [],
       acknowledgments: [],
     },
+    feeConfig,
+    stepIndex,
     responses: parseStringRecord(data.responses),
     acknowledgments: parseBooleanRecord(data.acknowledgments),
     postSubmitSteps,

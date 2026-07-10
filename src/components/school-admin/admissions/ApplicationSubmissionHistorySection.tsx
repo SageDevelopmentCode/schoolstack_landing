@@ -69,7 +69,10 @@ export default function ApplicationSubmissionHistorySection({
   }
 
   return (
-    <div className="space-y-3">
+    <ul
+      className="overflow-hidden rounded-lg border"
+      style={{ borderColor: C.border, backgroundColor: C.bg }}
+    >
       {entries.map((entry) => {
         const isViewing = isViewingEntry(
           entry,
@@ -82,63 +85,66 @@ export default function ApplicationSubmissionHistorySection({
             : applicationStatusBadgeStyle(entry.applicationBadgeStatus ?? "draft", C);
 
         return (
-          <button
+          <li
             key={`${entry.kind}-${entry.id}`}
-            type="button"
-            onClick={() => onSelect(entry.applicationId)}
-            className="w-full rounded-lg border px-4 py-4 text-left transition-colors"
-            style={{
-              borderColor: isViewing ? C.accent : C.border,
-              backgroundColor: isViewing ? C.accentLight : C.elevated,
-              borderLeftWidth: isViewing ? 3 : 1,
-              borderLeftColor: isViewing ? C.accent : C.border,
-            }}
+            className="border-b last:border-b-0"
+            style={{ borderColor: C.border }}
           >
-            <p
-              className="text-[11px] font-semibold uppercase tracking-wide"
-              style={{ color: C.textQuaternary }}
+            <button
+              type="button"
+              onClick={() => onSelect(entry.applicationId)}
+              className="w-full px-4 py-3 text-left transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: isViewing ? C.accentLight : "transparent",
+                borderLeft: isViewing ? `3px solid ${C.accent}` : "3px solid transparent",
+              }}
             >
-              {entry.kind === "enrollment" ? "Enrollment" : "Application"}
-            </p>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                {entry.title}
-              </span>
-              <span
-                className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                style={badgeStyle}
+              <p
+                className="text-[11px] font-semibold uppercase tracking-wide"
+                style={{ color: C.textQuaternary }}
               >
-                {entry.statusLabel}
-              </span>
-              {isViewing ? (
-                <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                  style={{ backgroundColor: C.surface, color: C.accent }}
-                >
-                  Viewing
+                {entry.kind === "enrollment" ? "Enrollment" : "Application"}
+              </p>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                  {entry.title}
                 </span>
+                <span
+                  className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  style={badgeStyle}
+                >
+                  {entry.statusLabel}
+                </span>
+                {isViewing ? (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                    style={{ backgroundColor: C.surface, color: C.accent }}
+                  >
+                    Viewing
+                  </span>
+                ) : null}
+              </div>
+
+              {entry.studentLabel ? (
+                <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
+                  {entry.studentLabel}
+                </p>
               ) : null}
-            </div>
 
-            {entry.studentLabel ? (
-              <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-                {entry.studentLabel}
+              {entry.programName ? (
+                <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+                  {entry.programName}
+                </p>
+              ) : null}
+
+              <p className="mt-2 text-xs" style={{ color: C.textTertiary }}>
+                {entry.progressLabel}
               </p>
-            ) : null}
-
-            {entry.programName ? (
-              <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-                {entry.programName}
-              </p>
-            ) : null}
-
-            <p className="mt-2 text-xs" style={{ color: C.textTertiary }}>
-              {entry.progressLabel}
-            </p>
-          </button>
+            </button>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

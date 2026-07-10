@@ -9,6 +9,8 @@ import {
   MinusCircle,
 } from "lucide-react";
 import EnrollmentChecklistStepDetailModal from "@/components/school-admin/admissions/EnrollmentChecklistStepDetailModal";
+import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
+import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
 import {
   computeChecklistProgress,
   getChecklistForApplication,
@@ -162,18 +164,18 @@ export default function EnrollmentStatusCard({
 
   if (loading) {
     return (
-      <div className="mb-5 flex items-center gap-2 text-sm" style={{ color: C.textTertiary }}>
+      <section className="flex items-center gap-2 text-sm" style={{ color: C.textTertiary }}>
         <Loader2 className="h-4 w-4 animate-spin" />
         Loading enrollment status…
-      </div>
+      </section>
     );
   }
 
   if (error) {
     return (
-      <p className="mb-5 text-sm" style={{ color: C.error }}>
+      <section className="text-sm" style={{ color: C.error }}>
         {error}
-      </p>
+      </section>
     );
   }
 
@@ -181,35 +183,47 @@ export default function EnrollmentStatusCard({
 
   return (
     <>
-      <div
-        className="mb-5 rounded-lg border p-4"
-        style={{ borderColor: C.border, backgroundColor: C.elevated }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            Enrollment checklist
-          </p>
+      <DetailPanelSection
+        C={C}
+        title="Enrollment checklist"
+        badge={
           <span
             className="rounded-full px-2 py-0.5 text-[11px] font-medium capitalize"
             style={{ backgroundColor: C.infoBg, color: C.info }}
           >
             {loaded.status.replace(/_/g, " ")}
           </span>
-        </div>
-        <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
-          Progress: {loaded.progress.completed}/{loaded.progress.total} required items
-        </p>
+        }
+      >
+        <DetailPanelProgressBar
+          C={C}
+          completed={loaded.progress.completed}
+          total={loaded.progress.total}
+          label="Required items"
+        />
         {loaded.variantLabels.length > 0 ? (
-          <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-            Selected agreement{loaded.variantLabels.length > 1 ? "s" : ""}:{" "}
-            {loaded.variantLabels.join(", ")}
-          </p>
+          <div className="mt-3">
+            <p className="mb-2 text-xs font-medium" style={{ color: C.textSecondary }}>
+              Selected agreement{loaded.variantLabels.length > 1 ? "s" : ""}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {loaded.variantLabels.map((variantLabel) => (
+                <span
+                  key={variantLabel}
+                  className="rounded-full px-2.5 py-1 text-xs font-medium"
+                  style={{ backgroundColor: C.accentLight, color: C.accentDark }}
+                >
+                  {variantLabel}
+                </span>
+              ))}
+            </div>
+          </div>
         ) : null}
 
         {loaded.items.length > 0 ? (
           <ul
             className="mt-4 overflow-hidden rounded-lg border"
-            style={{ borderColor: C.border, backgroundColor: C.bg }}
+            style={{ borderColor: C.border, backgroundColor: C.surface }}
           >
             {loaded.items.map((item) => {
               const instance = instanceByTemplateId.get(item.id);
@@ -263,7 +277,7 @@ export default function EnrollmentStatusCard({
             })}
           </ul>
         ) : null}
-      </div>
+      </DetailPanelSection>
 
       <EnrollmentChecklistStepDetailModal
         C={C}

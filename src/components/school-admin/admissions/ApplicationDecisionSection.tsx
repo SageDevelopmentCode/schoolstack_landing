@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import {
   getApplicationDecisionActions,
   type ApplicationDecisionAction,
@@ -84,18 +85,12 @@ export default function ApplicationDecisionSection({
   }
 
   return (
-    <div
-      className="mb-5 rounded-lg border px-4 py-4"
-      style={{ borderColor: C.border, backgroundColor: C.elevated }}
+    <DetailPanelSection
+      C={C}
+      title="Decision"
+      description="Move this application through your admissions workflow."
     >
-      <h4 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-        Decision
-      </h4>
-      <p className="mt-1 text-xs leading-relaxed" style={{ color: C.textTertiary }}>
-        Move this application through your admissions workflow.
-      </p>
-
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         {actions.map((action) => {
           const isPending = pendingStatus === action.status;
           const isDisabled = pendingStatus !== null;
@@ -121,6 +116,6 @@ export default function ApplicationDecisionSection({
           {error}
         </p>
       ) : null}
-    </div>
+    </DetailPanelSection>
   );
 }

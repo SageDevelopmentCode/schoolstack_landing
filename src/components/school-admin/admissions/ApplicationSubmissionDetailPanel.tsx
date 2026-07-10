@@ -6,6 +6,9 @@ import { Loader2, X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplicationSubmissionPostSubmitSection from "@/components/admissions/ApplicationSubmissionPostSubmitSection";
 import ApplicationSubmissionHistorySection from "./ApplicationSubmissionHistorySection";
+import ApplicationFormStatusCard from "./ApplicationFormStatusCard";
+import DetailPanelSection from "./DetailPanelSection";
+import DetailPanelSectionGroup from "./DetailPanelSectionGroup";
 import ApplicationDecisionSection from "./ApplicationDecisionSection";
 import EnrollmentStatusCard from "./EnrollmentStatusCard";
 import StartEnrollmentModal from "./StartEnrollmentModal";
@@ -166,7 +169,7 @@ export default function ApplicationSubmissionDetailPanel({
 
     if (tabId === "overview") {
       return (
-        <>
+        <DetailPanelSectionGroup C={C}>
           <ApplicationDecisionSection
             C={C}
             applicationId={submission.id}
@@ -179,7 +182,11 @@ export default function ApplicationSubmissionDetailPanel({
           />
 
           {canStartEnrollment ? (
-            <div>
+            <DetailPanelSection
+              C={C}
+              title="Enrollment"
+              description="Choose the enrollment agreement and send the checklist to the family."
+            >
               <button
                 type="button"
                 onClick={() => setStartEnrollmentOpen(true)}
@@ -188,10 +195,7 @@ export default function ApplicationSubmissionDetailPanel({
               >
                 Start enrollment
               </button>
-              <p className="mt-2 text-xs" style={{ color: C.textTertiary }}>
-                Choose the enrollment agreement and send the checklist to the family.
-              </p>
-            </div>
+            </DetailPanelSection>
           ) : null}
 
           {showEnrollmentStatus ? (
@@ -200,13 +204,23 @@ export default function ApplicationSubmissionDetailPanel({
               organizationId={organizationId}
               applicationId={submission.id}
             />
-          ) : null}
+          ) : (
+            <ApplicationFormStatusCard
+              C={C}
+              branding={branding}
+              schoolName={schoolName}
+              schoolSlug={schoolSlug}
+              detail={detail}
+              feeStatus={submission.feeStatus}
+              applicationStatus={currentStatus}
+            />
+          )}
 
           <ApplicationSubmissionPostSubmitSection
             C={C}
             steps={detail.postSubmitSteps}
           />
-        </>
+        </DetailPanelSectionGroup>
       );
     }
 
@@ -225,15 +239,19 @@ export default function ApplicationSubmissionDetailPanel({
 
     if (tabId === "history") {
       return (
-        <ApplicationSubmissionHistorySection
-          C={C}
-          currentApplicationId={submission.id}
-          currentApplicationStatus={currentStatus}
-          entries={historyEntries}
-          loading={historyLoading}
-          unlinked={historyUnlinked}
-          onSelect={(applicationId) => onSelectSubmission?.(applicationId)}
-        />
+        <DetailPanelSectionGroup C={C}>
+          <DetailPanelSection C={C} title="Family applications">
+            <ApplicationSubmissionHistorySection
+              C={C}
+              currentApplicationId={submission.id}
+              currentApplicationStatus={currentStatus}
+              entries={historyEntries}
+              loading={historyLoading}
+              unlinked={historyUnlinked}
+              onSelect={(applicationId) => onSelectSubmission?.(applicationId)}
+            />
+          </DetailPanelSection>
+        </DetailPanelSectionGroup>
       );
     }
 
@@ -375,7 +393,7 @@ export default function ApplicationSubmissionDetailPanel({
                 role="tabpanel"
                 aria-labelledby={`submission-tab-${tab.id}`}
                 hidden={activeTab !== tab.id}
-                className="space-y-6"
+                className={tab.id === "overview" || tab.id === "history" ? "" : "space-y-6"}
               >
                 {renderTabPanel(tab.id)}
               </div>

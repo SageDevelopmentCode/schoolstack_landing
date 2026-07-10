@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, Circle } from "lucide-react";
+import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import { formatDateOnlyLabel } from "@/lib/admissions/admissions-availability";
 import type { AdminPostSubmitStep } from "@/lib/admissions/admin-post-submit-steps";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -23,16 +24,10 @@ export default function ApplicationSubmissionPostSubmitSection({
   if (steps.length === 0) return null;
 
   return (
-    <section className="mb-6">
-      <h4
-        className="text-[11px] font-semibold uppercase tracking-wide"
-        style={{ color: C.textQuaternary }}
-      >
-        Post-application steps
-      </h4>
+    <DetailPanelSection C={C} title="Post-application steps">
       <ul
-        className="mt-3 overflow-hidden rounded-lg border"
-        style={{ borderColor: C.border, backgroundColor: C.bg }}
+        className="overflow-hidden rounded-lg border"
+        style={{ borderColor: C.border, backgroundColor: C.surface }}
       >
         {steps.map((step) => {
           const isScheduled = step.status === "scheduled";
@@ -84,6 +79,6 @@ export default function ApplicationSubmissionPostSubmitSection({
           );
         })}
       </ul>
-    </section>
+    </DetailPanelSection>
   );
 }
