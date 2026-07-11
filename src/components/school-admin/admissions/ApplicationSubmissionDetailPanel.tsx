@@ -277,9 +277,11 @@ export default function ApplicationSubmissionDetailPanel({
             description="Application fees and enrollment charges for this application."
           >
             <PaymentsHistoryPanel
+              organizationId={organizationId}
               applicationId={submission.id}
               orgSlug={schoolSlug}
               branding={branding}
+              variant="embedded"
             />
           </DetailPanelSection>
         </DetailPanelSectionGroup>

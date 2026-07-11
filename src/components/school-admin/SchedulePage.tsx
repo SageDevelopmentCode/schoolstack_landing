@@ -73,20 +73,6 @@ export default function SchedulePage({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      <div
-        className="flex h-14 flex-shrink-0 items-center justify-between px-4 sm:px-5"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div>
-          <h1 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            Schedule
-          </h1>
-          <p className="text-xs" style={{ color: C.textTertiary }}>
-            Manage visit availability and see family bookings
-          </p>
-        </div>
-      </div>
-
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <div className="h-full overflow-auto">
           <div className="space-y-6 px-4 py-5 sm:px-5">

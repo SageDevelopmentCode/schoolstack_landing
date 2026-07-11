@@ -203,17 +203,11 @@ export default function PaymentsSetupPage({
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div>
-        <h1 className="text-xl font-semibold" style={{ color: C.textPrimary }}>
-          Payments
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-          Connect Stripe and review admissions payments collected online.
-        </p>
-      </div>
-
-      <div className="flex gap-2 border-b" style={{ borderColor: C.border }}>
+    <div className="relative flex h-full min-h-0 flex-col">
+      <div
+        className="flex flex-shrink-0 gap-2 px-4 sm:px-5"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
         {[
           { id: "setup" as const, label: "Setup" },
           { id: "history" as const, label: "History" },
@@ -237,13 +231,17 @@ export default function PaymentsSetupPage({
       </div>
 
       {activeTab === "history" ? (
-        <PaymentsHistoryPanel
-          organizationId={organizationId}
-          orgSlug={orgSlug}
-          branding={branding}
-        />
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <PaymentsHistoryPanel
+            organizationId={organizationId}
+            orgSlug={orgSlug}
+            branding={branding}
+            variant="page"
+          />
+        </div>
       ) : (
-        <>
+        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+          <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <p className="text-sm" style={{ color: C.textSecondary }}>
           Connect Stripe so {schoolName} can collect application and enrollment
@@ -424,7 +422,8 @@ export default function PaymentsSetupPage({
           </div>
         ) : null}
       </div>
-        </>
+          </div>
+        </div>
       )}
     </div>
   );

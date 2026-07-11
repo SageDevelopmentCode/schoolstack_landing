@@ -193,64 +193,52 @@ export default function ApplicationSubmissionsPage({
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <div
-        className="flex h-14 flex-shrink-0 items-center justify-between px-4 sm:px-5"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div>
-          <h1 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            Submissions
-          </h1>
-          <p className="text-xs" style={{ color: C.textTertiary }}>
-            Every application from draft through decision
-          </p>
-        </div>
-        {applyPublicPath ? (
-          <a
-            href={applyPublicPath}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-semibold text-white transition-colors"
-            style={{ backgroundColor: C.accent, boxShadow: C.shadowCard }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = C.accentDark;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = C.accent;
-            }}
-          >
-            Public apply link
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        ) : null}
-      </div>
-
-      <div
         className="flex flex-shrink-0 flex-col gap-3 px-4 py-3 sm:px-5"
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.accentDark }}>
-            Status
-          </span>
-          <FilterChip
-            active={statusFilter === "all"}
-            label="All"
-            count={submissions.length}
-            onClick={() => setStatusFilter("all")}
-            C={C}
-          />
-          {APPLICATION_STATUS_FILTER_ORDER.filter((status) => statusCounts[status]).map(
-            (status) => (
-              <FilterChip
-                key={status}
-                active={statusFilter === status}
-                label={applicationStatusLabel(status)}
-                count={statusCounts[status]}
-                onClick={() => setStatusFilter(status)}
-                C={C}
-              />
-            ),
-          )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.accentDark }}>
+              Status
+            </span>
+            <FilterChip
+              active={statusFilter === "all"}
+              label="All"
+              count={submissions.length}
+              onClick={() => setStatusFilter("all")}
+              C={C}
+            />
+            {APPLICATION_STATUS_FILTER_ORDER.filter((status) => statusCounts[status]).map(
+              (status) => (
+                <FilterChip
+                  key={status}
+                  active={statusFilter === status}
+                  label={applicationStatusLabel(status)}
+                  count={statusCounts[status]}
+                  onClick={() => setStatusFilter(status)}
+                  C={C}
+                />
+              ),
+            )}
+          </div>
+          {applyPublicPath ? (
+            <a
+              href={applyPublicPath}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              style={{ backgroundColor: C.accent, boxShadow: C.shadowCard }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = C.accentDark;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = C.accent;
+              }}
+            >
+              Public apply link
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
         </div>
 
         {formOptions.length > 1 ? (

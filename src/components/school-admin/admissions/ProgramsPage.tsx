@@ -331,9 +331,6 @@ export default function ProgramsPage({
             <h1 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
               {isNew ? "New program" : selectedProgram?.name ?? "Programs"}
             </h1>
-            <p className="text-xs" style={{ color: C.textTertiary }}>
-              Application forms must be linked to a program before families can apply.
-            </p>
           </div>
           {editable ? (
             <div className="flex items-center gap-2">

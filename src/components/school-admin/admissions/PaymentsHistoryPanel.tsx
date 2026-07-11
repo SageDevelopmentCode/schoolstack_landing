@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
@@ -13,7 +13,10 @@ import {
   type PaymentRecordDisplayRow,
 } from "@/lib/admissions/payment-records";
 import type { PaymentStatus, PaymentType } from "@/lib/stripe/application-payments";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  buildAdminThemeTokens,
+  type AdminThemeTokens,
+} from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import {
   parseOperationalError,
@@ -27,7 +30,22 @@ type PaymentsHistoryPanelProps = {
   orgSlug?: string;
   branding: OrganizationBranding;
   showOrganizationColumn?: boolean;
+  variant?: "page" | "embedded";
 };
+
+const STATUS_FILTERS: Array<{ value: "" | PaymentStatus; label: string }> = [
+  { value: "", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "succeeded", label: "Succeeded" },
+  { value: "failed", label: "Failed" },
+  { value: "refunded", label: "Refunded" },
+];
+
+const TYPE_FILTERS: Array<{ value: "" | PaymentType; label: string }> = [
+  { value: "", label: "All" },
+  { value: "application_fee", label: "Application fee" },
+  { value: "enrollment_checklist", label: "Enrollment" },
+];
 
 function formatDateTime(iso: string | null) {
   if (!iso) return "—";
@@ -35,6 +53,30 @@ function formatDateTime(iso: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function columnDividerStyle(C: AdminThemeTokens, isLast: boolean): CSSProperties {
+  return isLast ? {} : { borderRight: `1px solid ${C.border}` };
+}
+
+function paymentColumnHeaderBadgeStyle(
+  heading: string,
+  C: AdminThemeTokens,
+): CSSProperties {
+  switch (heading) {
+    case "Status":
+      return { backgroundColor: C.accentLight, color: C.accent };
+    case "Type":
+      return { backgroundColor: C.infoBg, color: C.info };
+    case "Method":
+      return { backgroundColor: C.warningBg, color: C.warning };
+    default:
+      return {
+        backgroundColor: C.bg,
+        color: C.textTertiary,
+        border: `1px solid ${C.border}`,
+      };
+  }
 }
 
 function statusStyle(status: PaymentStatus, C: ReturnType<typeof buildAdminThemeTokens>) {
@@ -52,12 +94,53 @@ function statusStyle(status: PaymentStatus, C: ReturnType<typeof buildAdminTheme
   }
 }
 
+function FilterChip({
+  active,
+  label,
+  count,
+  onClick,
+  C,
+}: {
+  active: boolean;
+  label: string;
+  count?: number;
+  onClick: () => void;
+  C: ReturnType<typeof buildAdminThemeTokens>;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors"
+      style={{
+        backgroundColor: active ? C.accentLight : C.elevated,
+        color: active ? C.accent : C.textSecondary,
+        border: `1px solid ${active ? C.accent : C.border}`,
+      }}
+    >
+      {label}
+      {count != null ? (
+        <span
+          className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+          style={{
+            backgroundColor: active ? C.surface : C.bg,
+            color: active ? C.accent : C.textTertiary,
+          }}
+        >
+          {count}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
 export default function PaymentsHistoryPanel({
   organizationId,
   applicationId,
   orgSlug,
   branding,
   showOrganizationColumn = false,
+  variant = applicationId ? "embedded" : "page",
 }: PaymentsHistoryPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = createClient();
@@ -66,6 +149,7 @@ export default function PaymentsHistoryPanel({
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"" | PaymentStatus>("");
   const [typeFilter, setTypeFilter] = useState<"" | PaymentType>("");
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -120,162 +204,250 @@ export default function PaymentsHistoryPanel({
     return rows;
   }, [applicationId, rows, statusFilter, typeFilter]);
 
+  const statusCounts = useMemo(() => {
+    const counts: Partial<Record<PaymentStatus, number>> = {};
+    for (const row of rows) {
+      counts[row.status] = (counts[row.status] ?? 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
+  const typeCounts = useMemo(() => {
+    const counts: Partial<Record<PaymentType, number>> = {};
+    for (const row of rows) {
+      counts[row.paymentType] = (counts[row.paymentType] ?? 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
+  const columnHeadings = useMemo(() => {
+    const headings = [
+      "Date",
+      "Label",
+      "Type",
+      "School amount",
+      "Charged",
+      "Method",
+      "Status",
+      "Payer",
+    ];
+    if (showOrganizationColumn) headings.push("School");
+    if (!applicationId) headings.push("Application");
+    return headings;
+  }, [applicationId, showOrganizationColumn]);
+
+  const filters = !applicationId ? (
+    <div
+      className="flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3 sm:px-5"
+      style={{ borderBottom: `1px solid ${C.border}` }}
+    >
+      <span
+        className="text-[11px] font-semibold uppercase tracking-wide"
+        style={{ color: C.accentDark }}
+      >
+        Status
+      </span>
+      {STATUS_FILTERS.map((filter) => (
+        <FilterChip
+          key={filter.value || "all-status"}
+          active={statusFilter === filter.value}
+          label={filter.label}
+          count={
+            filter.value
+              ? statusCounts[filter.value]
+              : rows.length
+          }
+          onClick={() => setStatusFilter(filter.value)}
+          C={C}
+        />
+      ))}
+      <span
+        className="mx-1 hidden text-xs sm:inline"
+        style={{ color: C.textTertiary }}
+        aria-hidden
+      >
+        |
+      </span>
+      <span
+        className="text-[11px] font-semibold uppercase tracking-wide"
+        style={{ color: C.accentDark }}
+      >
+        Type
+      </span>
+      {TYPE_FILTERS.map((filter) => (
+        <FilterChip
+          key={filter.value || "all-type"}
+          active={typeFilter === filter.value}
+          label={filter.label}
+          count={
+            filter.value
+              ? typeCounts[filter.value]
+              : rows.length
+          }
+          onClick={() => setTypeFilter(filter.value)}
+          C={C}
+        />
+      ))}
+    </div>
+  ) : null;
+
+  const tableContent = loading ? (
+    <div className="flex items-center justify-center py-16">
+      <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
+    </div>
+  ) : error ? (
+    <p className="px-4 py-8 text-sm sm:px-5" style={{ color: C.error }}>
+      {error}
+    </p>
+  ) : filteredRows.length === 0 ? (
+    <p className="px-4 py-8 text-sm sm:px-5" style={{ color: C.textSecondary }}>
+      {rows.length === 0
+        ? "No payments recorded yet."
+        : "No payments match the current filters."}
+    </p>
+  ) : (
+    <div className="h-full overflow-auto" style={{ backgroundColor: C.surface }}>
+      <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+        <thead
+          className="sticky top-0 z-[1]"
+          style={{
+            backgroundColor: C.surface,
+            borderBottom: `2px solid ${C.border}`,
+          }}
+        >
+          <tr>
+            {columnHeadings.map((heading, index) => {
+              const isLast = index === columnHeadings.length - 1;
+              return (
+                <th
+                  key={heading}
+                  className="px-3 py-2.5 sm:px-4"
+                  style={columnDividerStyle(C, isLast)}
+                >
+                  <span
+                    className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                    style={paymentColumnHeaderBadgeStyle(heading, C)}
+                  >
+                    {heading}
+                  </span>
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {filteredRows.map((row) => (
+            <tr
+              key={row.id}
+              onMouseEnter={() => setHoveredId(row.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              className="transition-colors"
+              style={{
+                backgroundColor:
+                  hoveredId === row.id ? C.elevated : C.surface,
+                borderBottom: `1px solid ${C.border}`,
+              }}
+            >
+              <td
+                className="px-3 py-3 whitespace-nowrap sm:px-4"
+                style={{ color: C.textPrimary, ...columnDividerStyle(C, false) }}
+              >
+                {formatDateTime(row.paidAt ?? row.createdAt)}
+              </td>
+              <td
+                className="px-3 py-3 sm:px-4"
+                style={{ color: C.textPrimary, ...columnDividerStyle(C, false) }}
+              >
+                {row.label ?? "Payment"}
+              </td>
+              <td
+                className="px-3 py-3 whitespace-nowrap sm:px-4"
+                style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
+              >
+                {PAYMENT_TYPE_LABELS[row.paymentType]}
+              </td>
+              <td
+                className="px-3 py-3 whitespace-nowrap font-medium sm:px-4"
+                style={{ color: C.textPrimary, ...columnDividerStyle(C, false) }}
+              >
+                {formatFeeAmount(row.amountCents)}
+              </td>
+              <td
+                className="px-3 py-3 whitespace-nowrap sm:px-4"
+                style={{ color: C.textPrimary, ...columnDividerStyle(C, false) }}
+              >
+                {formatFeeAmount(row.chargedAmountCents ?? row.amountCents)}
+                {row.processingFeeCents ? (
+                  <p className="text-xs" style={{ color: C.textTertiary }}>
+                    +{formatFeeAmount(row.processingFeeCents)} fee
+                  </p>
+                ) : null}
+              </td>
+              <td
+                className="px-3 py-3 whitespace-nowrap sm:px-4"
+                style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
+              >
+                {row.paymentMethodType
+                  ? PAYMENT_METHOD_LABELS[row.paymentMethodType]
+                  : "—"}
+              </td>
+              <td
+                className="px-3 py-3 sm:px-4"
+                style={columnDividerStyle(C, false)}
+              >
+                <span
+                  className="rounded-full px-2 py-0.5 text-xs font-medium"
+                  style={statusStyle(row.status, C)}
+                >
+                  {PAYMENT_STATUS_LABELS[row.status]}
+                </span>
+              </td>
+              <td
+                className="px-3 py-3 sm:px-4"
+                style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
+              >
+                {row.payerEmail ?? row.applicantLabel ?? "—"}
+              </td>
+              {showOrganizationColumn ? (
+                <td
+                  className="px-3 py-3 sm:px-4"
+                  style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
+                >
+                  {row.organizationName ?? "—"}
+                </td>
+              ) : null}
+              {!applicationId && orgSlug ? (
+                <td className="px-3 py-3 sm:px-4">
+                  <Link
+                    href={`/school/${orgSlug}/admin/admissions/submissions?application=${row.applicationId}`}
+                    className="underline-offset-2 hover:underline"
+                    style={{ color: C.accent }}
+                  >
+                    {row.applicantLabel ?? "View application"}
+                  </Link>
+                </td>
+              ) : null}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (variant === "embedded") {
+    return (
+      <div className="space-y-4">
+        {tableContent}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      {!applicationId ? (
-        <div className="flex flex-wrap gap-3">
-          <select
-            value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(event.target.value as "" | PaymentStatus)
-            }
-            className="rounded-md border px-3 py-2 text-sm"
-            style={{ borderColor: C.border, color: C.textPrimary }}
-          >
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="succeeded">Succeeded</option>
-            <option value="failed">Failed</option>
-            <option value="refunded">Refunded</option>
-          </select>
-          <select
-            value={typeFilter}
-            onChange={(event) =>
-              setTypeFilter(event.target.value as "" | PaymentType)
-            }
-            className="rounded-md border px-3 py-2 text-sm"
-            style={{ borderColor: C.border, color: C.textPrimary }}
-          >
-            <option value="">All types</option>
-            <option value="application_fee">Application fee</option>
-            <option value="enrollment_checklist">Enrollment</option>
-          </select>
-        </div>
-      ) : null}
-
-      {error ? (
-        <p className="text-sm" style={{ color: C.error }}>
-          {error}
-        </p>
-      ) : null}
-
-      {loading ? (
-        <div
-          className="flex items-center gap-2 text-sm"
-          style={{ color: C.textTertiary }}
-        >
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading payment history…
-        </div>
-      ) : filteredRows.length === 0 ? (
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          No payments recorded yet.
-        </p>
-      ) : (
-        <div
-          className="overflow-x-auto rounded-lg border"
-          style={{ borderColor: C.border }}
-        >
-          <table className="min-w-full text-sm">
-            <thead style={{ backgroundColor: C.elevated }}>
-              <tr>
-                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                  Date
-                </th>
-                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                  Label
-                </th>
-                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                  Type
-                </th>
-                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                  School amount
-                </th>
-                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                  Charged
-                </th>
-                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                  Method
-                </th>
-                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                  Status
-                </th>
-                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                  Payer
-                </th>
-                {showOrganizationColumn ? (
-                  <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                    School
-                  </th>
-                ) : null}
-                {!applicationId ? (
-                  <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                    Application
-                  </th>
-                ) : null}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.map((row) => (
-                <tr key={row.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                  <td className="px-3 py-2 whitespace-nowrap" style={{ color: C.textPrimary }}>
-                    {formatDateTime(row.paidAt ?? row.createdAt)}
-                  </td>
-                  <td className="px-3 py-2" style={{ color: C.textPrimary }}>
-                    {row.label ?? "Payment"}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap" style={{ color: C.textSecondary }}>
-                    {PAYMENT_TYPE_LABELS[row.paymentType]}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap font-medium" style={{ color: C.textPrimary }}>
-                    {formatFeeAmount(row.amountCents)}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap" style={{ color: C.textPrimary }}>
-                    {formatFeeAmount(row.chargedAmountCents ?? row.amountCents)}
-                    {row.processingFeeCents ? (
-                      <p className="text-xs" style={{ color: C.textTertiary }}>
-                        +{formatFeeAmount(row.processingFeeCents)} fee
-                      </p>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap" style={{ color: C.textSecondary }}>
-                    {row.paymentMethodType
-                      ? PAYMENT_METHOD_LABELS[row.paymentMethodType]
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span
-                      className="rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={statusStyle(row.status, C)}
-                    >
-                      {PAYMENT_STATUS_LABELS[row.status]}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2" style={{ color: C.textSecondary }}>
-                    {row.payerEmail ?? row.applicantLabel ?? "—"}
-                  </td>
-                  {showOrganizationColumn ? (
-                    <td className="px-3 py-2" style={{ color: C.textSecondary }}>
-                      {row.organizationName ?? "—"}
-                    </td>
-                  ) : null}
-                  {!applicationId && orgSlug ? (
-                    <td className="px-3 py-2">
-                      <Link
-                        href={`/school/${orgSlug}/admin/admissions/submissions?application=${row.applicationId}`}
-                        className="underline-offset-2 hover:underline"
-                        style={{ color: C.accent }}
-                      >
-                        {row.applicantLabel ?? "View application"}
-                      </Link>
-                    </td>
-                  ) : null}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+    <div className="flex h-full min-h-0 flex-col">
+      {filters}
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {tableContent}
+      </div>
     </div>
   );
 }
