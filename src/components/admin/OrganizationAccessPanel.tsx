@@ -60,7 +60,9 @@ export default function OrganizationAccessPanel({
   }, [organizationId]);
 
   useEffect(() => {
-    void loadMemberships();
+    queueMicrotask(() => {
+      void loadMemberships();
+    });
   }, [loadMemberships]);
 
   const handleAdd = async (event: React.FormEvent) => {

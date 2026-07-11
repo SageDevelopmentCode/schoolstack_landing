@@ -667,7 +667,7 @@ const DEMO_EVENTS: DemoEvent[] = [
     time: "6:00 PM",
     category: "Event",
     color: "#4A6354",
-    description: "Meet your child's teachers and tour the classrooms.",
+    description: "Meet your child&apos;s teachers and tour the classrooms.",
     program: "school-year",
   },
   {
@@ -1551,7 +1551,7 @@ function ImmunizationModal({
     <ModalShell title="Proof of Immunizations" onClose={onClose} inline={inline}>
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
-          Upload your child's immunization records or approved exemption
+          Upload your child&apos;s immunization records or approved exemption
           documents (PDF, JPG, PNG — max 10MB each).
         </p>
         <div className="border-2 border-dashed border-gray-200 rounded-md p-8 text-center">
@@ -2664,7 +2664,7 @@ function ChecklistView({
               Enrollment Confirmed!
             </p>
             <p className="text-sm text-emerald-600">
-              All required steps are complete. We'll see you soon!
+              All required steps are complete. We&apos;ll see you soon!
             </p>
           </div>
         </div>
@@ -5450,54 +5450,48 @@ export default function RootedMeadowsParentDashboardDemo({
     });
   }, []);
 
-  const openHomeschoolPay = useCallback(
-    (childId: ChildId, fromCheckout = false) => {
-      const bundlePending = DEMO_TRANSACTIONS.some(
-        (t) =>
-          t.id === JAKE_HOMESCHOOL_DROPIN_TX_ID &&
-          t.childId === childId &&
-          t.status === "pending" &&
-          !paidInvoices.has(t.id),
-      );
-      if (!bundlePending) return;
-      setHomeschoolPayModal({
-        childId,
-        weeks: HOMESCHOOL_DROPIN_WEEKS,
-        fromCheckout,
-      });
-    },
-    [paidInvoices],
-  );
+  const openHomeschoolPay = (childId: ChildId, fromCheckout = false) => {
+    const bundlePending = DEMO_TRANSACTIONS.some(
+      (t) =>
+        t.id === JAKE_HOMESCHOOL_DROPIN_TX_ID &&
+        t.childId === childId &&
+        t.status === "pending" &&
+        !paidInvoices.has(t.id),
+    );
+    if (!bundlePending) return;
+    setHomeschoolPayModal({
+      childId,
+      weeks: HOMESCHOOL_DROPIN_WEEKS,
+      fromCheckout,
+    });
+  };
 
-  const openCheckout = useCallback((txIds: string[]) => {
+  const openCheckout = (txIds: string[]) => {
     setCheckoutTxIds(txIds);
     setCheckoutOpen(true);
-  }, []);
+  };
 
-  const handleCheckoutConfirm = useCallback(
-    (plan: PaymentPlan, txIds: string[]) => {
-      setPaymentPlan(plan);
-      setPaidInvoices((prev) => new Set([...prev, ...txIds]));
-      const homeschoolTx = txIds.find(
-        (id) => id === JAKE_HOMESCHOOL_DROPIN_TX_ID,
-      );
-      if (homeschoolTx) {
-        const total = totalHomeschoolAmount(homeschoolSelections);
-        setPaidHomeschoolDetails((prev) => ({
-          ...prev,
-          [JAKE_HOMESCHOOL_DROPIN_TX_ID]: {
-            amount: formatMoney(total),
-            scheduleNote: `${HOMESCHOOL_DROPIN_WEEKS.length} weeks selected`,
-          },
-        }));
-      }
-      setCheckoutOpen(false);
-      setCheckoutTxIds([]);
-    },
-    [homeschoolSelections],
-  );
+  const handleCheckoutConfirm = (plan: PaymentPlan, txIds: string[]) => {
+    setPaymentPlan(plan);
+    setPaidInvoices((prev) => new Set([...prev, ...txIds]));
+    const homeschoolTx = txIds.find(
+      (id) => id === JAKE_HOMESCHOOL_DROPIN_TX_ID,
+    );
+    if (homeschoolTx) {
+      const total = totalHomeschoolAmount(homeschoolSelections);
+      setPaidHomeschoolDetails((prev) => ({
+        ...prev,
+        [JAKE_HOMESCHOOL_DROPIN_TX_ID]: {
+          amount: formatMoney(total),
+          scheduleNote: `${HOMESCHOOL_DROPIN_WEEKS.length} weeks selected`,
+        },
+      }));
+    }
+    setCheckoutOpen(false);
+    setCheckoutTxIds([]);
+  };
 
-  const handleHomeschoolPayConfirm = useCallback(() => {
+  const handleHomeschoolPayConfirm = () => {
     if (!homeschoolPayModal) return;
     if (homeschoolPayModal.fromCheckout) {
       setHomeschoolPayModal(null);
@@ -5513,7 +5507,7 @@ export default function RootedMeadowsParentDashboardDemo({
     }));
     setPaidInvoices((prev) => new Set([...prev, JAKE_HOMESCHOOL_DROPIN_TX_ID]));
     setHomeschoolPayModal(null);
-  }, [homeschoolPayModal, homeschoolSelections]);
+  };
 
   // Calendar event sidebar
   const [calendarSidebarEvent, setCalendarSidebarEvent] = useState<DemoEvent | null>(null);
@@ -5566,7 +5560,6 @@ export default function RootedMeadowsParentDashboardDemo({
 
   useEffect(() => {
     if (!typingTarget) return;
-    setMsgInput("");
     let i = 0;
     const id = setInterval(() => {
       i++;
@@ -5576,7 +5569,10 @@ export default function RootedMeadowsParentDashboardDemo({
         setTypingTarget(null);
       }
     }, 55);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      setMsgInput("");
+    };
   }, [typingTarget]);
 
   const msgInputRef = useRef(msgInput);
@@ -5600,8 +5596,7 @@ export default function RootedMeadowsParentDashboardDemo({
     setMsgInput("");
   }, [msgActiveConv]);
 
-  const tourSteps = useMemo(
-    () => [
+  const tourSteps = [
       {
         action: () => {
           setActiveNavTab("home");
@@ -5713,7 +5708,10 @@ export default function RootedMeadowsParentDashboardDemo({
         clickAnimation: true,
       },
       {
-        action: () => setTypingTarget("Sounds good, see you Thursday!"),
+        action: () => {
+          setMsgInput("");
+          setTypingTarget("Sounds good, see you Thursday!");
+        },
         targetId: "messages-input",
         holdMs: 2800,
         clickAnimation: true,
@@ -5764,9 +5762,7 @@ export default function RootedMeadowsParentDashboardDemo({
         holdMs: 1800,
         clickAnimation: true,
       },
-    ],
-    [sendMsgFromTour, enrollmentVariant],
-  );
+    ];
 
   useEffect(() => {
     if (!isTouring) return;

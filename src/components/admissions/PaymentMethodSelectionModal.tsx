@@ -185,7 +185,7 @@ export default function PaymentMethodSelectionModal({
 
   useEffect(() => {
     if (open) {
-      setSelectedMethod("card");
+      queueMicrotask(() => setSelectedMethod("card"));
     }
   }, [open]);
 

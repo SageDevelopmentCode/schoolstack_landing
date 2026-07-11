@@ -190,8 +190,10 @@ function DemoContactSchedulePanel({
 
   useEffect(() => {
     let cancelled = false;
-    setAvailabilityLoading(true);
-    setAvailabilityError(null);
+    queueMicrotask(() => {
+      setAvailabilityLoading(true);
+      setAvailabilityError(null);
+    });
 
     fetch("/api/availability")
       .then(async (res) => {

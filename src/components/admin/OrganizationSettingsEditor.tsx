@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   Fragment,
+  createElement,
   type ChangeEvent,
   type ReactNode,
 } from "react";
@@ -166,26 +167,28 @@ export default function OrganizationSettingsEditor({
 
   useEffect(() => {
     if (settingsLoading) return;
-    const mergedBranding = initialRow
-      ? mergeBranding(initialRow.branding as unknown as Record<string, unknown>)
-      : getDefaultSettings().branding;
-    const mergedFeatures = initialRow
-      ? mergeFeatures(initialRow.features as unknown as Record<string, unknown>)
-      : getDefaultSettings().features;
+    queueMicrotask(() => {
+      const mergedBranding = initialRow
+        ? mergeBranding(initialRow.branding as unknown as Record<string, unknown>)
+        : getDefaultSettings().branding;
+      const mergedFeatures = initialRow
+        ? mergeFeatures(initialRow.features as unknown as Record<string, unknown>)
+        : getDefaultSettings().features;
 
-    setHasRow(!!initialRow);
-    setBranding(mergedBranding);
-    setFeatures(mergedFeatures);
-    setSavedSnapshot(
-      serializeSettings(
-        mergedBranding,
-        mergedFeatures as unknown as Record<string, unknown>,
-      ),
-    );
-    setSaveMessage(null);
-    setError(null);
-    setLogoOpen(Boolean(mergedBranding.logo?.src?.trim()));
-    setActiveFeaturePortal("admin");
+      setHasRow(!!initialRow);
+      setBranding(mergedBranding);
+      setFeatures(mergedFeatures);
+      setSavedSnapshot(
+        serializeSettings(
+          mergedBranding,
+          mergedFeatures as unknown as Record<string, unknown>,
+        ),
+      );
+      setSaveMessage(null);
+      setError(null);
+      setLogoOpen(Boolean(mergedBranding.logo?.src?.trim()));
+      setActiveFeaturePortal("admin");
+    });
   }, [organizationId, initialRow, settingsLoading]);
 
   const isDirty = useMemo(
@@ -794,7 +797,7 @@ export default function OrganizationSettingsEditor({
                       hasSubtabs && subtabsExpanded ? (
                         <FeatureSubtabsEditor
                           parentKey={catalogDef.key}
-                          children={subtabs}
+                          subtabs={subtabs}
                           onReorder={(childKeys) =>
                             reorderFeatureChildren(
                               portal as Portal,
@@ -1064,10 +1067,6 @@ function LogoPreview({
   const height = branding.logo.height > 0 ? branding.logo.height : 58;
   const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    setLoadError(false);
-  }, [src]);
-
   return (
     <div
       className={`rounded-lg border flex items-center justify-center ${
@@ -1082,6 +1081,7 @@ function LogoPreview({
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          key={src}
           src={src}
           alt={alt}
           width={width}
@@ -1227,14 +1227,14 @@ function SubsectionsToolbar({
 
 function FeatureSubtabsEditor({
   parentKey,
-  children: subtabs,
+  subtabs,
   onReorder,
   onLabelChange,
   onIconChange,
   onEnabledChange,
 }: {
   parentKey: string;
-  children: FeatureNavChildConfig[];
+  subtabs: FeatureNavChildConfig[];
   onReorder: (childKeys: string[]) => void;
   onLabelChange: (childKey: string, label: string) => void;
   onIconChange: (childKey: string, icon: string) => void;
@@ -1624,13 +1624,13 @@ function FeatureIconPicker({
   label?: string;
   compact?: boolean;
 }) {
-  const SelectedIcon = getFeatureIcon(value);
+  const icon = getFeatureIcon(value);
 
   if (compact) {
     return (
       <div className="flex items-center gap-1.5 min-w-0">
         <span className="w-7 h-7 rounded-md border border-border bg-bg flex items-center justify-center shrink-0">
-          <SelectedIcon className="w-3.5 h-3.5 text-text-muted" />
+          {createElement(icon, { className: "w-3.5 h-3.5 text-text-muted" })}
         </span>
         <select
           value={value}
@@ -1655,7 +1655,7 @@ function FeatureIconPicker({
       ) : null}
       <div className="flex items-center gap-2">
         <span className="w-7 h-7 rounded-md border border-border bg-bg flex items-center justify-center shrink-0">
-          <SelectedIcon className="w-3.5 h-3.5 text-text-muted" />
+          {createElement(icon, { className: "w-3.5 h-3.5 text-text-muted" })}
         </span>
         <select
           value={value}

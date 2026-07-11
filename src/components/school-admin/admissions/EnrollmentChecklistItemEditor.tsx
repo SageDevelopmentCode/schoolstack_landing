@@ -86,8 +86,10 @@ export default function EnrollmentChecklistItemEditor({
   const optionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setOptionsModalOpen(false);
-    setOptionsMenuOpen(false);
+    queueMicrotask(() => {
+      setOptionsModalOpen(false);
+      setOptionsMenuOpen(false);
+    });
   }, [item.id]);
 
   useEffect(() => {

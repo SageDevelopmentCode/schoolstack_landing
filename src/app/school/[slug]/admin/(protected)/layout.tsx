@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import type { User } from "@supabase/supabase-js";
 import SchoolAdminAccessDenied from "@/components/school-admin/SchoolAdminAccessDenied";
 import SchoolAdminBaseline from "@/components/school-admin/SchoolAdminBaseline";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -31,20 +32,11 @@ export default async function SchoolAdminProtectedLayout({
     notFound();
   }
 
-  try {
-    const user = await requireSchoolAdminUser(supabase, org.id);
+  let user: User | null = null;
+  let deniedUserEmail: string | null | undefined;
 
-    return (
-      <SchoolAdminBaseline
-        slug={slug}
-        schoolName={org.name}
-        branding={org.branding}
-        features={org.features}
-        userEmail={user.email ?? null}
-      >
-        {children}
-      </SchoolAdminBaseline>
-    );
+  try {
+    user = await requireSchoolAdminUser(supabase, org.id);
   } catch (error) {
     if (
       error instanceof SchoolAdminAuthError &&
@@ -55,18 +47,34 @@ export default async function SchoolAdminProtectedLayout({
 
     if (error instanceof SchoolAdminAuthError && error.code === "forbidden") {
       const {
-        data: { user },
+        data: { user: authUser },
       } = await supabase.auth.getUser();
 
-      return (
-        <SchoolAdminAccessDenied
-          branding={org.branding}
-          schoolName={org.name}
-          userEmail={user?.email ?? null}
-        />
-      );
+      deniedUserEmail = authUser?.email ?? null;
+    } else {
+      throw error;
     }
-
-    throw error;
   }
+
+  if (deniedUserEmail !== undefined) {
+    return (
+      <SchoolAdminAccessDenied
+        branding={org.branding}
+        schoolName={org.name}
+        userEmail={deniedUserEmail}
+      />
+    );
+  }
+
+  return (
+    <SchoolAdminBaseline
+      slug={slug}
+      schoolName={org.name}
+      branding={org.branding}
+      features={org.features}
+      userEmail={user?.email ?? null}
+    >
+      {children}
+    </SchoolAdminBaseline>
+  );
 }

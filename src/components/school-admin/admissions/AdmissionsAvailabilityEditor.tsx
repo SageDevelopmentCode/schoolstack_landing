@@ -60,7 +60,7 @@ export default function AdmissionsAvailabilityEditor({
 
   useEffect(() => {
     if (timezoneProp) {
-      setTimezone(timezoneProp);
+      queueMicrotask(() => setTimezone(timezoneProp));
       return;
     }
 
@@ -82,9 +82,11 @@ export default function AdmissionsAvailabilityEditor({
 
   useEffect(() => {
     const next = todayMonthYearInTimezone(timezone);
-    setViewYear(next.year);
-    setViewMonth(next.month);
-    setSelectedDate(null);
+    queueMicrotask(() => {
+      setViewYear(next.year);
+      setViewMonth(next.month);
+      setSelectedDate(null);
+    });
   }, [timezone]);
 
   const loadMonthSlots = useCallback(async () => {

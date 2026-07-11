@@ -423,10 +423,12 @@ export default function SendEnrollmentOutcomeModal({
     (!isReferral || schoolSuggestion.trim().length > 0);
 
   useEffect(() => {
-    setSelectedPath(null);
-    setPersonalNote("");
-    setShowPersonalNote(false);
-    setSchoolSuggestion("");
+    queueMicrotask(() => {
+      setSelectedPath(null);
+      setPersonalNote("");
+      setShowPersonalNote(false);
+      setSchoolSuggestion("");
+    });
   }, [lead.id]);
 
   useEffect(() => {

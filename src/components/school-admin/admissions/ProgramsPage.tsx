@@ -126,19 +126,21 @@ export default function ProgramsPage({
   }, [organizationId, supabase]);
 
   useEffect(() => {
-    loadPrograms();
+    queueMicrotask(() => {
+      void loadPrograms();
+    });
   }, [loadPrograms]);
 
   useEffect(() => {
     if (isNew) {
-      setEditable(emptyEditableState());
+      queueMicrotask(() => setEditable(emptyEditableState()));
       return;
     }
     if (!selectedProgram) {
-      setEditable(null);
+      queueMicrotask(() => setEditable(null));
       return;
     }
-    setEditable(toEditableState(selectedProgram));
+    queueMicrotask(() => setEditable(toEditableState(selectedProgram)));
   }, [isNew, selectedProgram?.id, selectedProgram?.updated_at]);
 
   const handleCreate = () => {

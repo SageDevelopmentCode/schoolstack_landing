@@ -76,7 +76,7 @@ export default function ApplicationSubmissionDetailPanel({
   const loadChecklistState = useCallback(async () => {
     const checklist = await getChecklistForApplication(supabase, submission.id);
     setHasChecklist(Boolean(checklist));
-  }, [submission.id, supabase]);
+  }, [submission.id, supabase, setHasChecklist]);
 
   const loadDetail = useCallback(async () => {
     setLoading(true);
@@ -97,18 +97,22 @@ export default function ApplicationSubmissionDetailPanel({
     } finally {
       setLoading(false);
     }
-  }, [loadChecklistState, organizationId, submission.id, supabase]);
+  }, [
+    loadChecklistState,
+    organizationId,
+    submission.id,
+    supabase,
+    setCurrentStatus,
+    setDetail,
+    setError,
+    setLoading,
+  ]);
 
   useEffect(() => {
-    loadDetail();
+    queueMicrotask(() => {
+      void loadDetail();
+    });
   }, [loadDetail]);
-
-  useEffect(() => {
-    setActiveTab("overview");
-    setHistoryEvents([]);
-    setHistoryUnlinked(false);
-    setHistoryLoading(false);
-  }, [submission.id]);
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -141,7 +145,9 @@ export default function ApplicationSubmissionDetailPanel({
 
   useEffect(() => {
     if (activeTab === "history") {
-      void loadHistory();
+      queueMicrotask(() => {
+        void loadHistory();
+      });
     }
   }, [activeTab, loadHistory]);
 

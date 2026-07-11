@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Info, Layers, Menu, Users, X } from "lucide-react";
@@ -73,7 +74,7 @@ export default function Navbar() {
           transition={{ duration: 0.4, ease }}
         >
           <div className="flex h-12 md:h-14 items-center justify-between gap-4 md:gap-8 px-4 md:px-7">
-            <a href="/" className="flex shrink-0 items-center gap-2">
+            <Link href="/" className="flex shrink-0 items-center gap-2">
               <img
                 src="/images/Logo.png"
                 alt="MudKitchen"
@@ -82,7 +83,7 @@ export default function Navbar() {
               <span className="font-display text-lg font-semibold text-clay md:text-[22px]">
                 MudKitchen
               </span>
-            </a>
+            </Link>
 
             <nav
               className="hidden md:flex items-center gap-8"

@@ -36,10 +36,12 @@ export default function PostSubmitBookingModal({
 
   useEffect(() => {
     if (!open) {
-      setSelectedDate(null);
-      setSelectedTime(null);
-      setSubmitting(false);
-      setError(null);
+      queueMicrotask(() => {
+        setSelectedDate(null);
+        setSelectedTime(null);
+        setSubmitting(false);
+        setError(null);
+      });
     }
   }, [open]);
 

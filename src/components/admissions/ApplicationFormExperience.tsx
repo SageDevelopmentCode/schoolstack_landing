@@ -144,15 +144,11 @@ export default function ApplicationFormExperience({
   const [applicationStatus, setApplicationStatus] = useState(initialStatus);
   const [awaitingPaymentConfirmation, setAwaitingPaymentConfirmation] =
     useState(paymentReturnPending);
-  const [bulkCopySourceId, setBulkCopySourceId] = useState("");
+  const [bulkCopySourceId, setBulkCopySourceId] = useState(
+    () => copyableApplications[0]?.id ?? "",
+  );
   const [importing, setImporting] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (copyableApplications[0] && !bulkCopySourceId) {
-      setBulkCopySourceId(copyableApplications[0].id);
-    }
-  }, [bulkCopySourceId, copyableApplications]);
 
   const currentStep = steps[stepIndex];
   const totalSteps = steps.length;

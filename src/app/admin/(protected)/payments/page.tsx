@@ -84,7 +84,9 @@ export default function AdminPaymentsPage() {
   }, [organizationId, statusFilter, supabase, typeFilter]);
 
   useEffect(() => {
-    void loadPayments();
+    queueMicrotask(() => {
+      void loadPayments();
+    });
   }, [loadPayments]);
 
   return (

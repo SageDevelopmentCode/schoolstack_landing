@@ -383,28 +383,32 @@ export default function ApplicationFormsPage({
   }, [organizationId, supabase]);
 
   useEffect(() => {
-    loadForms();
+    queueMicrotask(() => {
+      void loadForms();
+    });
   }, [loadForms]);
 
   const selectedApplyFormId =
     selection?.kind === "apply" ? selection.id : null;
 
   useEffect(() => {
-    setFocus(DEFAULT_BUILDER_FOCUS);
-    setSetupHighlight(null);
-    setApplySavedSnapshot(null);
+    queueMicrotask(() => {
+      setFocus(DEFAULT_BUILDER_FOCUS);
+      setSetupHighlight(null);
+      setApplySavedSnapshot(null);
+    });
   }, [selectedApplyFormId]);
 
   const selectedChecklistId =
     selection?.kind === "checklist" ? selection.id : null;
 
   useEffect(() => {
-    setChecklistSavedSnapshot(null);
+    queueMicrotask(() => setChecklistSavedSnapshot(null));
   }, [selectedChecklistId]);
 
   useEffect(() => {
     if (!selectedChecklist) {
-      setChecklistEditable(null);
+      queueMicrotask(() => setChecklistEditable(null));
       return;
     }
 
@@ -450,7 +454,7 @@ export default function ApplicationFormsPage({
 
   useEffect(() => {
     if (!selectedForm) {
-      setEditable(null);
+      queueMicrotask(() => setEditable(null));
       return;
     }
 

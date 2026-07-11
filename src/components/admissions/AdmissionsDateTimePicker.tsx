@@ -105,7 +105,9 @@ export default function AdmissionsDateTimePicker({
   }, [actionId, applicationId, viewMonth, viewYear]);
 
   useEffect(() => {
-    void loadAvailability();
+    queueMicrotask(() => {
+      void loadAvailability();
+    });
   }, [loadAvailability]);
 
   const selectedTimeSlots = selectedDate ? availabilitySlots[selectedDate] ?? [] : [];

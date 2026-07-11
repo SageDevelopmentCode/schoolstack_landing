@@ -1,0 +1,59 @@
+name: Discord notify
+
+on:
+  workflow_call:
+    inputs:
+      title:
+        required: true
+        type: string
+      details_url:
+        required: true
+        type: string
+      branch:
+        required: false
+        type: string
+        default: ""
+      commit_sha:
+        required: false
+        type: string
+        default: ""
+    secrets:
+      DISCORD_CI_ALERTS_WEBHOOK_URL:
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_CI_ALERTS_WEBHOOK_URL }}
+          TITLE: ${{ inputs.title }}
+          DETAILS_URL: ${{ inputs.details_url }}
+          BRANCH: ${{ inputs.branch }}
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          branch="${BRANCH:-${GITHUB_REF_NAME}}"
+          commit="${COMMIT_SHA:-${GITHUB_SHA}}"
+          payload=$(jq -n \
+            --arg title "$TITLE" \
+            --arg url "$DETAILS_URL" \
+            --arg repo "$REPO" \
+            --arg branch "$branch" \
+            --arg sha "$commit" \
+            --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              embeds: [{
+                title: $title,
+                url: $url,
+                color: 15158332,
+                timestamp: $ts,
+                fields: [
+                  {name: "Repo", value: $repo, inline: true},
+                  {name: "Branch", value: $branch, inline: true},
+                  {name: "Commit", value: $sha, inline: false}
+                ]
+              }]
+            }')
+          curl -fsS -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "$payload"

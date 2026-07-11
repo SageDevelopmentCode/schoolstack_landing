@@ -17,7 +17,7 @@ export default function ApplyAuthPage({ branding, schoolName }: ApplyAuthPagePro
       branding={branding}
       schoolName={schoolName}
       title="Sign in to your applications"
-      subtitle="Enter the email you used when applying. We'll send you a one-time code."
+      subtitle="Enter the email you used when applying. We&apos;ll send you a one-time code."
       onComplete={() => {
         router.refresh();
       }}
