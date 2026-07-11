@@ -9,8 +9,6 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    # Informational until pre-existing lint debt (~626 errors) is cleared in a dedicated PR.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -20,4 +18,16 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run lint
+      - run: npm run lint:errors
+
+  notify:
+    needs: lint
+    if: failure()
+    uses: ./.github/workflows/discord-notify.yml
+    secrets:
+      DISCORD_CI_ALERTS_WEBHOOK_URL: ${{ secrets.DISCORD_CI_ALERTS_WEBHOOK_URL }}
+    with:
+      title: "Lint failed"
+      details_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      branch: ${{ github.ref_name }}
+      commit_sha: ${{ github.sha }}

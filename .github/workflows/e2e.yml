@@ -54,3 +54,15 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  notify:
+    needs: e2e
+    if: failure()
+    uses: ./.github/workflows/discord-notify.yml
+    secrets:
+      DISCORD_CI_ALERTS_WEBHOOK_URL: ${{ secrets.DISCORD_CI_ALERTS_WEBHOOK_URL }}
+    with:
+      title: "E2E failed"
+      details_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      branch: ${{ github.ref_name }}
+      commit_sha: ${{ github.sha }}

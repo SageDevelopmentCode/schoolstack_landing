@@ -1,0 +1,19 @@
+name: Discord Vercel alerts
+
+on:
+  check_run:
+    types: [completed]
+
+jobs:
+  notify:
+    if: |
+      github.event.check_run.conclusion == 'failure' &&
+      contains(github.event.check_run.name, 'Vercel')
+    uses: ./.github/workflows/discord-notify.yml
+    secrets:
+      DISCORD_CI_ALERTS_WEBHOOK_URL: ${{ secrets.DISCORD_CI_ALERTS_WEBHOOK_URL }}
+    with:
+      title: "Vercel deploy failed"
+      details_url: ${{ github.event.check_run.details_url }}
+      branch: ${{ github.event.check_run.check_suite.head_branch }}
+      commit_sha: ${{ github.event.check_run.head_sha }}
