@@ -23,7 +23,7 @@ export default function ParentPortalSignIn({
   branding,
   schoolName,
   title = "Sign in to continue",
-  subtitle = "Enter the email you used for your application. We'll send you a one-time code.",
+  subtitle = "Enter the email you used for your application. We&apos;ll send you a one-time code.",
   onComplete,
 }: ParentPortalSignInProps) {
   const supabase = useMemo(() => createClient(), []);

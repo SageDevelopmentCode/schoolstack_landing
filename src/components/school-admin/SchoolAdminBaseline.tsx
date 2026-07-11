@@ -237,7 +237,9 @@ function Sidebar({
         }
       }
     }
-    setOpenParents((prev) => ({ ...prev, ...next }));
+    queueMicrotask(() => {
+      setOpenParents((prev) => ({ ...prev, ...next }));
+    });
   }, [pathname, slug, navGroups]);
 
   return (
@@ -444,7 +446,7 @@ export default function SchoolAdminBaseline({
 
   useEffect(() => {
     if (isEnrollmentFlowsPath(pathname, slug)) {
-      setSidebarExpanded(false);
+      queueMicrotask(() => setSidebarExpanded(false));
     }
   }, [pathname, slug]);
 

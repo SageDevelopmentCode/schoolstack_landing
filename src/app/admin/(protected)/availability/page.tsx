@@ -87,10 +87,12 @@ export default function AvailabilityPage() {
 
   useEffect(() => {
     if (!selectedDate) {
-      setBookedSlots([]);
+      queueMicrotask(() => setBookedSlots([]));
       return;
     }
-    loadBookedForDate(selectedDate);
+    queueMicrotask(() => {
+      void loadBookedForDate(selectedDate);
+    });
   }, [selectedDate, loadBookedForDate]);
 
   const availableDates = new Set(

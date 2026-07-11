@@ -62,7 +62,7 @@ export default function MicroschoolsSection() {
           </FadeInView>
           <FadeInView delay={0.12}>
             <p className="text-[15px] text-text-muted leading-relaxed max-w-sm lg:text-right">
-              The software most microschools inherit wasn't made for them. School Stack was.
+              The software most microschools inherit wasn&apos;t made for them. School Stack was.
             </p>
           </FadeInView>
         </div>
@@ -99,7 +99,7 @@ export default function MicroschoolsSection() {
               </span>
               <div className="flex-1">
                 <p className="font-display text-[1.3rem] leading-snug text-text">
-                  Your program is flexible.<br />Your software isn't.
+                  Your program is flexible.<br />Your software isn&apos;t.
                 </p>
                 <p className="text-[14px] text-text-muted leading-relaxed mt-3">
                   Full-time, part-time, hybrid — most school software assumes one model. School Stack is built around yours.
@@ -141,10 +141,10 @@ export default function MicroschoolsSection() {
               </span>
               <div className="flex-1">
                 <p className="font-display text-[1.3rem] leading-snug text-white">
-                  Families chose you because you're not a big institution.
+                  Families chose you because you&apos;re not a big institution.
                 </p>
                 <p className="text-[14px] text-white/65 leading-relaxed mt-3">
-                  Don't let that break down at the admin layer. School Stack gives parents a clear, simple portal — so the personal experience you built stays personal.
+                  Don&apos;t let that break down at the admin layer. School Stack gives parents a clear, simple portal — so the personal experience you built stays personal.
                 </p>
               </div>
               <div className="pt-2 border-t border-white/10">

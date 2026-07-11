@@ -62,8 +62,10 @@ export default function StartEnrollmentModal({
     if (!open) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    queueMicrotask(() => {
+      setLoading(true);
+      setError(null);
+    });
 
     fetch(`/api/admissions/applications/${applicationId}/start-enrollment`)
       .then(async (response) => {

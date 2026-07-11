@@ -203,7 +203,7 @@ export default function CommitteeTasksSection({
   const didDragRef = useRef(false);
 
   useEffect(() => {
-    setLocalTasks(committee.tasks);
+    queueMicrotask(() => setLocalTasks(committee.tasks));
   }, [committee.id, committee.tasks]);
 
   const tasks = onCommitteeUpdate ? committee.tasks : localTasks;

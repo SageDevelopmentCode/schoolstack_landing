@@ -244,7 +244,7 @@ export function EnrollmentPdfAgreementEditor({
 
   useEffect(() => {
     if (!document.storagePath) {
-      setPreviewUrl(null);
+      queueMicrotask(() => setPreviewUrl(null));
       return;
     }
 

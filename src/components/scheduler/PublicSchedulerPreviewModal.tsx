@@ -19,8 +19,10 @@ export function PublicSchedulerPreviewModal({
     if (!open) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    queueMicrotask(() => {
+      setLoading(true);
+      setError(null);
+    });
 
     fetch("/api/availability")
       .then(async (res) => {

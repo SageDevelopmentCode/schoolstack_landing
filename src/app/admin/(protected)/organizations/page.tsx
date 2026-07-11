@@ -101,7 +101,7 @@ export default function AdminOrganizationsPage() {
 
   useEffect(() => {
     if (!selectedId) {
-      setSettingsRow(null);
+      queueMicrotask(() => setSettingsRow(null));
       return;
     }
 

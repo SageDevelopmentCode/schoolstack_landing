@@ -326,7 +326,7 @@ const SETUP_MILESTONES: SetupMilestone[] = [
   {
     label: "Branded school website",
     description:
-      "Programs, philosophy, team pages, and enrollment — all on your school's site.",
+      "Programs, philosophy, team pages, and enrollment — all on your school&apos;s site.",
     icon: Globe,
   },
   {

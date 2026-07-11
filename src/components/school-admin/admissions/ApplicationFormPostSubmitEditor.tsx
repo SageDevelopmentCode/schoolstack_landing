@@ -280,7 +280,9 @@ export default function ApplicationFormPostSubmitEditor({
   }, [organizationId, supabase]);
 
   useEffect(() => {
-    void refreshCurrentMonthSlotCount();
+    queueMicrotask(() => {
+      void refreshCurrentMonthSlotCount();
+    });
   }, [refreshCurrentMonthSlotCount]);
 
   const handleMonthSlotCountChange = useCallback((count: number) => {
@@ -291,7 +293,7 @@ export default function ApplicationFormPostSubmitEditor({
 
   useEffect(() => {
     if (!canAddStep && showPicker) {
-      setShowPicker(false);
+      queueMicrotask(() => setShowPicker(false));
     }
   }, [canAddStep, showPicker]);
 

@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 import { FadeInView } from '@/components/ui/FadeInView'
 
 const TAKEAWAYS = [
@@ -102,13 +103,13 @@ export default function SagefieldBuyerRelevance() {
                 Book a demo
                 <ArrowRight size={14} />
               </a>
-              <a
+              <Link
                 href="/"
                 className="inline-flex items-center gap-1.5 text-sm font-medium font-secondary hover:opacity-90 transition-opacity duration-200"
                 style={{ color: 'rgba(247,241,231,0.65)' }}
               >
                 Explore the platform
-              </a>
+              </Link>
             </div>
             <p
               className="text-[13px] font-secondary mt-5"

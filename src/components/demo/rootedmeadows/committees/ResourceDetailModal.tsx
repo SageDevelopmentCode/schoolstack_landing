@@ -52,7 +52,9 @@ export default function ResourceDetailModal({
   );
 
   useEffect(() => {
-    if (resource) setForm(resourceToForm(resource, committee));
+    if (resource) {
+      queueMicrotask(() => setForm(resourceToForm(resource, committee)));
+    }
   }, [resource, committee]);
 
   useEffect(() => {

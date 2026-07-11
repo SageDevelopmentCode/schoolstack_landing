@@ -163,7 +163,7 @@ const C_LIGHT = {
 };
 
 // mutable — set before each render so all sub-components pick it up
-let C = C_DARK;
+const C = C_LIGHT;
 
 function demoInputStyle(
   extra?: React.CSSProperties,
@@ -3461,7 +3461,7 @@ const DEMO_CONVERSATIONS: Conversation[] = [
       {
         id: "m4",
         senderId: "admin",
-        text: "She's a joy to have. We'll send a full update in the newsletter Friday.",
+        text: "She's a joy to have. We&apos;ll send a full update in the newsletter Friday.",
         time: "9:22 AM",
       },
       {
@@ -4254,7 +4254,7 @@ function DashboardPage() {
         >
           <Card style={{ padding: "20px" }}>
             <div className="flex items-center justify-between mb-4">
-              <SectionLabel hint="Green line is tuition coming in; dashed line is what you're spending.">
+              <SectionLabel hint="Green line is tuition coming in; dashed line is what you&apos;re spending.">
                 Revenue vs Expenses
               </SectionLabel>
               <div className="flex items-center gap-4 text-[11px]">
@@ -4642,18 +4642,16 @@ function LeadsListTab({
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeFlowFilter, setActiveFlowFilter] = useState("all");
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
-  const [newSubmissionRevealed, setNewSubmissionRevealed] = useState(
-    !animateNewSubmission,
-  );
+  const [timedReveal, setTimedReveal] = useState(false);
+  const newSubmissionRevealed = !animateNewSubmission || timedReveal;
 
   useEffect(() => {
-    if (!animateNewSubmission) {
-      setNewSubmissionRevealed(true);
-      return;
-    }
-    setNewSubmissionRevealed(false);
-    const timer = setTimeout(() => setNewSubmissionRevealed(true), 700);
-    return () => clearTimeout(timer);
+    if (!animateNewSubmission) return;
+    const timer = setTimeout(() => setTimedReveal(true), 700);
+    return () => {
+      clearTimeout(timer);
+      setTimedReveal(false);
+    };
   }, [animateNewSubmission]);
 
   const filtered = ACTIVE_DEMO_LEADS.filter((l) => {
@@ -4939,7 +4937,7 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
       },
     ],
     actions: [
-      { id: "a1", type: "email", config: { to: "{{parent_email}}", subject: "Application Received!", body: "Thank you for applying. We'll be in touch shortly." } },
+      { id: "a1", type: "email", config: { to: "{{parent_email}}", subject: "Application Received!", body: "Thank you for applying. We&apos;ll be in touch shortly." } },
       { id: "a2", type: "notify_admin", config: {} },
     ],
   },
@@ -5170,7 +5168,7 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
         config: {
           to: "{{parent_email}}",
           subject: "We received your inquiry — Prestige Homeschool Academy",
-          body: "Thank you for reaching out. We'll be in touch within 48 hours to schedule your tour.",
+          body: "Thank you for reaching out. We&apos;ll be in touch within 48 hours to schedule your tour.",
         },
       },
       { id: "a12", type: "notify_admin", config: {} },
@@ -5349,6 +5347,49 @@ function DemoActivityTimelineRow({
   );
 }
 
+function buildLeadActivity(lead: DemoLead): LeadActivityEntry[] {
+  const statusLabel = STATUS_COLORS[lead.status]?.label ?? lead.status;
+  const initial: LeadActivityEntry[] = [
+    {
+      id: `${lead.id}-a0`,
+      at: `${lead.date} · 9:02 AM`,
+      actor: "System",
+      title: "Submission received",
+      summary: "Form submission received and queued for review.",
+      variant: "mail",
+    },
+    {
+      id: `${lead.id}-a1`,
+      at: `${lead.date} · 9:03 AM`,
+      actor: "Automation",
+      title: "Confirmation sent",
+      summary: `Confirmation email sent to ${lead.email}.`,
+      variant: "mail",
+    },
+  ];
+  if (lead.tags.length > 0) {
+    initial.push({
+      id: `${lead.id}-a2`,
+      at: `${lead.date} · 10:15 AM`,
+      actor: "Jordan M.",
+      title: "Tags updated",
+      summary: `Added tags: ${lead.tags.join(", ")}.`,
+      variant: "note",
+    });
+  }
+  if (lead.status !== "new") {
+    initial.push({
+      id: `${lead.id}-a3`,
+      at: `${lead.date} · 2:40 PM`,
+      actor: "Jordan M.",
+      title: "Status updated",
+      summary: `Status set to ${statusLabel}.`,
+      variant: "action",
+    });
+  }
+  return initial;
+}
+
 function LeadDetailPanel({
   lead,
   onClose,
@@ -5385,71 +5426,18 @@ function LeadDetailPanel({
   const [leadTags, setLeadTags] = useState<string[]>(() => [...lead.tags]);
   const [tagDraft, setTagDraft] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
-  const [activity, setActivity] = useState<LeadActivityEntry[]>([]);
-  const [enrollmentLinkSent, setEnrollmentLinkSent] = useState(
-    !autoSendEnrollmentLink,
-  );
+  const [activity, setActivity] = useState<LeadActivityEntry[]>(() => buildLeadActivity(lead));
+  const [linkSentDelayed, setLinkSentDelayed] = useState(false);
+  const enrollmentLinkSent = !autoSendEnrollmentLink || linkSentDelayed;
 
   useEffect(() => {
-    setActiveTab(defaultTab);
-  }, [defaultTab, lead.id]);
-
-  useEffect(() => {
-    if (!autoSendEnrollmentLink) {
-      setEnrollmentLinkSent(false);
-      return;
-    }
-    setEnrollmentLinkSent(false);
-    const timer = setTimeout(() => setEnrollmentLinkSent(true), 1000);
-    return () => clearTimeout(timer);
+    if (!autoSendEnrollmentLink) return;
+    const timer = setTimeout(() => setLinkSentDelayed(true), 1000);
+    return () => {
+      clearTimeout(timer);
+      setLinkSentDelayed(false);
+    };
   }, [autoSendEnrollmentLink, lead.id]);
-
-  useEffect(() => {
-    setLeadStatus(lead.status);
-    setLeadTags([...lead.tags]);
-    setTagDraft("");
-    const statusLabel = STATUS_COLORS[lead.status]?.label ?? lead.status;
-    const initial: LeadActivityEntry[] = [
-      {
-        id: `${lead.id}-a0`,
-        at: `${lead.date} · 9:02 AM`,
-        actor: "System",
-        title: "Submission received",
-        summary: "Form submission received and queued for review.",
-        variant: "mail",
-      },
-      {
-        id: `${lead.id}-a1`,
-        at: `${lead.date} · 9:03 AM`,
-        actor: "Automation",
-        title: "Confirmation sent",
-        summary: `Confirmation email sent to ${lead.email}.`,
-        variant: "mail",
-      },
-    ];
-    if (lead.tags.length > 0) {
-      initial.push({
-        id: `${lead.id}-a2`,
-        at: `${lead.date} · 10:15 AM`,
-        actor: "Jordan M.",
-        title: "Tags updated",
-        summary: `Added tags: ${lead.tags.join(", ")}.`,
-        variant: "note",
-      });
-    }
-    if (lead.status !== "new") {
-      initial.push({
-        id: `${lead.id}-a3`,
-        at: `${lead.date} · 2:40 PM`,
-        actor: "Jordan M.",
-        title: "Status updated",
-        summary: `Status set to ${statusLabel}.`,
-        variant: "action",
-      });
-    }
-    setActivity(initial);
-    setAdminNotes("");
-  }, [lead.id, lead.date, lead.email, lead.status, lead.tags]);
 
   const activeStep =
     activeTab.startsWith("step:") && flow
@@ -6880,26 +6868,23 @@ function EnrollmentFlowsTab({
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
   const [showAddActionPicker, setShowAddActionPicker] = useState(false);
 
-  useEffect(() => {
+  const selectFlow = (id: string) => {
+    setSelectedFlowId(id);
     setExpandedStepId(null);
     setExpandedActionId(null);
     setShowAddActionPicker(false);
-  }, [selectedFlowId]);
+  };
 
   const ACTION_META = getActionMeta();
 
   const selectedFlow = flows.find((f) => f.id === selectedFlowId) ?? null;
   const isChecklistFlow = selectedFlow?.kind === "checklist";
 
-  useEffect(() => {
-    if (
-      expandedStepId &&
-      selectedFlow &&
-      !selectedFlow.steps.some((s) => s.id === expandedStepId)
-    ) {
-      setExpandedStepId(null);
-    }
-  }, [selectedFlow, expandedStepId]);
+  const validExpandedStepId =
+    expandedStepId &&
+    selectedFlow?.steps.some((s) => s.id === expandedStepId)
+      ? expandedStepId
+      : null;
 
   const updateFlow = (updater: (f: EnrollmentFlow) => EnrollmentFlow) => {
     setFlows((prev) =>
@@ -6926,8 +6911,7 @@ function EnrollmentFlowsTab({
       actions: [],
     };
     setFlows((prev) => [newFlow, ...prev]);
-    setSelectedFlowId(id);
-    setExpandedStepId(null);
+    selectFlow(id);
   };
 
   const addStep = () => {
@@ -7098,7 +7082,7 @@ function EnrollmentFlowsTab({
             return (
               <button
                 key={flow.id}
-                onClick={() => { setSelectedFlowId(flow.id); setExpandedStepId(null); }}
+                onClick={() => selectFlow(flow.id)}
                 className="w-full text-left px-3 py-3 transition-all"
                 style={{
                   backgroundColor: isActive ? C.accentLight : "transparent",
@@ -7190,7 +7174,7 @@ function EnrollmentFlowsTab({
                       step={step}
                       stepIdx={stepIdx}
                       totalSteps={selectedFlow.steps.length}
-                      isExpanded={expandedStepId === step.id}
+                      isExpanded={validExpandedStepId === step.id}
                       isChecklistFlow={isChecklistFlow}
                       onToggleExpand={() =>
                         setExpandedStepId((prev) =>
@@ -7631,7 +7615,6 @@ function AdmissionsPage({
 
   useEffect(() => {
     if (activeTab !== "submissions") {
-      setSelectedLead(null);
       closeBackdrop();
       return;
     }
@@ -11744,10 +11727,10 @@ const DEMO_FAMILY_BILLING: DemoFamilyBilling[] = [
   },
 ];
 
-let ACTIVE_DEMO_STUDENTS: DemoStudent[] = DEMO_STUDENTS_P2.slice(0, PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COMPACT_ROWS);
-let ACTIVE_DEMO_PARENTS: DemoParent[] = DEMO_PARENTS.slice(0, PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COMPACT_ROWS);
-let ACTIVE_DEMO_FAMILIES: DemoFamilyBilling[] = DEMO_FAMILY_BILLING.slice(0, PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COMPACT_ROWS);
-let ACTIVE_DEMO_LEADS: DemoLead[] = DEMO_LEADS.slice(0, PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COMPACT_ROWS);
+const ACTIVE_DEMO_STUDENTS: DemoStudent[] = DEMO_STUDENTS_P2.slice(0, PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COMPACT_ROWS);
+const ACTIVE_DEMO_PARENTS: DemoParent[] = DEMO_PARENTS.slice(0, PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COMPACT_ROWS);
+const ACTIVE_DEMO_FAMILIES: DemoFamilyBilling[] = DEMO_FAMILY_BILLING.slice(0, PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COMPACT_ROWS);
+const ACTIVE_DEMO_LEADS: DemoLead[] = DEMO_LEADS.slice(0, PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COMPACT_ROWS);
 
 type TuitionFilter = "all" | "overdue" | "upcoming" | "autopay_off" | "at_risk";
 
@@ -12878,7 +12861,7 @@ const DEMO_EMAILS = [
     preview:
       "Just a reminder about our Open House this Saturday from 11 AM to 2 PM...",
     date: "3 weeks ago",
-    body: `<p>Dear Mud Kitchen Community,</p><p>Don't forget — our <strong>Spring Open House is this Saturday, April 25th from 11 AM to 2 PM</strong>!</p><p>Tours, Q&A with teachers, student art displays, and light refreshments.</p><p>Bring a friend who's curious about Mud Kitchen — we'd love to meet them.</p><p>See you there!</p>`,
+    body: `<p>Dear Mud Kitchen Community,</p><p>Don&apos;t forget — our <strong>Spring Open House is this Saturday, April 25th from 11 AM to 2 PM</strong>!</p><p>Tours, Q&A with teachers, student art displays, and light refreshments.</p><p>Bring a friend who's curious about Mud Kitchen — we'd love to meet them.</p><p>See you there!</p>`,
     attachments: [],
   },
   {
@@ -12997,7 +12980,7 @@ const WIZARD_TEMPLATES = [
       { type: "email" as const, label: "Welcome to the Family", delay: "Immediately", subject: "Welcome to Mud Kitchen! 🎉", body: "We're so excited to have you with us. Here's everything you need to know before your first day." },
       { type: "wait" as const, label: "Wait 3 days", delay: "Day 3" },
       { type: "email" as const, label: "Supply List & Schedule", delay: "Day 3", subject: "Your first-week checklist", body: "Here's what to bring, where to go, and who to contact. We want day one to be seamless." },
-      { type: "email" as const, label: "Meet the Team", delay: "Day 7", subject: "Meet your teachers and staff", body: "Get to know the people who will be shaping your child's experience this year." },
+      { type: "email" as const, label: "Meet the Team", delay: "Day 7", subject: "Meet your teachers and staff", body: "Get to know the people who will be shaping your child&apos;s experience this year." },
     ],
   },
   {
@@ -13015,7 +12998,7 @@ const WIZARD_TEMPLATES = [
     defaultSteps: [
       { type: "email" as const, label: "Check-In Email", delay: "Immediately", subject: "Still thinking about Mud Kitchen?", body: "Hi [First Name], we noticed it's been a while. We'd love to answer any questions you might have." },
       { type: "wait" as const, label: "Wait 5 days", delay: "Day 5" },
-      { type: "sms" as const, label: "SMS Reactivation", delay: "Day 5", subject: "SMS: Last chance to connect", body: "Hi [First Name], enrollment for Fall 2026 closes soon. If you're still interested, we'd love to chat!" },
+      { type: "sms" as const, label: "SMS Reactivation", delay: "Day 5", subject: "SMS: Last chance to connect", body: "Hi [First Name], enrollment for Fall 2026 closes soon. If you&apos;re still interested, we'd love to chat!" },
     ],
   },
   {
@@ -13035,7 +13018,7 @@ const WIZARD_TEMPLATES = [
       { type: "wait" as const, label: "Wait 2 weeks", delay: "Week 2" },
       { type: "email" as const, label: "Community Update", delay: "Week 2", subject: "What's happening at Mud Kitchen this month", body: "Even while you wait, we want to keep you connected. Here's a peek at life inside our school." },
       { type: "wait" as const, label: "Wait 2 weeks", delay: "Week 4" },
-      { type: "email" as const, label: "Spot Opening Alert", delay: "Week 4", subject: "A spot may be opening soon — are you still interested?", body: "We're expecting a spot to become available shortly. Can you confirm you're still interested in enrolling?" },
+      { type: "email" as const, label: "Spot Opening Alert", delay: "Week 4", subject: "A spot may be opening soon — are you still interested?", body: "We're expecting a spot to become available shortly. Can you confirm you&apos;re still interested in enrolling?" },
     ],
   },
   {
@@ -14202,26 +14185,13 @@ function TuitionPage({
   >(undefined);
   const { openBackdrop, closeBackdrop } = useContext(BackdropContext);
 
-  const openReminderModal = useCallback((familyIds?: string[]) => {
+  const openReminderModal = (familyIds?: string[]) => {
     setSelectedTx(null);
     setOpenScheduleKey(null);
     setReminderInitialIds(familyIds);
     setReminderModalOpen(true);
-  }, []);
-
-  useEffect(() => {
-    setFilter(initialFilter);
-  }, [initialFilter]);
-
-  useEffect(() => {
-    if (selectedFamilyId) {
-      const match = ACTIVE_DEMO_FAMILIES.find((f) => f.id === selectedFamilyId);
-      if (match) {
-        setSelectedFamily(match);
-        setOpenScheduleKey(null);
-      }
-    }
-  }, [selectedFamilyId]);
+    closeBackdrop();
+  };
 
   useEffect(() => {
     if (selectedTx || openScheduleKey) {
@@ -14233,14 +14203,6 @@ function TuitionPage({
       closeBackdrop();
     }
   }, [selectedTx, openScheduleKey, openBackdrop, closeBackdrop]);
-
-  useEffect(() => {
-    if (reminderModalOpen) {
-      setSelectedTx(null);
-      setOpenScheduleKey(null);
-      closeBackdrop();
-    }
-  }, [reminderModalOpen, closeBackdrop]);
 
   const fmt = (n: number) => `$${n.toLocaleString()}`;
 
@@ -16111,13 +16073,6 @@ function RevenueDatePicker({
 
   useEffect(() => {
     if (!open) return;
-    const sel = isoToDate(value);
-    setViewYear(sel.getFullYear());
-    setViewMonth(sel.getMonth());
-  }, [open, value]);
-
-  useEffect(() => {
-    if (!open) return;
     const onDoc = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -16177,7 +16132,16 @@ function RevenueDatePicker({
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (!open) {
+            const sel = isoToDate(value);
+            setViewYear(sel.getFullYear());
+            setViewMonth(sel.getMonth());
+            setOpen(true);
+          } else {
+            setOpen(false);
+          }
+        }}
         className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm outline-none transition-colors"
         style={{
           ...inputStyle,
@@ -22333,19 +22297,21 @@ function StaffPage({
   onFocusConsumed?: () => void;
   onNavigateToFinancesPayroll?: () => void;
 }) {
-  const [selectedStaff, setSelectedStaff] = useState<DemoStaff>(DEMO_STAFF[0]);
-  const [profileTab, setProfileTab] = useState<StaffProfileTab>("profile");
+  const [selectedStaff, setSelectedStaff] = useState<DemoStaff>(
+    () =>
+      (focusStaffId
+        ? DEMO_STAFF.find((s) => s.id === focusStaffId)
+        : undefined) ?? DEMO_STAFF[0],
+  );
+  const [profileTab, setProfileTab] = useState<StaffProfileTab>(
+    focusStaffTab ?? "profile",
+  );
   const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (!focusStaffId) return;
-    const member = DEMO_STAFF.find((s) => s.id === focusStaffId);
-    if (member) {
-      setSelectedStaff(member);
-      setProfileTab(focusStaffTab ?? "payroll");
-    }
     onFocusConsumed?.();
-  }, [focusStaffId, focusStaffTab, onFocusConsumed]);
+  }, [focusStaffId, onFocusConsumed]);
 
   const filtered = DEMO_STAFF.filter(
     (s) =>
@@ -23265,6 +23231,7 @@ function MySchoolPage({
       {activeTab === "programs" && <ProgramsPage />}
       {activeTab === "staff" && (
         <StaffPage
+          key={focusStaffId ?? "default"}
           focusStaffId={focusStaffId}
           focusStaffTab={focusStaffTab}
           onFocusConsumed={onStaffFocusConsumed}
@@ -23274,6 +23241,7 @@ function MySchoolPage({
       {activeTab === "classrooms" && <ClassroomsPage />}
       {activeTab === "tuition" && (
         <TuitionPage
+          key={`${selectedTuitionFamilyId ?? "none"}-${tuitionFilter}`}
           selectedFamilyId={selectedTuitionFamilyId}
           initialFilter={tuitionFilter}
           onSelectFamily={onSelectTuitionFamily}
@@ -24109,9 +24077,6 @@ export default function PrestigeHomeschoolAcademyAdminDashboardDemo({
   const [isExpanded, setIsExpanded] = useState(
     defaultSidebarExpanded !== undefined ? defaultSidebarExpanded : !disableTour
   );
-  const [isDark] = useState(false);
-  C = isDark ? C_DARK : C_LIGHT;
-
   const [showSupport, setShowSupport] = useState(false);
   const [backdropClose, setBackdropClose] = useState<(() => void) | null>(null);
   const backdropCtx = useMemo(() => ({
@@ -24165,6 +24130,7 @@ export default function PrestigeHomeschoolAcademyAdminDashboardDemo({
       case "leads":
         return (
           <AdmissionsPage
+            key={admissionsTab}
             activeTab={admissionsTab}
             initialLeadId={initialSelectedLeadId}
             initialSelectedFlowId={initialSelectedFlowId}

@@ -623,7 +623,7 @@ const DEMO_EVENTS: DemoEvent[] = [
     time: "6:00 PM",
     category: "Event",
     color: "#4A6354",
-    description: "Meet your child's teachers and tour the classrooms.",
+    description: "Meet your child&apos;s teachers and tour the classrooms.",
     program: "school-year",
   },
   {
@@ -1463,7 +1463,7 @@ function ImmunizationModal({
     <ModalShell title="Proof of Immunizations" onClose={onClose} inline={inline}>
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
-          Upload your child's immunization records or approved exemption
+          Upload your child&apos;s immunization records or approved exemption
           documents (PDF, JPG, PNG — max 10MB each).
         </p>
         <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
@@ -1641,7 +1641,7 @@ function AssumptionOfRiskModal({
       <div className="space-y-4">
         <div className="text-center text-xs text-gray-400 pb-2 border-b border-gray-100">
           <p className="font-semibold text-gray-600 text-sm">
-            Nature's Schoolhouse Microschool
+            Nature&apos;s Schoolhouse Microschool
           </p>
           <p>Assumption of Risk & Release of Liability</p>
         </div>
@@ -1650,7 +1650,7 @@ function AssumptionOfRiskModal({
             Please read carefully before signing
           </p>
           <p className="text-sm text-gray-600 leading-relaxed">
-            I acknowledge that participation in Nature's Schoolhouse Microschool
+            I acknowledge that participation in Nature&apos;s Schoolhouse Microschool
             programs involves inherent risks, including outdoor and nature-based
             activities, physical movement, and field excursions. I voluntarily
             assume all such risks on behalf of my child and agree to hold Sage
@@ -1933,7 +1933,7 @@ function RegistrationFeeModal({
               </p>
             </div>
             <p className="text-sm text-gray-500">
-              This fee secures your child's spot for the upcoming program.
+              This fee secures your child&apos;s spot for the upcoming program.
               Payment is processed securely.
             </p>
             <button
@@ -2357,7 +2357,7 @@ function ChecklistView({
               Enrollment Confirmed!
             </p>
             <p className="text-sm text-emerald-600">
-              All required steps are complete. We'll see you soon!
+              All required steps are complete. We&apos;ll see you soon!
             </p>
           </div>
         </div>
@@ -3026,7 +3026,7 @@ function BillingCheckoutSidebar({
                     <ul className="text-xs text-gray-600 space-y-1.5 list-disc pl-4">
                       <li>
                         Make check payable to{" "}
-                        <span className="font-medium">Nature's Schoolhouse Microschool</span>
+                        <span className="font-medium">Nature&apos;s Schoolhouse Microschool</span>
                       </li>
                       <li>
                         Mail to: 1234 South Lamar Blvd, Austin, TX 78704 · Attn: Billing
@@ -4034,7 +4034,7 @@ function VolunteerPage() {
         No openings right now
       </h3>
       <p className="text-sm text-gray-400 text-center max-w-xs">
-        We'll notify you when volunteer opportunities become available. Thank
+        We&apos;ll notify you when volunteer opportunities become available. Thank
         you for your willingness to support our community!
       </p>
       <button className="mt-6 px-5 py-2.5 rounded-xl bg-[#1A2E4C] text-white text-sm font-medium cursor-pointer hover:bg-[#121D33] transition-colors">
@@ -5096,7 +5096,6 @@ export default function NaturesSchoolhouseParentDashboardDemo({ initialTab = "ho
 
   useEffect(() => {
     if (!typingTarget) return;
-    setMsgInput("");
     let i = 0;
     const id = setInterval(() => {
       i++;
@@ -5106,7 +5105,10 @@ export default function NaturesSchoolhouseParentDashboardDemo({ initialTab = "ho
         setTypingTarget(null);
       }
     }, 55);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      setMsgInput("");
+    };
   }, [typingTarget]);
 
   const msgInputRef = useRef(msgInput);
@@ -5238,7 +5240,10 @@ export default function NaturesSchoolhouseParentDashboardDemo({ initialTab = "ho
         clickAnimation: true,
       },
       {
-        action: () => setTypingTarget("Sounds good, see you Thursday!"),
+        action: () => {
+          setMsgInput("");
+          setTypingTarget("Sounds good, see you Thursday!");
+        },
         targetId: "messages-input",
         holdMs: 2800,
         clickAnimation: true,

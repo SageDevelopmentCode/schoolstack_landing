@@ -87,7 +87,7 @@ function SchoolDemoShellInner({
       searchParams.get("step"),
     );
     if (resolved !== null) {
-      setActiveStep(resolved);
+      queueMicrotask(() => setActiveStep(resolved));
     }
   }, [searchParams, steps]);
 

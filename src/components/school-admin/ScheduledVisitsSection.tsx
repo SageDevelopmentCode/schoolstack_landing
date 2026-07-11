@@ -125,7 +125,9 @@ export default function ScheduledVisitsSection({
   }, [organizationId, supabase]);
 
   useEffect(() => {
-    void loadVisits();
+    queueMicrotask(() => {
+      void loadVisits();
+    });
   }, [loadVisits]);
 
   const timingCounts = useMemo(() => {

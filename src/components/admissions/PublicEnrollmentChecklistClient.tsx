@@ -57,7 +57,7 @@ export default function PublicEnrollmentChecklistClient({
   );
 
   useEffect(() => {
-    setInstances(checklist.instances);
+    queueMicrotask(() => setInstances(checklist.instances));
   }, [checklist.instances]);
 
   useEffect(() => {
@@ -77,7 +77,9 @@ export default function PublicEnrollmentChecklistClient({
       setPollingPayment(false);
     }
 
-    void pollForPaymentCompletion();
+    queueMicrotask(() => {
+      void pollForPaymentCompletion();
+    });
 
     return () => {
       cancelled = true;
@@ -87,8 +89,10 @@ export default function PublicEnrollmentChecklistClient({
   useEffect(() => {
     if (checklist.status !== "completed") return;
     if (searchParams.get("payment") === "success") {
-      maybeShowCelebration(checklist.status, checklist.checklistId);
-      clearPaymentQueryParams();
+      queueMicrotask(() => {
+        maybeShowCelebration(checklist.status, checklist.checklistId);
+        clearPaymentQueryParams();
+      });
       return;
     }
   }, [

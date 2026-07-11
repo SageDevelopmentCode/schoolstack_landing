@@ -53,15 +53,17 @@ export default function CommitteesAdminPage({
   const sendAugustSignupModalOpenedRef = useRef(false);
 
   useEffect(() => {
-    setView(initialView);
+    queueMicrotask(() => setView(initialView));
   }, [initialView]);
 
   useEffect(() => {
-    if (initialCommitteeId) setSelectedId(initialCommitteeId);
+    if (initialCommitteeId) {
+      queueMicrotask(() => setSelectedId(initialCommitteeId));
+    }
   }, [initialCommitteeId]);
 
   useEffect(() => {
-    setSection(initialCommitteeSection);
+    queueMicrotask(() => setSection(initialCommitteeSection));
   }, [initialCommitteeSection]);
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function CommitteesAdminPage({
   }, [openSendAugustSignupModal, openSendAugustSignupModalDelayMs]);
 
   useEffect(() => {
-    if (openArchiveModal) setShowArchive(true);
+    if (openArchiveModal) queueMicrotask(() => setShowArchive(true));
   }, [openArchiveModal]);
 
   const updateCommittee = (updated: Committee) => {

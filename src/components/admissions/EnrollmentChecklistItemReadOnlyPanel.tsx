@@ -184,14 +184,18 @@ function DocumentSignPdfReadOnly({
 
   useEffect(() => {
     if (!pdfDocument?.storagePath) {
-      setSignedUrl(null);
-      setLoadError(null);
+      queueMicrotask(() => {
+        setSignedUrl(null);
+        setLoadError(null);
+      });
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
-    setLoadError(null);
+    queueMicrotask(() => {
+      setLoading(true);
+      setLoadError(null);
+    });
 
     void getEnrollmentChecklistPdfSignedUrl(supabase, pdfDocument.storagePath)
       .then((url) => {

@@ -149,7 +149,9 @@ export default function EnrollmentStatusCard({
   }, [applicationId, organizationId, supabase]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const openStepDetail = (itemId: string) => {

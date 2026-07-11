@@ -19,7 +19,9 @@ export function useInViewOnRestore<T extends Element = HTMLElement>(
 ): [RefObject<T | null>, boolean] {
   const { threshold = 0.15, rootMargin = '0px', resetKey } = options
   const ref = useRef<T | null>(null)
-  const [inView, setInView] = useState(() => isNavigationRestored())
+  const [inView, setInView] = useState(
+    () => isNavigationRestored() || shouldSkipEntranceAnimation(),
+  )
 
   useEffect(() => {
     const el = ref.current
@@ -72,11 +74,6 @@ export function useInViewOnRestore<T extends Element = HTMLElement>(
 
     const onRestore = () => {
       scheduleChecks()
-    }
-
-    if (shouldSkipEntranceAnimation()) {
-      setInView(true)
-      return () => { timeoutIds.forEach((id) => clearTimeout(id)) }
     }
 
     if (checkInView()) {

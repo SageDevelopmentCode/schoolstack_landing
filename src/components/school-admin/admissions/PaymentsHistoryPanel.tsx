@@ -212,11 +212,14 @@ export default function PaymentsHistoryPanel({
     organizationId,
     supabase,
     useClientSideFilters,
-    ...(useClientSideFilters ? [] : [statusFilter, typeFilter]),
+    statusFilter,
+    typeFilter,
   ]);
 
   useEffect(() => {
-    void loadRows();
+    queueMicrotask(() => {
+      void loadRows();
+    });
   }, [loadRows]);
 
   const filteredRows = useMemo(() => {

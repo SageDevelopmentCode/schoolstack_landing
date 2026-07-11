@@ -204,7 +204,7 @@ export default function DemoSchoolPage() {
             >
               Want to see this with{" "}
               <em style={{ color: "#A05C45", fontStyle: "italic" }}>your</em>{" "}
-              school's data?
+              school&apos;s data?
             </p>
             <p
               className="text-[14px] mt-1.5"

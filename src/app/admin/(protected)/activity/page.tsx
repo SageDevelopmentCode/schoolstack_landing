@@ -101,7 +101,9 @@ export default function AdminActivityPage() {
   }, [supabase]);
 
   useEffect(() => {
-    void loadEvents();
+    queueMicrotask(() => {
+      void loadEvents();
+    });
   }, [loadEvents]);
 
   const selected = useMemo(

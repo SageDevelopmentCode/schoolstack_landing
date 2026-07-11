@@ -1415,7 +1415,7 @@ function StudentDetailSidebar({
   }, [student, onClose]);
 
   useEffect(() => {
-    setActiveTab("profile");
+    queueMicrotask(() => setActiveTab("profile"));
   }, [student?.id]);
 
   return (
@@ -2697,7 +2697,7 @@ const DEMO_THREADS: Record<string, DemoMsg[]> = {
     {
       id: "m2",
       from: "me",
-      body: "Hi David! Yes, you're confirmed for 2:30 PM. Looking forward to it.",
+      body: "Hi David! Yes, you&apos;re confirmed for 2:30 PM. Looking forward to it.",
       time: "Yesterday 2:30 PM",
     },
     {
@@ -2799,8 +2799,10 @@ function MessagesPage({
   }, [activeId, messages.length]);
 
   useEffect(() => {
-    setChildrenPanelOpen(false);
-    setDetailStudent(null);
+    queueMicrotask(() => {
+      setChildrenPanelOpen(false);
+      setDetailStudent(null);
+    });
   }, [activeId]);
 
   function sendMsg() {
@@ -3604,7 +3606,7 @@ const INITIAL_POSTS: DemoFeedPost[] = [
     authorName: "Ms. Nicole Park",
     authorId: "t3",
     authorColor: "#7FA888",
-    body: "Quick reminder to all parents — the Nature Walk field trip for elementary students is this Thursday, April 24th. Students should wear closed-toe shoes and bring a water bottle. We'll be out from 10–11:30 AM. So excited for this one!",
+    body: "Quick reminder to all parents — the Nature Walk field trip for elementary students is this Thursday, April 24th. Students should wear closed-toe shoes and bring a water bottle. We&apos;ll be out from 10–11:30 AM. So excited for this one!",
     createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
     reactions: [{ emoji: "👍", count: 6, mine: false }],
     comments: [],
@@ -4065,7 +4067,7 @@ const INITIAL_FORMS: DemoForm[] = [
   {
     id: "f5",
     title: "Technology Use Policy",
-    description: "Acknowledge the school's acceptable use policy for devices.",
+    description: "Acknowledge the school&apos;s acceptable use policy for devices.",
     completed: false,
     signedDate: null,
   },
@@ -4895,7 +4897,7 @@ function TeacherStudentDetailMobileScreen({
   const [activeTab, setActiveTab] = useState<StudentDetailTab>("profile");
 
   useEffect(() => {
-    setActiveTab("profile");
+    queueMicrotask(() => setActiveTab("profile"));
   }, [student.id]);
 
   return (
@@ -5601,7 +5603,9 @@ export default function RootedMeadowsTeacherDashboardDemo({
   const [sessionsByDay, setSessionsByDay] =
     useState<Record<string, DemoSession[]>>(buildInitialSessions);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
-  const [bannerIndex, setBannerIndex] = useState(0);
+  const [bannerIndex, setBannerIndex] = useState(() =>
+    Math.floor(Math.random() * BANNER_IMAGES.length),
+  );
 
   // ── Lifted state for tour control ──────────────────────────────────────────
   const [msgDraft, setMsgDraft] = useState("");
@@ -5637,7 +5641,6 @@ export default function RootedMeadowsTeacherDashboardDemo({
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setBannerIndex(Math.floor(Math.random() * BANNER_IMAGES.length));
     const timer = setInterval(() => {
       setBannerIndex((i) => (i + 1) % BANNER_IMAGES.length);
     }, 4000);
@@ -5836,7 +5839,6 @@ export default function RootedMeadowsTeacherDashboardDemo({
   // Typing animation
   useEffect(() => {
     if (!typingTarget) return;
-    setMsgDraft("");
     let i = 0;
     const id = setInterval(() => {
       i++;
@@ -5846,7 +5848,10 @@ export default function RootedMeadowsTeacherDashboardDemo({
         setTypingTarget(null);
       }
     }, 55);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      setMsgDraft("");
+    };
   }, [typingTarget]);
 
   const msgDraftRef = useRef(msgDraft);
@@ -5916,7 +5921,10 @@ export default function RootedMeadowsTeacherDashboardDemo({
         clickAnimation: true,
       },
       {
-        action: () => setTypingTarget("Sure, let's reschedule for Thursday!"),
+        action: () => {
+          setMsgDraft("");
+          setTypingTarget("Sure, let's reschedule for Thursday!");
+        },
         targetId: "messages-input",
         holdMs: 2800,
         clickAnimation: true,

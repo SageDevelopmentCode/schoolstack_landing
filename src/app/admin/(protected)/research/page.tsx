@@ -264,16 +264,18 @@ function CrmPanel({
   const [demoSlugSaving, setDemoSlugSaving] = useState(false);
 
   useEffect(() => {
-    setStatus(school.crm_status);
-    setContactName(school.contact_name);
-    setContactEmail(school.contact_email);
-    setContactPhone(school.contact_phone);
-    setNotes(school.notes);
-    setLastContacted(school.last_contacted_at ? school.last_contacted_at.split("T")[0] : "");
-    setPriority(school.priority_score);
-    setDemoSlug(school.demo_slug ?? "");
-    setPriorityOpen(false);
-    setSavedMsg(false);
+    queueMicrotask(() => {
+      setStatus(school.crm_status);
+      setContactName(school.contact_name);
+      setContactEmail(school.contact_email);
+      setContactPhone(school.contact_phone);
+      setNotes(school.notes);
+      setLastContacted(school.last_contacted_at ? school.last_contacted_at.split("T")[0] : "");
+      setPriority(school.priority_score);
+      setDemoSlug(school.demo_slug ?? "");
+      setPriorityOpen(false);
+      setSavedMsg(false);
+    });
   }, [school.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -750,8 +752,10 @@ function AddSchoolSidebar({
 
   useEffect(() => {
     if (open) {
-      setForm(EMPTY_FORM);
-      setError(null);
+      queueMicrotask(() => {
+        setForm(EMPTY_FORM);
+        setError(null);
+      });
     }
   }, [open]);
 

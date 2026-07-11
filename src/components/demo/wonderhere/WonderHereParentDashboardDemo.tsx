@@ -622,7 +622,7 @@ const DEMO_EVENTS: DemoEvent[] = [
     time: "6:00 PM",
     category: "Event",
     color: "#4A6354",
-    description: "Meet your child's teachers and tour the classrooms.",
+    description: "Meet your child&apos;s teachers and tour the classrooms.",
     program: "school-year",
   },
   {
@@ -1462,7 +1462,7 @@ function ImmunizationModal({
     <ModalShell title="Proof of Immunizations" onClose={onClose} inline={inline}>
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
-          Upload your child's immunization records or approved exemption
+          Upload your child&apos;s immunization records or approved exemption
           documents (PDF, JPG, PNG — max 10MB each).
         </p>
         <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
@@ -1932,7 +1932,7 @@ function RegistrationFeeModal({
               </p>
             </div>
             <p className="text-sm text-gray-500">
-              This fee secures your child's spot for the upcoming program.
+              This fee secures your child&apos;s spot for the upcoming program.
               Payment is processed securely.
             </p>
             <button
@@ -2356,7 +2356,7 @@ function ChecklistView({
               Enrollment Confirmed!
             </p>
             <p className="text-sm text-emerald-600">
-              All required steps are complete. We'll see you soon!
+              All required steps are complete. We&apos;ll see you soon!
             </p>
           </div>
         </div>
@@ -4033,7 +4033,7 @@ function VolunteerPage() {
         No openings right now
       </h3>
       <p className="text-sm text-gray-400 text-center max-w-xs">
-        We'll notify you when volunteer opportunities become available. Thank
+        We&apos;ll notify you when volunteer opportunities become available. Thank
         you for your willingness to support our community!
       </p>
       <button className="mt-6 px-5 py-2.5 rounded-xl bg-[#3D5A45] text-white text-sm font-medium cursor-pointer hover:bg-[#2D4533] transition-colors">
@@ -5098,7 +5098,6 @@ export default function WonderHereParentDashboardDemo({ initialTab = "home", dis
 
   useEffect(() => {
     if (!typingTarget) return;
-    setMsgInput("");
     let i = 0;
     const id = setInterval(() => {
       i++;
@@ -5108,7 +5107,10 @@ export default function WonderHereParentDashboardDemo({ initialTab = "home", dis
         setTypingTarget(null);
       }
     }, 55);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      setMsgInput("");
+    };
   }, [typingTarget]);
 
   const msgInputRef = useRef(msgInput);
@@ -5240,7 +5242,10 @@ export default function WonderHereParentDashboardDemo({ initialTab = "home", dis
         clickAnimation: true,
       },
       {
-        action: () => setTypingTarget("Sounds good, see you Thursday!"),
+        action: () => {
+          setMsgInput("");
+          setTypingTarget("Sounds good, see you Thursday!");
+        },
         targetId: "messages-input",
         holdMs: 2800,
         clickAnimation: true,

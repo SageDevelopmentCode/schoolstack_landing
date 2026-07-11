@@ -95,11 +95,13 @@ export default function EnrollmentChecklistExperience({
   const [localInstances, setLocalInstances] = useState(instances);
 
   useEffect(() => {
-    setLocalInstances(instances);
+    queueMicrotask(() => setLocalInstances(instances));
   }, [instances]);
 
   useEffect(() => {
-    setActiveItemId(resolveInitialItemId(items, initialItemId));
+    queueMicrotask(() =>
+      setActiveItemId(resolveInitialItemId(items, initialItemId)),
+    );
   }, [items, initialItemId]);
 
   const instanceByTemplateId = useMemo(

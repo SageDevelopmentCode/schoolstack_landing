@@ -137,7 +137,9 @@ export default function ApplicationSubmissionsPage({
   }, [organizationId, supabase]);
 
   useEffect(() => {
-    loadSubmissions();
+    queueMicrotask(() => {
+      void loadSubmissions();
+    });
   }, [loadSubmissions]);
 
   const statusCounts = useMemo(() => {
