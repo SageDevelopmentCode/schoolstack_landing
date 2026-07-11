@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
 import {
   E2E_ADMIN_EMAIL,
@@ -33,6 +34,9 @@ function createAdminClient() {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
+      },
+      realtime: {
+        transport: ws,
       },
     },
   );

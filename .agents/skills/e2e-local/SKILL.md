@@ -82,6 +82,7 @@ Password: `E2eTestPassword123!` (override via `E2E_TEST_PASSWORD` in `.env.e2e.l
 | Playwright browser missing | `npm run test:e2e:install` |
 | Port 3000 in use | `lsof -ti:3000 \| xargs kill -9` then re-run |
 | Prod block error in globalSetup | Fix `NEXT_PUBLIC_SUPABASE_URL` in `.env.e2e.local` |
+| `Node.js 20 detected without native WebSocket support` | Ensure `ws` is installed (`npm install`); seed uses it as Realtime transport |
 
 ## More detail
 
