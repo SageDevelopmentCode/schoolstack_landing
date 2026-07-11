@@ -4,6 +4,8 @@ export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded";
 
 export type PaymentType = "application_fee" | "enrollment_checklist";
 
+export type PaymentMethodType = "card" | "us_bank_account";
+
 export type PaymentRecord = {
   id: string;
   organizationId: string;
@@ -15,6 +17,9 @@ export type PaymentRecord = {
   stripeCheckoutSessionId: string | null;
   stripePaymentIntentId: string | null;
   amountCents: number;
+  chargedAmountCents: number | null;
+  processingFeeCents: number | null;
+  paymentMethodType: PaymentMethodType | null;
   currency: string;
   status: PaymentStatus;
   paidAt: string | null;
@@ -57,6 +62,19 @@ function rowToPayment(row: Record<string, unknown>): PaymentRecord {
         ? row.stripe_payment_intent_id
         : null,
     amountCents: Number(row.amount_cents),
+    chargedAmountCents:
+      typeof row.charged_amount_cents === "number"
+        ? row.charged_amount_cents
+        : null,
+    processingFeeCents:
+      typeof row.processing_fee_cents === "number"
+        ? row.processing_fee_cents
+        : null,
+    paymentMethodType:
+      row.payment_method_type === "card" ||
+      row.payment_method_type === "us_bank_account"
+        ? row.payment_method_type
+        : null,
     currency: String(row.currency ?? "USD"),
     status: row.status as PaymentStatus,
     paidAt: typeof row.paid_at === "string" ? row.paid_at : null,
@@ -76,6 +94,9 @@ export async function createPaymentRecord(
     payerUserId?: string;
     currency?: string;
     stripeCheckoutSessionId?: string;
+    chargedAmountCents?: number;
+    processingFeeCents?: number;
+    paymentMethodType?: PaymentMethodType;
   },
 ): Promise<PaymentRecord> {
   const { data, error } = await supabase
@@ -84,6 +105,9 @@ export async function createPaymentRecord(
       organization_id: input.organizationId,
       application_id: input.applicationId,
       amount_cents: input.amountCents,
+      charged_amount_cents: input.chargedAmountCents ?? input.amountCents,
+      processing_fee_cents: input.processingFeeCents ?? 0,
+      payment_method_type: input.paymentMethodType ?? null,
       currency: input.currency ?? "USD",
       status: "pending",
       payment_type: input.paymentType ?? "application_fee",
@@ -109,6 +133,9 @@ export async function createApplicationPayment(
     stripeCheckoutSessionId?: string;
     label?: string;
     payerUserId?: string;
+    chargedAmountCents?: number;
+    processingFeeCents?: number;
+    paymentMethodType?: PaymentMethodType;
   },
 ): Promise<PaymentRecord> {
   return createPaymentRecord(supabase, {

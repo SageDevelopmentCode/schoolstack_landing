@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, Loader2, Upload } from "lucide-react";
 import ApplicationUploadedFileList from "@/components/admissions/ApplicationUploadedFileList";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
+import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
 import TypedSignatureField, {
   parseStoredSignerName,
 } from "@/components/admissions/TypedSignatureField";
@@ -33,6 +34,7 @@ import {
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import { isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import { createClient } from "@/utils/supabase/client";
 
 type EnrollmentChecklistItemPanelProps = {
@@ -855,10 +857,11 @@ function PaymentPanel({
   const isCompleted = instanceStatus === "completed" || instancePaymentStatus === "paid";
   const payment = item.payment;
   const amount = formatFeeAmount(payment?.amountCents ?? 0);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handlePay() {
+  async function handleConfirmPayment(method: CheckoutPaymentMethod) {
     if (!isLive || !instanceId || isCompleted) return;
 
     setSubmitting(true);
@@ -866,7 +869,11 @@ function PaymentPanel({
     try {
       const response = await fetch(
         `/api/admissions/enrollment-checklist-items/${instanceId}/checkout`,
-        { method: "POST" },
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentMethod: method }),
+        },
       );
       const body = await response.json();
       if (!response.ok) {
@@ -905,13 +912,25 @@ function PaymentPanel({
       <button
         type="button"
         disabled={!isLive || submitting || isCompleted}
-        onClick={() => void handlePay()}
+        onClick={() => setPaymentModalOpen(true)}
         className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
         style={panelButtonStyle(C, !isLive || submitting || isCompleted)}
       >
         {isCompleted ? "Paid" : submitting ? "Redirecting…" : `Pay ${amount}`}
         {!isLive ? " (preview)" : ""}
       </button>
+
+      <PaymentMethodSelectionModal
+        C={C}
+        open={paymentModalOpen}
+        onClose={() => {
+          if (!submitting) setPaymentModalOpen(false);
+        }}
+        netAmountCents={payment?.amountCents ?? 0}
+        label={payment?.label || item.label}
+        loading={submitting}
+        onConfirm={handleConfirmPayment}
+      />
     </div>
   );
 }

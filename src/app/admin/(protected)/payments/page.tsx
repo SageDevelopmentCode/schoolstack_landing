@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   listAllPayments,
+  PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
   type PaymentRecordDisplayRow,
@@ -164,7 +165,13 @@ export default function AdminPaymentsPage() {
                   Type
                 </th>
                 <th className="px-3 py-2 text-left font-medium text-text-muted">
-                  Amount
+                  School amount
+                </th>
+                <th className="px-3 py-2 text-left font-medium text-text-muted">
+                  Charged
+                </th>
+                <th className="px-3 py-2 text-left font-medium text-text-muted">
+                  Method
                 </th>
                 <th className="px-3 py-2 text-left font-medium text-text-muted">
                   Status
@@ -187,6 +194,14 @@ export default function AdminPaymentsPage() {
                   </td>
                   <td className="px-3 py-2 font-medium">
                     {formatFeeAmount(row.amountCents)}
+                  </td>
+                  <td className="px-3 py-2">
+                    {formatFeeAmount(row.chargedAmountCents ?? row.amountCents)}
+                  </td>
+                  <td className="px-3 py-2">
+                    {row.paymentMethodType
+                      ? PAYMENT_METHOD_LABELS[row.paymentMethodType]
+                      : "—"}
                   </td>
                   <td className="px-3 py-2">
                     {PAYMENT_STATUS_LABELS[row.status]}

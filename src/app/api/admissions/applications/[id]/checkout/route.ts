@@ -19,7 +19,12 @@ import {
   attachCheckoutSessionToPayment,
   createApplicationPayment,
 } from "@/lib/stripe/application-payments";
-import { getSiteUrl, getStripeClient } from "@/lib/stripe/client";
+import { createAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
+import { getSiteUrl } from "@/lib/stripe/client";
+import {
+  isCheckoutPaymentMethod,
+  quoteProcessingFee,
+} from "@/lib/stripe/processing-fee";
 import {
   getOrganizationPaymentAccount,
   isPaymentReady,
@@ -52,6 +57,18 @@ export async function POST(request: Request, context: RouteContext) {
         status: 404,
         error: "Application not found.",
         code: "not_found",
+      });
+    }
+
+    const body = (await request.json().catch(() => ({}))) as {
+      paymentMethod?: unknown;
+    };
+    if (!isCheckoutPaymentMethod(body.paymentMethod)) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Choose a payment method to continue.",
+        code: "invalid_payment_method",
       });
     }
 
@@ -148,52 +165,38 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
+    const feeLabel = feeConfig.label ?? "Application fee";
+    const quote = quoteProcessingFee(amountCents, body.paymentMethod);
+
     const payment = await createApplicationPayment(admin, {
       organizationId: application.organizationId,
       applicationId: application.id,
-      amountCents,
+      amountCents: quote.netAmountCents,
+      chargedAmountCents: quote.grossAmountCents,
+      processingFeeCents: quote.processingFeeCents,
+      paymentMethodType: quote.paymentMethod,
       currency: "USD",
-      label: feeConfig.label ?? "Application fee",
+      label: feeLabel,
       payerUserId: user.id,
     });
 
-    const siteUrl = getSiteUrl();
     const formPath = publicApplicationFormPath(String(org.slug), publicSlug);
-    const successUrl = `${siteUrl}${formPath}?payment=success&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${siteUrl}${formPath}?payment=cancelled`;
-
-    const stripe = getStripeClient();
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: amountCents,
-            product_data: {
-              name: feeConfig.label ?? "Application fee",
-            },
-          },
-        },
-      ],
-      payment_intent_data: {
-        transfer_data: {
-          destination: paymentAccount.stripeConnectAccountId,
-        },
-        metadata: {
-          application_id: application.id,
-          organization_id: application.organizationId,
-          payment_id: payment.id,
-        },
-      },
-      metadata: {
+    const { session } = await createAdmissionsCheckoutSession({
+      netAmountCents: amountCents,
+      paymentMethod: body.paymentMethod,
+      label: feeLabel,
+      stripeConnectAccountId: paymentAccount.stripeConnectAccountId,
+      successUrl: `${getSiteUrl()}${formPath}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${getSiteUrl()}${formPath}?payment=cancelled`,
+      paymentId: payment.id,
+      paymentIntentMetadata: {
         application_id: application.id,
         organization_id: application.organizationId,
-        payment_id: payment.id,
       },
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      sessionMetadata: {
+        application_id: application.id,
+        organization_id: application.organizationId,
+      },
     });
 
     if (session.id) {
@@ -218,10 +221,13 @@ export async function POST(request: Request, context: RouteContext) {
       action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_STARTED,
       entityType: "application",
       entityId: application.id,
-      summary: `Application fee checkout started ($${(amountCents / 100).toFixed(2)})`,
+      summary: `Application fee checkout started ($${(quote.grossAmountCents / 100).toFixed(2)})`,
       metadata: {
         paymentId: payment.id,
-        amountCents,
+        amountCents: quote.netAmountCents,
+        chargedAmountCents: quote.grossAmountCents,
+        processingFeeCents: quote.processingFeeCents,
+        paymentMethod: quote.paymentMethod,
         checkoutSessionId: session.id,
       },
     });

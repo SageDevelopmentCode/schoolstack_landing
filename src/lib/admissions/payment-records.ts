@@ -31,6 +31,19 @@ function rowToPaymentRecord(row: Record<string, unknown>): PaymentRecord {
         ? row.stripe_payment_intent_id
         : null,
     amountCents: Number(row.amount_cents),
+    chargedAmountCents:
+      typeof row.charged_amount_cents === "number"
+        ? row.charged_amount_cents
+        : null,
+    processingFeeCents:
+      typeof row.processing_fee_cents === "number"
+        ? row.processing_fee_cents
+        : null,
+    paymentMethodType:
+      row.payment_method_type === "card" ||
+      row.payment_method_type === "us_bank_account"
+        ? row.payment_method_type
+        : null,
     currency: String(row.currency ?? "USD"),
     status: row.status as PaymentStatus,
     paidAt: typeof row.paid_at === "string" ? row.paid_at : null,
@@ -56,6 +69,11 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   failed: "Failed",
   refunded: "Refunded",
 };
+
+export const PAYMENT_METHOD_LABELS = {
+  card: "Card",
+  us_bank_account: "ACH",
+} as const;
 
 function resolveApplicantLabel(
   responses: unknown,

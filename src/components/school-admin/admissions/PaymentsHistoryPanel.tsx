@@ -7,6 +7,7 @@ import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   listApplicationPayments,
   listOrganizationPayments,
+  PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
   type PaymentRecordDisplayRow,
@@ -174,7 +175,13 @@ export default function PaymentsHistoryPanel({
                   Type
                 </th>
                 <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
-                  Amount
+                  School amount
+                </th>
+                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
+                  Charged
+                </th>
+                <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
+                  Method
                 </th>
                 <th className="px-3 py-2 text-left font-medium" style={{ color: C.textSecondary }}>
                   Status
@@ -208,6 +215,19 @@ export default function PaymentsHistoryPanel({
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap font-medium" style={{ color: C.textPrimary }}>
                     {formatFeeAmount(row.amountCents)}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap" style={{ color: C.textPrimary }}>
+                    {formatFeeAmount(row.chargedAmountCents ?? row.amountCents)}
+                    {row.processingFeeCents ? (
+                      <p className="text-xs" style={{ color: C.textTertiary }}>
+                        +{formatFeeAmount(row.processingFeeCents)} fee
+                      </p>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap" style={{ color: C.textSecondary }}>
+                    {row.paymentMethodType
+                      ? PAYMENT_METHOD_LABELS[row.paymentMethodType]
+                      : "—"}
                   </td>
                   <td className="px-3 py-2">
                     <span

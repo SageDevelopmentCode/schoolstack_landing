@@ -11,11 +11,13 @@ import {
   logActivityEvent,
 } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
-import { getSiteUrl, getStripeClient } from "@/lib/stripe/client";
 import {
   attachCheckoutSessionToPayment,
   createPaymentRecord,
 } from "@/lib/stripe/application-payments";
+import { createAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
+import { getSiteUrl } from "@/lib/stripe/client";
+import { isCheckoutPaymentMethod, quoteProcessingFee } from "@/lib/stripe/processing-fee";
 import {
   getOrganizationPaymentAccount,
   isPaymentReady,
@@ -37,6 +39,18 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireAuthenticatedUser(supabase);
     const admin = createAdminClient();
+
+    const body = (await request.json().catch(() => ({}))) as {
+      paymentMethod?: unknown;
+    };
+    if (!isCheckoutPaymentMethod(body.paymentMethod)) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Choose a payment method to continue.",
+        code: "invalid_payment_method",
+      });
+    }
 
     const { data: instance, error: instanceError } = await admin
       .from("enrollment_checklist_items")
@@ -164,57 +178,43 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const siteUrl = getSiteUrl();
     const enrollmentPath = `/school/${org.slug}/apply/${applicationId}/enrollment`;
-    const successUrl = `${siteUrl}${enrollmentPath}?payment=success&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${siteUrl}${enrollmentPath}?payment=cancelled`;
+    const feeLabel = paymentLabel ?? "Enrollment payment";
+    const quote = quoteProcessingFee(amountCents, body.paymentMethod);
 
     const payment = await createPaymentRecord(admin, {
       organizationId,
       applicationId,
-      amountCents,
+      amountCents: quote.netAmountCents,
+      chargedAmountCents: quote.grossAmountCents,
+      processingFeeCents: quote.processingFeeCents,
+      paymentMethodType: quote.paymentMethod,
       currency: "USD",
       paymentType: "enrollment_checklist",
       enrollmentChecklistItemId: instanceId,
-      label: paymentLabel ?? "Enrollment payment",
+      label: feeLabel,
       payerUserId: user.id,
     });
 
-    const stripe = getStripeClient();
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: amountCents,
-            product_data: {
-              name: paymentLabel ?? "Enrollment payment",
-            },
-          },
-        },
-      ],
-      payment_intent_data: {
-        transfer_data: {
-          destination: paymentAccount.stripeConnectAccountId,
-        },
-        metadata: {
-          checklist_item_id: instanceId,
-          organization_id: organizationId,
-          application_id: applicationId,
-          payment_id: payment.id,
-        },
+    const { session } = await createAdmissionsCheckoutSession({
+      netAmountCents: amountCents,
+      paymentMethod: body.paymentMethod,
+      label: feeLabel,
+      stripeConnectAccountId: paymentAccount.stripeConnectAccountId,
+      successUrl: `${getSiteUrl()}${enrollmentPath}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${getSiteUrl()}${enrollmentPath}?payment=cancelled`,
+      paymentId: payment.id,
+      paymentIntentMetadata: {
+        checklist_item_id: instanceId,
+        organization_id: organizationId,
+        application_id: applicationId,
       },
-      metadata: {
+      sessionMetadata: {
         checklist_item_id: instanceId,
         organization_id: organizationId,
         application_id: applicationId,
         payment_type: "enrollment_checklist",
-        payment_id: payment.id,
       },
-      success_url: successUrl,
-      cancel_url: cancelUrl,
     });
 
     if (session.id) {
@@ -239,9 +239,12 @@ export async function POST(request: Request, context: RouteContext) {
       action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_STARTED,
       entityType: "enrollment_checklist_item",
       entityId: instanceId,
-      summary: `Enrollment payment checkout started ($${(amountCents / 100).toFixed(2)})`,
+      summary: `Enrollment payment checkout started ($${(quote.grossAmountCents / 100).toFixed(2)})`,
       metadata: {
-        amountCents,
+        amountCents: quote.netAmountCents,
+        chargedAmountCents: quote.grossAmountCents,
+        processingFeeCents: quote.processingFeeCents,
+        paymentMethod: quote.paymentMethod,
         checkoutSessionId: session.id,
         applicationId,
         paymentId: payment.id,

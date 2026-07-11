@@ -9,6 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CopyableApplication } from "@/lib/admissions/application-copy";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
+import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import type { SaveApplicationDraftInput } from "@/lib/admissions/application-draft";
 import type { ApplicationFileUploadContext } from "@/lib/admissions/application-file-storage";
@@ -20,6 +21,7 @@ import {
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import { createClient } from "@/utils/supabase/client";
 
 type ExperienceStep =
@@ -144,6 +146,7 @@ export default function ApplicationFormExperience({
     useState(paymentReturnPending);
   const [bulkCopySourceId, setBulkCopySourceId] = useState("");
   const [importing, setImporting] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     if (copyableApplications[0] && !bulkCopySourceId) {
@@ -248,17 +251,37 @@ export default function ApplicationFormExperience({
   const handlePayFee = async () => {
     if (!applicationId || !isLive) return;
 
-    setActionLoading(true);
     setSaveError(null);
 
     try {
       if (canPersist) {
+        setSaving(true);
         await persistDraft(stepIndex);
+        setSaving(false);
       }
+      setPaymentModalOpen(true);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to save your progress.",
+      );
+      setSaving(false);
+    }
+  };
 
+  const handleConfirmPayment = async (paymentMethod: CheckoutPaymentMethod) => {
+    if (!applicationId || !isLive) return;
+
+    setActionLoading(true);
+    setSaveError(null);
+
+    try {
       const response = await fetch(
         `/api/admissions/applications/${applicationId}/checkout`,
-        { method: "POST" },
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentMethod }),
+        },
       );
       const payload = (await response.json()) as { url?: string; error?: string };
 
@@ -580,7 +603,7 @@ export default function ApplicationFormExperience({
               >
                 {actionLoading || saving
                   ? "Preparing checkout…"
-                  : feeConfig.label ?? "Pay application fee"}
+                  : `Pay ${formatFeeAmount(feeConfig.amount_cents ?? 0)}`}
                 {!isLive ? " (preview)" : ""}
               </button>
             ) : currentStep?.kind === "acknowledgments" && !feeConfig.enabled ? (
@@ -630,6 +653,18 @@ export default function ApplicationFormExperience({
           </div>
         </div>
       </footer>
+
+      <PaymentMethodSelectionModal
+        C={C}
+        open={paymentModalOpen}
+        onClose={() => {
+          if (!actionLoading) setPaymentModalOpen(false);
+        }}
+        netAmountCents={feeConfig.amount_cents ?? 0}
+        label={feeConfig.label ?? "Application fee"}
+        loading={actionLoading}
+        onConfirm={handleConfirmPayment}
+      />
     </div>
   );
 }
