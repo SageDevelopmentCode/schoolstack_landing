@@ -582,35 +582,45 @@ async function finalizeEnrollmentIfComplete(
     .maybeSingle();
 
   if (enrollmentError) throw enrollmentError;
-  if (!enrollment || enrollment.status === "enrolled") return;
+  if (!enrollment) return;
 
-  const { error: enrollmentUpdateError } = await supabase
-    .from("enrollments")
-    .update({ status: "enrolled" })
-    .eq("id", enrollmentId);
-
-  if (enrollmentUpdateError) throw enrollmentUpdateError;
-
-  if (enrollment.student_id) {
-    await supabase
-      .from("students")
+  if (enrollment.status !== "enrolled") {
+    const { error: enrollmentUpdateError } = await supabase
+      .from("enrollments")
       .update({ status: "enrolled" })
-      .eq("id", enrollment.student_id);
+      .eq("id", enrollmentId);
+
+    if (enrollmentUpdateError) throw enrollmentUpdateError;
+
+    if (enrollment.student_id) {
+      await supabase
+        .from("students")
+        .update({ status: "enrolled" })
+        .eq("id", enrollment.student_id);
+    }
+
+    void logActivityEvent(supabase, {
+      organizationId: String(checklist.organization_id),
+      actorType: "system",
+      surface: "system",
+      action: ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED,
+      entityType: "enrollment",
+      entityId: enrollmentId,
+      summary: "Enrollment checklist completed",
+      metadata: {
+        checklistId,
+        applicationId: checklist.application_id ?? null,
+      },
+    });
   }
 
-  void logActivityEvent(supabase, {
-    organizationId: String(checklist.organization_id),
-    actorType: "system",
-    surface: "system",
-    action: ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED,
-    entityType: "enrollment",
-    entityId: enrollmentId,
-    summary: "Enrollment checklist completed",
-    metadata: {
-      checklistId,
-      applicationId: checklist.application_id ?? null,
-    },
-  });
+  if (checklist.application_id) {
+    await supabase
+      .from("applications")
+      .update({ status: "enrolled" })
+      .eq("id", checklist.application_id)
+      .eq("status", "enrolling");
+  }
 }
 
 export async function completeChecklistPaymentFromWebhook(

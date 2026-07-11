@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { ArrowRight, FileText, Plus } from "lucide-react";
 import ApplyRequiredActionsSection from "@/components/admissions/ApplyRequiredActionsSection";
 import ApplyPortalNavbar from "@/components/admissions/ApplyPortalNavbar";
@@ -16,6 +16,7 @@ import {
 } from "@/lib/admissions/parent-portal-access";
 import type { EnrollmentProgressSummary } from "@/lib/admissions/enrollment-checklist-materialization";
 import { formatInstantInTimezone } from "@/lib/admissions/admissions-availability";
+import { fireCelebrationConfetti } from "@/lib/celebration-confetti";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -50,6 +51,27 @@ function studentInitials(name: string): string {
   return "?";
 }
 
+function displayApplicationStatus(
+  application: FamilyApplication,
+  enrollmentProgress?: EnrollmentProgressSummary,
+): string {
+  if (application.status === "enrolled") return "enrolled";
+  if (
+    application.status === "enrolling" &&
+    enrollmentProgress?.checklistStatus === "completed"
+  ) {
+    return "enrolled";
+  }
+  return application.status;
+}
+
+function isEnrollmentComplete(
+  application: FamilyApplication,
+  enrollmentProgress?: EnrollmentProgressSummary,
+): boolean {
+  return displayApplicationStatus(application, enrollmentProgress) === "enrolled";
+}
+
 function applicationAction(
   application: FamilyApplication,
   schoolSlug: string,
@@ -59,6 +81,16 @@ function applicationAction(
     return {
       label: "Continue",
       href: `/school/${schoolSlug}/forms/${application.publicSlug}`,
+    };
+  }
+
+  if (
+    application.status === "enrolled" ||
+    isEnrollmentComplete(application, enrollmentProgress)
+  ) {
+    return {
+      label: "View enrollment",
+      href: `/school/${schoolSlug}/apply/${application.id}/enrollment`,
     };
   }
 
@@ -76,6 +108,10 @@ function applicationAction(
   };
 }
 
+function enrolledCelebrationStorageKey(schoolSlug: string) {
+  return `apply-dashboard-enrolled-celebration:${schoolSlug}`;
+}
+
 export default function ApplyDashboard({
   branding,
   schoolName,
@@ -90,6 +126,16 @@ export default function ApplyDashboard({
   const router = useRouter();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
+
+  useEffect(() => {
+    if (!hasEnrolledAccess) return;
+    if (typeof window === "undefined") return;
+    const storageKey = enrolledCelebrationStorageKey(schoolSlug);
+    if (sessionStorage.getItem(storageKey)) return;
+
+    sessionStorage.setItem(storageKey, "1");
+    fireCelebrationConfetti(C.accent);
+  }, [C.accent, hasEnrolledAccess, schoolSlug]);
 
   return (
     <div className="flex min-h-dvh flex-col" style={{ color: C.textPrimary }}>
@@ -167,10 +213,16 @@ export default function ApplyDashboard({
         ) : (
           <div className="mt-8 space-y-3">
             {applications.map((application) => {
+              const enrollmentProgress =
+                enrollmentProgressByApplicationId[application.id];
               const action = applicationAction(
                 application,
                 schoolSlug,
-                enrollmentProgressByApplicationId[application.id],
+                enrollmentProgress,
+              );
+              const statusForDisplay = displayApplicationStatus(
+                application,
+                enrollmentProgress,
               );
               const submittedLabel = formatApplicationDate(application.submittedAt, timezone);
               const createdLabel = formatApplicationDate(application.createdAt, timezone);
@@ -204,9 +256,9 @@ export default function ApplyDashboard({
                         </h2>
                         <span
                           className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                          style={applicationStatusBadgeStyle(application.status, C)}
+                          style={applicationStatusBadgeStyle(statusForDisplay, C)}
                         >
-                          {applicationStatusLabel(application.status)}
+                          {applicationStatusLabel(statusForDisplay)}
                         </span>
                       </div>
                       {dateLabel ? (

@@ -14,14 +14,14 @@ import {
 } from "@/lib/emails";
 import { SITE_URL } from "@/lib/site";
 
-type ApplicantContact = {
+export type ApplicantContact = {
   email: string;
   firstName?: string;
   lastName?: string;
   displayName: string;
 };
 
-async function resolveApplicantContact(
+export async function resolveApplicantContact(
   admin: SupabaseClient,
   application: {
     created_by_user_id: string | null;

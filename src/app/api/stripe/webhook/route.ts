@@ -5,6 +5,7 @@ import {
   logActivityEvent,
 } from "@/lib/activity-log";
 import { sendApplicationSubmittedNotifications } from "@/lib/admissions/application-notifications";
+import { sendPaymentCompletedNotifications } from "@/lib/admissions/payment-notifications";
 import {
   completeApplicationPaymentAndSubmit,
   getApplicationForSubmit,
@@ -65,10 +66,13 @@ async function handleCheckoutSessionCompleted(
     }
 
     if (payment && payment.status !== "succeeded") {
-      await markPaymentSucceeded(admin, payment.id, {
+      payment = await markPaymentSucceeded(admin, payment.id, {
         stripePaymentIntentId: paymentIntentId,
         stripeCheckoutSessionId: checkoutSessionId,
       });
+      if (payment) {
+        void sendPaymentCompletedNotifications(admin, payment.id);
+      }
     }
 
     await completeChecklistPaymentFromWebhook(admin, {
@@ -112,6 +116,9 @@ async function handleCheckoutSessionCompleted(
       stripePaymentIntentId: paymentIntentId,
       stripeCheckoutSessionId: checkoutSessionId,
     });
+    if (payment) {
+      void sendPaymentCompletedNotifications(admin, payment.id);
+    }
   }
 
   if (!payment) {

@@ -34,6 +34,7 @@ export type EnrollmentChecklistExperienceProps = {
   initialItemId?: string;
   instances?: EnrollmentChecklistItemInstance[];
   onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
+  onAllRequiredComplete?: () => void;
   backLink?: { href: string; label: string };
 };
 
@@ -83,6 +84,7 @@ export default function EnrollmentChecklistExperience({
   initialItemId,
   instances = [],
   onInstancesChange,
+  onAllRequiredComplete,
   backLink,
 }: EnrollmentChecklistExperienceProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
@@ -123,6 +125,14 @@ export default function EnrollmentChecklistExperience({
     );
     setLocalInstances(nextInstances);
     onInstancesChange?.(nextInstances);
+
+    const nextProgress = computeChecklistProgress(items, nextInstances);
+    if (
+      nextProgress.total > 0 &&
+      nextProgress.completed === nextProgress.total
+    ) {
+      onAllRequiredComplete?.();
+    }
   };
 
   if (items.length === 0) {

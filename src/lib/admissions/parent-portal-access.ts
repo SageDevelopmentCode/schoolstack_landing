@@ -80,6 +80,7 @@ export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   observation: "Observation",
   accepted: "Accepted",
   enrolling: "Enrolling",
+  enrolled: "Enrolled",
   declined: "Declined",
   withdrawn: "Withdrawn",
 };

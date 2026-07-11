@@ -6,6 +6,7 @@ export const APPLICATION_STATUSES = [
   "observation",
   "accepted",
   "enrolling",
+  "enrolled",
   "declined",
   "withdrawn",
 ] as const;
@@ -22,6 +23,7 @@ const ALLOWED_TRANSITIONS: Record<ApplicationStatus, ApplicationStatus[]> = {
   observation: ["accepted", "declined", "withdrawn"],
   accepted: ["declined", "withdrawn"],
   enrolling: ["withdrawn"],
+  enrolled: ["withdrawn"],
   declined: [],
   withdrawn: [],
 };
@@ -137,6 +139,10 @@ export function getApplicationDecisionActions(
         { status: "declined", label: "Decline", variant: "danger" },
       ];
     case "enrolling":
+      return [
+        { status: "withdrawn", label: "Withdraw", variant: "danger" },
+      ];
+    case "enrolled":
       return [
         { status: "withdrawn", label: "Withdraw", variant: "danger" },
       ];

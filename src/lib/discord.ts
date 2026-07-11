@@ -292,6 +292,70 @@ export async function notifyApplicationSubmitted(payload: {
   await sendWebsiteNotificationDiscordEmbed({ title, fields });
 }
 
+export async function notifyPaymentCompleted(payload: {
+  schoolName: string;
+  email: string;
+  paymentId: string;
+  paymentType: "application_fee" | "enrollment_checklist";
+  label: string;
+  amountCents: number;
+  chargedAmountCents: number;
+  processingFeeCents?: number | null;
+  paymentMethodType?: "card" | "us_bank_account" | null;
+  firstName?: string;
+  lastName?: string;
+  paidAt?: string;
+}) {
+  const title = `Payment received · ${payload.label}`;
+
+  const firstName = payload.firstName?.trim();
+  const lastName = payload.lastName?.trim();
+  const nameLine =
+    firstName || lastName ? [firstName, lastName].filter(Boolean).join(" ") : null;
+
+  const contactValue = nameLine
+    ? truncate(`${nameLine}\n${payload.email}`)
+    : truncate(payload.email);
+
+  const formatCents = (cents: number) =>
+    `$${(cents / 100).toFixed(2)}`;
+
+  const typeLabel =
+    payload.paymentType === "enrollment_checklist"
+      ? "Enrollment"
+      : "Application fee";
+
+  const methodLabel =
+    payload.paymentMethodType === "card"
+      ? "Card"
+      : payload.paymentMethodType === "us_bank_account"
+        ? "ACH"
+        : "—";
+
+  const fields: DiscordEmbedField[] = [
+    { name: "School", value: truncate(payload.schoolName), inline: true },
+    { name: "Contact", value: contactValue, inline: true },
+    { name: "Type", value: typeLabel, inline: true },
+    { name: "School amount", value: formatCents(payload.amountCents), inline: true },
+    { name: "Charged total", value: formatCents(payload.chargedAmountCents), inline: true },
+    { name: "Method", value: methodLabel, inline: true },
+    { name: "Payment ID", value: payload.paymentId, inline: true },
+  ];
+
+  if (payload.paidAt) {
+    fields.push({
+      name: "Paid",
+      value: new Date(payload.paidAt).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      inline: true,
+    });
+  }
+
+  await sendWebsiteNotificationDiscordEmbed({ title, fields });
+}
+
 const POST_SUBMIT_VISIT_DISCORD_TITLES: Record<string, string> = {
   schedule_campus_tour: "Campus tour scheduled",
   schedule_family_interview: "Family interview scheduled",

@@ -64,7 +64,7 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
     notFound();
   }
 
-  if (application.status !== "enrolling") {
+  if (application.status !== "enrolling" && application.status !== "enrolled") {
     redirect(`/school/${slug}/apply/${applicationId}`);
   }
 

@@ -9,6 +9,7 @@ import {
   escapeHtml,
 } from "@/lib/email-layout";
 import { formatDurationLabel } from "@/lib/admissions/admissions-availability";
+import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import { isZohoConfigured, sendZohoEmail } from "@/lib/zoho";
 
@@ -255,5 +256,86 @@ export async function sendPostSubmitVisitConfirmation(payload: {
 
   if (!result.success) {
     console.error("Post-submit visit confirmation email failed:", result.error);
+  }
+}
+
+export function buildPaymentReceiptConfirmationHtml(payload: {
+  name: string;
+  schoolName: string;
+  label: string;
+  amountCents: number;
+  chargedAmountCents: number;
+  processingFeeCents?: number | null;
+  paymentMethodLabel: string;
+  paidAtLabel: string;
+  applyDashboardUrl: string;
+}): string {
+  const detailRows: Array<{ label: string; value: string }> = [
+    { label: "School amount", value: formatFeeAmount(payload.amountCents) },
+  ];
+
+  if (payload.processingFeeCents && payload.processingFeeCents > 0) {
+    detailRows.push({
+      label: "Processing fee",
+      value: formatFeeAmount(payload.processingFeeCents),
+    });
+  }
+
+  detailRows.push(
+    { label: "Total paid", value: formatFeeAmount(payload.chargedAmountCents) },
+    { label: "Payment method", value: payload.paymentMethodLabel },
+    { label: "Date paid", value: payload.paidAtLabel },
+  );
+
+  return composeEmail({
+    preheader: `Your payment receipt for ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Payment Receipt")}
+      ${emailHeading(`Thank you, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `We received your payment for ${escapeHtml(payload.label)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(detailRows)}
+      ${emailParagraph(
+        "You can review your application and enrollment steps anytime from your apply dashboard.",
+      )}
+      ${emailCta({ label: "View apply dashboard", href: payload.applyDashboardUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendPaymentReceiptConfirmation(payload: {
+  name: string;
+  email: string;
+  schoolName: string;
+  label: string;
+  amountCents: number;
+  chargedAmountCents: number;
+  processingFeeCents?: number | null;
+  paymentMethodLabel: string;
+  paidAt: string;
+  applyDashboardUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const paidAtLabel = new Date(payload.paidAt).toLocaleString("en-US", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+
+  const content = buildPaymentReceiptConfirmationHtml({
+    ...payload,
+    paidAtLabel,
+  });
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Payment receipt — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Payment receipt confirmation email failed:", result.error);
   }
 }
