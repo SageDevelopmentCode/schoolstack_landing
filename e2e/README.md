@@ -2,6 +2,8 @@
 
 End-to-end tests run against **local Supabase only** — never production. Stripe is not used.
 
+For agent workflows, see [`.agents/skills/e2e-local/SKILL.md`](../.agents/skills/e2e-local/SKILL.md).
+
 `globalSetup` seeds the database; the `setup` project signs in test users and writes `e2e/.auth/` before authenticated tests run.
 
 **Important:** Stop any dev server on port 3000 before running E2E, or ensure it uses local Supabase — Playwright passes E2E env vars to `dev:next` via `webServer.env`.
@@ -25,7 +27,7 @@ npm run test:e2e:install
 
 ```bash
 npm run test:e2e:setup   # optional: reset local DB
-npm run test:e2e         # 6 tests across smoke, admin, parent projects
+npm run test:e2e         # 7 tests (setup + smoke + admin + parent)
 npm run test:e2e:ui      # interactive mode
 ```
 
@@ -33,6 +35,7 @@ npm run test:e2e:ui      # interactive mode
 
 | Project | Tests | Auth |
 |---------|-------|------|
+| `setup` | Seed + authenticate test users | — |
 | `smoke` | Platform admin redirect, school admin redirect, parent auth gate | None |
 | `school-admin` | Admissions submissions page | `e2e-admin@schoolstack.test` |
 | `non-admin` | Access denied for user without membership | `e2e-nonadmin@schoolstack.test` |
