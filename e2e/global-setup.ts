@@ -7,9 +7,15 @@ const BLOCKED_SUPABASE_HOSTS = ["rxrmlfyoqzdpjxztluyd"];
 function loadE2eEnv(): void {
   if (fs.existsSync(".env.e2e.local")) {
     dotenv.config({ path: ".env.e2e.local", override: true });
-  } else {
-    dotenv.config({ path: ".env.e2e.example", override: true });
+    return;
   }
+
+  // CI injects real keys via GITHUB_ENV — never override with placeholder example values.
+  if (process.env.CI || process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return;
+  }
+
+  dotenv.config({ path: ".env.e2e.example", override: false });
 }
 
 function assertE2eEnvironment(): void {
@@ -39,6 +45,14 @@ function assertE2eEnvironment(): void {
 
   if (stripeKey.startsWith("sk_live_")) {
     throw new Error("E2E aborted: live Stripe key detected.");
+  }
+
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  if (!serviceKey || serviceKey.split(".").length !== 3) {
+    throw new Error(
+      "E2E aborted: SUPABASE_SERVICE_ROLE_KEY must be a JWT from `supabase status`. " +
+        "Copy .env.e2e.example to .env.e2e.local locally, or ensure CI exports real keys.",
+    );
   }
 }
 
