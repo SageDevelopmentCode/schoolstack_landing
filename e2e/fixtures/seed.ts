@@ -36,7 +36,8 @@ function createAdminClient() {
         persistSession: false,
       },
       realtime: {
-        transport: ws,
+        // ws constructor types differ from Supabase's WebSocketLikeConstructor
+        transport: ws as never,
       },
     },
   );
@@ -111,35 +112,28 @@ async function ensureAuthUser(
   return data.user.id;
 }
 
-function getOrganizationId(): string {
-  const file = path.join(os.tmpdir(), `schoolstack-e2e-org-${process.pid}.sql`);
-  fs.writeFileSync(
-    file,
-    `select id from public.organizations where slug = '${TEST_ORG_SLUG}' limit 1;`,
-    "utf8",
-  );
+async function getOrganizationId(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<string> {
+  const { data, error } = await admin
+    .from("organizations")
+    .select("id")
+    .eq("slug", TEST_ORG_SLUG)
+    .maybeSingle();
 
-  try {
-    const output = execSync(`supabase db query --file ${JSON.stringify(file)}`, {
-      encoding: "utf8",
-    });
-
-    const match = output.match(/"id":\s*"([^"]+)"/);
-    if (!match) {
-      throw new Error(
-        `E2E seed aborted: organization "${TEST_ORG_SLUG}" not found. Run supabase db reset.`,
-      );
-    }
-
-    return match[1];
-  } finally {
-    fs.unlinkSync(file);
+  if (error) throw error;
+  if (!data?.id) {
+    throw new Error(
+      `E2E seed aborted: organization "${TEST_ORG_SLUG}" not found. Run supabase db reset.`,
+    );
   }
+
+  return data.id;
 }
 
 export async function seedE2eDatabase(): Promise<void> {
   const admin = createAdminClient();
-  const organizationId = getOrganizationId();
+  const organizationId = await getOrganizationId(admin);
 
   const adminUserId = await ensureAuthUser(admin, {
     email: E2E_ADMIN_EMAIL,
