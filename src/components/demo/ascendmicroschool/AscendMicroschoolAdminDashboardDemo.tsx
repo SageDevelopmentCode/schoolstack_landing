@@ -24370,10 +24370,8 @@ export default function AscendMicroschoolAdminDashboardDemo({
     }, TOUR_RESUME_MS);
   }, [disableTour]);
 
-  const cursorColor = isDark ? "rgba(110,148,120,0.9)" : "rgba(74,124,89,0.85)";
-  const cursorGlow = isDark
-    ? "0 0 0 4px rgba(110,148,120,0.2)"
-    : "0 0 0 4px rgba(74,124,89,0.2)";
+  const cursorColor = "rgba(74,124,89,0.85)";
+  const cursorGlow = "0 0 0 4px rgba(74,124,89,0.2)";
 
   return (
     <BackdropContext.Provider value={backdropCtx}>

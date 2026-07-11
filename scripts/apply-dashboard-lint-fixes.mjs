@@ -27,6 +27,16 @@ function apply(content) {
     "",
   );
 
+  // Tour cursor colors referenced isDark; inline light-mode values after removal above
+  next = next.replace(
+    `  const cursorColor = isDark ? "rgba(110,148,120,0.9)" : "rgba(74,124,89,0.85)";
+  const cursorGlow = isDark
+    ? "0 0 0 4px rgba(110,148,120,0.2)"
+    : "0 0 0 4px rgba(74,124,89,0.2)";`,
+    `  const cursorColor = "rgba(74,124,89,0.85)";
+  const cursorGlow = "0 0 0 4px rgba(74,124,89,0.2)";`,
+  );
+
   // Pattern 1: delayed new submission reveal
   next = next.replace(
     `  const [newSubmissionRevealed, setNewSubmissionRevealed] = useState(
