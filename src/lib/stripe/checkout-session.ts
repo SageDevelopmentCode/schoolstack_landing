@@ -10,6 +10,8 @@ export type CreateAdmissionsCheckoutSessionInput = {
   paymentMethod: CheckoutPaymentMethod;
   label: string;
   stripeConnectAccountId: string;
+  stripeCustomerId: string;
+  payerUserId: string;
   successUrl: string;
   cancelUrl: string;
   paymentId: string;
@@ -33,7 +35,11 @@ export async function createAdmissionsCheckoutSession(
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
+    customer: input.stripeCustomerId,
     payment_method_types: paymentMethodTypes,
+    saved_payment_method_options: {
+      payment_method_save: "enabled",
+    },
     line_items: [
       {
         quantity: 1,
@@ -48,12 +54,14 @@ export async function createAdmissionsCheckoutSession(
       },
     ],
     payment_intent_data: {
+      setup_future_usage: "on_session",
       transfer_data: {
         destination: input.stripeConnectAccountId,
         amount: quote.netAmountCents,
       },
       metadata: {
         payment_id: input.paymentId,
+        supabase_user_id: input.payerUserId,
         ...(input.paymentIntentMetadata ?? {}),
         payment_method: input.paymentMethod,
         net_amount_cents: String(quote.netAmountCents),
@@ -63,6 +71,7 @@ export async function createAdmissionsCheckoutSession(
     },
     metadata: {
       payment_id: input.paymentId,
+      supabase_user_id: input.payerUserId,
       ...(input.sessionMetadata ?? {}),
       payment_method: input.paymentMethod,
       net_amount_cents: String(quote.netAmountCents),

@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Building2, CreditCard, X } from "lucide-react";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
-  paymentMethodLabel,
   quoteProcessingFee,
   type CheckoutPaymentMethod,
 } from "@/lib/stripe/processing-fee";
@@ -27,8 +26,9 @@ function MethodOption({
   title,
   description,
   feeCents,
-  totalCents,
   icon: Icon,
+  iconBackground,
+  iconColor,
   onSelect,
 }: {
   C: AdminThemeTokens;
@@ -36,49 +36,129 @@ function MethodOption({
   title: string;
   description: string;
   feeCents: number;
-  totalCents: number;
   icon: typeof CreditCard;
+  iconBackground: string;
+  iconColor: string;
   onSelect: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
-      className="w-full rounded-lg border px-4 py-3 text-left transition"
+      aria-pressed={selected}
+      className="flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition"
       style={{
         borderColor: selected ? C.accent : C.border,
         backgroundColor: selected ? C.accentLight : "#FFFFFF",
         boxShadow: selected ? `0 0 0 1px ${C.accent}` : "none",
       }}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-md"
-          style={{
-            backgroundColor: selected ? "#FFFFFF" : C.elevated,
-            color: C.accent,
-          }}
+      <span
+        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
+        style={{
+          borderColor: selected ? C.accent : C.border,
+          backgroundColor: selected ? C.accent : "transparent",
+        }}
+        aria-hidden="true"
+      >
+        {selected ? (
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: "#FFFFFF" }}
+          />
+        ) : null}
+      </span>
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+        style={{ backgroundColor: iconBackground }}
+        aria-hidden="true"
+      >
+        <Icon className="h-4 w-4" style={{ color: iconColor }} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          className="block text-sm font-semibold"
+          style={{ color: C.textPrimary }}
         >
-          <Icon className="h-4 w-4" />
+          {title}
+        </span>
+        <span
+          className="mt-0.5 block text-xs"
+          style={{ color: C.textSecondary }}
+        >
+          {description}
+        </span>
+      </span>
+      <span
+        className="shrink-0 text-xs tabular-nums"
+        style={{ color: C.textTertiary }}
+      >
+        ~{formatFeeAmount(feeCents)} fee
+      </span>
+    </button>
+  );
+}
+
+function PaymentSummary({
+  C,
+  label,
+  feeLabel,
+  netAmountCents,
+  processingFeeCents,
+  grossAmountCents,
+}: {
+  C: AdminThemeTokens;
+  label: string;
+  feeLabel: string;
+  netAmountCents: number;
+  processingFeeCents: number;
+  grossAmountCents: number;
+}) {
+  return (
+    <div
+      id="payment-method-summary"
+      className="rounded-lg border px-4 py-3"
+      style={{
+        borderColor: C.border,
+        backgroundColor: C.elevated,
+      }}
+    >
+      <div className="space-y-2 text-sm">
+        <div className="flex items-baseline justify-between gap-4">
+          <span style={{ color: C.textSecondary }}>{label}</span>
+          <span
+            className="tabular-nums"
+            style={{ color: C.textPrimary }}
+          >
+            {formatFeeAmount(netAmountCents)}
+          </span>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            {title}
-          </p>
-          <p className="mt-0.5 text-xs" style={{ color: C.textSecondary }}>
-            {description}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-            <span style={{ color: C.textSecondary }}>
-              Processing fee: {formatFeeAmount(feeCents)}
-            </span>
-            <span className="font-medium" style={{ color: C.textPrimary }}>
-              Total: {formatFeeAmount(totalCents)}
-            </span>
-          </div>
+        <div className="flex items-baseline justify-between gap-4">
+          <span style={{ color: C.textSecondary }}>{feeLabel}</span>
+          <span
+            className="tabular-nums"
+            style={{ color: C.textPrimary }}
+          >
+            {formatFeeAmount(processingFeeCents)}
+          </span>
         </div>
       </div>
-    </button>
+      <div
+        className="my-3 border-t"
+        style={{ borderColor: C.border }}
+      />
+      <div className="flex items-baseline justify-between gap-4">
+        <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+          Total due today
+        </span>
+        <span
+          className="text-base font-semibold tabular-nums"
+          style={{ color: C.accentDark }}
+        >
+          {formatFeeAmount(grossAmountCents)}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -111,6 +191,8 @@ export default function PaymentMethodSelectionModal({
 
   const selectedQuote =
     selectedMethod === "card" ? cardQuote : achQuote;
+  const feeLabel =
+    selectedMethod === "card" ? "Card fee" : "Bank fee";
 
   return (
     <AnimatePresence>
@@ -120,6 +202,7 @@ export default function PaymentMethodSelectionModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[120] flex items-end justify-center p-4 sm:items-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.45)" }}
           onClick={onClose}
         >
           <motion.div
@@ -136,6 +219,7 @@ export default function PaymentMethodSelectionModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="payment-method-title"
+            aria-describedby="payment-method-summary payment-method-disclaimer"
           >
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
@@ -144,10 +228,10 @@ export default function PaymentMethodSelectionModal({
                   className="text-lg font-semibold"
                   style={{ color: C.accentDark }}
                 >
-                  Choose payment method
+                  How would you like to pay?
                 </h2>
                 <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-                  {label} · School amount {formatFeeAmount(netAmountCents)}
+                  {label}
                 </p>
               </div>
               <button
@@ -162,32 +246,48 @@ export default function PaymentMethodSelectionModal({
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <MethodOption
                 C={C}
                 selected={selectedMethod === "card"}
-                title={paymentMethodLabel("card")}
-                description="Pay with Visa, Mastercard, Amex, or Discover."
+                title="Card"
+                description="Debit or credit card"
                 feeCents={cardQuote.processingFeeCents}
-                totalCents={cardQuote.grossAmountCents}
                 icon={CreditCard}
+                iconBackground="#EFF6FF"
+                iconColor="#2563EB"
                 onSelect={() => setSelectedMethod("card")}
               />
               <MethodOption
                 C={C}
                 selected={selectedMethod === "us_bank_account"}
-                title={paymentMethodLabel("us_bank_account")}
-                description="Pay directly from a US bank account."
+                title="Bank account"
+                description="Pay from your US bank"
                 feeCents={achQuote.processingFeeCents}
-                totalCents={achQuote.grossAmountCents}
                 icon={Building2}
+                iconBackground="#ECFDF3"
+                iconColor="#16A34A"
                 onSelect={() => setSelectedMethod("us_bank_account")}
               />
             </div>
 
-            <p className="mt-4 text-xs leading-relaxed" style={{ color: C.textTertiary }}>
-              Processing fees are estimates based on US domestic card and ACH rates.
-              International cards may incur higher fees.
+            <div className="mt-4">
+              <PaymentSummary
+                C={C}
+                label={label}
+                feeLabel={feeLabel}
+                netAmountCents={selectedQuote.netAmountCents}
+                processingFeeCents={selectedQuote.processingFeeCents}
+                grossAmountCents={selectedQuote.grossAmountCents}
+              />
+            </div>
+
+            <p
+              id="payment-method-disclaimer"
+              className="mt-3 text-xs leading-relaxed"
+              style={{ color: C.textTertiary }}
+            >
+              Fees are estimated for US card and bank payments.
             </p>
 
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -209,7 +309,7 @@ export default function PaymentMethodSelectionModal({
               >
                 {loading
                   ? "Redirecting…"
-                  : `Pay ${formatFeeAmount(selectedQuote.grossAmountCents)}`}
+                  : `Continue — ${formatFeeAmount(selectedQuote.grossAmountCents)}`}
               </button>
             </div>
           </motion.div>

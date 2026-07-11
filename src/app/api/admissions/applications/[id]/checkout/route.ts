@@ -20,6 +20,7 @@ import {
   createApplicationPayment,
 } from "@/lib/stripe/application-payments";
 import { createAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
+import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { getSiteUrl } from "@/lib/stripe/client";
 import {
   isCheckoutPaymentMethod,
@@ -168,6 +169,11 @@ export async function POST(request: Request, context: RouteContext) {
     const feeLabel = feeConfig.label ?? "Application fee";
     const quote = quoteProcessingFee(amountCents, body.paymentMethod);
 
+    const stripeCustomerId = await getOrCreateStripeCustomer(admin, {
+      userId: user.id,
+      email: user.email,
+    });
+
     const payment = await createApplicationPayment(admin, {
       organizationId: application.organizationId,
       applicationId: application.id,
@@ -186,6 +192,8 @@ export async function POST(request: Request, context: RouteContext) {
       paymentMethod: body.paymentMethod,
       label: feeLabel,
       stripeConnectAccountId: paymentAccount.stripeConnectAccountId,
+      stripeCustomerId,
+      payerUserId: user.id,
       successUrl: `${getSiteUrl()}${formPath}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${getSiteUrl()}${formPath}?payment=cancelled`,
       paymentId: payment.id,

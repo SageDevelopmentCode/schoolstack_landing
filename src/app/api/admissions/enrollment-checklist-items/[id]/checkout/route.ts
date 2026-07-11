@@ -16,6 +16,7 @@ import {
   createPaymentRecord,
 } from "@/lib/stripe/application-payments";
 import { createAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
+import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { getSiteUrl } from "@/lib/stripe/client";
 import { isCheckoutPaymentMethod, quoteProcessingFee } from "@/lib/stripe/processing-fee";
 import {
@@ -182,6 +183,11 @@ export async function POST(request: Request, context: RouteContext) {
     const feeLabel = paymentLabel ?? "Enrollment payment";
     const quote = quoteProcessingFee(amountCents, body.paymentMethod);
 
+    const stripeCustomerId = await getOrCreateStripeCustomer(admin, {
+      userId: user.id,
+      email: user.email,
+    });
+
     const payment = await createPaymentRecord(admin, {
       organizationId,
       applicationId,
@@ -201,6 +207,8 @@ export async function POST(request: Request, context: RouteContext) {
       paymentMethod: body.paymentMethod,
       label: feeLabel,
       stripeConnectAccountId: paymentAccount.stripeConnectAccountId,
+      stripeCustomerId,
+      payerUserId: user.id,
       successUrl: `${getSiteUrl()}${enrollmentPath}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${getSiteUrl()}${enrollmentPath}?payment=cancelled`,
       paymentId: payment.id,

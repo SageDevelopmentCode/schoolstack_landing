@@ -18,6 +18,11 @@ import {
   markPaymentSucceeded,
 } from "@/lib/stripe/application-payments";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/stripe/client";
+import {
+  backfillStripeCustomerId,
+  resolveCheckoutSessionCustomerId,
+  resolveCheckoutSessionSupabaseUserId,
+} from "@/lib/stripe/customer";
 import { syncPaymentAccountFromStripe } from "@/lib/stripe/organization-payment-account";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -36,6 +41,12 @@ async function handleCheckoutSessionCompleted(
       : session.payment_intent?.id;
 
   const metadata = session.metadata ?? {};
+
+  const stripeCustomerId = resolveCheckoutSessionCustomerId(session);
+  const supabaseUserId = resolveCheckoutSessionSupabaseUserId(session);
+  if (stripeCustomerId && supabaseUserId) {
+    await backfillStripeCustomerId(admin, supabaseUserId, stripeCustomerId);
+  }
 
   if (
     metadata.payment_type === "enrollment_checklist" &&
