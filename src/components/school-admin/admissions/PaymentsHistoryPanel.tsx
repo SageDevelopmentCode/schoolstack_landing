@@ -10,9 +10,11 @@ import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
+  summarizePaymentRows,
   type PaymentRecordDisplayRow,
 } from "@/lib/admissions/payment-records";
 import type { PaymentStatus, PaymentType } from "@/lib/stripe/application-payments";
+import PaymentLedgerSummaryCards from "@/components/school-admin/finances/PaymentLedgerSummaryCards";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
@@ -24,6 +26,8 @@ import {
 } from "@/lib/operational-errors-client";
 import { createClient } from "@/utils/supabase/client";
 
+type PaymentsHistoryPanelMode = "admissions" | "revenue" | "transactions";
+
 type PaymentsHistoryPanelProps = {
   organizationId?: string;
   applicationId?: string;
@@ -31,6 +35,7 @@ type PaymentsHistoryPanelProps = {
   branding: OrganizationBranding;
   showOrganizationColumn?: boolean;
   variant?: "page" | "embedded";
+  mode?: PaymentsHistoryPanelMode;
 };
 
 const STATUS_FILTERS: Array<{ value: "" | PaymentStatus; label: string }> = [
@@ -141,13 +146,18 @@ export default function PaymentsHistoryPanel({
   branding,
   showOrganizationColumn = false,
   variant = applicationId ? "embedded" : "page",
+  mode = "admissions",
 }: PaymentsHistoryPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = createClient();
+  const useClientSideFilters =
+    Boolean(applicationId) || mode === "revenue" || mode === "transactions";
   const [rows, setRows] = useState<PaymentRecordDisplayRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"" | PaymentStatus>("");
+  const [statusFilter, setStatusFilter] = useState<"" | PaymentStatus>(() =>
+    mode === "revenue" ? "succeeded" : "",
+  );
   const [typeFilter, setTypeFilter] = useState<"" | PaymentType>("");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -159,10 +169,16 @@ export default function PaymentsHistoryPanel({
       if (applicationId) {
         data = await listApplicationPayments(supabase, applicationId);
       } else if (organizationId) {
-        data = await listOrganizationPayments(supabase, organizationId, {
-          status: statusFilter || undefined,
-          paymentType: typeFilter || undefined,
-        });
+        data = await listOrganizationPayments(
+          supabase,
+          organizationId,
+          useClientSideFilters
+            ? {}
+            : {
+                status: statusFilter || undefined,
+                paymentType: typeFilter || undefined,
+              },
+        );
       } else {
         data = [];
       }
@@ -178,7 +194,10 @@ export default function PaymentsHistoryPanel({
       if (organizationId) {
         void reportClientOperationalError({
           organizationId,
-          operation: "payments.history.load",
+          operation:
+            mode === "admissions"
+              ? "payments.history.load"
+              : `finances.${mode}.load`,
           error: parsed.message,
           code: parsed.code,
           details: parsed.details,
@@ -187,14 +206,21 @@ export default function PaymentsHistoryPanel({
     } finally {
       setLoading(false);
     }
-  }, [applicationId, organizationId, statusFilter, supabase, typeFilter]);
+  }, [
+    applicationId,
+    mode,
+    organizationId,
+    supabase,
+    useClientSideFilters,
+    ...(useClientSideFilters ? [] : [statusFilter, typeFilter]),
+  ]);
 
   useEffect(() => {
     void loadRows();
   }, [loadRows]);
 
   const filteredRows = useMemo(() => {
-    if (applicationId) {
+    if (useClientSideFilters) {
       return rows.filter((row) => {
         if (statusFilter && row.status !== statusFilter) return false;
         if (typeFilter && row.paymentType !== typeFilter) return false;
@@ -202,7 +228,9 @@ export default function PaymentsHistoryPanel({
       });
     }
     return rows;
-  }, [applicationId, rows, statusFilter, typeFilter]);
+  }, [rows, statusFilter, typeFilter, useClientSideFilters]);
+
+  const summary = useMemo(() => summarizePaymentRows(rows), [rows]);
 
   const statusCounts = useMemo(() => {
     const counts: Partial<Record<PaymentStatus, number>> = {};
@@ -444,6 +472,13 @@ export default function PaymentsHistoryPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {mode !== "admissions" ? (
+        <PaymentLedgerSummaryCards
+          summary={summary}
+          branding={branding}
+          mode={mode}
+        />
+      ) : null}
       {filters}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {tableContent}

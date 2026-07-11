@@ -33,6 +33,82 @@ export const PAYMENT_METHOD_LABELS = {
   us_bank_account: "ACH",
 } as const;
 
+export type PaymentRowsSummary = {
+  collectedThisMonthCents: number;
+  collectedYtdCents: number;
+  pendingCount: number;
+  pendingCents: number;
+  failedCount: number;
+  refundedCount: number;
+  refundedCents: number;
+  applicationFeeCents: number;
+  enrollmentCents: number;
+};
+
+function paymentTimestamp(row: PaymentRecordDisplayRow): Date | null {
+  const iso = row.paidAt ?? row.createdAt;
+  if (!iso) return null;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function summarizePaymentRows(
+  rows: PaymentRecordDisplayRow[],
+): PaymentRowsSummary {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  let collectedThisMonthCents = 0;
+  let collectedYtdCents = 0;
+  let pendingCount = 0;
+  let pendingCents = 0;
+  let failedCount = 0;
+  let refundedCount = 0;
+  let refundedCents = 0;
+  let applicationFeeCents = 0;
+  let enrollmentCents = 0;
+
+  for (const row of rows) {
+    const amount = row.amountCents;
+    const paidAt = paymentTimestamp(row);
+
+    if (row.status === "succeeded") {
+      if (paidAt && paidAt.getFullYear() === currentYear) {
+        collectedYtdCents += amount;
+        if (paidAt.getMonth() === currentMonth) {
+          collectedThisMonthCents += amount;
+        }
+      }
+      if (row.paymentType === "application_fee") {
+        applicationFeeCents += amount;
+      } else if (row.paymentType === "enrollment_checklist") {
+        enrollmentCents += amount;
+      }
+    } else if (row.status === "pending") {
+      pendingCount += 1;
+      pendingCents += amount;
+    } else if (row.status === "failed") {
+      failedCount += 1;
+    } else if (row.status === "refunded") {
+      refundedCount += 1;
+      refundedCents += amount;
+    }
+  }
+
+  return {
+    collectedThisMonthCents,
+    collectedYtdCents,
+    pendingCount,
+    pendingCents,
+    failedCount,
+    refundedCount,
+    refundedCents,
+    applicationFeeCents,
+    enrollmentCents,
+  };
+}
+
 function resolveApplicantLabel(
   responses: unknown,
 ): string | null {
