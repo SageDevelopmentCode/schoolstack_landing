@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { ArrowRight, FileText, Plus } from "lucide-react";
+import EnrolledFamilyBanner from "@/components/admissions/EnrolledFamilyBanner";
 import ApplyRequiredActionsSection from "@/components/admissions/ApplyRequiredActionsSection";
 import ApplyPortalNavbar from "@/components/admissions/ApplyPortalNavbar";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@/lib/admissions/parent-portal-access";
 import type { EnrollmentProgressSummary } from "@/lib/admissions/enrollment-checklist-materialization";
 import { formatInstantInTimezone } from "@/lib/admissions/admissions-availability";
-import { fireCelebrationConfetti } from "@/lib/celebration-confetti";
+import { fireEnrollmentConfetti } from "@/lib/enrollment-confetti";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -110,7 +111,7 @@ function applicationAction(
 }
 
 function enrolledCelebrationStorageKey(schoolSlug: string) {
-  return `apply-dashboard-enrolled-celebration:${schoolSlug}`;
+  return `apply-dashboard-enrolled-celebration-v2:${schoolSlug}`;
 }
 
 export default function ApplyDashboard({
@@ -136,8 +137,8 @@ export default function ApplyDashboard({
     if (sessionStorage.getItem(storageKey)) return;
 
     sessionStorage.setItem(storageKey, "1");
-    fireCelebrationConfetti(C.accent);
-  }, [C.accent, hasEnrolledAccess, schoolSlug]);
+    fireEnrollmentConfetti();
+  }, [hasEnrolledAccess, schoolSlug]);
 
   return (
     <div className="flex min-h-dvh flex-col" style={{ color: C.textPrimary }}>
@@ -173,22 +174,11 @@ export default function ApplyDashboard({
         </div>
 
         {hasEnrolledAccess && parentPortalEnabled ? (
-          <div
-            className="mt-6 rounded-md border px-4 py-3 text-sm"
-            style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-          >
-            <span style={{ color: C.textSecondary }}>
-              Your family is enrolled.{" "}
-            </span>
-            <Link
-              href={`/school/${schoolSlug}/parent`}
-              className="inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline"
-              style={{ color: C.accent }}
-            >
-              Go to parent portal
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+          <EnrolledFamilyBanner
+            C={C}
+            schoolName={schoolName}
+            schoolSlug={schoolSlug}
+          />
         ) : null}
 
         {applications.length === 0 ? (
