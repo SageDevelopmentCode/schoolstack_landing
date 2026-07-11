@@ -15,6 +15,10 @@ import {
 import type { PaymentStatus, PaymentType } from "@/lib/stripe/application-payments";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import {
+  parseOperationalError,
+  reportClientOperationalError,
+} from "@/lib/operational-errors-client";
 import { createClient } from "@/utils/supabase/client";
 
 type PaymentsHistoryPanelProps = {
@@ -80,12 +84,22 @@ export default function PaymentsHistoryPanel({
       }
       setRows(data);
     } catch (loadError) {
+      const parsed = parseOperationalError(loadError);
       setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Failed to load payment history.",
+        parsed.message === "Unknown error"
+          ? "Failed to load payment history."
+          : parsed.message,
       );
       setRows([]);
+      if (organizationId) {
+        void reportClientOperationalError({
+          organizationId,
+          operation: "payments.history.load",
+          error: parsed.message,
+          code: parsed.code,
+          details: parsed.details,
+        });
+      }
     } finally {
       setLoading(false);
     }
