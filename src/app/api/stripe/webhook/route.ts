@@ -14,7 +14,8 @@ import { apiError } from "@/lib/api/route-errors";
 import {
   attachCheckoutSessionToPayment,
   getApplicationPaymentByCheckoutSession,
-  markApplicationPaymentSucceeded,
+  getPaymentById,
+  markPaymentSucceeded,
 } from "@/lib/stripe/application-payments";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/stripe/client";
 import { syncPaymentAccountFromStripe } from "@/lib/stripe/organization-payment-account";
@@ -41,6 +42,24 @@ async function handleCheckoutSessionCompleted(
     metadata.checklist_item_id &&
     metadata.organization_id
   ) {
+    const paymentId =
+      typeof metadata.payment_id === "string" ? metadata.payment_id : null;
+    let payment = paymentId ? await getPaymentById(admin, paymentId) : null;
+
+    if (!payment) {
+      payment = await getApplicationPaymentByCheckoutSession(
+        admin,
+        checkoutSessionId,
+      );
+    }
+
+    if (payment && payment.status !== "succeeded") {
+      await markPaymentSucceeded(admin, payment.id, {
+        stripePaymentIntentId: paymentIntentId,
+        stripeCheckoutSessionId: checkoutSessionId,
+      });
+    }
+
     await completeChecklistPaymentFromWebhook(admin, {
       instanceId: metadata.checklist_item_id,
       organizationId: metadata.organization_id,
@@ -59,6 +78,7 @@ async function handleCheckoutSessionCompleted(
       metadata: {
         checkoutSessionId,
         applicationId: metadata.application_id ?? null,
+        paymentId: payment?.id ?? paymentId ?? null,
       },
     });
     return;
@@ -73,7 +93,11 @@ async function handleCheckoutSessionCompleted(
 
   if (!payment && paymentId) {
     await attachCheckoutSessionToPayment(admin, paymentId, checkoutSessionId);
-    payment = await markApplicationPaymentSucceeded(admin, paymentId, {
+    payment = await getPaymentById(admin, paymentId);
+  }
+
+  if (payment && payment.status !== "succeeded") {
+    payment = await markPaymentSucceeded(admin, payment.id, {
       stripePaymentIntentId: paymentIntentId,
       stripeCheckoutSessionId: checkoutSessionId,
     });

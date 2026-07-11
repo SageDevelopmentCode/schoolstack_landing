@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ApplyAuthPage from "@/components/admissions/ApplyAuthPage";
 import ApplyDashboard from "@/components/admissions/ApplyDashboard";
+import { listEnrollmentProgressForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
 import {
+  getFamilyUserProfile,
   listFamilyApplications,
   userHasEnrolledAccess,
 } from "@/lib/admissions/parent-portal-access";
@@ -50,10 +52,11 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     return <ApplyAuthPage branding={org.branding} schoolName={org.name} />;
   }
 
-  const [applications, hasEnrolledAccess, timezoneResult] = await Promise.all([
+  const [applications, hasEnrolledAccess, timezoneResult, userProfile] = await Promise.all([
     listFamilyApplications(supabase, org.id),
     userHasEnrolledAccess(supabase, user.id, org.id),
     supabase.from("organizations").select("timezone").eq("id", org.id).maybeSingle(),
+    getFamilyUserProfile(supabase, user.id, org.id, user),
   ]);
 
   const timezone =
@@ -67,6 +70,16 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       application.status !== "draft" && application.postSubmitTasks.length > 0,
   );
 
+  const enrollmentProgressByApplicationId = Object.fromEntries(
+    (
+      await listEnrollmentProgressForApplications(
+        supabase,
+        org.id,
+        applications.map((application) => application.id),
+      )
+    ).entries(),
+  );
+
   return (
     <ApplyDashboard
       branding={org.branding}
@@ -76,6 +89,8 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       applications={applications}
       applicationsWithTasks={applicationsWithTasks}
       hasEnrolledAccess={hasEnrolledAccess}
+      enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}
+      userProfile={userProfile}
     />
   );
 }

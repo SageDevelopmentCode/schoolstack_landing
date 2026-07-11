@@ -45,7 +45,7 @@ export default function ApplyChildTabSelector({
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(application.id)}
-            className="relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition"
+            className="relative inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium transition"
             style={
               isActive
                 ? {

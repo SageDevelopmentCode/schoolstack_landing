@@ -12,7 +12,10 @@ import type { ApplicationFileUploadMeta } from "@/lib/admissions/application-fil
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   createEmptyEntries,
+  isMultiEntryResponses,
+  normalizeFormResponses,
   type ChecklistFormEntry,
+  type ChecklistFormResponses,
 } from "@/lib/admissions/checklist-form-responses";
 import {
   buildChecklistFormPayload,
@@ -42,8 +45,27 @@ type EnrollmentChecklistItemPanelProps = {
   instanceStatus?: string;
   instancePaymentStatus?: string;
   existingResponses?: Record<string, unknown>;
-  onComplete?: () => Promise<void> | void;
+  onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
 };
+
+function initFormStateFromResponses(
+  existingResponses: Record<string, unknown> | undefined,
+  allowMultiple: boolean,
+): { values: Record<string, string>; entries: ChecklistFormEntry[] } {
+  const normalized = normalizeFormResponses(
+    existingResponses as ChecklistFormResponses | null | undefined,
+    allowMultiple,
+  );
+
+  if (allowMultiple && isMultiEntryResponses(normalized)) {
+    return { values: {}, entries: normalized.entries };
+  }
+
+  return {
+    values: (normalized as Record<string, string>) ?? {},
+    entries: createEmptyEntries(),
+  };
+}
 
 function panelButtonStyle(C: AdminThemeTokens, disabled: boolean) {
   return {
@@ -353,6 +375,7 @@ function FormItemPanel({
   mode,
   instanceId,
   instanceStatus,
+  existingResponses,
   onComplete,
 }: {
   C: AdminThemeTokens;
@@ -360,7 +383,8 @@ function FormItemPanel({
   mode: "preview" | "live";
   instanceId?: string;
   instanceStatus?: string;
-  onComplete?: () => Promise<void> | void;
+  existingResponses?: Record<string, unknown>;
+  onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
 }) {
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
@@ -369,12 +393,16 @@ function FormItemPanel({
   const allowMultiple = formSchema?.allowMultiple ?? false;
   const stepHeading =
     item.label.trim() || formSchema?.title?.trim() || "Entry";
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [entries, setEntries] = useState<ChecklistFormEntry[]>(() =>
-    createEmptyEntries(),
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    initFormStateFromResponses(existingResponses, allowMultiple).values,
   );
+  const [entries, setEntries] = useState<ChecklistFormEntry[]>(() =>
+    initFormStateFromResponses(existingResponses, allowMultiple).entries,
+  );
+  const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fieldsDisabled = isCompleted && !isEditing;
 
   if (!formSchema || fields.length === 0) {
     return (
@@ -382,6 +410,23 @@ function FormItemPanel({
         No questions added to this form yet.
       </p>
     );
+  }
+
+  function resetFormState() {
+    const state = initFormStateFromResponses(existingResponses, allowMultiple);
+    setValues(state.values);
+    setEntries(state.entries);
+  }
+
+  function startEditing() {
+    setError(null);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    resetFormState();
+    setError(null);
+    setIsEditing(false);
   }
 
   async function handleSubmit() {
@@ -406,7 +451,8 @@ function FormItemPanel({
       if (!response.ok) {
         throw new Error(body.error ?? "Failed to submit form.");
       }
-      await onComplete();
+      await onComplete(payload);
+      setIsEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit form.");
     } finally {
@@ -429,6 +475,7 @@ function FormItemPanel({
           entries={entries}
           stepHeading={stepHeading}
           required={item.required}
+          disabled={fieldsDisabled}
           onChange={setEntries}
         />
       ) : (
@@ -446,6 +493,7 @@ function FormItemPanel({
               onChange={(value) =>
                 setValues((prev) => ({ ...prev, [field.id]: value }))
               }
+              disabled={fieldsDisabled}
               C={C}
             />
           </div>
@@ -458,16 +506,66 @@ function FormItemPanel({
         </p>
       ) : null}
 
-      <button
-        type="button"
-        disabled={!isLive || submitting || isCompleted}
-        onClick={() => void handleSubmit()}
-        className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-        style={panelButtonStyle(C, !isLive || submitting || isCompleted)}
-      >
-        {isCompleted ? "Completed" : submitting ? "Saving…" : "Submit form"}
-        {!isLive ? " (preview)" : ""}
-      </button>
+      {isCompleted ? (
+        <div className="flex flex-wrap items-center gap-3">
+          {!isEditing ? (
+            <>
+              <p className="text-sm" style={{ color: C.textSecondary }}>
+                Submitted
+              </p>
+              <button
+                type="button"
+                disabled={!isLive}
+                onClick={startEditing}
+                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+                style={panelButtonStyle(C, !isLive)}
+              >
+                Edit
+                {!isLive ? " (preview)" : ""}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={!isLive || submitting}
+                onClick={() => void handleSubmit()}
+                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+                style={panelButtonStyle(C, !isLive || submitting)}
+              >
+                {submitting ? "Saving…" : "Save changes"}
+                {!isLive ? " (preview)" : ""}
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={cancelEditing}
+                className="rounded-md px-5 py-2.5 text-sm font-semibold"
+                style={{
+                  color: C.textSecondary,
+                  backgroundColor: "transparent",
+                  border: `1px solid ${C.border}`,
+                  opacity: submitting ? 0.5 : 1,
+                  cursor: submitting ? "not-allowed" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={!isLive || submitting}
+          onClick={() => void handleSubmit()}
+          className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+          style={panelButtonStyle(C, !isLive || submitting)}
+        >
+          {submitting ? "Saving…" : "Submit form"}
+          {!isLive ? " (preview)" : ""}
+        </button>
+      )}
     </div>
   );
 }
@@ -970,6 +1068,7 @@ export default function EnrollmentChecklistItemPanel({
             mode={mode}
             instanceId={instanceId}
             instanceStatus={instanceStatus}
+            existingResponses={existingResponses}
             onComplete={onComplete}
           />
         );

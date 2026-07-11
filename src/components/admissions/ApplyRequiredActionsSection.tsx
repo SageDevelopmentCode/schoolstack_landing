@@ -33,17 +33,25 @@ export default function ApplyRequiredActionsSection({
     () => applications[0]?.id ?? "",
   );
 
+  const pendingRequiredCount = useMemo(
+    () =>
+      applications.reduce(
+        (count, application) =>
+          count +
+          application.postSubmitTasks.filter(
+            (task) => task.required && task.status === "pending",
+          ).length,
+        0,
+      ),
+    [applications],
+  );
+
   const activeApplication = useMemo(
     () =>
       applications.find((application) => application.id === activeApplicationId) ??
       applications[0],
     [applications, activeApplicationId],
   );
-
-  const activePendingRequiredCount =
-    activeApplication?.postSubmitTasks.filter(
-      (task) => task.required && task.status === "pending",
-    ).length ?? 0;
 
   const tasks = activeApplication?.postSubmitTasks ?? [];
 
@@ -55,9 +63,12 @@ export default function ApplyRequiredActionsSection({
 
   return (
     <>
-      <section className="mt-10">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
+      <section
+        className="mt-10 overflow-hidden rounded-md border"
+        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+      >
+        <div className="flex items-start justify-between gap-3 px-4 py-4 sm:items-center">
+          <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
               Required actions
             </h2>
@@ -65,44 +76,45 @@ export default function ApplyRequiredActionsSection({
               Complete these steps after submitting your application.
             </p>
           </div>
-          {activePendingRequiredCount > 0 ? (
-            <span
-              className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-              style={{ backgroundColor: C.warningBg, color: C.warning }}
-            >
-              {activePendingRequiredCount} pending
-            </span>
-          ) : (
-            <span
-              className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-              style={{ backgroundColor: C.successBg, color: C.success }}
-            >
-              All set
-            </span>
-          )}
+          <div className="shrink-0 pt-0.5 sm:pt-0">
+            {pendingRequiredCount > 0 ? (
+              <span
+                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                style={{ backgroundColor: C.warningBg, color: C.warning }}
+              >
+                {pendingRequiredCount} pending
+              </span>
+            ) : (
+              <span
+                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                style={{ backgroundColor: C.successBg, color: C.success }}
+              >
+                All set
+              </span>
+            )}
+          </div>
         </div>
 
-        <ApplyChildTabSelector
-          C={C}
-          applications={applications}
-          activeApplicationId={activeApplication.id}
-          onChange={setActiveApplicationId}
-        />
+        <div className="border-t px-4 pb-4" style={{ borderColor: C.border }}>
+          <ApplyChildTabSelector
+            C={C}
+            applications={applications}
+            activeApplicationId={activeApplication.id}
+            onChange={setActiveApplicationId}
+          />
 
-        <ol className="mt-6 list-none space-y-0 p-0">
-          {tasks.map((task, index) => (
-            <PostSubmitStepCard
-              key={task.actionId}
-              C={C}
-              task={task}
-              stepNumber={task.sortIndex + 1}
-              totalSteps={tasks.length}
-              isLast={index === tasks.length - 1}
-              applicationId={activeApplication.id}
-              onSchedule={handleSchedule}
-            />
-          ))}
-        </ol>
+          <ol className="mt-4 list-none space-y-2 p-0">
+            {tasks.map((task) => (
+              <PostSubmitStepCard
+                key={task.actionId}
+                C={C}
+                task={task}
+                applicationId={activeApplication.id}
+                onSchedule={handleSchedule}
+              />
+            ))}
+          </ol>
+        </div>
       </section>
 
       {bookingTarget ? (

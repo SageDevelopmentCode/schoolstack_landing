@@ -5,12 +5,16 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { ArrowRight, FileText, Plus } from "lucide-react";
 import ApplyRequiredActionsSection from "@/components/admissions/ApplyRequiredActionsSection";
-import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import ApplyPortalNavbar from "@/components/admissions/ApplyPortalNavbar";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
-import { type FamilyApplication } from "@/lib/admissions/parent-portal-access";
+import {
+  type FamilyApplication,
+  type FamilyUserProfile,
+} from "@/lib/admissions/parent-portal-access";
+import type { EnrollmentProgressSummary } from "@/lib/admissions/enrollment-checklist-materialization";
 import { formatInstantInTimezone } from "@/lib/admissions/admissions-availability";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -23,6 +27,8 @@ type ApplyDashboardProps = {
   applications: FamilyApplication[];
   applicationsWithTasks: FamilyApplication[];
   hasEnrolledAccess: boolean;
+  enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
+  userProfile: FamilyUserProfile;
 };
 
 function formatApplicationDate(
@@ -33,9 +39,21 @@ function formatApplicationDate(
   return formatInstantInTimezone(value, timezone);
 }
 
+function studentInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+  }
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return "?";
+}
+
 function applicationAction(
   application: FamilyApplication,
   schoolSlug: string,
+  enrollmentProgress?: EnrollmentProgressSummary,
 ): { label: string; href: string } {
   if (application.status === "draft" && application.publicSlug) {
     return {
@@ -45,8 +63,9 @@ function applicationAction(
   }
 
   if (application.status === "enrolling") {
+    const hasStarted = (enrollmentProgress?.completed ?? 0) > 0;
     return {
-      label: "Start enrollment",
+      label: hasStarted ? "Continue enrollment" : "Start enrollment",
       href: `/school/${schoolSlug}/apply/${application.id}/enrollment`,
     };
   }
@@ -65,28 +84,27 @@ export default function ApplyDashboard({
   applications,
   applicationsWithTasks,
   hasEnrolledAccess,
+  enrollmentProgressByApplicationId,
+  userProfile,
 }: ApplyDashboardProps) {
   const router = useRouter();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
 
   return (
-    <div
-      className="min-h-dvh px-4 py-8 sm:px-6 sm:py-10"
-      style={{ backgroundColor: pageBg, color: C.textPrimary }}
-    >
-      <div className="mx-auto max-w-3xl">
-        <SchoolDemoWordmark
-          logo={{
-            src: branding.logo.src,
-            alt: branding.logo.alt || schoolName,
-            width: branding.logo.width,
-            height: branding.logo.height,
-            text: branding.logo.src ? undefined : schoolName,
-          }}
-          className="mb-8 h-8 w-auto max-w-[200px] object-contain"
-        />
-
+    <div className="flex min-h-dvh flex-col" style={{ color: C.textPrimary }}>
+      <ApplyPortalNavbar
+        branding={branding}
+        schoolName={schoolName}
+        schoolSlug={schoolSlug}
+        userEmail={userProfile.email}
+        userDisplayName={userProfile.displayName}
+      />
+      <main
+        className="flex-1 px-4 py-8 sm:px-6 sm:py-10"
+        style={{ backgroundColor: pageBg }}
+      >
+        <div className="mx-auto max-w-3xl">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold sm:text-3xl" style={{ color: C.accentDark }}>
@@ -108,7 +126,7 @@ export default function ApplyDashboard({
 
         {hasEnrolledAccess ? (
           <div
-            className="mt-6 rounded-lg border px-4 py-3 text-sm"
+            className="mt-6 rounded-md border px-4 py-3 text-sm"
             style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
           >
             <span style={{ color: C.textSecondary }}>
@@ -127,7 +145,7 @@ export default function ApplyDashboard({
 
         {applications.length === 0 ? (
           <div
-            className="mt-8 rounded-lg border px-6 py-10 text-center"
+            className="mt-8 rounded-md border px-6 py-10 text-center"
             style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
           >
             <FileText className="mx-auto h-8 w-8" style={{ color: C.accent }} />
@@ -149,7 +167,11 @@ export default function ApplyDashboard({
         ) : (
           <div className="mt-8 space-y-3">
             {applications.map((application) => {
-              const action = applicationAction(application, schoolSlug);
+              const action = applicationAction(
+                application,
+                schoolSlug,
+                enrollmentProgressByApplicationId[application.id],
+              );
               const submittedLabel = formatApplicationDate(application.submittedAt, timezone);
               const createdLabel = formatApplicationDate(application.createdAt, timezone);
               const dateLabel =
@@ -158,11 +180,24 @@ export default function ApplyDashboard({
               return (
                 <div
                   key={application.id}
-                  className="rounded-lg border px-5 py-4"
+                  className="rounded-md border px-5 py-4"
                   style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
                 >
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 flex-1">
+                      {application.studentName ? (
+                        <div className="mb-2 flex items-center gap-2.5">
+                          <span
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                            style={{ backgroundColor: C.accentLight, color: C.accent }}
+                          >
+                            {studentInitials(application.studentName)}
+                          </span>
+                          <span className="text-sm" style={{ color: C.textSecondary }}>
+                            {application.studentName}
+                          </span>
+                        </div>
+                      ) : null}
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-base font-semibold" style={{ color: C.accentDark }}>
                           {application.formTitle}
@@ -174,11 +209,6 @@ export default function ApplyDashboard({
                           {applicationStatusLabel(application.status)}
                         </span>
                       </div>
-                      {application.studentName ? (
-                        <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-                          {application.studentName}
-                        </p>
-                      ) : null}
                       {dateLabel ? (
                         <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
                           {application.status === "draft" ? dateLabel : `Submitted ${submittedLabel}`}
@@ -188,12 +218,6 @@ export default function ApplyDashboard({
                         <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
                           Congratulations — your application was accepted. The school will
                           start your enrollment checklist soon.
-                        </p>
-                      ) : null}
-                      {application.status === "enrolling" ? (
-                        <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
-                          Your enrollment checklist is ready. Complete the remaining steps to
-                          finish enrollment.
                         </p>
                       ) : null}
                     </div>
@@ -223,7 +247,8 @@ export default function ApplyDashboard({
             onBooked={() => router.refresh()}
           />
         ) : null}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

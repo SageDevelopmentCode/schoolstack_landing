@@ -153,6 +153,8 @@ export async function POST(request: Request, context: RouteContext) {
       applicationId: application.id,
       amountCents,
       currency: "USD",
+      label: feeConfig.label ?? "Application fee",
+      payerUserId: user.id,
     });
 
     const siteUrl = getSiteUrl();

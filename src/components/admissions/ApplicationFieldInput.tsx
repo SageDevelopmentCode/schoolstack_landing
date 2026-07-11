@@ -15,6 +15,7 @@ import {
   type ApplicationFileUploadContext,
   type ApplicationFileUploadMeta,
 } from "@/lib/admissions/application-file-storage";
+import { formatPhoneNumberInput } from "@/lib/phone-format";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ApplicationFieldInputProps = {
@@ -310,6 +311,26 @@ export default function ApplicationFieldInput({
             ))}
           </ul>
         ) : null}
+      </div>
+    );
+  }
+
+  if (field.type === "tel") {
+    return (
+      <div>
+        <input
+          id={field.id}
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel"
+          placeholder={field.placeholder ?? "(562) - 332 - 4687"}
+          value={formatPhoneNumberInput(value)}
+          onChange={(e) => onChange(formatPhoneNumberInput(e.target.value))}
+          disabled={disabled}
+          className={fieldClassName()}
+          style={{ ...style, ...focusRing }}
+        />
+        {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
       </div>
     );
   }

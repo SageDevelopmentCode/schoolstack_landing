@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowLeft,
   Check,
   ClipboardList,
   CreditCard,
@@ -32,6 +34,7 @@ export type EnrollmentChecklistExperienceProps = {
   initialItemId?: string;
   instances?: EnrollmentChecklistItemInstance[];
   onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
+  backLink?: { href: string; label: string };
 };
 
 const panelTransition = {
@@ -80,6 +83,7 @@ export default function EnrollmentChecklistExperience({
   initialItemId,
   instances = [],
   onInstancesChange,
+  backLink,
 }: EnrollmentChecklistExperienceProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
@@ -106,11 +110,15 @@ export default function EnrollmentChecklistExperience({
   const activeItem = items.find((item) => item.id === activeItemId) ?? null;
   const activeInstance = activeItem ? instanceByTemplateId.get(activeItem.id) : undefined;
 
-  const handleComplete = async () => {
+  const handleComplete = async (responses?: Record<string, unknown>) => {
     if (!activeItem || !activeInstance) return;
     const nextInstances = localInstances.map((instance) =>
       instance.id === activeInstance.id
-        ? { ...instance, status: "completed" as const }
+        ? {
+            ...instance,
+            status: "completed" as const,
+            ...(responses ? { responses } : {}),
+          }
         : instance,
     );
     setLocalInstances(nextInstances);
@@ -142,7 +150,7 @@ export default function EnrollmentChecklistExperience({
       style={{ backgroundColor: pageBg, color: C.textPrimary }}
     >
       <div className="shrink-0 border-b px-4 py-4 sm:px-6" style={{ borderColor: C.border }}>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between gap-4">
           <SchoolDemoWordmark
             logo={{
               src: branding.logo.src,
@@ -153,6 +161,20 @@ export default function EnrollmentChecklistExperience({
             }}
             className="h-7 w-auto max-w-[min(200px,70vw)] object-contain sm:h-8"
           />
+          {backLink ? (
+            <Link
+              href={backLink.href}
+              className="flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium"
+              style={{
+                borderColor: C.border,
+                color: C.textSecondary,
+                backgroundColor: C.bg,
+              }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {backLink.label}
+            </Link>
+          ) : null}
         </div>
         <h1 className="mt-4 text-xl font-semibold sm:text-2xl" style={{ color: C.accentDark }}>
           {title}

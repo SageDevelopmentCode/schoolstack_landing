@@ -13,6 +13,10 @@ import {
 import { apiError } from "@/lib/api/route-errors";
 import { getSiteUrl, getStripeClient } from "@/lib/stripe/client";
 import {
+  attachCheckoutSessionToPayment,
+  createPaymentRecord,
+} from "@/lib/stripe/application-payments";
+import {
   getOrganizationPaymentAccount,
   isPaymentReady,
 } from "@/lib/stripe/organization-payment-account";
@@ -105,20 +109,26 @@ export async function POST(request: Request, context: RouteContext) {
 
     const { data: templateItem, error: templateItemError } = await admin
       .from("enrollment_checklist_template_items")
-      .select("type, label, payment")
+      .select(
+        `
+        type,
+        label,
+        fee_definitions ( label, amount_cents )
+      `,
+      )
       .eq("id", instance.template_item_id)
       .maybeSingle();
 
     if (templateItemError) throw templateItemError;
 
-    const paymentConfig =
-      templateItem?.payment &&
-      typeof templateItem.payment === "object" &&
-      !Array.isArray(templateItem.payment)
-        ? (templateItem.payment as { amountCents?: number; label?: string })
-        : null;
-
-    const amountCents = paymentConfig?.amountCents ?? 0;
+    const feeDefinition = templateItem?.fee_definitions;
+    const feeRow = Array.isArray(feeDefinition) ? feeDefinition[0] : feeDefinition;
+    const amountCents =
+      typeof feeRow?.amount_cents === "number" ? feeRow.amount_cents : 0;
+    const paymentLabel =
+      typeof feeRow?.label === "string" && feeRow.label.trim()
+        ? feeRow.label
+        : templateItem?.label;
     if (templateItem?.type !== "payment" || amountCents <= 0) {
       return apiError(ROUTE, {
         request,
@@ -159,6 +169,17 @@ export async function POST(request: Request, context: RouteContext) {
     const successUrl = `${siteUrl}${enrollmentPath}?payment=success&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${siteUrl}${enrollmentPath}?payment=cancelled`;
 
+    const payment = await createPaymentRecord(admin, {
+      organizationId,
+      applicationId,
+      amountCents,
+      currency: "USD",
+      paymentType: "enrollment_checklist",
+      enrollmentChecklistItemId: instanceId,
+      label: paymentLabel ?? "Enrollment payment",
+      payerUserId: user.id,
+    });
+
     const stripe = getStripeClient();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -169,7 +190,7 @@ export async function POST(request: Request, context: RouteContext) {
             currency: "usd",
             unit_amount: amountCents,
             product_data: {
-              name: paymentConfig?.label ?? templateItem.label ?? "Enrollment payment",
+              name: paymentLabel ?? "Enrollment payment",
             },
           },
         },
@@ -182,6 +203,7 @@ export async function POST(request: Request, context: RouteContext) {
           checklist_item_id: instanceId,
           organization_id: organizationId,
           application_id: applicationId,
+          payment_id: payment.id,
         },
       },
       metadata: {
@@ -189,10 +211,15 @@ export async function POST(request: Request, context: RouteContext) {
         organization_id: organizationId,
         application_id: applicationId,
         payment_type: "enrollment_checklist",
+        payment_id: payment.id,
       },
       success_url: successUrl,
       cancel_url: cancelUrl,
     });
+
+    if (session.id) {
+      await attachCheckoutSessionToPayment(admin, payment.id, session.id);
+    }
 
     if (!session.url) {
       return apiError(ROUTE, {
@@ -217,6 +244,7 @@ export async function POST(request: Request, context: RouteContext) {
         amountCents,
         checkoutSessionId: session.id,
         applicationId,
+        paymentId: payment.id,
       },
     });
 

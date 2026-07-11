@@ -1,3 +1,4 @@
+import { validatePhoneFieldValue } from "@/lib/phone-format";
 import type { ApplicationSection } from "./application-form-schema";
 import type {
   ChecklistFormEntry,
@@ -39,8 +40,20 @@ function validateFieldValues(
   const prefix = entryIndex ? `Entry ${entryIndex}: ` : "";
 
   for (const field of fields) {
-    if (!field.required) continue;
     const value = values[field.id]?.trim() ?? "";
+
+    if (field.type === "tel") {
+      const phoneError = validatePhoneFieldValue(value, {
+        required: Boolean(field.required),
+        label: field.label,
+      });
+      if (phoneError) {
+        return `${prefix}${phoneError}`;
+      }
+      continue;
+    }
+
+    if (!field.required) continue;
     if (!value) {
       return `${prefix}${field.label} is required.`;
     }

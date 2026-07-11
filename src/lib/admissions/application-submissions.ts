@@ -104,15 +104,15 @@ function parseStringRecord(value: unknown): Record<string, string> {
 }
 
 export function extractStudentLabel(responses: Record<string, string>): string | null {
-  for (const key of STUDENT_NAME_KEYS) {
-    const value = responses[key]?.trim();
-    if (value) return value;
-  }
-
   const first = responses.student_first_name?.trim();
   const last = responses.student_last_name?.trim();
   if (first || last) {
     return [first, last].filter(Boolean).join(" ");
+  }
+
+  for (const key of STUDENT_NAME_KEYS) {
+    const value = responses[key]?.trim();
+    if (value) return value;
   }
 
   return null;

@@ -16,6 +16,7 @@ import type {
   ApplicationFormSchema,
   ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
+import { formatPhoneNumberInput } from "@/lib/phone-format";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -39,6 +40,10 @@ function formatFieldValue(field: ApplicationField, value: string | undefined): s
   if (field.type === "select" || field.type === "radio") {
     const option = field.options?.find((entry) => entry.value === value);
     return option?.label ?? value;
+  }
+
+  if (field.type === "tel") {
+    return formatPhoneNumberInput(value);
   }
 
   return value;

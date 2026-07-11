@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { buildAdminPostSubmitSteps, type AdminPostSubmitStep } from "./admin-post-submit-steps";
 import { listScheduledVisitsForApplications } from "./admissions-booking";
 import {
@@ -67,6 +67,11 @@ export type ApplicationDetail = {
   postSubmitSteps: AdminPostSubmitStep[];
 };
 
+export type FamilyUserProfile = {
+  email: string;
+  displayName: string;
+};
+
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
   submitted: "Submitted",
@@ -106,6 +111,43 @@ function parseBooleanRecord(value: unknown): Record<string, boolean> {
     result[key] = Boolean(entry);
   }
   return result;
+}
+
+export async function getFamilyUserProfile(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+  user: User,
+): Promise<FamilyUserProfile> {
+  const { data: guardian, error } = await supabase
+    .from("guardians")
+    .select("first_name, last_name, email")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  const metadata = user.user_metadata ?? {};
+  const metadataFirstName =
+    typeof metadata.first_name === "string" ? metadata.first_name.trim() : "";
+  const metadataLastName =
+    typeof metadata.last_name === "string" ? metadata.last_name.trim() : "";
+
+  const guardianFirstName = String(guardian?.first_name ?? "").trim();
+  const guardianLastName = String(guardian?.last_name ?? "").trim();
+  const firstName = guardianFirstName || metadataFirstName;
+  const lastName = guardianLastName || metadataLastName;
+
+  const email =
+    user.email?.trim() ||
+    (typeof guardian?.email === "string" ? guardian.email.trim() : "") ||
+    "";
+
+  const displayName =
+    [firstName, lastName].filter(Boolean).join(" ") || email || "Account";
+
+  return { email, displayName };
 }
 
 async function getFamilyIdsForUser(

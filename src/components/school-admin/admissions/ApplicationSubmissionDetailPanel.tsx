@@ -8,6 +8,7 @@ import ApplicationSubmissionPostSubmitSection from "@/components/admissions/Appl
 import ApplicationSubmissionHistorySection, {
   buildAdmissionHistoryContextDescription,
 } from "./ApplicationSubmissionHistorySection";
+import PaymentsHistoryPanel from "./PaymentsHistoryPanel";
 import ApplicationFormStatusCard from "./ApplicationFormStatusCard";
 import DetailPanelSection from "./DetailPanelSection";
 import DetailPanelSectionGroup from "./DetailPanelSectionGroup";
@@ -160,6 +161,7 @@ export default function ApplicationSubmissionDetailPanel({
       items.push({ id: "acknowledgments", label: "Acknowledgments" });
     }
     items.push({ id: "history", label: "History" });
+    items.push({ id: "payments", label: "Payments" });
     return items;
   }, [detail]);
 
@@ -260,6 +262,24 @@ export default function ApplicationSubmissionDetailPanel({
               loading={historyLoading}
               unlinked={historyUnlinked}
               onSelect={(applicationId) => onSelectSubmission?.(applicationId)}
+            />
+          </DetailPanelSection>
+        </DetailPanelSectionGroup>
+      );
+    }
+
+    if (tabId === "payments") {
+      return (
+        <DetailPanelSectionGroup C={C}>
+          <DetailPanelSection
+            C={C}
+            title="Payments"
+            description="Application fees and enrollment charges for this application."
+          >
+            <PaymentsHistoryPanel
+              applicationId={submission.id}
+              orgSlug={schoolSlug}
+              branding={branding}
             />
           </DetailPanelSection>
         </DetailPanelSectionGroup>

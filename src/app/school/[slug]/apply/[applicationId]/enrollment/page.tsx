@@ -82,6 +82,7 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
     <PublicEnrollmentChecklistClient
       branding={org.branding}
       schoolName={org.name}
+      schoolSlug={slug}
       organizationId={org.id}
       checklist={checklist}
     />

@@ -15,6 +15,7 @@ type RepeatableFormEntriesProps = {
   entries: ChecklistFormEntry[];
   stepHeading: string;
   required: boolean;
+  disabled?: boolean;
   onChange: (entries: ChecklistFormEntry[]) => void;
 };
 
@@ -31,6 +32,7 @@ export default function RepeatableFormEntries({
   entries,
   stepHeading,
   required,
+  disabled = false,
   onChange,
 }: RepeatableFormEntriesProps) {
   const addStepHeading = stepHeading.trim() || "Entry";
@@ -76,16 +78,18 @@ export default function RepeatableFormEntries({
             >
               {entryHeaderLabel(stepHeading, index)}
             </span>
-            <button
-              type="button"
-              onClick={() => removeEntry(entry.id)}
-              disabled={!canRemoveEntry()}
-              className="rounded p-1.5 disabled:cursor-not-allowed disabled:opacity-40"
-              style={{ color: C.error, backgroundColor: C.errorBg }}
-              aria-label={`Remove ${entryHeaderLabel(stepHeading, index)}`}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            {!disabled ? (
+              <button
+                type="button"
+                onClick={() => removeEntry(entry.id)}
+                disabled={!canRemoveEntry()}
+                className="rounded p-1.5 disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ color: C.error, backgroundColor: C.errorBg }}
+                aria-label={`Remove ${entryHeaderLabel(stepHeading, index)}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
           </div>
 
           <div className="space-y-4">
@@ -106,6 +110,7 @@ export default function RepeatableFormEntries({
                   onChange={(value) =>
                     updateEntryValue(entry.id, field.id, value)
                   }
+                  disabled={disabled}
                   C={C}
                 />
               </div>
@@ -114,15 +119,17 @@ export default function RepeatableFormEntries({
         </div>
       ))}
 
-      <button
-        type="button"
-        onClick={() => onChange([...entries, createEmptyEntry()])}
-        className="flex items-center gap-1.5 text-sm font-medium"
-        style={{ color: C.accent }}
-      >
-        <Plus className="h-4 w-4" />
-        Add {addStepHeading}
-      </button>
+      {!disabled ? (
+        <button
+          type="button"
+          onClick={() => onChange([...entries, createEmptyEntry()])}
+          className="flex items-center gap-1.5 text-sm font-medium"
+          style={{ color: C.accent }}
+        >
+          <Plus className="h-4 w-4" />
+          Add {addStepHeading}
+        </button>
+      ) : null}
     </div>
   );
 }

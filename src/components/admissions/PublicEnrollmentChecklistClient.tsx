@@ -10,6 +10,7 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 type PublicEnrollmentChecklistClientProps = {
   branding: OrganizationBranding;
   schoolName: string;
+  schoolSlug: string;
   organizationId: string;
   checklist: LoadedEnrollmentChecklist;
 };
@@ -17,6 +18,7 @@ type PublicEnrollmentChecklistClientProps = {
 export default function PublicEnrollmentChecklistClient({
   branding,
   schoolName,
+  schoolSlug,
   organizationId,
   checklist,
 }: PublicEnrollmentChecklistClientProps) {
@@ -54,6 +56,10 @@ export default function PublicEnrollmentChecklistClient({
         checklistId={liveChecklist.checklistId}
         onInstancesChange={setInstances}
         mode="live"
+        backLink={{
+          href: `/school/${schoolSlug}/apply`,
+          label: "Back to applications",
+        }}
       />
     </ApplicationFormPageShell>
   );

@@ -1,28 +1,53 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type ApplicationPaymentStatus =
-  | "pending"
-  | "succeeded"
-  | "failed"
-  | "refunded";
+export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded";
 
-export type ApplicationPayment = {
+export type PaymentType = "application_fee" | "enrollment_checklist";
+
+export type PaymentRecord = {
   id: string;
   organizationId: string;
   applicationId: string;
+  paymentType: PaymentType;
+  enrollmentChecklistItemId: string | null;
+  label: string | null;
+  payerUserId: string | null;
   stripeCheckoutSessionId: string | null;
   stripePaymentIntentId: string | null;
   amountCents: number;
   currency: string;
-  status: ApplicationPaymentStatus;
+  status: PaymentStatus;
   paidAt: string | null;
+  createdAt: string;
 };
 
-function rowToPayment(row: Record<string, unknown>): ApplicationPayment {
+/** @deprecated Use PaymentRecord */
+export type ApplicationPaymentStatus = PaymentStatus;
+
+/** @deprecated Use PaymentRecord */
+export type ApplicationPayment = PaymentRecord;
+
+export type ListPaymentRecordsFilters = {
+  organizationId?: string;
+  applicationId?: string;
+  paymentType?: PaymentType;
+  status?: PaymentStatus;
+  limit?: number;
+};
+
+function rowToPayment(row: Record<string, unknown>): PaymentRecord {
   return {
     id: String(row.id),
     organizationId: String(row.organization_id),
     applicationId: String(row.application_id),
+    paymentType: (row.payment_type as PaymentType) ?? "application_fee",
+    enrollmentChecklistItemId:
+      typeof row.enrollment_checklist_item_id === "string"
+        ? row.enrollment_checklist_item_id
+        : null,
+    label: typeof row.label === "string" ? row.label : null,
+    payerUserId:
+      typeof row.payer_user_id === "string" ? row.payer_user_id : null,
     stripeCheckoutSessionId:
       typeof row.stripe_checkout_session_id === "string"
         ? row.stripe_checkout_session_id
@@ -33,9 +58,45 @@ function rowToPayment(row: Record<string, unknown>): ApplicationPayment {
         : null,
     amountCents: Number(row.amount_cents),
     currency: String(row.currency ?? "USD"),
-    status: row.status as ApplicationPaymentStatus,
+    status: row.status as PaymentStatus,
     paidAt: typeof row.paid_at === "string" ? row.paid_at : null,
+    createdAt: typeof row.created_at === "string" ? row.created_at : "",
   };
+}
+
+export async function createPaymentRecord(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    applicationId: string;
+    amountCents: number;
+    paymentType?: PaymentType;
+    label?: string;
+    enrollmentChecklistItemId?: string;
+    payerUserId?: string;
+    currency?: string;
+    stripeCheckoutSessionId?: string;
+  },
+): Promise<PaymentRecord> {
+  const { data, error } = await supabase
+    .from("application_payments")
+    .insert({
+      organization_id: input.organizationId,
+      application_id: input.applicationId,
+      amount_cents: input.amountCents,
+      currency: input.currency ?? "USD",
+      status: "pending",
+      payment_type: input.paymentType ?? "application_fee",
+      label: input.label ?? null,
+      enrollment_checklist_item_id: input.enrollmentChecklistItemId ?? null,
+      payer_user_id: input.payerUserId ?? null,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId ?? null,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return rowToPayment(data as Record<string, unknown>);
 }
 
 export async function createApplicationPayment(
@@ -46,29 +107,36 @@ export async function createApplicationPayment(
     amountCents: number;
     currency?: string;
     stripeCheckoutSessionId?: string;
+    label?: string;
+    payerUserId?: string;
   },
-): Promise<ApplicationPayment> {
+): Promise<PaymentRecord> {
+  return createPaymentRecord(supabase, {
+    ...input,
+    paymentType: "application_fee",
+    label: input.label ?? "Application fee",
+  });
+}
+
+export async function getPaymentById(
+  supabase: SupabaseClient,
+  paymentId: string,
+): Promise<PaymentRecord | null> {
   const { data, error } = await supabase
     .from("application_payments")
-    .insert({
-      organization_id: input.organizationId,
-      application_id: input.applicationId,
-      amount_cents: input.amountCents,
-      currency: input.currency ?? "USD",
-      status: "pending",
-      stripe_checkout_session_id: input.stripeCheckoutSessionId ?? null,
-    })
     .select("*")
-    .single();
+    .eq("id", paymentId)
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) return null;
   return rowToPayment(data as Record<string, unknown>);
 }
 
 export async function getApplicationPaymentByCheckoutSession(
   supabase: SupabaseClient,
   checkoutSessionId: string,
-): Promise<ApplicationPayment | null> {
+): Promise<PaymentRecord | null> {
   const { data, error } = await supabase
     .from("application_payments")
     .select("*")
@@ -80,14 +148,66 @@ export async function getApplicationPaymentByCheckoutSession(
   return rowToPayment(data as Record<string, unknown>);
 }
 
-export async function markApplicationPaymentSucceeded(
+export async function getPaymentByChecklistItem(
+  supabase: SupabaseClient,
+  checklistItemId: string,
+  options?: { status?: PaymentStatus },
+): Promise<PaymentRecord | null> {
+  let query = supabase
+    .from("application_payments")
+    .select("*")
+    .eq("enrollment_checklist_item_id", checklistItemId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (options?.status) {
+    query = query.eq("status", options.status);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return rowToPayment(data as Record<string, unknown>);
+}
+
+export async function listPaymentRecords(
+  supabase: SupabaseClient,
+  filters: ListPaymentRecordsFilters = {},
+): Promise<PaymentRecord[]> {
+  let query = supabase
+    .from("application_payments")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(filters.limit ?? 500);
+
+  if (filters.organizationId) {
+    query = query.eq("organization_id", filters.organizationId);
+  }
+  if (filters.applicationId) {
+    query = query.eq("application_id", filters.applicationId);
+  }
+  if (filters.paymentType) {
+    query = query.eq("payment_type", filters.paymentType);
+  }
+  if (filters.status) {
+    query = query.eq("status", filters.status);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row) =>
+    rowToPayment(row as Record<string, unknown>),
+  );
+}
+
+export async function markPaymentSucceeded(
   supabase: SupabaseClient,
   paymentId: string,
   input: {
     stripePaymentIntentId?: string;
     stripeCheckoutSessionId?: string;
-  },
-): Promise<ApplicationPayment | null> {
+  } = {},
+): Promise<PaymentRecord | null> {
   const { data: existing, error: existingError } = await supabase
     .from("application_payments")
     .select("*")
@@ -135,6 +255,9 @@ export async function markApplicationPaymentSucceeded(
   if (currentError) throw currentError;
   return current ? rowToPayment(current as Record<string, unknown>) : null;
 }
+
+/** @deprecated Use markPaymentSucceeded */
+export const markApplicationPaymentSucceeded = markPaymentSucceeded;
 
 export async function attachCheckoutSessionToPayment(
   supabase: SupabaseClient,

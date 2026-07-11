@@ -13,6 +13,7 @@ import {
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ConnectStatusResult } from "@/lib/stripe/connect-status";
+import PaymentsHistoryPanel from "./PaymentsHistoryPanel";
 
 type PaymentsSetupPageProps = {
   organizationId: string;
@@ -77,6 +78,7 @@ export default function PaymentsSetupPage({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const returnHandledRef = useRef(false);
+  const [activeTab, setActiveTab] = useState<"setup" | "history">("setup");
 
   const loadStatus = useCallback(
     async (options?: { handleReturn?: boolean }) => {
@@ -201,15 +203,51 @@ export default function PaymentsSetupPage({
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
       <div>
         <h1 className="text-xl font-semibold" style={{ color: C.textPrimary }}>
           Payments
         </h1>
         <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-          Connect Stripe so {schoolName} can collect application fees online.
-          Funds go to your school&apos;s Stripe account; {schoolName} facilitates
-          checkout for families.
+          Connect Stripe and review admissions payments collected online.
+        </p>
+      </div>
+
+      <div className="flex gap-2 border-b" style={{ borderColor: C.border }}>
+        {[
+          { id: "setup" as const, label: "Setup" },
+          { id: "history" as const, label: "History" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className="px-3 py-2 text-sm font-medium"
+            style={{
+              color: activeTab === tab.id ? C.accent : C.textSecondary,
+              borderBottom:
+                activeTab === tab.id
+                  ? `2px solid ${C.accent}`
+                  : "2px solid transparent",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "history" ? (
+        <PaymentsHistoryPanel
+          organizationId={organizationId}
+          orgSlug={orgSlug}
+          branding={branding}
+        />
+      ) : (
+        <>
+      <div>
+        <p className="text-sm" style={{ color: C.textSecondary }}>
+          Connect Stripe so {schoolName} can collect application and enrollment
+          fees online. Funds go to your school&apos;s Stripe account.
         </p>
       </div>
 
@@ -386,6 +424,8 @@ export default function PaymentsSetupPage({
           </div>
         ) : null}
       </div>
+        </>
+      )}
     </div>
   );
 }
