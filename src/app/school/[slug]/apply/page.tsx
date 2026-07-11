@@ -89,6 +89,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       applications={applications}
       applicationsWithTasks={applicationsWithTasks}
       hasEnrolledAccess={hasEnrolledAccess}
+      parentPortalEnabled={org.features.parent.portal}
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}
       userProfile={userProfile}
     />

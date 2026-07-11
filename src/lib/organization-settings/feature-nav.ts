@@ -128,6 +128,7 @@ function mergeFeatureNavChildren(
       key: child.key,
       label: child.label ?? fallback?.label,
       icon: child.icon ?? fallback?.icon ?? DEFAULT_FEATURE_ICON_SLUG,
+      enabled: child.enabled ?? fallback?.enabled,
     });
     defaultByKey.delete(child.key);
   }
@@ -471,6 +472,20 @@ export function resolveFeatureNavChildren(
 ): FeatureNavChildConfig[] {
   const item = resolveFeatureNavItem(portal, parentKey, portalNav);
   return item.children ?? [];
+}
+
+export function isFeatureNavChildEnabled(child: FeatureNavChildConfig): boolean {
+  return child.enabled !== false;
+}
+
+export function getEnabledFeatureNavChildren(
+  portal: Portal,
+  parentKey: string,
+  portalNav: PortalFeatureNav | undefined,
+): FeatureNavChildConfig[] {
+  return resolveFeatureNavChildren(portal, parentKey, portalNav).filter(
+    isFeatureNavChildEnabled,
+  );
 }
 
 export function getFeatureNavChildLabel(

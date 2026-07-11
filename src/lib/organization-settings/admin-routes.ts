@@ -1,6 +1,6 @@
 import {
+  getEnabledFeatureNavChildren,
   mergePortalFeatureNav,
-  resolveFeatureNavChildren,
 } from "./feature-nav";
 import type { OrganizationFeatures } from "./types";
 
@@ -59,6 +59,6 @@ export function isAdminNavPathEnabled(
   }
 
   const portalNav = mergePortalFeatureNav("admin", features.feature_nav?.admin);
-  const children = resolveFeatureNavChildren("admin", featureKey, portalNav);
+  const children = getEnabledFeatureNavChildren("admin", featureKey, portalNav);
   return children.some((child) => child.key === subtab);
 }

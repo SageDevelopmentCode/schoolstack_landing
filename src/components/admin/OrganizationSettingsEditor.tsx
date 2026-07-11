@@ -818,6 +818,14 @@ export default function OrganizationSettingsEditor({
                               { icon },
                             )
                           }
+                          onEnabledChange={(childKey, enabled) =>
+                            updateFeatureChild(
+                              portal as Portal,
+                              catalogDef.key,
+                              childKey,
+                              { enabled },
+                            )
+                          }
                         />
                       ) : null
                     }
@@ -1223,12 +1231,14 @@ function FeatureSubtabsEditor({
   onReorder,
   onLabelChange,
   onIconChange,
+  onEnabledChange,
 }: {
   parentKey: string;
   children: FeatureNavChildConfig[];
   onReorder: (childKeys: string[]) => void;
   onLabelChange: (childKey: string, label: string) => void;
   onIconChange: (childKey: string, icon: string) => void;
+  onEnabledChange: (childKey: string, enabled: boolean) => void;
 }) {
   const childKeys = subtabs.map((child) => child.key);
 
@@ -1250,6 +1260,7 @@ function FeatureSubtabsEditor({
             child={child}
             onLabelChange={(label) => onLabelChange(child.key, label)}
             onIconChange={(icon) => onIconChange(child.key, icon)}
+            onEnabledChange={(enabled) => onEnabledChange(child.key, enabled)}
           />
         ))}
       </Reorder.Group>
@@ -1262,13 +1273,16 @@ function FeatureSubtabRow({
   child,
   onLabelChange,
   onIconChange,
+  onEnabledChange,
 }: {
   parentKey: string;
   child: FeatureNavChildConfig;
   onLabelChange: (label: string) => void;
   onIconChange: (icon: string) => void;
+  onEnabledChange: (enabled: boolean) => void;
 }) {
   const dragControls = useDragControls();
+  const enabled = child.enabled !== false;
   const label =
     child.label ?? getFeatureNavChildLabel(parentKey, child.key, child);
 
@@ -1292,15 +1306,23 @@ function FeatureSubtabRow({
           type="text"
           value={label}
           onChange={(e) => onLabelChange(e.target.value)}
-          className={`flex-1 min-w-0 ${fieldClass}`}
+          disabled={!enabled}
+          className={`flex-1 min-w-0 ${fieldClass} ${!enabled ? "opacity-50" : ""}`}
         />
-        <FeatureIconPicker
-          value={child.icon ?? DEFAULT_FEATURE_ICON_SLUG}
-          onChange={onIconChange}
-          compact
+        <div className={!enabled ? "opacity-50 pointer-events-none" : ""}>
+          <FeatureIconPicker
+            value={child.icon ?? DEFAULT_FEATURE_ICON_SLUG}
+            onChange={onIconChange}
+            compact
+          />
+        </div>
+        <Toggle
+          checked={enabled}
+          onChange={onEnabledChange}
+          label={`${label} sub-tab`}
         />
       </div>
-      <p className="text-[11px] text-text-faint font-mono mt-1 pl-8">
+      <p className={`text-[11px] text-text-faint font-mono mt-1 pl-8 ${!enabled ? "opacity-50" : ""}`}>
         {child.key}
       </p>
     </Reorder.Item>

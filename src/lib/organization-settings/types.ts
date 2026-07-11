@@ -88,6 +88,7 @@ export type FeatureNavChildConfig = {
   key: string;
   label?: string;
   icon?: string;
+  enabled?: boolean;
 };
 
 export type FeatureNavItemConfig = {

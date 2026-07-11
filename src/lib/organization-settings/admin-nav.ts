@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { getFeatureIcon } from "./icon-registry";
 import {
   ADMIN_NAV_CATALOG_ENTRIES,
+  getEnabledFeatureNavChildren,
   getFeatureNavChildLabel,
   mergePortalFeatureNav,
   resolveFeatureNavChildren,
@@ -100,7 +101,7 @@ export function buildAdminNavGroups(
     if (!record[key]) continue;
     const resolved = resolveFeatureNavItem("admin", key, mergedNav);
     const group = resolved.group || mergedNav.groups[0] || "Main";
-    const children = resolveFeatureNavChildren("admin", key, mergedNav);
+    const children = getEnabledFeatureNavChildren("admin", key, mergedNav);
     const items = buckets.get(group) ?? [];
     items.push({
       key,

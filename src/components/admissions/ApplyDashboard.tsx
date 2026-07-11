@@ -28,6 +28,7 @@ type ApplyDashboardProps = {
   applications: FamilyApplication[];
   applicationsWithTasks: FamilyApplication[];
   hasEnrolledAccess: boolean;
+  parentPortalEnabled: boolean;
   enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
   userProfile: FamilyUserProfile;
 };
@@ -120,6 +121,7 @@ export default function ApplyDashboard({
   applications,
   applicationsWithTasks,
   hasEnrolledAccess,
+  parentPortalEnabled,
   enrollmentProgressByApplicationId,
   userProfile,
 }: ApplyDashboardProps) {
@@ -170,7 +172,7 @@ export default function ApplyDashboard({
           </Link>
         </div>
 
-        {hasEnrolledAccess ? (
+        {hasEnrolledAccess && parentPortalEnabled ? (
           <div
             className="mt-6 rounded-md border px-4 py-3 text-sm"
             style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
