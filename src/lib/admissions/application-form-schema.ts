@@ -7,7 +7,8 @@ export type ApplicationFieldType =
   | "textarea"
   | "radio"
   | "checkbox"
-  | "file";
+  | "file"
+  | "address";
 
 export interface ApplicationFieldOption {
   value: string;
@@ -28,6 +29,29 @@ export interface ApplicationField {
   accept?: string;
   /** Locked apply-form field mapped to students table columns */
   system?: boolean;
+  /** For date fields: restrict selectable range */
+  dateRange?: "past" | "future" | "any";
+}
+
+export type ApplicationFieldDateRange = NonNullable<ApplicationField["dateRange"]>;
+
+export function resolveDateRange(dateRange?: ApplicationFieldDateRange): {
+  minDate?: string;
+  maxDate?: string;
+} {
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  switch (dateRange) {
+    case "past": {
+      const minYear = today.getFullYear() - 120;
+      return { minDate: `${minYear}-01-01`, maxDate: todayIso };
+    }
+    case "future":
+      return { minDate: todayIso };
+    default:
+      return {};
+  }
 }
 
 export type ApplicationStepNoticePlacement = "top" | "bottom";
@@ -118,6 +142,7 @@ export const APPLICATION_FIELD_TYPES: {
   { value: "radio", label: "Multiple choice" },
   { value: "checkbox", label: "Checkbox" },
   { value: "file", label: "File upload" },
+  { value: "address", label: "Address" },
 ];
 
 export function newAdmissionsId(): string {

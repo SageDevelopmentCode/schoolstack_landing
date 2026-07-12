@@ -131,7 +131,11 @@ export async function getPublishedApplicationFormBySlug(
 
   if (error) throw error;
   if (!data) return null;
-  return applicationFormFromRow(data as Record<string, unknown>);
+  const form = applicationFormFromRow(data as Record<string, unknown>);
+  if (!isApplyFormSlug(normalizedSlug)) {
+    return form;
+  }
+  return { ...form, schema: ensureApplySystemSchema(form.schema) };
 }
 
 export async function isPublicSlugAvailable(

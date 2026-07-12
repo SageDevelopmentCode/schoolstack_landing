@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -373,20 +374,14 @@ export default function SchoolAdminLoginForm({
           </form>
         ) : (
           <form onSubmit={handleVerifySubmit} className="space-y-4">
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Verification code</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                className={`${inputClassName} tracking-[0.3em]`}
-                style={inputStyle}
-                placeholder="000000"
-              />
-            </label>
+            <VerificationCodeInput
+              label="Verification code"
+              value={code}
+              onChange={setCode}
+              disabled={isSubmitting}
+              autoFocus
+              C={C}
+            />
             <button
               type="submit"
               disabled={isSubmitting || normalizedCode.length !== 6}

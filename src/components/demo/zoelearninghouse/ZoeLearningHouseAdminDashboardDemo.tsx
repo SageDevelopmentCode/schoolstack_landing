@@ -23645,7 +23645,14 @@ function Sidebar({
             cursor: "pointer",
           }}
         >
-          <HelpCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <Image
+            src="/images/Logo.png"
+            alt=""
+            width={20}
+            height={20}
+            className="w-5 h-5 flex-shrink-0 object-contain"
+            aria-hidden
+          />
           {isExpanded && (
             <span className="text-sm font-medium">Need help?</span>
           )}

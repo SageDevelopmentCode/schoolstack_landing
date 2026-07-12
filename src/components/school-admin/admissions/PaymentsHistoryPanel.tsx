@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { CreditCard, Loader2 } from "lucide-react";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   listApplicationPayments,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/admissions/payment-records";
 import type { PaymentStatus, PaymentType } from "@/lib/stripe/application-payments";
 import PaymentLedgerSummaryCards from "@/components/school-admin/finances/PaymentLedgerSummaryCards";
+import { BuilderSectionIntro } from "@/components/school-admin/admissions/builder-question-card";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
@@ -36,6 +37,8 @@ type PaymentsHistoryPanelProps = {
   showOrganizationColumn?: boolean;
   variant?: "page" | "embedded";
   mode?: PaymentsHistoryPanelMode;
+  isReady?: boolean;
+  onSwitchToSetup?: () => void;
 };
 
 const STATUS_FILTERS: Array<{ value: "" | PaymentStatus; label: string }> = [
@@ -139,6 +142,55 @@ function FilterChip({
   );
 }
 
+function PaymentsEmptyState({
+  C,
+  hasFilters,
+  isReady,
+  onSwitchToSetup,
+}: {
+  C: AdminThemeTokens;
+  hasFilters: boolean;
+  isReady?: boolean;
+  onSwitchToSetup?: () => void;
+}) {
+  if (hasFilters) {
+    return (
+      <p className="px-4 py-8 text-sm sm:px-5" style={{ color: C.textSecondary }}>
+        No payments match the current filters.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center px-4 py-16 text-center sm:px-5">
+      <div
+        className="mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+        style={{ backgroundColor: C.accentGlow, color: C.accent }}
+      >
+        <CreditCard className="h-6 w-6" aria-hidden />
+      </div>
+      <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
+        No payments yet
+      </p>
+      <p className="mt-2 max-w-sm text-sm" style={{ color: C.textTertiary }}>
+        {isReady
+          ? "When families pay application or enrollment fees, they'll appear here."
+          : "Connect Stripe on the Setup tab to start collecting fees from families."}
+      </p>
+      {!isReady && onSwitchToSetup ? (
+        <button
+          type="button"
+          onClick={onSwitchToSetup}
+          className="mt-4 text-sm font-medium underline-offset-2 hover:underline"
+          style={{ color: C.accent }}
+        >
+          Go to Setup
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export default function PaymentsHistoryPanel({
   organizationId,
   applicationId,
@@ -147,6 +199,8 @@ export default function PaymentsHistoryPanel({
   showOrganizationColumn = false,
   variant = applicationId ? "embedded" : "page",
   mode = "admissions",
+  isReady,
+  onSwitchToSetup,
 }: PaymentsHistoryPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = createClient();
@@ -331,11 +385,20 @@ export default function PaymentsHistoryPanel({
       {error}
     </p>
   ) : filteredRows.length === 0 ? (
-    <p className="px-4 py-8 text-sm sm:px-5" style={{ color: C.textSecondary }}>
-      {rows.length === 0
-        ? "No payments recorded yet."
-        : "No payments match the current filters."}
-    </p>
+    variant === "page" && mode === "admissions" && !applicationId ? (
+      <PaymentsEmptyState
+        C={C}
+        hasFilters={rows.length > 0}
+        isReady={isReady}
+        onSwitchToSetup={onSwitchToSetup}
+      />
+    ) : (
+      <p className="px-4 py-8 text-sm sm:px-5" style={{ color: C.textSecondary }}>
+        {rows.length === 0
+          ? "No payments recorded yet."
+          : "No payments match the current filters."}
+      </p>
+    )
   ) : (
     <div className="h-full overflow-auto" style={{ backgroundColor: C.surface }}>
       <table className="w-full min-w-[960px] border-collapse text-left text-sm">
@@ -375,7 +438,7 @@ export default function PaymentsHistoryPanel({
               className="transition-colors"
               style={{
                 backgroundColor:
-                  hoveredId === row.id ? C.elevated : C.surface,
+                  hoveredId === row.id ? C.accentLight : C.surface,
                 borderBottom: `1px solid ${C.border}`,
               }}
             >
@@ -474,14 +537,22 @@ export default function PaymentsHistoryPanel({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {mode !== "admissions" ? (
-        <PaymentLedgerSummaryCards
-          summary={summary}
-          branding={branding}
-          mode={mode}
-        />
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+      {mode === "admissions" && variant === "page" ? (
+        <div className="flex-shrink-0 px-4 pt-5 sm:px-5">
+          <BuilderSectionIntro
+            C={C}
+            eyebrow="Payments"
+            title="Payment history"
+            subtitle="Application and enrollment fees collected through Stripe"
+          />
+        </div>
       ) : null}
+      <PaymentLedgerSummaryCards
+        summary={summary}
+        branding={branding}
+        mode={mode}
+      />
       {filters}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {tableContent}

@@ -10,6 +10,11 @@ import {
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
 import { parseApplicationFileFieldValue } from "@/lib/admissions/application-file-storage";
+import {
+  formatApplicationAddress,
+  isApplicationAddressEmpty,
+  parseApplicationAddressFieldValue,
+} from "@/lib/admissions/application-address";
 import { type ApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import type {
   ApplicationField,
@@ -17,6 +22,7 @@ import type {
   ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
 import { formatPhoneNumberInput } from "@/lib/phone-format";
+import { formatSelectedDate } from "@/lib/demo-scheduler";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -44,6 +50,16 @@ function formatFieldValue(field: ApplicationField, value: string | undefined): s
 
   if (field.type === "tel") {
     return formatPhoneNumberInput(value);
+  }
+
+  if (field.type === "date" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatSelectedDate(value);
+  }
+
+  if (field.type === "address") {
+    const address = parseApplicationAddressFieldValue(value);
+    if (isApplicationAddressEmpty(address)) return "—";
+    return formatApplicationAddress(address);
   }
 
   return value;
@@ -107,7 +123,11 @@ function ReadOnlySection({
         {section.fields.map((field) => (
           <div
             key={field.id}
-            className={field.width === "half" ? "sm:col-span-1" : "sm:col-span-2"}
+            className={
+              field.type === "address" || field.width !== "half"
+                ? "sm:col-span-2"
+                : "sm:col-span-1"
+            }
           >
             <ReadOnlyField field={field} value={responses[field.id]} C={C} />
           </div>

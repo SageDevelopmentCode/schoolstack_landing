@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -232,24 +233,15 @@ export default function ParentPortalSignIn({
               .
             </p>
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="parent-code" className="text-sm font-medium">
-                Verification code
-              </label>
-              <input
-                id="parent-code"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                className={`${inputClassName} tracking-[0.3em]`}
-                style={inputStyle}
-                disabled={isSubmitting}
-                maxLength={6}
-              />
-            </div>
+            <VerificationCodeInput
+              id="parent-code"
+              label="Verification code"
+              value={code}
+              onChange={setCode}
+              disabled={isSubmitting}
+              autoFocus
+              C={C}
+            />
 
             {error ? (
               <p className="text-sm" style={{ color: C.error }}>

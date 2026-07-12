@@ -12,7 +12,7 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 type PaymentLedgerSummaryCardsProps = {
   summary: PaymentRowsSummary;
   branding: OrganizationBranding;
-  mode: "revenue" | "transactions";
+  mode: "admissions" | "revenue" | "transactions";
 };
 
 function SummaryCard({
@@ -55,7 +55,33 @@ export default function PaymentLedgerSummaryCards({
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
   const cards =
-    mode === "revenue"
+    mode === "admissions"
+      ? [
+          {
+            label: "Collected this month",
+            value: formatFeeAmount(summary.collectedThisMonthCents),
+            color: C.success,
+          },
+          {
+            label: "Collected YTD",
+            value: formatFeeAmount(summary.collectedYtdCents),
+            color: C.textPrimary,
+          },
+          {
+            label: "Application fees",
+            value: formatFeeAmount(summary.applicationFeeCents),
+            color: C.accent,
+          },
+          {
+            label: "Pending",
+            value:
+              summary.pendingCount > 0
+                ? `${summary.pendingCount} · ${formatFeeAmount(summary.pendingCents)}`
+                : "0",
+            color: summary.pendingCount > 0 ? C.warning : C.textSecondary,
+          },
+        ]
+      : mode === "revenue"
       ? [
           {
             label: "Collected this month",

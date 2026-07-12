@@ -83,6 +83,7 @@ export function createPostSubmitAction(type: PostSubmitActionType): PostSubmitAc
     id: newAdmissionsId(),
     type,
     enabled: true,
+    title: template.label,
     instructions: template.defaultInstructions,
     required: true,
     durationMinutes: defaultPostSubmitDurationMinutes(type),

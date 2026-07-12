@@ -5,7 +5,8 @@ import {
   parseApplicationFormPostSubmitConfig,
   type PostSubmitActionType,
 } from "./application-form-schema";
-import { extractStudentFromResponses } from "./apply-system-fields";
+import { extractStudentFromResponses, ensureApplySystemSchema } from "./apply-system-fields";
+import { isApplyFormSlug } from "./application-forms";
 import { extractStudentLabel } from "./application-submissions";
 import {
   postSubmitActionLabel,
@@ -472,6 +473,7 @@ export async function loadApplicationDetail(
       acknowledgments,
       application_form_versions!inner (
         title,
+        public_slug,
         schema,
         fee_config,
         post_submit_config
@@ -488,12 +490,14 @@ export async function loadApplicationDetail(
   const formVersion = data.application_form_versions as
     | {
         title?: string;
+        public_slug?: string | null;
         schema?: ApplicationFormSchema;
         fee_config?: unknown;
         post_submit_config?: unknown;
       }
     | {
         title?: string;
+        public_slug?: string | null;
         schema?: ApplicationFormSchema;
         fee_config?: unknown;
         post_submit_config?: unknown;
@@ -510,16 +514,20 @@ export async function loadApplicationDetail(
     visits,
     applicationStatus,
   );
+  const rawSchema = (form?.schema as ApplicationFormSchema) ?? {
+    sections: [],
+    acknowledgments: [],
+  };
+  const schema = isApplyFormSlug(form?.public_slug)
+    ? ensureApplySystemSchema(rawSchema)
+    : rawSchema;
 
   return {
     id: String(data.id),
     status: applicationStatus,
     submittedAt: data.submitted_at ? String(data.submitted_at) : null,
     formTitle: String(form?.title ?? "Application"),
-    schema: (form?.schema as ApplicationFormSchema) ?? {
-      sections: [],
-      acknowledgments: [],
-    },
+    schema,
     feeConfig,
     stepIndex,
     responses: parseStringRecord(data.responses),
