@@ -21,7 +21,7 @@ Families share one checklist, but admins choose the correct enrollment agreement
 5. Click **Add another variant** to create the second agreement.
 6. On the new variant:
    - **Group label:** `Enrollment Agreement` (same group — synced automatically)
-   - **Variant key:** `disability_support`
+   - **Variant key:** `conditional_support`
    - Paste content from the Conditional Support Agreement sections
 7. Keep all other steps unchanged (Assumption of Risk, emergency contact, immunization, etc.).
 8. Publish the checklist when ready.
