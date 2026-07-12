@@ -68,6 +68,7 @@ const LEGACY_NAV_ITEM_DEFAULTS: Record<
   { label?: string; icon?: string }
 > = {
   my_school: { label: "Teacher View", icon: "eye" },
+  portal: { label: "Parent portal" },
 };
 
 function applyLegacyNavItemOverrides(

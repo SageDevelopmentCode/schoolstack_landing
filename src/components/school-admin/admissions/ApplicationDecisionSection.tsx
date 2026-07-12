@@ -9,6 +9,7 @@ import {
   type ApplicationDecisionAction,
 } from "@/lib/admissions/application-status-transitions";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 
 type ApplicationDecisionSectionProps = {
   C: AdminThemeTokens;
@@ -23,23 +24,11 @@ function buttonStyle(
 ): CSSProperties {
   switch (variant) {
     case "primary":
-      return {
-        backgroundColor: C.accent,
-        color: "#FFFFFF",
-        border: `1px solid ${C.accent}`,
-      };
+      return getAdminButtonStyle(C, "primary");
     case "danger":
-      return {
-        backgroundColor: C.surface,
-        color: C.error,
-        border: `1px solid ${C.error}`,
-      };
+      return getAdminButtonStyle(C, "danger");
     default:
-      return {
-        backgroundColor: C.surface,
-        color: C.textPrimary,
-        border: `1px solid ${C.border}`,
-      };
+      return getAdminButtonStyle(C, "secondary");
   }
 }
 

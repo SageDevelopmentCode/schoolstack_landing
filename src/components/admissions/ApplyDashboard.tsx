@@ -19,6 +19,7 @@ import type { EnrollmentProgressSummary } from "@/lib/admissions/enrollment-chec
 import { formatInstantInTimezone } from "@/lib/admissions/admissions-availability";
 import { fireEnrollmentConfetti } from "@/lib/enrollment-confetti";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type ApplyDashboardProps = {
@@ -154,25 +155,6 @@ export default function ApplyDashboard({
         style={{ backgroundColor: pageBg }}
       >
         <div className="mx-auto max-w-3xl">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold sm:text-3xl" style={{ color: C.accentDark }}>
-              Your applications
-            </h1>
-            <p className="mt-2 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-              Track submitted applications and continue drafts for {schoolName}.
-            </p>
-          </div>
-          <Link
-            href={`/school/${schoolSlug}/forms/apply?new=1`}
-            className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-            style={{ backgroundColor: C.accent }}
-          >
-            <Plus className="h-4 w-4" />
-            New application
-          </Link>
-        </div>
-
         {hasEnrolledAccess && parentPortalEnabled ? (
           <EnrolledFamilyBanner
             C={C}
@@ -181,9 +163,29 @@ export default function ApplyDashboard({
           />
         ) : null}
 
+        <section className={hasEnrolledAccess && parentPortalEnabled ? "mt-8" : ""}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold sm:text-3xl" style={{ color: C.accentDark }}>
+                Your applications
+              </h1>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+                Track submitted applications and continue drafts for {schoolName}.
+              </p>
+            </div>
+            <Link
+              href={`/school/${schoolSlug}/forms/apply?new=1`}
+              className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+              style={getAdminButtonStyle(C, "primary")}
+            >
+              <Plus className="h-4 w-4" />
+              New application
+            </Link>
+          </div>
+
         {applications.length === 0 ? (
           <div
-            className="mt-8 rounded-md border px-6 py-10 text-center"
+            className="mt-4 rounded-md border px-6 py-10 text-center"
             style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
           >
             <FileText className="mx-auto h-8 w-8" style={{ color: C.accent }} />
@@ -196,14 +198,14 @@ export default function ApplyDashboard({
             <Link
               href={`/school/${schoolSlug}/forms/apply?new=1`}
               className="mt-6 inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-              style={{ backgroundColor: C.accent }}
+              style={getAdminButtonStyle(C, "primary")}
             >
               Start application
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         ) : (
-          <div className="mt-8 space-y-3">
+          <div className="mt-4 space-y-3">
             {applications.map((application) => {
               const enrollmentProgress =
                 enrollmentProgressByApplicationId[application.id];
@@ -267,14 +269,11 @@ export default function ApplyDashboard({
                     </div>
                     <Link
                       href={action.href}
-                      className="inline-flex shrink-0 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition hover:opacity-90"
-                      style={{
-                        borderColor: C.border,
-                        color: C.accent,
-                        backgroundColor: pageBg,
-                      }}
+                      className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium transition hover:opacity-80"
+                      style={{ color: C.accent }}
                     >
                       {action.label}
+                      <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>
@@ -282,6 +281,7 @@ export default function ApplyDashboard({
             })}
           </div>
         )}
+        </section>
 
         {applicationsWithTasks.length > 0 ? (
           <ApplyRequiredActionsSection

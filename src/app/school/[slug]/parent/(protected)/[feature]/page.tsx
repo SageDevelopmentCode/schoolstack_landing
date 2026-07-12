@@ -1,8 +1,14 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
+import ParentHomePage from "@/components/school-parent/ParentHomePage";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
+import {
+  getFamilyUserProfile,
+  listFamilyChildrenForHome,
+} from "@/lib/admissions/parent-portal-access";
+import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import {
   isParentFeatureEnabled,
@@ -67,6 +73,34 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
     feature,
     org.features.feature_nav?.parent,
   );
+
+  if (feature === "portal") {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      notFound();
+    }
+
+    const [userProfile, familyChildren] = await Promise.all([
+      getFamilyUserProfile(supabase, user.id, org.id, user),
+      listFamilyChildrenForHome(supabase, org.id),
+    ]);
+    const quickActions = buildParentQuickActions(slug, org.features);
+
+    return (
+      <SchoolParentPageShell title={pageName} hideTitle>
+        <ParentHomePage
+          branding={org.branding}
+          schoolSlug={slug}
+          userProfile={userProfile}
+          familyChildren={familyChildren}
+          quickActions={quickActions}
+        />
+      </SchoolParentPageShell>
+    );
+  }
 
   return (
     <SchoolParentPageShell title={pageName}>

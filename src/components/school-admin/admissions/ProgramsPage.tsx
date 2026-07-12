@@ -19,6 +19,7 @@ import {
 } from "@/lib/admissions/programs";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -245,7 +246,7 @@ export default function ProgramsPage({
             onClick={handleCreate}
             disabled={isNew}
             className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
+            style={getAdminButtonStyle(C, "secondary")}
           >
             <Plus className="h-3.5 w-3.5" />
             New

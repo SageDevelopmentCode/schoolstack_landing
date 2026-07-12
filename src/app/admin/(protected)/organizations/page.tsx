@@ -401,6 +401,23 @@ export default function AdminOrganizationsPage() {
                 </li>
                 <li>
                   <Link
+                    href={`/school/${selected.slug}/forms/apply`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 text-sm text-clay hover:underline font-secondary group"
+                  >
+                    <span>Apply form</span>
+                    <ArrowUpRight
+                      className="w-3.5 h-3.5 shrink-0 opacity-60 group-hover:opacity-100"
+                      aria-hidden
+                    />
+                  </Link>
+                  <p className="text-xs text-text-faint mt-0.5">
+                    /school/{selected.slug}/forms/apply
+                  </p>
+                </li>
+                <li>
+                  <Link
                     href={`/timeline/${selected.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, PartyPopper } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 
 type EnrolledFamilyBannerProps = {
   C: AdminThemeTokens;
@@ -32,7 +33,7 @@ export default function EnrolledFamilyBanner({
         <div className="flex min-w-0 items-start gap-4">
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
+            style={{ backgroundColor: C.successBg, color: C.success }}
           >
             <PartyPopper className="h-5 w-5" />
           </div>
@@ -55,7 +56,7 @@ export default function EnrolledFamilyBanner({
         <Link
           href={`/school/${schoolSlug}/parent`}
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 sm:self-center"
-          style={{ backgroundColor: C.accent }}
+          style={getAdminButtonStyle(C, "success")}
         >
           Go to parent portal
           <ArrowRight className="h-4 w-4" />

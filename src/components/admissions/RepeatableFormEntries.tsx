@@ -65,11 +65,7 @@ export default function RepeatableFormEntries({
       {entries.map((entry, index) => (
         <div
           key={entry.id}
-          className="rounded-lg border px-4 py-4"
-          style={{
-            borderColor: C.border,
-            backgroundColor: C.bg,
-          }}
+          className="rounded-lg border border-gray-100 px-4 py-4"
         >
           <div className="mb-4 flex items-center justify-between">
             <span

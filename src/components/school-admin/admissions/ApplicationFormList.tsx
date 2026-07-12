@@ -5,6 +5,7 @@ import { ChevronDown, ClipboardList, FileText, Plus } from "lucide-react";
 import type { ApplicationFormVersion } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { FLOW_TYPE_LABELS, StatusBadge } from "./ApplicationFormListBadges";
 
 export type FlowListSelection = {
@@ -77,7 +78,7 @@ export default function ApplicationFormList({
             onClick={() => setMenuOpen((open) => !open)}
             disabled={creating}
             className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
+            style={getAdminButtonStyle(C, "secondary")}
           >
             <Plus className="w-3.5 h-3.5" />
             New

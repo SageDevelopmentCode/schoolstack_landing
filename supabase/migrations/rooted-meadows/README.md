@@ -36,6 +36,12 @@ Run after `add_product_organization_progress_log.sql`. Independent of the form s
 | `add_organization_progress_log_2026_07_02.sql` | July 2 — admissions kickoff |
 | `add_organization_progress_log_2026_07_03.sql` | July 3 — application form and public apply link |
 | `add_organization_progress_log_2026_07_04.sql` | July 4 — family sign-in before applying |
+| `add_organization_progress_log_2026_07_05.sql` | July 5 — staff login, family dashboard, and submission review |
+| `add_organization_progress_log_2026_07_06.sql` | July 6 — families can book tours and interviews after applying |
+| `add_organization_progress_log_2026_07_08.sql` | July 8 — enrollment checklist builder and staff scheduling tools |
+| `add_organization_progress_log_2026_07_09.sql` | July 9 — families can complete enrollment after acceptance |
+| `add_organization_progress_log_2026_07_10.sql` | July 10 — families can finish enrollment (sign, upload, pay online) |
+| `add_organization_progress_log_2026_07_11.sql` | July 11 — guides for sharing apply link and walking families through enrollment |
 
 ## Enrollment checklist variant groups
 

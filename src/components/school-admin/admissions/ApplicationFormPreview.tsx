@@ -10,6 +10,7 @@ import type {
   ApplicationFormSchema,
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type ApplicationFormPreviewProps = {
@@ -79,11 +80,7 @@ export default function ApplicationFormPreview({
               type="button"
               onClick={onClose}
               className="flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium shrink-0"
-              style={{
-                borderColor: C.border,
-                color: C.textSecondary,
-                backgroundColor: C.bg,
-              }}
+              style={getAdminButtonStyle(C, "neutral")}
             >
               <X className="h-4 w-4" />
               Close

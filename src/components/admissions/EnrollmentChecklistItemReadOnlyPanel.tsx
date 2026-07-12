@@ -317,8 +317,7 @@ function FormReadOnly({
         {normalized.entries.map((entry, index) => (
           <section
             key={entry.id}
-            className="space-y-4 rounded-lg border p-4"
-            style={{ borderColor: C.border, backgroundColor: C.bg }}
+            className="space-y-4 rounded-lg border border-gray-100 p-4"
           >
             <h4 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
               Entry {index + 1}

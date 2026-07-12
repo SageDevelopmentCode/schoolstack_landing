@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ClipboardList, FileText, Loader2, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { VariantResolutionMap } from "@/lib/admissions/enrollment-checklist-variants";
 
 type PreviewVariant = {
@@ -297,11 +298,7 @@ export default function StartEnrollmentModal({
                 type="button"
                 onClick={onClose}
                 className="rounded-md border px-4 py-2 text-sm font-medium"
-                style={{
-                  borderColor: C.border,
-                  color: C.textSecondary,
-                  backgroundColor: C.bg,
-                }}
+                style={getAdminButtonStyle(C, "neutral")}
               >
                 Cancel
               </button>
@@ -309,8 +306,8 @@ export default function StartEnrollmentModal({
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading || submitting || !preview}
-                className="rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                style={{ backgroundColor: C.accent }}
+                className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                style={getAdminButtonStyle(C, "primary")}
               >
                 {submitting ? "Starting…" : "Start enrollment"}
               </button>

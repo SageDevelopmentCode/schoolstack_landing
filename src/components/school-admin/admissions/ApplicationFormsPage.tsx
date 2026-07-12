@@ -46,8 +46,11 @@ import {
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
+import AdmissionsFamilyAccessGuideButton from "./AdmissionsFamilyAccessGuide";
+import ChecklistProgramDropdown from "./ChecklistProgramDropdown";
 import ApplicationFormFocusCanvas from "./ApplicationFormFocusCanvas";
 import ApplicationFormList, {
   type FlowListSelection,
@@ -1057,31 +1060,20 @@ export default function ApplicationFormsPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-2 text-[11px]" style={{ color: C.textSecondary }}>
-                <span className="font-medium">Program</span>
-                <select
-                  value={checklistEditable.programId ?? ""}
-                  onChange={(e) =>
-                    handleChecklistEditableChange({
-                      programId: e.target.value || null,
-                    })
-                  }
-                  disabled={checklistReadOnly}
-                  className="rounded-sm px-2 py-1.5 text-[11px]"
-                  style={{
-                    border: `1px solid ${C.border}`,
-                    backgroundColor: C.input,
-                    color: C.textPrimary,
-                  }}
-                >
-                  <option value="">Select a program</option>
-                  {programs.map((program) => (
-                    <option key={program.id} value={program.id}>
-                      {program.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <AdmissionsFamilyAccessGuideButton
+                variant="checklist"
+                C={C}
+                schoolSlug={slug}
+              />
+              <ChecklistProgramDropdown
+                C={C}
+                programs={programs}
+                programId={checklistEditable.programId}
+                readOnly={checklistReadOnly}
+                onChange={(programId) =>
+                  handleChecklistEditableChange({ programId })
+                }
+              />
               {checklistReadOnly ? null : (
                 <>
                   <button
@@ -1089,11 +1081,11 @@ export default function ApplicationFormsPage({
                     onClick={handleChecklistSave}
                     disabled={saving || !isChecklistDirty}
                     className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                    style={{
-                      border: `1px solid ${C.secondaryBtnBorder}`,
-                      color: C.accent,
-                      backgroundColor: savedPulse ? C.successBg : C.accentLight,
-                    }}
+                    style={
+                      savedPulse
+                        ? getAdminButtonStyle(C, "success")
+                        : getAdminButtonStyle(C, "primary")
+                    }
                   >
                     {saving ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1107,11 +1099,7 @@ export default function ApplicationFormsPage({
                       type="button"
                       onClick={() => setChecklistUnpublishOpen(true)}
                       className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                      style={{
-                        border: `1px solid ${C.errorBorder}`,
-                        color: C.error,
-                        backgroundColor: C.errorBg,
-                      }}
+                      style={getAdminButtonStyle(C, "danger")}
                     >
                       <EyeOff className="h-3.5 w-3.5" />
                       Unpublish
@@ -1122,7 +1110,7 @@ export default function ApplicationFormsPage({
                       onClick={handleChecklistPublish}
                       disabled={publishing}
                       className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white"
-                      style={{ backgroundColor: C.accent }}
+                      style={getAdminButtonStyle(C, "primary")}
                     >
                       {publishing ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1208,16 +1196,23 @@ export default function ApplicationFormsPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <AdmissionsFamilyAccessGuideButton
+                variant="apply"
+                C={C}
+                schoolSlug={slug}
+                publicPath={publishedPublicUrl}
+                isPublished={isPublished}
+              />
               {publishedPublicUrl ? (
                 <button
                   type="button"
                   onClick={handleCopyPublicLink}
                   className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                  style={{
-                    border: `1px solid ${C.border}`,
-                    color: copiedLink ? C.success : C.textSecondary,
-                    backgroundColor: copiedLink ? C.successBg : C.bg,
-                  }}
+                  style={
+                    copiedLink
+                      ? getAdminButtonStyle(C, "success")
+                      : getAdminButtonStyle(C, "accentMid")
+                  }
                 >
                   <Link2 className="h-3.5 w-3.5" />
                   {copiedLink ? "Copied" : "Copy link"}
@@ -1227,11 +1222,7 @@ export default function ApplicationFormsPage({
                 type="button"
                 onClick={() => setPreviewOpen(true)}
                 className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                style={{
-                  border: `1px solid ${C.border}`,
-                  color: C.textSecondary,
-                  backgroundColor: C.bg,
-                }}
+                style={getAdminButtonStyle(C, "warning")}
               >
                 <Eye className="h-3.5 w-3.5" />
                 Preview
@@ -1243,11 +1234,7 @@ export default function ApplicationFormsPage({
                     onClick={handleDuplicate}
                     disabled={creating}
                     className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                    style={{
-                      border: `1px solid ${C.border}`,
-                      color: C.textSecondary,
-                      backgroundColor: C.bg,
-                    }}
+                    style={getAdminButtonStyle(C, "accentMid")}
                   >
                     <Copy className="h-3.5 w-3.5" />
                     Duplicate
@@ -1260,11 +1247,11 @@ export default function ApplicationFormsPage({
                     onClick={handleSave}
                     disabled={saving || !isApplyDirty}
                     className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                    style={{
-                      border: `1px solid ${C.secondaryBtnBorder}`,
-                      color: C.accent,
-                      backgroundColor: savedPulse ? C.successBg : C.accentLight,
-                    }}
+                    style={
+                      savedPulse
+                        ? getAdminButtonStyle(C, "success")
+                        : getAdminButtonStyle(C, "primary")
+                    }
                   >
                     {saving ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1279,11 +1266,7 @@ export default function ApplicationFormsPage({
                         type="button"
                         onClick={() => setUnpublishOpen(true)}
                         className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                        style={{
-                          border: `1px solid ${C.errorBorder}`,
-                          color: C.error,
-                          backgroundColor: C.errorBg,
-                        }}
+                        style={getAdminButtonStyle(C, "danger")}
                       >
                         <EyeOff className="h-3.5 w-3.5" />
                         Unpublish
@@ -1294,11 +1277,7 @@ export default function ApplicationFormsPage({
                           onClick={handleDuplicate}
                           disabled={creating}
                           className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                          style={{
-                            border: `1px solid ${C.border}`,
-                            color: C.textSecondary,
-                            backgroundColor: C.bg,
-                          }}
+                          style={getAdminButtonStyle(C, "accentMid")}
                         >
                           <Copy className="h-3.5 w-3.5" />
                           Duplicate
@@ -1311,7 +1290,7 @@ export default function ApplicationFormsPage({
                       onClick={handlePublish}
                       disabled={publishing}
                       className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white"
-                      style={{ backgroundColor: C.accent }}
+                      style={getAdminButtonStyle(C, "primary")}
                     >
                       {publishing ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

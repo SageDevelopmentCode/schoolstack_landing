@@ -63,13 +63,10 @@ export default function ApplyRequiredActionsSection({
 
   return (
     <>
-      <section
-        className="mt-10 overflow-hidden rounded-md border"
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-      >
-        <div className="flex items-start justify-between gap-3 px-4 py-4 sm:items-center">
+      <section className="mt-10">
+        <div className="flex items-start justify-between gap-3 sm:items-center">
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
+            <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
               Required actions
             </h2>
             <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
@@ -95,26 +92,24 @@ export default function ApplyRequiredActionsSection({
           </div>
         </div>
 
-        <div className="border-t px-4 pb-4" style={{ borderColor: C.border }}>
-          <ApplyChildTabSelector
-            C={C}
-            applications={applications}
-            activeApplicationId={activeApplication.id}
-            onChange={setActiveApplicationId}
-          />
+        <ApplyChildTabSelector
+          C={C}
+          applications={applications}
+          activeApplicationId={activeApplication.id}
+          onChange={setActiveApplicationId}
+        />
 
-          <ol className="mt-4 list-none space-y-2 p-0">
-            {tasks.map((task) => (
-              <PostSubmitStepCard
-                key={task.actionId}
-                C={C}
-                task={task}
-                applicationId={activeApplication.id}
-                onSchedule={handleSchedule}
-              />
-            ))}
-          </ol>
-        </div>
+        <ol className="mt-4 list-none space-y-2 p-0">
+          {tasks.map((task) => (
+            <PostSubmitStepCard
+              key={task.actionId}
+              C={C}
+              task={task}
+              applicationId={activeApplication.id}
+              onSchedule={handleSchedule}
+            />
+          ))}
+        </ol>
       </section>
 
       {bookingTarget ? (
