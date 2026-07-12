@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import AdmissionsAvailabilityEditor from "./AdmissionsAvailabilityEditor";
+import AdmissionsAvailabilityModal from "./AdmissionsAvailabilityModal";
 import type {
   ApplicationFormPostSubmitConfig,
   PostSubmitAction,
@@ -257,7 +257,7 @@ export default function ApplicationFormPostSubmitEditor({
   onChange,
 }: ApplicationFormPostSubmitEditorProps) {
   const [showPicker, setShowPicker] = useState(false);
-  const [showAvailability, setShowAvailability] = useState(false);
+  const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
   const [monthSlotCount, setMonthSlotCount] = useState<number | null>(null);
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -365,16 +365,16 @@ export default function ApplicationFormPostSubmitEditor({
             {!readOnly ? (
               <button
                 type="button"
-                onClick={() => setShowAvailability((open) => !open)}
+                onClick={() => setAvailabilityModalOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium"
                 style={{
-                  backgroundColor: showAvailability ? C.accentLight : C.surface,
+                  backgroundColor: C.surface,
                   color: C.accent,
                   border: `1px solid ${C.secondaryBtnBorder}`,
                 }}
               >
                 <CalendarClock className="h-3.5 w-3.5" />
-                {showAvailability ? "Hide availability" : "Set availability"}
+                Set availability
               </button>
             ) : null}
             {monthSlotCount !== null && monthSlotCount > 0 ? (
@@ -401,28 +401,6 @@ export default function ApplicationFormPostSubmitEditor({
             </p>
           ) : null}
 
-          <AnimatePresence initial={false}>
-            {showAvailability ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <div
-                  className="rounded-sm border p-4"
-                  style={{ borderColor: C.border, backgroundColor: C.elevated }}
-                >
-                  <AdmissionsAvailabilityEditor
-                    C={C}
-                    organizationId={organizationId}
-                    readOnly={readOnly}
-                    onMonthSlotCountChange={handleMonthSlotCountChange}
-                  />
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </div>
       </BuilderQuestionCard>
 
@@ -467,7 +445,7 @@ export default function ApplicationFormPostSubmitEditor({
                 </button>
                 {monthSlotCount === 0 ? (
                   <p className="mt-2 max-w-xs text-center text-[11px] leading-relaxed">
-                    Set availability above to add your first step.
+                    Set availability first to add your first step.
                   </p>
                 ) : null}
               </>
@@ -583,6 +561,15 @@ export default function ApplicationFormPostSubmitEditor({
       ) : null}
         </div>
       </BuilderQuestionCard>
+
+      <AdmissionsAvailabilityModal
+        C={C}
+        open={availabilityModalOpen}
+        onClose={() => setAvailabilityModalOpen(false)}
+        organizationId={organizationId}
+        readOnly={readOnly}
+        onMonthSlotCountChange={handleMonthSlotCountChange}
+      />
 
       <ConfirmDialog
         C={C}

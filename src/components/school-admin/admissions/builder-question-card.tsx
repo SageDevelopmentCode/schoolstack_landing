@@ -56,34 +56,44 @@ export function BuilderQuestionCard({
   question,
   helper,
   highlightError = false,
+  action,
   children,
 }: {
   C: AdminThemeTokens;
   tone: BuilderCardTone;
   question: string;
-  helper: string;
+  helper?: string;
   highlightError?: boolean;
-  children: React.ReactNode;
+  action?: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   const cardTone = BUILDER_CARD_TONES[tone](C);
 
   return (
     <div
-      className="rounded-lg border p-5 space-y-4"
+      className={`rounded-lg border ${children || helper ? "p-5" : "px-5 py-3"}${children ? " space-y-4" : ""}`}
       style={{
         borderColor: highlightError ? C.errorBorder : cardTone.border,
         backgroundColor: highlightError ? C.errorBg : cardTone.bg,
       }}
     >
-      <div className="space-y-1">
-        <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
-          {question}
-        </p>
-        <p className="text-xs" style={{ color: C.textTertiary }}>
-          {helper}
-        </p>
+      <div className={helper ? "space-y-1" : undefined}>
+        <div className="flex items-start justify-between gap-3">
+          <p
+            className="min-w-0 flex-1 text-base font-semibold"
+            style={{ color: C.textPrimary }}
+          >
+            {question}
+          </p>
+          {action}
+        </div>
+        {helper ? (
+          <p className="text-xs" style={{ color: C.textTertiary }}>
+            {helper}
+          </p>
+        ) : null}
       </div>
-      <div>{children}</div>
+      {children ? <div>{children}</div> : null}
     </div>
   );
 }
