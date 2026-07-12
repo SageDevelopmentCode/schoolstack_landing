@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LogOut, User } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -102,11 +103,7 @@ export default function ApplyPortalNavbar({
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
             className="flex max-w-[min(240px,60vw)] items-center gap-2 rounded-md border px-2.5 py-1.5 text-left sm:px-3 sm:py-2"
-            style={{
-              borderColor: C.border,
-              backgroundColor: C.bg,
-              color: C.textPrimary,
-            }}
+            style={getAdminButtonStyle(C, "secondary")}
             aria-expanded={menuOpen}
             aria-haspopup="menu"
           >

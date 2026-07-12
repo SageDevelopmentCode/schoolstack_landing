@@ -26,6 +26,7 @@ import {
   type ChecklistItemType,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 
 type EnrollmentChecklistTemplatePickerProps = {
   C: AdminThemeTokens;
@@ -241,19 +242,7 @@ export default function EnrollmentChecklistTemplatePicker({
                           onClose();
                         }}
                         className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium"
-                        style={{
-                          border: `1px solid ${C.border}`,
-                          color: C.textSecondary,
-                          backgroundColor: C.surface,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = C.accent;
-                          e.currentTarget.style.color = C.accent;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = C.border;
-                          e.currentTarget.style.color = C.textSecondary;
-                        }}
+                        style={getAdminButtonStyle(C, "secondary")}
                       >
                         <span
                           className="flex h-5 w-5 shrink-0 items-center justify-center rounded"

@@ -34,6 +34,7 @@ import {
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import { isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import { createClient } from "@/utils/supabase/client";
 
@@ -71,7 +72,7 @@ function initFormStateFromResponses(
 
 function panelButtonStyle(C: AdminThemeTokens, disabled: boolean) {
   return {
-    backgroundColor: C.accent,
+    ...getAdminButtonStyle(C, "primary"),
     opacity: disabled ? 0.5 : 1,
     cursor: disabled ? "not-allowed" : "pointer",
   } as const;
@@ -171,11 +172,7 @@ function DocumentSignInlinePanel({
             type="button"
             onClick={() => setSectionIndex((idx) => idx - 1)}
             className="rounded-md border px-4 py-2 text-sm font-medium"
-            style={{
-              borderColor: C.secondaryBtnBorder,
-              color: C.textPrimary,
-              backgroundColor: C.bg,
-            }}
+            style={getAdminButtonStyle(C, "secondary")}
           >
             Back
           </button>
@@ -548,9 +545,7 @@ function FormItemPanel({
                 onClick={cancelEditing}
                 className="rounded-md px-5 py-2.5 text-sm font-semibold"
                 style={{
-                  color: C.textSecondary,
-                  backgroundColor: "transparent",
-                  border: `1px solid ${C.border}`,
+                  ...getAdminButtonStyle(C, "neutral"),
                   opacity: submitting ? 0.5 : 1,
                   cursor: submitting ? "not-allowed" : "pointer",
                 }}
@@ -802,9 +797,7 @@ function FileUploadPanel({
               onClick={openFilePicker}
               className="mt-4 rounded-md border px-4 py-2 text-sm font-semibold"
               style={{
-                borderColor: C.borderStrong,
-                color: C.textPrimary,
-                backgroundColor: C.elevated,
+                ...getAdminButtonStyle(C, "neutral"),
                 opacity: uploading ? 0.7 : 1,
                 cursor: uploading ? "not-allowed" : "pointer",
               }}

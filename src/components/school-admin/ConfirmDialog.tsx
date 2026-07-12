@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 
 export type ConfirmDialogProps = {
   C: AdminThemeTokens;
@@ -45,14 +46,8 @@ export default function ConfirmDialog({
 
   const confirmStyle =
     variant === "destructive"
-      ? {
-          backgroundColor: C.error,
-          color: "#FFFFFF",
-        }
-      : {
-          backgroundColor: C.accent,
-          color: "#FFFFFF",
-        };
+      ? getAdminButtonStyle(C, "danger")
+      : getAdminButtonStyle(C, "primary");
 
   return (
     <AnimatePresence>
@@ -105,11 +100,7 @@ export default function ConfirmDialog({
                 onClick={onClose}
                 disabled={loading}
                 className="rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-                style={{
-                  color: C.textSecondary,
-                  backgroundColor: C.bg,
-                  border: `1px solid ${C.border}`,
-                }}
+                style={getAdminButtonStyle(C, "neutral")}
               >
                 {cancelLabel}
               </button>

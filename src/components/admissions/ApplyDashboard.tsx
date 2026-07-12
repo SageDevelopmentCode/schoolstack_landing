@@ -19,6 +19,7 @@ import type { EnrollmentProgressSummary } from "@/lib/admissions/enrollment-chec
 import { formatInstantInTimezone } from "@/lib/admissions/admissions-availability";
 import { fireEnrollmentConfetti } from "@/lib/enrollment-confetti";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type ApplyDashboardProps = {
@@ -166,7 +167,7 @@ export default function ApplyDashboard({
           <Link
             href={`/school/${schoolSlug}/forms/apply?new=1`}
             className="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-            style={{ backgroundColor: C.accent }}
+            style={getAdminButtonStyle(C, "primary")}
           >
             <Plus className="h-4 w-4" />
             New application
@@ -196,7 +197,7 @@ export default function ApplyDashboard({
             <Link
               href={`/school/${schoolSlug}/forms/apply?new=1`}
               className="mt-6 inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-              style={{ backgroundColor: C.accent }}
+              style={getAdminButtonStyle(C, "primary")}
             >
               Start application
               <ArrowRight className="h-4 w-4" />
@@ -268,11 +269,7 @@ export default function ApplyDashboard({
                     <Link
                       href={action.href}
                       className="inline-flex shrink-0 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition hover:opacity-90"
-                      style={{
-                        borderColor: C.border,
-                        color: C.accent,
-                        backgroundColor: pageBg,
-                      }}
+                      style={getAdminButtonStyle(C, "secondary")}
                     >
                       {action.label}
                     </Link>

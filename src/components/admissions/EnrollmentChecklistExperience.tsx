@@ -21,6 +21,7 @@ import type {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import { computeChecklistProgress } from "@/lib/admissions/enrollment-checklist-materialization";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 export type EnrollmentChecklistExperienceProps = {
@@ -230,11 +231,11 @@ export default function EnrollmentChecklistExperience({
                   type="button"
                   onClick={() => setActiveItemId(item.id)}
                   className="flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors"
-                  style={{
-                    borderColor: C.border,
-                    backgroundColor: isActive ? C.accentLight : "transparent",
-                    color: isActive ? C.accent : C.textPrimary,
-                  }}
+                  style={
+                    isActive
+                      ? getAdminButtonStyle(C, "secondary")
+                      : getAdminButtonStyle(C, "neutral")
+                  }
                 >
                   <div
                     className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"

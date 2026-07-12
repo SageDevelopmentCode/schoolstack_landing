@@ -6,6 +6,7 @@ import { getPostSubmitStepPresentation } from "@/lib/admissions/post-submit-step
 import { POST_SUBMIT_ACTION_TEMPLATES } from "@/lib/admissions/post-submit-templates";
 import type { ApplicationPostSubmitTask } from "@/lib/admissions/parent-portal-access";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 
 type PostSubmitStepCardProps = {
   C: AdminThemeTokens;
@@ -100,7 +101,7 @@ export default function PostSubmitStepCard({
               type="button"
               onClick={() => onSchedule(applicationId, task)}
               className="inline-flex items-center justify-center rounded-md px-3.5 py-2 text-xs font-medium text-white transition hover:opacity-90"
-              style={{ backgroundColor: C.accent }}
+              style={getAdminButtonStyle(C, "primary")}
             >
               {presentation.ctaLabel}
             </button>

@@ -7,6 +7,7 @@ import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPag
 import { publicEnrollmentChecklistPath } from "@/lib/admissions/enrollment-checklist-templates";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type EnrollmentChecklistPreviewProps = {
@@ -72,11 +73,7 @@ export default function EnrollmentChecklistPreview({
               type="button"
               onClick={onClose}
               className="flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium"
-              style={{
-                borderColor: C.border,
-                color: C.textSecondary,
-                backgroundColor: C.bg,
-              }}
+              style={getAdminButtonStyle(C, "neutral")}
             >
               <X className="h-4 w-4" />
               Close

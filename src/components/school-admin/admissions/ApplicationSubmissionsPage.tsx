@@ -25,6 +25,7 @@ import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -82,11 +83,9 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors"
-      style={{
-        backgroundColor: active ? C.accentLight : C.elevated,
-        color: active ? C.accent : C.textSecondary,
-        border: `1px solid ${active ? C.accent : C.border}`,
-      }}
+      style={
+        active ? getAdminButtonStyle(C, "secondary") : getAdminButtonStyle(C, "neutral")
+      }
     >
       {label}
       {count != null ? (
