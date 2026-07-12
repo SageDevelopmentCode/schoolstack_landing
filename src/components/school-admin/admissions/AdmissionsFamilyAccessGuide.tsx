@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   CircleHelp,
   ClipboardList,
+  Copy,
   CreditCard,
+  EyeOff,
   FileText,
   Link2,
   ListChecks,
@@ -20,7 +22,19 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import {
+  getAdminButtonStyle,
+  type AdminButtonVariant,
+} from "@/lib/organization-settings/admin-button-styles";
+import { SITE_URL } from "@/lib/site";
+
+function toPublicDisplayUrl(path: string): string {
+  return `${SITE_URL.replace(/^https?:\/\//, "")}${path}`;
+}
+
+function toPublicAbsoluteUrl(path: string): string {
+  return `${SITE_URL}${path}`;
+}
 
 type GuideVariant = "apply" | "checklist";
 
@@ -187,11 +201,252 @@ function MockCard({
   );
 }
 
+function IllustrationStage({
+  C,
+  children,
+  wide = false,
+}: {
+  C: AdminThemeTokens;
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <div
+      className="my-6 rounded-xl border px-6 py-8"
+      style={{
+        backgroundColor: C.elevated,
+        borderColor: C.border,
+      }}
+    >
+      <div className={`mx-auto ${wide ? "max-w-2xl" : "max-w-md"}`}>{children}</div>
+    </div>
+  );
+}
+
+function PathChipRow({
+  C,
+  displayUrl,
+  copied,
+  copyDisabled,
+  onCopy,
+}: {
+  C: AdminThemeTokens;
+  displayUrl: string;
+  copied: boolean;
+  copyDisabled?: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div
+      className="mt-3 flex max-w-full items-center gap-1 rounded-md border px-2.5 py-1.5"
+      style={{
+        backgroundColor: C.elevated,
+        borderColor: C.border,
+      }}
+    >
+      <span
+        className="min-w-0 flex-1 truncate font-mono text-[11px]"
+        style={{ color: C.textSecondary }}
+      >
+        {displayUrl}
+      </span>
+      <button
+        type="button"
+        onClick={onCopy}
+        disabled={copyDisabled}
+        className="shrink-0 rounded p-1 disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ color: copied ? C.success : C.textTertiary }}
+        aria-label="Copy link"
+      >
+        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
+}
+
+function MockToolbarSkeleton({
+  C,
+  variant,
+  barClassName = "w-14",
+}: {
+  C: AdminThemeTokens;
+  variant: AdminButtonVariant;
+  barClassName?: string;
+}) {
+  return (
+    <div
+      className="pointer-events-none flex shrink-0 items-center rounded-sm px-2.5 py-2 opacity-40"
+      style={getAdminButtonStyle(C, variant)}
+      aria-hidden
+    >
+      <div
+        className={`h-2 rounded-full ${barClassName}`}
+        style={{ backgroundColor: "color-mix(in srgb, white 55%, currentColor)" }}
+      />
+    </div>
+  );
+}
+
+function MockToolbarButton({
+  C,
+  variant,
+  icon: Icon,
+  label,
+  prominent = false,
+  onClick,
+  disabled,
+  decorative = false,
+}: {
+  C: AdminThemeTokens;
+  variant: AdminButtonVariant;
+  icon: LucideIcon;
+  label: string;
+  prominent?: boolean;
+  onClick?: () => void;
+  disabled?: boolean;
+  decorative?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-hidden={decorative || undefined}
+      tabIndex={decorative ? -1 : undefined}
+      className={`flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+        prominent ? "" : "opacity-45"
+      } ${decorative ? "pointer-events-none" : ""}`}
+      style={getAdminButtonStyle(C, variant)}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}
+
+type ShareLinkDemoPhase = "publish" | "publish-press" | "unpublish";
+
+function ShareLinkToolbarIllustration({
+  C,
+  onCopyLink,
+  copiedLink,
+  copyDisabled,
+}: {
+  C: AdminThemeTokens;
+  onCopyLink?: () => void;
+  copiedLink?: boolean;
+  copyDisabled?: boolean;
+}) {
+  const [demoPhase, setDemoPhase] = useState<ShareLinkDemoPhase>("publish");
+  const timeoutsRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    timeoutsRef.current = [];
+
+    const sleep = (ms: number) =>
+      new Promise<void>((resolve) => {
+        const id = window.setTimeout(() => resolve(), ms);
+        timeoutsRef.current.push(id);
+      });
+
+    const runCycle = async () => {
+      while (!cancelled) {
+        setDemoPhase("publish");
+        await sleep(1700);
+        if (cancelled) break;
+
+        setDemoPhase("publish-press");
+        await sleep(150);
+        if (cancelled) break;
+
+        setDemoPhase("unpublish");
+        await sleep(2000);
+      }
+    };
+
+    void runCycle();
+
+    return () => {
+      cancelled = true;
+      timeoutsRef.current.forEach((id) => window.clearTimeout(id));
+      timeoutsRef.current = [];
+    };
+  }, []);
+
+  const showPublish = demoPhase === "publish" || demoPhase === "publish-press";
+  const publishPressed = demoPhase === "publish-press";
+
+  return (
+    <div className="flex flex-nowrap items-center justify-center gap-1.5">
+      <MockToolbarSkeleton C={C} variant="info" barClassName="w-14" />
+
+      <MockToolbarButton
+        C={C}
+        variant={copiedLink ? "success" : "accentMid"}
+        icon={Link2}
+        label={copiedLink ? "Copied" : "Copy link"}
+        prominent
+        onClick={onCopyLink}
+        disabled={copyDisabled}
+      />
+
+      <MockToolbarSkeleton C={C} variant="warning" barClassName="w-12" />
+      <MockToolbarSkeleton C={C} variant="primary" barClassName="w-16" />
+
+      <AnimatePresence mode="wait" initial={false}>
+        {showPublish ? (
+          <motion.div
+            key="publish"
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: 1,
+              scale: publishPressed ? 0.94 : 1,
+            }}
+            exit={{ opacity: 0 }}
+            transition={{
+              opacity: { duration: 0.2, ease: "easeOut" },
+              scale: { duration: 0.12, ease: "easeOut" },
+            }}
+            className="shrink-0"
+          >
+            <MockToolbarButton
+              C={C}
+              variant="primary"
+              icon={Send}
+              label="Publish"
+              prominent
+              decorative
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="unpublish"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="shrink-0"
+          >
+            <MockToolbarButton
+              C={C}
+              variant="danger"
+              icon={EyeOff}
+              label="Unpublish"
+              prominent
+              decorative
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function GuideStepIllustration({
   C,
   stepId,
   schoolSlug,
-  displayPath,
   onCopyLink,
   copiedLink,
   copyDisabled,
@@ -199,7 +454,6 @@ function GuideStepIllustration({
   C: AdminThemeTokens;
   stepId: GuideStepId;
   schoolSlug: string;
-  displayPath: string;
   onCopyLink?: () => void;
   copiedLink?: boolean;
   copyDisabled?: boolean;
@@ -209,49 +463,12 @@ function GuideStepIllustration({
   switch (stepId) {
     case "share-link":
       return (
-        <MockCard C={C} className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-md"
-              style={{ backgroundColor: C.accentLight, color: C.accent }}
-            >
-              <Link2 className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div
-                className="h-2 w-24 rounded-full"
-                style={{ backgroundColor: C.elevated }}
-              />
-              <div
-                className="mt-1.5 h-2 w-16 rounded-full"
-                style={{ backgroundColor: C.elevated }}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={onCopyLink}
-              disabled={copyDisabled}
-              className="rounded px-2 py-1 text-[10px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-              style={
-                copiedLink
-                  ? getAdminButtonStyle(C, "success")
-                  : getAdminButtonStyle(C, "secondary")
-              }
-            >
-              {copiedLink ? "Copied" : "Copy link"}
-            </button>
-          </div>
-          <div
-            className="rounded-md px-3 py-2 font-mono text-[11px] truncate"
-            style={{
-              backgroundColor: C.elevated,
-              color: C.textSecondary,
-              border: `1px dashed ${C.borderStrong}`,
-            }}
-          >
-            {displayPath}
-          </div>
-        </MockCard>
+        <ShareLinkToolbarIllustration
+          C={C}
+          onCopyLink={onCopyLink}
+          copiedLink={copiedLink}
+          copyDisabled={copyDisabled}
+        />
       );
 
     case "open-form":
@@ -559,7 +776,7 @@ export function AdmissionsFamilyAccessGuideModal({
   isPublished,
 }: GuideSharedProps & { open: boolean; onClose: () => void }) {
   const [stepIndex, setStepIndex] = useState(0);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedPath, setCopiedPath] = useState<string | null>(null);
 
   const meta = VARIANT_META[variant];
   const displayPath = publicPath ?? `/school/${schoolSlug}/forms/apply`;
@@ -577,28 +794,17 @@ export function AdmissionsFamilyAccessGuideModal({
   const isLast = stepIndex === steps.length - 1;
   const progress = ((stepIndex + 1) / steps.length) * 100;
 
-  const resetModal = useCallback(() => {
-    setStepIndex(0);
-    setCopiedLink(false);
-  }, []);
-
-  useEffect(() => {
-    if (open) {
-      resetModal();
-    }
-  }, [open, resetModal]);
-
-  const handleCopyLink = useCallback(async () => {
-    if (!isPublished) return;
-    const absoluteUrl = `${window.location.origin}${displayPath}`;
+  const handleCopyPath = useCallback(async (path: string, { disabled = false } = {}) => {
+    if (disabled) return;
+    const absoluteUrl = toPublicAbsoluteUrl(path);
     try {
       await navigator.clipboard.writeText(absoluteUrl);
-      setCopiedLink(true);
-      window.setTimeout(() => setCopiedLink(false), 1500);
+      setCopiedPath(path);
+      window.setTimeout(() => setCopiedPath(null), 1500);
     } catch {
       // Clipboard unavailable — no-op
     }
-  }, [displayPath, isPublished]);
+  }, []);
 
   const goNext = () => {
     if (isLast) {
@@ -738,20 +944,23 @@ export function AdmissionsFamilyAccessGuideModal({
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.25, delay: 0.05 }}
                   >
-                    <GuideStepIllustration
-                      C={C}
-                      stepId={currentStep.id}
-                      schoolSlug={schoolSlug}
-                      displayPath={displayPath}
-                      onCopyLink={
-                        currentStep.id === "share-link" ? handleCopyLink : undefined
-                      }
-                      copiedLink={copiedLink}
-                      copyDisabled={!isPublished}
-                    />
+                    <IllustrationStage C={C} wide={currentStep.id === "share-link"}>
+                      <GuideStepIllustration
+                        C={C}
+                        stepId={currentStep.id}
+                        schoolSlug={schoolSlug}
+                        onCopyLink={
+                          currentStep.id === "share-link"
+                            ? () => handleCopyPath(displayPath, { disabled: !isPublished })
+                            : undefined
+                        }
+                        copiedLink={copiedPath === displayPath}
+                        copyDisabled={!isPublished}
+                      />
+                    </IllustrationStage>
                   </motion.div>
 
-                  <div className="mt-5 flex items-center gap-2">
+                  <div className="mt-6 flex items-center gap-2">
                     <currentStep.icon
                       className="h-4 w-4 shrink-0"
                       style={{ color: C.accent }}
@@ -770,16 +979,17 @@ export function AdmissionsFamilyAccessGuideModal({
                   </p>
 
                   {currentStep.pathChip ? (
-                    <div
-                      className="mt-3 inline-block max-w-full truncate rounded-md px-2.5 py-1.5 font-mono text-[11px]"
-                      style={{
-                        backgroundColor: C.elevated,
-                        color: C.textSecondary,
-                        border: `1px solid ${C.border}`,
-                      }}
-                    >
-                      {currentStep.pathChip}
-                    </div>
+                    <PathChipRow
+                      C={C}
+                      displayUrl={toPublicDisplayUrl(currentStep.pathChip)}
+                      copied={copiedPath === currentStep.pathChip}
+                      copyDisabled={currentStep.id === "share-link" && !isPublished}
+                      onCopy={() =>
+                        handleCopyPath(currentStep.pathChip!, {
+                          disabled: currentStep.id === "share-link" && !isPublished,
+                        })
+                      }
+                    />
                   ) : null}
                 </motion.div>
               </AnimatePresence>
@@ -832,13 +1042,17 @@ export function AdmissionsFamilyAccessGuideButton({
   isPublished,
 }: GuideSharedProps) {
   const [open, setOpen] = useState(false);
+  const [sessionKey, setSessionKey] = useState(0);
   const meta = VARIANT_META[variant];
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setSessionKey((key) => key + 1);
+          setOpen(true);
+        }}
         className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
         style={getAdminButtonStyle(C, "info")}
       >
@@ -847,6 +1061,7 @@ export function AdmissionsFamilyAccessGuideButton({
       </button>
 
       <AdmissionsFamilyAccessGuideModal
+        key={sessionKey}
         open={open}
         onClose={() => setOpen(false)}
         variant={variant}

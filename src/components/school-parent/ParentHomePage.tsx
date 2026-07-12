@@ -27,7 +27,7 @@ type ParentHomePageProps = {
   branding: OrganizationBranding;
   schoolSlug: string;
   userProfile: FamilyUserProfile;
-  children: FamilyChildOverview[];
+  familyChildren: FamilyChildOverview[];
   quickActions: ParentQuickAction[];
 };
 
@@ -189,7 +189,7 @@ export default function ParentHomePage({
   branding,
   schoolSlug,
   userProfile,
-  children,
+  familyChildren,
   quickActions,
 }: ParentHomePageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
@@ -229,7 +229,7 @@ export default function ParentHomePage({
               className="space-y-4"
             >
               <SectionTitle>My Children</SectionTitle>
-              {children.length === 0 ? (
+              {familyChildren.length === 0 ? (
                 <div
                   className="rounded-2xl border px-6 py-10 text-center"
                   style={{
@@ -256,7 +256,7 @@ export default function ParentHomePage({
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {children.map((child, index) => (
+                  {familyChildren.map((child, index) => (
                     <ChildProfileCard
                       key={child.applicationId}
                       child={child}
@@ -271,7 +271,7 @@ export default function ParentHomePage({
 
             {quickActions.length > 0 ? (
               <motion.section
-                custom={children.length + 2}
+                custom={familyChildren.length + 2}
                 initial="hidden"
                 animate="visible"
                 variants={fadeUp}

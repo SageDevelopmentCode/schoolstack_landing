@@ -50,6 +50,7 @@ import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-st
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import AdmissionsFamilyAccessGuideButton from "./AdmissionsFamilyAccessGuide";
+import ChecklistProgramDropdown from "./ChecklistProgramDropdown";
 import ApplicationFormFocusCanvas from "./ApplicationFormFocusCanvas";
 import ApplicationFormList, {
   type FlowListSelection,
@@ -1064,31 +1065,15 @@ export default function ApplicationFormsPage({
                 C={C}
                 schoolSlug={slug}
               />
-              <label className="flex items-center gap-2 text-[11px]" style={{ color: C.textSecondary }}>
-                <span className="font-medium">Program</span>
-                <select
-                  value={checklistEditable.programId ?? ""}
-                  onChange={(e) =>
-                    handleChecklistEditableChange({
-                      programId: e.target.value || null,
-                    })
-                  }
-                  disabled={checklistReadOnly}
-                  className="rounded-sm px-2 py-1.5 text-[11px]"
-                  style={{
-                    border: `1px solid ${C.border}`,
-                    backgroundColor: C.input,
-                    color: C.textPrimary,
-                  }}
-                >
-                  <option value="">Select a program</option>
-                  {programs.map((program) => (
-                    <option key={program.id} value={program.id}>
-                      {program.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <ChecklistProgramDropdown
+                C={C}
+                programs={programs}
+                programId={checklistEditable.programId}
+                readOnly={checklistReadOnly}
+                onChange={(programId) =>
+                  handleChecklistEditableChange({ programId })
+                }
+              />
               {checklistReadOnly ? null : (
                 <>
                   <button

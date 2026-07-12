@@ -83,7 +83,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
       notFound();
     }
 
-    const [userProfile, children] = await Promise.all([
+    const [userProfile, familyChildren] = await Promise.all([
       getFamilyUserProfile(supabase, user.id, org.id, user),
       listFamilyChildrenForHome(supabase, org.id),
     ]);
@@ -95,7 +95,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           branding={org.branding}
           schoolSlug={slug}
           userProfile={userProfile}
-          children={children}
+          familyChildren={familyChildren}
           quickActions={quickActions}
         />
       </SchoolParentPageShell>

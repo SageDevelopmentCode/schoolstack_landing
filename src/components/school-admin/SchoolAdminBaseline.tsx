@@ -16,7 +16,7 @@ import {
   buildAdminNavGroups,
   type AdminNavItem,
 } from "@/lib/organization-settings/admin-nav";
-import { parseSchoolAdminPath, schoolAdminPath } from "@/lib/organization-settings/admin-routes";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { schoolAdminLoginPath } from "@/lib/school-admin/access";
 import {
   buildAdminThemeTokens,
@@ -44,11 +44,6 @@ function isParentPathActive(
 ): boolean {
   const prefix = `/school/${slug}/admin/${parentKey}`;
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
-}
-
-function isEnrollmentFlowsPath(pathname: string, slug: string): boolean {
-  const parsed = parseSchoolAdminPath(pathname);
-  return parsed?.feature === "admissions" && parsed?.subtab === "flows";
 }
 
 function SidebarNavItem({
@@ -440,15 +435,7 @@ export default function SchoolAdminBaseline({
     [features.admin, features.feature_nav?.admin],
   );
 
-  const [sidebarExpanded, setSidebarExpanded] = useState(
-    () => !isEnrollmentFlowsPath(pathname, slug),
-  );
-
-  useEffect(() => {
-    if (isEnrollmentFlowsPath(pathname, slug)) {
-      queueMicrotask(() => setSidebarExpanded(false));
-    }
-  }, [pathname, slug]);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
