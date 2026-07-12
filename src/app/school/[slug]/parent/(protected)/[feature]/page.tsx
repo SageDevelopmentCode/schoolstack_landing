@@ -90,7 +90,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
     const quickActions = buildParentQuickActions(slug, org.features);
 
     return (
-      <SchoolParentPageShell title={pageName}>
+      <SchoolParentPageShell title={pageName} hideTitle>
         <ParentHomePage
           branding={org.branding}
           schoolSlug={slug}

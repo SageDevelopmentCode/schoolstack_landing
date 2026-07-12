@@ -62,7 +62,7 @@ export default function ApplicationFieldInput({
   const style = {
     borderColor: C.border,
     color: disabled ? C.textTertiary : C.textPrimary,
-    backgroundColor: disabled ? C.input : "#FFFFFF",
+    backgroundColor: "#FFFFFF",
   } as const;
 
   const focusRing = { "--tw-ring-color": `${C.accent}40` } as CSSProperties;

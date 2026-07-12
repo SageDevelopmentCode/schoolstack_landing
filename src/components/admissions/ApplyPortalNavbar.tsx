@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LogOut, User } from "lucide-react";
-import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -86,16 +86,7 @@ export default function ApplyPortalNavbar({
     >
       <div className="flex h-14 w-full items-center justify-between gap-4">
         <Link href={`/school/${schoolSlug}/apply`} className="min-w-0 shrink">
-          <SchoolDemoWordmark
-            logo={{
-              src: branding.logo.src,
-              alt: branding.logo.alt || schoolName,
-              width: branding.logo.width,
-              height: branding.logo.height,
-              text: branding.logo.src ? undefined : schoolName,
-            }}
-            className="h-7 w-auto max-w-[min(200px,50vw)] object-contain sm:h-8"
-          />
+          <ApplyPortalBranding branding={branding} schoolName={schoolName} />
         </Link>
 
         <div className="relative shrink-0" ref={menuRef}>

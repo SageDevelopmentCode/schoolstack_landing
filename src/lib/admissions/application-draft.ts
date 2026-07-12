@@ -133,3 +133,21 @@ export async function saveApplicationDraft(
     throw new ApplicationDraftError(error.message, "save_failed");
   }
 }
+
+export async function familyHasOtherApplications(
+  supabase: SupabaseClient,
+  organizationId: string,
+  excludeApplicationId: string,
+): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("applications")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .neq("id", excludeApplicationId);
+
+  if (error) {
+    throw new ApplicationDraftError(error.message, "load_failed");
+  }
+
+  return (count ?? 0) > 0;
+}

@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CopyableApplication } from "@/lib/admissions/application-copy";
+import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
@@ -55,6 +56,8 @@ export type ApplicationFormExperienceProps = {
   ) => Promise<void>;
   onSaveDraft?: (input: SaveApplicationDraftInput) => Promise<void>;
   onSubmitted?: () => void;
+  showExitToApplyDashboard?: boolean;
+  onExitToApplyDashboard?: () => void | Promise<void>;
 };
 
 const stepVariants = {
@@ -110,6 +113,8 @@ export default function ApplicationFormExperience({
   onImportResponses,
   onSaveDraft,
   onSubmitted,
+  showExitToApplyDashboard = false,
+  onExitToApplyDashboard,
 }: ApplicationFormExperienceProps) {
   const isLive = mode === "live";
   const canPersist = isLive && Boolean(applicationId && onSaveDraft);
@@ -183,6 +188,23 @@ export default function ApplicationFormExperience({
       acknowledgments,
       stepIndex: nextStepIndex,
     });
+  };
+
+  const handleSaveAndContinueLater = async () => {
+    if (!canPersist || !onExitToApplyDashboard) return;
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await persistDraft(stepIndex);
+      await onExitToApplyDashboard();
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to save your progress.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleContinue = async () => {
@@ -401,7 +423,7 @@ export default function ApplicationFormExperience({
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col"
+      className="flex flex-1 min-h-0 flex-col"
       style={{ backgroundColor: pageBg, color: C.textPrimary }}
     >
       <div
@@ -409,17 +431,24 @@ export default function ApplicationFormExperience({
         className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6"
       >
         <div className="mx-auto max-w-3xl">
-          <div className="mb-8 flex items-center gap-4">
-            <SchoolDemoWordmark
-              logo={{
-                src: branding.logo.src,
-                alt: branding.logo.alt || schoolName,
-                width: branding.logo.width,
-                height: branding.logo.height,
-                text: branding.logo.src ? undefined : schoolName,
-              }}
-              className="h-7 w-auto max-w-[min(200px,70vw)] object-contain sm:h-8"
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <ApplyPortalBranding
+              branding={branding}
+              schoolName={schoolName}
+              className="min-w-0"
+              schoolLogoClassName="h-7 w-auto max-w-[min(200px,70vw)] object-contain sm:h-8"
             />
+            {showExitToApplyDashboard && canPersist && onExitToApplyDashboard ? (
+              <button
+                type="button"
+                onClick={() => void handleSaveAndContinueLater()}
+                disabled={saving}
+                className="shrink-0 text-xs font-normal transition hover:underline disabled:opacity-50"
+                style={{ color: C.textTertiary }}
+              >
+                {saving ? "Saving…" : "Save & Continue later"}
+              </button>
+            ) : null}
           </div>
 
           <AnimatePresence mode="wait" initial={false} custom={direction}>

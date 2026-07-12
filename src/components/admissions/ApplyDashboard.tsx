@@ -269,10 +269,11 @@ export default function ApplyDashboard({
                     </div>
                     <Link
                       href={action.href}
-                      className="inline-flex shrink-0 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition hover:opacity-90"
-                      style={getAdminButtonStyle(C, "secondary")}
+                      className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium transition hover:opacity-80"
+                      style={{ color: C.accent }}
                     >
                       {action.label}
+                      <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>

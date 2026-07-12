@@ -17,7 +17,7 @@ export default function ApplicationFormPageShell({
   className = "",
   fillParent = false,
 }: ApplicationFormPageShellProps) {
-  const heightClass = fillParent ? "h-full min-h-0" : "min-h-dvh";
+  const heightClass = fillParent ? "h-full min-h-0" : "h-dvh";
 
   return (
     <div

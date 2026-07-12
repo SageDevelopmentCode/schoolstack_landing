@@ -8,6 +8,7 @@ import ApplicationFormExperience from "@/components/admissions/ApplicationFormEx
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import {
+  familyHasOtherApplications,
   loadApplicationDraft,
   saveApplicationDraft,
   type ApplicationDraft,
@@ -99,6 +100,7 @@ export default function PublicApplicationFormClient({
   );
   const [priorFieldValues, setPriorFieldValues] = useState<Record<string, string>>({});
   const [importGeneration, setImportGeneration] = useState(0);
+  const [hasOtherApplications, setHasOtherApplications] = useState(false);
 
   const resumeWithApplication = useCallback(
     async (nextApplicationId: string) => {
@@ -108,6 +110,12 @@ export default function PublicApplicationFormClient({
 
       try {
         const loaded = await loadApplicationDraft(supabase, nextApplicationId);
+        const otherApplications = await familyHasOtherApplications(
+          supabase,
+          organizationId,
+          nextApplicationId,
+        );
+        setHasOtherApplications(otherApplications);
         setDraft(loaded);
         if (loaded.status !== "draft") {
           setSubmitted(true);
@@ -261,6 +269,10 @@ export default function PublicApplicationFormClient({
     void handleBootstrapResult(result);
   };
 
+  const handleExitToApplyDashboard = useCallback(() => {
+    router.push(`/school/${schoolSlug}/apply`);
+  }, [router, schoolSlug]);
+
   const handleSaveDraft = async (input: SaveApplicationDraftInput) => {
     if (!applicationId) {
       throw new Error("Your application is not ready to save yet.");
@@ -371,6 +383,8 @@ export default function PublicApplicationFormClient({
           onImportResponses={handleImportResponses}
           onSaveDraft={draft ? handleSaveDraft : undefined}
           onSubmitted={() => setSubmitted(true)}
+          showExitToApplyDashboard={hasOtherApplications}
+          onExitToApplyDashboard={handleExitToApplyDashboard}
         />
       </ApplicationFormPageShell>
     );
