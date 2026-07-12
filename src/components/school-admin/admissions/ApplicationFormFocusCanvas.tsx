@@ -344,7 +344,7 @@ function StepView({
           subtitle={
             isLockedStep
               ? "Required student fields for your school directory."
-              : "Set up what families see and answer on this screen."
+              : undefined
           }
         />
         {!readOnly && !isLockedStep ? (

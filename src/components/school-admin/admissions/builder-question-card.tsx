@@ -27,7 +27,7 @@ export function BuilderSectionIntro({
 }: {
   C: AdminThemeTokens;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   eyebrow?: string;
 }) {
   return (
@@ -43,9 +43,11 @@ export function BuilderSectionIntro({
       >
         {title}
       </h2>
-      <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
-        {subtitle}
-      </p>
+      {subtitle ? (
+        <p className="mt-1 text-sm" style={{ color: C.textTertiary }}>
+          {subtitle}
+        </p>
+      ) : null}
     </div>
   );
 }
