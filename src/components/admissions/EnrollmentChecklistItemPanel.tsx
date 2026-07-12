@@ -5,6 +5,7 @@ import { FileText, Loader2 } from "lucide-react";
 import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
+import PaymentFeeBreakdownList from "@/components/admissions/PaymentFeeBreakdownList";
 import TypedSignatureField, {
   parseStoredSignerName,
 } from "@/components/admissions/TypedSignatureField";
@@ -32,7 +33,7 @@ import {
   getEnrollmentChecklistPdfSignedUrl,
 } from "@/lib/admissions/enrollment-checklist-document-storage";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
-import { isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
+import { hasPaymentBreakdown, isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
@@ -738,6 +739,7 @@ function PaymentPanel({
   const isCompleted = instanceStatus === "completed" || instancePaymentStatus === "paid";
   const payment = item.payment;
   const amount = formatFeeAmount(payment?.amountCents ?? 0);
+  const showBreakdown = hasPaymentBreakdown(payment);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -778,12 +780,22 @@ function PaymentPanel({
         className="rounded-lg border px-4 py-4"
         style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
       >
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Amount due
-        </p>
-        <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
-          {amount}
-        </p>
+        {showBreakdown ? (
+          <PaymentFeeBreakdownList
+            C={C}
+            lineItems={payment.lineItems}
+            totalCents={payment.amountCents}
+          />
+        ) : (
+          <>
+            <p className="text-sm" style={{ color: C.textSecondary }}>
+              Amount due
+            </p>
+            <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
+              {amount}
+            </p>
+          </>
+        )}
       </div>
       {error ? (
         <p className="text-sm" style={{ color: C.error }}>
@@ -809,6 +821,7 @@ function PaymentPanel({
         }}
         netAmountCents={payment?.amountCents ?? 0}
         label={payment?.label || item.label}
+        lineItems={payment?.lineItems}
         loading={submitting}
         onConfirm={handleConfirmPayment}
       />

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import ApplicationUploadedFileList from "@/components/admissions/ApplicationUploadedFileList";
+import PaymentFeeBreakdownList from "@/components/admissions/PaymentFeeBreakdownList";
 import {
   parseApplicationFileFieldValue,
 } from "@/lib/admissions/application-file-storage";
@@ -21,6 +22,7 @@ import type {
   EnrollmentChecklistItem,
   EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
+import { hasPaymentBreakdown } from "@/lib/admissions/enrollment-checklist-schema";
 import { parseStoredSignerName } from "@/components/admissions/TypedSignatureField";
 import { greatVibes } from "@/lib/fonts";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -385,6 +387,7 @@ function PaymentReadOnly({
 }) {
   const payment = item.payment;
   const amount = formatFeeAmount(payment?.amountCents ?? 0);
+  const showBreakdown = hasPaymentBreakdown(payment);
   const isPaid =
     instance?.status === "completed" || instance?.paymentStatus === "paid";
   const isPending = instance?.paymentStatus === "pending";
@@ -404,12 +407,22 @@ function PaymentReadOnly({
         className="rounded-lg border px-4 py-4"
         style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
       >
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Amount due
-        </p>
-        <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
-          {amount}
-        </p>
+        {showBreakdown && payment ? (
+          <PaymentFeeBreakdownList
+            C={C}
+            lineItems={payment.lineItems}
+            totalCents={payment.amountCents}
+          />
+        ) : (
+          <>
+            <p className="text-sm" style={{ color: C.textSecondary }}>
+              Amount due
+            </p>
+            <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
+              {amount}
+            </p>
+          </>
+        )}
         <p
           className="mt-2 text-sm font-medium"
           style={{ color: isPaid ? C.success : C.textSecondary }}

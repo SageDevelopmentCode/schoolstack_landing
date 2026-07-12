@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Building2, CreditCard, X } from "lucide-react";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
+import type { ChecklistPaymentLineItem } from "@/lib/admissions/enrollment-checklist-schema";
 import {
   quoteProcessingFee,
   type CheckoutPaymentMethod,
@@ -16,6 +17,7 @@ type PaymentMethodSelectionModalProps = {
   onClose: () => void;
   netAmountCents: number;
   label: string;
+  lineItems?: ChecklistPaymentLineItem[];
   loading?: boolean;
   onConfirm: (method: CheckoutPaymentMethod) => void | Promise<void>;
 };
@@ -102,6 +104,7 @@ function MethodOption({
 function PaymentSummary({
   C,
   label,
+  lineItems,
   feeLabel,
   netAmountCents,
   processingFeeCents,
@@ -109,6 +112,7 @@ function PaymentSummary({
 }: {
   C: AdminThemeTokens;
   label: string;
+  lineItems?: ChecklistPaymentLineItem[];
   feeLabel: string;
   netAmountCents: number;
   processingFeeCents: number;
@@ -124,21 +128,29 @@ function PaymentSummary({
       }}
     >
       <div className="space-y-2 text-sm">
-        <div className="flex items-baseline justify-between gap-4">
-          <span style={{ color: C.textSecondary }}>{label}</span>
-          <span
-            className="tabular-nums"
-            style={{ color: C.textPrimary }}
-          >
-            {formatFeeAmount(netAmountCents)}
-          </span>
-        </div>
+        {lineItems?.length ? (
+          lineItems.map((lineItem) => (
+            <div
+              key={lineItem.id}
+              className="flex items-baseline justify-between gap-4"
+            >
+              <span style={{ color: C.textSecondary }}>{lineItem.label}</span>
+              <span className="tabular-nums" style={{ color: C.textPrimary }}>
+                {formatFeeAmount(lineItem.amountCents)}
+              </span>
+            </div>
+          ))
+        ) : (
+          <div className="flex items-baseline justify-between gap-4">
+            <span style={{ color: C.textSecondary }}>{label}</span>
+            <span className="tabular-nums" style={{ color: C.textPrimary }}>
+              {formatFeeAmount(netAmountCents)}
+            </span>
+          </div>
+        )}
         <div className="flex items-baseline justify-between gap-4">
           <span style={{ color: C.textSecondary }}>{feeLabel}</span>
-          <span
-            className="tabular-nums"
-            style={{ color: C.textPrimary }}
-          >
+          <span className="tabular-nums" style={{ color: C.textPrimary }}>
             {formatFeeAmount(processingFeeCents)}
           </span>
         </div>
@@ -168,6 +180,7 @@ export default function PaymentMethodSelectionModal({
   onClose,
   netAmountCents,
   label,
+  lineItems,
   loading = false,
   onConfirm,
 }: PaymentMethodSelectionModalProps) {
@@ -275,6 +288,7 @@ export default function PaymentMethodSelectionModal({
               <PaymentSummary
                 C={C}
                 label={label}
+                lineItems={lineItems}
                 feeLabel={feeLabel}
                 netAmountCents={selectedQuote.netAmountCents}
                 processingFeeCents={selectedQuote.processingFeeCents}

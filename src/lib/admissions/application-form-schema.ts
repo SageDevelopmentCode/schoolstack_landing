@@ -388,6 +388,43 @@ export function formatFeeAmount(cents: number): string {
   }).format(cents / 100);
 }
 
+export function formatCentsForInput(cents: number): string {
+  if (!Number.isFinite(cents)) return "0.00";
+  return (cents / 100).toFixed(2);
+}
+
+const DOLLAR_INPUT_PARTIAL_PATTERN = /^\d*(\.\d{0,2})?$/;
+
+export function sanitizeDollarDraft(value: string): string {
+  const cleaned = value.replace(/[$,\s]/g, "");
+  if (!cleaned) return "";
+  if (DOLLAR_INPUT_PARTIAL_PATTERN.test(cleaned)) {
+    return cleaned;
+  }
+
+  const match = cleaned.match(/^(\d*)(?:\.(\d{0,2}))?/);
+  if (!match) return "";
+  const whole = match[1] ?? "";
+  const fraction = match[2];
+  if (fraction === undefined) return whole;
+  return `${whole}.${fraction}`;
+}
+
+export function parseDollarInputToCents(value: string): number | null {
+  const draft = sanitizeDollarDraft(value);
+  if (!draft || draft === ".") return 0;
+  if (draft.endsWith(".")) return null;
+
+  const parsed = Number.parseFloat(draft);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.round(parsed * 100);
+}
+
+export function normalizeDollarDraft(value: string): string {
+  const cents = parseDollarInputToCents(value);
+  return formatCentsForInput(cents ?? 0);
+}
+
 export function formatFormUpdatedAt(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;

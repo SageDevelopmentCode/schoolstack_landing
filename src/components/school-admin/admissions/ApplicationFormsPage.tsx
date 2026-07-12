@@ -113,7 +113,12 @@ function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentCheckl
         }
       : undefined,
     fileUpload: item.fileUpload ? { ...item.fileUpload } : undefined,
-    payment: item.payment ? { ...item.payment } : undefined,
+    payment: item.payment
+      ? {
+          ...item.payment,
+          lineItems: item.payment.lineItems?.map((lineItem) => ({ ...lineItem })),
+        }
+      : undefined,
     acknowledgment: item.acknowledgment
       ? {
           ...item.acknowledgment,
