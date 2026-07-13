@@ -1,16 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  CheckCircle2,
-  Circle,
-  CircleDot,
-  Loader2,
-  MinusCircle,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import EnrollmentChecklistStepDetailModal from "@/components/school-admin/admissions/EnrollmentChecklistStepDetailModal";
-import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
+import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
+import DetailPanelStepTimeline, {
+  type DetailPanelStepTimelineItem,
+} from "@/components/school-admin/admissions/DetailPanelStepTimeline";
 import {
   computeChecklistProgress,
   getChecklistForApplication,
@@ -20,11 +17,6 @@ import type {
   EnrollmentChecklistItem,
   EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
-import {
-  checklistItemStatusIconColor,
-  checklistItemStatusLabel,
-  getChecklistItemTypeIcon,
-} from "@/lib/admissions/enrollment-checklist-item-status-ui";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 
@@ -43,28 +35,21 @@ type LoadedState = {
   checklistId: string;
 };
 
-function StepStatusIcon({
-  status,
-  C,
-}: {
-  status: EnrollmentChecklistItemInstance["status"];
-  C: AdminThemeTokens;
-}) {
-  const color = checklistItemStatusIconColor(status, C);
-
-  if (status === "completed") {
-    return <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} aria-hidden />;
+function checklistItemTypeLabel(type: EnrollmentChecklistItem["type"]): string {
+  switch (type) {
+    case "form":
+      return "Form";
+    case "payment":
+      return "Payment";
+    case "document_sign":
+      return "Signature";
+    case "document_sign_pdf":
+      return "PDF";
+    case "file_upload":
+      return "Upload";
+    case "acknowledgment":
+      return "Acknowledgment";
   }
-
-  if (status === "in_progress") {
-    return <CircleDot className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} aria-hidden />;
-  }
-
-  if (status === "waived") {
-    return <MinusCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} aria-hidden />;
-  }
-
-  return <Circle className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} aria-hidden />;
 }
 
 export default function EnrollmentStatusCard({
@@ -164,6 +149,27 @@ export default function EnrollmentStatusCard({
     setSelectedItemId(null);
   };
 
+  const timelineItems: DetailPanelStepTimelineItem[] = useMemo(() => {
+    if (!loaded) return [];
+
+    return loaded.items.map((item) => {
+      const instance = instanceByTemplateId.get(item.id);
+      const status = instance?.status ?? "not_started";
+
+      return {
+        id: item.id,
+        title: item.label,
+        status,
+        kindLabel: checklistItemTypeLabel(item.type),
+        optional: !item.required,
+        onClick: () => openStepDetail(item.id),
+      };
+    });
+  }, [instanceByTemplateId, loaded]);
+
+  const showStatusText =
+    loaded ? loaded.progress.completed < loaded.progress.total : true;
+
   if (loading) {
     return (
       <section className="flex items-center gap-2 text-sm" style={{ color: C.textTertiary }}>
@@ -222,63 +228,12 @@ export default function EnrollmentStatusCard({
           </div>
         ) : null}
 
-        {loaded.items.length > 0 ? (
-          <ul
-            className="mt-4 overflow-hidden rounded-lg border"
-            style={{ borderColor: C.border, backgroundColor: C.surface }}
-          >
-            {loaded.items.map((item) => {
-              const instance = instanceByTemplateId.get(item.id);
-              const status = instance?.status ?? "not_started";
-              const TypeIcon = getChecklistItemTypeIcon(item.type);
-
-              return (
-                <li key={item.id} className="border-b last:border-b-0" style={{ borderColor: C.border }}>
-                  <button
-                    type="button"
-                    onClick={() => openStepDetail(item.id)}
-                    className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:opacity-90"
-                  >
-                    <StepStatusIcon status={status} C={C} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <TypeIcon
-                          className="h-3.5 w-3.5 shrink-0"
-                          style={{ color: C.textTertiary }}
-                          aria-hidden
-                        />
-                        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                          {item.label}
-                        </p>
-                        {!item.required ? (
-                          <span
-                            className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                            style={{ backgroundColor: C.surface, color: C.textTertiary }}
-                          >
-                            Optional
-                          </span>
-                        ) : null}
-                      </div>
-                      <p
-                        className="mt-1 text-xs"
-                        style={{
-                          color:
-                            status === "completed"
-                              ? C.success
-                              : status === "in_progress"
-                                ? C.info
-                                : C.textTertiary,
-                        }}
-                      >
-                        {checklistItemStatusLabel(status)}
-                      </p>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
+        <DetailPanelStepTimeline
+          C={C}
+          items={timelineItems}
+          activeItemId={selectedItemId}
+          showStatusText={showStatusText}
+        />
       </DetailPanelSection>
 
       <EnrollmentChecklistStepDetailModal

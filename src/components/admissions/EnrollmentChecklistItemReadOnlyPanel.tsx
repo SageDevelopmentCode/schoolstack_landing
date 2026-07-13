@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import ApplicationUploadedFileList from "@/components/admissions/ApplicationUploadedFileList";
+import ReadOnlyAnswerBacking from "@/components/admissions/ReadOnlyAnswerBacking";
 import PaymentFeeBreakdownList from "@/components/admissions/PaymentFeeBreakdownList";
 import {
   parseApplicationFileFieldValue,
@@ -70,17 +71,20 @@ function ReadOnlyField({
       </dt>
       <dd
         className={`text-sm leading-relaxed ${field.type === "file" ? "" : "whitespace-pre-wrap"}`}
-        style={{ color: C.textPrimary }}
       >
-        {field.type === "file" ? (
-          fileValue.length > 0 ? (
-            <ApplicationUploadedFileList files={fileValue} C={C} />
-          ) : (
-            "—"
-          )
-        ) : (
-          formatFieldValue(field, value)
-        )}
+        <ReadOnlyAnswerBacking C={C}>
+          <div style={{ color: C.textPrimary }}>
+            {field.type === "file" ? (
+              fileValue.length > 0 ? (
+                <ApplicationUploadedFileList files={fileValue} C={C} />
+              ) : (
+                "—"
+              )
+            ) : (
+              formatFieldValue(field, value)
+            )}
+          </div>
+        </ReadOnlyAnswerBacking>
       </dd>
     </div>
   );
@@ -109,10 +113,7 @@ function ReadOnlySignature({
       >
         Signature
       </p>
-      <div
-        className="flex min-h-[72px] flex-col justify-center rounded-md border px-4 py-4"
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-      >
+      <ReadOnlyAnswerBacking C={C} className="flex min-h-[72px] flex-col justify-center">
         <p
           className={`${greatVibes.className} break-words text-2xl leading-tight sm:text-3xl`}
           style={{
@@ -122,7 +123,7 @@ function ReadOnlySignature({
         >
           {signerName || "—"}
         </p>
-      </div>
+      </ReadOnlyAnswerBacking>
     </div>
   );
 }
@@ -403,10 +404,7 @@ function PaymentReadOnly({
 
   return (
     <div className="space-y-4">
-      <div
-        className="rounded-lg border px-4 py-4"
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-      >
+      <ReadOnlyAnswerBacking C={C} className="px-4 py-4">
         {showBreakdown && payment ? (
           <PaymentFeeBreakdownList
             C={C}
@@ -429,7 +427,7 @@ function PaymentReadOnly({
         >
           {statusLabel}
         </p>
-      </div>
+      </ReadOnlyAnswerBacking>
     </div>
   );
 }

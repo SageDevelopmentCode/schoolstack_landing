@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "framer-motion";
+import type { ReactNode } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type DetailPanelProgressBarProps = {
@@ -7,6 +9,7 @@ type DetailPanelProgressBarProps = {
   completed: number;
   total: number;
   label?: string;
+  subtitle?: ReactNode;
 };
 
 export default function DetailPanelProgressBar({
@@ -14,6 +17,7 @@ export default function DetailPanelProgressBar({
   completed,
   total,
   label = "Progress",
+  subtitle,
 }: DetailPanelProgressBarProps) {
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
@@ -23,16 +27,24 @@ export default function DetailPanelProgressBar({
         <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
           {label}
         </p>
-        <span className="text-xs" style={{ color: C.textTertiary }}>
+        <span className="text-xs tabular-nums" style={{ color: C.textTertiary }}>
           {completed}/{total}
         </span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: C.border }}>
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ backgroundColor: C.accent, width: `${progressPct}%` }}
+        <motion.div
+          className="h-full rounded-full"
+          style={{ backgroundColor: C.accent }}
+          initial={{ width: 0 }}
+          animate={{ width: `${progressPct}%` }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         />
       </div>
+      {subtitle ? (
+        <p className="mt-1.5 text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+          {subtitle}
+        </p>
+      ) : null}
     </div>
   );
 }

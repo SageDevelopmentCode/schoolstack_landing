@@ -1,36 +1,27 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  CheckCircle2,
-  Circle,
-  CircleDot,
-  ClipboardList,
-  CreditCard,
-  PenLine,
-} from "lucide-react";
 import ApplicationFormStepDetailModal from "@/components/school-admin/admissions/ApplicationFormStepDetailModal";
-import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
+import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
+import DetailPanelStepTimeline, {
+  type DetailPanelStepTimelineItem,
+} from "@/components/school-admin/admissions/DetailPanelStepTimeline";
+import { formatShortDate } from "@/lib/admissions/application-submissions";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
+  FEE_STATUS_LABELS,
 } from "@/lib/admissions/application-status-ui";
 import {
   buildApplicationFormSteps,
   computeApplicationFormStepStatuses,
   summarizeApplicationFormProgress,
   type ApplicationFormStep,
-  type ApplicationFormStepStatus,
 } from "@/lib/admissions/application-form-steps";
 import type { ApplicationDetail } from "@/lib/admissions/parent-portal-access";
-import {
-  checklistItemStatusIconColor,
-  checklistItemStatusLabel,
-} from "@/lib/admissions/enrollment-checklist-item-status-ui";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import type { LucideIcon } from "lucide-react";
 
 type ApplicationFormStatusCardProps = {
   C: AdminThemeTokens;
@@ -40,37 +31,40 @@ type ApplicationFormStatusCardProps = {
   detail: ApplicationDetail;
   feeStatus: string;
   applicationStatus: string;
+  formTitle: string;
+  submittedAt: string | null;
+  feeEnabled: boolean;
 };
 
-function getFormStepIcon(kind: ApplicationFormStep["kind"]): LucideIcon {
+function stepKindLabel(kind: ApplicationFormStep["kind"]): string {
   switch (kind) {
     case "section":
-      return ClipboardList;
+      return "Form";
     case "acknowledgments":
-      return PenLine;
+      return "Acknowledgments";
     case "fee":
-      return CreditCard;
+      return "Fee";
   }
 }
 
-function StepStatusIcon({
-  status,
-  C,
-}: {
-  status: ApplicationFormStepStatus;
-  C: AdminThemeTokens;
-}) {
-  const color = checklistItemStatusIconColor(status, C);
+function buildProgressSubtitle(
+  applicationStatus: string,
+  submittedAt: string | null,
+  feeEnabled: boolean,
+  feeStatus: string,
+): string | null {
+  const parts: string[] = [];
 
-  if (status === "completed") {
-    return <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} aria-hidden />;
+  if (applicationStatus !== "draft" && submittedAt) {
+    parts.push(`Submitted ${formatShortDate(submittedAt)}`);
   }
 
-  if (status === "in_progress") {
-    return <CircleDot className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} aria-hidden />;
+  if (feeEnabled && feeStatus !== "not_required") {
+    const feeLabel = FEE_STATUS_LABELS[feeStatus] ?? feeStatus.replace(/_/g, " ");
+    parts.push(`Fee ${feeLabel.toLowerCase()}`);
   }
 
-  return <Circle className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} aria-hidden />;
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 export default function ApplicationFormStatusCard({
@@ -81,6 +75,9 @@ export default function ApplicationFormStatusCard({
   detail,
   feeStatus,
   applicationStatus,
+  formTitle,
+  submittedAt,
+  feeEnabled,
 }: ApplicationFormStatusCardProps) {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -101,6 +98,15 @@ export default function ApplicationFormStatusCard({
 
   const selectedStep = stepsWithStatus.find((step) => step.id === selectedStepId) ?? null;
   const statusStyle = applicationStatusBadgeStyle(applicationStatus, C);
+  const progressSubtitle = buildProgressSubtitle(
+    applicationStatus,
+    submittedAt,
+    feeEnabled,
+    feeStatus,
+  );
+
+  const showStatusText =
+    applicationStatus === "draft" || progress.completed < progress.total;
 
   const openStepDetail = (stepId: string) => {
     setSelectedStepId(stepId);
@@ -111,6 +117,18 @@ export default function ApplicationFormStatusCard({
     setDetailOpen(false);
     setSelectedStepId(null);
   };
+
+  const timelineItems: DetailPanelStepTimelineItem[] = useMemo(
+    () =>
+      stepsWithStatus.map((step) => ({
+        id: step.id,
+        title: step.label,
+        status: step.status,
+        kindLabel: stepKindLabel(step.kind),
+        onClick: () => openStepDetail(step.id),
+      })),
+    [stepsWithStatus],
+  );
 
   if (stepsWithStatus.length === 0) return null;
 
@@ -128,58 +146,27 @@ export default function ApplicationFormStatusCard({
           </span>
         }
       >
+        <p
+          className="-mt-1 mb-3 text-[10px] font-semibold uppercase tracking-wider"
+          style={{ color: C.textQuaternary }}
+        >
+          {formTitle}
+        </p>
+
         <DetailPanelProgressBar
           C={C}
           completed={progress.completed}
           total={progress.total}
           label="Steps"
+          subtitle={progressSubtitle}
         />
 
-        <ul
-          className="mt-4 overflow-hidden rounded-lg border"
-          style={{ borderColor: C.border, backgroundColor: C.surface }}
-        >
-          {stepsWithStatus.map((step) => {
-            const TypeIcon = getFormStepIcon(step.kind);
-
-            return (
-              <li key={step.id} className="border-b last:border-b-0" style={{ borderColor: C.border }}>
-                <button
-                  type="button"
-                  onClick={() => openStepDetail(step.id)}
-                  className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:opacity-90"
-                >
-                  <StepStatusIcon status={step.status} C={C} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <TypeIcon
-                        className="h-3.5 w-3.5 shrink-0"
-                        style={{ color: C.textTertiary }}
-                        aria-hidden
-                      />
-                      <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                        {step.label}
-                      </p>
-                    </div>
-                    <p
-                      className="mt-1 text-xs"
-                      style={{
-                        color:
-                          step.status === "completed"
-                            ? C.success
-                            : step.status === "in_progress"
-                              ? C.info
-                              : C.textTertiary,
-                      }}
-                    >
-                      {checklistItemStatusLabel(step.status)}
-                    </p>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <DetailPanelStepTimeline
+          C={C}
+          items={timelineItems}
+          activeItemId={detailOpen ? selectedStepId : null}
+          showStatusText={showStatusText}
+        />
       </DetailPanelSection>
 
       <ApplicationFormStepDetailModal

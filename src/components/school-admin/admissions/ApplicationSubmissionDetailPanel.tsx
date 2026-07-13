@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
-import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplicationSubmissionPostSubmitSection from "@/components/admissions/ApplicationSubmissionPostSubmitSection";
 import ApplicationSubmissionHistorySection, {
   buildAdmissionHistoryContextDescription,
@@ -62,6 +61,7 @@ export default function ApplicationSubmissionDetailPanel({
 }: ApplicationSubmissionDetailPanelProps) {
   const C = buildAdminThemeTokens(branding);
   const supabase = createClient();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadApplicationDetail>>>(null);
@@ -72,6 +72,11 @@ export default function ApplicationSubmissionDetailPanel({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyUnlinked, setHistoryUnlinked] = useState(false);
   const [historyEvents, setHistoryEvents] = useState<FamilyAdmissionTimelineEvent[]>([]);
+
+  const navigateToTab = useCallback((tabId: string) => {
+    setActiveTab(tabId);
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   const loadChecklistState = useCallback(async () => {
     const checklist = await getChecklistForApplication(supabase, submission.id);
@@ -159,16 +164,11 @@ export default function ApplicationSubmissionDetailPanel({
   const tabs = useMemo<DetailTab[]>(() => {
     if (!detail) return [];
 
-    const items: DetailTab[] = [{ id: "overview", label: "Overview" }];
-    for (const section of detail.schema.sections) {
-      items.push({ id: section.id, label: section.title });
-    }
-    if (detail.schema.acknowledgments.length > 0) {
-      items.push({ id: "acknowledgments", label: "Acknowledgments" });
-    }
-    items.push({ id: "history", label: "History" });
-    items.push({ id: "payments", label: "Payments" });
-    return items;
+    return [
+      { id: "overview", label: "Overview" },
+      { id: "history", label: "History" },
+      { id: "payments", label: "Payments" },
+    ];
   }, [detail]);
 
   const statusStyle = applicationStatusBadgeStyle(currentStatus, C);
@@ -228,6 +228,9 @@ export default function ApplicationSubmissionDetailPanel({
               detail={detail}
               feeStatus={submission.feeStatus}
               applicationStatus={currentStatus}
+              formTitle={detail.formTitle}
+              submittedAt={submission.submittedAt}
+              feeEnabled={submission.feeEnabled}
             />
           )}
 
@@ -236,19 +239,6 @@ export default function ApplicationSubmissionDetailPanel({
             steps={detail.postSubmitSteps}
           />
         </DetailPanelSectionGroup>
-      );
-    }
-
-    if (tabId === "acknowledgments") {
-      return (
-        <ApplicationReadOnlyView
-          branding={branding}
-          schoolName={schoolName}
-          schoolSlug={schoolSlug}
-          application={detail}
-          embedded
-          view="acknowledgments"
-        />
       );
     }
 
@@ -294,17 +284,7 @@ export default function ApplicationSubmissionDetailPanel({
       );
     }
 
-    return (
-      <ApplicationReadOnlyView
-        branding={branding}
-        schoolName={schoolName}
-        schoolSlug={schoolSlug}
-        application={detail}
-        embedded
-        view="section"
-        sectionId={tabId}
-      />
-    );
+    return null;
   }
 
   return (
@@ -399,7 +379,7 @@ export default function ApplicationSubmissionDetailPanel({
                   role="tab"
                   aria-selected={isActive}
                   aria-controls={panelId}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => navigateToTab(tab.id)}
                   className="shrink-0 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors"
                   style={{
                     borderBottomColor: isActive ? C.accent : "transparent",
@@ -414,7 +394,10 @@ export default function ApplicationSubmissionDetailPanel({
         </div>
       ) : null}
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-5 sm:py-8">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto px-4 py-6 sm:px-5 sm:py-8"
+      >
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />

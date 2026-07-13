@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
+import ReadOnlyAnswerBacking from "@/components/admissions/ReadOnlyAnswerBacking";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import type {
   ApplicationFormStep,
@@ -47,25 +48,20 @@ function FeeReadOnlyPanel({
   const isPaid = feeStatus === "paid" || feeStatus === "not_required" || feeStatus === "waived";
 
   return (
-    <div className="space-y-4">
-      <div
-        className="rounded-lg border px-4 py-4"
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+    <ReadOnlyAnswerBacking C={C} className="px-4 py-4">
+      <p className="text-sm" style={{ color: C.textSecondary }}>
+        Amount due
+      </p>
+      <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
+        {amount}
+      </p>
+      <p
+        className="mt-2 text-sm font-medium"
+        style={{ color: isPaid ? C.success : C.textSecondary }}
       >
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Amount due
-        </p>
-        <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
-          {amount}
-        </p>
-        <p
-          className="mt-2 text-sm font-medium"
-          style={{ color: isPaid ? C.success : C.textSecondary }}
-        >
-          {statusLabel}
-        </p>
-      </div>
-    </div>
+        {statusLabel}
+      </p>
+    </ReadOnlyAnswerBacking>
   );
 }
 
@@ -81,15 +77,6 @@ export default function ApplicationFormStepDetailModal({
   feeStatus,
   onClose,
 }: ApplicationFormStepDetailModalProps) {
-  const stepTypeLabel =
-    step?.kind === "section"
-      ? "Form section"
-      : step?.kind === "acknowledgments"
-        ? "Acknowledgments"
-        : step?.kind === "fee"
-          ? "Payment"
-          : "";
-
   return (
     <AnimatePresence>
       {open && step ? (
@@ -109,7 +96,7 @@ export default function ApplicationFormStepDetailModal({
             initial={{ opacity: 0, scale: 0.98, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 8 }}
-            className="relative z-10 flex max-h-[min(90vh,720px)] w-full max-w-2xl flex-col overflow-hidden rounded-lg"
+            className="relative z-10 flex max-h-[min(90vh,720px)] w-full max-w-3xl flex-col overflow-hidden rounded-lg"
             style={{
               backgroundColor: C.surface,
               border: `1px solid ${C.border}`,
@@ -118,7 +105,7 @@ export default function ApplicationFormStepDetailModal({
             onClick={(event) => event.stopPropagation()}
           >
             <div
-              className="flex items-start justify-between gap-3 border-b px-5 py-4"
+              className="flex items-start justify-between gap-3 border-b px-5 py-3.5"
               style={{ borderColor: C.border }}
             >
               <div className="min-w-0 flex-1">
@@ -133,9 +120,6 @@ export default function ApplicationFormStepDetailModal({
                     {checklistItemStatusLabel(stepStatus)}
                   </span>
                 </div>
-                <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-                  {stepTypeLabel}
-                </p>
               </div>
               <button
                 type="button"
@@ -148,7 +132,7 @@ export default function ApplicationFormStepDetailModal({
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
               {step.kind === "fee" ? (
                 <FeeReadOnlyPanel C={C} detail={detail} feeStatus={feeStatus} />
               ) : (
@@ -158,17 +142,11 @@ export default function ApplicationFormStepDetailModal({
                   schoolSlug={schoolSlug}
                   application={detail}
                   embedded
+                  layout="detail"
                   view={step.kind === "acknowledgments" ? "acknowledgments" : "section"}
                   sectionId={step.kind === "section" ? step.id : undefined}
                 />
               )}
-            </div>
-
-            <div
-              className="border-t px-5 py-3 text-xs"
-              style={{ borderColor: C.border, color: C.textTertiary }}
-            >
-              Read-only — this is what the family sees
             </div>
           </motion.div>
         </motion.div>
