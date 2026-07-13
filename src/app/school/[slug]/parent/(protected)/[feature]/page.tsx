@@ -85,7 +85,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
 
     const [userProfile, familyChildren] = await Promise.all([
       getFamilyUserProfile(supabase, user.id, org.id, user),
-      listFamilyChildrenForHome(supabase, org.id),
+      listFamilyChildrenForHome(supabase, org.id, user.id),
     ]);
     const quickActions = buildParentQuickActions(slug, org.features);
 

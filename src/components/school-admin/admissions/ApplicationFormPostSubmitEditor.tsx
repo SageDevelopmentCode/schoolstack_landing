@@ -12,7 +12,8 @@ import {
   Trash2,
 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
-import AdmissionsAvailabilityEditor from "./AdmissionsAvailabilityEditor";
+import AdmissionsAvailabilityModal from "./AdmissionsAvailabilityModal";
+import PostSubmitTemplatePickerModal from "./PostSubmitTemplatePickerModal";
 import type {
   ApplicationFormPostSubmitConfig,
   PostSubmitAction,
@@ -256,8 +257,8 @@ export default function ApplicationFormPostSubmitEditor({
   readOnly,
   onChange,
 }: ApplicationFormPostSubmitEditorProps) {
-  const [showPicker, setShowPicker] = useState(false);
-  const [showAvailability, setShowAvailability] = useState(false);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
   const [monthSlotCount, setMonthSlotCount] = useState<number | null>(null);
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -292,10 +293,10 @@ export default function ApplicationFormPostSubmitEditor({
   const canAddStep = !readOnly && monthSlotCount !== null && monthSlotCount > 0;
 
   useEffect(() => {
-    if (!canAddStep && showPicker) {
-      queueMicrotask(() => setShowPicker(false));
+    if (!canAddStep && templatePickerOpen) {
+      queueMicrotask(() => setTemplatePickerOpen(false));
     }
-  }, [canAddStep, showPicker]);
+  }, [canAddStep, templatePickerOpen]);
 
   const inputStyle: React.CSSProperties = {
     backgroundColor: C.input,
@@ -330,7 +331,7 @@ export default function ApplicationFormPostSubmitEditor({
     const action = createPostSubmitAction(type);
     updateActions([...postSubmitConfig.actions, action]);
     setExpandedActionId(action.id);
-    setShowPicker(false);
+    setTemplatePickerOpen(false);
   };
 
   const confirmDelete = () => {
@@ -365,16 +366,16 @@ export default function ApplicationFormPostSubmitEditor({
             {!readOnly ? (
               <button
                 type="button"
-                onClick={() => setShowAvailability((open) => !open)}
+                onClick={() => setAvailabilityModalOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium"
                 style={{
-                  backgroundColor: showAvailability ? C.accentLight : C.surface,
+                  backgroundColor: C.surface,
                   color: C.accent,
                   border: `1px solid ${C.secondaryBtnBorder}`,
                 }}
               >
                 <CalendarClock className="h-3.5 w-3.5" />
-                {showAvailability ? "Hide availability" : "Set availability"}
+                Set availability
               </button>
             ) : null}
             {monthSlotCount !== null && monthSlotCount > 0 ? (
@@ -401,28 +402,6 @@ export default function ApplicationFormPostSubmitEditor({
             </p>
           ) : null}
 
-          <AnimatePresence initial={false}>
-            {showAvailability ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <div
-                  className="rounded-sm border p-4"
-                  style={{ borderColor: C.border, backgroundColor: C.elevated }}
-                >
-                  <AdmissionsAvailabilityEditor
-                    C={C}
-                    organizationId={organizationId}
-                    readOnly={readOnly}
-                    onMonthSlotCountChange={handleMonthSlotCountChange}
-                  />
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </div>
       </BuilderQuestionCard>
 
@@ -452,7 +431,7 @@ export default function ApplicationFormPostSubmitEditor({
                 <button
                   type="button"
                   onClick={() => {
-                    if (canAddStep) setShowPicker(true);
+                    if (canAddStep) setTemplatePickerOpen(true);
                   }}
                   disabled={!canAddStep}
                   className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-60"
@@ -467,7 +446,7 @@ export default function ApplicationFormPostSubmitEditor({
                 </button>
                 {monthSlotCount === 0 ? (
                   <p className="mt-2 max-w-xs text-center text-[11px] leading-relaxed">
-                    Set availability above to add your first step.
+                    Set availability first to add your first step.
                   </p>
                 ) : null}
               </>
@@ -492,82 +471,13 @@ export default function ApplicationFormPostSubmitEditor({
         )}
       </Reorder.Group>
 
-      <AnimatePresence initial={false}>
-        {showPicker && canAddStep && availableTypes.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.15 }}
-            className="overflow-hidden"
-          >
-            <div
-              className="space-y-2 rounded-sm border p-3"
-              style={{ borderColor: C.border, backgroundColor: C.elevated }}
-            >
-              <p className="text-xs font-semibold" style={{ color: C.textSecondary }}>
-                Choose a template
-              </p>
-              <div className="grid gap-2 sm:grid-cols-1">
-                {availableTypes.map((type) => {
-                  const template = POST_SUBMIT_ACTION_TEMPLATES[type];
-                  const Icon = template.Icon;
-                  return (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => addAction(type)}
-                      className="flex items-start gap-3 rounded-sm border px-3 py-2.5 text-left transition-colors hover:opacity-90"
-                      style={{
-                        borderColor: C.border,
-                        backgroundColor: C.surface,
-                      }}
-                    >
-                      <span
-                        className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-sm"
-                        style={{ backgroundColor: C.accentLight, color: C.accent }}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0">
-                        <span
-                          className="block text-sm font-medium"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {template.label}
-                        </span>
-                        <span
-                          className="mt-0.5 block text-[11px] leading-snug"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {template.description}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPicker(false)}
-                className="text-[11px] font-medium"
-                style={{ color: C.textTertiary }}
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
       {!readOnly &&
       postSubmitConfig.actions.length > 0 &&
-      availableTypes.length > 0 &&
-      !showPicker ? (
+      availableTypes.length > 0 ? (
         <button
           type="button"
           onClick={() => {
-            if (canAddStep) setShowPicker(true);
+            if (canAddStep) setTemplatePickerOpen(true);
           }}
           disabled={!canAddStep}
           className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-60"
@@ -583,6 +493,23 @@ export default function ApplicationFormPostSubmitEditor({
       ) : null}
         </div>
       </BuilderQuestionCard>
+
+      <AdmissionsAvailabilityModal
+        C={C}
+        open={availabilityModalOpen}
+        onClose={() => setAvailabilityModalOpen(false)}
+        organizationId={organizationId}
+        readOnly={readOnly}
+        onMonthSlotCountChange={handleMonthSlotCountChange}
+      />
+
+      <PostSubmitTemplatePickerModal
+        C={C}
+        open={templatePickerOpen && canAddStep && availableTypes.length > 0}
+        onClose={() => setTemplatePickerOpen(false)}
+        availableTypes={availableTypes}
+        onSelect={addAction}
+      />
 
       <ConfirmDialog
         C={C}

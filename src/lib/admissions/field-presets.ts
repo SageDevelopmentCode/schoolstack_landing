@@ -8,8 +8,15 @@ export const APPLICATION_FIELD_PRESETS: ApplicationFieldPreset[] = [
   { label: "Last Name", type: "text", required: true, width: "half" },
   { label: "Email", type: "email", required: true, width: "half" },
   { label: "Phone", type: "tel", required: false, width: "half" },
+  { label: "Home address", type: "address", required: true },
   { label: "Child's Name", type: "text", required: true },
-  { label: "Date of Birth", type: "date", required: true, width: "half" },
+  {
+    label: "Date of Birth",
+    type: "date",
+    required: true,
+    width: "half",
+    dateRange: "past",
+  },
   {
     label: "Grade Level",
     type: "select",
@@ -31,7 +38,12 @@ export const APPLICATION_FIELD_PRESETS: ApplicationFieldPreset[] = [
       { value: "half-day", label: "Half Day" },
     ],
   },
-  { label: "Preferred Start Date", type: "date", required: false },
+  {
+    label: "Preferred Start Date",
+    type: "date",
+    required: false,
+    dateRange: "future",
+  },
   { label: "Interested in Financial Aid", type: "checkbox", required: false },
   { label: "How did you hear about us?", type: "text", required: false },
   { label: "Supporting documents", type: "file", required: false },
@@ -56,6 +68,7 @@ export function fieldTypeLabel(type: ApplicationFieldType): string {
     { value: "radio", label: "Multiple choice" },
     { value: "checkbox", label: "Checkbox" },
     { value: "file", label: "File upload" },
+    { value: "address", label: "Address" },
   ].find((item) => item.value === type);
   return match?.label ?? type;
 }

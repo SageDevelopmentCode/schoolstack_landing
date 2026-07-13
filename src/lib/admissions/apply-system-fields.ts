@@ -2,6 +2,7 @@ import type {
   ApplicationField,
   ApplicationFormSchema,
   ApplicationSection,
+  ApplicationStepNotice,
 } from "./application-form-schema";
 import { newAdmissionsId } from "./application-form-schema";
 
@@ -22,6 +23,9 @@ export const APPLY_SYSTEM_PARENT_DESCRIPTION =
 export const APPLY_SYSTEM_ADMIN_CALLOUT =
   "These questions create a student record in your school directory when a family submits. They cannot be removed because admissions, submissions, and enrollment depend on consistent student data.";
 
+export const APPLY_SYSTEM_PARENT_STEP_NOTICE =
+  "You'll be able to apply for another child after this application gets submitted.";
+
 const GRADE_OPTIONS = [
   { value: "pk", label: "Pre-K" },
   { value: "k", label: "Kindergarten" },
@@ -38,6 +42,10 @@ const GRADE_OPTIONS = [
   { value: "11", label: "11th Grade" },
   { value: "12", label: "12th Grade" },
 ];
+
+function buildSystemStepNotice(): ApplicationStepNotice {
+  return { body: APPLY_SYSTEM_PARENT_STEP_NOTICE, placement: "top" };
+}
 
 function buildSystemField(id: ApplySystemFieldId): ApplicationField {
   switch (id) {
@@ -67,6 +75,7 @@ function buildSystemField(id: ApplySystemFieldId): ApplicationField {
         required: true,
         width: "half",
         system: true,
+        dateRange: "past",
       };
     case "student_grade":
       return {
@@ -103,6 +112,7 @@ export function buildApplySystemSection(): ApplicationSection {
     title: APPLY_SYSTEM_SECTION_TITLE,
     system: true,
     description: APPLY_SYSTEM_PARENT_DESCRIPTION,
+    stepNotice: buildSystemStepNotice(),
     fields: APPLY_SYSTEM_FIELD_IDS.map(buildSystemField),
   };
 }
@@ -137,7 +147,7 @@ function mergeSystemFields(section: ApplicationSection): ApplicationSection {
     system: true,
     title: section.title?.trim() || APPLY_SYSTEM_SECTION_TITLE,
     description: section.description?.trim() || APPLY_SYSTEM_PARENT_DESCRIPTION,
-    stepNotice: undefined,
+    stepNotice: buildSystemStepNotice(),
     fields: canonicalFields,
   };
 }

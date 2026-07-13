@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ClipboardList, FileText, Loader2, X } from "lucide-react";
+import { Check, FileText, Loader2, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { VariantResolutionMap } from "@/lib/admissions/enrollment-checklist-variants";
@@ -197,17 +197,6 @@ export default function StartEnrollmentModal({
                 </p>
               ) : preview ? (
                 <div className="space-y-5">
-                  <div
-                    className="rounded-md border px-3 py-2.5 text-sm"
-                    style={{
-                      borderColor: C.border,
-                      backgroundColor: C.elevated,
-                      color: C.textSecondary,
-                    }}
-                  >
-                    Checklist: <strong style={{ color: C.textPrimary }}>{preview.templateName}</strong>
-                  </div>
-
                   {preview.groups.map((group) => (
                     <div key={group.groupId} className="space-y-2">
                       <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
@@ -226,7 +215,7 @@ export default function StartEnrollmentModal({
                                   [group.groupId]: variant.id,
                                 }))
                               }
-                              className="flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors"
+                              className="flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors"
                               style={{
                                 borderColor: selected ? C.accent : C.border,
                                 backgroundColor: selected ? C.accentLight : C.elevated,
@@ -271,17 +260,11 @@ export default function StartEnrollmentModal({
                   ))}
 
                   {sharedSummary ? (
-                    <div
-                      className="rounded-md border px-3 py-2.5"
-                      style={{ borderColor: C.border, backgroundColor: C.bg }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <ClipboardList className="h-4 w-4" style={{ color: C.textTertiary }} />
-                        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
-                          Families will also complete
-                        </p>
-                      </div>
-                      <p className="mt-2 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
+                        Families will also complete
+                      </p>
+                      <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
                         {sharedSummary}
                       </p>
                     </div>

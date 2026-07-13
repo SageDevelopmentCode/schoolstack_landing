@@ -414,13 +414,32 @@ export default function EnrollmentChecklistItemEditor({
             amount_cents: item.payment.amountCents,
             required_to_submit: item.required,
           }}
+          enrollmentLineItems={item.payment.lineItems}
           readOnly={readOnly}
           onChange={(feeConfig) =>
             patch({
               payment: {
+                ...item.payment!,
                 label: feeConfig.label ?? item.payment!.label,
                 amountCents: feeConfig.amount_cents ?? item.payment!.amountCents,
               },
+            })
+          }
+          onEnrollmentLineItemsChange={(lineItems) =>
+            patch({
+              payment: lineItems
+                ? {
+                    ...item.payment!,
+                    lineItems,
+                    amountCents: lineItems.reduce(
+                      (sum, lineItem) => sum + lineItem.amountCents,
+                      0,
+                    ),
+                  }
+                : {
+                    label: item.payment!.label,
+                    amountCents: item.payment!.amountCents,
+                  },
             })
           }
         />

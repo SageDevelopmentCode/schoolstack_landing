@@ -14,8 +14,10 @@ export function CalendarGrid({
   onSelect,
   availableDates,
   minDate,
+  maxDate,
   editable = false,
   colors,
+  largeCells = false,
 }: {
   year: number;
   month: number;
@@ -23,10 +25,16 @@ export function CalendarGrid({
   onSelect: (date: string) => void;
   availableDates: Set<string>;
   minDate?: string;
+  maxDate?: string;
   /** Admin mode: any non-past date is selectable; availableDates only highlights configured days */
   editable?: boolean;
   colors?: CalendarGridColors;
+  /** Larger day cells for touch-friendly apply-form date picking */
+  largeCells?: boolean;
 }) {
+  const cellSizeClass = largeCells
+    ? "h-11 w-11 sm:h-10 sm:w-10"
+    : "h-10 w-10";
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = [
@@ -56,9 +64,12 @@ export function CalendarGrid({
         {cells.map((day, idx) => {
           if (!day) return <div key={`empty-${idx}`} />;
           const key = dateKey(year, month, day);
-          const isBeforeMin = minDate ? key < minDate : isPastDate(key);
+          const isBeforeMin = minDate ? key < minDate : !maxDate && isPastDate(key);
+          const isAfterMax = maxDate ? key > maxDate : false;
           const hasSlots = availableDates.has(key);
-          const isSelectable = editable ? !isBeforeMin : hasSlots && !isBeforeMin;
+          const isSelectable = editable
+            ? !isBeforeMin && !isAfterMax
+            : hasSlots && !isBeforeMin && !isAfterMax;
           const isSelected = selected === key;
 
           if (colors) {
@@ -68,7 +79,7 @@ export function CalendarGrid({
                 type="button"
                 disabled={!isSelectable}
                 onClick={() => isSelectable && onSelect(key)}
-                className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg text-[14px] font-medium font-secondary transition-all duration-150"
+                className={`mx-auto flex ${cellSizeClass} items-center justify-center rounded-lg text-[14px] font-medium font-secondary transition-all duration-150`}
                 style={
                   isSelected
                     ? { backgroundColor: colors.accent, color: "#FFFFFF" }
@@ -94,7 +105,7 @@ export function CalendarGrid({
               type="button"
               disabled={!isSelectable}
               onClick={() => isSelectable && onSelect(key)}
-              className={`mx-auto w-10 h-10 rounded-full text-[14px] font-medium font-secondary flex items-center justify-center transition-all duration-150 ${
+              className={`mx-auto ${cellSizeClass} rounded-full text-[14px] font-medium font-secondary flex items-center justify-center transition-all duration-150 ${
                 isSelected
                   ? "bg-accent text-white"
                   : isSelectable

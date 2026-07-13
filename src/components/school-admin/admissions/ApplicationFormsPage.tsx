@@ -113,7 +113,12 @@ function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentCheckl
         }
       : undefined,
     fileUpload: item.fileUpload ? { ...item.fileUpload } : undefined,
-    payment: item.payment ? { ...item.payment } : undefined,
+    payment: item.payment
+      ? {
+          ...item.payment,
+          lineItems: item.payment.lineItems?.map((lineItem) => ({ ...lineItem })),
+        }
+      : undefined,
     acknowledgment: item.acknowledgment
       ? {
           ...item.acknowledgment,
@@ -1215,7 +1220,7 @@ export default function ApplicationFormsPage({
                   }
                 >
                   <Link2 className="h-3.5 w-3.5" />
-                  {copiedLink ? "Copied" : "Copy link"}
+                  {copiedLink ? "Copied" : "Share with families"}
                 </button>
               ) : null}
               <button

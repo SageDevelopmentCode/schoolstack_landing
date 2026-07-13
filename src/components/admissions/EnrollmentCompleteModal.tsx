@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { PartyPopper, X } from "lucide-react";
 import { fireCelebrationConfetti } from "@/lib/celebration-confetti";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type EnrollmentCompleteModalProps = {
   C: AdminThemeTokens;
   open: boolean;
   schoolName: string;
+  schoolSlug: string;
   onClose: () => void;
 };
 
@@ -17,6 +20,7 @@ export default function EnrollmentCompleteModal({
   C,
   open,
   schoolName,
+  schoolSlug,
   onClose,
 }: EnrollmentCompleteModalProps) {
   useEffect(() => {
@@ -84,17 +88,13 @@ export default function EnrollmentCompleteModal({
             </p>
 
             <div className="mt-6 space-y-2">
-              <button
-                type="button"
-                disabled
-                className="w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white opacity-60"
-                style={{ backgroundColor: C.accent }}
+              <Link
+                href={`/school/${schoolSlug}/parent`}
+                className="block w-full rounded-md px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:opacity-90"
+                style={getAdminButtonStyle(C, "primary")}
               >
                 Go to parent dashboard
-              </button>
-              <p className="text-center text-xs" style={{ color: C.textTertiary }}>
-                Parent dashboard coming soon
-              </p>
+              </Link>
               <button
                 type="button"
                 onClick={onClose}

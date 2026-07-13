@@ -8,6 +8,7 @@ import type {
   ChecklistAcknowledgmentConfig,
   ChecklistFileUploadConfig,
   ChecklistItemType,
+  ChecklistPaymentLineItem,
   DocumentConfig,
   EnrollmentChecklistItem,
   InlineDocumentConfig,
@@ -16,11 +17,13 @@ import {
   createChecklistItemKeyForItem,
   isChecklistItemId,
   newChecklistItemId,
+  sumPaymentLineItems,
 } from "./enrollment-checklist-schema";
 import { validateVariantGroups } from "./enrollment-checklist-variants";
 
 const METADATA_DOCUMENT_TEMPLATE_ID = "documentTemplateId";
 const METADATA_FEE_DEFINITION_ID = "feeDefinitionId";
+export const METADATA_PAYMENT_LINE_ITEMS = "paymentLineItems";
 
 type TemplateItemRow = {
   id: string;
@@ -112,6 +115,25 @@ function fileUploadFromMetadata(
   };
 }
 
+function paymentLineItemsFromMetadata(
+  metadata: Record<string, unknown>,
+): ChecklistPaymentLineItem[] | undefined {
+  const raw = metadata[METADATA_PAYMENT_LINE_ITEMS];
+  if (!Array.isArray(raw)) return undefined;
+  const lineItems = raw
+    .filter(isRecord)
+    .map((item) => ({
+      id: String(item.id ?? ""),
+      label: String(item.label ?? ""),
+      amountCents:
+        typeof item.amountCents === "number" && Number.isFinite(item.amountCents)
+          ? item.amountCents
+          : 0,
+    }))
+    .filter((item) => item.id);
+  return lineItems.length > 0 ? lineItems : undefined;
+}
+
 function acknowledgmentFromMetadata(
   metadata: Record<string, unknown>,
 ): ChecklistAcknowledgmentConfig | undefined {
@@ -173,9 +195,11 @@ export function itemFromRow(row: TemplateItemRow): EnrollmentChecklistItem {
   }
 
   if (row.type === "payment" && row.fee_definitions) {
+    const lineItems = paymentLineItemsFromMetadata(metadata);
     item.payment = {
       label: row.fee_definitions.label,
       amountCents: row.fee_definitions.amount_cents,
+      ...(lineItems ? { lineItems } : {}),
     };
   }
 
@@ -196,6 +220,11 @@ function buildItemMetadata(item: EnrollmentChecklistItem): Record<string, unknow
   }
   if (item.type === "acknowledgment" && item.acknowledgment) {
     metadata.acknowledgment = item.acknowledgment;
+  }
+  if (item.type === "payment" && item.payment?.lineItems?.length) {
+    metadata[METADATA_PAYMENT_LINE_ITEMS] = item.payment.lineItems;
+  } else {
+    delete metadata[METADATA_PAYMENT_LINE_ITEMS];
   }
 
   return metadata;
@@ -404,6 +433,32 @@ export function validateEnrollmentChecklistItems(
           (item.payment.amountCents < 0 || !Number.isFinite(item.payment.amountCents))
         ) {
           errors.push(`"${item.label}" needs a valid payment amount.`);
+        }
+        if (item.payment?.lineItems?.length) {
+          if (item.payment.lineItems.length < 2) {
+            errors.push(
+              `"${item.label}" needs at least two fees when showing a breakdown.`,
+            );
+          }
+          for (const lineItem of item.payment.lineItems) {
+            if (!lineItem.label.trim()) {
+              errors.push(`"${item.label}" has a fee without a name.`);
+              break;
+            }
+            if (
+              lineItem.amountCents < 0 ||
+              !Number.isFinite(lineItem.amountCents)
+            ) {
+              errors.push(`"${item.label}" has a fee with an invalid amount.`);
+              break;
+            }
+          }
+          const lineItemTotal = sumPaymentLineItems(item.payment.lineItems);
+          if (lineItemTotal !== item.payment.amountCents) {
+            errors.push(
+              `"${item.label}" fee breakdown must add up to the total payment amount.`,
+            );
+          }
         }
         if (options?.paymentsReady === false) {
           errors.push(

@@ -67,6 +67,19 @@ export function formatApplicationFileSize(bytes: number | null): string | null {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+export function buildApplicationFileLimitLabel(
+  count: number,
+  maxFiles: number,
+): string {
+  if (count === 0) {
+    return `Up to ${maxFiles} file${maxFiles === 1 ? "" : "s"}`;
+  }
+  if (count >= maxFiles) {
+    return `${maxFiles} of ${maxFiles} files`;
+  }
+  return `${count} of ${maxFiles} files`;
+}
+
 export async function getApplicationFileSignedUrl(
   supabase: SupabaseClient,
   storagePath: string,

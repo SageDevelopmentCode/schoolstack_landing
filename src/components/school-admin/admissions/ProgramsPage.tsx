@@ -226,12 +226,12 @@ export default function ProgramsPage({
   };
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex h-full min-h-0" style={{ backgroundColor: C.surface }}>
       <div
         className="flex h-full min-h-0 w-[240px] flex-shrink-0 flex-col overflow-hidden"
         style={{
           borderRight: `1px solid ${C.border}`,
-          backgroundColor: C.bg,
+          backgroundColor: C.surface,
         }}
       >
         <div

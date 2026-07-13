@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Loader2, Upload } from "lucide-react";
-import ApplicationUploadedFileList from "@/components/admissions/ApplicationUploadedFileList";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { FileText, Loader2 } from "lucide-react";
+import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
+import PaymentFeeBreakdownList from "@/components/admissions/PaymentFeeBreakdownList";
 import TypedSignatureField, {
   parseStoredSignerName,
 } from "@/components/admissions/TypedSignatureField";
@@ -32,7 +34,7 @@ import {
   getEnrollmentChecklistPdfSignedUrl,
 } from "@/lib/admissions/enrollment-checklist-document-storage";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
-import { isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
+import { hasPaymentBreakdown, isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
@@ -80,6 +82,20 @@ function panelButtonStyle(C: AdminThemeTokens, disabled: boolean) {
 
 const PDF_VIEWER_HEIGHT_CLASS = "min-h-[560px] h-[min(720px,calc(100vh-240px))]";
 
+const sectionVariants = {
+  enter: (direction: number) => ({
+    opacity: 0,
+    x: direction > 0 ? 16 : -16,
+  }),
+  center: { opacity: 1, x: 0 },
+  exit: (direction: number) => ({
+    opacity: 0,
+    x: direction > 0 ? -16 : 16,
+  }),
+};
+
+const sectionTransition = { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
+
 function DocumentSignInlinePanel({
   C,
   item,
@@ -99,6 +115,7 @@ function DocumentSignInlinePanel({
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
   const [sectionIndex, setSectionIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
   const [signature, setSignature] = useState(() =>
     instanceStatus === "completed" ? parseStoredSignerName(existingResponses) : "",
   );
@@ -120,57 +137,72 @@ function DocumentSignInlinePanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
-          Section {sectionIndex + 1} of {sections.length}
-        </p>
-        <h2 className="mt-2 text-lg font-semibold" style={{ color: C.textPrimary }}>
-          {section.title}
-        </h2>
-        <p
-          className="mt-4 whitespace-pre-wrap text-sm leading-relaxed"
-          style={{ color: C.textPrimary }}
-        >
-          {section.body}
-        </p>
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
+          <motion.div
+            key={sectionIndex}
+            custom={direction}
+            variants={sectionVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={sectionTransition}
+          >
+            <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
+              Section {sectionIndex + 1} of {sections.length}
+            </p>
+            <h2 className="mt-2 text-lg font-semibold" style={{ color: C.textPrimary }}>
+              {section.title}
+            </h2>
+            <p
+              className="mt-4 whitespace-pre-wrap text-sm leading-relaxed"
+              style={{ color: C.textPrimary }}
+            >
+              {section.body}
+            </p>
 
-        <div className="mt-6">
-          <TypedSignatureField
-            C={C}
-            id={`signature-inline-${item.id}`}
-            value={signature}
-            onChange={setSignature}
-            disabled={!isLive || isCompleted}
-          />
-        </div>
+            <div className="mt-6">
+              <TypedSignatureField
+                C={C}
+                id={`signature-inline-${item.id}`}
+                value={signature}
+                onChange={setSignature}
+                disabled={!isLive || isCompleted}
+              />
+            </div>
 
-        {item.document?.kind === "inline_sections" && item.document.consentOptions?.length ? (
-          <div className="mt-4 space-y-2">
-            {item.document.consentOptions.map((option) => (
-              <label
-                key={option.value}
-                className="flex items-start gap-2 text-sm"
-                style={{ color: C.textPrimary }}
-              >
-                <input
-                  type="radio"
-                  name={`consent-${item.id}`}
-                  disabled={!isLive}
-                  className="mt-0.5"
-                  style={{ accentColor: C.accent }}
-                />
-                {option.label}
-              </label>
-            ))}
-          </div>
-        ) : null}
+            {item.document?.kind === "inline_sections" && item.document.consentOptions?.length ? (
+              <div className="mt-4 space-y-2">
+                {item.document.consentOptions.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex items-start gap-2 text-sm"
+                    style={{ color: C.textPrimary }}
+                  >
+                    <input
+                      type="radio"
+                      name={`consent-${item.id}`}
+                      disabled={!isLive}
+                      className="mt-0.5"
+                      style={{ accentColor: C.accent }}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            ) : null}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <div className="mt-4 flex shrink-0 items-center gap-3 border-t pt-4" style={{ borderColor: C.border }}>
         {sectionIndex > 0 ? (
           <button
             type="button"
-            onClick={() => setSectionIndex((idx) => idx - 1)}
+            onClick={() => {
+              setDirection(-1);
+              setSectionIndex((idx) => idx - 1);
+            }}
             className="rounded-md border px-4 py-2 text-sm font-medium"
             style={getAdminButtonStyle(C, "secondary")}
           >
@@ -182,6 +214,7 @@ function DocumentSignInlinePanel({
           disabled={(isLive && !signature.trim()) || submitting || isCompleted}
           onClick={async () => {
             if (!isLastSection) {
+              setDirection(1);
               setSectionIndex((idx) => idx + 1);
               setSignature("");
               return;
@@ -593,7 +626,6 @@ function FileUploadPanel({
   onComplete?: () => Promise<void> | void;
 }) {
   const supabase = useMemo(() => createClient(), []);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const config = item.fileUpload;
   const maxFiles = config?.maxFiles ?? 3;
   const isLive = mode === "live";
@@ -603,19 +635,6 @@ function FileUploadPanel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputDisabled = !isLive || uploading || isCompleted;
-  const atLimit = files.length >= maxFiles;
-  const canAddMore = !atLimit && !fileInputDisabled;
-  const limitLabel =
-    files.length === 0
-      ? `Up to ${maxFiles} file${maxFiles === 1 ? "" : "s"}`
-      : atLimit
-        ? `${maxFiles} of ${maxFiles} files`
-        : `${files.length} of ${maxFiles} files`;
-
-  function openFilePicker() {
-    if (fileInputDisabled || atLimit) return;
-    fileInputRef.current?.click();
-  }
 
   async function handleFileSelect(selected: FileList | null) {
     if (!selected?.length || !isLive || !organizationId || !instanceId || !checklistId) {
@@ -690,130 +709,28 @@ function FileUploadPanel({
     }
   }
 
-  const hiddenFileInput = (
-    <input
-      ref={fileInputRef}
-      type="file"
-      multiple={maxFiles > 1}
-      accept={config?.accept}
-      disabled={fileInputDisabled || atLimit}
-      className="hidden"
-      onChange={(event) => {
-        void handleFileSelect(event.target.files);
-        event.target.value = "";
-      }}
-    />
-  );
-
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
         {item.label}
       </h2>
 
-      {files.length === 0 ? (
-        <div
-          className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center"
-          style={{
-            borderColor: C.borderStrong,
-            backgroundColor: "#FFFFFF",
-            opacity: fileInputDisabled ? 0.7 : 1,
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            if (fileInputDisabled || atLimit) return;
-            void handleFileSelect(event.dataTransfer.files);
-          }}
-          onClick={openFilePicker}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              openFilePicker();
-            }
-          }}
-          role="button"
-          tabIndex={fileInputDisabled ? -1 : 0}
-          aria-disabled={fileInputDisabled}
-        >
-          <Upload className="mb-3 h-8 w-8" style={{ color: C.textQuaternary }} />
-          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-            Drop files here or click to upload
-          </p>
-          <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
-            {config?.helpText || "Upload required documents."}
-          </p>
-          {config?.accept ? (
-            <p className="mt-2 text-[11px]" style={{ color: C.textTertiary }}>
-              Accepted: {config.accept}
-            </p>
-          ) : null}
-          <p className="mt-2 text-[11px] font-medium" style={{ color: C.textSecondary }}>
-            {limitLabel}
-          </p>
-          {hiddenFileInput}
-          <button
-            type="button"
-            disabled={fileInputDisabled}
-            onClick={(event) => {
-              event.stopPropagation();
-              openFilePicker();
-            }}
-            className="mt-4 rounded-md px-4 py-2 text-sm font-semibold text-white"
-            style={panelButtonStyle(C, fileInputDisabled)}
-          >
-            {uploading ? "Uploading…" : "Choose files"}
-            {!isLive ? " (preview)" : ""}
-          </button>
-        </div>
-      ) : (
-        <div
-          className="rounded-lg border px-4 py-4"
-          style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-        >
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-              Uploaded files
-            </p>
-            <p className="text-xs" style={{ color: C.textTertiary }}>
-              {limitLabel}
-              {atLimit ? " · maximum reached" : ""}
-            </p>
-          </div>
-          <ApplicationUploadedFileList
-            files={files}
-            C={C}
-            supabase={supabase}
-            removable={isLive && !isCompleted}
-            onRemove={handleRemoveFile}
-          />
-          {hiddenFileInput}
-          {canAddMore ? (
-            <button
-              type="button"
-              disabled={uploading}
-              onClick={openFilePicker}
-              className="mt-4 rounded-md border px-4 py-2 text-sm font-semibold"
-              style={{
-                ...getAdminButtonStyle(C, "neutral"),
-                opacity: uploading ? 0.7 : 1,
-                cursor: uploading ? "not-allowed" : "pointer",
-              }}
-            >
-              {uploading ? "Uploading…" : "Add another file"}
-              {!isLive ? " (preview)" : ""}
-            </button>
-          ) : null}
-        </div>
-      )}
-
-      {error ? (
-        <p className="text-sm" style={{ color: C.error }}>
-          {error}
-        </p>
-      ) : null}
+      <ApplicationFileUploadField
+        id={`checklist-file-upload-${item.id}`}
+        files={files}
+        maxFiles={maxFiles}
+        accept={config?.accept}
+        helpText={config?.helpText || "Upload required documents."}
+        disabled={fileInputDisabled}
+        uploading={uploading}
+        error={error}
+        previewSuffix={!isLive ? " (preview)" : ""}
+        C={C}
+        supabase={supabase}
+        removable={isLive && !isCompleted}
+        onSelectFiles={handleFileSelect}
+        onRemoveFile={handleRemoveFile}
+      />
 
       <button
         type="button"
@@ -854,6 +771,7 @@ function PaymentPanel({
   const isCompleted = instanceStatus === "completed" || instancePaymentStatus === "paid";
   const payment = item.payment;
   const amount = formatFeeAmount(payment?.amountCents ?? 0);
+  const showBreakdown = hasPaymentBreakdown(payment);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -894,12 +812,22 @@ function PaymentPanel({
         className="rounded-lg border px-4 py-4"
         style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
       >
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Amount due
-        </p>
-        <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
-          {amount}
-        </p>
+        {showBreakdown ? (
+          <PaymentFeeBreakdownList
+            C={C}
+            lineItems={payment.lineItems}
+            totalCents={payment.amountCents}
+          />
+        ) : (
+          <>
+            <p className="text-sm" style={{ color: C.textSecondary }}>
+              Amount due
+            </p>
+            <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
+              {amount}
+            </p>
+          </>
+        )}
       </div>
       {error ? (
         <p className="text-sm" style={{ color: C.error }}>
@@ -925,6 +853,7 @@ function PaymentPanel({
         }}
         netAmountCents={payment?.amountCents ?? 0}
         label={payment?.label || item.label}
+        lineItems={payment?.lineItems}
         loading={submitting}
         onConfirm={handleConfirmPayment}
       />

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import ApplicationUploadedFileList from "@/components/admissions/ApplicationUploadedFileList";
+import ReadOnlyAnswerBacking from "@/components/admissions/ReadOnlyAnswerBacking";
+import PaymentFeeBreakdownList from "@/components/admissions/PaymentFeeBreakdownList";
 import {
   parseApplicationFileFieldValue,
 } from "@/lib/admissions/application-file-storage";
@@ -21,6 +23,7 @@ import type {
   EnrollmentChecklistItem,
   EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
+import { hasPaymentBreakdown } from "@/lib/admissions/enrollment-checklist-schema";
 import { parseStoredSignerName } from "@/components/admissions/TypedSignatureField";
 import { greatVibes } from "@/lib/fonts";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -68,17 +71,20 @@ function ReadOnlyField({
       </dt>
       <dd
         className={`text-sm leading-relaxed ${field.type === "file" ? "" : "whitespace-pre-wrap"}`}
-        style={{ color: C.textPrimary }}
       >
-        {field.type === "file" ? (
-          fileValue.length > 0 ? (
-            <ApplicationUploadedFileList files={fileValue} C={C} />
-          ) : (
-            "—"
-          )
-        ) : (
-          formatFieldValue(field, value)
-        )}
+        <ReadOnlyAnswerBacking C={C}>
+          <div style={{ color: C.textPrimary }}>
+            {field.type === "file" ? (
+              fileValue.length > 0 ? (
+                <ApplicationUploadedFileList files={fileValue} C={C} />
+              ) : (
+                "—"
+              )
+            ) : (
+              formatFieldValue(field, value)
+            )}
+          </div>
+        </ReadOnlyAnswerBacking>
       </dd>
     </div>
   );
@@ -107,10 +113,7 @@ function ReadOnlySignature({
       >
         Signature
       </p>
-      <div
-        className="flex min-h-[72px] flex-col justify-center rounded-md border px-4 py-4"
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-      >
+      <ReadOnlyAnswerBacking C={C} className="flex min-h-[72px] flex-col justify-center">
         <p
           className={`${greatVibes.className} break-words text-2xl leading-tight sm:text-3xl`}
           style={{
@@ -120,7 +123,7 @@ function ReadOnlySignature({
         >
           {signerName || "—"}
         </p>
-      </div>
+      </ReadOnlyAnswerBacking>
     </div>
   );
 }
@@ -385,6 +388,7 @@ function PaymentReadOnly({
 }) {
   const payment = item.payment;
   const amount = formatFeeAmount(payment?.amountCents ?? 0);
+  const showBreakdown = hasPaymentBreakdown(payment);
   const isPaid =
     instance?.status === "completed" || instance?.paymentStatus === "paid";
   const isPending = instance?.paymentStatus === "pending";
@@ -400,23 +404,30 @@ function PaymentReadOnly({
 
   return (
     <div className="space-y-4">
-      <div
-        className="rounded-lg border px-4 py-4"
-        style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-      >
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Amount due
-        </p>
-        <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
-          {amount}
-        </p>
+      <ReadOnlyAnswerBacking C={C} className="px-4 py-4">
+        {showBreakdown && payment ? (
+          <PaymentFeeBreakdownList
+            C={C}
+            lineItems={payment.lineItems}
+            totalCents={payment.amountCents}
+          />
+        ) : (
+          <>
+            <p className="text-sm" style={{ color: C.textSecondary }}>
+              Amount due
+            </p>
+            <p className="mt-1 text-2xl font-semibold" style={{ color: C.textPrimary }}>
+              {amount}
+            </p>
+          </>
+        )}
         <p
           className="mt-2 text-sm font-medium"
           style={{ color: isPaid ? C.success : C.textSecondary }}
         >
           {statusLabel}
         </p>
-      </div>
+      </ReadOnlyAnswerBacking>
     </div>
   );
 }

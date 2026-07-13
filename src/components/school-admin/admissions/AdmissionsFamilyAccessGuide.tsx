@@ -102,8 +102,8 @@ function buildApplySteps(
       pathChip: displayPath,
       description: (
         <>
-          Publish this form, then use <strong>Copy link</strong> to share it with
-          families by email, your website, or social media.
+          Publish this form, then use <strong>Share with families</strong> to copy the
+          link and share it with families by email, your website, or social media.
           {!isPublished ? (
             <> The link won&apos;t work until this form is published.</>
           ) : null}
@@ -385,7 +385,7 @@ function ShareLinkToolbarIllustration({
         C={C}
         variant={copiedLink ? "success" : "accentMid"}
         icon={Link2}
-        label={copiedLink ? "Copied" : "Copy link"}
+        label={copiedLink ? "Copied" : "Share with families"}
         prominent
         onClick={onCopyLink}
         disabled={copyDisabled}

@@ -5,11 +5,17 @@ import { useMemo } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ApplicationUploadedFileList from "@/components/admissions/ApplicationUploadedFileList";
+import ReadOnlyAnswerBacking from "@/components/admissions/ReadOnlyAnswerBacking";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
 import { parseApplicationFileFieldValue } from "@/lib/admissions/application-file-storage";
+import {
+  formatApplicationAddress,
+  isApplicationAddressEmpty,
+  parseApplicationAddressFieldValue,
+} from "@/lib/admissions/application-address";
 import { type ApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import type {
   ApplicationField,
@@ -17,8 +23,11 @@ import type {
   ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
 import { formatPhoneNumberInput } from "@/lib/phone-format";
+import { formatSelectedDate } from "@/lib/demo-scheduler";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+
+type ReadOnlyLayout = "page" | "detail";
 
 type ApplicationReadOnlyViewProps = {
   branding: OrganizationBranding;
@@ -26,6 +35,7 @@ type ApplicationReadOnlyViewProps = {
   schoolSlug: string;
   application: ApplicationDetail;
   embedded?: boolean;
+  layout?: ReadOnlyLayout;
   view?: "full" | "section" | "acknowledgments";
   sectionId?: string;
 };
@@ -46,38 +56,78 @@ function formatFieldValue(field: ApplicationField, value: string | undefined): s
     return formatPhoneNumberInput(value);
   }
 
+  if (field.type === "date" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatSelectedDate(value);
+  }
+
+  if (field.type === "address") {
+    const address = parseApplicationAddressFieldValue(value);
+    if (isApplicationAddressEmpty(address)) return "—";
+    return formatApplicationAddress(address);
+  }
+
   return value;
+}
+
+function isEmptyFieldValue(field: ApplicationField, value: string | undefined): boolean {
+  if (!value) return true;
+  if (field.type === "file") {
+    return parseApplicationFileFieldValue(value).length === 0;
+  }
+  if (field.type === "address") {
+    return isApplicationAddressEmpty(parseApplicationAddressFieldValue(value));
+  }
+  return false;
 }
 
 function ReadOnlyField({
   field,
   value,
   C,
+  layout,
 }: {
   field: ApplicationField;
   value: string | undefined;
   C: ReturnType<typeof buildAdminThemeTokens>;
+  layout: ReadOnlyLayout;
 }) {
   const fileValue =
     field.type === "file" ? parseApplicationFileFieldValue(value ?? "") : [];
+  const formattedValue = formatFieldValue(field, value);
+  const isEmpty = isEmptyFieldValue(field, value);
+
+  const labelClassName =
+    layout === "detail" ? "text-[13px] leading-snug" : "text-sm font-medium leading-snug";
+
+  const answerContent =
+    field.type === "file" ? (
+      fileValue.length > 0 ? (
+        <ApplicationUploadedFileList files={fileValue} C={C} />
+      ) : (
+        "—"
+      )
+    ) : (
+      formattedValue
+    );
 
   return (
     <div className="flex flex-col gap-1">
-      <dt className="text-xs font-medium uppercase tracking-wide" style={{ color: C.textQuaternary }}>
+      <dt
+        className={labelClassName}
+        style={{ color: layout === "detail" ? C.textTertiary : C.textSecondary }}
+      >
         {field.label}
       </dt>
       <dd
-        className={`text-sm leading-relaxed ${field.type === "file" ? "" : "whitespace-pre-wrap"}`}
-        style={{ color: C.textPrimary }}
+        className={`${layout === "detail" ? "text-sm font-medium leading-relaxed" : "text-sm leading-relaxed"} ${field.type === "file" ? "" : "whitespace-pre-wrap"}`}
+        style={layout === "detail" ? undefined : { color: isEmpty ? C.textTertiary : C.textPrimary }}
       >
-        {field.type === "file" ? (
-          fileValue.length > 0 ? (
-            <ApplicationUploadedFileList files={fileValue} C={C} />
-          ) : (
-            "—"
-          )
+        {layout === "detail" ? (
+          <ReadOnlyAnswerBacking C={C}>
+            <div style={{ color: isEmpty ? C.textTertiary : C.textPrimary }}>{answerContent}</div>
+          </ReadOnlyAnswerBacking>
         ) : (
-          formatFieldValue(field, value)
+          answerContent
         )}
       </dd>
     </div>
@@ -88,11 +138,41 @@ function ReadOnlySection({
   section,
   responses,
   C,
+  layout,
 }: {
   section: ApplicationSection;
   responses: Record<string, string>;
   C: ReturnType<typeof buildAdminThemeTokens>;
+  layout: ReadOnlyLayout;
 }) {
+  if (layout === "detail") {
+    const visibleFields = section.fields.filter(
+      (field) => field.required || !isEmptyFieldValue(field, responses[field.id]),
+    );
+
+    return (
+      <section>
+        {section.description ? (
+          <p className="mb-5 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+            {section.description}
+          </p>
+        ) : null}
+        <dl className="space-y-5">
+          {visibleFields.map((field) => (
+            <div key={field.id}>
+              <ReadOnlyField
+                field={field}
+                value={responses[field.id]}
+                C={C}
+                layout={layout}
+              />
+            </div>
+          ))}
+        </dl>
+      </section>
+    );
+  }
+
   return (
     <section>
       <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
@@ -107,9 +187,13 @@ function ReadOnlySection({
         {section.fields.map((field) => (
           <div
             key={field.id}
-            className={field.width === "half" ? "sm:col-span-1" : "sm:col-span-2"}
+            className={
+              field.type === "address" || field.width !== "half"
+                ? "sm:col-span-2"
+                : "sm:col-span-1"
+            }
           >
-            <ReadOnlyField field={field} value={responses[field.id]} C={C} />
+            <ReadOnlyField field={field} value={responses[field.id]} C={C} layout={layout} />
           </div>
         ))}
       </dl>
@@ -122,13 +206,39 @@ function ReadOnlyAcknowledgments({
   acknowledgments,
   C,
   pageBg,
+  layout,
 }: {
   schema: ApplicationFormSchema;
   acknowledgments: Record<string, boolean>;
   C: ReturnType<typeof buildAdminThemeTokens>;
   pageBg: string;
+  layout: ReadOnlyLayout;
 }) {
   if (schema.acknowledgments.length === 0) return null;
+
+  if (layout === "detail") {
+    return (
+      <section>
+        <ul className="space-y-4">
+          {schema.acknowledgments.map((item) => (
+            <li key={item.id}>
+              <ReadOnlyAnswerBacking C={C} className="flex items-start gap-3">
+                <CheckCircle2
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  style={{
+                    color: acknowledgments[item.id] ? C.success : C.textQuaternary,
+                  }}
+                />
+                <span className="text-sm leading-relaxed" style={{ color: C.textPrimary }}>
+                  {item.label}
+                </span>
+              </ReadOnlyAnswerBacking>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
 
   return (
     <section>
@@ -162,6 +272,7 @@ function ReadOnlyContent({
   acknowledgments,
   C,
   pageBg,
+  layout,
   view = "full",
   sectionId,
 }: {
@@ -170,6 +281,7 @@ function ReadOnlyContent({
   acknowledgments: Record<string, boolean>;
   C: ReturnType<typeof buildAdminThemeTokens>;
   pageBg: string;
+  layout: ReadOnlyLayout;
   view?: "full" | "section" | "acknowledgments";
   sectionId?: string;
 }) {
@@ -178,7 +290,7 @@ function ReadOnlyContent({
     if (!section) return null;
 
     return (
-      <ReadOnlySection section={section} responses={responses} C={C} />
+      <ReadOnlySection section={section} responses={responses} C={C} layout={layout} />
     );
   }
 
@@ -189,6 +301,7 @@ function ReadOnlyContent({
         acknowledgments={acknowledgments}
         C={C}
         pageBg={pageBg}
+        layout={layout}
       />
     );
   }
@@ -201,6 +314,7 @@ function ReadOnlyContent({
           section={section}
           responses={responses}
           C={C}
+          layout={layout}
         />
       ))}
       <ReadOnlyAcknowledgments
@@ -208,6 +322,7 @@ function ReadOnlyContent({
         acknowledgments={acknowledgments}
         C={C}
         pageBg={pageBg}
+        layout={layout}
       />
     </div>
   );
@@ -219,6 +334,7 @@ function ApplicationReadOnlyBody({
   schoolSlug,
   application,
   embedded = false,
+  layout = "page",
   view = "full",
   sectionId,
 }: ApplicationReadOnlyViewProps) {
@@ -293,6 +409,7 @@ function ApplicationReadOnlyBody({
           acknowledgments={application.acknowledgments}
           C={C}
           pageBg={pageBg}
+          layout={layout}
           view={view}
           sectionId={sectionId}
         />

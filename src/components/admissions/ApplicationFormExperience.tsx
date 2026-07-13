@@ -735,16 +735,18 @@ function SectionStep({
         <ApplicationStepNotice body={topNotice} C={C} className="mt-5" />
       ) : null}
       <div className="mt-5 grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2">
-        {section.fields.map((field) => (
-          <label
-            key={field.id}
-            className={
-              field.width === "half"
-                ? "block min-w-0"
-                : "block min-w-0 sm:col-span-2"
-            }
-          >
-            {field.type !== "checkbox" && (
+        {section.fields.map((field) => {
+          const isAddress = field.type === "address";
+          const isRadio = field.type === "radio";
+          const useDivWrapper = isAddress || isRadio;
+          const wrapperClassName = useDivWrapper
+            ? "block min-w-0 sm:col-span-2"
+            : field.width === "half"
+              ? "block min-w-0"
+              : "block min-w-0 sm:col-span-2";
+
+          const fieldLabel =
+            field.type !== "checkbox" ? (
               <span
                 className="mb-1.5 flex items-center justify-between gap-2 text-sm font-medium"
                 style={{ color: C.textPrimary }}
@@ -768,7 +770,9 @@ function SectionStep({
                   </button>
                 ) : null}
               </span>
-            )}
+            ) : null;
+
+          const fieldInput = (
             <ApplicationFieldInput
               field={field}
               value={values[field.id] ?? ""}
@@ -777,8 +781,24 @@ function SectionStep({
               supabase={supabase}
               uploadContext={uploadContext}
             />
-          </label>
-        ))}
+          );
+
+          if (useDivWrapper) {
+            return (
+              <div key={field.id} className={wrapperClassName}>
+                {fieldLabel}
+                {fieldInput}
+              </div>
+            );
+          }
+
+          return (
+            <label key={field.id} className={wrapperClassName}>
+              {fieldLabel}
+              {fieldInput}
+            </label>
+          );
+        })}
       </div>
       {bottomNotice ? (
         <ApplicationStepNotice body={bottomNotice} C={C} className="mt-5" />

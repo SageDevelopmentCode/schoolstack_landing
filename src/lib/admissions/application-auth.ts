@@ -18,6 +18,32 @@ export async function userIsOrgAdmin(
   return Boolean(data);
 }
 
+export async function getFamilyIdsForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("guardians")
+    .select("family_id")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId);
+
+  if (error) throw error;
+  return (data ?? []).map((row) => String(row.family_id));
+}
+
+export function applicationOwnershipFilter(
+  userId: string,
+  familyIds: string[],
+): string {
+  if (familyIds.length === 0) {
+    return `created_by_user_id.eq.${userId}`;
+  }
+
+  return `family_id.in.(${familyIds.join(",")}),created_by_user_id.eq.${userId}`;
+}
+
 export async function userOwnsApplication(
   supabase: SupabaseClient,
   userId: string,

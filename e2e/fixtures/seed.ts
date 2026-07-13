@@ -8,6 +8,7 @@ import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "@/lib/organization-settings/
 import {
   E2E_ADMIN_EMAIL,
   E2E_NONADMIN_EMAIL,
+  E2E_OTHER_PARENT_EMAIL,
   E2E_PARENT_EMAIL,
   E2E_TEST_PASSWORD,
   TEST_ORG_SLUG,
@@ -131,6 +132,210 @@ async function getOrganizationId(
   return data.id;
 }
 
+type ApplicationFormContext = {
+  programId: string;
+  formVersionId: string;
+};
+
+async function ensureE2eApplicationFormContext(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+): Promise<ApplicationFormContext> {
+  const { data: existingProgram, error: programLookupError } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  if (programLookupError) throw programLookupError;
+
+  let programId = existingProgram?.id as string | undefined;
+  if (!programId) {
+    const { data: program, error: programInsertError } = await admin
+      .from("programs")
+      .insert({
+        organization_id: organizationId,
+        name: "E2E Program",
+        type: "school_year",
+        status: "open",
+      })
+      .select("id")
+      .single();
+
+    if (programInsertError) throw programInsertError;
+    programId = program.id as string;
+  }
+
+  const { data: existingForm, error: formLookupError } = await admin
+    .from("application_form_versions")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("status", "published")
+    .limit(1)
+    .maybeSingle();
+
+  if (formLookupError) throw formLookupError;
+
+  let formVersionId = existingForm?.id as string | undefined;
+  if (!formVersionId) {
+    const { data: formVersion, error: formInsertError } = await admin
+      .from("application_form_versions")
+      .insert({
+        organization_id: organizationId,
+        program_id: programId,
+        version: 1,
+        status: "published",
+        title: "E2E Application",
+        schema: {},
+        fee_config: {},
+        published_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (formInsertError) throw formInsertError;
+    formVersionId = formVersion.id as string;
+  }
+
+  return { programId, formVersionId };
+}
+
+type SeedParentApplicationInput = {
+  organizationId: string;
+  userId: string;
+  email: string;
+  familyName: string;
+  studentName: string;
+  formContext: ApplicationFormContext;
+};
+
+async function seedParentApplication(
+  admin: ReturnType<typeof createAdminClient>,
+  {
+    organizationId,
+    userId,
+    email,
+    familyName,
+    studentName,
+    formContext,
+  }: SeedParentApplicationInput,
+): Promise<void> {
+  const { error: membershipError } = await admin
+    .from("organization_memberships")
+    .upsert(
+      {
+        organization_id: organizationId,
+        user_id: userId,
+        role: "parent",
+        status: "active",
+      },
+      { onConflict: "organization_id,user_id" },
+    );
+
+  if (membershipError) throw membershipError;
+
+  const { data: existingFamily, error: familyLookupError } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("primary_email", email)
+    .maybeSingle();
+
+  if (familyLookupError) throw familyLookupError;
+
+  let familyId = existingFamily?.id as string | undefined;
+  if (!familyId) {
+    const { data: family, error: familyInsertError } = await admin
+      .from("families")
+      .insert({
+        organization_id: organizationId,
+        name: familyName,
+        primary_email: email,
+      })
+      .select("id")
+      .single();
+
+    if (familyInsertError) throw familyInsertError;
+    familyId = family.id as string;
+  }
+
+  const { data: existingGuardian, error: guardianLookupError } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (guardianLookupError) throw guardianLookupError;
+
+  let guardianId = existingGuardian?.id as string | undefined;
+  if (!guardianId) {
+    const { data: guardian, error: guardianInsertError } = await admin
+      .from("guardians")
+      .insert({
+        organization_id: organizationId,
+        family_id: familyId,
+        user_id: userId,
+        first_name: "E2E",
+        last_name: "Parent",
+        email,
+        relationship: "parent",
+      })
+      .select("id")
+      .single();
+
+    if (guardianInsertError) throw guardianInsertError;
+    guardianId = guardian.id as string;
+  }
+
+  const [studentFirstName, ...studentLastParts] = studentName.split(" ");
+  const studentLastName = studentLastParts.join(" ") || "Student";
+  const responses = {
+    student_first_name: studentFirstName,
+    student_last_name: studentLastName,
+  };
+
+  const { data: existingApplication, error: applicationLookupError } = await admin
+    .from("applications")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("created_by_user_id", userId)
+    .maybeSingle();
+
+  if (applicationLookupError) throw applicationLookupError;
+
+  if (existingApplication?.id) {
+    const { error: applicationUpdateError } = await admin
+      .from("applications")
+      .update({
+        family_id: familyId,
+        primary_guardian_id: guardianId,
+        responses,
+        status: "submitted",
+        submitted_at: new Date().toISOString(),
+      })
+      .eq("id", existingApplication.id);
+
+    if (applicationUpdateError) throw applicationUpdateError;
+    return;
+  }
+
+  const { error: applicationInsertError } = await admin.from("applications").insert({
+    organization_id: organizationId,
+    program_id: formContext.programId,
+    form_version_id: formContext.formVersionId,
+    family_id: familyId,
+    primary_guardian_id: guardianId,
+    created_by_user_id: userId,
+    status: "submitted",
+    submitted_at: new Date().toISOString(),
+    responses,
+  });
+
+  if (applicationInsertError) throw applicationInsertError;
+}
+
 export async function seedE2eDatabase(): Promise<void> {
   const admin = createAdminClient();
   const organizationId = await getOrganizationId(admin);
@@ -141,6 +346,10 @@ export async function seedE2eDatabase(): Promise<void> {
   });
   const parentUserId = await ensureAuthUser(admin, {
     email: E2E_PARENT_EMAIL,
+    password: E2E_TEST_PASSWORD,
+  });
+  const otherParentUserId = await ensureAuthUser(admin, {
+    email: E2E_OTHER_PARENT_EMAIL,
     password: E2E_TEST_PASSWORD,
   });
   await ensureAuthUser(admin, {
@@ -237,4 +446,24 @@ export async function seedE2eDatabase(): Promise<void> {
     and f.organization_id = '${organizationId}'
     and f.primary_email = '${E2E_PARENT_EMAIL}';
   `);
+
+  const formContext = await ensureE2eApplicationFormContext(admin, organizationId);
+
+  await seedParentApplication(admin, {
+    organizationId,
+    userId: parentUserId,
+    email: E2E_PARENT_EMAIL,
+    familyName: "E2E Parent A Family",
+    studentName: "Alpha Child",
+    formContext,
+  });
+
+  await seedParentApplication(admin, {
+    organizationId,
+    userId: otherParentUserId,
+    email: E2E_OTHER_PARENT_EMAIL,
+    familyName: "E2E Parent B Family",
+    studentName: "Beta Child",
+    formContext,
+  });
 }

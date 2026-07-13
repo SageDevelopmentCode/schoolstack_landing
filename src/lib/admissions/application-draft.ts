@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  applicationOwnershipFilter,
+  getFamilyIdsForUser,
+} from "./application-auth";
 
 const PROGRESS_KEY = "__progress";
 
@@ -137,13 +141,17 @@ export async function saveApplicationDraft(
 export async function familyHasOtherApplications(
   supabase: SupabaseClient,
   organizationId: string,
+  userId: string,
   excludeApplicationId: string,
 ): Promise<boolean> {
+  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+
   const { count, error } = await supabase
     .from("applications")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", organizationId)
-    .neq("id", excludeApplicationId);
+    .neq("id", excludeApplicationId)
+    .or(applicationOwnershipFilter(userId, familyIds));
 
   if (error) {
     throw new ApplicationDraftError(error.message, "load_failed");

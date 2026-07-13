@@ -19,6 +19,28 @@ const PERSONA_LABELS: Record<TimelinePersona, string> = {
   teacher: "Teacher",
 };
 
+const COMPLETE_GREEN = "#22C55E";
+
+function stepCircleStyle(
+  isActive: boolean,
+  isComplete: boolean,
+  accentSolid: string,
+) {
+  if (isComplete) {
+    return {
+      backgroundColor: COMPLETE_GREEN,
+      color: "#ffffff",
+      border: "none",
+    };
+  }
+
+  return {
+    backgroundColor: isActive ? accentSolid : "white",
+    color: isActive ? "#ffffff" : ROOTED_MEADOWS_TIMELINE_THEME.textSecondary,
+    border: isActive ? "none" : `1px solid ${ROOTED_MEADOWS_TIMELINE_THEME.border}`,
+  };
+}
+
 function phaseAccent(phase: TimelinePhase) {
   if (phase.accent === "olive") {
     return {
@@ -84,12 +106,13 @@ export default function RootedMeadowsTimelinePhases({
             {ROOTED_MEADOWS_TIMELINE_PHASES.map((step, i) => {
               const stepAccent = phaseAccent(step);
               const countdown = getPhaseCountdown(step.startDate, step.endDate);
+              const isComplete = countdown.status === "complete";
               return (
                 <button
                   key={step.id}
                   type="button"
                   onClick={() => onPhaseSelect(i)}
-                  className="font-secondary h-9 shrink-0 cursor-pointer rounded-full px-3.5 text-[11px] font-semibold transition-all duration-200"
+                  className="font-secondary inline-flex h-9 shrink-0 cursor-pointer items-center gap-1 rounded-full px-3.5 text-[11px] font-semibold transition-all duration-200"
                   style={{
                     backgroundColor:
                       activePhase === i ? stepAccent.solid : "white",
@@ -100,7 +123,15 @@ export default function RootedMeadowsTimelinePhases({
                     border: `1px solid ${activePhase === i ? stepAccent.solid : ROOTED_MEADOWS_TIMELINE_THEME.border}`,
                   }}
                 >
-                  {step.number} · {step.title} · {countdown.compactLabel}
+                  {isComplete ? (
+                    <Check size={11} strokeWidth={2.5} aria-hidden />
+                  ) : (
+                    step.number
+                  )}
+                  <span aria-hidden>·</span>
+                  {step.title}
+                  <span aria-hidden>·</span>
+                  {countdown.compactLabel}
                 </button>
               );
             })}
@@ -121,6 +152,12 @@ export default function RootedMeadowsTimelinePhases({
                 const isActive = activePhase === i;
                 const stepAccent = phaseAccent(step);
                 const countdown = getPhaseCountdown(step.startDate, step.endDate);
+                const isComplete = countdown.status === "complete";
+                const circleStyle = stepCircleStyle(
+                  isActive,
+                  isComplete,
+                  stepAccent.solid,
+                );
                 return (
                   <button
                     key={step.id}
@@ -136,19 +173,21 @@ export default function RootedMeadowsTimelinePhases({
                   >
                     <span
                       className="font-secondary relative z-10 mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-all duration-200"
-                      style={{
-                        backgroundColor: isActive
-                          ? stepAccent.solid
-                          : "white",
-                        color: isActive
-                          ? "#ffffff"
-                          : ROOTED_MEADOWS_TIMELINE_THEME.textSecondary,
-                        border: isActive
-                          ? "none"
-                          : `1px solid ${ROOTED_MEADOWS_TIMELINE_THEME.border}`,
-                      }}
+                      style={circleStyle}
+                      aria-label={
+                        isComplete ? `Phase ${i + 1} complete` : undefined
+                      }
                     >
-                      {i + 1}
+                      {isComplete ? (
+                        <Check
+                          size={12}
+                          strokeWidth={2.5}
+                          style={{ color: circleStyle.color }}
+                          aria-hidden
+                        />
+                      ) : (
+                        i + 1
+                      )}
                     </span>
                     <div className="min-w-0">
                       <span

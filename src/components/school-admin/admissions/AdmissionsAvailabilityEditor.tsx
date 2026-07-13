@@ -247,12 +247,6 @@ export default function AdmissionsAvailabilityEditor({
         </p>
       ) : null}
 
-      <p className="text-xs leading-relaxed" style={{ color: C.textTertiary }}>
-        Toggle open 30-minute time slots for each day. All scheduling templates share
-        this availability; each template&apos;s duration controls how many consecutive
-        slots a family books. Times are in {timezoneLabel}.
-      </p>
-
       <div
         className={
           compactLayout

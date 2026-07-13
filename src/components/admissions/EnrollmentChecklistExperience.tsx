@@ -74,6 +74,26 @@ function resolveInitialItemId(
   return items[0].id;
 }
 
+function findNextIncompleteItemId(
+  items: EnrollmentChecklistItem[],
+  instances: EnrollmentChecklistItemInstance[],
+  currentItemId: string,
+): string | null {
+  const statusByTemplateId = new Map(
+    instances.map((instance) => [instance.templateItemId, instance.status]),
+  );
+  const currentIndex = items.findIndex((item) => item.id === currentItemId);
+  if (currentIndex === -1) return null;
+
+  for (let index = currentIndex + 1; index < items.length; index += 1) {
+    const item = items[index];
+    if (statusByTemplateId.get(item.id) !== "completed") {
+      return item.id;
+    }
+  }
+  return null;
+}
+
 export default function EnrollmentChecklistExperience({
   branding,
   schoolName,
@@ -127,6 +147,11 @@ export default function EnrollmentChecklistExperience({
     );
     setLocalInstances(nextInstances);
     onInstancesChange?.(nextInstances);
+
+    const nextItemId = findNextIncompleteItemId(items, nextInstances, activeItem.id);
+    if (nextItemId) {
+      setActiveItemId(nextItemId);
+    }
 
     const nextProgress = computeChecklistProgress(items, nextInstances);
     if (

@@ -102,13 +102,6 @@ export default function EnrollmentChecklistStepDetailModal({
                 instance={instance ?? undefined}
               />
             </div>
-
-            <div
-              className="border-t px-5 py-3 text-xs"
-              style={{ borderColor: C.border, color: C.textTertiary }}
-            >
-              Read-only — this is what the family sees
-            </div>
           </motion.div>
         </motion.div>
       ) : null}

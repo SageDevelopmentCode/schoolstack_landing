@@ -1,4 +1,5 @@
 import { validatePhoneFieldValue } from "@/lib/phone-format";
+import { validateApplicationAddressFieldValue } from "@/lib/admissions/application-address";
 import type { ApplicationSection } from "./application-form-schema";
 import type {
   ChecklistFormEntry,
@@ -49,6 +50,17 @@ function validateFieldValues(
       });
       if (phoneError) {
         return `${prefix}${phoneError}`;
+      }
+      continue;
+    }
+
+    if (field.type === "address") {
+      const addressError = validateApplicationAddressFieldValue(value, {
+        required: Boolean(field.required),
+        label: field.label,
+      });
+      if (addressError) {
+        return `${prefix}${addressError}`;
       }
       continue;
     }

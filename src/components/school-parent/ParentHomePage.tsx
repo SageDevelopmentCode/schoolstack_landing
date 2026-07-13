@@ -150,36 +150,34 @@ function ChildProfileCard({
           {studentInitials(child.studentName)}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="truncate font-heading text-sm font-semibold text-gray-800">
-              {childFirstName}
-            </p>
-            <span
-              className="inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-              style={{
-                backgroundColor: badgeStyle.backgroundColor,
-                color: badgeStyle.color,
-              }}
-            >
-              {child.isEnrolled ? (
-                <CheckCircle className="h-2.5 w-2.5" />
-              ) : (
-                <Clock className="h-2.5 w-2.5" />
-              )}
-              {child.statusLabel}
-            </span>
-          </div>
+          <p className="truncate font-heading text-sm font-semibold text-gray-800">
+            {childFirstName}
+          </p>
           <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
             {child.grade ? `Grade ${child.grade}` : "Grade not listed"}
           </p>
           <p
-            className="mt-2 flex items-center gap-1 text-xs font-medium opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+            className="mt-2 flex items-center gap-1 text-xs font-medium"
             style={{ color: C.accent }}
           >
             View details
             <ArrowRight className="h-3 w-3" />
           </p>
         </div>
+        <span
+          className="inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+          style={{
+            backgroundColor: badgeStyle.backgroundColor,
+            color: badgeStyle.color,
+          }}
+        >
+          {child.isEnrolled ? (
+            <CheckCircle className="h-2.5 w-2.5" />
+          ) : (
+            <Clock className="h-2.5 w-2.5" />
+          )}
+          {child.statusLabel}
+        </span>
       </Link>
     </motion.div>
   );

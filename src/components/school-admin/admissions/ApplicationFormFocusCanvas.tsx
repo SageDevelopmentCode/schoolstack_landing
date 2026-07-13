@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import {
@@ -89,6 +89,32 @@ function inputStyle(C: AdminThemeTokens): React.CSSProperties {
     boxSizing: "border-box",
     outline: "none",
   };
+}
+
+function BuilderAddButton({
+  C,
+  onClick,
+  label = "Add",
+}: {
+  C: AdminThemeTokens;
+  onClick: () => void;
+  label?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex shrink-0 items-center gap-1 rounded-sm px-2.5 py-1 text-[11px] font-medium"
+      style={{
+        backgroundColor: C.accentLight,
+        color: C.accent,
+        border: `1px solid ${C.secondaryBtnBorder}`,
+      }}
+    >
+      <Plus className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
 }
 
 function SetupView({
@@ -293,6 +319,20 @@ function StepView({
   onReorderFields: (fields: ApplicationField[]) => void;
 }) {
   const isLockedStep = lockSystemFields && isSystemSection(step);
+  const hasDescription = Boolean(step.description?.trim());
+  const hasStepNotice = Boolean(step.stepNotice?.body?.trim());
+  const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
+  const [stepNoticeEditorOpen, setStepNoticeEditorOpen] = useState(false);
+
+  const showDescriptionEditor = hasDescription || descriptionEditorOpen;
+  const showStepNoticeEditor = hasStepNotice || stepNoticeEditorOpen;
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setDescriptionEditorOpen(false);
+      setStepNoticeEditorOpen(false);
+    });
+  }, [step.id]);
 
   return (
     <div className="w-full max-w-3xl space-y-5">
@@ -304,7 +344,7 @@ function StepView({
           subtitle={
             isLockedStep
               ? "Required student fields for your school directory."
-              : "Set up what families see and answer on this screen."
+              : undefined
           }
         />
         {!readOnly && !isLockedStep ? (
@@ -351,95 +391,136 @@ function StepView({
             />
           </BuilderQuestionCard>
 
-          <BuilderQuestionCard
-            C={C}
-            tone="clay"
-            question="What instructions should appear at the top of this step?"
-            helper="Optional — add context before families start answering questions."
-          >
-            <textarea
-              rows={2}
-              value={step.description ?? ""}
-              disabled={readOnly}
-              onChange={(e) => onUpdateStep({ description: e.target.value })}
-              placeholder="Optional instructions for this step…"
-              style={{ ...inputStyle(C), resize: "vertical" }}
-            />
-          </BuilderQuestionCard>
-
-          <BuilderQuestionCard
-            C={C}
-            tone="info"
-            question="Is there a message you want to highlight on this step?"
-            helper="Optional callout shown to families on this step."
-          >
-            <div className="space-y-3">
-              <textarea
-                rows={2}
-                value={step.stepNotice?.body ?? ""}
-                disabled={readOnly}
-                onChange={(e) => {
-                  const body = e.target.value;
-                  if (!body.trim()) {
-                    onUpdateStep({ stepNotice: undefined });
-                    return;
-                  }
-                  onUpdateStep({
-                    stepNotice: {
-                      body,
-                      placement: step.stepNotice?.placement ?? "bottom",
-                    },
-                  });
-                }}
-                placeholder="Optional callout message for families…"
-                style={{ ...inputStyle(C), resize: "vertical" }}
-              />
-              {step.stepNotice?.body.trim() ? (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                    Show this message at the…
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    {(
-                      [
-                        { value: "top", label: "Top of step" },
-                        { value: "bottom", label: "Bottom of step" },
-                      ] as const
-                    ).map((option) => (
-                      <label
-                        key={option.value}
-                        className="inline-flex items-center gap-2 text-sm"
-                        style={{ color: C.textPrimary }}
-                      >
-                        <input
-                          type="radio"
-                          name={`step-notice-placement-${step.id}`}
-                          value={option.value}
-                          checked={step.stepNotice?.placement === option.value}
-                          disabled={readOnly}
-                          onChange={() =>
-                            onUpdateStep({
-                              stepNotice: {
-                                body: step.stepNotice!.body,
-                                placement: option.value,
-                              },
-                            })
-                          }
-                          className="h-4 w-4"
-                          style={{ accentColor: C.accent }}
-                        />
-                        {option.label}
-                      </label>
-                    ))}
-                  </div>
-                  <ApplicationStepNotice
-                    body={step.stepNotice.body.trim()}
+          {readOnly && !hasDescription ? null : (
+            <BuilderQuestionCard
+              C={C}
+              tone="clay"
+              question="What instructions should appear at the top of this step?"
+              helper={
+                showDescriptionEditor
+                  ? "Optional — add context before families start answering questions."
+                  : undefined
+              }
+              action={
+                !readOnly && !showDescriptionEditor ? (
+                  <BuilderAddButton
                     C={C}
+                    onClick={() => setDescriptionEditorOpen(true)}
                   />
+                ) : undefined
+              }
+            >
+              {showDescriptionEditor ? (
+                <textarea
+                  rows={2}
+                  value={step.description ?? ""}
+                  disabled={readOnly}
+                  onChange={(e) => {
+                    const description = e.target.value;
+                    if (!description.trim()) {
+                      onUpdateStep({ description: undefined });
+                      setDescriptionEditorOpen(false);
+                      return;
+                    }
+                    onUpdateStep({ description });
+                  }}
+                  placeholder="Optional instructions for this step…"
+                  style={{ ...inputStyle(C), resize: "vertical" }}
+                />
+              ) : null}
+            </BuilderQuestionCard>
+          )}
+
+          {readOnly && !hasStepNotice ? null : (
+            <BuilderQuestionCard
+              C={C}
+              tone="info"
+              question="Is there a message you want to highlight on this step?"
+              helper={
+                showStepNoticeEditor
+                  ? "Optional callout shown to families on this step."
+                  : undefined
+              }
+              action={
+                !readOnly && !showStepNoticeEditor ? (
+                  <BuilderAddButton
+                    C={C}
+                    onClick={() => setStepNoticeEditorOpen(true)}
+                  />
+                ) : undefined
+              }
+            >
+              {showStepNoticeEditor ? (
+                <div className="space-y-3">
+                  <textarea
+                    rows={2}
+                    value={step.stepNotice?.body ?? ""}
+                    disabled={readOnly}
+                    onChange={(e) => {
+                      const body = e.target.value;
+                      if (!body.trim()) {
+                        onUpdateStep({ stepNotice: undefined });
+                        setStepNoticeEditorOpen(false);
+                        return;
+                      }
+                      onUpdateStep({
+                        stepNotice: {
+                          body,
+                          placement: step.stepNotice?.placement ?? "bottom",
+                        },
+                      });
+                    }}
+                    placeholder="Optional callout message for families…"
+                    style={{ ...inputStyle(C), resize: "vertical" }}
+                  />
+                  {step.stepNotice?.body.trim() ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                        Show this message at the…
+                      </p>
+                      <div className="flex flex-wrap gap-4">
+                        {(
+                          [
+                            { value: "top", label: "Top of step" },
+                            { value: "bottom", label: "Bottom of step" },
+                          ] as const
+                        ).map((option) => (
+                          <label
+                            key={option.value}
+                            className="inline-flex items-center gap-2 text-sm"
+                            style={{ color: C.textPrimary }}
+                          >
+                            <input
+                              type="radio"
+                              name={`step-notice-placement-${step.id}`}
+                              value={option.value}
+                              checked={step.stepNotice?.placement === option.value}
+                              disabled={readOnly}
+                              onChange={() =>
+                                onUpdateStep({
+                                  stepNotice: {
+                                    body: step.stepNotice!.body,
+                                    placement: option.value,
+                                  },
+                                })
+                              }
+                              className="h-4 w-4"
+                              style={{ accentColor: C.accent }}
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
+                      <ApplicationStepNotice
+                        body={step.stepNotice.body.trim()}
+                        C={C}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
-            </div>
-          </BuilderQuestionCard>
+            </BuilderQuestionCard>
+          )}
         </>
       ) : null}
 

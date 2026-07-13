@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ApplicationFormSchema } from "./application-form-schema";
+import {
+  applicationOwnershipFilter,
+  getFamilyIdsForUser,
+  userOwnsApplication,
+} from "./application-auth";
 
 const PROGRESS_KEY = "__progress";
 
@@ -80,14 +85,18 @@ export async function listCopyableApplications(
   supabase: SupabaseClient,
   organizationId: string,
   formVersionId: string,
+  userId: string,
   excludeApplicationId?: string,
 ): Promise<CopyableApplication[]> {
+  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+
   let query = supabase
     .from("applications")
     .select("id, submitted_at, responses")
     .eq("organization_id", organizationId)
     .eq("form_version_id", formVersionId)
     .neq("status", "draft")
+    .or(applicationOwnershipFilter(userId, familyIds))
     .order("submitted_at", { ascending: false });
 
   if (excludeApplicationId) {
@@ -113,7 +122,17 @@ export async function listCopyableApplications(
 export async function getApplicationResponsesForCopy(
   supabase: SupabaseClient,
   sourceApplicationId: string,
+  userId: string,
 ): Promise<Record<string, string>> {
+  const ownsApplication = await userOwnsApplication(
+    supabase,
+    userId,
+    sourceApplicationId,
+  );
+  if (!ownsApplication) {
+    throw new Error("Source application is not available to copy from.");
+  }
+
   const { data, error } = await supabase
     .from("applications")
     .select("responses, status")
@@ -133,17 +152,23 @@ export async function loadPriorResponsesByField(
   organizationId: string,
   formVersionId: string,
   fieldId: string,
+  userId: string,
   excludeApplicationId?: string,
 ): Promise<{ applicationId: string; value: string } | null> {
   const copyable = await listCopyableApplications(
     supabase,
     organizationId,
     formVersionId,
+    userId,
     excludeApplicationId,
   );
 
   for (const application of copyable) {
-    const responses = await getApplicationResponsesForCopy(supabase, application.id);
+    const responses = await getApplicationResponsesForCopy(
+      supabase,
+      application.id,
+      userId,
+    );
     const value = responses[fieldId];
     if (value) {
       return { applicationId: application.id, value };

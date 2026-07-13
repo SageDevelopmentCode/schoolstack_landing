@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CircleHelp, LogIn, UserPlus } from "lucide-react";
+import { ArrowLeft, LogIn, UserPlus } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import {
   buildAdminThemeTokens,
@@ -255,7 +256,14 @@ function AuthHelpButton() {
       href="/get-started"
       className="fixed bottom-4 right-4 z-50 inline-flex items-center gap-2 rounded-pill bg-clay px-4 py-2.5 text-xs font-medium text-white shadow-lg transition hover:opacity-90 sm:bottom-6 sm:right-6 sm:px-5 sm:py-3 sm:text-sm"
     >
-      <CircleHelp className="h-4 w-4" />
+      <Image
+        src="/images/Logo.png"
+        alt=""
+        width={20}
+        height={20}
+        className="h-5 w-5 w-auto object-contain"
+        aria-hidden
+      />
       Need help?
     </Link>
   );
@@ -741,15 +749,13 @@ export default function ApplicationAuthGate({
                   className="space-y-4"
                 >
                   <form onSubmit={handleVerifySubmit} className="space-y-4">
-                    <AuthField
+                    <VerificationCodeInput
                       id="auth-code"
                       label="Verification code"
-                      type="text"
-                      value={normalizedCode}
-                      onChange={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))}
-                      required
-                      autoComplete="one-time-code"
+                      value={code}
+                      onChange={setCode}
                       disabled={isSubmitting}
+                      autoFocus
                       C={C}
                     />
 

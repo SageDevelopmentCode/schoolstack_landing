@@ -38,10 +38,29 @@ export type ChecklistFileUploadConfig = {
   helpText: string;
 };
 
-export type ChecklistPaymentConfig = {
+export type ChecklistPaymentLineItem = {
+  id: string;
   label: string;
   amountCents: number;
 };
+
+export type ChecklistPaymentConfig = {
+  label: string;
+  amountCents: number;
+  lineItems?: ChecklistPaymentLineItem[];
+};
+
+export function sumPaymentLineItems(
+  lineItems: ChecklistPaymentLineItem[],
+): number {
+  return lineItems.reduce((sum, item) => sum + item.amountCents, 0);
+}
+
+export function hasPaymentBreakdown(
+  payment: ChecklistPaymentConfig | undefined,
+): payment is ChecklistPaymentConfig & { lineItems: ChecklistPaymentLineItem[] } {
+  return Boolean(payment?.lineItems && payment.lineItems.length > 0);
+}
 
 export type ChecklistAcknowledgmentOption = {
   value: string;
@@ -339,10 +358,14 @@ export function getChecklistItemSummary(item: EnrollmentChecklistItem): string {
     }
     case "file_upload":
       return item.fileUpload?.helpText || "File upload";
-    case "payment":
-      return item.payment
-        ? `${item.payment.label} · $${(item.payment.amountCents / 100).toFixed(2)}`
-        : "Payment";
+    case "payment": {
+      if (!item.payment) return "Payment";
+      const amount = `$${(item.payment.amountCents / 100).toFixed(2)}`;
+      const feeCount = item.payment.lineItems?.length;
+      const feeSuffix =
+        feeCount && feeCount > 0 ? ` (${feeCount} fee${feeCount === 1 ? "" : "s"})` : "";
+      return `${item.payment.label} · ${amount}${feeSuffix}`;
+    }
     case "acknowledgment":
       return item.acknowledgment?.options?.length
         ? `${item.acknowledgment.options.length} options · signature required`

@@ -192,7 +192,10 @@ export default function ApplicationSubmissionsPage({
     : null;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div
+      className="relative flex h-full min-h-0 flex-col"
+      style={{ backgroundColor: C.surface }}
+    >
       <div
         className="flex flex-shrink-0 flex-col gap-3 px-4 py-3 sm:px-5"
         style={{ borderBottom: `1px solid ${C.border}` }}

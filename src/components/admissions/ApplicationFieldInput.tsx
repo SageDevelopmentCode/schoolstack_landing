@@ -1,9 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import ApplicationDatePicker from "@/components/admissions/ApplicationDatePicker";
+import ApplicationAddressInput from "@/components/admissions/ApplicationAddressInput";
+import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
+import ApplicationRadioInput from "@/components/admissions/ApplicationRadioInput";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
+import { resolveDateRange } from "@/lib/admissions/application-form-schema";
 import {
   DEFAULT_APPLICATION_FILE_ACCEPT,
   DEFAULT_APPLICATION_FILE_MAX_COUNT,
@@ -55,7 +60,6 @@ export default function ApplicationFieldInput({
   uploadContext,
   supabase,
 }: ApplicationFieldInputProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
 
@@ -102,7 +106,6 @@ export default function ApplicationFieldInput({
 
     if (!canUpload) {
       appendLocalFiles(incoming);
-      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -147,7 +150,6 @@ export default function ApplicationFieldInput({
       );
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -171,6 +173,18 @@ export default function ApplicationFieldInput({
     setFileError(null);
     onChange(serializeApplicationFileFieldValue(next));
   };
+
+  if (field.type === "address") {
+    return (
+      <ApplicationAddressInput
+        idPrefix={field.id}
+        value={value}
+        onChange={onChange}
+        C={C}
+        disabled={disabled}
+      />
+    );
+  }
 
   if (field.type === "textarea") {
     return (
@@ -216,27 +230,15 @@ export default function ApplicationFieldInput({
   if (field.type === "radio") {
     return (
       <div>
-        <div className="flex flex-wrap gap-4">
-          {field.options?.map((option) => (
-            <label
-              key={option.value}
-              className="inline-flex items-center gap-2 text-sm"
-              style={{ color: C.textPrimary }}
-            >
-              <input
-                type="radio"
-                name={field.id}
-                value={option.value}
-                checked={value === option.value}
-                onChange={(e) => onChange(e.target.value)}
-                disabled={disabled}
-                className="h-4 w-4"
-                style={{ accentColor: C.accent }}
-              />
-              {option.label}
-            </label>
-          ))}
-        </div>
+        <ApplicationRadioInput
+          name={field.id}
+          value={value}
+          onChange={onChange}
+          options={field.options ?? []}
+          disabled={disabled}
+          ariaLabel={field.label}
+          C={C}
+        />
         {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
       </div>
     );
@@ -262,56 +264,26 @@ export default function ApplicationFieldInput({
   if (field.type === "file") {
     const files = parseApplicationFileFieldValue(value);
     const maxFiles = field.maxFiles ?? DEFAULT_APPLICATION_FILE_MAX_COUNT;
-    const atLimit = files.length >= maxFiles;
+    const accept = field.accept ?? DEFAULT_APPLICATION_FILE_ACCEPT;
+    const isPreview = !uploadContext;
 
     return (
-      <div>
-        <input
-          ref={fileInputRef}
-          id={field.id}
-          type="file"
-          multiple={maxFiles > 1}
-          accept={field.accept ?? DEFAULT_APPLICATION_FILE_ACCEPT}
-          disabled={disabled || uploading || atLimit}
-          onChange={(e) => void handleFileSelection(e.target.files)}
-          className="block w-full text-sm file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:text-sm file:font-medium"
-          style={{ color: C.textSecondary }}
-        />
-        {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
-        {uploading ? (
-          <p className="mt-1.5 text-xs" style={{ color: C.textSecondary }}>
-            Uploading…
-          </p>
-        ) : null}
-        {fileError ? (
-          <p className="mt-1.5 text-xs" style={{ color: C.error }}>
-            {fileError}
-          </p>
-        ) : null}
-        {files.length > 0 ? (
-          <ul className="mt-2 space-y-1">
-            {files.map((file) => (
-              <li
-                key={file.id}
-                className="flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-xs"
-                style={{ borderColor: C.border, color: C.textPrimary }}
-              >
-                <span className="truncate">{file.fileName}</span>
-                {!disabled ? (
-                  <button
-                    type="button"
-                    onClick={() => void removeFile(file.id)}
-                    className="shrink-0 font-medium"
-                    style={{ color: C.error }}
-                  >
-                    Remove
-                  </button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+      <ApplicationFileUploadField
+        id={field.id}
+        files={files}
+        maxFiles={maxFiles}
+        accept={accept}
+        helpText={field.helpText ?? `Upload up to ${maxFiles} supported files.`}
+        disabled={disabled}
+        uploading={uploading}
+        error={fileError}
+        previewSuffix={isPreview ? " (preview)" : ""}
+        C={C}
+        supabase={supabase}
+        removable={!disabled}
+        onSelectFiles={handleFileSelection}
+        onRemoveFile={(file) => void removeFile(file.id)}
+      />
     );
   }
 
@@ -329,6 +301,27 @@ export default function ApplicationFieldInput({
           disabled={disabled}
           className={fieldClassName()}
           style={{ ...style, ...focusRing }}
+        />
+        {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
+      </div>
+    );
+  }
+
+  if (field.type === "date") {
+    const effectiveDateRange =
+      field.dateRange ?? (field.id === "student_date_of_birth" ? "past" : undefined);
+    const { minDate, maxDate } = resolveDateRange(effectiveDateRange);
+    return (
+      <div>
+        <ApplicationDatePicker
+          id={field.id}
+          value={value}
+          onChange={onChange}
+          C={C}
+          disabled={disabled}
+          minDate={minDate}
+          maxDate={maxDate}
+          placeholder={field.placeholder}
         />
         {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
       </div>

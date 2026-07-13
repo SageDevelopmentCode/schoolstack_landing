@@ -180,6 +180,19 @@ export default function ApplicationFormFieldEditor({
         </BuilderQuestionCard>
       )}
 
+      {field.type === "address" && (
+        <BuilderQuestionCard
+          C={C}
+          tone="info"
+          question="What will families see?"
+          helper="Families will enter street address, city, state, and ZIP in separate fields."
+        >
+          <p className="text-sm" style={{ color: C.textSecondary }}>
+            Address line 1, address line 2 (optional), city, state, and ZIP code.
+          </p>
+        </BuilderQuestionCard>
+      )}
+
       {field.type === "file" && (
         <BuilderQuestionCard
           C={C}

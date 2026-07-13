@@ -7,7 +7,8 @@ export type ApplicationFieldType =
   | "textarea"
   | "radio"
   | "checkbox"
-  | "file";
+  | "file"
+  | "address";
 
 export interface ApplicationFieldOption {
   value: string;
@@ -28,6 +29,29 @@ export interface ApplicationField {
   accept?: string;
   /** Locked apply-form field mapped to students table columns */
   system?: boolean;
+  /** For date fields: restrict selectable range */
+  dateRange?: "past" | "future" | "any";
+}
+
+export type ApplicationFieldDateRange = NonNullable<ApplicationField["dateRange"]>;
+
+export function resolveDateRange(dateRange?: ApplicationFieldDateRange): {
+  minDate?: string;
+  maxDate?: string;
+} {
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  switch (dateRange) {
+    case "past": {
+      const minYear = today.getFullYear() - 120;
+      return { minDate: `${minYear}-01-01`, maxDate: todayIso };
+    }
+    case "future":
+      return { minDate: todayIso };
+    default:
+      return {};
+  }
 }
 
 export type ApplicationStepNoticePlacement = "top" | "bottom";
@@ -118,6 +142,7 @@ export const APPLICATION_FIELD_TYPES: {
   { value: "radio", label: "Multiple choice" },
   { value: "checkbox", label: "Checkbox" },
   { value: "file", label: "File upload" },
+  { value: "address", label: "Address" },
 ];
 
 export function newAdmissionsId(): string {
@@ -361,6 +386,43 @@ export function formatFeeAmount(cents: number): string {
     style: "currency",
     currency: "USD",
   }).format(cents / 100);
+}
+
+export function formatCentsForInput(cents: number): string {
+  if (!Number.isFinite(cents)) return "0.00";
+  return (cents / 100).toFixed(2);
+}
+
+const DOLLAR_INPUT_PARTIAL_PATTERN = /^\d*(\.\d{0,2})?$/;
+
+export function sanitizeDollarDraft(value: string): string {
+  const cleaned = value.replace(/[$,\s]/g, "");
+  if (!cleaned) return "";
+  if (DOLLAR_INPUT_PARTIAL_PATTERN.test(cleaned)) {
+    return cleaned;
+  }
+
+  const match = cleaned.match(/^(\d*)(?:\.(\d{0,2}))?/);
+  if (!match) return "";
+  const whole = match[1] ?? "";
+  const fraction = match[2];
+  if (fraction === undefined) return whole;
+  return `${whole}.${fraction}`;
+}
+
+export function parseDollarInputToCents(value: string): number | null {
+  const draft = sanitizeDollarDraft(value);
+  if (!draft || draft === ".") return 0;
+  if (draft.endsWith(".")) return null;
+
+  const parsed = Number.parseFloat(draft);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.round(parsed * 100);
+}
+
+export function normalizeDollarDraft(value: string): string {
+  const cents = parseDollarInputToCents(value);
+  return formatCentsForInput(cents ?? 0);
 }
 
 export function formatFormUpdatedAt(iso: string): string {
