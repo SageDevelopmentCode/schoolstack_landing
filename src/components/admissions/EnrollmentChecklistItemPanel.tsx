@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { FileText, Loader2 } from "lucide-react";
 import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
@@ -81,6 +82,20 @@ function panelButtonStyle(C: AdminThemeTokens, disabled: boolean) {
 
 const PDF_VIEWER_HEIGHT_CLASS = "min-h-[560px] h-[min(720px,calc(100vh-240px))]";
 
+const sectionVariants = {
+  enter: (direction: number) => ({
+    opacity: 0,
+    x: direction > 0 ? 16 : -16,
+  }),
+  center: { opacity: 1, x: 0 },
+  exit: (direction: number) => ({
+    opacity: 0,
+    x: direction > 0 ? -16 : 16,
+  }),
+};
+
+const sectionTransition = { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
+
 function DocumentSignInlinePanel({
   C,
   item,
@@ -100,6 +115,7 @@ function DocumentSignInlinePanel({
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
   const [sectionIndex, setSectionIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
   const [signature, setSignature] = useState(() =>
     instanceStatus === "completed" ? parseStoredSignerName(existingResponses) : "",
   );
@@ -121,57 +137,72 @@ function DocumentSignInlinePanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
-          Section {sectionIndex + 1} of {sections.length}
-        </p>
-        <h2 className="mt-2 text-lg font-semibold" style={{ color: C.textPrimary }}>
-          {section.title}
-        </h2>
-        <p
-          className="mt-4 whitespace-pre-wrap text-sm leading-relaxed"
-          style={{ color: C.textPrimary }}
-        >
-          {section.body}
-        </p>
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
+          <motion.div
+            key={sectionIndex}
+            custom={direction}
+            variants={sectionVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={sectionTransition}
+          >
+            <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
+              Section {sectionIndex + 1} of {sections.length}
+            </p>
+            <h2 className="mt-2 text-lg font-semibold" style={{ color: C.textPrimary }}>
+              {section.title}
+            </h2>
+            <p
+              className="mt-4 whitespace-pre-wrap text-sm leading-relaxed"
+              style={{ color: C.textPrimary }}
+            >
+              {section.body}
+            </p>
 
-        <div className="mt-6">
-          <TypedSignatureField
-            C={C}
-            id={`signature-inline-${item.id}`}
-            value={signature}
-            onChange={setSignature}
-            disabled={!isLive || isCompleted}
-          />
-        </div>
+            <div className="mt-6">
+              <TypedSignatureField
+                C={C}
+                id={`signature-inline-${item.id}`}
+                value={signature}
+                onChange={setSignature}
+                disabled={!isLive || isCompleted}
+              />
+            </div>
 
-        {item.document?.kind === "inline_sections" && item.document.consentOptions?.length ? (
-          <div className="mt-4 space-y-2">
-            {item.document.consentOptions.map((option) => (
-              <label
-                key={option.value}
-                className="flex items-start gap-2 text-sm"
-                style={{ color: C.textPrimary }}
-              >
-                <input
-                  type="radio"
-                  name={`consent-${item.id}`}
-                  disabled={!isLive}
-                  className="mt-0.5"
-                  style={{ accentColor: C.accent }}
-                />
-                {option.label}
-              </label>
-            ))}
-          </div>
-        ) : null}
+            {item.document?.kind === "inline_sections" && item.document.consentOptions?.length ? (
+              <div className="mt-4 space-y-2">
+                {item.document.consentOptions.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex items-start gap-2 text-sm"
+                    style={{ color: C.textPrimary }}
+                  >
+                    <input
+                      type="radio"
+                      name={`consent-${item.id}`}
+                      disabled={!isLive}
+                      className="mt-0.5"
+                      style={{ accentColor: C.accent }}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            ) : null}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <div className="mt-4 flex shrink-0 items-center gap-3 border-t pt-4" style={{ borderColor: C.border }}>
         {sectionIndex > 0 ? (
           <button
             type="button"
-            onClick={() => setSectionIndex((idx) => idx - 1)}
+            onClick={() => {
+              setDirection(-1);
+              setSectionIndex((idx) => idx - 1);
+            }}
             className="rounded-md border px-4 py-2 text-sm font-medium"
             style={getAdminButtonStyle(C, "secondary")}
           >
@@ -183,6 +214,7 @@ function DocumentSignInlinePanel({
           disabled={(isLive && !signature.trim()) || submitting || isCompleted}
           onClick={async () => {
             if (!isLastSection) {
+              setDirection(1);
               setSectionIndex((idx) => idx + 1);
               setSignature("");
               return;

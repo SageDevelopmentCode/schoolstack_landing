@@ -144,6 +144,7 @@ export default function PublicEnrollmentChecklistClient({
         C={C}
         open={showCompleteModal}
         schoolName={schoolName}
+        schoolSlug={schoolSlug}
         onClose={() => setShowCompleteModal(false)}
       />
     </ApplicationFormPageShell>
