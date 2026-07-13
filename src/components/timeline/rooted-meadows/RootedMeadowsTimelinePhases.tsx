@@ -20,7 +20,6 @@ const PERSONA_LABELS: Record<TimelinePersona, string> = {
 };
 
 const COMPLETE_GREEN = "#22C55E";
-const COMPLETE_GREEN_BG = "#22C55E20";
 
 function stepCircleStyle(
   isActive: boolean,
@@ -29,9 +28,9 @@ function stepCircleStyle(
 ) {
   if (isComplete) {
     return {
-      backgroundColor: isActive ? COMPLETE_GREEN : COMPLETE_GREEN_BG,
-      color: isActive ? "#ffffff" : COMPLETE_GREEN,
-      border: isActive ? "none" : `1px solid ${COMPLETE_GREEN}`,
+      backgroundColor: COMPLETE_GREEN,
+      color: "#ffffff",
+      border: "none",
     };
   }
 
