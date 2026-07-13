@@ -109,10 +109,19 @@ export default function PublicApplicationFormClient({
       setError(null);
 
       try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          setPhase("auth");
+          return;
+        }
+
         const loaded = await loadApplicationDraft(supabase, nextApplicationId);
         const otherApplications = await familyHasOtherApplications(
           supabase,
           organizationId,
+          user.id,
           nextApplicationId,
         );
         setHasOtherApplications(otherApplications);
@@ -124,6 +133,7 @@ export default function PublicApplicationFormClient({
             supabase,
             organizationId,
             formVersionId,
+            user.id,
             nextApplicationId,
           );
           setCopyableApplications(copyable);
@@ -131,6 +141,7 @@ export default function PublicApplicationFormClient({
             const priorResponses = await getApplicationResponsesForCopy(
               supabase,
               copyable[0].id,
+              user.id,
             );
             setPriorFieldValues(
               pickResponsesForCopy(priorResponses, schema),
@@ -297,9 +308,15 @@ export default function PublicApplicationFormClient({
   ) => {
     if (!applicationId || !draft) return;
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
     const sourceResponses = await getApplicationResponsesForCopy(
       supabase,
       sourceApplicationId,
+      user.id,
     );
     const imported = pickResponsesForCopy(sourceResponses, schema, fieldIds);
     const nextResponses = { ...draft.responses, ...imported };

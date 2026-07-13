@@ -23,6 +23,10 @@ import {
   listEnrollmentProgressForApplications,
   type EnrollmentProgressSummary,
 } from "./enrollment-checklist-materialization";
+import {
+  applicationOwnershipFilter,
+  getFamilyIdsForUser,
+} from "./application-auth";
 import { applicationStatusLabel } from "./application-status-ui";
 
 const PROGRESS_KEY = "__progress";
@@ -181,21 +185,6 @@ export async function getFamilyUserProfile(
   return { email, displayName };
 }
 
-async function getFamilyIdsForUser(
-  supabase: SupabaseClient,
-  userId: string,
-  organizationId: string,
-): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("guardians")
-    .select("family_id")
-    .eq("user_id", userId)
-    .eq("organization_id", organizationId);
-
-  if (error) throw error;
-  return (data ?? []).map((row) => String(row.family_id));
-}
-
 async function getStudentIdsForFamilies(
   supabase: SupabaseClient,
   organizationId: string,
@@ -216,7 +205,10 @@ async function getStudentIdsForFamilies(
 export async function listFamilyApplications(
   supabase: SupabaseClient,
   organizationId: string,
+  userId: string,
 ): Promise<FamilyApplication[]> {
+  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+
   const { data, error } = await supabase
     .from("applications")
     .select(
@@ -234,6 +226,7 @@ export async function listFamilyApplications(
     `,
     )
     .eq("organization_id", organizationId)
+    .or(applicationOwnershipFilter(userId, familyIds))
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
@@ -390,8 +383,9 @@ export async function listEnrolledStudents(
 export async function listFamilyChildrenForHome(
   supabase: SupabaseClient,
   organizationId: string,
+  userId: string,
 ): Promise<FamilyChildOverview[]> {
-  const applications = await listFamilyApplications(supabase, organizationId);
+  const applications = await listFamilyApplications(supabase, organizationId, userId);
   const eligible = applications.filter(
     (application) =>
       application.status !== "draft" && Boolean(application.studentName?.trim()),
@@ -461,8 +455,13 @@ export async function loadApplicationDetail(
   supabase: SupabaseClient,
   applicationId: string,
   organizationId: string,
+  userId?: string,
 ): Promise<ApplicationDetail | null> {
-  const { data, error } = await supabase
+  const familyIds = userId
+    ? await getFamilyIdsForUser(supabase, userId, organizationId)
+    : null;
+
+  let query = supabase
     .from("applications")
     .select(
       `
@@ -481,8 +480,13 @@ export async function loadApplicationDetail(
     `,
     )
     .eq("id", applicationId)
-    .eq("organization_id", organizationId)
-    .maybeSingle();
+    .eq("organization_id", organizationId);
+
+  if (userId) {
+    query = query.or(applicationOwnershipFilter(userId, familyIds ?? []));
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) throw error;
   if (!data) return null;

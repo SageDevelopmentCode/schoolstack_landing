@@ -53,7 +53,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
   }
 
   const [applications, hasEnrolledAccess, timezoneResult, userProfile] = await Promise.all([
-    listFamilyApplications(supabase, org.id),
+    listFamilyApplications(supabase, org.id, user.id),
     userHasEnrolledAccess(supabase, user.id, org.id),
     supabase.from("organizations").select("timezone").eq("id", org.id).maybeSingle(),
     getFamilyUserProfile(supabase, user.id, org.id, user),
