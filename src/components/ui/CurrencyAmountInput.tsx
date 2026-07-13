@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { CSSProperties } from "react";
 import {
   formatCentsForInput,
@@ -30,12 +30,6 @@ export default function CurrencyAmountInput({
 }: CurrencyAmountInputProps) {
   const [focused, setFocused] = useState(false);
   const [draft, setDraft] = useState(() => formatCentsForInput(valueCents));
-
-  useEffect(() => {
-    if (!focused) {
-      setDraft(formatCentsForInput(valueCents));
-    }
-  }, [focused, valueCents]);
 
   const borderRadius = style?.borderRadius ?? C.r.sm;
   const fontSize = style?.fontSize ?? "12px";
