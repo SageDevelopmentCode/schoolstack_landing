@@ -12,6 +12,7 @@ import ApplicationFormStatusCard from "./ApplicationFormStatusCard";
 import DetailPanelSection from "./DetailPanelSection";
 import DetailPanelSectionGroup from "./DetailPanelSectionGroup";
 import ApplicationDecisionSection from "./ApplicationDecisionSection";
+import AcceptedEnrollmentSection from "./AcceptedEnrollmentSection";
 import EnrollmentStatusCard from "./EnrollmentStatusCard";
 import StartEnrollmentModal from "./StartEnrollmentModal";
 import {
@@ -185,33 +186,29 @@ export default function ApplicationSubmissionDetailPanel({
     if (tabId === "overview") {
       return (
         <DetailPanelSectionGroup C={C}>
-          <ApplicationDecisionSection
-            C={C}
-            applicationId={submission.id}
-            currentStatus={currentStatus}
-            onStatusChanged={(status) => {
-              setCurrentStatus(status);
-              onSubmissionUpdated?.();
-              void loadDetail();
-            }}
-          />
-
           {canStartEnrollment ? (
-            <DetailPanelSection
+            <AcceptedEnrollmentSection
               C={C}
-              title="Enrollment"
-              description="Choose the enrollment agreement and send the checklist to the family."
-            >
-              <button
-                type="button"
-                onClick={() => setStartEnrollmentOpen(true)}
-                className="rounded-md px-4 py-2 text-sm font-semibold text-white"
-                style={{ backgroundColor: C.accent }}
-              >
-                Start enrollment
-              </button>
-            </DetailPanelSection>
-          ) : null}
+              applicationId={submission.id}
+              onStartEnrollment={() => setStartEnrollmentOpen(true)}
+              onStatusChanged={(status) => {
+                setCurrentStatus(status);
+                onSubmissionUpdated?.();
+                void loadDetail();
+              }}
+            />
+          ) : (
+            <ApplicationDecisionSection
+              C={C}
+              applicationId={submission.id}
+              currentStatus={currentStatus}
+              onStatusChanged={(status) => {
+                setCurrentStatus(status);
+                onSubmissionUpdated?.();
+                void loadDetail();
+              }}
+            />
+          )}
 
           {showEnrollmentStatus ? (
             <EnrollmentStatusCard
