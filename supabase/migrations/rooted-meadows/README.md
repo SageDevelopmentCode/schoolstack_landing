@@ -42,6 +42,7 @@ Run after `add_product_organization_progress_log.sql`. Independent of the form s
 | `add_organization_progress_log_2026_07_09.sql` | July 9 — families can complete enrollment after acceptance |
 | `add_organization_progress_log_2026_07_10.sql` | July 10 — families can finish enrollment (sign, upload, pay online) |
 | `add_organization_progress_log_2026_07_11.sql` | July 11 — guides for sharing apply link and walking families through enrollment |
+| `add_organization_progress_log_2026_07_12.sql` | July 12 — Phase 1 complete; admissions polish, payments, and parent security |
 
 ## Enrollment checklist seeds
 
