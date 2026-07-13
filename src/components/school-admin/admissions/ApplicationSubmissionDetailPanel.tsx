@@ -7,7 +7,7 @@ import ApplicationSubmissionPostSubmitSection from "@/components/admissions/Appl
 import ApplicationSubmissionHistorySection, {
   buildAdmissionHistoryContextDescription,
 } from "./ApplicationSubmissionHistorySection";
-import PaymentsHistoryPanel from "./PaymentsHistoryPanel";
+import SubmissionPaymentsPanel from "./SubmissionPaymentsPanel";
 import ApplicationFormStatusCard from "./ApplicationFormStatusCard";
 import DetailPanelSection from "./DetailPanelSection";
 import DetailPanelSectionGroup from "./DetailPanelSectionGroup";
@@ -18,11 +18,9 @@ import StartEnrollmentModal from "./StartEnrollmentModal";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
-  FEE_STATUS_LABELS,
 } from "@/lib/admissions/application-status-ui";
 import {
   formatShortDate,
-  formatSubmissionProgress,
   listFamilyAdmissionHistory,
   resolveApplicationFamilyId,
   type AdminApplicationSubmission,
@@ -162,23 +160,43 @@ export default function ApplicationSubmissionDetailPanel({
     [historyEvents],
   );
 
+  const canStartEnrollment = currentStatus === "accepted" && !hasChecklist;
+  const showEnrollmentStatus =
+    currentStatus === "enrolling" || hasChecklist;
+
   const tabs = useMemo<DetailTab[]>(() => {
     if (!detail) return [];
 
-    return [
-      { id: "overview", label: "Overview" },
+    const result: DetailTab[] = [{ id: "overview", label: "Overview" }];
+    if (showEnrollmentStatus) {
+      result.push({ id: "application", label: "Application form" });
+    }
+    result.push(
       { id: "history", label: "History" },
       { id: "payments", label: "Payments" },
-    ];
-  }, [detail]);
+    );
+    return result;
+  }, [detail, showEnrollmentStatus]);
 
   const statusStyle = applicationStatusBadgeStyle(currentStatus, C);
   const familyLabel =
     submission.guardianName || submission.studentLabel || "Application";
   const contactLabel = submission.contactEmail ?? "No contact email";
-  const canStartEnrollment = currentStatus === "accepted" && !hasChecklist;
-  const showEnrollmentStatus =
-    currentStatus === "enrolling" || hasChecklist;
+
+  const applicationFormStatusCard = detail ? (
+    <ApplicationFormStatusCard
+      C={C}
+      branding={branding}
+      schoolName={schoolName}
+      schoolSlug={schoolSlug}
+      detail={detail}
+      feeStatus={submission.feeStatus}
+      applicationStatus={currentStatus}
+      formTitle={detail.formTitle}
+      submittedAt={submission.submittedAt}
+      feeEnabled={submission.feeEnabled}
+    />
+  ) : null;
 
   function renderTabPanel(tabId: string) {
     if (!detail) return null;
@@ -217,24 +235,21 @@ export default function ApplicationSubmissionDetailPanel({
               applicationId={submission.id}
             />
           ) : (
-            <ApplicationFormStatusCard
-              C={C}
-              branding={branding}
-              schoolName={schoolName}
-              schoolSlug={schoolSlug}
-              detail={detail}
-              feeStatus={submission.feeStatus}
-              applicationStatus={currentStatus}
-              formTitle={detail.formTitle}
-              submittedAt={submission.submittedAt}
-              feeEnabled={submission.feeEnabled}
-            />
+            applicationFormStatusCard
           )}
 
           <ApplicationSubmissionPostSubmitSection
             C={C}
             steps={detail.postSubmitSteps}
           />
+        </DetailPanelSectionGroup>
+      );
+    }
+
+    if (tabId === "application") {
+      return (
+        <DetailPanelSectionGroup C={C}>
+          {applicationFormStatusCard}
         </DetailPanelSectionGroup>
       );
     }
@@ -269,12 +284,9 @@ export default function ApplicationSubmissionDetailPanel({
             title="Payments"
             description="Application fees and enrollment charges for this application."
           >
-            <PaymentsHistoryPanel
-              organizationId={organizationId}
+            <SubmissionPaymentsPanel
               applicationId={submission.id}
-              orgSlug={schoolSlug}
               branding={branding}
-              variant="embedded"
             />
           </DetailPanelSection>
         </DetailPanelSectionGroup>
@@ -393,7 +405,7 @@ export default function ApplicationSubmissionDetailPanel({
 
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-6 sm:px-5 sm:py-8"
+        className="flex-1 overflow-y-auto px-4 pb-6 pt-4 sm:px-5 sm:pb-8 sm:pt-5"
       >
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -412,7 +424,13 @@ export default function ApplicationSubmissionDetailPanel({
                 role="tabpanel"
                 aria-labelledby={`submission-tab-${tab.id}`}
                 hidden={activeTab !== tab.id}
-                className={tab.id === "overview" || tab.id === "history" ? "" : "space-y-6"}
+                className={
+                  tab.id === "overview" ||
+                  tab.id === "application" ||
+                  tab.id === "history"
+                    ? ""
+                    : "space-y-6"
+                }
               >
                 {renderTabPanel(tab.id)}
               </div>
@@ -420,22 +438,6 @@ export default function ApplicationSubmissionDetailPanel({
           </>
         ) : null}
       </div>
-
-      {activeTab !== "history" ? (
-        <div
-          className="flex flex-shrink-0 flex-wrap gap-x-4 gap-y-1 px-4 py-3 text-xs sm:px-5"
-          style={{ borderTop: `1px solid ${C.border}`, color: C.textTertiary }}
-        >
-          <span>Created {formatShortDate(submission.createdAt)}</span>
-          {submission.submittedAt ? (
-            <span>Submitted {formatShortDate(submission.submittedAt)}</span>
-          ) : null}
-          <span>{formatSubmissionProgress(submission)}</span>
-          {submission.feeEnabled && submission.feeStatus !== "not_required" ? (
-            <span>Fee {FEE_STATUS_LABELS[submission.feeStatus] ?? submission.feeStatus}</span>
-          ) : null}
-        </div>
-      ) : null}
       </motion.div>
 
       <StartEnrollmentModal

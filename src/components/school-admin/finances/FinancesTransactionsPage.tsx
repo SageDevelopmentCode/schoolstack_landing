@@ -27,7 +27,6 @@ export default function FinancesTransactionsPage({
         organizationId={organizationId}
         orgSlug={slug}
         branding={branding}
-        variant="page"
         mode="transactions"
       />
     </div>

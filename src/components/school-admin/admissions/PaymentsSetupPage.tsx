@@ -515,7 +515,6 @@ export default function PaymentsSetupPage({
             organizationId={organizationId}
             orgSlug={orgSlug}
             branding={branding}
-            variant="page"
             isReady={isReady}
             onSwitchToSetup={() => setActiveTab("setup")}
           />

@@ -35,7 +35,6 @@ type PaymentsHistoryPanelProps = {
   orgSlug?: string;
   branding: OrganizationBranding;
   showOrganizationColumn?: boolean;
-  variant?: "page" | "embedded";
   mode?: PaymentsHistoryPanelMode;
   isReady?: boolean;
   onSwitchToSetup?: () => void;
@@ -197,7 +196,6 @@ export default function PaymentsHistoryPanel({
   orgSlug,
   branding,
   showOrganizationColumn = false,
-  variant = applicationId ? "embedded" : "page",
   mode = "admissions",
   isReady,
   onSwitchToSetup,
@@ -385,7 +383,7 @@ export default function PaymentsHistoryPanel({
       {error}
     </p>
   ) : filteredRows.length === 0 ? (
-    variant === "page" && mode === "admissions" && !applicationId ? (
+    mode === "admissions" && !applicationId ? (
       <PaymentsEmptyState
         C={C}
         hasFilters={rows.length > 0}
@@ -528,17 +526,9 @@ export default function PaymentsHistoryPanel({
     </div>
   );
 
-  if (variant === "embedded") {
-    return (
-      <div className="space-y-4">
-        {tableContent}
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-      {mode === "admissions" && variant === "page" ? (
+      {mode === "admissions" && !applicationId ? (
         <div className="flex-shrink-0 px-4 pt-5 sm:px-5">
           <BuilderSectionIntro
             C={C}
