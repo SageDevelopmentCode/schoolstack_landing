@@ -69,7 +69,9 @@ export default function OrganizationSubmissionsPanel({
   }, [organizationId, supabase]);
 
   useEffect(() => {
-    void loadSubmissions();
+    queueMicrotask(() => {
+      void loadSubmissions();
+    });
   }, [loadSubmissions]);
 
   return (
