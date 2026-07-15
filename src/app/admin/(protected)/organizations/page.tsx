@@ -6,6 +6,7 @@ import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
+import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
 import type { OrganizationSettingsRow } from "@/lib/organization-settings/types";
 
 type OrganizationStatus = "onboarding" | "live" | "paused" | "churned";
@@ -359,6 +360,11 @@ export default function AdminOrganizationsPage() {
             <OrganizationAccessPanel
               organizationId={selected.id}
               organizationName={selected.name}
+            />
+
+            <OrganizationSubmissionsPanel
+              organizationId={selected.id}
+              organizationSlug={selected.slug}
             />
 
             <section className="bg-surface border border-border rounded-lg p-4 space-y-3">

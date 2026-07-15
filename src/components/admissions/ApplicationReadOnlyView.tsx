@@ -38,6 +38,7 @@ type ApplicationReadOnlyViewProps = {
   layout?: ReadOnlyLayout;
   view?: "full" | "section" | "acknowledgments";
   sectionId?: string;
+  backHref?: string;
 };
 
 function formatFieldValue(field: ApplicationField, value: string | undefined): string {
@@ -337,10 +338,12 @@ function ApplicationReadOnlyBody({
   layout = "page",
   view = "full",
   sectionId,
+  backHref,
 }: ApplicationReadOnlyViewProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
   const statusStyle = applicationStatusBadgeStyle(application.status, C);
+  const applicationsBackHref = backHref ?? `/school/${schoolSlug}/apply`;
   const submittedLabel = application.submittedAt
     ? new Date(application.submittedAt).toLocaleDateString("en-US", {
         month: "long",
@@ -354,7 +357,7 @@ function ApplicationReadOnlyBody({
       {!embedded ? (
         <>
           <Link
-            href={`/school/${schoolSlug}/apply`}
+            href={applicationsBackHref}
             className="mb-6 inline-flex items-center gap-2 text-sm underline-offset-2 hover:underline"
             style={{ color: C.textSecondary }}
           >

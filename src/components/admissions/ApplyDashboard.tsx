@@ -33,6 +33,9 @@ type ApplyDashboardProps = {
   parentPortalEnabled: boolean;
   enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
   userProfile: FamilyUserProfile;
+  previewMode?: boolean;
+  previewBasePath?: string;
+  focusApplicationId?: string | null;
 };
 
 function formatApplicationDate(
@@ -79,8 +82,15 @@ function applicationAction(
   application: FamilyApplication,
   schoolSlug: string,
   enrollmentProgress?: EnrollmentProgressSummary,
+  previewBasePath?: string,
 ): { label: string; href: string } {
   if (application.status === "draft" && application.publicSlug) {
+    if (previewBasePath) {
+      return {
+        label: "View draft",
+        href: `${previewBasePath}/apply/${application.id}`,
+      };
+    }
     return {
       label: "Continue",
       href: `/school/${schoolSlug}/forms/${application.publicSlug}`,
@@ -93,7 +103,9 @@ function applicationAction(
   ) {
     return {
       label: "View enrollment",
-      href: `/school/${schoolSlug}/apply/${application.id}/enrollment`,
+      href: previewBasePath
+        ? `${previewBasePath}/apply/${application.id}/enrollment`
+        : `/school/${schoolSlug}/apply/${application.id}/enrollment`,
     };
   }
 
@@ -101,13 +113,17 @@ function applicationAction(
     const hasStarted = (enrollmentProgress?.completed ?? 0) > 0;
     return {
       label: hasStarted ? "Continue enrollment" : "Start enrollment",
-      href: `/school/${schoolSlug}/apply/${application.id}/enrollment`,
+      href: previewBasePath
+        ? `${previewBasePath}/apply/${application.id}/enrollment`
+        : `/school/${schoolSlug}/apply/${application.id}/enrollment`,
     };
   }
 
   return {
     label: "View",
-    href: `/school/${schoolSlug}/apply/${application.id}`,
+    href: previewBasePath
+      ? `${previewBasePath}/apply/${application.id}`
+      : `/school/${schoolSlug}/apply/${application.id}`,
   };
 }
 
@@ -126,20 +142,34 @@ export default function ApplyDashboard({
   parentPortalEnabled,
   enrollmentProgressByApplicationId,
   userProfile,
+  previewMode = false,
+  previewBasePath,
+  focusApplicationId = null,
 }: ApplyDashboardProps) {
   const router = useRouter();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
+  const previewHomeHref = previewBasePath ?? undefined;
+  const parentPortalHref =
+    previewBasePath && hasEnrolledAccess && parentPortalEnabled
+      ? `${previewBasePath}/parent`
+      : undefined;
 
   useEffect(() => {
-    if (!hasEnrolledAccess) return;
+    if (!focusApplicationId || typeof window === "undefined") return;
+    const element = document.getElementById("preview-focus");
+    element?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusApplicationId]);
+
+  useEffect(() => {
+    if (previewMode || !hasEnrolledAccess) return;
     if (typeof window === "undefined") return;
     const storageKey = enrolledCelebrationStorageKey(schoolSlug);
     if (sessionStorage.getItem(storageKey)) return;
 
     sessionStorage.setItem(storageKey, "1");
     fireEnrollmentConfetti();
-  }, [hasEnrolledAccess, schoolSlug]);
+  }, [hasEnrolledAccess, previewMode, schoolSlug]);
 
   return (
     <div className="flex min-h-dvh flex-col" style={{ color: C.textPrimary }}>
@@ -149,6 +179,8 @@ export default function ApplyDashboard({
         schoolSlug={schoolSlug}
         userEmail={userProfile.email}
         userDisplayName={userProfile.displayName}
+        previewMode={previewMode}
+        previewHomeHref={previewHomeHref}
       />
       <main
         className="flex-1 px-4 py-8 sm:px-6 sm:py-10"
@@ -160,6 +192,7 @@ export default function ApplyDashboard({
             C={C}
             schoolName={schoolName}
             schoolSlug={schoolSlug}
+            parentPortalHref={parentPortalHref}
           />
         ) : null}
 
@@ -173,6 +206,7 @@ export default function ApplyDashboard({
                 Track submitted applications and continue drafts for {schoolName}.
               </p>
             </div>
+            {!previewMode ? (
             <Link
               href={`/school/${schoolSlug}/forms/apply?new=1`}
               className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
@@ -181,6 +215,7 @@ export default function ApplyDashboard({
               <Plus className="h-4 w-4 shrink-0" />
               New application
             </Link>
+            ) : null}
           </div>
 
         {applications.length === 0 ? (
@@ -195,6 +230,7 @@ export default function ApplyDashboard({
             <p className="mt-2 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
               Start an application to apply to {schoolName}.
             </p>
+            {!previewMode ? (
             <Link
               href={`/school/${schoolSlug}/forms/apply?new=1`}
               className="mt-6 inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
@@ -203,6 +239,7 @@ export default function ApplyDashboard({
               Start application
               <ArrowRight className="h-4 w-4" />
             </Link>
+            ) : null}
           </div>
         ) : (
           <div className="mt-4 space-y-3">
@@ -213,6 +250,7 @@ export default function ApplyDashboard({
                 application,
                 schoolSlug,
                 enrollmentProgress,
+                previewBasePath,
               );
               const statusForDisplay = displayApplicationStatus(
                 application,
@@ -226,8 +264,17 @@ export default function ApplyDashboard({
               return (
                 <div
                   key={application.id}
+                  id={focusApplicationId === application.id ? "preview-focus" : undefined}
                   className="rounded-md border px-5 py-4"
-                  style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+                  style={{
+                    borderColor:
+                      focusApplicationId === application.id ? C.accent : C.border,
+                    backgroundColor: "#FFFFFF",
+                    boxShadow:
+                      focusApplicationId === application.id
+                        ? `0 0 0 1px ${C.accent}33`
+                        : undefined,
+                  }}
                 >
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 flex-1">
@@ -283,7 +330,7 @@ export default function ApplyDashboard({
         )}
         </section>
 
-        {applicationsWithTasks.length > 0 ? (
+        {applicationsWithTasks.length > 0 && !previewMode ? (
           <ApplyRequiredActionsSection
             C={C}
             timezone={timezone}

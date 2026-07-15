@@ -15,6 +15,8 @@ type PublicEnrollmentChecklistClientProps = {
   schoolSlug: string;
   organizationId: string;
   checklist: LoadedEnrollmentChecklist;
+  previewMode?: boolean;
+  backHref?: string;
 };
 
 function celebrationStorageKey(checklistId: string) {
@@ -31,6 +33,8 @@ export default function PublicEnrollmentChecklistClient({
   schoolSlug,
   organizationId,
   checklist,
+  previewMode = false,
+  backHref,
 }: PublicEnrollmentChecklistClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const router = useRouter();
@@ -61,7 +65,7 @@ export default function PublicEnrollmentChecklistClient({
   }, [checklist.instances]);
 
   useEffect(() => {
-    if (searchParams.get("payment") !== "success") return;
+    if (previewMode || searchParams.get("payment") !== "success") return;
 
     let cancelled = false;
 
@@ -84,7 +88,7 @@ export default function PublicEnrollmentChecklistClient({
     return () => {
       cancelled = true;
     };
-  }, [router, searchParams]);
+  }, [previewMode, router, searchParams]);
 
   useEffect(() => {
     if (checklist.status !== "completed") return;
@@ -125,16 +129,16 @@ export default function PublicEnrollmentChecklistClient({
         instances={liveChecklist.instances}
         organizationId={organizationId}
         checklistId={liveChecklist.checklistId}
-        onInstancesChange={setInstances}
-        onAllRequiredComplete={handleAllRequiredComplete}
-        mode="live"
+        onInstancesChange={previewMode ? undefined : setInstances}
+        onAllRequiredComplete={previewMode ? undefined : handleAllRequiredComplete}
+        mode={previewMode ? "preview" : "live"}
         backLink={{
-          href: `/school/${schoolSlug}/apply`,
+          href: backHref ?? `/school/${schoolSlug}/apply`,
           label: "Back to applications",
         }}
       />
 
-      {pollingPayment ? (
+      {pollingPayment && !previewMode ? (
         <p className="sr-only" aria-live="polite">
           Updating payment status…
         </p>
@@ -142,7 +146,7 @@ export default function PublicEnrollmentChecklistClient({
 
       <EnrollmentCompleteModal
         C={C}
-        open={showCompleteModal}
+        open={!previewMode && showCompleteModal}
         schoolName={schoolName}
         schoolSlug={schoolSlug}
         onClose={() => setShowCompleteModal(false)}

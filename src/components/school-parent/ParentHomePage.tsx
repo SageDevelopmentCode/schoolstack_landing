@@ -29,6 +29,8 @@ type ParentHomePageProps = {
   userProfile: FamilyUserProfile;
   familyChildren: FamilyChildOverview[];
   quickActions: ParentQuickAction[];
+  previewMode?: boolean;
+  previewBasePath?: string;
 };
 
 const QUICK_ACTION_STYLES: Record<
@@ -92,7 +94,14 @@ function quickActionStyle(iconSlug: string) {
 function childApplicationHref(
   schoolSlug: string,
   child: FamilyChildOverview,
+  previewBasePath?: string,
 ): string {
+  if (previewBasePath) {
+    if (child.isEnrolled || child.status === "enrolling") {
+      return `${previewBasePath}/apply/${child.applicationId}/enrollment`;
+    }
+    return `${previewBasePath}/apply/${child.applicationId}`;
+  }
   if (child.isEnrolled || child.status === "enrolling") {
     return `/school/${schoolSlug}/apply/${child.applicationId}/enrollment`;
   }
@@ -112,15 +121,17 @@ function ChildProfileCard({
   schoolSlug,
   C,
   index,
+  previewBasePath,
 }: {
   child: FamilyChildOverview;
   schoolSlug: string;
   C: AdminThemeTokens;
   index: number;
+  previewBasePath?: string;
 }) {
   const badgeStyle = applicationStatusBadgeStyle(child.status, C);
   const childFirstName = child.studentName.split(" ")[0];
-  const href = childApplicationHref(schoolSlug, child);
+  const href = childApplicationHref(schoolSlug, child, previewBasePath);
 
   return (
     <motion.div custom={index + 2} initial="hidden" animate="visible" variants={fadeUp}>
@@ -189,9 +200,14 @@ export default function ParentHomePage({
   userProfile,
   familyChildren,
   quickActions,
+  previewMode = false,
+  previewBasePath,
 }: ParentHomePageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const name = firstName(userProfile.displayName);
+  const applyDashboardHref =
+    previewBasePath ?? `/school/${schoolSlug}/apply`;
+  const visibleQuickActions = previewMode ? [] : quickActions;
 
   return (
     <div
@@ -243,7 +259,7 @@ export default function ParentHomePage({
                     We don&apos;t have any student records from your applications
                     yet. Visit your{" "}
                     <Link
-                      href={`/school/${schoolSlug}/apply`}
+                      href={applyDashboardHref}
                       className="font-medium underline underline-offset-2"
                       style={{ color: C.accent }}
                     >
@@ -261,13 +277,14 @@ export default function ParentHomePage({
                       schoolSlug={schoolSlug}
                       C={C}
                       index={index}
+                      previewBasePath={previewBasePath}
                     />
                   ))}
                 </div>
               )}
             </motion.section>
 
-            {quickActions.length > 0 ? (
+            {visibleQuickActions.length > 0 ? (
               <motion.section
                 custom={familyChildren.length + 2}
                 initial="hidden"
@@ -277,7 +294,7 @@ export default function ParentHomePage({
               >
                 <SectionTitle>Quick Actions</SectionTitle>
                 <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
-                  {quickActions.map((action, index) => {
+                  {visibleQuickActions.map((action, index) => {
                     const { iconBg, iconColor } = quickActionStyle(
                       action.iconSlug,
                     );
