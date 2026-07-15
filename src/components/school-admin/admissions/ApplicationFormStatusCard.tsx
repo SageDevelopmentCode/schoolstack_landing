@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { FileText } from "lucide-react";
+import ApplicationAnswersModal from "@/components/school-admin/admissions/ApplicationAnswersModal";
 import ApplicationFormStepDetailModal from "@/components/school-admin/admissions/ApplicationFormStepDetailModal";
 import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
@@ -20,6 +22,7 @@ import {
   type ApplicationFormStep,
 } from "@/lib/admissions/application-form-steps";
 import type { ApplicationDetail } from "@/lib/admissions/parent-portal-access";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -34,6 +37,7 @@ type ApplicationFormStatusCardProps = {
   formTitle: string;
   submittedAt: string | null;
   feeEnabled: boolean;
+  downloadLabel?: string;
 };
 
 function stepKindLabel(kind: ApplicationFormStep["kind"]): string {
@@ -78,9 +82,11 @@ export default function ApplicationFormStatusCard({
   formTitle,
   submittedAt,
   feeEnabled,
+  downloadLabel,
 }: ApplicationFormStatusCardProps) {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [answersOpen, setAnswersOpen] = useState(false);
 
   const stepsWithStatus = useMemo(() => {
     const steps = buildApplicationFormSteps(detail.schema, detail.feeConfig);
@@ -161,6 +167,16 @@ export default function ApplicationFormStatusCard({
           subtitle={progressSubtitle}
         />
 
+        <button
+          type="button"
+          onClick={() => setAnswersOpen(true)}
+          className="mb-3 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition hover:opacity-90"
+          style={getAdminButtonStyle(C, "secondary")}
+        >
+          <FileText className="h-3.5 w-3.5" />
+          View application answers
+        </button>
+
         <DetailPanelStepTimeline
           C={C}
           items={timelineItems}
@@ -180,6 +196,17 @@ export default function ApplicationFormStatusCard({
         detail={detail}
         feeStatus={feeStatus}
         onClose={closeStepDetail}
+      />
+
+      <ApplicationAnswersModal
+        C={C}
+        branding={branding}
+        schoolName={schoolName}
+        schoolSlug={schoolSlug}
+        open={answersOpen}
+        detail={detail}
+        downloadLabel={downloadLabel ?? formTitle}
+        onClose={() => setAnswersOpen(false)}
       />
     </>
   );

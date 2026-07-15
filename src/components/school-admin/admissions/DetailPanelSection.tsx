@@ -8,6 +8,7 @@ type DetailPanelSectionProps = {
   title: string;
   description?: string;
   badge?: ReactNode;
+  actions?: ReactNode;
   children?: ReactNode;
   className?: string;
 };
@@ -17,6 +18,7 @@ export default function DetailPanelSection({
   title,
   description,
   badge,
+  actions,
   children,
   className = "",
 }: DetailPanelSectionProps) {
@@ -26,7 +28,10 @@ export default function DetailPanelSection({
         <h4 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
           {title}
         </h4>
-        {badge}
+        <div className="flex flex-wrap items-center gap-2">
+          {actions}
+          {badge}
+        </div>
       </div>
       {description ? (
         <p className="mt-1 text-xs leading-relaxed" style={{ color: C.textTertiary }}>
