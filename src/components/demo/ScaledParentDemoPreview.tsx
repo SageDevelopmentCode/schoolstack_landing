@@ -74,6 +74,10 @@ import {
   LazyLuffLearningParentDashboardDemo,
   prefetchLuffLearningParentDemo,
 } from "@/components/demo/lufflearning/lazyLuffLearningDemos";
+import {
+  LazyParadiseEarthAcademyParentDashboardDemo,
+  prefetchParadiseEarthAcademyParentDemo,
+} from "@/components/demo/paradiseearthacademy/lazyParadiseEarthAcademyDemos";
 import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 
@@ -115,9 +119,11 @@ export default function ScaledParentDemoPreview({
   const isArizonaGiftedAcademy = demoSlug === "arizona-gifted-academy";
   const isLighthouseHomeschool = demoSlug === "lighthouse-homeschool";
   const isLuffLearning = demoSlug === "luff-learning";
+  const isParadiseEarthAcademy = demoSlug === "paradise-earth-academy";
 
   useEffect(() => {
-    if (isLuffLearning) prefetchLuffLearningParentDemo();
+    if (isParadiseEarthAcademy) prefetchParadiseEarthAcademyParentDemo();
+    else if (isLuffLearning) prefetchLuffLearningParentDemo();
     else if (isLighthouseHomeschool) prefetchLighthouseHomeschoolParentDemo();
     else if (isSpringRiverSchool) prefetchSpringRiverSchoolParentDemo();
     else if (isArizonaGiftedAcademy) prefetchArizonaGiftedAcademyParentDemo();
@@ -135,7 +141,7 @@ export default function ScaledParentDemoPreview({
     else if (isTheWoodlandsMicroschool) prefetchTheWoodlandsMicroschoolParentDemo();
     else if (isWonderHere) prefetchWonderHereParentDemo();
     else prefetchAthenaParentDemo();
-  }, [isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
+  }, [isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -149,7 +155,9 @@ export default function ScaledParentDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isLuffLearning
+  const DemoComponent = isParadiseEarthAcademy
+    ? LazyParadiseEarthAcademyParentDashboardDemo
+    : isLuffLearning
     ? LazyLuffLearningParentDashboardDemo
     : isLighthouseHomeschool
     ? LazyLighthouseHomeschoolParentDashboardDemo

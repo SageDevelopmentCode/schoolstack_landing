@@ -18,6 +18,7 @@ export { arizonaGiftedAcademyConfig } from "./arizona-gifted-academy";
 export { springRiverSchoolConfig } from "./spring-river-school";
 export { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 export { luffLearningConfig } from "./luff-learning";
+export { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -38,6 +39,7 @@ import { arizonaGiftedAcademyConfig } from "./arizona-gifted-academy";
 import { springRiverSchoolConfig } from "./spring-river-school";
 import { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 import { luffLearningConfig } from "./luff-learning";
+import { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -58,6 +60,7 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "spring-river-school": springRiverSchoolConfig,
   "lighthouse-homeschool": lighthouseHomeschoolConfig,
   "luff-learning": luffLearningConfig,
+  "paradise-earth-academy": paradiseEarthAcademyConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {
