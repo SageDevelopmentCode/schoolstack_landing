@@ -2,7 +2,10 @@
 
 import { Check } from "lucide-react";
 import { FadeInView } from "@/components/ui/FadeInView";
-import { ROOTED_MEADOWS_TIMELINE_THEME } from "@/data/school-demos/rooted-meadows-timeline";
+import {
+  phaseAccentByNumber,
+  ROOTED_MEADOWS_TIMELINE_THEME,
+} from "@/data/school-demos/rooted-meadows-timeline";
 import {
   formatProgressEntryDate,
   type OrganizationProgressEntry,
@@ -14,12 +17,6 @@ interface Props {
 
 export default function RootedMeadowsTimelineProgressLog({ entries }: Props) {
   if (entries.length === 0) return null;
-
-  const accent = {
-    bg: ROOTED_MEADOWS_TIMELINE_THEME.purpleStepBg,
-    title: ROOTED_MEADOWS_TIMELINE_THEME.purpleStepTitle,
-    solid: ROOTED_MEADOWS_TIMELINE_THEME.accent,
-  };
 
   return (
     <section className="px-6 py-10 pb-20 lg:px-16 lg:py-14 lg:pb-24">
@@ -58,7 +55,10 @@ export default function RootedMeadowsTimelineProgressLog({ entries }: Props) {
             aria-hidden
           />
 
-          {entries.map((entry, index) => (
+          {entries.map((entry, index) => {
+            const accent = phaseAccentByNumber(entry.phase_number);
+
+            return (
             <FadeInView key={entry.id} delay={index * 0.05}>
               <article
                 className="relative rounded-2xl border p-6 sm:ml-8 sm:p-7"
@@ -150,7 +150,8 @@ export default function RootedMeadowsTimelineProgressLog({ entries }: Props) {
                 ) : null}
               </article>
             </FadeInView>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
