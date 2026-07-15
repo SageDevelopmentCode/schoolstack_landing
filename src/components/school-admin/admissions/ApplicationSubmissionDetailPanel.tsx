@@ -195,6 +195,9 @@ export default function ApplicationSubmissionDetailPanel({
       formTitle={detail.formTitle}
       submittedAt={submission.submittedAt}
       feeEnabled={submission.feeEnabled}
+      downloadLabel={
+        submission.studentLabel || submission.guardianName || detail.formTitle
+      }
     />
   ) : null;
 

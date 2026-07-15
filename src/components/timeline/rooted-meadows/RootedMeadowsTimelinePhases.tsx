@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Check } from "lucide-react";
+import { ArrowUpRight, Check, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FadeInView } from "@/components/ui/FadeInView";
 import {
+  phaseAccent,
   ROOTED_MEADOWS_TIMELINE_PHASES,
   ROOTED_MEADOWS_TIMELINE_THEME,
   type TimelinePersona,
-  type TimelinePhase,
 } from "@/data/school-demos/rooted-meadows-timeline";
 import { prototypeStepUrl } from "@/lib/demo-walkthrough";
 import { getPhaseCountdown } from "@/lib/timeline-countdown";
@@ -38,21 +38,6 @@ function stepCircleStyle(
     backgroundColor: isActive ? accentSolid : "white",
     color: isActive ? "#ffffff" : ROOTED_MEADOWS_TIMELINE_THEME.textSecondary,
     border: isActive ? "none" : `1px solid ${ROOTED_MEADOWS_TIMELINE_THEME.border}`,
-  };
-}
-
-function phaseAccent(phase: TimelinePhase) {
-  if (phase.accent === "olive") {
-    return {
-      bg: ROOTED_MEADOWS_TIMELINE_THEME.oliveStepBg,
-      title: ROOTED_MEADOWS_TIMELINE_THEME.oliveStepTitle,
-      solid: ROOTED_MEADOWS_TIMELINE_THEME.clay,
-    };
-  }
-  return {
-    bg: ROOTED_MEADOWS_TIMELINE_THEME.purpleStepBg,
-    title: ROOTED_MEADOWS_TIMELINE_THEME.purpleStepTitle,
-    solid: ROOTED_MEADOWS_TIMELINE_THEME.accent,
   };
 }
 
@@ -218,14 +203,77 @@ export default function RootedMeadowsTimelinePhases({
             </div>
           </div>
 
-          {/* Detail panel */}
-          <div
-            className="min-w-0 flex-1 overflow-hidden rounded-2xl border"
-            style={{
-              backgroundColor: "white",
-              borderColor: ROOTED_MEADOWS_TIMELINE_THEME.border,
-            }}
-          >
+          {/* Detail column */}
+          <div className="min-w-0 flex-1 flex flex-col gap-4">
+            <AnimatePresence mode="wait">
+              {phase.demoVideo && activeCountdown.status === "complete" ? (
+                <motion.div
+                  key={`${phase.id}-demo-video`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                  className="rounded-2xl border p-5 sm:p-6"
+                  style={{
+                    backgroundColor: accent.bg,
+                    borderColor: `${accent.solid}55`,
+                  }}
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-4">
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: accent.solid }}
+                      >
+                        <Play
+                          size={18}
+                          strokeWidth={2.5}
+                          className="ml-0.5"
+                          style={{ color: "#ffffff" }}
+                          aria-hidden
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p
+                          className="font-secondary text-[15px] font-semibold sm:text-[16px]"
+                          style={{
+                            color: ROOTED_MEADOWS_TIMELINE_THEME.textPrimary,
+                          }}
+                        >
+                          {phase.demoVideo.title}
+                        </p>
+                        <p
+                          className="font-secondary mt-1 text-[14px] leading-relaxed"
+                          style={{
+                            color: ROOTED_MEADOWS_TIMELINE_THEME.textSecondary,
+                          }}
+                        >
+                          {phase.demoVideo.description}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href={phase.demoVideo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-secondary inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 sm:self-center"
+                      style={{ backgroundColor: accent.solid }}
+                    >
+                      Watch demo video
+                      <ArrowUpRight size={14} aria-hidden />
+                    </Link>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+
+            <div
+              className="overflow-hidden rounded-2xl border"
+              style={{
+                backgroundColor: "white",
+                borderColor: ROOTED_MEADOWS_TIMELINE_THEME.border,
+              }}
+            >
             <AnimatePresence mode="wait">
               <motion.div
                 key={phase.id}
@@ -367,6 +415,7 @@ export default function RootedMeadowsTimelinePhases({
                 </div>
               </motion.div>
             </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>

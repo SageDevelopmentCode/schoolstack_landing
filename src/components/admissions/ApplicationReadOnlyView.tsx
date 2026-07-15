@@ -38,6 +38,9 @@ type ApplicationReadOnlyViewProps = {
   layout?: ReadOnlyLayout;
   view?: "full" | "section" | "acknowledgments";
   sectionId?: string;
+  backHref?: string;
+  hideBackLink?: boolean;
+  standalone?: boolean;
 };
 
 function formatFieldValue(field: ApplicationField, value: string | undefined): string {
@@ -337,10 +340,14 @@ function ApplicationReadOnlyBody({
   layout = "page",
   view = "full",
   sectionId,
+  backHref,
+  hideBackLink = false,
+  standalone = true,
 }: ApplicationReadOnlyViewProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
   const statusStyle = applicationStatusBadgeStyle(application.status, C);
+  const applicationsBackHref = backHref ?? `/school/${schoolSlug}/apply`;
   const submittedLabel = application.submittedAt
     ? new Date(application.submittedAt).toLocaleDateString("en-US", {
         month: "long",
@@ -353,14 +360,16 @@ function ApplicationReadOnlyBody({
     <>
       {!embedded ? (
         <>
-          <Link
-            href={`/school/${schoolSlug}/apply`}
-            className="mb-6 inline-flex items-center gap-2 text-sm underline-offset-2 hover:underline"
-            style={{ color: C.textSecondary }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to applications
-          </Link>
+          {!hideBackLink ? (
+            <Link
+              href={applicationsBackHref}
+              className="mb-6 inline-flex items-center gap-2 text-sm underline-offset-2 hover:underline"
+              style={{ color: C.textSecondary }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to applications
+            </Link>
+          ) : null}
 
           <SchoolDemoWordmark
             logo={{
@@ -419,6 +428,14 @@ function ApplicationReadOnlyBody({
 
   if (embedded) {
     return content;
+  }
+
+  if (!standalone) {
+    return (
+      <div style={{ backgroundColor: pageBg, color: C.textPrimary }}>
+        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">{content}</div>
+      </div>
+    );
   }
 
   return (

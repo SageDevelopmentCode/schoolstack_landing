@@ -23,6 +23,11 @@ export type TimelinePhase = {
   personas: TimelinePersona[];
   features: TimelineFeature[];
   accent: "purple" | "olive";
+  demoVideo?: {
+    url: string;
+    title: string;
+    description: string;
+  };
 };
 
 export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
@@ -38,6 +43,12 @@ export const ROOTED_MEADOWS_TIMELINE_PHASES: TimelinePhase[] = [
       "Families apply, book an observation visit, and receive their enrollment contract — all without spreadsheets or email chains.",
     personas: ["admin", "parent"],
     accent: "purple",
+    demoVideo: {
+      url: "https://screen.studio/share/eLrCzdaA",
+      title: "Demo video available",
+      description:
+        "Watch a short walkthrough of admissions — from family application through enrollment.",
+    },
     features: [
       {
         title: "MudKitchen-hosted application",
@@ -295,3 +306,37 @@ export const ROOTED_MEADOWS_TIMELINE_THEME = {
   oliveStepBg: "#F5F3E6",
   oliveStepTitle: "#5C5A30",
 } as const;
+
+export type PhaseAccent = {
+  bg: string;
+  title: string;
+  solid: string;
+};
+
+export function phaseAccent(phase: TimelinePhase): PhaseAccent {
+  if (phase.accent === "olive") {
+    return {
+      bg: ROOTED_MEADOWS_TIMELINE_THEME.oliveStepBg,
+      title: ROOTED_MEADOWS_TIMELINE_THEME.oliveStepTitle,
+      solid: ROOTED_MEADOWS_TIMELINE_THEME.clay,
+    };
+  }
+
+  return {
+    bg: ROOTED_MEADOWS_TIMELINE_THEME.purpleStepBg,
+    title: ROOTED_MEADOWS_TIMELINE_THEME.purpleStepTitle,
+    solid: ROOTED_MEADOWS_TIMELINE_THEME.accent,
+  };
+}
+
+export function phaseAccentByNumber(phaseNumber: string): PhaseAccent {
+  const phase = ROOTED_MEADOWS_TIMELINE_PHASES.find(
+    (step) => step.number === phaseNumber,
+  );
+
+  if (!phase) {
+    return phaseAccent(ROOTED_MEADOWS_TIMELINE_PHASES[0]);
+  }
+
+  return phaseAccent(phase);
+}

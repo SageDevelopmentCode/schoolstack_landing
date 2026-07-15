@@ -16,6 +16,8 @@ type ApplyPortalNavbarProps = {
   schoolSlug: string;
   userEmail: string;
   userDisplayName: string;
+  previewMode?: boolean;
+  previewHomeHref?: string;
 };
 
 function profileInitials(displayName: string): string {
@@ -35,6 +37,8 @@ export default function ApplyPortalNavbar({
   schoolSlug,
   userEmail,
   userDisplayName,
+  previewMode = false,
+  previewHomeHref,
 }: ApplyPortalNavbarProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -78,6 +82,8 @@ export default function ApplyPortalNavbar({
   };
 
   const initials = profileInitials(userDisplayName);
+  const homeHref =
+    previewHomeHref ?? `/school/${schoolSlug}/apply`;
 
   return (
     <header
@@ -85,10 +91,18 @@ export default function ApplyPortalNavbar({
       style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
     >
       <div className="flex h-14 w-full items-center justify-between gap-4">
-        <Link href={`/school/${schoolSlug}/apply`} className="min-w-0 shrink">
+        <Link href={homeHref} className="min-w-0 shrink">
           <ApplyPortalBranding branding={branding} schoolName={schoolName} />
         </Link>
 
+        {previewMode ? (
+          <span
+            className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
+            style={{ backgroundColor: C.accentLight, color: C.accent }}
+          >
+            Preview
+          </span>
+        ) : (
         <div className="relative shrink-0" ref={menuRef}>
           <button
             type="button"
@@ -143,6 +157,7 @@ export default function ApplyPortalNavbar({
             </div>
           ) : null}
         </div>
+        )}
       </div>
     </header>
   );
