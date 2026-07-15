@@ -82,6 +82,18 @@ import {
   LazyCreationAcresTeacherDashboardDemo,
   prefetchCreationAcresTeacherDemo,
 } from "@/components/demo/creationacres/lazyCreationAcresDemos";
+import {
+  LazyTrueNorthTeacherDashboardDemo,
+  prefetchTrueNorthTeacherDemo,
+} from "@/components/demo/truenorth/lazyTrueNorthDemos";
+import {
+  LazyLabLearningTeacherDashboardDemo,
+  prefetchLabLearningTeacherDemo,
+} from "@/components/demo/lablearning/lazyLabLearningDemos";
+import {
+  LazyOneAcreFarmTeacherDashboardDemo,
+  prefetchOneAcreFarmTeacherDemo,
+} from "@/components/demo/oneacrefarm/lazyOneAcreFarmDemos";
 import type { DemoWalkthroughTeacherTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
@@ -118,9 +130,15 @@ export default function ScaledTeacherDemoPreview({
   const isLuffLearning = demoSlug === "luff-learning";
   const isParadiseEarthAcademy = demoSlug === "paradise-earth-academy";
   const isCreationAcres = demoSlug === "creation-acres";
+  const isTrueNorth = demoSlug === "true-north";
+  const isLabLearning = demoSlug === "lab-learning";
+  const isOneAcreFarm = demoSlug === "one-acre-farm";
 
   useEffect(() => {
-    if (isCreationAcres) prefetchCreationAcresTeacherDemo();
+    if (isLabLearning) prefetchLabLearningTeacherDemo();
+    else if (isOneAcreFarm) prefetchOneAcreFarmTeacherDemo();
+    else if (isTrueNorth) prefetchTrueNorthTeacherDemo();
+    else if (isCreationAcres) prefetchCreationAcresTeacherDemo();
     else if (isParadiseEarthAcademy) prefetchParadiseEarthAcademyTeacherDemo();
     else if (isLuffLearning) prefetchLuffLearningTeacherDemo();
     else if (isLighthouseHomeschool) prefetchLighthouseHomeschoolTeacherDemo();
@@ -140,7 +158,7 @@ export default function ScaledTeacherDemoPreview({
     else if (isTheWoodlandsMicroschool) prefetchTheWoodlandsMicroschoolTeacherDemo();
     else if (isWonderHere) prefetchWonderHereTeacherDemo();
     else prefetchAthenaTeacherDemo();
-  }, [isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
+  }, [isLabLearning, isOneAcreFarm, isTrueNorth, isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -154,7 +172,13 @@ export default function ScaledTeacherDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isCreationAcres
+  const DemoComponent = isLabLearning
+    ? LazyLabLearningTeacherDashboardDemo
+    : isOneAcreFarm
+    ? LazyOneAcreFarmTeacherDashboardDemo
+    : isTrueNorth
+    ? LazyTrueNorthTeacherDashboardDemo
+    : isCreationAcres
     ? LazyCreationAcresTeacherDashboardDemo
     : isParadiseEarthAcademy
     ? LazyParadiseEarthAcademyTeacherDashboardDemo

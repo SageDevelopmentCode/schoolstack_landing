@@ -20,6 +20,9 @@ export { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 export { luffLearningConfig } from "./luff-learning";
 export { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 export { creationAcresConfig } from "./creation-acres";
+export { trueNorthConfig } from "./true-north";
+export { oneAcreFarmConfig } from "./one-acre-farm";
+export { labLearningConfig } from "./lab-learning";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -42,6 +45,9 @@ import { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 import { luffLearningConfig } from "./luff-learning";
 import { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 import { creationAcresConfig } from "./creation-acres";
+import { trueNorthConfig } from "./true-north";
+import { oneAcreFarmConfig } from "./one-acre-farm";
+import { labLearningConfig } from "./lab-learning";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -64,6 +70,9 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "luff-learning": luffLearningConfig,
   "paradise-earth-academy": paradiseEarthAcademyConfig,
   "creation-acres": creationAcresConfig,
+  "true-north": trueNorthConfig,
+  "one-acre-farm": oneAcreFarmConfig,
+  "lab-learning": labLearningConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {
