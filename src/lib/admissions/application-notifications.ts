@@ -256,6 +256,7 @@ export async function sendPostSubmitVisitScheduledNotifications(
         startTimeSlot: booking.startTimeSlot,
         schedulingMode: booking.schedulingMode,
         visitDayCount: booking.visitDayCount,
+        visitDates: booking.visitDates,
         timezoneLabel,
         firstName: contact.firstName,
         lastName: contact.lastName,

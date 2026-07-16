@@ -37,6 +37,18 @@ export function listConsecutiveDates(startDate: string, dayCount: number): strin
   return dates;
 }
 
+export function listBookableObservationDates(
+  openDays: Set<string>,
+  occupiedDays: Set<string>,
+  startDate: string,
+  endDate: string,
+): string[] {
+  return eachDateInRange(startDate, endDate).filter(
+    (date) => openDays.has(date) && !occupiedDays.has(date),
+  );
+}
+
+/** @deprecated Use listBookableObservationDates for multiselect booking. */
 export function listBookableObservationStartDates(
   openDays: Set<string>,
   occupiedDays: Set<string>,

@@ -1,113 +1,64 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  addCalendarDays,
-  listBookableObservationStartDates,
-  listConsecutiveDates,
-} from "./admissions-observation-availability";
+  normalizeScheduledDates,
+  validateWholeDayScheduledDates,
+} from "./admissions-booking";
+import { listBookableObservationDates } from "./admissions-observation-availability";
 
-describe("admissions observation booking", () => {
-  it("lists consecutive dates from a start day", () => {
-    assert.deepEqual(listConsecutiveDates("2026-07-21", 3), [
-      "2026-07-21",
-      "2026-07-22",
-      "2026-07-23",
-    ]);
-  });
-
-  it("adds calendar days across month boundaries", () => {
-    assert.equal(addCalendarDays("2026-07-31", 1), "2026-08-01");
-  });
-
-  it("returns start dates when all consecutive days are open and unoccupied", () => {
-    const openDays = new Set([
-      "2026-07-21",
-      "2026-07-22",
-      "2026-07-23",
-      "2026-07-24",
-    ]);
-    const occupiedDays = new Set<string>();
-
-    const bookable = listBookableObservationStartDates(
-      openDays,
-      occupiedDays,
-      "2026-07-21",
-      "2026-07-24",
-      2,
-    );
-
-    assert.deepEqual(bookable, ["2026-07-21", "2026-07-22", "2026-07-23"]);
-  });
-
-  it("rejects a start date when a day in the block is occupied", () => {
-    const openDays = new Set([
-      "2026-07-21",
-      "2026-07-22",
-      "2026-07-23",
-    ]);
+describe("admissions observation multiselect booking", () => {
+  it("lists individual bookable observation dates", () => {
+    const openDays = new Set(["2026-07-21", "2026-07-22", "2026-07-24"]);
     const occupiedDays = new Set(["2026-07-22"]);
 
-    const bookable = listBookableObservationStartDates(
+    const bookable = listBookableObservationDates(
       openDays,
       occupiedDays,
       "2026-07-21",
-      "2026-07-23",
-      2,
+      "2026-07-24",
     );
 
-    assert.deepEqual(bookable, []);
+    assert.deepEqual(bookable, ["2026-07-21", "2026-07-24"]);
   });
 
-  it("allows a start date when only later days in another block are occupied", () => {
-    const openDays = new Set([
-      "2026-07-21",
-      "2026-07-22",
-      "2026-07-23",
-    ]);
-    const occupiedDays = new Set(["2026-07-23"]);
-
-    const bookable = listBookableObservationStartDates(
-      openDays,
-      occupiedDays,
-      "2026-07-21",
-      "2026-07-23",
-      2,
+  it("normalizes and deduplicates scheduled dates", () => {
+    assert.deepEqual(
+      normalizeScheduledDates(["2026-07-24", "2026-07-21", "2026-07-24"]),
+      ["2026-07-21", "2026-07-24"],
     );
-
-    assert.deepEqual(bookable, ["2026-07-21"]);
   });
 
-  it("rejects a start date when a day in the block is not open", () => {
-    const openDays = new Set(["2026-07-21", "2026-07-23"]);
-    const occupiedDays = new Set<string>();
-
-    const bookable = listBookableObservationStartDates(
-      openDays,
-      occupiedDays,
-      "2026-07-21",
-      "2026-07-23",
-      2,
-    );
-
-    assert.deepEqual(bookable, []);
-  });
-
-  it("does not return start dates that would extend past the query range", () => {
-    const openDays = new Set([
-      "2026-07-21",
-      "2026-07-22",
-      "2026-07-23",
-    ]);
-    const occupiedDays = new Set<string>();
-
-    const bookable = listBookableObservationStartDates(
-      openDays,
-      occupiedDays,
-      "2026-07-21",
-      "2026-07-22",
+  it("accepts a valid multiselect within max days", () => {
+    const result = validateWholeDayScheduledDates(
+      ["2026-07-21", "2026-07-24"],
       3,
+      new Set(["2026-07-21", "2026-07-22", "2026-07-24"]),
     );
 
-    assert.deepEqual(bookable, []);
+    assert.deepEqual(result, ["2026-07-21", "2026-07-24"]);
+  });
+
+  it("rejects when more than max days are selected", () => {
+    assert.throws(
+      () =>
+        validateWholeDayScheduledDates(
+          ["2026-07-21", "2026-07-22", "2026-07-24"],
+          2,
+          new Set(["2026-07-21", "2026-07-22", "2026-07-24"]),
+        ),
+      /up to 2 school days/i,
+    );
+  });
+
+  it("rejects when a selected day is not bookable", () => {
+    assert.throws(
+      () =>
+        validateWholeDayScheduledDates(
+          ["2026-07-21", "2026-07-22"],
+          3,
+          new Set(["2026-07-21"]),
+        ),
+      /no longer available/i,
+    );
   });
 });

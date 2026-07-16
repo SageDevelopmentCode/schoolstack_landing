@@ -15,6 +15,7 @@ type ApplyRequiredActionsSectionProps = {
   timezone: string;
   applications: FamilyApplication[];
   onBooked: () => void;
+  previewMode?: boolean;
 };
 
 type BookingTarget = {
@@ -27,6 +28,7 @@ export default function ApplyRequiredActionsSection({
   timezone,
   applications,
   onBooked,
+  previewMode = false,
 }: ApplyRequiredActionsSectionProps) {
   const [bookingTarget, setBookingTarget] = useState<BookingTarget | null>(null);
   const [activeApplicationId, setActiveApplicationId] = useState(
@@ -99,7 +101,7 @@ export default function ApplyRequiredActionsSection({
           onChange={setActiveApplicationId}
         />
 
-        <ol className="mt-4 list-none space-y-2 p-0">
+        <ol className="mt-4 list-none space-y-3 p-0">
           {tasks.map((task) => (
             <PostSubmitStepCard
               key={task.actionId}
@@ -121,6 +123,7 @@ export default function ApplyRequiredActionsSection({
           open={Boolean(bookingTarget)}
           onClose={() => setBookingTarget(null)}
           onBooked={onBooked}
+          previewMode={previewMode}
         />
       ) : null}
     </>

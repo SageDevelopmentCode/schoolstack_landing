@@ -10,7 +10,6 @@ import {
   todayKeyInTimezone,
   todayMonthYearInTimezone,
 } from "@/lib/admissions/admissions-availability";
-import { listConsecutiveDates } from "@/lib/admissions/admissions-observation-availability";
 import { MONTH_NAMES } from "@/lib/demo-scheduler";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
@@ -20,9 +19,9 @@ type AdmissionsDatePickerProps = {
   actionId: string;
   timezone: string;
   timezoneLabel: string;
-  visitDayCount: number;
-  selectedDate: string | null;
-  onDateChange: (date: string | null) => void;
+  maxVisitDays: number;
+  selectedDates: string[];
+  onDatesChange: (dates: string[]) => void;
 };
 
 function monthDateRange(year: number, month: number): { start: string; end: string } {
@@ -40,18 +39,20 @@ export default function AdmissionsDatePicker({
   actionId,
   timezone,
   timezoneLabel,
-  visitDayCount,
-  selectedDate,
-  onDateChange,
+  maxVisitDays,
+  selectedDates,
+  onDatesChange,
 }: AdmissionsDatePickerProps) {
   const initial = todayMonthYearInTimezone(timezone);
   const [viewYear, setViewYear] = useState(initial.year);
   const [viewMonth, setViewMonth] = useState(initial.month);
-  const [bookableStartDates, setBookableStartDates] = useState<Set<string>>(new Set());
+  const [bookableDates, setBookableDates] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const today = todayKeyInTimezone(timezone);
+  const selectedSet = useMemo(() => new Set(selectedDates), [selectedDates]);
+  const atMaxSelection = selectedDates.length >= maxVisitDays;
 
   const loadAvailability = useCallback(async () => {
     const { start, end } = monthDateRange(viewYear, viewMonth);
@@ -76,7 +77,7 @@ export default function AdmissionsDatePicker({
       throw new Error("Unexpected availability mode.");
     }
 
-    setBookableStartDates(new Set(payload.bookableStartDates));
+    setBookableDates(new Set(payload.bookableDates));
   }, [actionId, applicationId, viewMonth, viewYear]);
 
   useEffect(() => {
@@ -113,18 +114,17 @@ export default function AdmissionsDatePicker({
     [C.accent, C.accentLight, C.textPrimary, C.textTertiary],
   );
 
-  const visitSummary = useMemo(() => {
-    if (!selectedDate) return null;
-    const dates = listConsecutiveDates(selectedDate, visitDayCount);
-    const endDate = dates[dates.length - 1];
-    if (!endDate) return null;
+  function toggleDate(date: string) {
+    if (!bookableDates.has(date)) return;
 
-    if (visitDayCount === 1) {
-      return `Your child will visit on ${formatDateOnlyLabel(selectedDate)}.`;
+    if (selectedSet.has(date)) {
+      onDatesChange(selectedDates.filter((entry) => entry !== date));
+      return;
     }
 
-    return `Your child will visit ${formatDateOnlyLabel(selectedDate)} – ${formatDateOnlyLabel(endDate)} (${visitDayCount} school days).`;
-  }, [selectedDate, visitDayCount]);
+    if (atMaxSelection) return;
+    onDatesChange([...selectedDates, date].sort());
+  }
 
   function prevMonth() {
     if (viewMonth === 0) {
@@ -133,7 +133,6 @@ export default function AdmissionsDatePicker({
     } else {
       setViewMonth((month) => month - 1);
     }
-    onDateChange(null);
   }
 
   function nextMonth() {
@@ -143,7 +142,6 @@ export default function AdmissionsDatePicker({
     } else {
       setViewMonth((month) => month + 1);
     }
-    onDateChange(null);
   }
 
   if (loading) {
@@ -194,30 +192,46 @@ export default function AdmissionsDatePicker({
           </button>
         </div>
 
+        <p className="mb-3 text-xs font-medium" style={{ color: C.textSecondary }}>
+          {selectedDates.length} of {maxVisitDays} day{maxVisitDays === 1 ? "" : "s"} selected
+        </p>
+
         <CalendarGrid
           year={viewYear}
           month={viewMonth}
-          selected={selectedDate}
-          onSelect={onDateChange}
-          availableDates={bookableStartDates}
+          selected={selectedDates[0] ?? null}
+          selectedDates={selectedSet}
+          onSelect={toggleDate}
+          availableDates={bookableDates}
           minDate={today}
           colors={calendarColors}
           largeCells
         />
+
+        {selectedDates.length > 0 ? (
+          <ul className="mt-4 space-y-1 text-xs" style={{ color: C.textSecondary }}>
+            {selectedDates.map((date) => (
+              <li key={date} className="flex items-center justify-between gap-2">
+                <span>{formatDateOnlyLabel(date)}</span>
+                <button
+                  type="button"
+                  onClick={() => toggleDate(date)}
+                  className="text-[11px] font-medium"
+                  style={{ color: C.accent }}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
-      {visitSummary ? (
-        <p
-          className="rounded-sm px-3 py-2 text-sm leading-relaxed"
-          style={{ backgroundColor: C.accentLight, color: C.accentDark }}
-        >
-          {visitSummary}
-        </p>
-      ) : (
-        <p className="text-xs leading-relaxed" style={{ color: C.textTertiary }}>
-          Choose a start day with {visitDayCount} consecutive open school days available.
-        </p>
-      )}
+      <p className="text-xs leading-relaxed" style={{ color: C.textTertiary }}>
+        Select 1 to {maxVisitDays} open school day{maxVisitDays === 1 ? "" : "s"}. Days do not
+        need to be consecutive.
+        {atMaxSelection ? " You have reached the maximum for this visit." : null}
+      </p>
     </div>
   );
 }

@@ -11,8 +11,7 @@ import {
 import {
   ALL_DAY_TIME_SLOT,
   eachDateInRange,
-  listBookableObservationStartDates,
-  listConsecutiveDates,
+  listBookableObservationDates,
   listObservationDayAvailability,
   listOccupiedObservationDays,
 } from "./admissions-observation-availability";
@@ -24,7 +23,7 @@ import {
 } from "./application-form-schema";
 import {
   resolvedPostSubmitDurationMinutes,
-  resolvedPostSubmitVisitDayCount,
+  resolvedPostSubmitMaxVisitDays,
 } from "./post-submit-templates";
 
 export type AdmissionsSchedulingMode = "time_slot" | "whole_day";
@@ -41,6 +40,7 @@ export type ScheduledVisitRecord = {
   durationMinutes: number;
   visitDayCount?: number;
   endDate?: string;
+  visitDates?: string[];
   status: "scheduled" | "cancelled";
 };
 
@@ -69,15 +69,28 @@ export type TimeSlotAvailabilityResult = {
 
 export type WholeDayAvailabilityResult = {
   mode: "whole_day";
-  bookableStartDates: string[];
-  visitDayCount: number;
+  bookableDates: string[];
+  maxVisitDays: number;
 };
 
 export type BookableAvailabilityResult =
   | TimeSlotAvailabilityResult
   | WholeDayAvailabilityResult;
 
-function scheduledVisitFromRow(row: ScheduledVisitRow): ScheduledVisitRecord {
+export class AdmissionsBookingError extends Error {
+  code: string;
+
+  constructor(message: string, code: string) {
+    super(message);
+    this.name = "AdmissionsBookingError";
+    this.code = code;
+  }
+}
+
+function scheduledVisitFromRow(
+  row: ScheduledVisitRow,
+  visitDates?: string[],
+): ScheduledVisitRecord {
   const schedulingMode: AdmissionsSchedulingMode =
     row.scheduling_mode === "whole_day" ? "whole_day" : "time_slot";
 
@@ -94,8 +107,92 @@ function scheduledVisitFromRow(row: ScheduledVisitRow): ScheduledVisitRecord {
     visitDayCount:
       row.visit_day_count != null ? Number(row.visit_day_count) : undefined,
     endDate: row.end_date ? String(row.end_date) : undefined,
+    visitDates,
     status: row.status === "cancelled" ? "cancelled" : "scheduled",
   };
+}
+
+export function normalizeScheduledDates(dates: string[]): string[] {
+  return [...new Set(dates.map((date) => date.trim()).filter(Boolean))].sort();
+}
+
+export function validateWholeDayScheduledDates(
+  scheduledDates: string[],
+  maxVisitDays: number,
+  bookableDates: Set<string>,
+): string[] {
+  const normalized = normalizeScheduledDates(scheduledDates);
+
+  if (normalized.length === 0) {
+    throw new AdmissionsBookingError(
+      "Select at least one shadow day.",
+      "invalid_request",
+    );
+  }
+
+  if (normalized.length > maxVisitDays) {
+    throw new AdmissionsBookingError(
+      `You can select up to ${maxVisitDays} school day${maxVisitDays === 1 ? "" : "s"}.`,
+      "invalid_request",
+    );
+  }
+
+  for (const date of normalized) {
+    if (!bookableDates.has(date)) {
+      throw new AdmissionsBookingError(
+        "One or more selected days are no longer available. Please review your selection.",
+        "slot_unavailable",
+      );
+    }
+  }
+
+  return normalized;
+}
+
+async function listVisitDatesForVisits(
+  supabase: SupabaseClient,
+  visitIds: string[],
+): Promise<Map<string, string[]>> {
+  if (visitIds.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from("admissions_scheduled_visit_days")
+    .select("scheduled_visit_id, date")
+    .in("scheduled_visit_id", visitIds)
+    .order("date", { ascending: true });
+
+  if (error) throw error;
+
+  const datesByVisit = new Map<string, string[]>();
+  for (const row of data ?? []) {
+    const visitId = String(row.scheduled_visit_id);
+    const date = String(row.date);
+    const existing = datesByVisit.get(visitId) ?? [];
+    existing.push(date);
+    datesByVisit.set(visitId, existing);
+  }
+
+  return datesByVisit;
+}
+
+async function attachVisitDates(
+  supabase: SupabaseClient,
+  visits: ScheduledVisitRecord[],
+): Promise<ScheduledVisitRecord[]> {
+  const wholeDayVisitIds = visits
+    .filter((visit) => visit.schedulingMode === "whole_day")
+    .map((visit) => visit.id);
+
+  if (wholeDayVisitIds.length === 0) return visits;
+
+  const datesByVisit = await listVisitDatesForVisits(supabase, wholeDayVisitIds);
+
+  return visits.map((visit) => {
+    if (visit.schedulingMode !== "whole_day") return visit;
+    const visitDates = datesByVisit.get(visit.id);
+    if (!visitDates || visitDates.length === 0) return visit;
+    return { ...visit, visitDates };
+  });
 }
 
 export function buildOccupiedSlotKeys(
@@ -178,7 +275,10 @@ export async function listScheduledVisitsForApplications(
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => scheduledVisitFromRow(row as ScheduledVisitRow));
+  const visits = (data ?? []).map((row) =>
+    scheduledVisitFromRow(row as ScheduledVisitRow),
+  );
+  return attachVisitDates(supabase, visits);
 }
 
 export async function listActiveScheduledVisitsForOrganization(
@@ -197,7 +297,10 @@ export async function listActiveScheduledVisitsForOrganization(
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => scheduledVisitFromRow(row as ScheduledVisitRow));
+  const visits = (data ?? []).map((row) =>
+    scheduledVisitFromRow(row as ScheduledVisitRow),
+  );
+  return attachVisitDates(supabase, visits);
 }
 
 export async function getScheduledVisitForAction(
@@ -216,7 +319,10 @@ export async function getScheduledVisitForAction(
   if (error) throw error;
   if (!data) return null;
 
-  return scheduledVisitFromRow(data as ScheduledVisitRow);
+  const [visit] = await attachVisitDates(supabase, [
+    scheduledVisitFromRow(data as ScheduledVisitRow),
+  ]);
+  return visit ?? null;
 }
 
 export async function loadPostSubmitActionForApplication(
@@ -273,7 +379,7 @@ export async function getBookableAvailabilityForAction(
   endDate: string,
 ): Promise<BookableAvailabilityResult> {
   if (isWholeDayPostSubmitAction(action.type)) {
-    const visitDayCount = resolvedPostSubmitVisitDayCount(action);
+    const maxVisitDays = resolvedPostSubmitMaxVisitDays(action);
     const [openDays, occupiedDays] = await Promise.all([
       listObservationDayAvailability(supabase, organizationId, startDate, endDate),
       listOccupiedObservationDays(supabase, organizationId, startDate, endDate),
@@ -281,14 +387,13 @@ export async function getBookableAvailabilityForAction(
 
     return {
       mode: "whole_day",
-      bookableStartDates: listBookableObservationStartDates(
+      bookableDates: listBookableObservationDates(
         openDays,
         occupiedDays,
         startDate,
         endDate,
-        visitDayCount,
       ),
-      visitDayCount,
+      maxVisitDays,
     };
   }
 
@@ -317,16 +422,6 @@ export async function getBookableAvailabilityForAction(
   };
 }
 
-export class AdmissionsBookingError extends Error {
-  code: string;
-
-  constructor(message: string, code: string) {
-    super(message);
-    this.name = "AdmissionsBookingError";
-    this.code = code;
-  }
-}
-
 async function bookWholeDayVisit(
   supabase: SupabaseClient,
   context: {
@@ -335,30 +430,45 @@ async function bookWholeDayVisit(
     actionId: string;
     action: PostSubmitAction;
   },
-  scheduledDate: string,
+  scheduledDates: string[],
 ): Promise<ScheduledVisitRecord> {
-  const visitDayCount = resolvedPostSubmitVisitDayCount(context.action);
+  const maxVisitDays = resolvedPostSubmitMaxVisitDays(context.action);
+  const normalized = normalizeScheduledDates(scheduledDates);
+
+  if (normalized.length === 0) {
+    throw new AdmissionsBookingError(
+      "Select at least one shadow day.",
+      "invalid_request",
+    );
+  }
+
+  const rangeStart = normalized[0]!;
+  const rangeEnd = normalized[normalized.length - 1]!;
   const availability = await getBookableAvailabilityForAction(
     supabase,
     context.organizationId,
     context.action,
-    scheduledDate,
-    scheduledDate,
+    rangeStart,
+    rangeEnd,
   );
 
-  if (
-    availability.mode !== "whole_day" ||
-    !availability.bookableStartDates.includes(scheduledDate)
-  ) {
+  if (availability.mode !== "whole_day") {
     throw new AdmissionsBookingError(
-      "Those days are no longer available. Please choose another start date.",
-      "slot_unavailable",
+      "This scheduling step does not use whole-day booking.",
+      "invalid_request",
     );
   }
 
-  const visitDates = listConsecutiveDates(scheduledDate, visitDayCount);
-  const endDate = visitDates[visitDates.length - 1];
-  const durationMinutes = visitDayCount * 24 * 60;
+  const visitDates = validateWholeDayScheduledDates(
+    normalized,
+    maxVisitDays,
+    new Set(availability.bookableDates),
+  );
+
+  const scheduledDate = visitDates[0]!;
+  const endDate = visitDates[visitDates.length - 1]!;
+  const bookedDayCount = visitDates.length;
+  const durationMinutes = bookedDayCount * 24 * 60;
 
   const { data, error } = await supabase
     .from("admissions_scheduled_visits")
@@ -371,7 +481,7 @@ async function bookWholeDayVisit(
       scheduled_date: scheduledDate,
       start_time_slot: ALL_DAY_TIME_SLOT,
       duration_minutes: durationMinutes,
-      visit_day_count: visitDayCount,
+      visit_day_count: bookedDayCount,
       end_date: endDate,
       status: "scheduled",
     })
@@ -388,7 +498,7 @@ async function bookWholeDayVisit(
     throw error;
   }
 
-  const visit = scheduledVisitFromRow(data as ScheduledVisitRow);
+  const visit = scheduledVisitFromRow(data as ScheduledVisitRow, visitDates);
 
   const { error: daysError } = await supabase
     .from("admissions_scheduled_visit_days")
@@ -404,7 +514,7 @@ async function bookWholeDayVisit(
     await supabase.from("admissions_scheduled_visits").delete().eq("id", visit.id);
     if (daysError.code === "23505") {
       throw new AdmissionsBookingError(
-        "Those days are no longer available. Please choose another start date.",
+        "One or more selected days are no longer available. Please review your selection.",
         "slot_unavailable",
       );
     }
@@ -484,6 +594,7 @@ export async function bookAdmissionsVisit(
   actionId: string,
   scheduledDate: string,
   startTimeSlot?: string,
+  scheduledDates?: string[],
 ): Promise<ScheduledVisitRecord> {
   const context = await loadPostSubmitActionForApplication(
     supabase,
@@ -518,10 +629,17 @@ export async function bookAdmissionsVisit(
   }
 
   if (isWholeDayPostSubmitAction(context.action.type)) {
+    const dates =
+      scheduledDates && scheduledDates.length > 0
+        ? scheduledDates
+        : scheduledDate
+          ? [scheduledDate]
+          : [];
+
     return bookWholeDayVisit(
       supabase,
       { ...context, applicationId, actionId },
-      scheduledDate,
+      dates,
     );
   }
 

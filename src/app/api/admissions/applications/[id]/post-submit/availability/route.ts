@@ -7,8 +7,8 @@ import {
 } from "@/lib/admissions/admissions-booking";
 import {
   AuthError,
+  canAccessApplicationPostSubmit,
   requireAuthenticatedUser,
-  userOwnsApplication,
 } from "@/lib/admissions/application-auth";
 import { apiError } from "@/lib/api/route-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -40,13 +40,13 @@ export async function GET(request: Request, context: RouteContext) {
 
   try {
     const user = await requireAuthenticatedUser(supabase);
-    const ownsApplication = await userOwnsApplication(
+    const canAccess = await canAccessApplicationPostSubmit(
       supabase,
       user.id,
       applicationId,
     );
 
-    if (!ownsApplication) {
+    if (!canAccess) {
       return apiError(ROUTE, {
         request,
         status: 404,

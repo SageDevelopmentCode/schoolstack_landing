@@ -373,6 +373,7 @@ export async function notifyPostSubmitVisitScheduled(payload: {
   startTimeSlot: string;
   schedulingMode?: "time_slot" | "whole_day";
   visitDayCount?: number;
+  visitDates?: string[];
   timezoneLabel: string;
   firstName?: string;
   lastName?: string;
@@ -393,6 +394,7 @@ export async function notifyPostSubmitVisitScheduled(payload: {
   const when =
     payload.schedulingMode === "whole_day"
       ? formatObservationVisitWhen(
+          payload.visitDates,
           payload.scheduledDate,
           payload.endDate,
           payload.visitDayCount,
@@ -460,18 +462,27 @@ function formatSelectedDate(dateStr: string) {
 }
 
 function formatObservationVisitWhen(
+  visitDates: string[] | undefined,
   scheduledDate: string,
   endDate: string | undefined,
   visitDayCount: number | undefined,
   timezoneLabel: string,
 ): string {
-  const startLabel = formatSelectedDate(scheduledDate);
-  if (endDate && endDate !== scheduledDate) {
-    const endLabel = formatSelectedDate(endDate);
-    const days = visitDayCount ?? 2;
-    return `${startLabel} – ${endLabel} (${days} school days, ${timezoneLabel})`;
+  const dates =
+    visitDates && visitDates.length > 0
+      ? visitDates
+      : endDate && endDate !== scheduledDate
+        ? [scheduledDate, endDate]
+        : [scheduledDate];
+
+  const dayCount = visitDayCount ?? dates.length;
+
+  if (dates.length === 1) {
+    return `${formatSelectedDate(dates[0]!)} (${timezoneLabel})`;
   }
-  return `${startLabel} (${timezoneLabel})`;
+
+  const labels = dates.map((date) => formatSelectedDate(date)).join("; ");
+  return `${labels} (${dayCount} school days, ${timezoneLabel})`;
 }
 
 export async function notifyDemoBooking(payload: {

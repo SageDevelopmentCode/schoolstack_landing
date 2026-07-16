@@ -8,7 +8,7 @@ import AdmissionsDateTimePicker from "@/components/admissions/AdmissionsDateTime
 import { formatOrganizationTimezoneLabel } from "@/lib/admissions/admissions-availability";
 import { isWholeDayPostSubmitAction } from "@/lib/admissions/application-form-schema";
 import type { ApplicationPostSubmitTask } from "@/lib/admissions/parent-portal-access";
-import { resolvedPostSubmitVisitDayCount } from "@/lib/admissions/post-submit-templates";
+import { resolvedPostSubmitMaxVisitDays } from "@/lib/admissions/post-submit-templates";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type PostSubmitBookingModalProps = {
@@ -19,6 +19,7 @@ type PostSubmitBookingModalProps = {
   open: boolean;
   onClose: () => void;
   onBooked: () => void;
+  previewMode?: boolean;
 };
 
 export default function PostSubmitBookingModal({
@@ -29,25 +30,28 @@ export default function PostSubmitBookingModal({
   open,
   onClose,
   onBooked,
+  previewMode = false,
 }: PostSubmitBookingModalProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
   const isWholeDay = isWholeDayPostSubmitAction(task.type);
-  const visitDayCount = resolvedPostSubmitVisitDayCount({
+  const maxVisitDays = resolvedPostSubmitMaxVisitDays({
     id: task.actionId,
     type: task.type,
     enabled: true,
-    visitDayCount: task.visitDayCount,
+    maxVisitDays: task.maxVisitDays,
   });
 
   useEffect(() => {
     if (!open) {
       queueMicrotask(() => {
         setSelectedDate(null);
+        setSelectedDates([]);
         setSelectedTime(null);
         setSubmitting(false);
         setError(null);
@@ -56,11 +60,21 @@ export default function PostSubmitBookingModal({
   }, [open]);
 
   async function handleConfirm() {
-    if (!selectedDate) return;
-    if (!isWholeDay && !selectedTime) return;
+    if (isWholeDay) {
+      if (selectedDates.length === 0) return;
+    } else if (!selectedDate || !selectedTime) {
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
+
+    if (previewMode) {
+      onBooked();
+      onClose();
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -68,11 +82,18 @@ export default function PostSubmitBookingModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            actionId: task.actionId,
-            scheduledDate: selectedDate,
-            ...(selectedTime ? { startTimeSlot: selectedTime } : {}),
-          }),
+          body: JSON.stringify(
+            isWholeDay
+              ? {
+                  actionId: task.actionId,
+                  scheduledDates: selectedDates,
+                }
+              : {
+                  actionId: task.actionId,
+                  scheduledDate: selectedDate,
+                  startTimeSlot: selectedTime,
+                },
+          ),
         },
       );
 
@@ -92,7 +113,7 @@ export default function PostSubmitBookingModal({
   }
 
   const canConfirm = isWholeDay
-    ? Boolean(selectedDate)
+    ? selectedDates.length > 0
     : Boolean(selectedDate && selectedTime);
 
   return (
@@ -152,9 +173,9 @@ export default function PostSubmitBookingModal({
                 actionId={task.actionId}
                 timezone={timezone}
                 timezoneLabel={timezoneLabel}
-                visitDayCount={visitDayCount}
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
+                maxVisitDays={maxVisitDays}
+                selectedDates={selectedDates}
+                onDatesChange={setSelectedDates}
               />
             ) : (
               <AdmissionsDateTimePicker

@@ -104,7 +104,9 @@ export interface PostSubmitAction {
   instructions?: string;
   required?: boolean;
   durationMinutes?: number;
-  /** Whole-day shadow visits: number of consecutive school days (2 or 3). */
+  /** Whole-day shadow visits: max school days a family may select (1–5). */
+  maxVisitDays?: number;
+  /** @deprecated Use maxVisitDays. Parsed for backward compatibility. */
   visitDayCount?: number;
 }
 
@@ -204,6 +206,13 @@ function parsePostSubmitAction(raw: unknown): PostSubmitAction | null {
       ? Math.floor(record.visitDayCount)
       : undefined;
 
+  const maxVisitDays =
+    typeof record.maxVisitDays === "number" &&
+    Number.isFinite(record.maxVisitDays) &&
+    record.maxVisitDays > 0
+      ? Math.floor(record.maxVisitDays)
+      : visitDayCount;
+
   return {
     id: record.id,
     type,
@@ -213,7 +222,7 @@ function parsePostSubmitAction(raw: unknown): PostSubmitAction | null {
       typeof record.instructions === "string" ? record.instructions : undefined,
     required: record.required !== undefined ? Boolean(record.required) : true,
     durationMinutes,
-    visitDayCount,
+    maxVisitDays,
   };
 }
 

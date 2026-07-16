@@ -1,12 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import {
-  formatDurationLabel,
-  formatScheduledVisitWhenLabel,
-  formatVisitDayCountLabel,
-} from "@/lib/admissions/admissions-availability";
-import { isWholeDayPostSubmitAction } from "@/lib/admissions/application-form-schema";
+import { formatScheduledVisitWhenLabel } from "@/lib/admissions/admissions-availability";
 import { getPostSubmitStepPresentation } from "@/lib/admissions/post-submit-step-presentations";
 import { POST_SUBMIT_ACTION_TEMPLATES } from "@/lib/admissions/post-submit-templates";
 import type { ApplicationPostSubmitTask } from "@/lib/admissions/parent-portal-access";
@@ -35,14 +30,13 @@ export default function PostSubmitStepCard({
   const presentation = getPostSubmitStepPresentation(task.type);
   const template = POST_SUBMIT_ACTION_TEMPLATES[task.type];
   const Icon = template.Icon;
-  const isWholeDay = isWholeDayPostSubmitAction(task.type);
 
   return (
     <li
-      className="rounded-md border px-4 py-3"
-      style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+      className="rounded-md border px-5 py-4"
+      style={{ ...presentation.cardBorder(C), backgroundColor: "#FFFFFF" }}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 gap-3">
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
@@ -52,10 +46,7 @@ export default function PostSubmitStepCard({
                     backgroundColor: C.successBg,
                     color: C.success,
                   }
-                : {
-                    backgroundColor: C.accentLight,
-                    color: C.accent,
-                  }
+                : presentation.iconRing(C)
             }
           >
             {isScheduled ? (
@@ -65,7 +56,13 @@ export default function PostSubmitStepCard({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
+            <p
+              className="text-[11px] font-medium uppercase tracking-wide"
+              style={{ color: presentation.accentText(C) }}
+            >
+              {presentation.eyebrow}
+            </p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-semibold" style={{ color: C.accentDark }}>
                 {task.title}
               </h3>
@@ -91,23 +88,11 @@ export default function PostSubmitStepCard({
         </div>
 
         {!isScheduled ? (
-          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:pl-0 pl-12">
-            <span
-              className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium"
-              style={{
-                backgroundColor: C.elevated,
-                color: C.textSecondary,
-                border: `1px solid ${C.border}`,
-              }}
-            >
-              {isWholeDay
-                ? formatVisitDayCountLabel(task.visitDayCount ?? 2)
-                : formatDurationLabel(task.durationMinutes)}
-            </span>
+          <div className="shrink-0 sm:ml-4">
             <button
               type="button"
               onClick={() => onSchedule(applicationId, task)}
-              className="inline-flex items-center justify-center rounded-md px-3.5 py-2 text-xs font-medium text-white transition hover:opacity-90"
+              className="inline-flex w-full items-center justify-center rounded-md px-3.5 py-2 text-xs font-medium text-white transition hover:opacity-90 sm:w-auto"
               style={getAdminButtonStyle(C, "primary")}
             >
               {presentation.ctaLabel}

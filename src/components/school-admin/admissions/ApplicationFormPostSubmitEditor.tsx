@@ -28,12 +28,12 @@ import {
   postSubmitActionLabel,
   postSubmitDurationOptionLabel,
   postSubmitDurationOptions,
-  postSubmitVisitDayOptionLabel,
-  postSubmitVisitDayOptions,
+  postSubmitMaxVisitDayOptionLabel,
+  postSubmitMaxVisitDayOptions,
   requiresObservationDayAvailability,
   requiresTimeSlotAvailability,
   resolvedPostSubmitDurationMinutes,
-  resolvedPostSubmitVisitDayCount,
+  resolvedPostSubmitMaxVisitDays,
 } from "@/lib/admissions/post-submit-templates";
 import {
   countAdmissionsAvailabilitySlotsInMonth,
@@ -199,27 +199,27 @@ function PostSubmitActionRow({
 
               <div className="space-y-1">
                 <label className="block text-xs font-medium" style={{ color: C.textSecondary }}>
-                  {isWholeDayPostSubmitAction(action.type) ? "Visit length" : "Duration"}
+                  {isWholeDayPostSubmitAction(action.type) ? "Max visit days" : "Duration"}
                 </label>
                 {isWholeDayPostSubmitAction(action.type) ? (
                   <>
                     <select
-                      value={resolvedPostSubmitVisitDayCount(action)}
+                      value={resolvedPostSubmitMaxVisitDays(action)}
                       disabled={readOnly}
                       onChange={(e) =>
-                        onUpdate({ visitDayCount: Number(e.target.value) })
+                        onUpdate({ maxVisitDays: Number(e.target.value) })
                       }
                       style={inputStyle}
                     >
-                      {postSubmitVisitDayOptions().map((dayCount) => (
+                      {postSubmitMaxVisitDayOptions().map((dayCount) => (
                         <option key={dayCount} value={dayCount}>
-                          {postSubmitVisitDayOptionLabel(dayCount)}
+                          {postSubmitMaxVisitDayOptionLabel(dayCount)}
                         </option>
                       ))}
                     </select>
                     <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
-                      Families pick a start day and book that many consecutive open school
-                      days at once.
+                      Families can select 1 to {resolvedPostSubmitMaxVisitDays(action)} open
+                      school days. Days do not need to be consecutive.
                     </p>
                   </>
                 ) : (

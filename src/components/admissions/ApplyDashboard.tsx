@@ -330,12 +330,13 @@ export default function ApplyDashboard({
         )}
         </section>
 
-        {applicationsWithTasks.length > 0 && !previewMode ? (
+        {applicationsWithTasks.length > 0 ? (
           <ApplyRequiredActionsSection
             C={C}
             timezone={timezone}
             applications={applicationsWithTasks}
             onBooked={() => router.refresh()}
+            previewMode={previewMode}
           />
         ) : null}
         </div>

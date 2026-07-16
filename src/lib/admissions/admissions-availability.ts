@@ -140,6 +140,10 @@ export function formatVisitDayCountLabel(dayCount: number): string {
   return `${dayCount} school day${dayCount === 1 ? "" : "s"}`;
 }
 
+export function formatMaxVisitDaysLabel(maxVisitDays: number): string {
+  return `Up to ${maxVisitDays} school day${maxVisitDays === 1 ? "" : "s"}`;
+}
+
 export function formatScheduledVisitWhenLabel(visit: {
   schedulingMode?: "time_slot" | "whole_day";
   scheduledDate: string;
@@ -147,13 +151,24 @@ export function formatScheduledVisitWhenLabel(visit: {
   durationMinutes: number;
   visitDayCount?: number;
   endDate?: string;
+  visitDates?: string[];
 }): string {
   if (visit.schedulingMode === "whole_day") {
-    const dayCount = visit.visitDayCount ?? Math.max(1, Math.round(visit.durationMinutes / (24 * 60)));
-    if (visit.endDate && visit.endDate !== visit.scheduledDate) {
-      return `${formatDateOnlyLabel(visit.scheduledDate)} – ${formatDateOnlyLabel(visit.endDate)} (${formatVisitDayCountLabel(dayCount)})`;
+    const dates =
+      visit.visitDates && visit.visitDates.length > 0
+        ? visit.visitDates
+        : visit.endDate && visit.endDate !== visit.scheduledDate
+          ? [visit.scheduledDate, visit.endDate]
+          : [visit.scheduledDate];
+
+    const dayCount = visit.visitDayCount ?? dates.length;
+
+    if (dates.length === 1) {
+      return `${formatDateOnlyLabel(dates[0]!)} (${formatVisitDayCountLabel(1)})`;
     }
-    return `${formatDateOnlyLabel(visit.scheduledDate)} (${formatVisitDayCountLabel(dayCount)})`;
+
+    const dateLabels = dates.map((date) => formatDateOnlyLabel(date)).join("; ");
+    return `${dateLabels} (${formatVisitDayCountLabel(dayCount)})`;
   }
 
   return `${formatDateOnlyLabel(visit.scheduledDate)} at ${visit.startTimeSlot}`;
