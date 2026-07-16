@@ -5,6 +5,9 @@ import {
   bookAdmissionsVisit,
 } from "@/lib/admissions/admissions-booking";
 import {
+  formatScheduledVisitWhenLabel,
+} from "@/lib/admissions/admissions-availability";
+import {
   AuthError,
   requireAuthenticatedUser,
   userOwnsApplication,
@@ -51,11 +54,11 @@ export async function POST(request: Request, context: RouteContext) {
   const scheduledDate = body.scheduledDate?.trim();
   const startTimeSlot = body.startTimeSlot?.trim();
 
-  if (!actionId || !scheduledDate || !startTimeSlot) {
+  if (!actionId || !scheduledDate) {
     return apiError(ROUTE, {
       request,
       status: 400,
-      error: "actionId, scheduledDate, and startTimeSlot are required.",
+      error: "actionId and scheduledDate are required.",
       code: "invalid_request",
     });
   }
@@ -88,6 +91,8 @@ export async function POST(request: Request, context: RouteContext) {
 
     void sendPostSubmitVisitScheduledNotifications(admin, applicationId, booking);
 
+    const whenLabel = formatScheduledVisitWhenLabel(booking);
+
     void logActivityEvent(admin, {
       organizationId: booking.organizationId,
       actorType: "parent",
@@ -97,22 +102,28 @@ export async function POST(request: Request, context: RouteContext) {
       action: ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED,
       entityType: "admissions_scheduled_visit",
       entityId: booking.id,
-      summary: `Visit scheduled for ${booking.scheduledDate} at ${booking.startTimeSlot}`,
+      summary: `Visit scheduled for ${whenLabel}`,
       metadata: {
         applicationId,
         actionId,
         actionType: booking.actionType,
+        schedulingMode: booking.schedulingMode,
         scheduledDate: booking.scheduledDate,
+        endDate: booking.endDate,
         startTimeSlot: booking.startTimeSlot,
         durationMinutes: booking.durationMinutes,
+        visitDayCount: booking.visitDayCount,
       },
     });
 
     return NextResponse.json({
       booking: {
+        schedulingMode: booking.schedulingMode,
         scheduledDate: booking.scheduledDate,
+        endDate: booking.endDate,
         startTimeSlot: booking.startTimeSlot,
         durationMinutes: booking.durationMinutes,
+        visitDayCount: booking.visitDayCount,
       },
     });
   } catch (error) {

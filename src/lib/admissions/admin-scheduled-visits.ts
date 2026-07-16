@@ -1,10 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   classifyScheduledVisitTiming,
+  formatScheduledVisitWhenLabel,
   getOrganizationTimezone,
   parseAdmissionsTimeSlot,
   type ScheduledVisitTiming,
 } from "./admissions-availability";
+import type { AdmissionsSchedulingMode } from "./admissions-booking";
 import type { PostSubmitActionType } from "./application-form-schema";
 import { parseApplicationFormPostSubmitConfig } from "./application-form-schema";
 import { extractStudentLabel } from "./application-submissions";
@@ -22,10 +24,14 @@ export type AdminScheduledVisit = {
   stepTitle: string;
   studentLabel: string | null;
   formTitle: string;
+  schedulingMode: AdmissionsSchedulingMode;
   scheduledDate: string;
+  endDate?: string;
   startTimeSlot: string;
   durationMinutes: number;
+  visitDayCount?: number;
   timing: ScheduledVisitTiming;
+  whenLabel: string;
 };
 
 function parseStringRecord(value: unknown): Record<string, string> {
@@ -59,6 +65,10 @@ function compareVisits(a: AdminScheduledVisit, b: AdminScheduledVisit): number {
   const dateCompare = a.scheduledDate.localeCompare(b.scheduledDate);
   if (dateCompare !== 0) return dateCompare;
 
+  if (a.schedulingMode === "whole_day" || b.schedulingMode === "whole_day") {
+    return 0;
+  }
+
   const aMinutes = parseAdmissionsTimeSlot(a.startTimeSlot) ?? 0;
   const bMinutes = parseAdmissionsTimeSlot(b.startTimeSlot) ?? 0;
   return aMinutes - bMinutes;
@@ -78,9 +88,12 @@ export async function listOrgScheduledVisits(
       application_id,
       post_submit_action_id,
       action_type,
+      scheduling_mode,
       scheduled_date,
+      end_date,
       start_time_slot,
       duration_minutes,
+      visit_day_count,
       applications!inner (
         responses,
         application_form_versions!inner (
@@ -138,9 +151,23 @@ export async function listOrgScheduledVisits(
 
     const responses = parseStringRecord(app?.responses);
     const actionType = String(row.action_type) as PostSubmitActionType;
+    const schedulingMode: AdmissionsSchedulingMode =
+      row.scheduling_mode === "whole_day" ? "whole_day" : "time_slot";
     const scheduledDate = String(row.scheduled_date);
+    const endDate = row.end_date ? String(row.end_date) : undefined;
     const startTimeSlot = String(row.start_time_slot);
     const durationMinutes = Number(row.duration_minutes);
+    const visitDayCount =
+      row.visit_day_count != null ? Number(row.visit_day_count) : undefined;
+
+    const visitCore = {
+      schedulingMode,
+      scheduledDate,
+      endDate,
+      startTimeSlot,
+      durationMinutes,
+      visitDayCount,
+    };
 
     return {
       id: String(row.id),
@@ -153,13 +180,14 @@ export async function listOrgScheduledVisits(
       ),
       studentLabel: studentFromTable ?? extractStudentLabel(responses),
       formTitle: String(form?.title ?? "Application"),
+      schedulingMode,
       scheduledDate,
+      endDate,
       startTimeSlot,
       durationMinutes,
-      timing: classifyScheduledVisitTiming(
-        { scheduledDate, startTimeSlot, durationMinutes },
-        timezone,
-      ),
+      visitDayCount,
+      whenLabel: formatScheduledVisitWhenLabel(visitCore),
+      timing: classifyScheduledVisitTiming(visitCore, timezone),
     };
   });
 

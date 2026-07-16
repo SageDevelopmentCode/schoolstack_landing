@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatOrganizationTimezoneLabel } from "@/lib/admissions/admissions-availability";
+import {
+  formatDurationLabel,
+  formatOrganizationTimezoneLabel,
+  formatScheduledVisitWhenLabel,
+  formatVisitDayCountLabel,
+} from "@/lib/admissions/admissions-availability";
 import type { ScheduledVisitRecord } from "@/lib/admissions/admissions-booking";
 import { parseApplicationFormPostSubmitConfig } from "@/lib/admissions/application-form-schema";
 import { extractStudentLabel } from "@/lib/admissions/application-submissions";
@@ -247,7 +252,10 @@ export async function sendPostSubmitVisitScheduledNotifications(
         actionType: booking.actionType,
         stepTitle,
         scheduledDate: booking.scheduledDate,
+        endDate: booking.endDate,
         startTimeSlot: booking.startTimeSlot,
+        schedulingMode: booking.schedulingMode,
+        visitDayCount: booking.visitDayCount,
         timezoneLabel,
         firstName: contact.firstName,
         lastName: contact.lastName,
@@ -259,9 +267,20 @@ export async function sendPostSubmitVisitScheduledNotifications(
         schoolName,
         stepTitle,
         scheduledDate: booking.scheduledDate,
+        endDate: booking.endDate,
         startTimeSlot: booking.startTimeSlot,
+        schedulingMode: booking.schedulingMode,
+        visitDayCount: booking.visitDayCount,
         timezoneLabel,
         durationMinutes: booking.durationMinutes,
+        whenLabel: formatScheduledVisitWhenLabel(booking),
+        durationLabel:
+          booking.schedulingMode === "whole_day"
+            ? formatVisitDayCountLabel(
+                booking.visitDayCount ??
+                  Math.max(1, Math.round(booking.durationMinutes / (24 * 60))),
+              )
+            : formatDurationLabel(booking.durationMinutes),
         applyDashboardUrl,
       }),
     ]);

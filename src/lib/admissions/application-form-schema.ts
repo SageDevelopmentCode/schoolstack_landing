@@ -104,6 +104,12 @@ export interface PostSubmitAction {
   instructions?: string;
   required?: boolean;
   durationMinutes?: number;
+  /** Whole-day shadow visits: number of consecutive school days (2 or 3). */
+  visitDayCount?: number;
+}
+
+export function isWholeDayPostSubmitAction(type: PostSubmitActionType): boolean {
+  return type === "schedule_observation_day";
 }
 
 export interface ApplicationFormPostSubmitConfig {
@@ -191,6 +197,13 @@ function parsePostSubmitAction(raw: unknown): PostSubmitAction | null {
       ? Math.floor(record.durationMinutes)
       : undefined;
 
+  const visitDayCount =
+    typeof record.visitDayCount === "number" &&
+    Number.isFinite(record.visitDayCount) &&
+    record.visitDayCount > 0
+      ? Math.floor(record.visitDayCount)
+      : undefined;
+
   return {
     id: record.id,
     type,
@@ -200,6 +213,7 @@ function parsePostSubmitAction(raw: unknown): PostSubmitAction | null {
       typeof record.instructions === "string" ? record.instructions : undefined,
     required: record.required !== undefined ? Boolean(record.required) : true,
     durationMinutes,
+    visitDayCount,
   };
 }
 

@@ -136,6 +136,29 @@ export function formatDurationLabel(minutes: number): string {
   return Number.isInteger(hours) ? `${hours} hr` : `${hours.toFixed(1)} hr`;
 }
 
+export function formatVisitDayCountLabel(dayCount: number): string {
+  return `${dayCount} school day${dayCount === 1 ? "" : "s"}`;
+}
+
+export function formatScheduledVisitWhenLabel(visit: {
+  schedulingMode?: "time_slot" | "whole_day";
+  scheduledDate: string;
+  startTimeSlot: string;
+  durationMinutes: number;
+  visitDayCount?: number;
+  endDate?: string;
+}): string {
+  if (visit.schedulingMode === "whole_day") {
+    const dayCount = visit.visitDayCount ?? Math.max(1, Math.round(visit.durationMinutes / (24 * 60)));
+    if (visit.endDate && visit.endDate !== visit.scheduledDate) {
+      return `${formatDateOnlyLabel(visit.scheduledDate)} – ${formatDateOnlyLabel(visit.endDate)} (${formatVisitDayCountLabel(dayCount)})`;
+    }
+    return `${formatDateOnlyLabel(visit.scheduledDate)} (${formatVisitDayCountLabel(dayCount)})`;
+  }
+
+  return `${formatDateOnlyLabel(visit.scheduledDate)} at ${visit.startTimeSlot}`;
+}
+
 function datePartsInTimezone(timezone: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
@@ -195,7 +218,9 @@ function nowMinutesInTimezone(timezone: string, now = new Date()): number {
 
 export function classifyScheduledVisitTiming(
   visit: {
+    schedulingMode?: "time_slot" | "whole_day";
     scheduledDate: string;
+    endDate?: string;
     startTimeSlot: string;
     durationMinutes: number;
   },
@@ -203,6 +228,14 @@ export function classifyScheduledVisitTiming(
   now = new Date(),
 ): ScheduledVisitTiming {
   const today = todayKeyInTimezone(timezone);
+
+  if (visit.schedulingMode === "whole_day") {
+    const endDate = visit.endDate ?? visit.scheduledDate;
+    if (today < visit.scheduledDate) return "upcoming";
+    if (today > endDate) return "past";
+    return "happening";
+  }
+
   const startMinutes = parseAdmissionsTimeSlot(visit.startTimeSlot);
 
   if (visit.scheduledDate < today) return "past";

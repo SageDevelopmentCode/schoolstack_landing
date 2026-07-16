@@ -7,10 +7,6 @@ import {
   type AdminScheduledVisit,
   type ScheduledVisitTiming,
 } from "@/lib/admissions/admin-scheduled-visits";
-import {
-  formatDateOnlyLabel,
-  formatDurationLabel,
-} from "@/lib/admissions/admissions-availability";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 
@@ -222,12 +218,7 @@ export default function ScheduledVisitsSection({
                     }}
                   >
                     <td className="px-3 py-3 first:pl-0" style={{ color: C.textPrimary }}>
-                      <div className="font-medium">
-                        {formatDateOnlyLabel(visit.scheduledDate)}
-                      </div>
-                      <div className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-                        {visit.startTimeSlot} · {formatDurationLabel(visit.durationMinutes)}
-                      </div>
+                      <div className="font-medium">{visit.whenLabel}</div>
                     </td>
                     <td className="px-3 py-3" style={{ color: C.textPrimary }}>
                       {visit.stepTitle}

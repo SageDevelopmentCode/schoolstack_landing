@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:errors": "eslint --quiet",
+    "test": "tsx --test src/lib/admissions/admissions-observation-booking.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:setup": "supabase db reset",

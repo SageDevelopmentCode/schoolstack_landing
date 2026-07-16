@@ -5,7 +5,7 @@ import DetailPanelSection from "@/components/school-admin/admissions/DetailPanel
 import DetailPanelStepTimeline, {
   type DetailPanelStepTimelineItem,
 } from "@/components/school-admin/admissions/DetailPanelStepTimeline";
-import { formatDateOnlyLabel } from "@/lib/admissions/admissions-availability";
+import { formatScheduledVisitWhenLabel } from "@/lib/admissions/admissions-availability";
 import type { AdminPostSubmitStep } from "@/lib/admissions/admin-post-submit-steps";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
@@ -16,8 +16,7 @@ type ApplicationSubmissionPostSubmitSectionProps = {
 
 function formatBookingLabel(step: AdminPostSubmitStep): string {
   if (!step.booking) return "";
-  const dateLabel = formatDateOnlyLabel(step.booking.scheduledDate);
-  return `Scheduled ${dateLabel} at ${step.booking.startTimeSlot}`;
+  return `Scheduled ${formatScheduledVisitWhenLabel(step.booking)}`;
 }
 
 export default function ApplicationSubmissionPostSubmitSection({

@@ -1,7 +1,12 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { formatDateOnlyLabel, formatDurationLabel } from "@/lib/admissions/admissions-availability";
+import {
+  formatDurationLabel,
+  formatScheduledVisitWhenLabel,
+  formatVisitDayCountLabel,
+} from "@/lib/admissions/admissions-availability";
+import { isWholeDayPostSubmitAction } from "@/lib/admissions/application-form-schema";
 import { getPostSubmitStepPresentation } from "@/lib/admissions/post-submit-step-presentations";
 import { POST_SUBMIT_ACTION_TEMPLATES } from "@/lib/admissions/post-submit-templates";
 import type { ApplicationPostSubmitTask } from "@/lib/admissions/parent-portal-access";
@@ -17,8 +22,7 @@ type PostSubmitStepCardProps = {
 
 function formatBookingLabel(task: ApplicationPostSubmitTask): string {
   if (!task.booking) return "";
-  const dateLabel = formatDateOnlyLabel(task.booking.scheduledDate);
-  return `${dateLabel} at ${task.booking.startTimeSlot}`;
+  return formatScheduledVisitWhenLabel(task.booking);
 }
 
 export default function PostSubmitStepCard({
@@ -31,6 +35,7 @@ export default function PostSubmitStepCard({
   const presentation = getPostSubmitStepPresentation(task.type);
   const template = POST_SUBMIT_ACTION_TEMPLATES[task.type];
   const Icon = template.Icon;
+  const isWholeDay = isWholeDayPostSubmitAction(task.type);
 
   return (
     <li
@@ -95,7 +100,9 @@ export default function PostSubmitStepCard({
                 border: `1px solid ${C.border}`,
               }}
             >
-              {formatDurationLabel(task.durationMinutes)}
+              {isWholeDay
+                ? formatVisitDayCountLabel(task.visitDayCount ?? 2)
+                : formatDurationLabel(task.durationMinutes)}
             </span>
             <button
               type="button"

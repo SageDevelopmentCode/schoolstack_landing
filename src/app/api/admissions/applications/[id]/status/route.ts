@@ -8,6 +8,11 @@ import {
   isApplicationStatus,
   type ApplicationStatus,
 } from "@/lib/admissions/application-status-transitions";
+import {
+  activitySummaryForWithdrawalRestore,
+  buildWithdrawalRestoreAction,
+  resolveWithdrawalRestoreStatus,
+} from "@/lib/admissions/application-withdrawal-restore";
 import { logActivityEvent } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -79,7 +84,29 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
 
     const currentStatus = String(application.status);
-    assertApplicationStatusTransition(currentStatus, nextStatus);
+
+    if (currentStatus === "withdrawn") {
+      const restoreTarget = await resolveWithdrawalRestoreStatus(
+        admin,
+        applicationId,
+      );
+      if (!restoreTarget) {
+        throw new ApplicationStatusTransitionError(
+          "Cannot determine a status to restore this application to.",
+          "invalid_transition",
+          400,
+        );
+      }
+      if (nextStatus !== restoreTarget) {
+        throw new ApplicationStatusTransitionError(
+          `Cannot move from "withdrawn" to "${nextStatus}".`,
+          "invalid_transition",
+          400,
+        );
+      }
+    } else {
+      assertApplicationStatusTransition(currentStatus, nextStatus);
+    }
 
     const { data: updated, error: updateError } = await admin
       .from("applications")
@@ -97,6 +124,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const toStatus = nextStatus as ApplicationStatus;
     const note = body.note?.trim();
+    const isWithdrawalRestore = currentStatus === "withdrawn";
 
     await logActivityEvent(admin, {
       organizationId: String(application.organization_id),
@@ -104,10 +132,14 @@ export async function PATCH(request: Request, context: RouteContext) {
       actorUserId: user.id,
       actorEmail: user.email ?? null,
       surface: "school_admin",
-      action: activityActionForStatusChange(toStatus),
+      action: isWithdrawalRestore
+        ? "application.status_changed"
+        : activityActionForStatusChange(toStatus),
       entityType: "application",
       entityId: applicationId,
-      summary: activitySummaryForStatusChange(toStatus),
+      summary: isWithdrawalRestore
+        ? activitySummaryForWithdrawalRestore(toStatus)
+        : activitySummaryForStatusChange(toStatus),
       metadata: {
         fromStatus: currentStatus,
         toStatus,
@@ -180,13 +212,24 @@ export async function GET(_request: Request, context: RouteContext) {
     const { getAllowedStatusTransitions, getApplicationDecisionActions } =
       await import("@/lib/admissions/application-status-transitions");
 
+    let decisionActions = getApplicationDecisionActions(currentStatus);
+    let restoreTarget: ApplicationStatus | null = null;
+
+    if (currentStatus === "withdrawn") {
+      restoreTarget = await resolveWithdrawalRestoreStatus(admin, applicationId);
+      decisionActions = restoreTarget
+        ? [buildWithdrawalRestoreAction(restoreTarget)]
+        : [];
+    }
+
     return NextResponse.json({
       id: applicationId,
       status: currentStatus,
       allowedTransitions: isApplicationStatus(currentStatus)
         ? getAllowedStatusTransitions(currentStatus)
         : [],
-      decisionActions: getApplicationDecisionActions(currentStatus),
+      restoreTarget,
+      decisionActions,
     });
   } catch (error) {
     if (error instanceof SchoolAdminAuthError) {

@@ -1,12 +1,11 @@
 import type { ScheduledVisitRecord } from "./admissions-booking";
-import {
-  parseApplicationFormPostSubmitConfig,
-  type ApplicationFormPostSubmitConfig,
+import type {
+  ApplicationFormPostSubmitConfig,
+  PostSubmitActionType,
 } from "./application-form-schema";
 import {
   postSubmitActionLabel,
 } from "./post-submit-templates";
-import type { PostSubmitActionType } from "./application-form-schema";
 
 export type AdminPostSubmitStep = {
   actionId: string;
@@ -16,9 +15,12 @@ export type AdminPostSubmitStep = {
   sortIndex: number;
   status: "pending" | "scheduled";
   booking?: {
+    schedulingMode?: "time_slot" | "whole_day";
     scheduledDate: string;
+    endDate?: string;
     startTimeSlot: string;
     durationMinutes: number;
+    visitDayCount?: number;
   };
 };
 
@@ -54,9 +56,12 @@ export function buildAdminPostSubmitSteps(
         status: visit ? "scheduled" : "pending",
         booking: visit
           ? {
+              schedulingMode: visit.schedulingMode,
               scheduledDate: visit.scheduledDate,
+              endDate: visit.endDate,
               startTimeSlot: visit.startTimeSlot,
               durationMinutes: visit.durationMinutes,
+              visitDayCount: visit.visitDayCount,
             }
           : undefined,
       };

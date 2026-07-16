@@ -202,12 +202,16 @@ export function buildPostSubmitVisitConfirmationHtml(payload: {
   schoolName: string;
   stepTitle: string;
   scheduledDate: string;
+  endDate?: string;
   startTimeSlot: string;
+  schedulingMode?: "time_slot" | "whole_day";
+  visitDayCount?: number;
   timezoneLabel: string;
+  whenLabel: string;
   durationLabel: string;
   applyDashboardUrl: string;
 }): string {
-  const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.startTimeSlot} (${payload.timezoneLabel})`;
+  const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
 
   return composeEmail({
     preheader: `Your ${payload.stepTitle} at ${payload.schoolName} is confirmed.`,
@@ -237,17 +241,19 @@ export async function sendPostSubmitVisitConfirmation(payload: {
   schoolName: string;
   stepTitle: string;
   scheduledDate: string;
+  endDate?: string;
   startTimeSlot: string;
+  schedulingMode?: "time_slot" | "whole_day";
+  visitDayCount?: number;
   timezoneLabel: string;
   durationMinutes: number;
+  whenLabel: string;
+  durationLabel: string;
   applyDashboardUrl: string;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
-  const content = buildPostSubmitVisitConfirmationHtml({
-    ...payload,
-    durationLabel: formatDurationLabel(payload.durationMinutes),
-  });
+  const content = buildPostSubmitVisitConfirmationHtml(payload);
   const result = await sendZohoEmail({
     toAddress: payload.email,
     subject: `${payload.stepTitle} confirmed — ${payload.schoolName}`,

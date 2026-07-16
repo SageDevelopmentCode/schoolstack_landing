@@ -88,7 +88,7 @@ export async function GET(request: Request, context: RouteContext) {
       endDate,
     );
 
-    return NextResponse.json({ availability });
+    return NextResponse.json(availability);
   } catch (error) {
     if (error instanceof AuthError) {
       return apiError(ROUTE, {

@@ -369,7 +369,10 @@ export async function notifyPostSubmitVisitScheduled(payload: {
   actionType: string;
   stepTitle: string;
   scheduledDate: string;
+  endDate?: string;
   startTimeSlot: string;
+  schedulingMode?: "time_slot" | "whole_day";
+  visitDayCount?: number;
   timezoneLabel: string;
   firstName?: string;
   lastName?: string;
@@ -387,7 +390,15 @@ export async function notifyPostSubmitVisitScheduled(payload: {
     ? truncate(`${nameLine}\n${payload.email}`)
     : truncate(payload.email);
 
-  const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.startTimeSlot} (${payload.timezoneLabel})`;
+  const when =
+    payload.schedulingMode === "whole_day"
+      ? formatObservationVisitWhen(
+          payload.scheduledDate,
+          payload.endDate,
+          payload.visitDayCount,
+          payload.timezoneLabel,
+        )
+      : `${formatSelectedDate(payload.scheduledDate)} at ${payload.startTimeSlot} (${payload.timezoneLabel})`;
 
   const fields: DiscordEmbedField[] = [
     { name: "School", value: truncate(payload.schoolName), inline: true },
@@ -446,6 +457,21 @@ function formatSelectedDate(dateStr: string) {
     month: "long",
     day: "numeric",
   });
+}
+
+function formatObservationVisitWhen(
+  scheduledDate: string,
+  endDate: string | undefined,
+  visitDayCount: number | undefined,
+  timezoneLabel: string,
+): string {
+  const startLabel = formatSelectedDate(scheduledDate);
+  if (endDate && endDate !== scheduledDate) {
+    const endLabel = formatSelectedDate(endDate);
+    const days = visitDayCount ?? 2;
+    return `${startLabel} – ${endLabel} (${days} school days, ${timezoneLabel})`;
+  }
+  return `${startLabel} (${timezoneLabel})`;
 }
 
 export async function notifyDemoBooking(payload: {

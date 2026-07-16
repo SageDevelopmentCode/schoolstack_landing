@@ -13,7 +13,7 @@ export const APPLICATION_STATUSES = [
 
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
-const TERMINAL_STATUSES = new Set<ApplicationStatus>(["declined", "withdrawn"]);
+const TERMINAL_STATUSES = new Set<ApplicationStatus>(["declined"]);
 
 const ALLOWED_TRANSITIONS: Record<ApplicationStatus, ApplicationStatus[]> = {
   draft: [],
@@ -21,7 +21,7 @@ const ALLOWED_TRANSITIONS: Record<ApplicationStatus, ApplicationStatus[]> = {
   fee_pending: ["under_review", "accepted", "declined", "withdrawn"],
   under_review: ["observation", "accepted", "declined", "withdrawn"],
   observation: ["accepted", "declined", "withdrawn"],
-  accepted: ["declined", "withdrawn"],
+  accepted: ["submitted", "declined", "withdrawn"],
   enrolling: ["withdrawn"],
   enrolled: ["withdrawn"],
   declined: [],
@@ -135,6 +135,7 @@ export function getApplicationDecisionActions(
       ];
     case "accepted":
       return [
+        { status: "submitted", label: "Return to submitted", variant: "secondary" },
         { status: "withdrawn", label: "Withdraw", variant: "secondary" },
         { status: "declined", label: "Decline", variant: "danger" },
       ];
@@ -184,6 +185,8 @@ export function activitySummaryForStatusChange(
       return "Application declined";
     case "withdrawn":
       return "Application withdrawn";
+    case "submitted":
+      return "Application returned to submitted";
     default:
       return `Application status changed to ${toStatus}`;
   }
