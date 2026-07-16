@@ -74,6 +74,26 @@ import {
   LazyLuffLearningWebsiteDashboardDemo,
   prefetchLuffLearningWebsiteDemo,
 } from "@/components/demo/lufflearning/lazyLuffLearningDemos";
+import {
+  LazyParadiseEarthAcademyWebsiteDashboardDemo,
+  prefetchParadiseEarthAcademyWebsiteDemo,
+} from "@/components/demo/paradiseearthacademy/lazyParadiseEarthAcademyDemos";
+import {
+  LazyCreationAcresWebsiteDashboardDemo,
+  prefetchCreationAcresWebsiteDemo,
+} from "@/components/demo/creationacres/lazyCreationAcresDemos";
+import {
+  LazyTrueNorthWebsiteDashboardDemo,
+  prefetchTrueNorthWebsiteDemo,
+} from "@/components/demo/truenorth/lazyTrueNorthDemos";
+import {
+  LazyLabLearningWebsiteDashboardDemo,
+  prefetchLabLearningWebsiteDemo,
+} from "@/components/demo/lablearning/lazyLabLearningDemos";
+import {
+  LazyOneAcreFarmWebsiteDashboardDemo,
+  prefetchOneAcreFarmWebsiteDemo,
+} from "@/components/demo/oneacrefarm/lazyOneAcreFarmDemos";
 
 const DESIGN_WIDTH = 1440;
 
@@ -107,9 +127,19 @@ export default function ScaledWebsiteDemoPreview({
   const isArizonaGiftedAcademy = demoSlug === "arizona-gifted-academy";
   const isLighthouseHomeschool = demoSlug === "lighthouse-homeschool";
   const isLuffLearning = demoSlug === "luff-learning";
+  const isParadiseEarthAcademy = demoSlug === "paradise-earth-academy";
+  const isCreationAcres = demoSlug === "creation-acres";
+  const isTrueNorth = demoSlug === "true-north";
+  const isLabLearning = demoSlug === "lab-learning";
+  const isOneAcreFarm = demoSlug === "one-acre-farm";
 
   useEffect(() => {
-    if (isLuffLearning) prefetchLuffLearningWebsiteDemo();
+    if (isLabLearning) prefetchLabLearningWebsiteDemo();
+    else if (isOneAcreFarm) prefetchOneAcreFarmWebsiteDemo();
+    else if (isTrueNorth) prefetchTrueNorthWebsiteDemo();
+    else if (isCreationAcres) prefetchCreationAcresWebsiteDemo();
+    else if (isParadiseEarthAcademy) prefetchParadiseEarthAcademyWebsiteDemo();
+    else if (isLuffLearning) prefetchLuffLearningWebsiteDemo();
     else if (isLighthouseHomeschool) prefetchLighthouseHomeschoolWebsiteDemo();
     else if (isSpringRiverSchool) prefetchSpringRiverSchoolWebsiteDemo();
     else if (isArizonaGiftedAcademy) prefetchArizonaGiftedAcademyWebsiteDemo();
@@ -127,7 +157,7 @@ export default function ScaledWebsiteDemoPreview({
     else if (isTheWoodlandsMicroschool) prefetchTheWoodlandsMicroschoolWebsiteDemo();
     else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
+  }, [isLabLearning, isOneAcreFarm, isTrueNorth, isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -141,7 +171,17 @@ export default function ScaledWebsiteDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isLuffLearning
+  const DemoComponent = isLabLearning
+    ? LazyLabLearningWebsiteDashboardDemo
+    : isOneAcreFarm
+    ? LazyOneAcreFarmWebsiteDashboardDemo
+    : isTrueNorth
+    ? LazyTrueNorthWebsiteDashboardDemo
+    : isCreationAcres
+    ? LazyCreationAcresWebsiteDashboardDemo
+    : isParadiseEarthAcademy
+    ? LazyParadiseEarthAcademyWebsiteDashboardDemo
+    : isLuffLearning
     ? LazyLuffLearningWebsiteDashboardDemo
     : isLighthouseHomeschool
     ? LazyLighthouseHomeschoolWebsiteDashboardDemo

@@ -118,6 +118,21 @@ function sourceLabel(sourceFile: string): { label: string; cardClass: string; la
 
 // ── Left Panel — School Row ───────────────────────────────────────────────────
 
+function DemoMonitorIcon({ title = "Product demo" }: { title?: string }) {
+  return (
+    <span
+      title={title}
+      className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-clay/15 text-clay shrink-0"
+    >
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <rect x="1" y="1.5" width="10" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M4.5 10.5h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        <path d="M6 8.5v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
 function SchoolRow({ school, selected, onClick }: { school: School; selected: boolean; onClick: () => void }) {
   return (
     <button
@@ -147,23 +162,7 @@ function SchoolRow({ school, selected, onClick }: { school: School; selected: bo
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${P_PILL[school.priority_score]}`}>
             P{school.priority_score}
           </span>
-          {school.demo_slug && (
-            <span
-              title="Product demo"
-              className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-clay/15 text-clay shrink-0"
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 12 12"
-                fill="none"
-              >
-                <rect x="1" y="1.5" width="10" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" />
-                <path d="M4.5 10.5h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                <path d="M6 8.5v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-              </svg>
-            </span>
-          )}
+          {school.demo_slug && <DemoMonitorIcon />}
         </div>
       </div>
 
@@ -973,6 +972,7 @@ export default function ResearchPage() {
   // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CrmStatus | "">("");
+  const [demoFilter, setDemoFilter] = useState(false);
   const [showAddSidebar, setShowAddSidebar] = useState(false);
 
   // Load schools
@@ -1022,6 +1022,7 @@ export default function ResearchPage() {
     return schools.filter((s) => {
       if (s.is_closing) return false;
       if (statusFilter && s.crm_status !== statusFilter) return false;
+      if (demoFilter && !s.demo_slug) return false;
       if (q && !(
         s.name.toLowerCase().includes(q) ||
         s.location.toLowerCase().includes(q) ||
@@ -1030,7 +1031,7 @@ export default function ResearchPage() {
       )) return false;
       return true;
     });
-  }, [schools, search, statusFilter]);
+  }, [schools, search, statusFilter, demoFilter]);
 
   const selectedSchool = useMemo(
     () => schools.find((s) => s.id === selectedId) ?? null,
@@ -1044,6 +1045,11 @@ export default function ResearchPage() {
     schools.forEach((s) => { c[s.crm_status] = (c[s.crm_status] ?? 0) + 1; });
     return c;
   }, [schools]);
+
+  const demoCount = useMemo(
+    () => schools.filter((s) => !s.is_closing && s.demo_slug).length,
+    [schools]
+  );
 
   return (
     <div className="h-[calc(100vh-3rem)] flex flex-col overflow-hidden bg-white" style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}>
@@ -1132,6 +1138,15 @@ export default function ResearchPage() {
                 {CRM[s].label.replace(" 🎉", "")}
               </button>
             ))}
+            <button
+              onClick={() => setDemoFilter((v) => !v)}
+              className={`text-[11px] font-medium py-2 border-b-2 transition-all flex items-center gap-1 ${
+                demoFilter ? "border-clay text-clay" : "border-transparent text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              <DemoMonitorIcon title="Demos created" />
+              Demos created{demoCount > 0 ? ` (${demoCount})` : ""}
+            </button>
           </div>
 
           {/* School list */}
