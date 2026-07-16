@@ -118,6 +118,14 @@ export interface ApplicationFormPostSubmitConfig {
   actions: PostSubmitAction[];
 }
 
+export interface ApplicationFormNotificationConfig {
+  submission_notify_emails: string[];
+}
+
+export const MAX_SUBMISSION_NOTIFY_EMAILS = 10;
+
+const SUBMISSION_NOTIFY_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export type ApplicationFormStatus = "draft" | "published" | "archived";
 
 export interface ApplicationFormVersion {
@@ -132,6 +140,7 @@ export interface ApplicationFormVersion {
   schema: ApplicationFormSchema;
   fee_config: ApplicationFormFeeConfig;
   post_submit_config: ApplicationFormPostSubmitConfig;
+  notification_config: ApplicationFormNotificationConfig;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -175,6 +184,61 @@ export function defaultApplicationFormFeeConfig(): ApplicationFormFeeConfig {
 
 export function defaultApplicationFormPostSubmitConfig(): ApplicationFormPostSubmitConfig {
   return { actions: [] };
+}
+
+export function defaultApplicationFormNotificationConfig(): ApplicationFormNotificationConfig {
+  return { submission_notify_emails: [] };
+}
+
+export function parseApplicationFormNotificationConfig(
+  raw: unknown,
+): ApplicationFormNotificationConfig {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return defaultApplicationFormNotificationConfig();
+  }
+
+  const record = raw as Record<string, unknown>;
+  const emails = Array.isArray(record.submission_notify_emails)
+    ? record.submission_notify_emails
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+
+  return { submission_notify_emails: emails };
+}
+
+export function normalizeSubmissionNotifyEmails(
+  emails: string[],
+): ApplicationFormNotificationConfig {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const raw of emails) {
+    const email = raw.trim().toLowerCase();
+    if (!email || seen.has(email)) continue;
+    seen.add(email);
+    normalized.push(email);
+  }
+
+  return { submission_notify_emails: normalized };
+}
+
+export function validateSubmissionNotifyEmails(
+  config: ApplicationFormNotificationConfig,
+): string | null {
+  const emails = config.submission_notify_emails;
+  if (emails.length > MAX_SUBMISSION_NOTIFY_EMAILS) {
+    return `Add at most ${MAX_SUBMISSION_NOTIFY_EMAILS} notification emails.`;
+  }
+
+  for (const email of emails) {
+    if (!SUBMISSION_NOTIFY_EMAIL_PATTERN.test(email)) {
+      return `“${email}” is not a valid email address.`;
+    }
+  }
+
+  return null;
 }
 
 function parsePostSubmitAction(raw: unknown): PostSubmitAction | null {
@@ -391,6 +455,7 @@ export function applicationFormFromRow(row: Record<string, unknown>): Applicatio
     schema: parseApplicationFormSchema(row.schema),
     fee_config: parseApplicationFormFeeConfig(row.fee_config),
     post_submit_config: parseApplicationFormPostSubmitConfig(row.post_submit_config),
+    notification_config: parseApplicationFormNotificationConfig(row.notification_config),
     published_at: row.published_at ? String(row.published_at) : null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),

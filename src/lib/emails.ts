@@ -197,6 +197,75 @@ export async function sendApplicationSubmittedConfirmation(payload: {
   }
 }
 
+export function buildApplicationSubmittedOwnerNotificationHtml(payload: {
+  schoolName: string;
+  formTitle: string;
+  studentName?: string;
+  contactName?: string;
+  contactEmail?: string;
+  programName?: string;
+  submittedAtLabel: string;
+  submissionAdminUrl: string;
+}): string {
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Application", value: payload.formTitle },
+  ];
+
+  if (payload.studentName) {
+    details.push({ label: "Student", value: payload.studentName });
+  }
+  if (payload.contactName) {
+    details.push({ label: "Contact", value: payload.contactName });
+  }
+  if (payload.contactEmail) {
+    details.push({ label: "Email", value: payload.contactEmail });
+  }
+  if (payload.programName) {
+    details.push({ label: "Program", value: payload.programName });
+  }
+  details.push({ label: "Submitted", value: payload.submittedAtLabel });
+
+  return composeEmail({
+    preheader: `A new application was submitted to ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("New Application")}
+      ${emailHeading("A new application was submitted")}
+      ${emailParagraph(
+        `A family submitted ${escapeHtml(payload.formTitle)} at ${escapeHtml(payload.schoolName)}. Review the submission in your admissions dashboard.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "View submission", href: payload.submissionAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendApplicationSubmittedOwnerNotification(payload: {
+  email: string;
+  schoolName: string;
+  formTitle: string;
+  studentName?: string;
+  contactName?: string;
+  contactEmail?: string;
+  programName?: string;
+  submittedAtLabel: string;
+  submissionAdminUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildApplicationSubmittedOwnerNotificationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `New application submitted — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Application submitted owner notification email failed:", result.error);
+  }
+}
+
 export function buildPostSubmitVisitConfirmationHtml(payload: {
   name: string;
   schoolName: string;

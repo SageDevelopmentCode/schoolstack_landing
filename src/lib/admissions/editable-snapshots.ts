@@ -1,5 +1,6 @@
 import type {
   ApplicationFormFeeConfig,
+  ApplicationFormNotificationConfig,
   ApplicationFormPostSubmitConfig,
   ApplicationFormSchema,
 } from "./application-form-schema";
@@ -13,6 +14,7 @@ export type EditableFormSnapshot = {
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
   postSubmitConfig: ApplicationFormPostSubmitConfig;
+  notificationConfig: ApplicationFormNotificationConfig;
 };
 
 export type ChecklistEditableSnapshot = {

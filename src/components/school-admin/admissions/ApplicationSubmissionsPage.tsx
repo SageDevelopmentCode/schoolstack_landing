@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { ExternalLink, Loader2 } from "lucide-react";
 import ApplicationSubmissionDetailPanel from "./ApplicationSubmissionDetailPanel";
@@ -111,6 +112,8 @@ export default function ApplicationSubmissionsPage({
 }: ApplicationSubmissionsPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+  const deepLinkApplicationId = searchParams.get("application");
 
   const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,6 +143,14 @@ export default function ApplicationSubmissionsPage({
       void loadSubmissions();
     });
   }, [loadSubmissions]);
+
+  useEffect(() => {
+    if (!deepLinkApplicationId || loading) return;
+    const match = submissions.find((row) => row.id === deepLinkApplicationId);
+    if (match) {
+      setSelectedId(match.id);
+    }
+  }, [deepLinkApplicationId, loading, submissions]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};

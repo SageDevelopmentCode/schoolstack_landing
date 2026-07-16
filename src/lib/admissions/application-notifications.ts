@@ -6,8 +6,11 @@ import {
   formatVisitDayCountLabel,
 } from "@/lib/admissions/admissions-availability";
 import type { ScheduledVisitRecord } from "@/lib/admissions/admissions-booking";
-import { parseApplicationFormPostSubmitConfig } from "@/lib/admissions/application-form-schema";
-import { extractStudentLabel } from "@/lib/admissions/application-submissions";
+import {
+  parseApplicationFormNotificationConfig,
+  parseApplicationFormPostSubmitConfig,
+} from "@/lib/admissions/application-form-schema";
+import { extractStudentLabel, formatShortDate } from "@/lib/admissions/application-submissions";
 import {
   POST_SUBMIT_ACTION_TEMPLATES,
   postSubmitActionLabel,
@@ -15,8 +18,10 @@ import {
 import { notifyApplicationSubmitted, notifyPostSubmitVisitScheduled } from "@/lib/discord";
 import {
   sendApplicationSubmittedConfirmation,
+  sendApplicationSubmittedOwnerNotification,
   sendPostSubmitVisitConfirmation,
 } from "@/lib/emails";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { SITE_URL } from "@/lib/site";
 
 export type ApplicantContact = {
@@ -90,10 +95,12 @@ export async function sendApplicationSubmittedNotifications(
         `
         id,
         submitted_at,
+        responses,
         organization_id,
         created_by_user_id,
         primary_guardian_id,
-        application_form_versions (title)
+        application_form_versions (title, notification_config),
+        programs (name)
       `,
       )
       .eq("id", applicationId)
@@ -118,44 +125,83 @@ export async function sendApplicationSubmittedNotifications(
     }
 
     const contact = await resolveApplicantContact(admin, application);
-    if (!contact) {
-      console.warn("Application submitted notifications: no applicant contact", applicationId);
-      return;
-    }
 
     const formVersion = application.application_form_versions as
-      | { title?: string }
-      | { title?: string }[]
+      | { title?: string; notification_config?: unknown }
+      | { title?: string; notification_config?: unknown }[]
       | null;
-    const formTitle =
-      (Array.isArray(formVersion) ? formVersion[0]?.title : formVersion?.title) ??
-      "Application";
+    const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
+    const formTitle = form?.title ?? "Application";
+    const notificationConfig = parseApplicationFormNotificationConfig(
+      form?.notification_config,
+    );
+
+    const program = application.programs as { name?: string } | { name?: string }[] | null;
+    const programRow = Array.isArray(program) ? program[0] : program;
+    const programName = programRow?.name ? String(programRow.name) : undefined;
 
     const schoolName = String(org.name);
     const schoolSlug = String(org.slug);
     const submittedAt = application.submitted_at
       ? String(application.submitted_at)
       : new Date().toISOString();
+    const submittedAtLabel = formatShortDate(submittedAt);
     const applyDashboardUrl = `${SITE_URL}/school/${schoolSlug}/apply`;
+    const submissionAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "admissions", "submissions")}?application=${applicationId}`;
 
-    await Promise.allSettled([
+    const responses =
+      application.responses && typeof application.responses === "object" && !Array.isArray(application.responses)
+        ? (application.responses as Record<string, unknown>)
+        : {};
+    const stringResponses: Record<string, string> = {};
+    for (const [key, value] of Object.entries(responses)) {
+      if (typeof value === "string") stringResponses[key] = value;
+      else if (value != null) stringResponses[key] = String(value);
+    }
+    const studentName = extractStudentLabel(stringResponses) ?? undefined;
+
+    const notifyEmails = [...new Set(notificationConfig.submission_notify_emails)];
+
+    const notificationTasks: Promise<unknown>[] = [
       notifyApplicationSubmitted({
         schoolName,
-        email: contact.email,
+        email: contact?.email ?? "unknown",
         applicationId,
         formTitle,
-        firstName: contact.firstName,
-        lastName: contact.lastName,
+        firstName: contact?.firstName,
+        lastName: contact?.lastName,
         submittedAt,
       }),
-      sendApplicationSubmittedConfirmation({
-        name: contact.displayName,
-        email: contact.email,
-        schoolName,
-        formTitle,
-        applyDashboardUrl,
-      }),
-    ]);
+      ...notifyEmails.map((email) =>
+        sendApplicationSubmittedOwnerNotification({
+          email,
+          schoolName,
+          formTitle,
+          studentName,
+          contactName: contact?.displayName,
+          contactEmail: contact?.email,
+          programName,
+          submittedAtLabel,
+          submissionAdminUrl,
+        }),
+      ),
+    ];
+
+    if (contact) {
+      notificationTasks.push(
+        sendApplicationSubmittedConfirmation({
+          name: contact.displayName,
+          email: contact.email,
+          schoolName,
+          formTitle,
+          applyDashboardUrl,
+        }),
+      );
+    } else {
+      console.warn("Application submitted notifications: no applicant contact", applicationId);
+    }
+
+    await Promise.allSettled(notificationTasks);
   } catch (error) {
     console.error("Application submitted notifications failed:", error);
   }
