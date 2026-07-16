@@ -6,6 +6,7 @@ import PublicEnrollmentChecklistClient from "@/components/admissions/PublicEnrol
 import { userOwnsApplication } from "@/lib/admissions/application-auth";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { getFamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { createClient } from "@/utils/supabase/server";
 
@@ -69,11 +70,10 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
     redirect(`/school/${slug}/apply/${applicationId}`);
   }
 
-  const checklist = await loadEnrollmentChecklistForApplication(
-    supabase,
-    applicationId,
-    org.id,
-  );
+  const [checklist, userProfile] = await Promise.all([
+    loadEnrollmentChecklistForApplication(supabase, applicationId, org.id),
+    getFamilyUserProfile(supabase, user.id, org.id, user),
+  ]);
 
   if (!checklist) {
     notFound();
@@ -93,6 +93,7 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
       organizationId={org.id}
       checklist={checklist}
       parentPortalHref={parentPortalHref ?? undefined}
+      userProfile={userProfile}
     />
   );
 }

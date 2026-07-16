@@ -167,17 +167,43 @@ async function ensureE2eApplicationFormContext(
     programId = program.id as string;
   }
 
-  const { data: existingForm, error: formLookupError } = await admin
+  const { data: existingForms, error: formLookupError } = await admin
     .from("application_form_versions")
     .select("id")
     .eq("organization_id", organizationId)
-    .eq("status", "published")
-    .limit(1)
-    .maybeSingle();
+    .eq("public_slug", "apply")
+    .in("status", ["draft", "published"])
+    .order("version", { ascending: false })
+    .limit(1);
 
   if (formLookupError) throw formLookupError;
 
-  let formVersionId = existingForm?.id as string | undefined;
+  let formVersionId = existingForms?.[0]?.id as string | undefined;
+  const e2eFormFeeConfig = {
+    enabled: false,
+    label: "Application fee",
+    amount_cents: 0,
+    required_to_submit: true,
+  };
+  const e2eFormSchema = {
+    sections: [
+      {
+        id: "e2e-section-student",
+        title: "Student information",
+        fields: [
+          {
+            id: "student_first_name",
+            label: "First Name",
+            type: "text",
+            required: true,
+            width: "full",
+          },
+        ],
+      },
+    ],
+    acknowledgments: [],
+  };
+
   if (!formVersionId) {
     const { data: formVersion, error: formInsertError } = await admin
       .from("application_form_versions")
@@ -187,8 +213,9 @@ async function ensureE2eApplicationFormContext(
         version: 1,
         status: "published",
         title: "E2E Application",
-        schema: {},
-        fee_config: {},
+        public_slug: "apply",
+        schema: e2eFormSchema,
+        fee_config: e2eFormFeeConfig,
         published_at: new Date().toISOString(),
       })
       .select("id")
@@ -196,6 +223,19 @@ async function ensureE2eApplicationFormContext(
 
     if (formInsertError) throw formInsertError;
     formVersionId = formVersion.id as string;
+  } else {
+    const { error: formUpdateError } = await admin
+      .from("application_form_versions")
+      .update({
+        public_slug: "apply",
+        schema: e2eFormSchema,
+        fee_config: e2eFormFeeConfig,
+        status: "published",
+        published_at: new Date().toISOString(),
+      })
+      .eq("id", formVersionId);
+
+    if (formUpdateError) throw formUpdateError;
   }
 
   return { programId, formVersionId };
@@ -296,30 +336,11 @@ async function seedParentApplication(
     student_last_name: studentLastName,
   };
 
-  const { data: existingApplication, error: applicationLookupError } = await admin
+  await admin
     .from("applications")
-    .select("id")
+    .delete()
     .eq("organization_id", organizationId)
-    .eq("created_by_user_id", userId)
-    .maybeSingle();
-
-  if (applicationLookupError) throw applicationLookupError;
-
-  if (existingApplication?.id) {
-    const { error: applicationUpdateError } = await admin
-      .from("applications")
-      .update({
-        family_id: familyId,
-        primary_guardian_id: guardianId,
-        responses,
-        status: "submitted",
-        submitted_at: new Date().toISOString(),
-      })
-      .eq("id", existingApplication.id);
-
-    if (applicationUpdateError) throw applicationUpdateError;
-    return;
-  }
+    .eq("created_by_user_id", userId);
 
   const { error: applicationInsertError } = await admin.from("applications").insert({
     organization_id: organizationId,

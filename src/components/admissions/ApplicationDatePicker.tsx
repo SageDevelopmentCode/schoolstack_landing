@@ -63,6 +63,7 @@ export default function ApplicationDatePicker({
 }: ApplicationDatePickerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [opensUpward, setOpensUpward] = useState(false);
 
   const parsed = parseIsoDate(value);
   const initialView = parsed ?? todayMonthYear();
@@ -123,6 +124,13 @@ export default function ApplicationDatePicker({
     const nextView = parsed ?? todayMonthYear();
     setViewYear(nextView.year);
     setViewMonth(nextView.month);
+    if (rootRef.current) {
+      const rect = rootRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const calendarHeight = 340;
+      setOpensUpward(spaceBelow < calendarHeight && spaceAbove > spaceBelow);
+    }
     setOpen(true);
   };
 
@@ -180,7 +188,9 @@ export default function ApplicationDatePicker({
         <div
           role="dialog"
           aria-label="Choose a date"
-          className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border p-3 shadow-lg"
+          className={`absolute left-0 right-0 z-50 rounded-md border p-3 shadow-lg ${
+            opensUpward ? "bottom-full mb-1" : "top-full mt-1"
+          }`}
           style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
         >
           <div className="mb-3 flex items-center gap-2">

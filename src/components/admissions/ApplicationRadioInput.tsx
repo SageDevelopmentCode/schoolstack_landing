@@ -29,7 +29,7 @@ export default function ApplicationRadioInput({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className="flex flex-wrap gap-2"
+      className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
     >
       {options.map((option) => {
         const isSelected = value === option.value;
@@ -44,7 +44,7 @@ export default function ApplicationRadioInput({
             aria-checked={isSelected}
             disabled={disabled}
             onClick={() => onChange(option.value)}
-            className="flex min-h-[44px] min-w-[5rem] flex-1 items-center gap-3 rounded-md border px-4 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex min-h-[44px] w-full min-w-[5rem] items-center gap-3 rounded-md border px-4 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:flex-1"
             style={
               isSelected
                 ? {

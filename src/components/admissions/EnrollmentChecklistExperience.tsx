@@ -7,14 +7,15 @@ import {
   ArrowLeft,
   Check,
   CheckCircle,
+  ChevronDown,
   ClipboardList,
   CreditCard,
   FileSignature,
   FileText,
   PenLine,
   Upload,
+  X,
 } from "lucide-react";
-import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
 import EnrollmentChecklistItemPanel from "@/components/admissions/EnrollmentChecklistItemPanel";
 import type {
   EnrollmentChecklistItem,
@@ -22,6 +23,7 @@ import type {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import { computeChecklistProgress } from "@/lib/admissions/enrollment-checklist-materialization";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 export type EnrollmentChecklistExperienceProps = {
@@ -94,9 +96,111 @@ function findNextIncompleteItemId(
   return null;
 }
 
+function ChecklistProgressHeader({
+  C,
+  progress,
+  progressPct,
+}: {
+  C: AdminThemeTokens;
+  progress: { completed: number; total: number };
+  progressPct: number;
+}) {
+  return (
+    <div className="shrink-0 border-b border-gray-100 px-4 py-4">
+      {progress.completed === progress.total && progress.total > 0 ? (
+        <div className="mb-3 flex items-center gap-1.5" style={{ color: C.success }}>
+          <CheckCircle className="h-3.5 w-3.5" />
+          <span className="text-xs font-semibold">Enrollment Confirmed!</span>
+        </div>
+      ) : null}
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold" style={{ color: C.textSecondary }}>
+          Progress
+        </p>
+        <span className="text-xs" style={{ color: C.textTertiary }}>
+          {progress.completed}/{progress.total}
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+        <div
+          className="h-2 rounded-full transition-all"
+          style={{ backgroundColor: C.accent, width: `${progressPct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ChecklistItemList({
+  C,
+  items,
+  activeItemId,
+  instanceByTemplateId,
+  onSelect,
+}: {
+  C: AdminThemeTokens;
+  items: EnrollmentChecklistItem[];
+  activeItemId: string | null;
+  instanceByTemplateId: Map<string, EnrollmentChecklistItemInstance>;
+  onSelect: (itemId: string) => void;
+}) {
+  return (
+    <>
+      {items.map((item) => {
+        const Icon = itemIcon(item.type);
+        const isActive = item.id === activeItemId;
+        const instance = instanceByTemplateId.get(item.id);
+        const isComplete = instance?.status === "completed";
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onSelect(item.id)}
+            className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+              isActive ? "" : "hover:bg-black/[0.03]"
+            }`}
+            style={{
+              backgroundColor: isActive ? C.accentLight : "transparent",
+              color: isActive ? C.accent : C.textPrimary,
+            }}
+          >
+            <div
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: isComplete
+                  ? C.successBg
+                  : isActive
+                    ? `${C.accent}26`
+                    : C.bg,
+              }}
+            >
+              {isComplete ? (
+                <Check className="h-3 w-3" style={{ color: C.success }} />
+              ) : (
+                <Icon
+                  className="h-3 w-3"
+                  style={{ color: isActive ? C.accent : C.textTertiary }}
+                />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium leading-tight">{item.label}</p>
+              {!item.required ? (
+                <p className="mt-0.5 text-[10px]" style={{ color: C.textTertiary }}>
+                  Optional
+                </p>
+              ) : null}
+            </div>
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
 export default function EnrollmentChecklistExperience({
   branding,
-  schoolName,
+  schoolName: _schoolName,
   title,
   items,
   mode = "preview",
@@ -113,6 +217,7 @@ export default function EnrollmentChecklistExperience({
     resolveInitialItemId(items, initialItemId),
   );
   const [localInstances, setLocalInstances] = useState(instances);
+  const [taskPickerOpen, setTaskPickerOpen] = useState(false);
 
   useEffect(() => {
     queueMicrotask(() => setLocalInstances(instances));
@@ -129,10 +234,14 @@ export default function EnrollmentChecklistExperience({
     [localInstances],
   );
 
-  const requiredItems = items.filter((item) => item.required);
   const progress = computeChecklistProgress(items, localInstances);
   const activeItem = items.find((item) => item.id === activeItemId) ?? null;
   const activeInstance = activeItem ? instanceByTemplateId.get(activeItem.id) : undefined;
+
+  const handleSelectItem = (itemId: string) => {
+    setActiveItemId(itemId);
+    setTaskPickerOpen(false);
+  };
 
   const handleComplete = async (responses?: Record<string, unknown>) => {
     if (!activeItem || !activeInstance) return;
@@ -181,6 +290,29 @@ export default function EnrollmentChecklistExperience({
   const progressPct =
     progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
+  const detailPanel = activeItem ? (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={activeItem.id}
+        className="mx-auto h-full max-w-3xl"
+        {...panelTransition}
+      >
+        <EnrollmentChecklistItemPanel
+          C={C}
+          item={activeItem}
+          mode={mode}
+          organizationId={organizationId}
+          checklistId={checklistId}
+          instanceId={activeInstance?.id}
+          instanceStatus={activeInstance?.status}
+          instancePaymentStatus={activeInstance?.paymentStatus}
+          existingResponses={activeInstance?.responses}
+          onComplete={mode === "live" ? handleComplete : undefined}
+        />
+      </motion.div>
+    </AnimatePresence>
+  ) : null;
+
   return (
     <div
       className="flex min-h-0 flex-1 flex-col"
@@ -188,12 +320,6 @@ export default function EnrollmentChecklistExperience({
     >
       <div className="shrink-0 border-b border-gray-100 px-4 py-4 sm:px-6">
         <div className="flex items-center justify-between gap-4">
-          <ApplyPortalBranding
-            branding={branding}
-            schoolName={schoolName}
-            className="min-w-0"
-            schoolLogoClassName="h-7 w-auto max-w-[min(200px,70vw)] object-contain sm:h-8"
-          />
           {backLink ? (
             <Link
               href={backLink.href}
@@ -205,9 +331,11 @@ export default function EnrollmentChecklistExperience({
               }}
             >
               <ArrowLeft className="h-4 w-4" />
-              {backLink.label}
+              <span className="hidden sm:inline">{backLink.label}</span>
             </Link>
-          ) : null}
+          ) : (
+            <span />
+          )}
         </div>
         <h1 className="mt-4 text-xl font-semibold sm:text-2xl" style={{ color: C.accentDark }}>
           {title}
@@ -217,113 +345,112 @@ export default function EnrollmentChecklistExperience({
         </p>
       </div>
 
+      {/* Mobile progress + current task */}
+      <div className="shrink-0 border-b border-gray-100 lg:hidden" style={{ backgroundColor: "#FFFFFF" }}>
+        <ChecklistProgressHeader C={C} progress={progress} progressPct={progressPct} />
+        {activeItem ? (
+          <div
+            className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
+                Current task
+              </p>
+              <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>
+                {activeItem.label}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTaskPickerOpen(true)}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border px-3 py-2 text-xs font-medium"
+              style={{
+                borderColor: C.border,
+                color: C.textSecondary,
+                backgroundColor: C.bg,
+              }}
+            >
+              Change
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <aside
-          className="flex w-[30%] min-w-[220px] max-w-[320px] shrink-0 flex-col overflow-hidden border-r border-gray-100"
+          className="hidden w-[30%] min-w-[220px] max-w-[320px] shrink-0 flex-col overflow-hidden border-r border-gray-100 lg:flex"
           style={{ backgroundColor: "#FFFFFF" }}
         >
-          <div className="shrink-0 border-b border-gray-100 px-4 py-4">
-            {progress.completed === progress.total && progress.total > 0 ? (
-              <div className="mb-3 flex items-center gap-1.5" style={{ color: C.success }}>
-                <CheckCircle className="h-3.5 w-3.5" />
-                <span className="text-xs font-semibold">Enrollment Confirmed!</span>
-              </div>
-            ) : null}
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold" style={{ color: C.textSecondary }}>
-                Progress
-              </p>
-              <span className="text-xs" style={{ color: C.textTertiary }}>
-                {progress.completed}/{progress.total}
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-              <div
-                className="h-2 rounded-full transition-all"
-                style={{ backgroundColor: C.accent, width: `${progressPct}%` }}
-              />
-            </div>
-          </div>
-
+          <ChecklistProgressHeader C={C} progress={progress} progressPct={progressPct} />
           <div className="min-h-0 flex-1 divide-y divide-gray-100 overflow-y-auto">
-            {items.map((item) => {
-              const Icon = itemIcon(item.type);
-              const isActive = item.id === activeItemId;
-              const instance = instanceByTemplateId.get(item.id);
-              const isComplete = instance?.status === "completed";
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveItemId(item.id)}
-                  className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
-                    isActive ? "" : "hover:bg-black/[0.03]"
-                  }`}
-                  style={{
-                    backgroundColor: isActive ? C.accentLight : "transparent",
-                    color: isActive ? C.accent : C.textPrimary,
-                  }}
-                >
-                  <div
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: isComplete
-                        ? C.successBg
-                        : isActive
-                          ? `${C.accent}26`
-                          : C.bg,
-                    }}
-                  >
-                    {isComplete ? (
-                      <Check className="h-3 w-3" style={{ color: C.success }} />
-                    ) : (
-                      <Icon
-                        className="h-3 w-3"
-                        style={{ color: isActive ? C.accent : C.textTertiary }}
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium leading-tight">{item.label}</p>
-                    {!item.required ? (
-                      <p className="mt-0.5 text-[10px]" style={{ color: C.textTertiary }}>
-                        Optional
-                      </p>
-                    ) : null}
-                  </div>
-                </button>
-              );
-            })}
+            <ChecklistItemList
+              C={C}
+              items={items}
+              activeItemId={activeItemId}
+              instanceByTemplateId={instanceByTemplateId}
+              onSelect={handleSelectItem}
+            />
           </div>
         </aside>
 
         <div className="min-w-0 flex-1 overflow-hidden" style={{ backgroundColor: C.surface }}>
           <div className="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-            <AnimatePresence mode="wait">
-              {activeItem ? (
-                <motion.div
-                  key={activeItem.id}
-                  className="mx-auto h-full max-w-3xl"
-                  {...panelTransition}
-                >
-                  <EnrollmentChecklistItemPanel
-                    C={C}
-                    item={activeItem}
-                    mode={mode}
-                    organizationId={organizationId}
-                    checklistId={checklistId}
-                    instanceId={activeInstance?.id}
-                    instanceStatus={activeInstance?.status}
-                    instancePaymentStatus={activeInstance?.paymentStatus}
-                    existingResponses={activeInstance?.responses}
-                    onComplete={mode === "live" ? handleComplete : undefined}
-                  />
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
+            {detailPanel}
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {taskPickerOpen ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-end justify-center bg-black/45 p-4 pb-safe lg:hidden"
+            onClick={() => setTaskPickerOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 24 }}
+              className="max-h-[70dvh] w-full max-w-lg overflow-hidden rounded-xl border shadow-xl"
+              style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Select enrollment task"
+            >
+              <div
+                className="flex items-center justify-between border-b px-4 py-3"
+                style={{ borderColor: C.border }}
+              >
+                <p className="text-sm font-semibold" style={{ color: C.accentDark }}>
+                  Enrollment tasks
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTaskPickerOpen(false)}
+                  className="rounded-sm p-1"
+                  style={{ color: C.textTertiary }}
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="max-h-[calc(70dvh-52px)] divide-y divide-gray-100 overflow-y-auto">
+                <ChecklistItemList
+                  C={C}
+                  items={items}
+                  activeItemId={activeItemId}
+                  instanceByTemplateId={instanceByTemplateId}
+                  onSelect={handleSelectItem}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

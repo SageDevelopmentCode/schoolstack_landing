@@ -91,6 +91,24 @@ function buildSteps(
   return steps;
 }
 
+function getStepLabel(
+  step: ExperienceStep | undefined,
+  schema: ApplicationFormSchema,
+  stepIndex: number,
+  totalSteps: number,
+): string {
+  const prefix = `Step ${stepIndex + 1} of ${totalSteps}`;
+  if (!step) return prefix;
+  if (step.kind === "section") {
+    const sectionTitle = schema.sections[step.sectionIndex]?.title;
+    return sectionTitle ? `${prefix} · ${sectionTitle}` : prefix;
+  }
+  if (step.kind === "acknowledgments") {
+    return `${prefix} · Acknowledgments`;
+  }
+  return `${prefix} · Application fee`;
+}
+
 export default function ApplicationFormExperience({
   branding,
   schoolName,
@@ -160,6 +178,8 @@ export default function ApplicationFormExperience({
   const totalSteps = steps.length;
   const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === totalSteps - 1;
+
+  const stepLabel = getStepLabel(currentStep, schema, stepIndex, totalSteps);
 
   const section =
     currentStep?.kind === "section"
@@ -431,7 +451,7 @@ export default function ApplicationFormExperience({
         className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6"
       >
         <div className="mx-auto max-w-3xl">
-          <div className="mb-8 flex items-center justify-between gap-4">
+          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <ApplyPortalBranding
               branding={branding}
               schoolName={schoolName}
@@ -483,6 +503,12 @@ export default function ApplicationFormExperience({
             ) : null}
           </AnimatePresence>
 
+          <p
+            className="mb-2 text-xs font-medium"
+            style={{ color: C.textSecondary }}
+          >
+            {stepLabel}
+          </p>
           <div className="mb-6 flex items-center gap-2">
             {Array.from({ length: totalSteps }).map((_, index) => (
               <div
@@ -576,10 +602,16 @@ export default function ApplicationFormExperience({
       </div>
 
       <footer
-        className="shrink-0 border-t px-4 py-3 sm:px-6 sm:py-4"
+        className="shrink-0 border-t px-4 py-3 pb-safe sm:px-6 sm:py-4"
         style={{ borderColor: C.border, backgroundColor: pageBg }}
       >
         <div className="mx-auto max-w-3xl">
+          <p
+            className="mb-3 text-center text-xs font-medium sm:hidden"
+            style={{ color: C.textSecondary }}
+          >
+            {stepLabel}
+          </p>
           {saveError ? (
             <p
               className="mb-3 rounded-md border px-3 py-2 text-sm"
@@ -676,17 +708,19 @@ export default function ApplicationFormExperience({
         </div>
       </footer>
 
-      <PaymentMethodSelectionModal
-        C={C}
-        open={paymentModalOpen}
-        onClose={() => {
-          if (!actionLoading) setPaymentModalOpen(false);
-        }}
-        netAmountCents={feeConfig.amount_cents ?? 0}
-        label={feeConfig.label ?? "Application fee"}
-        loading={actionLoading}
-        onConfirm={handleConfirmPayment}
-      />
+      {feeConfig.enabled && (feeConfig.amount_cents ?? 0) > 0 ? (
+        <PaymentMethodSelectionModal
+          C={C}
+          open={paymentModalOpen}
+          onClose={() => {
+            if (!actionLoading) setPaymentModalOpen(false);
+          }}
+          netAmountCents={feeConfig.amount_cents ?? 0}
+          label={feeConfig.label ?? "Application fee"}
+          loading={actionLoading}
+          onConfirm={handleConfirmPayment}
+        />
+      ) : null}
     </div>
   );
 }

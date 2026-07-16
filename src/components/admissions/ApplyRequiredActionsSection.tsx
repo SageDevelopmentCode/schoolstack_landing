@@ -66,7 +66,7 @@ export default function ApplyRequiredActionsSection({
   return (
     <>
       <section className="mt-10">
-        <div className="flex items-start justify-between gap-3 sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
               Required actions
@@ -75,7 +75,7 @@ export default function ApplyRequiredActionsSection({
               Complete these steps after submitting your application.
             </p>
           </div>
-          <div className="shrink-0 pt-0.5 sm:pt-0">
+          <div className="shrink-0 sm:pt-0">
             {pendingRequiredCount > 0 ? (
               <span
                 className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"

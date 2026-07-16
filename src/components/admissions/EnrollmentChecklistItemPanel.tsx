@@ -80,7 +80,8 @@ function panelButtonStyle(C: AdminThemeTokens, disabled: boolean) {
   } as const;
 }
 
-const PDF_VIEWER_HEIGHT_CLASS = "min-h-[560px] h-[min(720px,calc(100vh-240px))]";
+const PDF_VIEWER_HEIGHT_CLASS =
+  "min-h-[200px] h-[min(400px,calc(100dvh-320px))] lg:min-h-[560px] lg:h-[min(720px,calc(100vh-240px))]";
 
 const sectionVariants = {
   enter: (direction: number) => ({
@@ -195,7 +196,7 @@ function DocumentSignInlinePanel({
         </AnimatePresence>
       </div>
 
-      <div className="mt-4 flex shrink-0 items-center gap-3 border-t pt-4" style={{ borderColor: C.border }}>
+      <div className="mt-4 flex shrink-0 items-center gap-3 border-t pb-safe pt-4" style={{ borderColor: C.border }}>
         {sectionIndex > 0 ? (
           <button
             type="button"

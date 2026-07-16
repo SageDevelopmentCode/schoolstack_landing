@@ -30,7 +30,7 @@ export default function ApplyChildTabSelector({
 
   return (
     <div
-      className="mt-4 flex flex-wrap gap-2"
+      className="mt-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide"
       role="tablist"
       aria-label="Select child"
     >
@@ -45,7 +45,7 @@ export default function ApplyChildTabSelector({
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(application.id)}
-            className="relative inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium transition"
+            className="relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3.5 py-1.5 text-sm font-medium transition"
             style={
               isActive
                 ? {

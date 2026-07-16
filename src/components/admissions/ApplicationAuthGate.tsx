@@ -154,7 +154,7 @@ function ApplicationAuthPromoPanel({
   return (
     <div
       className={`relative overflow-hidden ${
-        compact ? "h-[40vh] min-h-[280px] lg:hidden" : "hidden lg:flex lg:min-h-dvh lg:flex-1"
+        compact ? "h-[28vh] min-h-[160px] max-h-[220px] lg:hidden" : "hidden lg:flex lg:min-h-dvh lg:flex-1"
       }`}
     >
       <AnimatePresence mode="wait">
