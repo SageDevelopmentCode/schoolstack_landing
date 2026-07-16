@@ -12,7 +12,7 @@ type EnrollmentCompleteModalProps = {
   C: AdminThemeTokens;
   open: boolean;
   schoolName: string;
-  schoolSlug: string;
+  parentPortalHref: string;
   onClose: () => void;
 };
 
@@ -20,7 +20,7 @@ export default function EnrollmentCompleteModal({
   C,
   open,
   schoolName,
-  schoolSlug,
+  parentPortalHref,
   onClose,
 }: EnrollmentCompleteModalProps) {
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function EnrollmentCompleteModal({
 
             <div className="mt-6 space-y-2">
               <Link
-                href={`/school/${schoolSlug}/parent`}
+                href={parentPortalHref}
                 className="block w-full rounded-md px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:opacity-90"
                 style={getAdminButtonStyle(C, "primary")}
               >

@@ -15,6 +15,7 @@ type PublicEnrollmentChecklistClientProps = {
   schoolSlug: string;
   organizationId: string;
   checklist: LoadedEnrollmentChecklist;
+  parentPortalHref?: string;
   previewMode?: boolean;
   backHref?: string;
 };
@@ -33,6 +34,7 @@ export default function PublicEnrollmentChecklistClient({
   schoolSlug,
   organizationId,
   checklist,
+  parentPortalHref,
   previewMode = false,
   backHref,
 }: PublicEnrollmentChecklistClientProps) {
@@ -148,7 +150,9 @@ export default function PublicEnrollmentChecklistClient({
         C={C}
         open={!previewMode && showCompleteModal}
         schoolName={schoolName}
-        schoolSlug={schoolSlug}
+        parentPortalHref={
+          parentPortalHref ?? `/school/${schoolSlug}/parent/portal`
+        }
         onClose={() => setShowCompleteModal(false)}
       />
     </ApplicationFormPageShell>

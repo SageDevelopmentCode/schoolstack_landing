@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FileText } from "lucide-react";
+import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import ApplicationAnswersModal from "@/components/school-admin/admissions/ApplicationAnswersModal";
+import ApplicationPdfDownloadButton from "@/components/school-admin/admissions/ApplicationPdfDownloadButton";
 import ApplicationFormStepDetailModal from "@/components/school-admin/admissions/ApplicationFormStepDetailModal";
 import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
@@ -84,9 +86,11 @@ export default function ApplicationFormStatusCard({
   feeEnabled,
   downloadLabel,
 }: ApplicationFormStatusCardProps) {
+  const printRef = useRef<HTMLDivElement>(null);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [answersOpen, setAnswersOpen] = useState(false);
+  const resolvedDownloadLabel = downloadLabel ?? formTitle;
 
   const stepsWithStatus = useMemo(() => {
     const steps = buildApplicationFormSteps(detail.schema, detail.feeConfig);
@@ -167,15 +171,22 @@ export default function ApplicationFormStatusCard({
           subtitle={progressSubtitle}
         />
 
-        <button
-          type="button"
-          onClick={() => setAnswersOpen(true)}
-          className="mb-3 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition hover:opacity-90"
-          style={getAdminButtonStyle(C, "secondary")}
-        >
-          <FileText className="h-3.5 w-3.5" />
-          View application answers
-        </button>
+        <div className="mb-3 flex flex-wrap items-start gap-2">
+          <button
+            type="button"
+            onClick={() => setAnswersOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition hover:opacity-90"
+            style={getAdminButtonStyle(C, "secondary")}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            View application answers
+          </button>
+          <ApplicationPdfDownloadButton
+            C={C}
+            downloadLabel={resolvedDownloadLabel}
+            getElement={() => printRef.current}
+          />
+        </div>
 
         <DetailPanelStepTimeline
           C={C}
@@ -205,9 +216,27 @@ export default function ApplicationFormStatusCard({
         schoolSlug={schoolSlug}
         open={answersOpen}
         detail={detail}
-        downloadLabel={downloadLabel ?? formTitle}
+        downloadLabel={resolvedDownloadLabel}
         onClose={() => setAnswersOpen(false)}
       />
+
+      <div
+        className="pointer-events-none fixed left-[-10000px] top-0 w-[800px]"
+        aria-hidden="true"
+      >
+        <div ref={printRef}>
+          <ApplicationReadOnlyView
+            branding={branding}
+            schoolName={schoolName}
+            schoolSlug={schoolSlug}
+            application={detail}
+            layout="page"
+            view="full"
+            hideBackLink
+            standalone={false}
+          />
+        </div>
+      </div>
     </>
   );
 }

@@ -10,6 +10,7 @@ import {
   userHasEnrolledAccess,
 } from "@/lib/admissions/parent-portal-access";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,12 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     ).entries(),
   );
 
+  const parentPortalHref = getParentPortalHomeHref(
+    slug,
+    org.features.parent,
+    org.features.feature_nav?.parent,
+  );
+
   return (
     <ApplyDashboard
       branding={org.branding}
@@ -90,6 +97,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       applicationsWithTasks={applicationsWithTasks}
       hasEnrolledAccess={hasEnrolledAccess}
       parentPortalEnabled={org.features.parent.portal}
+      parentPortalHref={parentPortalHref ?? undefined}
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}
       userProfile={userProfile}
     />

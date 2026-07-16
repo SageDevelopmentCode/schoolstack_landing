@@ -94,6 +94,11 @@ export default async function FamilyPreviewApplyPage({
       applicationsWithTasks={applicationsWithTasks}
       hasEnrolledAccess={hasEnrolledAccess}
       parentPortalEnabled={isParentPortalEnabled(org.features)}
+      parentPortalHref={
+        hasEnrolledAccess && isParentPortalEnabled(org.features)
+          ? `${previewBasePath}/parent`
+          : undefined
+      }
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}
       userProfile={userProfile}
       previewMode

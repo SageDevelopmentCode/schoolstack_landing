@@ -6,6 +6,7 @@ import PublicEnrollmentChecklistClient from "@/components/admissions/PublicEnrol
 import { userOwnsApplication } from "@/lib/admissions/application-auth";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,12 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
     notFound();
   }
 
+  const parentPortalHref = getParentPortalHomeHref(
+    slug,
+    org.features.parent,
+    org.features.feature_nav?.parent,
+  );
+
   return (
     <PublicEnrollmentChecklistClient
       branding={org.branding}
@@ -85,6 +92,7 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
       schoolSlug={slug}
       organizationId={org.id}
       checklist={checklist}
+      parentPortalHref={parentPortalHref ?? undefined}
     />
   );
 }

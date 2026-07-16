@@ -125,6 +125,15 @@ export function splitParentNavForHeader(items: ParentNavItem[]): {
   };
 }
 
+export function getParentPortalHomeHref(
+  slug: string,
+  parentFeatures: ParentFeatures,
+  portalNav?: PortalFeatureNav,
+): string | null {
+  const items = buildParentNavItems(slug, parentFeatures, portalNav);
+  return items[0]?.href ?? null;
+}
+
 export function getFirstParentNavPath(
   slug: string,
   parentFeatures: ParentFeatures,

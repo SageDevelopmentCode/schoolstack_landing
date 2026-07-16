@@ -31,6 +31,7 @@ type ApplyDashboardProps = {
   applicationsWithTasks: FamilyApplication[];
   hasEnrolledAccess: boolean;
   parentPortalEnabled: boolean;
+  parentPortalHref?: string;
   enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
   userProfile: FamilyUserProfile;
   previewMode?: boolean;
@@ -140,6 +141,7 @@ export default function ApplyDashboard({
   applicationsWithTasks,
   hasEnrolledAccess,
   parentPortalEnabled,
+  parentPortalHref,
   enrollmentProgressByApplicationId,
   userProfile,
   previewMode = false,
@@ -150,10 +152,6 @@ export default function ApplyDashboard({
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
   const previewHomeHref = previewBasePath ?? undefined;
-  const parentPortalHref =
-    previewBasePath && hasEnrolledAccess && parentPortalEnabled
-      ? `${previewBasePath}/parent`
-      : undefined;
 
   useEffect(() => {
     if (!focusApplicationId || typeof window === "undefined") return;
@@ -187,11 +185,10 @@ export default function ApplyDashboard({
         style={{ backgroundColor: pageBg }}
       >
         <div className="mx-auto max-w-3xl">
-        {hasEnrolledAccess && parentPortalEnabled ? (
+        {hasEnrolledAccess && parentPortalEnabled && parentPortalHref ? (
           <EnrolledFamilyBanner
             C={C}
             schoolName={schoolName}
-            schoolSlug={schoolSlug}
             parentPortalHref={parentPortalHref}
           />
         ) : null}

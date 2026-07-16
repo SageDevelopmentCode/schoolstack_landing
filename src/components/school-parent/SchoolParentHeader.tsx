@@ -97,6 +97,7 @@ export default function SchoolParentHeader({
     () => splitParentNavForHeader(navItems),
     [navItems],
   );
+  const homeHref = navItems[0]?.href ?? `/school/${slug}/parent/portal`;
   const moreActive = more.some((item) => isParentNavItemActive(pathname, item));
   const initials = profileInitials(userProfile.displayName);
 
@@ -137,7 +138,7 @@ export default function SchoolParentHeader({
     <header className="shrink-0 border-b border-gray-100 bg-white">
       <div className="flex items-center px-4 py-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Link href={`/school/${slug}/parent`} className="min-w-0 shrink">
+          <Link href={homeHref} className="min-w-0 shrink">
             <SchoolDemoWordmark
               logo={{
                 src: branding.logo.src,
