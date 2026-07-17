@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { FileText, GripVertical, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { newAdmissionsId } from "@/lib/admissions/application-form-schema";
+import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import {
   buildEmbeddedPdfViewerUrl,
   deleteEnrollmentChecklistPdf,
@@ -406,10 +407,12 @@ export function EnrollmentPdfAgreementEditor({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="text-[11px] font-medium disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium disabled:opacity-50"
               style={{ color: C.accent }}
             >
-              {uploading ? "Uploading…" : "Replace PDF"}
+              <ButtonLoadingLabel loading={uploading} loadingLabel="Uploading…">
+                Replace PDF
+              </ButtonLoadingLabel>
             </button>
           ) : null}
         </div>

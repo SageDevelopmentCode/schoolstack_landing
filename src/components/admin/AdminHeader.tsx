@@ -12,6 +12,7 @@ import {
   School,
   ScrollText,
   CreditCard,
+  LifeBuoy,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ const NAV: {
   { href: "/admin/demos", label: "Demos", icon: LayoutGrid, color: "#d97706" },
   { href: "/admin/homepage-questions", label: "Questions", icon: CircleHelp, color: "#0891b2" },
   { href: "/admin/organizations", label: "Organizations", icon: School, color: "#4f46e5" },
+  { href: "/admin/tickets", label: "Tickets", icon: LifeBuoy, color: "#ea580c" },
   { href: "/admin/activity", label: "Activity", icon: ScrollText, color: "#0f766e" },
   { href: "/admin/payments", label: "Payments", icon: CreditCard, color: "#2563eb" },
   { href: "/admin/research", label: "CRM", icon: Building2, color: "#db2777" },

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import SchoolParentAvatar from "@/components/school-parent/SchoolParentAvatar";
 import {
   buildParentNavItems,
@@ -241,8 +242,12 @@ export default function SchoolParentHeader({
                   disabled={signingOut}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                 >
-                  <LogOut className="h-4 w-4 text-gray-500" />
-                  {signingOut ? "Signing out…" : "Log out"}
+                  {!signingOut ? (
+                    <LogOut className="h-4 w-4 text-gray-500" />
+                  ) : null}
+                  <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
+                    Log out
+                  </ButtonLoadingLabel>
                 </button>
               </div>
             ) : null}

@@ -4,6 +4,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CalendarGrid } from "@/components/scheduler/CalendarGrid";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 import {
   MONTH_NAMES,
   todayKey,
@@ -87,10 +90,16 @@ function TimeSlotList({
                   onConfirm({ date: dateStr, time: selectedTime });
                 }
               }}
-              className="w-full h-10 rounded-pill text-white text-[13px] font-medium font-secondary hover:opacity-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              className={`w-full h-10 rounded-pill text-white text-[13px] font-medium font-secondary hover:opacity-90 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${BUTTON_LOADING_LAYOUT_CLASS}`}
               style={{ backgroundColor: "var(--color-clay)" }}
             >
-              {preview ? "Preview only" : isSubmitting ? "Booking…" : "Confirm"}
+              {preview ? (
+                "Preview only"
+              ) : (
+                <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Booking…">
+                  Confirm
+                </ButtonLoadingLabel>
+              )}
             </button>
           </motion.div>
         )}

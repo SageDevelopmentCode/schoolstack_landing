@@ -12,6 +12,9 @@ import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 import type { SaveApplicationDraftInput } from "@/lib/admissions/application-draft";
 import type { ApplicationFileUploadContext } from "@/lib/admissions/application-file-storage";
 import {
@@ -463,10 +466,12 @@ export default function ApplicationFormExperience({
                 type="button"
                 onClick={() => void handleSaveAndContinueLater()}
                 disabled={saving}
-                className="shrink-0 text-xs font-normal transition hover:underline disabled:opacity-50"
+                className="inline-flex shrink-0 items-center gap-1.5 text-xs font-normal transition hover:underline disabled:opacity-50"
                 style={{ color: C.textTertiary }}
               >
-                {saving ? "Saving…" : "Save & Continue later"}
+                <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
+                  Save & Continue later
+                </ButtonLoadingLabel>
               </button>
             ) : null}
           </div>
@@ -554,10 +559,12 @@ export default function ApplicationFormExperience({
                   type="button"
                   onClick={() => void handleBulkCopy()}
                   disabled={importing || !bulkCopySourceId}
-                  className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  className={`rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
                   style={getAdminButtonStyle(C, "primary")}
                 >
-                  {importing ? "Copying…" : "Copy answers"}
+                  <ButtonLoadingLabel loading={importing} loadingLabel="Copying…">
+                    Copy answers
+                  </ButtonLoadingLabel>
                 </button>
               </div>
             </div>
@@ -668,10 +675,12 @@ export default function ApplicationFormExperience({
                   !allAcknowledged ||
                   (isLive && (actionLoading || saving))
                 }
-                className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                className={`w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${BUTTON_LOADING_LAYOUT_CLASS}`}
                 style={getAdminButtonStyle(C, "primary")}
               >
-                {actionLoading ? "Submitting…" : "Submit application"}
+                <ButtonLoadingLabel loading={actionLoading} loadingLabel="Submitting…">
+                  Submit application
+                </ButtonLoadingLabel>
                 {!isLive ? " (preview)" : ""}
               </button>
             ) : isLastStep ? (
@@ -679,10 +688,12 @@ export default function ApplicationFormExperience({
                 type="button"
                 onClick={isLive ? handleSubmit : undefined}
                 disabled={isLive && (actionLoading || saving)}
-                className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                className={`w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${BUTTON_LOADING_LAYOUT_CLASS}`}
                 style={getAdminButtonStyle(C, "primary")}
               >
-                {actionLoading ? "Submitting…" : "Submit application"}
+                <ButtonLoadingLabel loading={actionLoading} loadingLabel="Submitting…">
+                  Submit application
+                </ButtonLoadingLabel>
                 {!isLive ? " (preview)" : ""}
               </button>
             ) : (
@@ -693,14 +704,14 @@ export default function ApplicationFormExperience({
                   saving ||
                   (currentStep?.kind === "acknowledgments" && !allAcknowledged)
                 }
-                className="w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                className={`w-full rounded-md px-5 py-2.5 text-center text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${BUTTON_LOADING_LAYOUT_CLASS}`}
                 style={getAdminButtonStyle(C, "primary")}
               >
-                {saving
-                  ? "Saving…"
-                  : currentStep?.kind === "acknowledgments"
+                <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
+                  {currentStep?.kind === "acknowledgments"
                     ? "Continue"
                     : "Save and continue"}
+                </ButtonLoadingLabel>
               </button>
             )}
           </div>

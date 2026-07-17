@@ -4,6 +4,9 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import AdminHeader from "@/components/admin/AdminHeader";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 
 function LoginForm() {
   const router = useRouter();
@@ -102,10 +105,12 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-clay text-white rounded-pill h-12 text-sm font-medium font-secondary hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            className={`w-full bg-clay text-white rounded-pill h-12 text-sm font-medium font-secondary hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${BUTTON_LOADING_LAYOUT_CLASS}`}
             style={{ backgroundColor: "var(--color-clay)" }}
           >
-            {loading ? "Signing in…" : "Sign in"}
+            <ButtonLoadingLabel loading={loading} loadingLabel="Signing in…">
+              Sign in
+            </ButtonLoadingLabel>
           </button>
         </form>
       </div>

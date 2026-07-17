@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -171,16 +174,13 @@ export default function ParentPortalSignIn({
       style={{ backgroundColor: pageBg, color: C.textPrimary }}
     >
       <div className="w-full max-w-md">
-        <SchoolDemoWordmark
-          logo={{
-            src: branding.logo.src,
-            alt: branding.logo.alt || schoolName,
-            width: branding.logo.width,
-            height: branding.logo.height,
-            text: branding.logo.src ? undefined : schoolName,
-          }}
-          className="mx-auto mb-8 h-8 w-auto max-w-[200px] object-contain"
-        />
+        <div className="mb-8 flex justify-center">
+          <ApplyPortalBranding
+            branding={branding}
+            schoolName={schoolName}
+            schoolLogoClassName="h-8 w-auto max-w-[200px] object-contain"
+          />
+        </div>
 
         <h1 className="text-center text-xl font-semibold sm:text-2xl" style={{ color: C.accentDark }}>
           {title}
@@ -217,10 +217,12 @@ export default function ParentPortalSignIn({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-md px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60"
+              className={`w-full rounded-md px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
               style={{ backgroundColor: C.accent }}
             >
-              {isSubmitting ? "Sending code…" : "Send verification code"}
+              <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending code…">
+                Send verification code
+              </ButtonLoadingLabel>
             </button>
           </form>
         ) : (
@@ -252,10 +254,12 @@ export default function ParentPortalSignIn({
             <button
               type="submit"
               disabled={isSubmitting || normalizedCode.length < 6}
-              className="w-full rounded-md px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60"
+              className={`w-full rounded-md px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
               style={{ backgroundColor: C.accent }}
             >
-              {isSubmitting ? "Verifying…" : "Continue"}
+              <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Verifying…">
+                Continue
+              </ButtonLoadingLabel>
             </button>
 
             <div className="flex items-center justify-between text-sm">

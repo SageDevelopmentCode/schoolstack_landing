@@ -26,9 +26,11 @@ import type {
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
+import AdminSupportRequestModal from "@/components/school-admin/AdminSupportRequestModal";
 
 type SchoolAdminBaselineProps = {
   slug: string;
+  organizationId: string;
   schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
@@ -204,6 +206,7 @@ function Sidebar({
   onToggleExpand,
   userEmail,
   onSignOut,
+  onOpenSupport,
 }: {
   C: AdminThemeTokens;
   branding: OrganizationBranding;
@@ -215,6 +218,7 @@ function Sidebar({
   onToggleExpand: () => void;
   userEmail?: string | null;
   onSignOut: () => void;
+  onOpenSupport: () => void;
 }) {
   const { logo } = branding;
   const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
@@ -284,6 +288,7 @@ function Sidebar({
         <button
           type="button"
           title="Need help?"
+          onClick={onOpenSupport}
           className="w-full flex items-center transition-colors duration-150"
           style={{
             justifyContent: isExpanded ? "flex-start" : "center",
@@ -422,6 +427,7 @@ function Sidebar({
 
 export default function SchoolAdminBaseline({
   slug,
+  organizationId,
   schoolName,
   branding,
   features,
@@ -442,6 +448,7 @@ export default function SchoolAdminBaseline({
   );
 
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
@@ -470,6 +477,16 @@ export default function SchoolAdminBaseline({
         onToggleExpand={() => setSidebarExpanded((v) => !v)}
         userEmail={userEmail}
         onSignOut={handleSignOut}
+        onOpenSupport={() => setSupportOpen(true)}
+      />
+
+      <AdminSupportRequestModal
+        C={C}
+        open={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        organizationId={organizationId}
+        userEmail={userEmail}
+        currentPath={pathname}
       />
 
       <main className="flex-1 overflow-hidden">

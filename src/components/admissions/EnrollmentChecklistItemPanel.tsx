@@ -11,6 +11,9 @@ import TypedSignatureField, {
   parseStoredSignerName,
 } from "@/components/admissions/TypedSignatureField";
 import RepeatableFormEntries from "@/components/admissions/RepeatableFormEntries";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 import type { ApplicationFileUploadMeta } from "@/lib/admissions/application-file-storage";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
@@ -234,16 +237,18 @@ function DocumentSignInlinePanel({
               }
             }
           }}
-          className="ml-auto rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+          className={`ml-auto rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
           style={panelButtonStyle(C, (isLive && !signature.trim()) || submitting || isCompleted)}
         >
-          {isCompleted
-            ? "Completed"
-            : isLastSection
-              ? submitting
-                ? "Saving…"
-                : "Complete agreement"
-              : "Sign & continue"}
+          {isCompleted ? (
+            "Completed"
+          ) : isLastSection ? (
+            <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
+              Complete agreement
+            </ButtonLoadingLabel>
+          ) : (
+            "Sign & continue"
+          )}
           {!isLive ? " (preview)" : ""}
         </button>
       </div>
@@ -394,10 +399,16 @@ function DocumentSignPdfPanel({
                 setSubmitting(false);
               }
             }}
-            className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+            className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
             style={panelButtonStyle(C, !isLive || !signature.trim() || submitting || isCompleted)}
           >
-            {isCompleted ? "Completed" : submitting ? "Saving…" : "Complete agreement"}
+            {isCompleted ? (
+              "Completed"
+            ) : (
+              <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
+                Complete agreement
+              </ButtonLoadingLabel>
+            )}
             {!isLive ? " (preview)" : ""}
           </button>
         </div>
@@ -567,10 +578,12 @@ function FormItemPanel({
                 type="button"
                 disabled={!isLive || submitting}
                 onClick={() => void handleSubmit()}
-                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+                className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
                 style={panelButtonStyle(C, !isLive || submitting)}
               >
-                {submitting ? "Saving…" : "Save changes"}
+                <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
+                  Save changes
+                </ButtonLoadingLabel>
                 {!isLive ? " (preview)" : ""}
               </button>
               <button
@@ -594,10 +607,12 @@ function FormItemPanel({
           type="button"
           disabled={!isLive || submitting}
           onClick={() => void handleSubmit()}
-          className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+          className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
           style={panelButtonStyle(C, !isLive || submitting)}
         >
-          {submitting ? "Saving…" : "Submit form"}
+          <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
+            Submit form
+          </ButtonLoadingLabel>
           {!isLive ? " (preview)" : ""}
         </button>
       )}
@@ -737,16 +752,19 @@ function FileUploadPanel({
         type="button"
         disabled={!isLive || uploading || submitting || isCompleted}
         onClick={() => void handleComplete()}
-        className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+        className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
         style={panelButtonStyle(C, !isLive || uploading || submitting || isCompleted)}
       >
-        {isCompleted
-          ? "Completed"
-          : submitting
-            ? "Saving…"
-            : uploading
-              ? "Uploading…"
-              : "Save upload"}
+        {isCompleted ? (
+          "Completed"
+        ) : (
+          <ButtonLoadingLabel
+            loading={submitting || uploading}
+            loadingLabel={submitting ? "Saving…" : "Uploading…"}
+          >
+            Save upload
+          </ButtonLoadingLabel>
+        )}
         {!isLive ? " (preview)" : ""}
       </button>
     </div>
@@ -942,10 +960,16 @@ function AcknowledgmentPanel({
             setSubmitting(false);
           }
         }}
-        className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+        className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
         style={panelButtonStyle(C, !isLive || !signature.trim() || submitting || isCompleted)}
       >
-        {isCompleted ? "Completed" : submitting ? "Saving…" : "Sign acknowledgment"}
+        {isCompleted ? (
+          "Completed"
+        ) : (
+          <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
+            Sign acknowledgment
+          </ButtonLoadingLabel>
+        )}
         {!isLive ? " (preview)" : ""}
       </button>
     </div>

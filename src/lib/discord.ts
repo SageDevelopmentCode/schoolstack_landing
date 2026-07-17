@@ -640,3 +640,77 @@ export async function notifyHomepageQuestion(payload: {
     ],
   });
 }
+
+const SUPPORT_REQUEST_TOPIC_LABELS: Record<string, string> = {
+  general: "General question",
+  bug: "Something isn't working",
+  "application-forms": "Application forms",
+  enrollment: "Enrollment",
+  billing: "Billing",
+  feature: "Feature request",
+  other: "Other",
+};
+
+export async function notifyAdminSupportRequest(payload: {
+  requestId: string;
+  organizationId: string;
+  organizationSlug: string;
+  organizationName: string;
+  submitterEmail: string;
+  topic: string;
+  description: string;
+  sourcePagePath?: string | null;
+  attachments?: Array<{ fileName: string }>;
+}) {
+  const topicLabel =
+    SUPPORT_REQUEST_TOPIC_LABELS[payload.topic] ?? payload.topic;
+
+  const fields: DiscordEmbedField[] = [
+    {
+      name: "School",
+      value: truncate(
+        `${payload.organizationName}\n(${payload.organizationSlug})\n${payload.organizationId}`,
+      ),
+      inline: true,
+    },
+    {
+      name: "Submitter",
+      value: truncate(payload.submitterEmail),
+      inline: true,
+    },
+    {
+      name: "Request ID",
+      value: payload.requestId,
+      inline: true,
+    },
+    { name: "Topic", value: truncate(topicLabel), inline: true },
+  ];
+
+  if (payload.sourcePagePath?.trim()) {
+    fields.push({
+      name: "Page",
+      value: truncate(payload.sourcePagePath.trim()),
+    });
+  }
+
+  fields.push({
+    name: "Description",
+    value: truncate(payload.description.trim()),
+  });
+
+  const attachmentCount = payload.attachments?.length ?? 0;
+  if (attachmentCount > 0) {
+    const fileNames = payload.attachments!
+      .map((file) => file.fileName)
+      .join(", ");
+    fields.push({
+      name: "Attachments",
+      value: truncate(`${attachmentCount} file${attachmentCount === 1 ? "" : "s"}: ${fileNames}`),
+    });
+  }
+
+  await sendWebsiteNotificationDiscordEmbed({
+    title: "Admin support request",
+    fields,
+  });
+}

@@ -149,6 +149,73 @@ export async function sendDemoFeedbackConfirmation(payload: {
   }
 }
 
+const SUPPORT_REQUEST_TOPIC_LABELS: Record<string, string> = {
+  general: "General question",
+  bug: "Something isn't working",
+  "application-forms": "Application forms",
+  enrollment: "Enrollment",
+  billing: "Billing",
+  feature: "Feature request",
+  other: "Other",
+};
+
+function firstNameFromEmail(email: string): string {
+  const local = email.split("@")[0]?.trim() ?? "";
+  const token = local.split(/[._+-]/)[0]?.trim();
+  if (!token) return "there";
+  return escapeHtml(token.charAt(0).toUpperCase() + token.slice(1));
+}
+
+export function buildAdminSupportRequestConfirmationHtml(payload: {
+  submitterEmail: string;
+  schoolName: string;
+  topic: string;
+}): string {
+  const topicLabel =
+    SUPPORT_REQUEST_TOPIC_LABELS[payload.topic] ?? payload.topic;
+  const greetingName = firstNameFromEmail(payload.submitterEmail);
+
+  const detailRows = [
+    { label: "Topic", value: topicLabel },
+    { label: "School", value: payload.schoolName },
+  ];
+
+  return composeEmail({
+    preheader: "We received your support request.",
+    contentHtml: `
+      ${emailBadge("Support Request Received")}
+      ${emailHeading(`Thanks, ${greetingName}.`)}
+      ${emailParagraph(
+        `We received your support request and will get back to you at ${escapeHtml(payload.submitterEmail)} as soon as we can — usually within one business day.`,
+      )}
+      ${emailDetailCard(detailRows)}
+      ${emailParagraph(
+        "If you attached screenshots or files, we have those on our end and will review them with your message.",
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendAdminSupportRequestConfirmation(payload: {
+  submitterEmail: string;
+  schoolName: string;
+  topic: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildAdminSupportRequestConfirmationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.submitterEmail,
+    subject: `We received your support request — ${SITE_NAME}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Admin support request confirmation email failed:", result.error);
+  }
+}
+
 export function buildApplicationSubmittedConfirmationHtml(payload: {
   name: string;
   schoolName: string;

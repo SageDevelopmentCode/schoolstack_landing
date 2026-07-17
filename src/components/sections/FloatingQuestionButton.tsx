@@ -4,6 +4,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Check } from "lucide-react";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 
 const inputClassName =
   "w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition";
@@ -146,9 +149,11 @@ export default function FloatingQuestionButton() {
                   type="button"
                   disabled={!canSubmit || isSubmitting}
                   onClick={handleSubmit}
-                  className="w-full rounded-xl bg-[#2E4A3C] hover:bg-[#233B2F] text-white text-sm font-semibold font-body py-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  className={`w-full rounded-xl bg-[#2E4A3C] hover:bg-[#233B2F] text-white text-sm font-semibold font-body py-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_LOADING_LAYOUT_CLASS}`}
                 >
-                  {isSubmitting ? "Sending..." : "Send Question"}
+                  <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending...">
+                    Send Question
+                  </ButtonLoadingLabel>
                 </button>
               </div>
             )}

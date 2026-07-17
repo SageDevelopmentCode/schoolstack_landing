@@ -4,6 +4,9 @@ import { useRef } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Upload } from "lucide-react";
 import ApplicationUploadedFileList from "@/components/admissions/ApplicationUploadedFileList";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 import {
   buildApplicationFileLimitLabel,
   type ApplicationFileUploadMeta,
@@ -134,10 +137,12 @@ export default function ApplicationFileUploadField({
               event.stopPropagation();
               openFilePicker();
             }}
-            className="mt-4 rounded-md px-4 py-2 text-sm font-semibold text-white"
+            className={`mt-4 rounded-md px-4 py-2 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
             style={primaryButtonStyle(C, fileInputDisabled)}
           >
-            {uploading ? "Uploading…" : "Choose files"}
+            <ButtonLoadingLabel loading={uploading} loadingLabel="Uploading…">
+              Choose files
+            </ButtonLoadingLabel>
             {previewSuffix}
           </button>
         </div>
@@ -168,14 +173,16 @@ export default function ApplicationFileUploadField({
               type="button"
               disabled={uploading}
               onClick={openFilePicker}
-              className="mt-4 rounded-md border px-4 py-2 text-sm font-semibold"
+              className={`mt-4 rounded-md border px-4 py-2 text-sm font-semibold ${BUTTON_LOADING_LAYOUT_CLASS}`}
               style={{
                 ...getAdminButtonStyle(C, "neutral"),
                 opacity: uploading ? 0.7 : 1,
                 cursor: uploading ? "not-allowed" : "pointer",
               }}
             >
-              {uploading ? "Uploading…" : "Add another file"}
+              <ButtonLoadingLabel loading={uploading} loadingLabel="Uploading…">
+                Add another file
+              </ButtonLoadingLabel>
               {previewSuffix}
             </button>
           ) : null}
