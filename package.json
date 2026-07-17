@@ -15,7 +15,9 @@
     "test:e2e:setup": "supabase db reset",
     "test:e2e:install": "playwright install chromium",
     "import-schools": "tsx scripts/import-schools-csv.ts",
-    "preview:emails": "tsx scripts/preview-emails.ts"
+    "preview:emails": "tsx scripts/preview-emails.ts",
+    "performance:audit": "tsx scripts/run-performance-audits.ts",
+    "performance:audit:watch": "tsx scripts/run-performance-audits.ts --watch"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.63.0",
@@ -47,6 +49,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "lighthouse": "^12.8.2",
     "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "tsx": "^4.22.0",

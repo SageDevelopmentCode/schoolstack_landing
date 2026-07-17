@@ -14,6 +14,7 @@ import {
   ScrollText,
   CreditCard,
   LifeBuoy,
+  Gauge,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
@@ -58,6 +59,7 @@ const NAV_ENTRIES: NavEntry[] = [
       items: [
         { href: "/admin/organizations", label: "Organizations", icon: School, color: "#4f46e5" },
         { href: "/admin/activity", label: "Activity", icon: ScrollText, color: "#0f766e" },
+        { href: "/admin/performance", label: "Performance", icon: Gauge, color: "#0d9488" },
       ],
     },
   },
