@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Info, Layers, Users } from "lucide-react";
 
 const NAV_LINKS = [
@@ -15,9 +16,13 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <Link href="/" className="flex items-center gap-2 shrink-0">
-              <img
-                src="/images/Logo.png"
+              <Image
+                src="/images/Logo.webp"
                 alt="MudKitchen"
+                width={120}
+                height={40}
+                loading="lazy"
+                sizes="120px"
                 className="h-10 w-auto object-contain"
               />
               <span className="font-display font-semibold text-[20px] text-white/90">

@@ -206,7 +206,7 @@ function PainSectionMobileVisual() {
           className="flex flex-col items-center gap-2 rounded-2xl bg-white/10 border border-white/25 px-8 py-5 w-full"
         >
           <Image
-            src="/images/Logo.png"
+            src="/images/Logo.webp"
             alt="MudKitchen"
             width={52}
             height={52}
@@ -371,7 +371,7 @@ export default function PainSection() {
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="flex flex-col items-center gap-1">
                     <Image
-                      src="/images/Logo.png"
+                      src="/images/Logo.webp"
                       alt="MudKitchen"
                       width={60}
                       height={60}

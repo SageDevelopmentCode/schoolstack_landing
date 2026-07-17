@@ -45,23 +45,23 @@ const DEMO_TEACHER = {
 };
 
 const BANNER_IMAGES = [
-  "/images/stock/ImageOne.jpg",
-  "/images/stock/ImageTwo.jpg",
-  "/images/stock/ImageThree.jpg",
-  "/images/stock/ImageFour.jpg",
-  "/images/stock/ImageFive.jpg",
-  "/images/stock/ImageSix.jpg",
-  "/images/stock/ImageSeven.jpg",
-  "/images/stock/ImageEight.jpg",
-  "/images/stock/ImageNine.jpg",
-  "/images/stock/ImageTen.jpg",
-  "/images/stock/ImageEleven.jpg",
-  "/images/stock/ImageTwelve.jpg",
-  "/images/stock/ImageThirteen.jpg",
-  "/images/stock/ImageFourteen.jpg",
-  "/images/stock/Homeschool.jpg",
-  "/images/stock/Homeschool2.jpg",
-  "/images/stock/Homeschool3.jpg",
+  "/images/stock/ImageOne.webp",
+  "/images/stock/ImageTwo.webp",
+  "/images/stock/ImageThree.webp",
+  "/images/stock/ImageFour.webp",
+  "/images/stock/ImageFive.webp",
+  "/images/stock/ImageSix.webp",
+  "/images/stock/ImageSeven.webp",
+  "/images/stock/ImageEight.webp",
+  "/images/stock/ImageNine.webp",
+  "/images/stock/ImageTen.webp",
+  "/images/stock/ImageEleven.webp",
+  "/images/stock/ImageTwelve.webp",
+  "/images/stock/ImageThirteen.webp",
+  "/images/stock/ImageFourteen.webp",
+  "/images/stock/Homeschool.webp",
+  "/images/stock/Homeschool2.webp",
+  "/images/stock/Homeschool3.webp",
 ];
 
 type DemoCalendarEvent = {
@@ -2866,7 +2866,7 @@ const INITIAL_POSTS: DemoFeedPost[] = [
     authorColor: "#4a7c59",
     body: "What a wonderful morning in Room 3B! The students dove headfirst into our new watercolor unit today. Emma and Marcus were especially focused — watching them mix colors and experiment was such a joy. 🎨",
     createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    attachments: [{ type: "image", src: "/images/stock/ImageThree.jpg" }],
+    attachments: [{ type: "image", src: "/images/stock/ImageThree.webp" }],
     reactions: [
       { emoji: "❤️", count: 4, mine: false },
       { emoji: "👏", count: 2, mine: false },
@@ -2895,7 +2895,7 @@ const INITIAL_POSTS: DemoFeedPost[] = [
     authorColor: "#c9a96e",
     body: "Aisha counted to 20 entirely on her own today during morning circle — completely unprompted. The whole class cheered for her. These little moments are everything. 🌟",
     createdAt: new Date(Date.now() - 26 * 3600 * 1000).toISOString(),
-    attachments: [{ type: "image", src: "/images/stock/Homeschool2.jpg" }],
+    attachments: [{ type: "image", src: "/images/stock/Homeschool2.webp" }],
     reactions: [
       { emoji: "❤️", count: 7, mine: false },
       { emoji: "😊", count: 3, mine: false },

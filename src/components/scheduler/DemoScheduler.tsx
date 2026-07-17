@@ -96,7 +96,7 @@ function TimeSlotList({
               {preview ? (
                 "Preview only"
               ) : (
-                <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Booking…">
+                <ButtonLoadingLabel loading={Boolean(isSubmitting)} loadingLabel="Booking…">
                   Confirm
                 </ButtonLoadingLabel>
               )}

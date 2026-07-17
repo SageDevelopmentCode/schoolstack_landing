@@ -77,6 +77,7 @@ export default function AdminTicketsPage() {
       return;
     }
 
+    const requestId = selected.id;
     let cancelled = false;
 
     async function loadAttachments() {
@@ -85,7 +86,7 @@ export default function AdminTicketsPage() {
 
       try {
         const response = await fetch(
-          `/api/admin/support-requests/${selected.id}/attachments`,
+          `/api/admin/support-requests/${requestId}/attachments`,
         );
 
         if (!response.ok) {

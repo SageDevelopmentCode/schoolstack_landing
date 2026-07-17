@@ -81,7 +81,7 @@ export default function FloatingQuestionButton() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-black/[0.07]">
               <div className="flex items-center gap-2">
                 <Image
-                  src="/images/Logo.png"
+                  src="/images/Logo.webp"
                   alt="MudKitchen"
                   width={22}
                   height={22}
@@ -170,7 +170,7 @@ export default function FloatingQuestionButton() {
         aria-expanded={open}
       >
         <Image
-          src="/images/Logo.png"
+          src="/images/Logo.webp"
           alt=""
           width={20}
           height={20}

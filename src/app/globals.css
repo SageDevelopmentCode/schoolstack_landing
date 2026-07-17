@@ -117,6 +117,84 @@ button {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+@keyframes navbar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-slide {
+  from {
+    opacity: 0;
+    transform: translateX(var(--hero-slide-x, 40px));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes hero-frame-rise {
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.navbar-enter {
+  animation: navbar-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-enter {
+  animation: hero-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--hero-delay, 0ms);
+}
+
+.hero-enter-slide-left {
+  --hero-slide-x: -40px;
+  animation: hero-slide 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 300ms;
+}
+
+.hero-enter-slide-right {
+  --hero-slide-x: 40px;
+  animation: hero-slide 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 300ms;
+}
+
+.hero-frame-enter {
+  animation: hero-frame-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 380ms;
+}
+
+html[data-skip-entrance] .navbar-enter,
+html[data-skip-entrance] .hero-enter,
+html[data-skip-entrance] .hero-enter-slide-left,
+html[data-skip-entrance] .hero-enter-slide-right,
+html[data-skip-entrance] .hero-frame-enter {
+  animation: none;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

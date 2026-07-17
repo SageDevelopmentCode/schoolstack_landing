@@ -1,6 +1,7 @@
 "use client";
 
 import { FadeInView } from "@/components/ui/FadeInView";
+import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
 import { LandingScaledDemoFrame } from "@/components/demo/LandingScaledDemoFrame";
 import { LazyAdminDashboardDemo } from "@/components/sections/lazyDemos";
 
@@ -14,7 +15,9 @@ export default function AdminGrowthSection() {
           <FadeInView delay={0.1} className="order-2 lg:order-1">
             <div className="max-lg:-ml-6 max-lg:overflow-x-hidden max-lg:overscroll-x-none">
               <LandingScaledDemoFrame preventHorizontalScroll>
-                <LazyAdminDashboardDemo disableTour={true} />
+                <InViewDemoGate>
+                  <LazyAdminDashboardDemo disableTour={true} />
+                </InViewDemoGate>
               </LandingScaledDemoFrame>
             </div>
           </FadeInView>
