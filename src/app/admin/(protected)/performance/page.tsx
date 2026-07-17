@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PerformanceCategoryDrawer } from "@/components/admin/PerformanceCategoryDrawer";
 import { PerformanceDetailDrawer } from "@/components/admin/PerformanceDetailDrawer";
 import {
@@ -94,8 +94,30 @@ export default function AdminPerformancePage() {
   const [runningPageId, setRunningPageId] = useState<string | null>(null);
   const [runningAll, setRunningAll] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<BulkRunProgress | null>(null);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<PerformanceResultDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const selectedPageIdRef = useRef<string | null>(null);
+
+  const closeDetailDrawer = useCallback(() => {
+    selectedPageIdRef.current = null;
+    setSelectedPageId(null);
+    setSelectedDetail(null);
+    setDetailLoading(false);
+    setDetailError(null);
+  }, []);
+
+  const selectedPage = useMemo(() => {
+    if (!selectedPageId) return null;
+    const page = pages.find((entry) => entry.id === selectedPageId);
+    if (!page) return null;
+    return {
+      label: page.label,
+      category: page.category,
+      url: page.url,
+    };
+  }, [pages, selectedPageId]);
 
   const loadPages = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) {
@@ -429,7 +451,11 @@ export default function AdminPerformancePage() {
           };
           const first = payload.results?.[0];
           if (first) {
-            setSelectedDetail(mapResultRow(first));
+            const detail = mapResultRow(first);
+            selectedPageIdRef.current = detail.pageId;
+            setSelectedPageId(detail.pageId);
+            setSelectedDetail(detail);
+            setDetailError(null);
           }
         } else {
           const payload = (await response.json()) as {
@@ -462,11 +488,18 @@ export default function AdminPerformancePage() {
     const latest = page.latestResult;
     if (!latest) return;
 
+    const pageId = page.id;
+    selectedPageIdRef.current = pageId;
+    setSelectedPageId(pageId);
+    setSelectedDetail(null);
+    setDetailError(null);
     setDetailLoading(true);
+
     try {
       const response = await fetch(`/api/admin/performance/runs/${latest.runId}`);
       if (!response.ok) {
-        alert("Failed to load audit details.");
+        if (selectedPageIdRef.current !== pageId) return;
+        setDetailError("Failed to load audit details.");
         return;
       }
 
@@ -474,15 +507,24 @@ export default function AdminPerformancePage() {
         results?: Array<Record<string, unknown>>;
       };
 
+      if (selectedPageIdRef.current !== pageId) return;
+
       const match = (payload.results ?? []).find(
         (row) => row.page_id === page.id || row.id === latest.id,
       );
 
       if (match) {
         setSelectedDetail(mapResultRow(match));
+      } else {
+        setDetailError("Audit result not found for this page.");
       }
+    } catch {
+      if (selectedPageIdRef.current !== pageId) return;
+      setDetailError("Failed to load audit details.");
     } finally {
-      setDetailLoading(false);
+      if (selectedPageIdRef.current === pageId) {
+        setDetailLoading(false);
+      }
     }
   }, []);
 
@@ -619,7 +661,7 @@ export default function AdminPerformancePage() {
               {filteredPages.map((page) => {
                 const latest = page.latestResult;
                 const isRunning = runningPageId === page.id;
-                const isSelected = selectedDetail?.pageId === page.id;
+                const isSelected = selectedPageId === page.id;
                 const canView = Boolean(latest);
 
                 return (
@@ -700,7 +742,7 @@ export default function AdminPerformancePage() {
                         </button>
                         <button
                           type="button"
-                          disabled={!latest || detailLoading}
+                          disabled={!latest}
                           onClick={() => void viewLatestResult(page)}
                           className="rounded-md border border-border px-2 py-1 text-xs hover:bg-surface-soft disabled:opacity-60"
                         >
@@ -717,9 +759,12 @@ export default function AdminPerformancePage() {
       </div>
 
       <PerformanceDetailDrawer
-        open={Boolean(selectedDetail)}
+        open={selectedPageId !== null}
+        loading={detailLoading}
+        error={detailError}
+        preview={selectedPage}
         result={selectedDetail}
-        onClose={() => setSelectedDetail(null)}
+        onClose={closeDetailDrawer}
       />
     </div>
   );
