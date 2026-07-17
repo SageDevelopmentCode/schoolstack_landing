@@ -2,16 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PerformanceCategoryDrawer } from "@/components/admin/PerformanceCategoryDrawer";
+import { PerformanceDetailDrawer } from "@/components/admin/PerformanceDetailDrawer";
 import {
   PerformanceRunProgressBanner,
   sleep,
   type BulkRunProgress,
 } from "@/components/admin/PerformanceRunProgressBanner";
-import {
-  PerformanceResultsPanel,
-  type PerformanceResultDetail,
-} from "@/components/admin/PerformanceResultsPanel";
+import type { PerformanceResultDetail } from "@/components/admin/PerformanceResultsPanel";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
+import {
+  performanceScoreClassName,
+  statusBadgeClassName,
+} from "@/lib/performance/score-styles";
 import {
   PERFORMANCE_PAGE_CATEGORIES,
   type AuditEnvironment,
@@ -617,12 +619,23 @@ export default function AdminPerformancePage() {
               {filteredPages.map((page) => {
                 const latest = page.latestResult;
                 const isRunning = runningPageId === page.id;
+                const isSelected = selectedDetail?.pageId === page.id;
+                const canView = Boolean(latest);
 
                 return (
                   <tr
                     key={page.id}
-                    className={`border-b border-border hover:bg-bg/50 ${
-                      isRunning ? "bg-clay-soft/60" : ""
+                    onClick={() => {
+                      if (canView) void viewLatestResult(page);
+                    }}
+                    className={`border-b border-border transition-colors ${
+                      isRunning
+                        ? "bg-clay-soft/60"
+                        : isSelected
+                          ? "bg-clay-soft/40"
+                          : canView
+                            ? "cursor-pointer hover:bg-bg/50"
+                            : "hover:bg-bg/50"
                     }`}
                   >
                     <td className="px-4 py-3">
@@ -634,7 +647,13 @@ export default function AdminPerformancePage() {
                     <td className="px-4 py-3 capitalize text-text-muted">
                       {page.category.replace(/_/g, " ")}
                     </td>
-                    <td className="px-4 py-3">{formatScore(latest?.performanceScore ?? null)}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`font-semibold tabular-nums ${performanceScoreClassName(latest?.performanceScore ?? null)}`}
+                      >
+                        {formatScore(latest?.performanceScore ?? null)}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">{formatMs(latest?.lcpMs ?? null)}</td>
                     <td className="px-4 py-3">{formatMs(latest?.fcpMs ?? null)}</td>
                     <td className="px-4 py-3">{formatMs(latest?.tbtMs ?? null)}</td>
@@ -642,22 +661,32 @@ export default function AdminPerformancePage() {
                       {latest ? new Date(latest.createdAt).toLocaleString() : "—"}
                     </td>
                     <td className="px-4 py-3 text-text-muted">
-                      <div className="capitalize">{latest?.status ?? "—"}</div>
-                      {latest?.skipReason ? (
-                        <div className="mt-0.5 text-xs text-text-faint">
-                          {latest.skipReason.replace(/_/g, " ")}
+                      {latest ? (
+                        <div className="space-y-1">
+                          <span
+                            className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${statusBadgeClassName(latest.status)}`}
+                          >
+                            {latest.status}
+                          </span>
+                          {latest.skipReason ? (
+                            <div className="text-xs text-text-faint">
+                              {latest.skipReason.replace(/_/g, " ")}
+                            </div>
+                          ) : null}
+                          {latest.status === "failed" && latest.errorMessage ? (
+                            <div
+                              className="text-xs text-clay"
+                              title={latest.errorMessage}
+                            >
+                              {truncateError(latest.errorMessage)}
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
-                      {latest?.status === "failed" && latest.errorMessage ? (
-                        <div
-                          className="mt-0.5 text-xs text-clay"
-                          title={latest.errorMessage}
-                        >
-                          {truncateError(latest.errorMessage)}
-                        </div>
-                      ) : null}
+                      ) : (
+                        "—"
+                      )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
@@ -685,16 +714,13 @@ export default function AdminPerformancePage() {
             </tbody>
           </table>
         </div>
-
-        {selectedDetail ? (
-          <div className="w-[28rem] shrink-0 overflow-y-auto border-l border-border bg-bg/40">
-            <PerformanceResultsPanel
-              result={selectedDetail}
-              onClose={() => setSelectedDetail(null)}
-            />
-          </div>
-        ) : null}
       </div>
+
+      <PerformanceDetailDrawer
+        open={Boolean(selectedDetail)}
+        result={selectedDetail}
+        onClose={() => setSelectedDetail(null)}
+      />
     </div>
   );
 }

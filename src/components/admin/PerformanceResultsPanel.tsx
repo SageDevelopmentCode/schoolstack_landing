@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import {
+  opportunityCardClassName,
+  performanceScoreClassName,
+} from "@/lib/performance/score-styles";
 import type { PerformanceOpportunity } from "@/lib/performance/types";
 
 type PerformanceResultDetail = {
@@ -36,13 +40,6 @@ function formatScore(value: number | null) {
   return String(value);
 }
 
-function scoreClassName(score: number | null) {
-  if (score === null) return "text-text-muted";
-  if (score >= 90) return "text-emerald-600";
-  if (score >= 50) return "text-amber-600";
-  return "text-clay";
-}
-
 export function PerformanceResultsPanel({
   result,
   onClose,
@@ -61,9 +58,9 @@ export function PerformanceResultsPanel({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="font-display text-lg font-semibold text-text">
             {result.label}
           </h1>
@@ -74,7 +71,7 @@ export function PerformanceResultsPanel({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-soft"
+          className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-soft"
         >
           Close
         </button>
@@ -101,13 +98,13 @@ export function PerformanceResultsPanel({
           {result.skipReason ? (
             <>
               <dt className="text-text-muted">Skip reason</dt>
-              <dd>{result.skipReason.replace(/_/g, " ")}</dd>
+              <dd className="break-words">{result.skipReason.replace(/_/g, " ")}</dd>
             </>
           ) : null}
           {result.errorMessage ? (
             <>
               <dt className="text-text-muted">Error</dt>
-              <dd className="text-clay">{result.errorMessage}</dd>
+              <dd className="break-words text-clay">{result.errorMessage}</dd>
             </>
           ) : null}
           <dt className="text-text-muted">Last run</dt>
@@ -120,29 +117,43 @@ export function PerformanceResultsPanel({
           Scores
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <MetricCard label="Performance" value={formatScore(result.performanceScore)} className={scoreClassName(result.performanceScore)} />
+          <MetricCard
+            label="Performance"
+            value={formatScore(result.performanceScore)}
+            className={performanceScoreClassName(result.performanceScore)}
+          />
           <MetricCard label="LCP" value={formatMs(result.lcpMs)} />
           <MetricCard label="FCP" value={formatMs(result.fcpMs)} />
           <MetricCard label="TBT" value={formatMs(result.tbtMs)} />
-          <MetricCard label="CLS" value={result.cls === null ? "—" : result.cls.toFixed(3)} />
+          <MetricCard
+            label="CLS"
+            value={result.cls === null ? "—" : result.cls.toFixed(3)}
+          />
           <MetricCard label="Speed index" value={formatMs(result.speedIndexMs)} />
         </div>
       </section>
 
       {result.opportunities.length > 0 ? (
-        <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
+        <section className="min-w-0 space-y-3 rounded-xl border border-border bg-surface p-4">
           <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
             Opportunities
           </h2>
           <ul className="space-y-3">
             {result.opportunities.map((item) => (
-              <li key={item.id} className="rounded-lg border border-border bg-bg p-3">
-                <p className="text-sm font-medium text-text">{item.title}</p>
+              <li
+                key={item.id}
+                className={`min-w-0 rounded-lg border p-3 ${opportunityCardClassName(item.score)}`}
+              >
+                <p className="break-words text-sm font-medium text-text">
+                  {item.title}
+                </p>
                 {item.displayValue ? (
                   <p className="mt-1 text-xs text-text-muted">{item.displayValue}</p>
                 ) : null}
                 {item.description ? (
-                  <p className="mt-2 text-xs text-text-faint">{item.description}</p>
+                  <p className="mt-2 break-words text-xs text-text-faint [overflow-wrap:anywhere]">
+                    {item.description}
+                  </p>
                 ) : null}
               </li>
             ))}
@@ -182,7 +193,7 @@ function MetricCard({
   return (
     <div className="rounded-lg border border-border bg-bg p-3">
       <p className="text-xs text-text-faint">{label}</p>
-      <p className={`mt-1 text-lg font-semibold ${className}`}>{value}</p>
+      <p className={`mt-1 text-lg font-semibold tabular-nums ${className}`}>{value}</p>
     </div>
   );
 }

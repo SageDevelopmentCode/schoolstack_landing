@@ -60,7 +60,7 @@ export function PerformanceCategoryDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-x-0 bottom-0 top-12 z-50 flex justify-end">
       <button
         type="button"
         aria-label="Close categories"
