@@ -91,7 +91,7 @@ export default function ApplicationFileUploadField({
         <div
           className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center"
           style={{
-            borderColor: C.borderStrong,
+            borderColor: error ? C.errorBorder : C.borderStrong,
             backgroundColor: "#FFFFFF",
             opacity: fileInputDisabled ? 0.7 : 1,
           }}
@@ -149,7 +149,10 @@ export default function ApplicationFileUploadField({
       ) : (
         <div
           className="rounded-lg border px-4 py-4"
-          style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+          style={{
+            borderColor: error ? C.errorBorder : C.border,
+            backgroundColor: "#FFFFFF",
+          }}
         >
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium" style={{ color: C.textPrimary }}>

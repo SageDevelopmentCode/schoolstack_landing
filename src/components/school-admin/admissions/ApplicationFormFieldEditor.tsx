@@ -12,6 +12,9 @@ import {
   fieldFromPreset,
 } from "@/lib/admissions/field-presets";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import ApplicationFieldOptionsEditor, {
+  createDefaultFieldOptions,
+} from "./ApplicationFieldOptionsEditor";
 import { BuilderQuestionCard } from "./builder-question-card";
 
 type ApplicationFormFieldEditorProps = {
@@ -74,9 +77,17 @@ export default function ApplicationFormFieldEditor({
           <select
             value={field.type}
             disabled={readOnly}
-            onChange={(e) =>
-              onChange({ type: e.target.value as ApplicationFieldType })
-            }
+            onChange={(e) => {
+              const type = e.target.value as ApplicationFieldType;
+              const patch: Partial<ApplicationField> = { type };
+              if (
+                (type === "select" || type === "radio") &&
+                (!field.options || field.options.length === 0)
+              ) {
+                patch.options = createDefaultFieldOptions();
+              }
+              onChange(patch);
+            }}
             style={{ ...style, appearance: "none", paddingRight: 36 }}
           >
             {APPLICATION_FIELD_TYPES.map((opt) => (
@@ -155,27 +166,13 @@ export default function ApplicationFormFieldEditor({
           C={C}
           tone="info"
           question="What choices can they pick from?"
-          helper="One per line: value|Label (e.g. k|Kindergarten)"
+          helper="Add the choices families will see. Drag to reorder."
         >
-          <textarea
-            rows={4}
-            disabled={readOnly}
-            value={(field.options ?? [])
-              .map((o) => `${o.value}|${o.label}`)
-              .join("\n")}
-            onChange={(e) => {
-              const options = e.target.value
-                .split("\n")
-                .map((line) => line.trim())
-                .filter(Boolean)
-                .map((line) => {
-                  const [value, ...rest] = line.split("|");
-                  const label = rest.join("|").trim() || value.trim();
-                  return { value: value.trim(), label };
-                });
-              onChange({ options });
-            }}
-            style={{ ...style, resize: "vertical" }}
+          <ApplicationFieldOptionsEditor
+            C={C}
+            options={field.options ?? []}
+            readOnly={readOnly}
+            onChange={(options) => onChange({ options })}
           />
         </BuilderQuestionCard>
       )}

@@ -17,6 +17,7 @@ import ButtonLoadingLabel, {
 } from "@/components/ui/ButtonLoadingLabel";
 import type { SaveApplicationDraftInput } from "@/lib/admissions/application-draft";
 import type { ApplicationFileUploadContext } from "@/lib/admissions/application-file-storage";
+import { validateApplicationSectionResponses } from "@/lib/admissions/application-form-validation";
 import {
   formatFeeAmount,
   type ApplicationFormFeeConfig,
@@ -166,6 +167,7 @@ export default function ApplicationFormExperience({
   );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [actionLoading, setActionLoading] = useState(false);
   const [feeStatus, setFeeStatus] = useState(initialFeeStatus);
   const [applicationStatus, setApplicationStatus] = useState(initialStatus);
@@ -205,6 +207,26 @@ export default function ApplicationFormExperience({
   const updateValue = (fieldId: string, value: string) => {
     setValues((prev) => ({ ...prev, [fieldId]: value }));
     setSaveError(null);
+    setFieldErrors((prev) => {
+      if (!prev[fieldId]) return prev;
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
+  };
+
+  const scrollToFirstFieldError = (errors: Record<string, string>) => {
+    const firstFieldId = Object.keys(errors)[0];
+    if (!firstFieldId) return;
+
+    requestAnimationFrame(() => {
+      const element = document.querySelector(`[data-field-id="${firstFieldId}"]`);
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusable = element?.querySelector<HTMLElement>(
+        "input, textarea, button, select, [tabindex]:not([tabindex='-1'])",
+      );
+      focusable?.focus({ preventScroll: true });
+    });
   };
 
   const persistDraft = async (nextStepIndex: number) => {
@@ -236,6 +258,17 @@ export default function ApplicationFormExperience({
   const handleContinue = async () => {
     if (stepIndex >= totalSteps - 1) return;
 
+    if (currentStep?.kind === "section" && section) {
+      const errors = validateApplicationSectionResponses(section, values);
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        setSaveError(null);
+        scrollToFirstFieldError(errors);
+        return;
+      }
+      setFieldErrors({});
+    }
+
     const nextStepIndex = stepIndex + 1;
 
     if (canPersist) {
@@ -245,6 +278,7 @@ export default function ApplicationFormExperience({
         await persistDraft(nextStepIndex);
         setDirection(1);
         setStepIndex(nextStepIndex);
+        setFieldErrors({});
         scrollToTop();
       } catch (error) {
         setSaveError(
@@ -258,6 +292,7 @@ export default function ApplicationFormExperience({
 
     setDirection(1);
     setStepIndex(nextStepIndex);
+    setFieldErrors({});
     scrollToTop();
   };
 
@@ -273,6 +308,7 @@ export default function ApplicationFormExperience({
         await persistDraft(previousStepIndex);
         setDirection(-1);
         setStepIndex(previousStepIndex);
+        setFieldErrors({});
         scrollToTop();
       } catch (error) {
         setSaveError(
@@ -286,6 +322,7 @@ export default function ApplicationFormExperience({
 
     setDirection(-1);
     setStepIndex(previousStepIndex);
+    setFieldErrors({});
     scrollToTop();
   };
 
@@ -630,6 +667,7 @@ export default function ApplicationFormExperience({
                   section={section}
                   values={values}
                   onChange={updateValue}
+                  fieldErrors={fieldErrors}
                   priorFieldValues={priorFieldValues}
                   onReuseField={(fieldId) => void handleReuseField(fieldId)}
                   supabase={supabase ?? undefined}
@@ -775,6 +813,7 @@ function SectionStep({
   section,
   values,
   onChange,
+  fieldErrors = {},
   priorFieldValues,
   onReuseField,
   supabase,
@@ -785,6 +824,7 @@ function SectionStep({
   section: ApplicationSection;
   values: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
+  fieldErrors?: Record<string, string>;
   priorFieldValues?: Record<string, string>;
   onReuseField?: (fieldId: string) => void;
   supabase?: SupabaseClient;
@@ -859,6 +899,7 @@ function SectionStep({
               field={field}
               value={values[field.id] ?? ""}
               onChange={(value) => onChange(field.id, value)}
+              error={fieldErrors[field.id]}
               C={C}
               supabase={supabase}
               uploadContext={uploadContext}
@@ -867,7 +908,11 @@ function SectionStep({
 
           if (useDivWrapper) {
             return (
-              <div key={field.id} className={wrapperClassName}>
+              <div
+                key={field.id}
+                data-field-id={field.id}
+                className={wrapperClassName}
+              >
                 {fieldLabel}
                 {fieldInput}
               </div>
@@ -875,7 +920,11 @@ function SectionStep({
           }
 
           return (
-            <label key={field.id} className={wrapperClassName}>
+            <label
+              key={field.id}
+              data-field-id={field.id}
+              className={wrapperClassName}
+            >
               {fieldLabel}
               {fieldInput}
             </label>

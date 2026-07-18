@@ -49,6 +49,47 @@ test.describe("mobile apply flows", () => {
     await expect(page.getByRole("button", { name: /E2E Parent/i })).toBeVisible();
   });
 
+  test("grade level dropdown opens as bottom sheet on mobile", async ({ page }) => {
+    await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`);
+
+    await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
+      timeout: 15_000,
+    });
+
+    const gradeTrigger = page.getByRole("button", { name: "Grade level" });
+    await expect(gradeTrigger).toBeVisible();
+    await gradeTrigger.click();
+
+    await expect(page.getByRole("dialog", { name: "Grade level" })).toBeVisible();
+    await page.getByRole("option", { name: "Kindergarten" }).click();
+
+    await expect(gradeTrigger).toHaveText(/Kindergarten/);
+  });
+
+  test("save and continue blocks when required grade level is empty", async ({
+    page,
+  }) => {
+    await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`);
+
+    await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.getByLabel(/Student first name/i).fill("Jon");
+    await page.getByLabel(/Student last name/i).fill("Cecilia");
+    await page.locator("#student_date_of_birth").click();
+    await page.getByRole("button", { name: "Today" }).click();
+
+    await page.getByRole("button", { name: /Save and continue/i }).click();
+
+    await expect(page.getByText(/Step 1 of/i).first()).toBeVisible();
+    await expect(page.getByText("Grade level is required.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Grade level" })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+  });
+
   test("enrollment task picker opens on mobile when enrolling", async ({ page }) => {
     await page.goto(`/school/${TEST_ORG_SLUG}/apply`);
 

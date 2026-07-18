@@ -7,6 +7,7 @@ import ApplicationDatePicker from "@/components/admissions/ApplicationDatePicker
 import ApplicationAddressInput from "@/components/admissions/ApplicationAddressInput";
 import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
 import ApplicationRadioInput from "@/components/admissions/ApplicationRadioInput";
+import ApplicationSelectInput from "@/components/admissions/ApplicationSelectInput";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import { resolveDateRange } from "@/lib/admissions/application-form-schema";
 import {
@@ -29,6 +30,7 @@ type ApplicationFieldInputProps = {
   onChange: (value: string) => void;
   C: AdminThemeTokens;
   disabled?: boolean;
+  error?: string | null;
   uploadContext?: ApplicationFileUploadContext;
   supabase?: SupabaseClient;
 };
@@ -51,12 +53,27 @@ function HelpText({
   );
 }
 
+function FieldError({
+  error,
+  C,
+}: {
+  error: string;
+  C: AdminThemeTokens;
+}) {
+  return (
+    <p className="mt-1.5 text-xs" style={{ color: C.error }}>
+      {error}
+    </p>
+  );
+}
+
 export default function ApplicationFieldInput({
   field,
   value,
   onChange,
   C,
   disabled = false,
+  error = null,
   uploadContext,
   supabase,
 }: ApplicationFieldInputProps) {
@@ -64,7 +81,7 @@ export default function ApplicationFieldInput({
   const [fileError, setFileError] = useState<string | null>(null);
 
   const style = {
-    borderColor: C.border,
+    borderColor: error ? C.errorBorder : C.border,
     color: disabled ? C.textTertiary : C.textPrimary,
     backgroundColor: "#FFFFFF",
   } as const;
@@ -182,6 +199,7 @@ export default function ApplicationFieldInput({
         onChange={onChange}
         C={C}
         disabled={disabled}
+        error={error}
       />
     );
   }
@@ -196,9 +214,11 @@ export default function ApplicationFieldInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
+          aria-invalid={Boolean(error)}
           className={`${fieldClassName()} resize-y min-h-[88px]`}
           style={{ ...style, ...focusRing }}
         />
+        {error ? <FieldError error={error} C={C} /> : null}
         {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
       </div>
     );
@@ -207,21 +227,17 @@ export default function ApplicationFieldInput({
   if (field.type === "select") {
     return (
       <div>
-        <select
+        <ApplicationSelectInput
           id={field.id}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={onChange}
+          options={field.options ?? []}
+          placeholder="Select..."
           disabled={disabled}
-          className={fieldClassName()}
-          style={{ ...style, ...focusRing }}
-        >
-          <option value="">Select...</option>
-          {field.options?.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          ariaLabel={field.label}
+          error={error}
+          C={C}
+        />
         {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
       </div>
     );
@@ -237,6 +253,7 @@ export default function ApplicationFieldInput({
           options={field.options ?? []}
           disabled={disabled}
           ariaLabel={field.label}
+          error={error}
           C={C}
         />
         {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
@@ -246,18 +263,28 @@ export default function ApplicationFieldInput({
 
   if (field.type === "checkbox") {
     return (
-      <label className="inline-flex items-center gap-2 text-sm" style={{ color: C.textPrimary }}>
-        <input
-          id={field.id}
-          type="checkbox"
-          checked={value === "true"}
-          onChange={(e) => onChange(e.target.checked ? "true" : "")}
-          disabled={disabled}
-          className="h-4 w-4 rounded"
-          style={{ accentColor: C.accent }}
-        />
-        <span>{field.helpText ?? field.label}</span>
-      </label>
+      <div>
+        <label
+          className="inline-flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm"
+          style={{
+            color: C.textPrimary,
+            borderColor: error ? C.errorBorder : "transparent",
+          }}
+        >
+          <input
+            id={field.id}
+            type="checkbox"
+            checked={value === "true"}
+            onChange={(e) => onChange(e.target.checked ? "true" : "")}
+            disabled={disabled}
+            aria-invalid={Boolean(error)}
+            className="h-4 w-4 rounded"
+            style={{ accentColor: C.accent }}
+          />
+          <span>{field.helpText ?? field.label}</span>
+        </label>
+        {error ? <FieldError error={error} C={C} /> : null}
+      </div>
     );
   }
 
@@ -266,6 +293,7 @@ export default function ApplicationFieldInput({
     const maxFiles = field.maxFiles ?? DEFAULT_APPLICATION_FILE_MAX_COUNT;
     const accept = field.accept ?? DEFAULT_APPLICATION_FILE_ACCEPT;
     const isPreview = !uploadContext;
+    const displayError = fileError ?? error;
 
     return (
       <ApplicationFileUploadField
@@ -276,7 +304,7 @@ export default function ApplicationFieldInput({
         helpText={field.helpText ?? `Upload up to ${maxFiles} supported files.`}
         disabled={disabled}
         uploading={uploading}
-        error={fileError}
+        error={displayError}
         previewSuffix={isPreview ? " (preview)" : ""}
         C={C}
         supabase={supabase}
@@ -299,9 +327,11 @@ export default function ApplicationFieldInput({
           value={formatPhoneNumberInput(value)}
           onChange={(e) => onChange(formatPhoneNumberInput(e.target.value))}
           disabled={disabled}
+          aria-invalid={Boolean(error)}
           className={fieldClassName()}
           style={{ ...style, ...focusRing }}
         />
+        {error ? <FieldError error={error} C={C} /> : null}
         {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
       </div>
     );
@@ -322,6 +352,7 @@ export default function ApplicationFieldInput({
           minDate={minDate}
           maxDate={maxDate}
           placeholder={field.placeholder}
+          error={error}
         />
         {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
       </div>
@@ -337,9 +368,11 @@ export default function ApplicationFieldInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
+        aria-invalid={Boolean(error)}
         className={fieldClassName()}
         style={{ ...style, ...focusRing }}
       />
+      {error ? <FieldError error={error} C={C} /> : null}
       {field.helpText ? <HelpText text={field.helpText} C={C} /> : null}
     </div>
   );
