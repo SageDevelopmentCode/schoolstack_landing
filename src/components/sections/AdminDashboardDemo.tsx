@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo, createContext, useContext } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
-import ParentDashboardDemo from "./ParentDashboardDemo";
+
+const ParentDashboardDemo = dynamic(() => import("./ParentDashboardDemo"), {
+  ssr: false,
+});
 import {
   LayoutDashboard,
   TrendingUp,

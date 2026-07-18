@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
+import AdmissionsDatePicker from "@/components/admissions/AdmissionsDatePicker";
 import AdmissionsDateTimePicker from "@/components/admissions/AdmissionsDateTimePicker";
 import { formatOrganizationTimezoneLabel } from "@/lib/admissions/admissions-availability";
+import { isWholeDayPostSubmitAction } from "@/lib/admissions/application-form-schema";
 import type { ApplicationPostSubmitTask } from "@/lib/admissions/parent-portal-access";
+import { resolvedPostSubmitMaxVisitDays } from "@/lib/admissions/post-submit-templates";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type PostSubmitBookingModalProps = {
@@ -16,6 +19,7 @@ type PostSubmitBookingModalProps = {
   open: boolean;
   onClose: () => void;
   onBooked: () => void;
+  previewMode?: boolean;
 };
 
 export default function PostSubmitBookingModal({
@@ -26,18 +30,28 @@ export default function PostSubmitBookingModal({
   open,
   onClose,
   onBooked,
+  previewMode = false,
 }: PostSubmitBookingModalProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
+  const isWholeDay = isWholeDayPostSubmitAction(task.type);
+  const maxVisitDays = resolvedPostSubmitMaxVisitDays({
+    id: task.actionId,
+    type: task.type,
+    enabled: true,
+    maxVisitDays: task.maxVisitDays,
+  });
 
   useEffect(() => {
     if (!open) {
       queueMicrotask(() => {
         setSelectedDate(null);
+        setSelectedDates([]);
         setSelectedTime(null);
         setSubmitting(false);
         setError(null);
@@ -46,10 +60,21 @@ export default function PostSubmitBookingModal({
   }, [open]);
 
   async function handleConfirm() {
-    if (!selectedDate || !selectedTime) return;
+    if (isWholeDay) {
+      if (selectedDates.length === 0) return;
+    } else if (!selectedDate || !selectedTime) {
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
+
+    if (previewMode) {
+      onBooked();
+      onClose();
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const response = await fetch(
@@ -57,11 +82,18 @@ export default function PostSubmitBookingModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            actionId: task.actionId,
-            scheduledDate: selectedDate,
-            startTimeSlot: selectedTime,
-          }),
+          body: JSON.stringify(
+            isWholeDay
+              ? {
+                  actionId: task.actionId,
+                  scheduledDates: selectedDates,
+                }
+              : {
+                  actionId: task.actionId,
+                  scheduledDate: selectedDate,
+                  startTimeSlot: selectedTime,
+                },
+          ),
         },
       );
 
@@ -80,6 +112,10 @@ export default function PostSubmitBookingModal({
     }
   }
 
+  const canConfirm = isWholeDay
+    ? selectedDates.length > 0
+    : Boolean(selectedDate && selectedTime);
+
   return (
     <AnimatePresence>
       {open ? (
@@ -87,7 +123,7 @@ export default function PostSubmitBookingModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-safe sm:items-center"
           style={{ backgroundColor: "rgba(15, 23, 42, 0.45)" }}
           onClick={onClose}
         >
@@ -130,17 +166,30 @@ export default function PostSubmitBookingModal({
               </button>
             </div>
 
-            <AdmissionsDateTimePicker
-              C={C}
-              applicationId={applicationId}
-              actionId={task.actionId}
-              timezone={timezone}
-              timezoneLabel={timezoneLabel}
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-              onDateChange={setSelectedDate}
-              onTimeChange={setSelectedTime}
-            />
+            {isWholeDay ? (
+              <AdmissionsDatePicker
+                C={C}
+                applicationId={applicationId}
+                actionId={task.actionId}
+                timezone={timezone}
+                timezoneLabel={timezoneLabel}
+                maxVisitDays={maxVisitDays}
+                selectedDates={selectedDates}
+                onDatesChange={setSelectedDates}
+              />
+            ) : (
+              <AdmissionsDateTimePicker
+                C={C}
+                applicationId={applicationId}
+                actionId={task.actionId}
+                timezone={timezone}
+                timezoneLabel={timezoneLabel}
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                onDateChange={setSelectedDate}
+                onTimeChange={setSelectedTime}
+              />
+            )}
 
             {error ? (
               <p
@@ -162,12 +211,16 @@ export default function PostSubmitBookingModal({
               </button>
               <button
                 type="button"
-                disabled={!selectedDate || !selectedTime || submitting}
+                disabled={!canConfirm || submitting}
                 onClick={() => void handleConfirm()}
                 className="rounded-md px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60"
                 style={{ backgroundColor: C.accent }}
               >
-                {submitting ? "Scheduling…" : "Confirm time"}
+                {submitting
+                  ? "Scheduling…"
+                  : isWholeDay
+                    ? "Confirm days"
+                    : "Confirm time"}
               </button>
             </div>
           </motion.div>

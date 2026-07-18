@@ -6,6 +6,9 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, LogIn, UserPlus } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import {
@@ -154,7 +157,7 @@ function ApplicationAuthPromoPanel({
   return (
     <div
       className={`relative overflow-hidden ${
-        compact ? "h-[40vh] min-h-[280px] lg:hidden" : "hidden lg:flex lg:min-h-dvh lg:flex-1"
+        compact ? "h-[28vh] min-h-[160px] max-h-[220px] lg:hidden" : "hidden lg:flex lg:min-h-dvh lg:flex-1"
       }`}
     >
       <AnimatePresence mode="wait">
@@ -702,10 +705,12 @@ export default function ApplicationAuthGate({
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="mt-2 w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      className={`mt-2 w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
                       style={{ backgroundColor: C.accent }}
                     >
-                      {isSubmitting ? "Sending code…" : "Continue"}
+                      <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending code…">
+                        Continue
+                      </ButtonLoadingLabel>
                     </button>
                   </form>
 
@@ -767,10 +772,12 @@ export default function ApplicationAuthGate({
                     <button
                       type="submit"
                       disabled={!canVerify}
-                      className="w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      className={`w-full rounded-md px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${BUTTON_LOADING_LAYOUT_CLASS}`}
                       style={{ backgroundColor: C.accent }}
                     >
-                      {isSubmitting ? "Verifying…" : "Verify and continue"}
+                      <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Verifying…">
+                        Verify and continue
+                      </ButtonLoadingLabel>
                     </button>
                   </form>
 

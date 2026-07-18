@@ -16,7 +16,11 @@ import {
   isApplicationAddressEmpty,
   parseApplicationAddressFieldValue,
 } from "@/lib/admissions/application-address";
-import { type ApplicationDetail } from "@/lib/admissions/parent-portal-access";
+import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
+import {
+  type ApplicationDetail,
+  type FamilyUserProfile,
+} from "@/lib/admissions/parent-portal-access";
 import type {
   ApplicationField,
   ApplicationFormSchema,
@@ -41,6 +45,9 @@ type ApplicationReadOnlyViewProps = {
   backHref?: string;
   hideBackLink?: boolean;
   standalone?: boolean;
+  userProfile?: FamilyUserProfile;
+  previewMode?: boolean;
+  previewHomeHref?: string;
 };
 
 function formatFieldValue(field: ApplicationField, value: string | undefined): string {
@@ -343,6 +350,9 @@ function ApplicationReadOnlyBody({
   backHref,
   hideBackLink = false,
   standalone = true,
+  userProfile,
+  previewMode = false,
+  previewHomeHref,
 }: ApplicationReadOnlyViewProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
@@ -367,25 +377,28 @@ function ApplicationReadOnlyBody({
               style={{ color: C.textSecondary }}
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to applications
+              <span className="hidden sm:inline">Back to applications</span>
+              <span className="sr-only sm:hidden">Back to applications</span>
             </Link>
           ) : null}
 
-          <SchoolDemoWordmark
-            logo={{
-              src: branding.logo.src,
-              alt: branding.logo.alt || schoolName,
-              width: branding.logo.width,
-              height: branding.logo.height,
-              text: branding.logo.src ? undefined : schoolName,
-            }}
-            className="mb-8 h-8 w-auto max-w-[200px] object-contain"
-          />
+          {!userProfile ? (
+            <SchoolDemoWordmark
+              logo={{
+                src: branding.logo.src,
+                alt: branding.logo.alt || schoolName,
+                width: branding.logo.width,
+                height: branding.logo.height,
+                text: branding.logo.src ? undefined : schoolName,
+              }}
+              className="mb-8 h-8 w-auto max-w-[200px] object-contain"
+            />
+          ) : null}
         </>
       ) : null}
 
       {!embedded ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
           <h1 className="text-2xl font-semibold sm:text-3xl" style={{ color: C.accentDark }}>
             {application.formTitle}
           </h1>
@@ -435,6 +448,22 @@ function ApplicationReadOnlyBody({
       <div style={{ backgroundColor: pageBg, color: C.textPrimary }}>
         <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">{content}</div>
       </div>
+    );
+  }
+
+  if (userProfile) {
+    return (
+      <ApplyPortalPageShell
+        branding={branding}
+        schoolName={schoolName}
+        schoolSlug={schoolSlug}
+        userEmail={userProfile.email}
+        userDisplayName={userProfile.displayName}
+        previewMode={previewMode}
+        previewHomeHref={previewHomeHref}
+      >
+        {content}
+      </ApplyPortalPageShell>
     );
   }
 

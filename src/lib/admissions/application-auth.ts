@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { isPlatformAdmin } from "@/lib/school-admin/access";
 
 export async function userIsOrgAdmin(
   supabase: SupabaseClient,
@@ -75,6 +76,17 @@ export async function userOwnsApplication(
 
   if (guardianError) throw guardianError;
   return Boolean(guardian);
+}
+
+export async function canAccessApplicationPostSubmit(
+  supabase: SupabaseClient,
+  userId: string,
+  applicationId: string,
+): Promise<boolean> {
+  return (
+    (await userOwnsApplication(supabase, userId, applicationId)) ||
+    (await isPlatformAdmin(supabase, userId))
+  );
 }
 
 export async function requireAuthenticatedUser(

@@ -11,6 +11,7 @@ export function CalendarGrid({
   year,
   month,
   selected,
+  selectedDates,
   onSelect,
   availableDates,
   minDate,
@@ -22,6 +23,7 @@ export function CalendarGrid({
   year: number;
   month: number;
   selected: string | null;
+  selectedDates?: Set<string>;
   onSelect: (date: string) => void;
   availableDates: Set<string>;
   minDate?: string;
@@ -70,7 +72,7 @@ export function CalendarGrid({
           const isSelectable = editable
             ? !isBeforeMin && !isAfterMax
             : hasSlots && !isBeforeMin && !isAfterMax;
-          const isSelected = selected === key;
+          const isSelected = selectedDates?.has(key) ?? selected === key;
 
           if (colors) {
             return (

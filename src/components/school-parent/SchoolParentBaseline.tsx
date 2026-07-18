@@ -47,7 +47,7 @@ export default function SchoolParentBaseline({
       />
 
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-white">
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false}>
           <motion.div
             key={pathname}
             className="flex min-h-0 flex-1 flex-col"

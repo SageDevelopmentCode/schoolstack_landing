@@ -14,6 +14,9 @@ import {
 import Link from "next/link";
 import { Reorder, useDragControls } from "framer-motion";
 import { ChevronDown, ChevronRight, GripVertical, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 import { createClient } from "@/utils/supabase/client";
 import {
   addCustomPortalFeature,
@@ -1015,9 +1018,11 @@ export default function OrganizationSettingsEditor({
           type="button"
           onClick={handleSave}
           disabled={saving || !isDirty}
-          className="text-sm px-4 py-2 rounded-lg bg-accent text-white font-secondary hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          className={`text-sm px-4 py-2 rounded-lg bg-accent text-white font-secondary hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed ${BUTTON_LOADING_LAYOUT_CLASS}`}
         >
-          {saving ? "Saving…" : "Save settings"}
+          <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
+            Save settings
+          </ButtonLoadingLabel>
         </button>
         {!hasRow ? (
           <button

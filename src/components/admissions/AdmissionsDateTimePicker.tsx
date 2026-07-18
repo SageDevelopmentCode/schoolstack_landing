@@ -87,6 +87,7 @@ export default function AdmissionsDateTimePicker({
         `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`,
       );
       const payload = (await response.json()) as {
+        mode?: string;
         availability?: Record<string, string[]>;
         error?: string;
       };
@@ -95,7 +96,11 @@ export default function AdmissionsDateTimePicker({
         throw new Error(payload.error ?? "Failed to load availability.");
       }
 
-      setAvailabilitySlots(payload.availability ?? {});
+      if (payload.mode === "whole_day") {
+        setAvailabilitySlots({});
+      } else {
+        setAvailabilitySlots(payload.availability ?? {});
+      }
     } catch (err) {
       setAvailabilitySlots({});
       setError(err instanceof Error ? err.message : "Failed to load availability.");

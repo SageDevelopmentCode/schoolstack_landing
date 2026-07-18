@@ -136,6 +136,44 @@ export function formatDurationLabel(minutes: number): string {
   return Number.isInteger(hours) ? `${hours} hr` : `${hours.toFixed(1)} hr`;
 }
 
+export function formatVisitDayCountLabel(dayCount: number): string {
+  return `${dayCount} school day${dayCount === 1 ? "" : "s"}`;
+}
+
+export function formatMaxVisitDaysLabel(maxVisitDays: number): string {
+  return `Up to ${maxVisitDays} school day${maxVisitDays === 1 ? "" : "s"}`;
+}
+
+export function formatScheduledVisitWhenLabel(visit: {
+  schedulingMode?: "time_slot" | "whole_day";
+  scheduledDate: string;
+  startTimeSlot: string;
+  durationMinutes: number;
+  visitDayCount?: number;
+  endDate?: string;
+  visitDates?: string[];
+}): string {
+  if (visit.schedulingMode === "whole_day") {
+    const dates =
+      visit.visitDates && visit.visitDates.length > 0
+        ? visit.visitDates
+        : visit.endDate && visit.endDate !== visit.scheduledDate
+          ? [visit.scheduledDate, visit.endDate]
+          : [visit.scheduledDate];
+
+    const dayCount = visit.visitDayCount ?? dates.length;
+
+    if (dates.length === 1) {
+      return `${formatDateOnlyLabel(dates[0]!)} (${formatVisitDayCountLabel(1)})`;
+    }
+
+    const dateLabels = dates.map((date) => formatDateOnlyLabel(date)).join("; ");
+    return `${dateLabels} (${formatVisitDayCountLabel(dayCount)})`;
+  }
+
+  return `${formatDateOnlyLabel(visit.scheduledDate)} at ${visit.startTimeSlot}`;
+}
+
 function datePartsInTimezone(timezone: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
@@ -195,7 +233,9 @@ function nowMinutesInTimezone(timezone: string, now = new Date()): number {
 
 export function classifyScheduledVisitTiming(
   visit: {
+    schedulingMode?: "time_slot" | "whole_day";
     scheduledDate: string;
+    endDate?: string;
     startTimeSlot: string;
     durationMinutes: number;
   },
@@ -203,6 +243,14 @@ export function classifyScheduledVisitTiming(
   now = new Date(),
 ): ScheduledVisitTiming {
   const today = todayKeyInTimezone(timezone);
+
+  if (visit.schedulingMode === "whole_day") {
+    const endDate = visit.endDate ?? visit.scheduledDate;
+    if (today < visit.scheduledDate) return "upcoming";
+    if (today > endDate) return "past";
+    return "happening";
+  }
+
   const startMinutes = parseAdmissionsTimeSlot(visit.startTimeSlot);
 
   if (visit.scheduledDate < today) return "past";

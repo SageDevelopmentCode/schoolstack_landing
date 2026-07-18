@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LogOut, User } from "lucide-react";
 import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
+import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -91,9 +91,13 @@ export default function ApplyPortalNavbar({
       style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
     >
       <div className="flex h-14 w-full items-center justify-between gap-4">
-        <Link href={homeHref} className="min-w-0 shrink">
-          <ApplyPortalBranding branding={branding} schoolName={schoolName} />
-        </Link>
+        <div className="min-w-0 shrink">
+          <ApplyPortalBranding
+            branding={branding}
+            schoolName={schoolName}
+            schoolHomeHref={homeHref}
+          />
+        </div>
 
         {previewMode ? (
           <span
@@ -151,8 +155,12 @@ export default function ApplyPortalNavbar({
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm disabled:opacity-60"
                 style={{ color: C.textPrimary }}
               >
-                <LogOut className="h-4 w-4 shrink-0" style={{ color: C.textSecondary }} />
-                {signingOut ? "Signing out…" : "Log out"}
+                {!signingOut ? (
+                  <LogOut className="h-4 w-4 shrink-0" style={{ color: C.textSecondary }} />
+                ) : null}
+                <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
+                  Log out
+                </ButtonLoadingLabel>
               </button>
             </div>
           ) : null}

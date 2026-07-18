@@ -53,7 +53,7 @@ const PRESENTATIONS: Record<PostSubmitActionType, PostSubmitStepPresentation> = 
   },
   schedule_observation_day: {
     eyebrow: "School day experience",
-    ctaLabel: "Book observation day",
+    ctaLabel: "Book shadow days",
     cardPattern: "timeline",
     headerBand: (C) => ({
       background: `linear-gradient(135deg, ${C.accentMid}18 0%, ${C.accentLight} 100%)`,

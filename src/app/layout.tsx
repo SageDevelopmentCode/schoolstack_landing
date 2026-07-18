@@ -1,10 +1,8 @@
 import { Analytics } from "@vercel/analytics/next";
 import NavigationRestoreInit from "@/components/NavigationRestoreInit";
 import {
-  deliciousHandrawn,
   fragmentMono,
   geist,
-  greatVibes,
   lora,
   poppins,
 } from "@/lib/fonts";
@@ -19,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-      <html lang="en" className={`${geist.variable} ${lora.variable} ${fragmentMono.variable} ${deliciousHandrawn.variable} ${greatVibes.variable} ${poppins.variable}`}>
+      <html lang="en" className={`${geist.variable} ${lora.variable} ${fragmentMono.variable} ${poppins.variable}`}>
       <body className="antialiased">
         <NavigationRestoreInit />
         {children}

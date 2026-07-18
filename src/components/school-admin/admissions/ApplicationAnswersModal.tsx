@@ -1,16 +1,15 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Download, Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
+import ApplicationPdfDownloadButton from "@/components/school-admin/admissions/ApplicationPdfDownloadButton";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
-import { exportApplicationPdf } from "@/lib/admissions/export-application-pdf";
 import type { ApplicationDetail } from "@/lib/admissions/parent-portal-access";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -36,25 +35,8 @@ export default function ApplicationAnswersModal({
   onClose,
 }: ApplicationAnswersModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const statusStyle = applicationStatusBadgeStyle(detail.status, C);
-
-  const handleDownloadPdf = useCallback(async () => {
-    const element = printRef.current;
-    if (!element) return;
-
-    setDownloading(true);
-    setDownloadError(null);
-    try {
-      await exportApplicationPdf(element, downloadLabel);
-    } catch {
-      setDownloadError("Failed to generate PDF. Please try again.");
-    } finally {
-      setDownloading(false);
-    }
-  }, [downloadLabel]);
 
   return (
     <AnimatePresence>
@@ -103,21 +85,13 @@ export default function ApplicationAnswersModal({
                   {detail.formTitle}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleDownloadPdf()}
-                  disabled={downloading}
-                  className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  style={getAdminButtonStyle(C, "secondary")}
-                >
-                  {downloading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Download className="h-3.5 w-3.5" />
-                  )}
-                  Download PDF
-                </button>
+              <div className="flex shrink-0 items-start gap-2">
+                <ApplicationPdfDownloadButton
+                  C={C}
+                  downloadLabel={downloadLabel}
+                  getElement={() => printRef.current}
+                  errorClassName="max-w-[160px] text-right text-xs"
+                />
                 <button
                   type="button"
                   onClick={onClose}
@@ -129,12 +103,6 @@ export default function ApplicationAnswersModal({
                 </button>
               </div>
             </div>
-
-            {downloadError ? (
-              <p className="flex-shrink-0 px-5 py-2 text-xs" style={{ color: C.error }}>
-                {downloadError}
-              </p>
-            ) : null}
 
             <div className="min-h-0 flex-1 overflow-y-auto">
               <div ref={printRef} id="application-answers-print">

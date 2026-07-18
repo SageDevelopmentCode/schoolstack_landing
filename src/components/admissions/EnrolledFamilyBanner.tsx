@@ -9,14 +9,12 @@ import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-st
 type EnrolledFamilyBannerProps = {
   C: AdminThemeTokens;
   schoolName: string;
-  schoolSlug: string;
-  parentPortalHref?: string;
+  parentPortalHref: string;
 };
 
 export default function EnrolledFamilyBanner({
   C,
   schoolName,
-  schoolSlug,
   parentPortalHref,
 }: EnrolledFamilyBannerProps) {
   return (
@@ -56,7 +54,7 @@ export default function EnrolledFamilyBanner({
           </div>
         </div>
         <Link
-          href={parentPortalHref ?? `/school/${schoolSlug}/parent`}
+          href={parentPortalHref}
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 sm:self-center"
           style={getAdminButtonStyle(C, "success")}
         >

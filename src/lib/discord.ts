@@ -369,7 +369,11 @@ export async function notifyPostSubmitVisitScheduled(payload: {
   actionType: string;
   stepTitle: string;
   scheduledDate: string;
+  endDate?: string;
   startTimeSlot: string;
+  schedulingMode?: "time_slot" | "whole_day";
+  visitDayCount?: number;
+  visitDates?: string[];
   timezoneLabel: string;
   firstName?: string;
   lastName?: string;
@@ -387,7 +391,16 @@ export async function notifyPostSubmitVisitScheduled(payload: {
     ? truncate(`${nameLine}\n${payload.email}`)
     : truncate(payload.email);
 
-  const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.startTimeSlot} (${payload.timezoneLabel})`;
+  const when =
+    payload.schedulingMode === "whole_day"
+      ? formatObservationVisitWhen(
+          payload.visitDates,
+          payload.scheduledDate,
+          payload.endDate,
+          payload.visitDayCount,
+          payload.timezoneLabel,
+        )
+      : `${formatSelectedDate(payload.scheduledDate)} at ${payload.startTimeSlot} (${payload.timezoneLabel})`;
 
   const fields: DiscordEmbedField[] = [
     { name: "School", value: truncate(payload.schoolName), inline: true },
@@ -446,6 +459,30 @@ function formatSelectedDate(dateStr: string) {
     month: "long",
     day: "numeric",
   });
+}
+
+function formatObservationVisitWhen(
+  visitDates: string[] | undefined,
+  scheduledDate: string,
+  endDate: string | undefined,
+  visitDayCount: number | undefined,
+  timezoneLabel: string,
+): string {
+  const dates =
+    visitDates && visitDates.length > 0
+      ? visitDates
+      : endDate && endDate !== scheduledDate
+        ? [scheduledDate, endDate]
+        : [scheduledDate];
+
+  const dayCount = visitDayCount ?? dates.length;
+
+  if (dates.length === 1) {
+    return `${formatSelectedDate(dates[0]!)} (${timezoneLabel})`;
+  }
+
+  const labels = dates.map((date) => formatSelectedDate(date)).join("; ");
+  return `${labels} (${dayCount} school days, ${timezoneLabel})`;
 }
 
 export async function notifyDemoBooking(payload: {
@@ -601,5 +638,79 @@ export async function notifyHomepageQuestion(payload: {
         value: truncate(payload.message.trim()),
       },
     ],
+  });
+}
+
+const SUPPORT_REQUEST_TOPIC_LABELS: Record<string, string> = {
+  general: "General question",
+  bug: "Something isn't working",
+  "application-forms": "Application forms",
+  enrollment: "Enrollment",
+  billing: "Billing",
+  feature: "Feature request",
+  other: "Other",
+};
+
+export async function notifyAdminSupportRequest(payload: {
+  requestId: string;
+  organizationId: string;
+  organizationSlug: string;
+  organizationName: string;
+  submitterEmail: string;
+  topic: string;
+  description: string;
+  sourcePagePath?: string | null;
+  attachments?: Array<{ fileName: string }>;
+}) {
+  const topicLabel =
+    SUPPORT_REQUEST_TOPIC_LABELS[payload.topic] ?? payload.topic;
+
+  const fields: DiscordEmbedField[] = [
+    {
+      name: "School",
+      value: truncate(
+        `${payload.organizationName}\n(${payload.organizationSlug})\n${payload.organizationId}`,
+      ),
+      inline: true,
+    },
+    {
+      name: "Submitter",
+      value: truncate(payload.submitterEmail),
+      inline: true,
+    },
+    {
+      name: "Request ID",
+      value: payload.requestId,
+      inline: true,
+    },
+    { name: "Topic", value: truncate(topicLabel), inline: true },
+  ];
+
+  if (payload.sourcePagePath?.trim()) {
+    fields.push({
+      name: "Page",
+      value: truncate(payload.sourcePagePath.trim()),
+    });
+  }
+
+  fields.push({
+    name: "Description",
+    value: truncate(payload.description.trim()),
+  });
+
+  const attachmentCount = payload.attachments?.length ?? 0;
+  if (attachmentCount > 0) {
+    const fileNames = payload.attachments!
+      .map((file) => file.fileName)
+      .join(", ");
+    fields.push({
+      name: "Attachments",
+      value: truncate(`${attachmentCount} file${attachmentCount === 1 ? "" : "s"}: ${fileNames}`),
+    });
+  }
+
+  await sendWebsiteNotificationDiscordEmbed({
+    title: "Admin support request",
+    fields,
   });
 }

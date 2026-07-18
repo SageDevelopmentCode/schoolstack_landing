@@ -167,7 +167,7 @@ function Step1TransitionMobileVisual() {
           }}
         >
           <Image
-            src="/images/Logo.png"
+            src="/images/Logo.webp"
             alt="MudKitchen"
             width={52}
             height={52}
@@ -293,7 +293,7 @@ function Step1TransitionVisual() {
           >
             <div className="flex flex-col items-center gap-0.5">
               <Image
-                src="/images/Logo.png"
+                src="/images/Logo.webp"
                 alt="MudKitchen"
                 width={36}
                 height={36}

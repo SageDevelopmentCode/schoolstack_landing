@@ -102,7 +102,8 @@ function buildApplySteps(
       pathChip: displayPath,
       description: (
         <>
-          Publish this form, then use <strong>Share with families</strong> to copy the
+          Publish this form, then open <strong>Share</strong> and choose{" "}
+          <strong>Copy apply link</strong> to copy the
           link and share it with families by email, your website, or social media.
           {!isPublished ? (
             <> The link won&apos;t work until this form is published.</>
@@ -379,19 +380,6 @@ function ShareLinkToolbarIllustration({
 
   return (
     <div className="flex flex-nowrap items-center justify-center gap-1.5">
-      <MockToolbarSkeleton C={C} variant="info" barClassName="w-14" />
-
-      <MockToolbarButton
-        C={C}
-        variant={copiedLink ? "success" : "accentMid"}
-        icon={Link2}
-        label={copiedLink ? "Copied" : "Share with families"}
-        prominent
-        onClick={onCopyLink}
-        disabled={copyDisabled}
-      />
-
-      <MockToolbarSkeleton C={C} variant="warning" barClassName="w-12" />
       <MockToolbarSkeleton C={C} variant="primary" barClassName="w-16" />
 
       <AnimatePresence mode="wait" initial={false}>
@@ -412,7 +400,7 @@ function ShareLinkToolbarIllustration({
           >
             <MockToolbarButton
               C={C}
-              variant="primary"
+              variant="accentMid"
               icon={Send}
               label="Publish"
               prominent
@@ -439,6 +427,18 @@ function ShareLinkToolbarIllustration({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <MockToolbarButton
+        C={C}
+        variant={copiedLink ? "success" : "info"}
+        icon={Link2}
+        label="Share"
+        prominent
+        onClick={onCopyLink}
+        disabled={copyDisabled}
+      />
+
+      <MockToolbarSkeleton C={C} variant="warning" barClassName="w-12" />
     </div>
   );
 }

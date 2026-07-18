@@ -43,7 +43,7 @@ export default function StacksSection() {
             {/* FolderWithLeaf rises from bottom — bottom edge intentionally clipped */}
             <div className="absolute bottom-[-60px] left-0">
               <Image
-                src="/images/illustrations/FolderWithLeaf.png"
+                src="/images/illustrations/FolderWithLeaf.webp"
                 alt=""
                 aria-hidden="true"
                 width={360}
@@ -65,7 +65,7 @@ export default function StacksSection() {
             {/* Boquet — large, upper area, partially bleeds off right */}
             <div className="absolute top-0 right-[-20px]">
               <Image
-                src="/images/illustrations/Boquet.png"
+                src="/images/illustrations/Boquet.webp"
                 alt=""
                 aria-hidden="true"
                 width={420}
@@ -75,7 +75,7 @@ export default function StacksSection() {
             {/* Counting — large, lower-left, partially bleeds off bottom */}
             <div className="absolute bottom-[-40px] left-0">
               <Image
-                src="/images/illustrations/Counting.png"
+                src="/images/illustrations/Counting.webp"
                 alt=""
                 aria-hidden="true"
                 width={320}

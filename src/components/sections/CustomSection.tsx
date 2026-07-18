@@ -59,7 +59,7 @@ export default function CustomSection() {
         {/* Decorative illustration — left */}
         <div className="absolute top-1/2 -translate-y-1/2 left-[-60px] xl:left-[-30px] z-0 pointer-events-none select-none hidden lg:block">
           <Image
-            src="/images/illustrations/Plant.png"
+            src="/images/illustrations/Plant.webp"
             alt=""
             aria-hidden="true"
             width={260}
@@ -71,7 +71,7 @@ export default function CustomSection() {
         {/* Decorative illustration — right */}
         <div className="absolute top-1/2 -translate-y-1/2 right-[-60px] xl:right-[-30px] z-0 pointer-events-none select-none hidden lg:block">
           <Image
-            src="/images/illustrations/Drawing2.png"
+            src="/images/illustrations/Drawing2.webp"
             alt=""
             aria-hidden="true"
             width={260}

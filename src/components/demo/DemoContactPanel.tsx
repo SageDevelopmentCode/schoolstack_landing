@@ -6,6 +6,9 @@ import SchoolDemoWordmark, {
   type SchoolDemoLogo,
 } from "@/components/demo/SchoolDemoWordmark";
 import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 import { mudkitchenDemoContact } from "@/data/school-demos/mudkitchen-demo-contact";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
 
@@ -151,9 +154,11 @@ function DemoContactFeedbackPanel({
                   type="button"
                   onClick={handleSubmit}
                   disabled={!canSubmit}
-                  className="px-4 py-2.5 rounded-md bg-[#2E4A3C] text-white text-sm font-medium font-body hover:bg-[#233B2F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className={`px-4 py-2.5 rounded-md bg-[#2E4A3C] text-white text-sm font-medium font-body hover:bg-[#233B2F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${BUTTON_LOADING_LAYOUT_CLASS}`}
                 >
-                  {isSubmitting ? "Sending…" : feedback.submitLabel}
+                  <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending…">
+                    {feedback.submitLabel}
+                  </ButtonLoadingLabel>
                 </button>
               </div>
             </div>

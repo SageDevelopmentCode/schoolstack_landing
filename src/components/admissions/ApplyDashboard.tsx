@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { ArrowRight, FileText, Plus } from "lucide-react";
 import EnrolledFamilyBanner from "@/components/admissions/EnrolledFamilyBanner";
+import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
 import ApplyRequiredActionsSection from "@/components/admissions/ApplyRequiredActionsSection";
-import ApplyPortalNavbar from "@/components/admissions/ApplyPortalNavbar";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
@@ -31,6 +31,7 @@ type ApplyDashboardProps = {
   applicationsWithTasks: FamilyApplication[];
   hasEnrolledAccess: boolean;
   parentPortalEnabled: boolean;
+  parentPortalHref?: string;
   enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
   userProfile: FamilyUserProfile;
   previewMode?: boolean;
@@ -140,6 +141,7 @@ export default function ApplyDashboard({
   applicationsWithTasks,
   hasEnrolledAccess,
   parentPortalEnabled,
+  parentPortalHref,
   enrollmentProgressByApplicationId,
   userProfile,
   previewMode = false,
@@ -148,12 +150,7 @@ export default function ApplyDashboard({
 }: ApplyDashboardProps) {
   const router = useRouter();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-  const pageBg = branding.colors.bg;
   const previewHomeHref = previewBasePath ?? undefined;
-  const parentPortalHref =
-    previewBasePath && hasEnrolledAccess && parentPortalEnabled
-      ? `${previewBasePath}/parent`
-      : undefined;
 
   useEffect(() => {
     if (!focusApplicationId || typeof window === "undefined") return;
@@ -172,26 +169,19 @@ export default function ApplyDashboard({
   }, [hasEnrolledAccess, previewMode, schoolSlug]);
 
   return (
-    <div className="flex min-h-dvh flex-col" style={{ color: C.textPrimary }}>
-      <ApplyPortalNavbar
-        branding={branding}
-        schoolName={schoolName}
-        schoolSlug={schoolSlug}
-        userEmail={userProfile.email}
-        userDisplayName={userProfile.displayName}
-        previewMode={previewMode}
-        previewHomeHref={previewHomeHref}
-      />
-      <main
-        className="flex-1 px-4 py-8 sm:px-6 sm:py-10"
-        style={{ backgroundColor: pageBg }}
-      >
-        <div className="mx-auto max-w-3xl">
-        {hasEnrolledAccess && parentPortalEnabled ? (
+    <ApplyPortalPageShell
+      branding={branding}
+      schoolName={schoolName}
+      schoolSlug={schoolSlug}
+      userEmail={userProfile.email}
+      userDisplayName={userProfile.displayName}
+      previewMode={previewMode}
+      previewHomeHref={previewHomeHref}
+    >
+        {hasEnrolledAccess && parentPortalEnabled && parentPortalHref ? (
           <EnrolledFamilyBanner
             C={C}
             schoolName={schoolName}
-            schoolSlug={schoolSlug}
             parentPortalHref={parentPortalHref}
           />
         ) : null}
@@ -209,7 +199,7 @@ export default function ApplyDashboard({
             {!previewMode ? (
             <Link
               href={`/school/${schoolSlug}/forms/apply?new=1`}
-              className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+              className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 sm:w-auto"
               style={getAdminButtonStyle(C, "primary")}
             >
               <Plus className="h-4 w-4 shrink-0" />
@@ -230,16 +220,6 @@ export default function ApplyDashboard({
             <p className="mt-2 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
               Start an application to apply to {schoolName}.
             </p>
-            {!previewMode ? (
-            <Link
-              href={`/school/${schoolSlug}/forms/apply?new=1`}
-              className="mt-6 inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-              style={getAdminButtonStyle(C, "primary")}
-            >
-              Start application
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            ) : null}
           </div>
         ) : (
           <div className="mt-4 space-y-3">
@@ -265,7 +245,7 @@ export default function ApplyDashboard({
                 <div
                   key={application.id}
                   id={focusApplicationId === application.id ? "preview-focus" : undefined}
-                  className="rounded-md border px-5 py-4"
+                  className="rounded-md border px-5 py-5"
                   style={{
                     borderColor:
                       focusApplicationId === application.id ? C.accent : C.border,
@@ -291,7 +271,7 @@ export default function ApplyDashboard({
                           </span>
                         </div>
                       ) : null}
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-col items-start gap-2">
                         <h2 className="text-base font-semibold" style={{ color: C.accentDark }}>
                           {application.formTitle}
                         </h2>
@@ -316,8 +296,8 @@ export default function ApplyDashboard({
                     </div>
                     <Link
                       href={action.href}
-                      className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium transition hover:opacity-80"
-                      style={{ color: C.accent }}
+                      className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 sm:w-auto"
+                      style={getAdminButtonStyle(C, "primary")}
                     >
                       {action.label}
                       <ArrowRight className="h-4 w-4" />
@@ -330,16 +310,15 @@ export default function ApplyDashboard({
         )}
         </section>
 
-        {applicationsWithTasks.length > 0 && !previewMode ? (
+        {applicationsWithTasks.length > 0 ? (
           <ApplyRequiredActionsSection
             C={C}
             timezone={timezone}
             applications={applicationsWithTasks}
             onBooked={() => router.refresh()}
+            previewMode={previewMode}
           />
         ) : null}
-        </div>
-      </main>
-    </div>
+    </ApplyPortalPageShell>
   );
 }

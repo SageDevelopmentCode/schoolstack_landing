@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import {
   AdmissionsBookingError,
   bookAdmissionsVisit,
+  normalizeScheduledDates,
 } from "@/lib/admissions/admissions-booking";
+import { formatScheduledVisitWhenLabel } from "@/lib/admissions/admissions-availability";
 import {
   AuthError,
   requireAuthenticatedUser,
@@ -27,6 +29,7 @@ type RouteContext = {
 type ScheduleBody = {
   actionId?: string;
   scheduledDate?: string;
+  scheduledDates?: string[];
   startTimeSlot?: string;
 };
 
@@ -50,12 +53,24 @@ export async function POST(request: Request, context: RouteContext) {
   const actionId = body.actionId?.trim();
   const scheduledDate = body.scheduledDate?.trim();
   const startTimeSlot = body.startTimeSlot?.trim();
+  const scheduledDates = Array.isArray(body.scheduledDates)
+    ? normalizeScheduledDates(body.scheduledDates)
+    : undefined;
 
-  if (!actionId || !scheduledDate || !startTimeSlot) {
+  if (!actionId) {
     return apiError(ROUTE, {
       request,
       status: 400,
-      error: "actionId, scheduledDate, and startTimeSlot are required.",
+      error: "actionId is required.",
+      code: "invalid_request",
+    });
+  }
+
+  if (!scheduledDates?.length && !scheduledDate) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "scheduledDate or scheduledDates is required.",
       code: "invalid_request",
     });
   }
@@ -82,11 +97,14 @@ export async function POST(request: Request, context: RouteContext) {
       admin,
       applicationId,
       actionId,
-      scheduledDate,
+      scheduledDate ?? scheduledDates?.[0] ?? "",
       startTimeSlot,
+      scheduledDates,
     );
 
     void sendPostSubmitVisitScheduledNotifications(admin, applicationId, booking);
+
+    const whenLabel = formatScheduledVisitWhenLabel(booking);
 
     void logActivityEvent(admin, {
       organizationId: booking.organizationId,
@@ -97,22 +115,30 @@ export async function POST(request: Request, context: RouteContext) {
       action: ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED,
       entityType: "admissions_scheduled_visit",
       entityId: booking.id,
-      summary: `Visit scheduled for ${booking.scheduledDate} at ${booking.startTimeSlot}`,
+      summary: `Visit scheduled for ${whenLabel}`,
       metadata: {
         applicationId,
         actionId,
         actionType: booking.actionType,
+        schedulingMode: booking.schedulingMode,
         scheduledDate: booking.scheduledDate,
+        endDate: booking.endDate,
+        visitDates: booking.visitDates,
         startTimeSlot: booking.startTimeSlot,
         durationMinutes: booking.durationMinutes,
+        visitDayCount: booking.visitDayCount,
       },
     });
 
     return NextResponse.json({
       booking: {
+        schedulingMode: booking.schedulingMode,
         scheduledDate: booking.scheduledDate,
+        endDate: booking.endDate,
+        visitDates: booking.visitDates,
         startTimeSlot: booking.startTimeSlot,
         durationMinutes: booking.durationMinutes,
+        visitDayCount: booking.visitDayCount,
       },
     });
   } catch (error) {

@@ -1,5 +1,6 @@
 import { Building2, Eye, Users, type LucideIcon } from "lucide-react";
 import {
+  isWholeDayPostSubmitAction,
   newAdmissionsId,
   type PostSubmitAction,
   type PostSubmitActionType,
@@ -12,17 +13,24 @@ export const POST_SUBMIT_ACTION_TYPES: PostSubmitActionType[] = [
   "schedule_observation_day",
 ];
 
-const POST_SUBMIT_DURATION_DEFAULTS: Record<PostSubmitActionType, number> = {
+const POST_SUBMIT_DURATION_DEFAULTS: Record<
+  Exclude<PostSubmitActionType, "schedule_observation_day">,
+  number
+> = {
   schedule_campus_tour: 60,
   schedule_family_interview: 30,
-  schedule_observation_day: 180,
 };
 
-const POST_SUBMIT_DURATION_MAX: Record<PostSubmitActionType, number> = {
+const POST_SUBMIT_DURATION_MAX: Record<
+  Exclude<PostSubmitActionType, "schedule_observation_day">,
+  number
+> = {
   schedule_campus_tour: 120,
   schedule_family_interview: 120,
-  schedule_observation_day: 480,
 };
+
+const POST_SUBMIT_MAX_VISIT_DAY_DEFAULT = 3;
+const POST_SUBMIT_MAX_VISIT_DAY_OPTIONS = [1, 2, 3, 4, 5] as const;
 
 export const POST_SUBMIT_ACTION_TEMPLATES: Record<
   PostSubmitActionType,
@@ -48,23 +56,35 @@ export const POST_SUBMIT_ACTION_TEMPLATES: Record<
     Icon: Users,
   },
   schedule_observation_day: {
-    label: "Schedule shadow / observation day",
-    description: "Families book a student shadow or observation visit.",
+    label: "Schedule shadow / observation days",
+    description:
+      "Families select up to a set number of open school days for your child to shadow class while teachers observe.",
     defaultInstructions:
-      "Schedule a shadow or observation day for your child to experience a school day.",
+      "Choose open shadow days so your child can experience the classroom while our teachers observe the fit.",
     Icon: Eye,
   },
 };
 
 export function defaultPostSubmitDurationMinutes(type: PostSubmitActionType): number {
-  return POST_SUBMIT_DURATION_DEFAULTS[type];
+  if (isWholeDayPostSubmitAction(type)) {
+    return POST_SUBMIT_MAX_VISIT_DAY_DEFAULT * 24 * 60;
+  }
+  return POST_SUBMIT_DURATION_DEFAULTS[
+    type as Exclude<PostSubmitActionType, "schedule_observation_day">
+  ];
 }
 
 export function postSubmitDurationMaxMinutes(type: PostSubmitActionType): number {
-  return POST_SUBMIT_DURATION_MAX[type];
+  if (isWholeDayPostSubmitAction(type)) {
+    return Math.max(...POST_SUBMIT_MAX_VISIT_DAY_OPTIONS) * 24 * 60;
+  }
+  return POST_SUBMIT_DURATION_MAX[
+    type as Exclude<PostSubmitActionType, "schedule_observation_day">
+  ];
 }
 
 export function postSubmitDurationOptions(type: PostSubmitActionType): number[] {
+  if (isWholeDayPostSubmitAction(type)) return [];
   const max = postSubmitDurationMaxMinutes(type);
   const options: number[] = [];
   for (let minutes = 30; minutes <= max; minutes += 30) {
@@ -73,12 +93,68 @@ export function postSubmitDurationOptions(type: PostSubmitActionType): number[] 
   return options;
 }
 
+export function postSubmitMaxVisitDayOptions(): readonly number[] {
+  return POST_SUBMIT_MAX_VISIT_DAY_OPTIONS;
+}
+
+export function defaultPostSubmitMaxVisitDays(): number {
+  return POST_SUBMIT_MAX_VISIT_DAY_DEFAULT;
+}
+
+export function resolvedPostSubmitMaxVisitDays(action: PostSubmitAction): number {
+  if (!isWholeDayPostSubmitAction(action.type)) {
+    return defaultPostSubmitMaxVisitDays();
+  }
+
+  const count = action.maxVisitDays ?? defaultPostSubmitMaxVisitDays();
+  if (POST_SUBMIT_MAX_VISIT_DAY_OPTIONS.includes(count as 1 | 2 | 3 | 4 | 5)) {
+    return count;
+  }
+  return defaultPostSubmitMaxVisitDays();
+}
+
+/** @deprecated Use resolvedPostSubmitMaxVisitDays */
+export function resolvedPostSubmitVisitDayCount(action: PostSubmitAction): number {
+  return resolvedPostSubmitMaxVisitDays(action);
+}
+
+/** @deprecated Use postSubmitMaxVisitDayOptions */
+export function postSubmitVisitDayOptions(): readonly number[] {
+  return postSubmitMaxVisitDayOptions();
+}
+
+/** @deprecated Use defaultPostSubmitMaxVisitDays */
+export function defaultPostSubmitVisitDayCount(): number {
+  return defaultPostSubmitMaxVisitDays();
+}
+
+export function postSubmitMaxVisitDayOptionLabel(dayCount: number): string {
+  return `Up to ${dayCount} school day${dayCount === 1 ? "" : "s"}`;
+}
+
+/** @deprecated Use postSubmitMaxVisitDayOptionLabel */
+export function postSubmitVisitDayOptionLabel(dayCount: number): string {
+  return postSubmitMaxVisitDayOptionLabel(dayCount);
+}
+
 export function postSubmitDurationOptionLabel(minutes: number): string {
   return formatDurationLabel(minutes);
 }
 
 export function createPostSubmitAction(type: PostSubmitActionType): PostSubmitAction {
   const template = POST_SUBMIT_ACTION_TEMPLATES[type];
+  if (isWholeDayPostSubmitAction(type)) {
+    return {
+      id: newAdmissionsId(),
+      type,
+      enabled: true,
+      title: template.label,
+      instructions: template.defaultInstructions,
+      required: true,
+      maxVisitDays: defaultPostSubmitMaxVisitDays(),
+    };
+  }
+
   return {
     id: newAdmissionsId(),
     type,
@@ -101,5 +177,16 @@ export function isPostSubmitActionType(value: string): value is PostSubmitAction
 }
 
 export function resolvedPostSubmitDurationMinutes(action: PostSubmitAction): number {
+  if (isWholeDayPostSubmitAction(action.type)) {
+    return resolvedPostSubmitMaxVisitDays(action) * 24 * 60;
+  }
   return action.durationMinutes ?? defaultPostSubmitDurationMinutes(action.type);
+}
+
+export function requiresTimeSlotAvailability(type: PostSubmitActionType): boolean {
+  return !isWholeDayPostSubmitAction(type);
+}
+
+export function requiresObservationDayAvailability(type: PostSubmitActionType): boolean {
+  return isWholeDayPostSubmitAction(type);
 }

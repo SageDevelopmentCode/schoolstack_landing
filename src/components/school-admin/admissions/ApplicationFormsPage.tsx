@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Eye, EyeOff, Link2, Loader2, Save, Send } from "lucide-react";
+import { EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
   createApplyForm,
   duplicateForm,
@@ -40,8 +40,10 @@ import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-accou
 import {
   emptyApplicationSection,
   normalizePublicSlug,
+  normalizeSubmissionNotifyEmails,
   validateApplicationFormSchema,
   validatePublicSlug,
+  validateSubmissionNotifyEmails,
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
@@ -50,6 +52,7 @@ import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-st
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import AdmissionsFamilyAccessGuideButton from "./AdmissionsFamilyAccessGuide";
+import ApplicationFormEditorToolbar from "./ApplicationFormEditorToolbar";
 import ChecklistProgramDropdown from "./ChecklistProgramDropdown";
 import ApplicationFormFocusCanvas from "./ApplicationFormFocusCanvas";
 import ApplicationFormList, {
@@ -171,6 +174,11 @@ function toEditableState(form: ApplicationFormVersion): EditableFormState {
     feeConfig: { ...form.fee_config },
     postSubmitConfig: {
       actions: form.post_submit_config.actions.map((action) => ({ ...action })),
+    },
+    notificationConfig: {
+      submission_notify_emails: [
+        ...form.notification_config.submission_notify_emails,
+      ],
     },
   };
 }
@@ -551,6 +559,9 @@ export default function ApplicationFormsPage({
       schema: editable.schema,
       fee_config: editable.feeConfig,
       post_submit_config: editable.postSubmitConfig,
+      notification_config: normalizeSubmissionNotifyEmails(
+        editable.notificationConfig.submission_notify_emails,
+      ),
     };
   };
 
@@ -675,6 +686,16 @@ export default function ApplicationFormsPage({
     const slugOk = await validateSlugForSave();
     if (!slugOk) return;
 
+    const notificationError = validateSubmissionNotifyEmails(
+      normalizeSubmissionNotifyEmails(
+        editable.notificationConfig.submission_notify_emails,
+      ),
+    );
+    if (notificationError) {
+      setError(notificationError);
+      return;
+    }
+
     const saveInput = buildSaveInput();
     if (!saveInput) return;
 
@@ -739,6 +760,17 @@ export default function ApplicationFormsPage({
     );
     if (!available) {
       focusSlugSetup(`The slug "${normalized}" is already used by another form.`);
+      return;
+    }
+
+    const notificationError = validateSubmissionNotifyEmails(
+      normalizeSubmissionNotifyEmails(
+        editable?.notificationConfig.submission_notify_emails ??
+          selectedForm.notification_config.submission_notify_emails,
+      ),
+    );
+    if (notificationError) {
+      setError(notificationError);
       return;
     }
 
@@ -1200,114 +1232,26 @@ export default function ApplicationFormsPage({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <AdmissionsFamilyAccessGuideButton
-                variant="apply"
-                C={C}
-                schoolSlug={slug}
-                publicPath={publishedPublicUrl}
-                isPublished={isPublished}
-              />
-              {publishedPublicUrl ? (
-                <button
-                  type="button"
-                  onClick={handleCopyPublicLink}
-                  className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                  style={
-                    copiedLink
-                      ? getAdminButtonStyle(C, "success")
-                      : getAdminButtonStyle(C, "accentMid")
-                  }
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  {copiedLink ? "Copied" : "Share with families"}
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setPreviewOpen(true)}
-                className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                style={getAdminButtonStyle(C, "warning")}
-              >
-                <Eye className="h-3.5 w-3.5" />
-                Preview
-              </button>
-              {readOnly ? (
-                !isApplyFormSelected ? (
-                  <button
-                    type="button"
-                    onClick={handleDuplicate}
-                    disabled={creating}
-                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                    style={getAdminButtonStyle(C, "accentMid")}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    Duplicate
-                  </button>
-                ) : null
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={saving || !isApplyDirty}
-                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                    style={
-                      savedPulse
-                        ? getAdminButtonStyle(C, "success")
-                        : getAdminButtonStyle(C, "primary")
-                    }
-                  >
-                    {saving ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Save className="h-3.5 w-3.5" />
-                    )}
-                    {savedPulse ? "Saved" : isPublished ? "Save" : "Save draft"}
-                  </button>
-                  {isPublished ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setUnpublishOpen(true)}
-                        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                        style={getAdminButtonStyle(C, "danger")}
-                      >
-                        <EyeOff className="h-3.5 w-3.5" />
-                        Unpublish
-                      </button>
-                      {!isApplyFormSelected ? (
-                        <button
-                          type="button"
-                          onClick={handleDuplicate}
-                          disabled={creating}
-                          className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                          style={getAdminButtonStyle(C, "accentMid")}
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                          Duplicate
-                        </button>
-                      ) : null}
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handlePublish}
-                      disabled={publishing}
-                      className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white"
-                      style={getAdminButtonStyle(C, "primary")}
-                    >
-                      {publishing ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Send className="h-3.5 w-3.5" />
-                      )}
-                      Publish
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
+            <ApplicationFormEditorToolbar
+              C={C}
+              schoolSlug={slug}
+              readOnly={readOnly}
+              isPublished={isPublished}
+              publishedPublicUrl={publishedPublicUrl}
+              saving={saving}
+              savedPulse={savedPulse}
+              isApplyDirty={isApplyDirty}
+              isApplyFormSelected={isApplyFormSelected}
+              copiedLink={copiedLink}
+              publishing={publishing}
+              creating={creating}
+              onSave={handleSave}
+              onPublish={handlePublish}
+              onUnpublish={() => setUnpublishOpen(true)}
+              onCopyPublicLink={handleCopyPublicLink}
+              onPreview={() => setPreviewOpen(true)}
+              onDuplicate={handleDuplicate}
+            />
           </div>
 
           {error && (

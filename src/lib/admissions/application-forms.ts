@@ -11,6 +11,7 @@ import {
   validatePublicSlug,
   validateApplicationFormSchema,
   type ApplicationFormFeeConfig,
+  type ApplicationFormNotificationConfig,
   type ApplicationFormPostSubmitConfig,
   type ApplicationFormSchema,
   type ApplicationFormVersion,
@@ -313,6 +314,7 @@ export type UpdateApplicationFormInput = {
   schema?: ApplicationFormSchema;
   fee_config?: ApplicationFormFeeConfig;
   post_submit_config?: ApplicationFormPostSubmitConfig;
+  notification_config?: ApplicationFormNotificationConfig;
 };
 
 /** @deprecated Use UpdateApplicationFormInput */
@@ -392,6 +394,9 @@ export async function updateApplicationForm(
   if (input.fee_config !== undefined) patch.fee_config = input.fee_config;
   if (input.post_submit_config !== undefined) {
     patch.post_submit_config = input.post_submit_config;
+  }
+  if (input.notification_config !== undefined) {
+    patch.notification_config = input.notification_config;
   }
 
   const { data, error } = await supabase
@@ -602,6 +607,7 @@ export async function duplicateForm(
       schema: schemaToDbJson(existing.schema),
       fee_config: existing.fee_config,
       post_submit_config: existing.post_submit_config,
+      notification_config: existing.notification_config,
     })
     .select("*")
     .single();

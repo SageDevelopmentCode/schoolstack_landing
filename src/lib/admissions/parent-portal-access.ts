@@ -12,6 +12,7 @@ import {
   postSubmitActionLabel,
   POST_SUBMIT_ACTION_TEMPLATES,
   resolvedPostSubmitDurationMinutes,
+  resolvedPostSubmitMaxVisitDays,
 } from "./post-submit-templates";
 import {
   parseApplicationFormFeeConfig,
@@ -38,12 +39,17 @@ export type ApplicationPostSubmitTask = {
   instructions: string;
   required: boolean;
   durationMinutes: number;
+  maxVisitDays?: number;
   sortIndex: number;
   status: "pending" | "scheduled";
   booking?: {
+    schedulingMode?: "time_slot" | "whole_day";
     scheduledDate: string;
+    endDate?: string;
     startTimeSlot: string;
     durationMinutes: number;
+    visitDayCount?: number;
+    visitDates?: string[];
   };
 };
 
@@ -277,13 +283,18 @@ export async function listFamilyApplications(
                 instructions: templateInstructions,
                 required: action.required !== false,
                 durationMinutes: resolvedPostSubmitDurationMinutes(action),
+                maxVisitDays: resolvedPostSubmitMaxVisitDays(action),
                 sortIndex,
                 status: visit ? "scheduled" : "pending",
                 booking: visit
                   ? {
+                      schedulingMode: visit.schedulingMode,
                       scheduledDate: visit.scheduledDate,
+                      endDate: visit.endDate,
                       startTimeSlot: visit.startTimeSlot,
                       durationMinutes: visit.durationMinutes,
+                      visitDayCount: visit.visitDayCount,
+                      visitDates: visit.visitDates,
                     }
                   : undefined,
               };

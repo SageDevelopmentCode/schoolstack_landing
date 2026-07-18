@@ -149,6 +149,73 @@ export async function sendDemoFeedbackConfirmation(payload: {
   }
 }
 
+const SUPPORT_REQUEST_TOPIC_LABELS: Record<string, string> = {
+  general: "General question",
+  bug: "Something isn't working",
+  "application-forms": "Application forms",
+  enrollment: "Enrollment",
+  billing: "Billing",
+  feature: "Feature request",
+  other: "Other",
+};
+
+function firstNameFromEmail(email: string): string {
+  const local = email.split("@")[0]?.trim() ?? "";
+  const token = local.split(/[._+-]/)[0]?.trim();
+  if (!token) return "there";
+  return escapeHtml(token.charAt(0).toUpperCase() + token.slice(1));
+}
+
+export function buildAdminSupportRequestConfirmationHtml(payload: {
+  submitterEmail: string;
+  schoolName: string;
+  topic: string;
+}): string {
+  const topicLabel =
+    SUPPORT_REQUEST_TOPIC_LABELS[payload.topic] ?? payload.topic;
+  const greetingName = firstNameFromEmail(payload.submitterEmail);
+
+  const detailRows = [
+    { label: "Topic", value: topicLabel },
+    { label: "School", value: payload.schoolName },
+  ];
+
+  return composeEmail({
+    preheader: "We received your support request.",
+    contentHtml: `
+      ${emailBadge("Support Request Received")}
+      ${emailHeading(`Thanks, ${greetingName}.`)}
+      ${emailParagraph(
+        `We received your support request and will get back to you at ${escapeHtml(payload.submitterEmail)} as soon as we can — usually within one business day.`,
+      )}
+      ${emailDetailCard(detailRows)}
+      ${emailParagraph(
+        "If you attached screenshots or files, we have those on our end and will review them with your message.",
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendAdminSupportRequestConfirmation(payload: {
+  submitterEmail: string;
+  schoolName: string;
+  topic: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildAdminSupportRequestConfirmationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.submitterEmail,
+    subject: `We received your support request — ${SITE_NAME}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Admin support request confirmation email failed:", result.error);
+  }
+}
+
 export function buildApplicationSubmittedConfirmationHtml(payload: {
   name: string;
   schoolName: string;
@@ -197,17 +264,90 @@ export async function sendApplicationSubmittedConfirmation(payload: {
   }
 }
 
+export function buildApplicationSubmittedOwnerNotificationHtml(payload: {
+  schoolName: string;
+  formTitle: string;
+  studentName?: string;
+  contactName?: string;
+  contactEmail?: string;
+  programName?: string;
+  submittedAtLabel: string;
+  submissionAdminUrl: string;
+}): string {
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Application", value: payload.formTitle },
+  ];
+
+  if (payload.studentName) {
+    details.push({ label: "Student", value: payload.studentName });
+  }
+  if (payload.contactName) {
+    details.push({ label: "Contact", value: payload.contactName });
+  }
+  if (payload.contactEmail) {
+    details.push({ label: "Email", value: payload.contactEmail });
+  }
+  if (payload.programName) {
+    details.push({ label: "Program", value: payload.programName });
+  }
+  details.push({ label: "Submitted", value: payload.submittedAtLabel });
+
+  return composeEmail({
+    preheader: `A new application was submitted to ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("New Application")}
+      ${emailHeading("A new application was submitted")}
+      ${emailParagraph(
+        `A family submitted ${escapeHtml(payload.formTitle)} at ${escapeHtml(payload.schoolName)}. Review the submission in your admissions dashboard.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "View submission", href: payload.submissionAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendApplicationSubmittedOwnerNotification(payload: {
+  email: string;
+  schoolName: string;
+  formTitle: string;
+  studentName?: string;
+  contactName?: string;
+  contactEmail?: string;
+  programName?: string;
+  submittedAtLabel: string;
+  submissionAdminUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildApplicationSubmittedOwnerNotificationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `New application submitted — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Application submitted owner notification email failed:", result.error);
+  }
+}
+
 export function buildPostSubmitVisitConfirmationHtml(payload: {
   name: string;
   schoolName: string;
   stepTitle: string;
   scheduledDate: string;
+  endDate?: string;
   startTimeSlot: string;
+  schedulingMode?: "time_slot" | "whole_day";
+  visitDayCount?: number;
   timezoneLabel: string;
+  whenLabel: string;
   durationLabel: string;
   applyDashboardUrl: string;
 }): string {
-  const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.startTimeSlot} (${payload.timezoneLabel})`;
+  const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
 
   return composeEmail({
     preheader: `Your ${payload.stepTitle} at ${payload.schoolName} is confirmed.`,
@@ -237,17 +377,19 @@ export async function sendPostSubmitVisitConfirmation(payload: {
   schoolName: string;
   stepTitle: string;
   scheduledDate: string;
+  endDate?: string;
   startTimeSlot: string;
+  schedulingMode?: "time_slot" | "whole_day";
+  visitDayCount?: number;
   timezoneLabel: string;
   durationMinutes: number;
+  whenLabel: string;
+  durationLabel: string;
   applyDashboardUrl: string;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
-  const content = buildPostSubmitVisitConfirmationHtml({
-    ...payload,
-    durationLabel: formatDurationLabel(payload.durationMinutes),
-  });
+  const content = buildPostSubmitVisitConfirmationHtml(payload);
   const result = await sendZohoEmail({
     toAddress: payload.email,
     subject: `${payload.stepTitle} confirmed — ${payload.schoolName}`,

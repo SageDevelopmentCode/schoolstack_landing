@@ -50,7 +50,7 @@ export default defineConfig({
     },
     {
       name: "parent",
-      testMatch: /parent\/apply-dashboard\.spec\.ts/,
+      testMatch: /parent\/.*\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],

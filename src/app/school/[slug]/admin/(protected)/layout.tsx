@@ -69,6 +69,7 @@ export default async function SchoolAdminProtectedLayout({
   return (
     <SchoolAdminBaseline
       slug={slug}
+      organizationId={org.id}
       schoolName={org.name}
       branding={org.branding}
       features={org.features}

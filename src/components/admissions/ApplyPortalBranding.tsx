@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -8,6 +9,8 @@ type ApplyPortalBrandingProps = {
   schoolName: string;
   schoolLogoClassName?: string;
   className?: string;
+  platformHomeHref?: string;
+  schoolHomeHref?: string;
 };
 
 const DEFAULT_SCHOOL_LOGO_CLASS =
@@ -18,38 +21,68 @@ export default function ApplyPortalBranding({
   schoolName,
   schoolLogoClassName = DEFAULT_SCHOOL_LOGO_CLASS,
   className = "",
+  platformHomeHref = "/",
+  schoolHomeHref,
 }: ApplyPortalBrandingProps) {
   const C = buildAdminThemeTokens(branding);
 
+  const platformBranding = (
+    <div className="flex shrink-0 items-center gap-0.5">
+      <Image
+        src="/images/Logo.png"
+        alt="MudKitchen"
+        width={40}
+        height={40}
+        className="h-10 w-auto shrink-0 object-contain"
+      />
+      <span className="font-display text-xs font-semibold leading-tight text-clay">
+        MudKitchen
+      </span>
+    </div>
+  );
+
+  const schoolBranding = (
+    <SchoolDemoWordmark
+      logo={{
+        src: branding.logo.src,
+        alt: branding.logo.alt || schoolName,
+        width: branding.logo.width,
+        height: branding.logo.height,
+        text: branding.logo.src ? undefined : schoolName,
+      }}
+      className={schoolLogoClassName}
+    />
+  );
+
   return (
     <div className={`flex min-w-0 items-center gap-4 ${className}`.trim()}>
-      <div className="flex shrink-0 items-center gap-0.5">
-        <Image
-          src="/images/Logo.png"
-          alt="MudKitchen"
-          width={40}
-          height={40}
-          className="h-10 w-auto shrink-0 object-contain"
-        />
-        <span className="font-display text-xs font-semibold leading-tight text-clay">
-          MudKitchen
-        </span>
-      </div>
+      {platformHomeHref ? (
+        <Link
+          href={platformHomeHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 rounded-sm transition-opacity hover:opacity-80"
+        >
+          {platformBranding}
+        </Link>
+      ) : (
+        platformBranding
+      )}
       <div
         className="h-8 w-px shrink-0"
         style={{ backgroundColor: C.border }}
         aria-hidden
       />
-      <SchoolDemoWordmark
-        logo={{
-          src: branding.logo.src,
-          alt: branding.logo.alt || schoolName,
-          width: branding.logo.width,
-          height: branding.logo.height,
-          text: branding.logo.src ? undefined : schoolName,
-        }}
-        className={schoolLogoClassName}
-      />
+      {schoolHomeHref ? (
+        <Link
+          href={schoolHomeHref}
+          className="min-w-0 shrink-0 rounded-sm transition-opacity hover:opacity-80"
+        >
+          {schoolBranding}
+        </Link>
+      ) : (
+        schoolBranding
+      )}
     </div>
   );
 }

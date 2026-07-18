@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { LucideIcon, Globe, ClipboardList, CreditCard, CalendarCheck, Clock, Megaphone, LayoutDashboard } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { FadeInView } from '@/components/ui/FadeInView'
+import { InViewDemoGate } from '@/components/ui/InViewDemoGate'
 import {
   LazyAdminDashboardDemo,
   LazyParentDashboardDemo,
@@ -200,7 +201,7 @@ export default function ProductPreviewSection() {
         {...illMotionProps(0.2, -1)}
         className="absolute top-6 left-[-150px] z-0 pointer-events-none select-none hidden lg:block"
       >
-        <Image src="/images/illustrations/Notebook.png" alt="" aria-hidden width={340} height={340} style={{ opacity: 0.88 }} />
+        <Image src="/images/illustrations/Notebook.webp" alt="" aria-hidden width={340} height={340} style={{ opacity: 0.88 }} />
       </motion.div>
 
       {/* Backpack — mid-left, lower and pulled in a bit more */}
@@ -208,7 +209,7 @@ export default function ProductPreviewSection() {
         {...illMotionProps(0.38, -1)}
         className="absolute top-[310px] left-[-100px] z-0 pointer-events-none select-none hidden lg:block"
       >
-        <Image src="/images/illustrations/Backpack.png" alt="" aria-hidden width={240} height={240} style={{ opacity: 0.82 }} />
+        <Image src="/images/illustrations/Backpack.webp" alt="" aria-hidden width={240} height={240} style={{ opacity: 0.82 }} />
       </motion.div>
 
       {/* ── Frame-level cluster ── */}
@@ -218,7 +219,7 @@ export default function ProductPreviewSection() {
         className="absolute bottom-[80px] left-[-70px] z-0 pointer-events-none select-none hidden lg:block"
         style={{ rotate: '-8deg' }}
       >
-        <Image src="/images/illustrations/Letters.png" alt="" aria-hidden width={260} height={260} style={{ opacity: 0.82 }} />
+        <Image src="/images/illustrations/Letters.webp" alt="" aria-hidden width={260} height={260} style={{ opacity: 0.82 }} />
       </motion.div>
 
       {/* Pastel — bottom-right corner */}
@@ -227,7 +228,7 @@ export default function ProductPreviewSection() {
         className="absolute bottom-0 right-[-80px] z-0 pointer-events-none select-none hidden lg:block"
         style={{ rotate: '7deg' }}
       >
-        <Image src="/images/illustrations/Pastel.png" alt="" aria-hidden width={260} height={260} style={{ opacity: 0.82 }} />
+        <Image src="/images/illustrations/Pastel.webp" alt="" aria-hidden width={260} height={260} style={{ opacity: 0.82 }} />
       </motion.div>
 
       <div className="w-full max-w-[1200px] mx-auto px-6 lg:px-16 overflow-x-hidden">
@@ -449,7 +450,8 @@ function ProductScaledDemoFrame({
   loadedTabs: Set<TabId>
 }) {
   return (
-    <LandingScaledDemoFrame className="mt-6" preventHorizontalScroll>
+    <InViewDemoGate>
+      <LandingScaledDemoFrame className="mt-6" preventHorizontalScroll>
       <div className="relative">
         {loadedTabs.has('admin') && (
           <TabPanel visible={activeTab === 'admin'} id="admin" caption={TABS.find((t) => t.id === 'admin')!.caption}>
@@ -502,5 +504,6 @@ function ProductScaledDemoFrame({
         )}
       </div>
     </LandingScaledDemoFrame>
+    </InViewDemoGate>
   )
 }

@@ -10,6 +10,7 @@ import {
   postSubmitActionLabel,
   POST_SUBMIT_ACTION_TEMPLATES,
   resolvedPostSubmitDurationMinutes,
+  resolvedPostSubmitMaxVisitDays,
 } from "./post-submit-templates";
 import {
   listEnrollmentProgressForApplications,
@@ -238,13 +239,18 @@ export async function listFamilyApplicationsForFamilyId(
                 instructions: templateInstructions,
                 required: action.required !== false,
                 durationMinutes: resolvedPostSubmitDurationMinutes(action),
+                maxVisitDays: resolvedPostSubmitMaxVisitDays(action),
                 sortIndex,
                 status: visit ? "scheduled" : "pending",
                 booking: visit
                   ? {
+                      schedulingMode: visit.schedulingMode,
                       scheduledDate: visit.scheduledDate,
+                      endDate: visit.endDate,
                       startTimeSlot: visit.startTimeSlot,
                       durationMinutes: visit.durationMinutes,
+                      visitDayCount: visit.visitDayCount,
+                      visitDates: visit.visitDates,
                     }
                   : undefined,
               };

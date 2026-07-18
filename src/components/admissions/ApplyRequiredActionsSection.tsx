@@ -15,6 +15,7 @@ type ApplyRequiredActionsSectionProps = {
   timezone: string;
   applications: FamilyApplication[];
   onBooked: () => void;
+  previewMode?: boolean;
 };
 
 type BookingTarget = {
@@ -27,6 +28,7 @@ export default function ApplyRequiredActionsSection({
   timezone,
   applications,
   onBooked,
+  previewMode = false,
 }: ApplyRequiredActionsSectionProps) {
   const [bookingTarget, setBookingTarget] = useState<BookingTarget | null>(null);
   const [activeApplicationId, setActiveApplicationId] = useState(
@@ -64,7 +66,7 @@ export default function ApplyRequiredActionsSection({
   return (
     <>
       <section className="mt-10">
-        <div className="flex items-start justify-between gap-3 sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
               Required actions
@@ -73,7 +75,7 @@ export default function ApplyRequiredActionsSection({
               Complete these steps after submitting your application.
             </p>
           </div>
-          <div className="shrink-0 pt-0.5 sm:pt-0">
+          <div className="shrink-0 sm:pt-0">
             {pendingRequiredCount > 0 ? (
               <span
                 className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
@@ -99,7 +101,7 @@ export default function ApplyRequiredActionsSection({
           onChange={setActiveApplicationId}
         />
 
-        <ol className="mt-4 list-none space-y-2 p-0">
+        <ol className="mt-4 list-none space-y-3 p-0">
           {tasks.map((task) => (
             <PostSubmitStepCard
               key={task.actionId}
@@ -121,6 +123,7 @@ export default function ApplyRequiredActionsSection({
           open={Boolean(bookingTarget)}
           onClose={() => setBookingTarget(null)}
           onBooked={onBooked}
+          previewMode={previewMode}
         />
       ) : null}
     </>

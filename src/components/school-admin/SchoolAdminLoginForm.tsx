@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import ButtonLoadingLabel, {
+  BUTTON_LOADING_LAYOUT_CLASS,
+} from "@/components/ui/ButtonLoadingLabel";
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -297,17 +300,12 @@ export default function SchoolAdminLoginForm({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className={`w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
               style={{ backgroundColor: C.accent }}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Sending code…
-                </>
-              ) : (
-                "Send verification code"
-              )}
+              <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Sending code…">
+                Send verification code
+              </ButtonLoadingLabel>
             </button>
             <p className="text-center">
               <button
@@ -349,17 +347,12 @@ export default function SchoolAdminLoginForm({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className={`w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
               style={{ backgroundColor: C.accent }}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Signing in…
-                </>
-              ) : (
-                "Sign in"
-              )}
+              <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Signing in…">
+                Sign in
+              </ButtonLoadingLabel>
             </button>
             <p className="text-center">
               <button
@@ -385,17 +378,12 @@ export default function SchoolAdminLoginForm({
             <button
               type="submit"
               disabled={isSubmitting || normalizedCode.length !== 6}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className={`w-full rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
               style={{ backgroundColor: C.accent }}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Verifying…
-                </>
-              ) : (
-                "Sign in"
-              )}
+              <ButtonLoadingLabel loading={isSubmitting} loadingLabel="Verifying…">
+                Sign in
+              </ButtonLoadingLabel>
             </button>
             <div className="flex items-center justify-between gap-3 text-sm">
               <button

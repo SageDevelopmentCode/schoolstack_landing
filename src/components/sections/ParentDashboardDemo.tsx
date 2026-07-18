@@ -174,8 +174,8 @@ const CARD_FEE_RATE = 0.029;
 const ACH_FEE_RATE = 0.008;
 
 const SCHOOL_YEAR_LABEL = "School Year 2026–27";
-const BILLING_BANNER_SCHOOL_YEAR = "/images/stock/ImageFive.jpg";
-const BILLING_BANNER_HOMESCHOOL = "/images/stock/Homeschool2.jpg";
+const BILLING_BANNER_SCHOOL_YEAR = "/images/stock/ImageFive.webp";
+const BILLING_BANNER_HOMESCHOOL = "/images/stock/Homeschool2.webp";
 const SCHOOL_YEAR_MONTHLY_TUITION = 1700;
 const SCHOOL_YEAR_UPFRONT_TUITION = 17000;
 const EMMA_SCHOOL_YEAR_TX_ID = "emma-school-year-tuition";
@@ -644,7 +644,7 @@ const DEMO_POSTS: DemoPost[] = [
     time: "2 hours ago",
     color: "#7FA888",
     text: "What an incredible morning! The students dove into our new plant life cycle unit with so much curiosity. We planted bean seeds and each child made a prediction about what would happen first — roots or a sprout. Can't wait to watch these grow! 🌱",
-    attachments: [{ type: "image", src: "/images/stock/ImageOne.jpg" }],
+    attachments: [{ type: "image", src: "/images/stock/ImageOne.webp" }],
   },
   {
     id: "p2",
@@ -669,7 +669,7 @@ const DEMO_POSTS: DemoPost[] = [
     time: "Apr 15",
     color: "#7FA888",
     text: "We wrapped up our community helpers theme with a visit from a local librarian! Students got to ask questions and even check out a book to bring home. Thank you to everyone who donated books to our classroom library this month.",
-    attachments: [{ type: "image", src: "/images/stock/ImageFour.jpg" }],
+    attachments: [{ type: "image", src: "/images/stock/ImageFour.webp" }],
   },
 ];
 
@@ -4354,7 +4354,7 @@ function HomeDashboard({
       {/* Banner */}
       <div className="relative h-48 rounded-2xl overflow-hidden shadow-sm">
         <img
-          src="/images/stock/ImageOne.jpg"
+          src="/images/stock/ImageOne.webp"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -4617,7 +4617,7 @@ function HomeDashboard({
               >
                 <div className="relative h-28 overflow-hidden">
                   <img
-                    src="/images/stock/ImageFive.jpg"
+                    src="/images/stock/ImageFive.webp"
                     alt=""
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
@@ -4645,7 +4645,7 @@ function HomeDashboard({
               >
                 <div className="relative h-28 overflow-hidden">
                   <img
-                    src="/images/stock/ImageNine.jpg"
+                    src="/images/stock/ImageNine.webp"
                     alt=""
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />

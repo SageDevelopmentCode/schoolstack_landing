@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import AdmissionsAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsAvailabilityEditor";
+import AdmissionsObservationDayAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsObservationDayAvailabilityEditor";
 import ApplicationSubmissionDetailPanel from "@/components/school-admin/admissions/ApplicationSubmissionDetailPanel";
 import ScheduledVisitsSection from "@/components/school-admin/ScheduledVisitsSection";
 import type { AdminScheduledVisit } from "@/lib/admissions/admin-scheduled-visits";
@@ -31,6 +32,9 @@ export default function SchedulePage({
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
   const [monthSlotCount, setMonthSlotCount] = useState<number | null>(null);
+  const [monthObservationDayCount, setMonthObservationDayCount] = useState<number | null>(
+    null,
+  );
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(
     null,
   );
@@ -82,7 +86,7 @@ export default function SchedulePage({
             >
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                  Availability
+                  Tours & interviews
                 </h2>
                 {monthSlotCount !== null && monthSlotCount > 0 ? (
                   <span
@@ -93,10 +97,42 @@ export default function SchedulePage({
                   </span>
                 ) : null}
               </div>
+              <p className="mb-4 text-xs" style={{ color: C.textTertiary }}>
+                Set 30-minute time slots for campus tours and family interviews.
+              </p>
               <AdmissionsAvailabilityEditor
                 C={C}
                 organizationId={organizationId}
                 onMonthSlotCountChange={setMonthSlotCount}
+                compactLayout
+              />
+            </section>
+
+            <section
+              className="rounded-sm border p-4 sm:p-5"
+              style={{ borderColor: C.border, backgroundColor: C.surface }}
+            >
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                  Shadow / observation days
+                </h2>
+                {monthObservationDayCount !== null && monthObservationDayCount > 0 ? (
+                  <span
+                    className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                    style={{ backgroundColor: C.accentLight, color: C.accent }}
+                  >
+                    {monthObservationDayCount} open day
+                    {monthObservationDayCount === 1 ? "" : "s"} this month
+                  </span>
+                ) : null}
+              </div>
+              <p className="mb-4 text-xs" style={{ color: C.textTertiary }}>
+                Open whole school days for multi-day student shadow visits.
+              </p>
+              <AdmissionsObservationDayAvailabilityEditor
+                C={C}
+                organizationId={organizationId}
+                onMonthDayCountChange={setMonthObservationDayCount}
                 compactLayout
               />
             </section>

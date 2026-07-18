@@ -13,12 +13,14 @@ import {
 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import AdmissionsAvailabilityModal from "./AdmissionsAvailabilityModal";
+import AdmissionsObservationDayAvailabilityModal from "./AdmissionsObservationDayAvailabilityModal";
 import PostSubmitTemplatePickerModal from "./PostSubmitTemplatePickerModal";
 import type {
   ApplicationFormPostSubmitConfig,
   PostSubmitAction,
   PostSubmitActionType,
 } from "@/lib/admissions/application-form-schema";
+import { isWholeDayPostSubmitAction } from "@/lib/admissions/application-form-schema";
 import {
   POST_SUBMIT_ACTION_TEMPLATES,
   POST_SUBMIT_ACTION_TYPES,
@@ -26,13 +28,19 @@ import {
   postSubmitActionLabel,
   postSubmitDurationOptionLabel,
   postSubmitDurationOptions,
+  postSubmitMaxVisitDayOptionLabel,
+  postSubmitMaxVisitDayOptions,
+  requiresObservationDayAvailability,
+  requiresTimeSlotAvailability,
   resolvedPostSubmitDurationMinutes,
+  resolvedPostSubmitMaxVisitDays,
 } from "@/lib/admissions/post-submit-templates";
 import {
   countAdmissionsAvailabilitySlotsInMonth,
   getOrganizationTimezone,
   todayMonthYearInTimezone,
 } from "@/lib/admissions/admissions-availability";
+import { countObservationDaysInMonth } from "@/lib/admissions/admissions-observation-availability";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 import { BuilderQuestionCard } from "./builder-question-card";
@@ -191,26 +199,51 @@ function PostSubmitActionRow({
 
               <div className="space-y-1">
                 <label className="block text-xs font-medium" style={{ color: C.textSecondary }}>
-                  Duration
+                  {isWholeDayPostSubmitAction(action.type) ? "Max visit days" : "Duration"}
                 </label>
-                <select
-                  value={resolvedPostSubmitDurationMinutes(action)}
-                  disabled={readOnly}
-                  onChange={(e) =>
-                    onUpdate({ durationMinutes: Number(e.target.value) })
-                  }
-                  style={inputStyle}
-                >
-                  {postSubmitDurationOptions(action.type).map((minutes) => (
-                    <option key={minutes} value={minutes}>
-                      {postSubmitDurationOptionLabel(minutes)}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
-                  Families will book a consecutive block of this length from your open
-                  availability.
-                </p>
+                {isWholeDayPostSubmitAction(action.type) ? (
+                  <>
+                    <select
+                      value={resolvedPostSubmitMaxVisitDays(action)}
+                      disabled={readOnly}
+                      onChange={(e) =>
+                        onUpdate({ maxVisitDays: Number(e.target.value) })
+                      }
+                      style={inputStyle}
+                    >
+                      {postSubmitMaxVisitDayOptions().map((dayCount) => (
+                        <option key={dayCount} value={dayCount}>
+                          {postSubmitMaxVisitDayOptionLabel(dayCount)}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+                      Families can select 1 to {resolvedPostSubmitMaxVisitDays(action)} open
+                      school days. Days do not need to be consecutive.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <select
+                      value={resolvedPostSubmitDurationMinutes(action)}
+                      disabled={readOnly}
+                      onChange={(e) =>
+                        onUpdate({ durationMinutes: Number(e.target.value) })
+                      }
+                      style={inputStyle}
+                    >
+                      {postSubmitDurationOptions(action.type).map((minutes) => (
+                        <option key={minutes} value={minutes}>
+                          {postSubmitDurationOptionLabel(minutes)}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+                      Families will book a consecutive block of this length from your open
+                      availability.
+                    </p>
+                  </>
+                )}
               </div>
 
               <label
@@ -239,7 +272,7 @@ function PostSubmitActionRow({
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <p>
                   Families schedule these steps from their apply dashboard after
-                  submitting. Set your school&apos;s open visit times above.
+                  submitting. Set tour/interview times and shadow days above.
                 </p>
               </div>
             </div>
@@ -259,44 +292,69 @@ export default function ApplicationFormPostSubmitEditor({
 }: ApplicationFormPostSubmitEditorProps) {
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
+  const [observationAvailabilityModalOpen, setObservationAvailabilityModalOpen] =
+    useState(false);
   const [monthSlotCount, setMonthSlotCount] = useState<number | null>(null);
+  const [monthObservationDayCount, setMonthObservationDayCount] = useState<number | null>(
+    null,
+  );
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  const refreshCurrentMonthSlotCount = useCallback(async () => {
+  const refreshCurrentMonthCounts = useCallback(async () => {
     try {
       const timezone = await getOrganizationTimezone(supabase, organizationId);
       const { year, month } = todayMonthYearInTimezone(timezone);
-      const count = await countAdmissionsAvailabilitySlotsInMonth(
-        supabase,
-        organizationId,
-        year,
-        month,
-      );
-      setMonthSlotCount(count);
+      const [slotCount, observationCount] = await Promise.all([
+        countAdmissionsAvailabilitySlotsInMonth(supabase, organizationId, year, month),
+        countObservationDaysInMonth(supabase, organizationId, year, month),
+      ]);
+      setMonthSlotCount(slotCount);
+      setMonthObservationDayCount(observationCount);
     } catch {
       setMonthSlotCount(0);
+      setMonthObservationDayCount(0);
     }
   }, [organizationId, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
-      void refreshCurrentMonthSlotCount();
+      void refreshCurrentMonthCounts();
     });
-  }, [refreshCurrentMonthSlotCount]);
+  }, [refreshCurrentMonthCounts]);
 
   const handleMonthSlotCountChange = useCallback((count: number) => {
     setMonthSlotCount(count);
   }, []);
 
-  const canAddStep = !readOnly && monthSlotCount !== null && monthSlotCount > 0;
+  const handleMonthObservationDayCountChange = useCallback((count: number) => {
+    setMonthObservationDayCount(count);
+  }, []);
+
+  const hasTimeSlotAvailability =
+    monthSlotCount !== null && monthSlotCount > 0;
+  const hasObservationAvailability =
+    monthObservationDayCount !== null && monthObservationDayCount > 0;
+
+  const canAddAnyStep =
+    !readOnly &&
+    monthSlotCount !== null &&
+    monthObservationDayCount !== null &&
+    (hasTimeSlotAvailability || hasObservationAvailability);
+
+  function canAddStepType(type: PostSubmitActionType): boolean {
+    if (readOnly) return false;
+    if (requiresTimeSlotAvailability(type)) return hasTimeSlotAvailability;
+    if (requiresObservationDayAvailability(type)) return hasObservationAvailability;
+    return false;
+  }
 
   useEffect(() => {
-    if (!canAddStep && templatePickerOpen) {
+    if (!canAddAnyStep && templatePickerOpen) {
       queueMicrotask(() => setTemplatePickerOpen(false));
     }
-  }, [canAddStep, templatePickerOpen]);
+  }, [canAddAnyStep, templatePickerOpen]);
 
   const inputStyle: React.CSSProperties = {
     backgroundColor: C.input,
@@ -358,8 +416,8 @@ export default function ApplicationFormPostSubmitEditor({
       <BuilderQuestionCard
         C={C}
         tone="info"
-        question="When are you available for visits?"
-        helper="Set open times so families can schedule visits after they apply."
+        question="When are you available for tours and interviews?"
+        helper="Set open time slots for campus tours and family interviews."
       >
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -375,7 +433,7 @@ export default function ApplicationFormPostSubmitEditor({
                 }}
               >
                 <CalendarClock className="h-3.5 w-3.5" />
-                Set availability
+                Set tour & interview times
               </button>
             ) : null}
             {monthSlotCount !== null && monthSlotCount > 0 ? (
@@ -395,13 +453,56 @@ export default function ApplicationFormPostSubmitEditor({
               </span>
             ) : null}
           </div>
+        </div>
+      </BuilderQuestionCard>
 
-          {monthSlotCount === 0 ? (
+      <BuilderQuestionCard
+        C={C}
+        tone="info"
+        question="When are shadow / observation days available?"
+        helper="Open whole school days for multi-day student shadow visits."
+      >
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {!readOnly ? (
+              <button
+                type="button"
+                onClick={() => setObservationAvailabilityModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium"
+                style={{
+                  backgroundColor: C.surface,
+                  color: C.accent,
+                  border: `1px solid ${C.secondaryBtnBorder}`,
+                }}
+              >
+                <CalendarClock className="h-3.5 w-3.5" />
+                Set shadow days
+              </button>
+            ) : null}
+            {monthObservationDayCount !== null && monthObservationDayCount > 0 ? (
+              <span
+                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                style={{ backgroundColor: C.accentLight, color: C.accent }}
+              >
+                {monthObservationDayCount} open day
+                {monthObservationDayCount === 1 ? "" : "s"} this month
+              </span>
+            ) : null}
+            {monthObservationDayCount === 0 ? (
+              <span
+                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                style={{ backgroundColor: C.warningBg, color: C.warning }}
+              >
+                No shadow days open this month
+              </span>
+            ) : null}
+          </div>
+
+          {monthObservationDayCount === 0 ? (
             <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
-              Open at least one visit time this month before adding a scheduling step.
+              Open at least one shadow day this month before adding an observation step.
             </p>
           ) : null}
-
         </div>
       </BuilderQuestionCard>
 
@@ -431,9 +532,9 @@ export default function ApplicationFormPostSubmitEditor({
                 <button
                   type="button"
                   onClick={() => {
-                    if (canAddStep) setTemplatePickerOpen(true);
+                    if (canAddAnyStep) setTemplatePickerOpen(true);
                   }}
-                  disabled={!canAddStep}
+                  disabled={!canAddAnyStep}
                   className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-60"
                   style={{
                     backgroundColor: C.accentLight,
@@ -444,9 +545,9 @@ export default function ApplicationFormPostSubmitEditor({
                   <Plus className="h-3.5 w-3.5" />
                   Add step
                 </button>
-                {monthSlotCount === 0 ? (
+                {monthSlotCount === 0 && monthObservationDayCount === 0 ? (
                   <p className="mt-2 max-w-xs text-center text-[11px] leading-relaxed">
-                    Set availability first to add your first step.
+                    Set tour times or shadow days first to add your first step.
                   </p>
                 ) : null}
               </>
@@ -477,9 +578,9 @@ export default function ApplicationFormPostSubmitEditor({
         <button
           type="button"
           onClick={() => {
-            if (canAddStep) setTemplatePickerOpen(true);
+            if (canAddAnyStep) setTemplatePickerOpen(true);
           }}
-          disabled={!canAddStep}
+          disabled={!canAddAnyStep}
           className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             backgroundColor: C.accentLight,
@@ -503,11 +604,20 @@ export default function ApplicationFormPostSubmitEditor({
         onMonthSlotCountChange={handleMonthSlotCountChange}
       />
 
+      <AdmissionsObservationDayAvailabilityModal
+        C={C}
+        open={observationAvailabilityModalOpen}
+        onClose={() => setObservationAvailabilityModalOpen(false)}
+        organizationId={organizationId}
+        readOnly={readOnly}
+        onMonthDayCountChange={handleMonthObservationDayCountChange}
+      />
+
       <PostSubmitTemplatePickerModal
         C={C}
-        open={templatePickerOpen && canAddStep && availableTypes.length > 0}
+        open={templatePickerOpen && canAddAnyStep && availableTypes.length > 0}
         onClose={() => setTemplatePickerOpen(false)}
-        availableTypes={availableTypes}
+        availableTypes={availableTypes.filter((type) => canAddStepType(type))}
         onSelect={addAction}
       />
 

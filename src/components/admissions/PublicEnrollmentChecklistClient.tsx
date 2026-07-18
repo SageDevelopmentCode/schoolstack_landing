@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
 import EnrollmentChecklistExperience from "@/components/admissions/EnrollmentChecklistExperience";
 import EnrollmentCompleteModal from "@/components/admissions/EnrollmentCompleteModal";
-import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
 import type { LoadedEnrollmentChecklist } from "@/lib/admissions/enrollment-checklist-materialization";
+import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -15,8 +16,10 @@ type PublicEnrollmentChecklistClientProps = {
   schoolSlug: string;
   organizationId: string;
   checklist: LoadedEnrollmentChecklist;
+  parentPortalHref?: string;
   previewMode?: boolean;
   backHref?: string;
+  userProfile?: FamilyUserProfile;
 };
 
 function celebrationStorageKey(checklistId: string) {
@@ -33,8 +36,10 @@ export default function PublicEnrollmentChecklistClient({
   schoolSlug,
   organizationId,
   checklist,
+  parentPortalHref,
   previewMode = false,
   backHref,
+  userProfile,
 }: PublicEnrollmentChecklistClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const router = useRouter();
@@ -119,8 +124,23 @@ export default function PublicEnrollmentChecklistClient({
     maybeShowCelebration("completed", checklist.checklistId);
   }, [checklist.checklistId, maybeShowCelebration]);
 
+  const resolvedProfile = userProfile ?? {
+    email: "",
+    displayName: "Preview",
+  };
+
   return (
-    <ApplicationFormPageShell branding={branding}>
+    <ApplyPortalPageShell
+      branding={branding}
+      schoolName={schoolName}
+      schoolSlug={schoolSlug}
+      userEmail={resolvedProfile.email}
+      userDisplayName={resolvedProfile.displayName}
+      previewMode={previewMode}
+      previewHomeHref={backHref}
+      fullBleed
+      fillHeight
+    >
       <EnrollmentChecklistExperience
         branding={branding}
         schoolName={schoolName}
@@ -148,9 +168,11 @@ export default function PublicEnrollmentChecklistClient({
         C={C}
         open={!previewMode && showCompleteModal}
         schoolName={schoolName}
-        schoolSlug={schoolSlug}
+        parentPortalHref={
+          parentPortalHref ?? `/school/${schoolSlug}/parent/portal`
+        }
         onClose={() => setShowCompleteModal(false)}
       />
-    </ApplicationFormPageShell>
+    </ApplyPortalPageShell>
   );
 }
