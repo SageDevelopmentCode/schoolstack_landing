@@ -175,12 +175,15 @@ export default function ApplicationFormExperience({
     () => copyableApplications[0]?.id ?? "",
   );
   const [importing, setImporting] = useState(false);
+  const [bulkCopyExpanded, setBulkCopyExpanded] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   const currentStep = steps[stepIndex];
   const totalSteps = steps.length;
   const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === totalSteps - 1;
+  const showBulkCopyPanel =
+    isFirstStep && copyableApplications.length > 0 && !!onImportResponses;
 
   const stepLabel = getStepLabel(currentStep, schema, stepIndex, totalSteps);
 
@@ -379,6 +382,7 @@ export default function ApplicationFormExperience({
     setSaveError(null);
     try {
       await onImportResponses(bulkCopySourceId);
+      setBulkCopyExpanded(false);
     } catch (error) {
       setSaveError(
         error instanceof Error ? error.message : "Failed to copy previous answers.",
@@ -526,47 +530,76 @@ export default function ApplicationFormExperience({
             ))}
           </div>
 
-          {isFirstStep && copyableApplications.length > 0 && onImportResponses ? (
+          {showBulkCopyPanel ? (
             <div
-              className="mb-6 rounded-lg border px-4 py-4"
+              className={`mb-6 rounded-lg border px-4 ${bulkCopyExpanded ? "py-4" : "py-3"}`}
               style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
             >
-              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                Applying for another child?
-              </p>
-              <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-                Copy answers from a previous application, then update student-specific
-                details.
-              </p>
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <select
-                  value={bulkCopySourceId}
-                  onChange={(event) => setBulkCopySourceId(event.target.value)}
-                  className="w-full rounded-md border px-3 py-2 text-sm sm:max-w-xs"
-                  style={{
-                    borderColor: C.inputBorder,
-                    backgroundColor: C.input,
-                    color: C.textPrimary,
-                  }}
-                >
-                  {copyableApplications.map((application) => (
-                    <option key={application.id} value={application.id}>
-                      {application.label}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  Applying for another child?
+                </p>
                 <button
                   type="button"
-                  onClick={() => void handleBulkCopy()}
-                  disabled={importing || !bulkCopySourceId}
-                  className={`rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                  style={getAdminButtonStyle(C, "primary")}
+                  onClick={() =>
+                    bulkCopyExpanded
+                      ? setBulkCopyExpanded(false)
+                      : setBulkCopyExpanded(true)
+                  }
+                  aria-expanded={bulkCopyExpanded}
+                  aria-controls="bulk-copy-panel"
+                  className="shrink-0 text-sm font-medium underline-offset-2 hover:underline"
+                  style={{ color: C.accent }}
                 >
-                  <ButtonLoadingLabel loading={importing} loadingLabel="Copying…">
-                    Copy answers
-                  </ButtonLoadingLabel>
+                  {bulkCopyExpanded ? "Cancel" : "Copy answers"}
                 </button>
               </div>
+              <AnimatePresence initial={false}>
+                {bulkCopyExpanded ? (
+                  <motion.div
+                    id="bulk-copy-panel"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
+                      Copy answers from a previous application, then update
+                      student-specific details.
+                    </p>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <select
+                        value={bulkCopySourceId}
+                        onChange={(event) => setBulkCopySourceId(event.target.value)}
+                        className="w-full rounded-md border px-3 py-2 text-sm sm:max-w-xs"
+                        style={{
+                          borderColor: C.inputBorder,
+                          backgroundColor: C.input,
+                          color: C.textPrimary,
+                        }}
+                      >
+                        {copyableApplications.map((application) => (
+                          <option key={application.id} value={application.id}>
+                            {application.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void handleBulkCopy()}
+                        disabled={importing || !bulkCopySourceId}
+                        className={`rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
+                        style={getAdminButtonStyle(C, "primary")}
+                      >
+                        <ButtonLoadingLabel loading={importing} loadingLabel="Copying…">
+                          Copy answers
+                        </ButtonLoadingLabel>
+                      </button>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
             </div>
           ) : null}
 
@@ -601,6 +634,7 @@ export default function ApplicationFormExperience({
                   onReuseField={(fieldId) => void handleReuseField(fieldId)}
                   supabase={supabase ?? undefined}
                   uploadContext={uploadContext}
+                  hideStepNotice={showBulkCopyPanel}
                 />
               ) : null}
             </motion.div>
@@ -745,6 +779,7 @@ function SectionStep({
   onReuseField,
   supabase,
   uploadContext,
+  hideStepNotice,
 }: {
   C: ReturnType<typeof buildAdminThemeTokens>;
   section: ApplicationSection;
@@ -754,8 +789,10 @@ function SectionStep({
   onReuseField?: (fieldId: string) => void;
   supabase?: SupabaseClient;
   uploadContext?: ApplicationFileUploadContext;
+  hideStepNotice?: boolean;
 }) {
   const topNotice =
+    !hideStepNotice &&
     section.stepNotice?.body.trim() &&
     section.stepNotice.placement === "top"
       ? section.stepNotice.body.trim()

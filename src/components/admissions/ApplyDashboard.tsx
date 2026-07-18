@@ -19,7 +19,6 @@ import type { EnrollmentProgressSummary } from "@/lib/admissions/enrollment-chec
 import { formatInstantInTimezone } from "@/lib/admissions/admissions-availability";
 import { fireEnrollmentConfetti } from "@/lib/enrollment-confetti";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type ApplyDashboardProps = {
@@ -199,8 +198,12 @@ export default function ApplyDashboard({
             {!previewMode ? (
             <Link
               href={`/school/${schoolSlug}/forms/apply?new=1`}
-              className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 sm:w-auto"
-              style={getAdminButtonStyle(C, "primary")}
+              className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-dashed px-4 py-2.5 text-sm font-medium transition hover:opacity-90 sm:w-auto"
+              style={{
+                color: C.accent,
+                borderColor: `color-mix(in srgb, ${C.accent} 30%, transparent)`,
+                backgroundColor: "transparent",
+              }}
             >
               <Plus className="h-4 w-4 shrink-0" />
               New application
@@ -296,8 +299,8 @@ export default function ApplyDashboard({
                     </div>
                     <Link
                       href={action.href}
-                      className="inline-flex w-full shrink-0 items-center justify-center gap-1.5 rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 sm:w-auto"
-                      style={getAdminButtonStyle(C, "primary")}
+                      className="inline-flex shrink-0 items-center gap-1.5 self-end text-sm font-medium underline-offset-2 transition hover:underline sm:self-center"
+                      style={{ color: C.accent }}
                     >
                       {action.label}
                       <ArrowRight className="h-4 w-4" />

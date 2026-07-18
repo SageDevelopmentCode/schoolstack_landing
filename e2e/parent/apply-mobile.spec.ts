@@ -18,9 +18,6 @@ test.describe("mobile apply flows", () => {
     const cta = page.getByRole("link", { name: /View|Continue|enrollment/i }).first();
     await expect(cta).toBeVisible();
 
-    const box = await cta.boundingBox();
-    expect(box?.width ?? 0).toBeGreaterThan(200);
-
     const hasHorizontalOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
