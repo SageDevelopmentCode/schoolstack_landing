@@ -25,8 +25,15 @@ jobs:
       - name: Allow Chromium user namespaces (Ubuntu 24.04+)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
+      - name: Install pinned Chrome for Lighthouse
+        uses: browser-actions/setup-chrome@v2
+        id: setup-chrome
+        with:
+          chrome-version: 141
+          install-dependencies: true
+
       - name: Configure Chrome path
-        run: echo "CHROME_PATH=$(which google-chrome-stable)" >> "$GITHUB_ENV"
+        run: echo "CHROME_PATH=${{ steps.setup-chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
 
       - name: Build production app
         run: npm run build

@@ -15,6 +15,8 @@ module.exports = {
         preset: "perf",
         formFactor: "mobile",
         screenEmulation: { mobile: true },
+        maxWaitForLoad: 90000,
+        disableStorageReset: true,
         chromeFlags: process.env.CI
           ? "--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
           : "--headless",

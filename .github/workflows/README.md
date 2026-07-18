@@ -59,6 +59,7 @@ Common signals:
 | Log message | Cause |
 |-------------|-------|
 | `Unable to connect to Chrome` | Chrome did not start in CI — check `lighthouserc.js` `chromeFlags` and the workflow Chrome setup |
+| `Protocol error (Page.enable)` or `frame_sequence` | Lighthouse/Chrome version mismatch — CI pins Chrome 141 to match Lighthouse 12.8.2; do not use `ubuntu-latest`'s system Chrome (often Chrome 150+) |
 | `GitHub token not set` | Harmless — reports upload to `.lighthouseci/` on disk, not the LHCI server |
 | Upload step skipped | Lighthouse step failed (`if: success()`), or Supabase secrets are not configured |
 

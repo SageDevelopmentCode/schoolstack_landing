@@ -41,7 +41,7 @@
     "stripe": "^22.3.0"
   },
   "devDependencies": {
-    "@lhci/cli": "^0.14.0",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -52,11 +52,14 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
-    "lighthouse": "^12.8.2",
+    "lighthouse": "12.8.2",
     "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "tsx": "^4.22.0",
     "typescript": "^5",
     "ws": "^8.21.0"
+  },
+  "overrides": {
+    "lighthouse": "12.8.2"
   }
 }
