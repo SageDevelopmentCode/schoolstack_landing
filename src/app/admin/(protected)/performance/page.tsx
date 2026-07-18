@@ -551,12 +551,12 @@ export default function AdminPerformancePage() {
     >
       <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
         <div className="flex items-center gap-1 rounded-lg border border-border p-1">
-          {(["production", "local"] as const).map((value) => (
+          {(["production", "local", "ci"] as const).map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => setEnvironment(value)}
-              className={`rounded-md px-3 py-1.5 text-sm capitalize transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm uppercase transition-colors ${
                 environment === value
                   ? "bg-clay-soft text-clay font-medium"
                   : "text-text-muted hover:text-text"
@@ -599,7 +599,7 @@ export default function AdminPerformancePage() {
 
         <button
           type="button"
-          disabled={runningAll || !canRunBulk}
+          disabled={environment === "ci" || runningAll || !canRunBulk}
           onClick={() => void runAudit(bulkPageIds)}
           className="rounded-lg bg-clay px-3 py-2 text-sm font-medium text-white hover:bg-clay/90 disabled:opacity-60"
         >
@@ -609,14 +609,21 @@ export default function AdminPerformancePage() {
         </button>
 
         <span className="rounded-full border border-border bg-bg px-2.5 py-1 text-xs text-text-muted">
-          {environment === "local"
-            ? pendingLocalRuns > 0
-              ? `${pendingLocalRuns} pending local run${pendingLocalRuns === 1 ? "" : "s"}`
-              : "Runner idle"
-            : "PSI synchronous"}
+          {environment === "ci"
+            ? "GitHub Actions PR audits"
+            : environment === "local"
+              ? pendingLocalRuns > 0
+                ? `${pendingLocalRuns} pending local run${pendingLocalRuns === 1 ? "" : "s"}`
+                : "Runner idle"
+              : "PSI synchronous"}
         </span>
 
-        {environment === "local" ? (
+        {environment === "ci" ? (
+          <p className="w-full text-xs text-text-faint">
+            CI results are uploaded automatically from pull request Lighthouse runs.
+            Only marketing pages in the PR gate are audited here.
+          </p>
+        ) : environment === "local" ? (
           <p className="w-full text-xs text-text-faint">
             Auth-gated school pages audit the login screen locally until Phase 2 adds
             Playwright login.
@@ -732,7 +739,7 @@ export default function AdminPerformancePage() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          disabled={isRunning || runningAll}
+                          disabled={environment === "ci" || isRunning || runningAll}
                           onClick={() => void runAudit([page.id])}
                           className="rounded-md border border-border px-2 py-1 text-xs hover:bg-surface-soft disabled:opacity-60"
                         >

@@ -15,6 +15,7 @@
 .email-previews
 /test-results/
 /playwright-report/
+/.lighthouseci/
 
 # next.js
 /.next/

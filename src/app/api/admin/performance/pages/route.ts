@@ -86,22 +86,35 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const environmentParam = url.searchParams.get("environment");
     const environment: AuditEnvironment =
-      environmentParam === "local" ? "local" : "production";
+      environmentParam === "local"
+        ? "local"
+        : environmentParam === "ci"
+          ? "ci"
+          : "production";
 
     const admin = createAdminClient();
-    const [{ count: pendingLocalRuns }, productionLatest, localLatest] =
-      await Promise.all([
-        admin
-          .from("performance_audit_runs")
-          .select("*", { count: "exact", head: true })
-          .eq("environment", "local")
-          .eq("status", "pending"),
-        loadLatestResults("production"),
-        loadLatestResults("local"),
-      ]);
+    const [
+      { count: pendingLocalRuns },
+      productionLatest,
+      localLatest,
+      ciLatest,
+    ] = await Promise.all([
+      admin
+        .from("performance_audit_runs")
+        .select("*", { count: "exact", head: true })
+        .eq("environment", "local")
+        .eq("status", "pending"),
+      loadLatestResults("production"),
+      loadLatestResults("local"),
+      loadLatestResults("ci"),
+    ]);
 
     const latest =
-      environment === "local" ? localLatest : productionLatest;
+      environment === "local"
+        ? localLatest
+        : environment === "ci"
+          ? ciLatest
+          : productionLatest;
 
     const pages = getPerformancePageManifest().map((page) => ({
       ...page,

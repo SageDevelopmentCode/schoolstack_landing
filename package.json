@@ -17,7 +17,9 @@
     "import-schools": "tsx scripts/import-schools-csv.ts",
     "preview:emails": "tsx scripts/preview-emails.ts",
     "performance:audit": "tsx scripts/run-performance-audits.ts",
-    "performance:audit:watch": "tsx scripts/run-performance-audits.ts --watch"
+    "performance:audit:watch": "tsx scripts/run-performance-audits.ts --watch",
+    "performance:ci": "lhci autorun",
+    "performance:ci:upload": "tsx scripts/upload-lhci-results.ts"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.63.0",
@@ -39,6 +41,7 @@
     "stripe": "^22.3.0"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.14.0",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

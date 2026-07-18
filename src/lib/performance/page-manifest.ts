@@ -125,7 +125,7 @@ export function getPageTargetById(pageId: string): PageTarget | undefined {
 }
 
 export function resolvePageBaseUrl(environment: AuditEnvironment): string {
-  if (environment === "local") {
+  if (environment === "local" || environment === "ci") {
     return (
       process.env.PERFORMANCE_LOCAL_BASE_URL?.replace(/\/$/, "") ??
       "http://localhost:3000"

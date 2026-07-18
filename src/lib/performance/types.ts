@@ -1,4 +1,4 @@
-export type AuditEnvironment = "production" | "local";
+export type AuditEnvironment = "production" | "local" | "ci";
 export type AuditFormFactor = "mobile" | "desktop";
 export type AuditRunStatus = "pending" | "running" | "completed" | "failed";
 export type AuditResultStatus = "success" | "failed" | "skipped";
