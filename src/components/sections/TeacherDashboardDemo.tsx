@@ -4499,10 +4499,12 @@ export default function TeacherDashboardDemo({
   initialTab = "dashboard",
   disableTour = false,
   hideNav = false,
+  onMount,
 }: {
   initialTab?: NavTab;
   disableTour?: boolean;
   hideNav?: boolean;
+  onMount?: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<NavTab>(initialTab);
   const [sessionsByDay, setSessionsByDay] =
@@ -4511,6 +4513,11 @@ export default function TeacherDashboardDemo({
   const [bannerIndex, setBannerIndex] = useState(() =>
     Math.floor(Math.random() * BANNER_IMAGES.length),
   );
+
+  useEffect(() => {
+    onMount?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Lifted state for tour control ──────────────────────────────────────────
   const [msgDraft, setMsgDraft] = useState("");
@@ -5088,7 +5095,7 @@ export default function TeacherDashboardDemo({
             {/* Logo */}
             <div className="shrink-0">
               <Image
-                src="/images/Logo.png"
+                src="/images/Logo.webp"
                 alt="SchoolLayer"
                 width={96}
                 height={32}

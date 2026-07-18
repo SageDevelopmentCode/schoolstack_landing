@@ -75,10 +75,10 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-white/35">
+          <p className="text-xs text-white/70">
             © 2026 MudKitchen. All rights reserved.
           </p>
-          <p className="text-xs text-white/35">
+          <p className="text-xs text-white/70">
             🏫 Made for microschool founders, by people who get it.
           </p>
         </div>

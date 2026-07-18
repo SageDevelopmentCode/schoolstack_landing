@@ -8,7 +8,7 @@ export default function HomeFaqSection() {
       className="bg-surface py-24"
     >
       <div className="max-w-[760px] mx-auto px-6 lg:px-16">
-        <p className="text-[13px] font-medium uppercase tracking-widest text-text-faint mb-3">
+        <p className="text-[13px] font-medium uppercase tracking-widest text-text-muted mb-3">
           FAQ
         </p>
         <h2

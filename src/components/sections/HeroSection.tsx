@@ -7,8 +7,6 @@ import {
   LazyAdminDashboardDemo,
   LazyTeacherDashboardDemo,
   LazyParentDashboardDemo,
-  prefetchAdminDemo,
-  prefetchTeacherDemo,
   prefetchParentDemo,
 } from './lazyDemos'
 import { DemoSkeleton } from '@/components/ui/DemoSkeleton'
@@ -25,20 +23,23 @@ const DEMO_TABS = [
 const DEMO_WIDTH = 1100
 const DEMO_HEIGHT = 680
 const VISIBLE_FRACTION = 0.75
-const HERO_DEMO_DELAY_MS = 1000
 
 function HeroDemoPanels({
   demoTab,
   loadedTabs,
+  readyTabs,
+  onTabReady,
 }: {
   demoTab: HeroDemoTab
   loadedTabs: Set<HeroDemoTab>
+  readyTabs: Set<HeroDemoTab>
+  onTabReady: (tab: HeroDemoTab) => void
 }) {
-  const showInteractive = loadedTabs.has(demoTab)
+  const showSkeleton = !loadedTabs.has(demoTab) || !readyTabs.has(demoTab)
 
   return (
     <>
-      {!showInteractive && (
+      {showSkeleton && (
         <div className="absolute inset-0 z-10">
           <DemoSkeleton className="rounded-t-xl" />
         </div>
@@ -47,33 +48,39 @@ function HeroDemoPanels({
         <div
           inert
           className={`absolute inset-0 transition-opacity duration-200 ${
-            demoTab === 'parent' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+            demoTab === 'parent' && readyTabs.has('parent')
+              ? 'opacity-100 z-10'
+              : 'opacity-0 z-0 pointer-events-none'
           }`}
           aria-hidden={demoTab !== 'parent'}
         >
-          <LazyParentDashboardDemo />
+          <LazyParentDashboardDemo onMount={() => onTabReady('parent')} />
         </div>
       )}
       {loadedTabs.has('teacher') && (
         <div
           inert
           className={`absolute inset-0 transition-opacity duration-200 ${
-            demoTab === 'teacher' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+            demoTab === 'teacher' && readyTabs.has('teacher')
+              ? 'opacity-100 z-10'
+              : 'opacity-0 z-0 pointer-events-none'
           }`}
           aria-hidden={demoTab !== 'teacher'}
         >
-          <LazyTeacherDashboardDemo />
+          <LazyTeacherDashboardDemo onMount={() => onTabReady('teacher')} />
         </div>
       )}
       {loadedTabs.has('admin') && (
         <div
           inert
           className={`absolute inset-0 transition-opacity duration-200 ${
-            demoTab === 'admin' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+            demoTab === 'admin' && readyTabs.has('admin')
+              ? 'opacity-100 z-10'
+              : 'opacity-0 z-0 pointer-events-none'
           }`}
           aria-hidden={demoTab !== 'admin'}
         >
-          <LazyAdminDashboardDemo />
+          <LazyAdminDashboardDemo onMount={() => onTabReady('admin')} />
         </div>
       )}
       <div
@@ -88,12 +95,16 @@ function HeroDemoFrame({
   t,
   demoTab,
   loadedTabs,
+  readyTabs,
+  onTabReady,
   boxShadow,
   className,
 }: {
   t: boolean
   demoTab: HeroDemoTab
   loadedTabs: Set<HeroDemoTab>
+  readyTabs: Set<HeroDemoTab>
+  onTabReady: (tab: HeroDemoTab) => void
   boxShadow: string
   className: string
 }) {
@@ -102,7 +113,12 @@ function HeroDemoFrame({
   return (
     <div className={`${className} ${frameClasses}`} style={{ boxShadow }}>
       <div className="relative w-full h-full">
-        <HeroDemoPanels demoTab={demoTab} loadedTabs={loadedTabs} />
+        <HeroDemoPanels
+          demoTab={demoTab}
+          loadedTabs={loadedTabs}
+          readyTabs={readyTabs}
+          onTabReady={onTabReady}
+        />
       </div>
     </div>
   )
@@ -112,10 +128,14 @@ function HeroScaledDemoFrame({
   t,
   demoTab,
   loadedTabs,
+  readyTabs,
+  onTabReady,
 }: {
   t: boolean
   demoTab: HeroDemoTab
   loadedTabs: Set<HeroDemoTab>
+  readyTabs: Set<HeroDemoTab>
+  onTabReady: (tab: HeroDemoTab) => void
 }) {
   const clipRef = useRef<HTMLDivElement>(null)
   const { scale, isMobileLayout } = useMobileDemoScale(clipRef, DEMO_WIDTH, VISIBLE_FRACTION)
@@ -150,6 +170,8 @@ function HeroScaledDemoFrame({
             t={t}
             demoTab={demoTab}
             loadedTabs={loadedTabs}
+            readyTabs={readyTabs}
+            onTabReady={onTabReady}
             boxShadow={boxShadow}
             className="w-full h-full"
           />
@@ -162,15 +184,16 @@ function HeroScaledDemoFrame({
 export default function HeroSection() {
   const [demoTab, setDemoTab] = useState<HeroDemoTab>('parent')
   const [loadedTabs, setLoadedTabs] = useState<Set<HeroDemoTab>>(() => new Set())
+  const [readyTabs, setReadyTabs] = useState<Set<HeroDemoTab>>(() => new Set())
   const t = demoTab === 'parent'
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setLoadedTabs((prev) => new Set(prev).add('parent'))
-      prefetchParentDemo()
-    }, HERO_DEMO_DELAY_MS)
+    setLoadedTabs((prev) => new Set(prev).add('parent'))
+    prefetchParentDemo()
+  }, [])
 
-    return () => window.clearTimeout(timer)
+  const handleTabReady = useCallback((tab: HeroDemoTab) => {
+    setReadyTabs((prev) => new Set(prev).add(tab))
   }, [])
 
   const handleDemoTabChange = useCallback((id: HeroDemoTab) => {
@@ -228,7 +251,7 @@ export default function HeroSection() {
           </h1>
 
           <p
-            className={`hero-enter text-[17px] md:text-[18px] leading-relaxed mt-6 transition-colors duration-500 ${t ? 'text-[#2E4A3C]/65' : 'text-white/65'}`}
+            className={`hero-enter text-[17px] md:text-[18px] leading-relaxed mt-6 transition-colors duration-500 ${t ? 'text-[#2E4A3C]/80' : 'text-white/80'}`}
             style={{ '--hero-delay': '180ms' } as React.CSSProperties}
           >
             MudKitchen keeps parents, teachers, and administrators aligned with enrollment, communication, billing, and more&mdash;so you can focus on what matters most: your students.
@@ -270,15 +293,10 @@ export default function HeroSection() {
               <button
                 key={tab.id}
                 onClick={() => handleDemoTabChange(tab.id)}
-                onMouseEnter={() => {
-                  if (tab.id === 'admin') prefetchAdminDemo()
-                  else if (tab.id === 'teacher') prefetchTeacherDemo()
-                  else prefetchParentDemo()
-                }}
                 className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   demoTab === tab.id
                     ? t ? 'bg-[#2E4A3C] text-white shadow-sm' : 'bg-white text-[#2E4A3C] shadow-sm'
-                    : t ? 'text-[#2E4A3C]/50 hover:text-[#2E4A3C]/80' : 'text-white/50 hover:text-white/80'
+                    : t ? 'text-[#2E4A3C]/60 hover:text-[#2E4A3C]/80' : 'text-white/75 hover:text-white/90'
                 }`}
               >
                 <tab.icon size={13} />
@@ -292,11 +310,12 @@ export default function HeroSection() {
           <div />
         </div>
 
-        {/* Autoplay tour demo (non-interactive) */}
         <HeroScaledDemoFrame
           t={t}
           demoTab={demoTab}
           loadedTabs={loadedTabs}
+          readyTabs={readyTabs}
+          onTabReady={handleTabReady}
         />
 
       </div>

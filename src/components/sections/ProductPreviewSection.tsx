@@ -290,18 +290,20 @@ export default function ProductPreviewSection() {
 
         <FadeInView delay={0.1}>
           {/* Mobile tab bar */}
-          <div
-            className="lg:hidden w-full flex flex-col gap-2 bg-surface border border-border rounded-xl shadow-xs p-2"
-            role="tablist"
-            aria-label="Product modules"
-          >
-            <div className="grid grid-cols-4 gap-1 rounded-lg bg-surface-muted p-1">
+          <div className="lg:hidden w-full flex flex-col gap-2 bg-surface border border-border rounded-xl shadow-xs p-2">
+            <div
+              role="radiogroup"
+              aria-label="Product category"
+              className="grid grid-cols-4 gap-1 rounded-lg bg-surface-muted p-1"
+            >
               {GROUP_META.map((group) => {
                 const isActiveGroup = activeGroup === group.id
                 return (
                   <button
                     key={group.id}
                     type="button"
+                    role="radio"
+                    aria-checked={isActiveGroup}
                     onClick={() => handleGroupChange(group.id)}
                     className={`min-h-10 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-all duration-200 touch-manipulation focus-visible:outline-2 focus-visible:outline-accent ${
                       isActiveGroup
@@ -309,14 +311,17 @@ export default function ProductPreviewSection() {
                         : 'text-text-muted'
                     }`}
                     style={isActiveGroup ? { color: GROUP_COLORS[group.id] } : undefined}
-                    aria-pressed={isActiveGroup}
                   >
                     {group.label}
                   </button>
                 )
               })}
             </div>
-            <div className="flex gap-1.5">
+            <div
+              role="tablist"
+              aria-label="Product modules"
+              className="flex gap-1.5"
+            >
               {activeGroupTabs.map((tab) => {
                 const flatIndex = TABS.findIndex((t) => t.id === tab.id)
                 return (
@@ -325,7 +330,6 @@ export default function ProductPreviewSection() {
                     ref={(el) => { if (el) tabRefs.current.set(tab.id, el) }}
                     role="tab"
                     aria-selected={activeTab === tab.id}
-                    aria-controls={`tabpanel-${tab.id}`}
                     onClick={() => handleTabChange(tab.id)}
                     onMouseEnter={() => prefetchTab(tab.id)}
                     onKeyDown={(e) => handleKeyDown(e, flatIndex)}
@@ -374,7 +378,6 @@ export default function ProductPreviewSection() {
                           ref={(el) => { if (el) tabRefs.current.set(tab.id, el) }}
                           role="tab"
                           aria-selected={activeTab === tab.id}
-                          aria-controls={`tabpanel-${tab.id}`}
                           onClick={() => handleTabChange(tab.id)}
                           onMouseEnter={() => prefetchTab(tab.id)}
                           onKeyDown={(e) => handleKeyDown(e, flatIndex)}
@@ -450,60 +453,72 @@ function ProductScaledDemoFrame({
   loadedTabs: Set<TabId>
 }) {
   return (
-    <InViewDemoGate>
-      <LandingScaledDemoFrame className="mt-6" preventHorizontalScroll>
+    <LandingScaledDemoFrame className="mt-6" preventHorizontalScroll>
       <div className="relative">
-        {loadedTabs.has('admin') && (
-          <TabPanel visible={activeTab === 'admin'} id="admin" caption={TABS.find((t) => t.id === 'admin')!.caption}>
-            <DemoInteractionGuard>
-              <LazyAdminDashboardDemo disableTour />
-            </DemoInteractionGuard>
-          </TabPanel>
-        )}
-        {loadedTabs.has('website') && (
-          <TabPanel visible={activeTab === 'website'} id="website" caption={TABS.find((t) => t.id === 'website')!.caption}>
-            <DemoInteractionGuard>
-              <LazyWebsiteDashboardDemo disableTour />
-            </DemoInteractionGuard>
-          </TabPanel>
-        )}
-        {loadedTabs.has('enrollment') && (
-          <TabPanel visible={activeTab === 'enrollment'} id="enrollment" caption={TABS.find((t) => t.id === 'enrollment')!.caption}>
-            <DemoInteractionGuard>
-              <LazyParentDashboardDemo initialTab="enrollment" disableTour hideNav />
-            </DemoInteractionGuard>
-          </TabPanel>
-        )}
-        {loadedTabs.has('parents') && (
-          <TabPanel visible={activeTab === 'parents'} id="parents" caption={TABS.find((t) => t.id === 'parents')!.caption}>
-            <DemoInteractionGuard>
-              <LazyParentDashboardDemo initialTab="billing" disableTour hideNav />
-            </DemoInteractionGuard>
-          </TabPanel>
-        )}
-        {loadedTabs.has('teachers') && (
-          <TabPanel visible={activeTab === 'teachers'} id="teachers" caption={TABS.find((t) => t.id === 'teachers')!.caption}>
-            <DemoInteractionGuard>
-              <LazyTeacherDashboardDemo initialTab="attendance" disableTour hideNav />
-            </DemoInteractionGuard>
-          </TabPanel>
-        )}
-        {loadedTabs.has('marketing') && (
-          <TabPanel visible={activeTab === 'marketing'} id="marketing" caption={TABS.find((t) => t.id === 'marketing')!.caption}>
-            <DemoInteractionGuard>
-              <LazyAdminDashboardDemo initialPage="marketing" disableTour hideNav />
-            </DemoInteractionGuard>
-          </TabPanel>
-        )}
-        {loadedTabs.has('timeclock') && (
-          <TabPanel visible={activeTab === 'timeclock'} id="timeclock" caption={TABS.find((t) => t.id === 'timeclock')!.caption}>
-            <DemoInteractionGuard>
-              <LazyTeacherDashboardDemo initialTab="hours" disableTour hideNav />
-            </DemoInteractionGuard>
-          </TabPanel>
-        )}
+        <TabPanel visible={activeTab === 'admin'} id="admin" caption={TABS.find((t) => t.id === 'admin')!.caption}>
+          <InViewDemoGate>
+            {loadedTabs.has('admin') && (
+              <DemoInteractionGuard>
+                <LazyAdminDashboardDemo disableTour />
+              </DemoInteractionGuard>
+            )}
+          </InViewDemoGate>
+        </TabPanel>
+        <TabPanel visible={activeTab === 'website'} id="website" caption={TABS.find((t) => t.id === 'website')!.caption}>
+          <InViewDemoGate>
+            {loadedTabs.has('website') && (
+              <DemoInteractionGuard>
+                <LazyWebsiteDashboardDemo disableTour />
+              </DemoInteractionGuard>
+            )}
+          </InViewDemoGate>
+        </TabPanel>
+        <TabPanel visible={activeTab === 'enrollment'} id="enrollment" caption={TABS.find((t) => t.id === 'enrollment')!.caption}>
+          <InViewDemoGate>
+            {loadedTabs.has('enrollment') && (
+              <DemoInteractionGuard>
+                <LazyParentDashboardDemo initialTab="enrollment" disableTour hideNav />
+              </DemoInteractionGuard>
+            )}
+          </InViewDemoGate>
+        </TabPanel>
+        <TabPanel visible={activeTab === 'parents'} id="parents" caption={TABS.find((t) => t.id === 'parents')!.caption}>
+          <InViewDemoGate>
+            {loadedTabs.has('parents') && (
+              <DemoInteractionGuard>
+                <LazyParentDashboardDemo initialTab="billing" disableTour hideNav />
+              </DemoInteractionGuard>
+            )}
+          </InViewDemoGate>
+        </TabPanel>
+        <TabPanel visible={activeTab === 'teachers'} id="teachers" caption={TABS.find((t) => t.id === 'teachers')!.caption}>
+          <InViewDemoGate>
+            {loadedTabs.has('teachers') && (
+              <DemoInteractionGuard>
+                <LazyTeacherDashboardDemo initialTab="attendance" disableTour hideNav />
+              </DemoInteractionGuard>
+            )}
+          </InViewDemoGate>
+        </TabPanel>
+        <TabPanel visible={activeTab === 'marketing'} id="marketing" caption={TABS.find((t) => t.id === 'marketing')!.caption}>
+          <InViewDemoGate>
+            {loadedTabs.has('marketing') && (
+              <DemoInteractionGuard>
+                <LazyAdminDashboardDemo initialPage="marketing" disableTour hideNav />
+              </DemoInteractionGuard>
+            )}
+          </InViewDemoGate>
+        </TabPanel>
+        <TabPanel visible={activeTab === 'timeclock'} id="timeclock" caption={TABS.find((t) => t.id === 'timeclock')!.caption}>
+          <InViewDemoGate>
+            {loadedTabs.has('timeclock') && (
+              <DemoInteractionGuard>
+                <LazyTeacherDashboardDemo initialTab="hours" disableTour hideNav />
+              </DemoInteractionGuard>
+            )}
+          </InViewDemoGate>
+        </TabPanel>
       </div>
     </LandingScaledDemoFrame>
-    </InViewDemoGate>
   )
 }

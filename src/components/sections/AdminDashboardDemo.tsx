@@ -23609,7 +23609,7 @@ function Sidebar({
         }}
       >
         <Image
-          src="/images/Logo.png"
+          src="/images/Logo.webp"
           alt="SchoolLayer"
           width={isExpanded ? 120 : 28}
           height={28}
@@ -23641,7 +23641,7 @@ function Sidebar({
           }}
         >
           <Image
-            src="/images/Logo.png"
+            src="/images/Logo.webp"
             alt=""
             width={20}
             height={20}
@@ -24056,6 +24056,7 @@ export default function AdminDashboardDemo({
   autoSendEnrollmentLink,
   hideNav = false,
   defaultSidebarExpanded = true,
+  onMount,
 }: {
   disableTour?: boolean
   initialPage?: ActivePage
@@ -24066,6 +24067,7 @@ export default function AdminDashboardDemo({
   autoSendEnrollmentLink?: boolean
   hideNav?: boolean
   defaultSidebarExpanded?: boolean
+  onMount?: () => void
 }) {
   const [activePage, setActivePage] = useState<ActivePage>(initialPage);
   const [admissionsTab, setAdmissionsTab] = useState<AdmissionsTab>(initialAdmissionsTab);
@@ -24084,6 +24086,11 @@ export default function AdminDashboardDemo({
     openBackdrop: (onClose: () => void) => setBackdropClose(() => onClose),
     closeBackdrop: () => setBackdropClose(null),
   }), []);
+
+  useEffect(() => {
+    onMount?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Tour state ──────────────────────────────────────────────────────────────
   const [isTouring, setIsTouring] = useState(!disableTour);

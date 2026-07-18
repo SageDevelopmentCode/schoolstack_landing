@@ -16,6 +16,7 @@
     "test:e2e:install": "playwright install chromium",
     "import-schools": "tsx scripts/import-schools-csv.ts",
     "preview:emails": "tsx scripts/preview-emails.ts",
+    "images:optimize": "tsx scripts/convert-images-to-webp.ts",
     "performance:audit": "tsx scripts/run-performance-audits.ts",
     "performance:audit:watch": "tsx scripts/run-performance-audits.ts --watch",
     "performance:ci": "lhci autorun",

@@ -90,7 +90,7 @@ export default function StacksSection() {
         {/* Heading */}
         <div className="text-center max-w-[560px] mx-auto mb-12">
           <FadeInView>
-            <div className="text-[11px] font-medium text-text-faint uppercase tracking-widest mb-4">
+            <div className="text-[11px] font-medium text-text-muted uppercase tracking-widest mb-4">
               Built for growing microschools
             </div>
             <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.75rem)] leading-[1.05] text-text">
@@ -110,7 +110,7 @@ export default function StacksSection() {
           <div className="max-w-[560px] mx-auto rounded-xl bg-surface border border-border shadow-md p-8">
 
             <div>
-              <div className="text-[11px] font-medium text-text-faint uppercase tracking-widest">
+              <div className="text-[11px] font-medium text-text-muted uppercase tracking-widest">
                 Core plan
               </div>
               <p className="text-[14px] text-text-muted mt-2 leading-snug">
@@ -142,7 +142,7 @@ export default function StacksSection() {
                   <path d="M2 6.5H11M11 6.5L7 2.5M11 6.5L7 10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </a>
-              <p className="text-center text-[13px] text-text-faint mt-3">
+              <p className="text-center text-[13px] text-text-muted mt-3">
                 See if it&apos;s the right fit for your school.
               </p>
             </div>
