@@ -641,6 +641,77 @@ export async function notifyHomepageQuestion(payload: {
   });
 }
 
+const PARENT_PORTAL_FEEDBACK_TYPE_LABELS: Record<string, string> = {
+  feature_request: "Feature request",
+  feedback: "General feedback",
+  bug: "Something isn't working",
+};
+
+export async function notifyParentPortalFeedback(payload: {
+  schoolSlug: string;
+  schoolName: string;
+  organizationId: string;
+  submitterName: string | null;
+  submitterEmail: string | null;
+  featureKey: string;
+  featureLabel: string;
+  feedbackType: string;
+  message: string;
+  pagePath?: string | null;
+}) {
+  const contactValue =
+    payload.submitterName && payload.submitterEmail
+      ? truncate(`${payload.submitterName}\n${payload.submitterEmail}`)
+      : payload.submitterEmail
+        ? truncate(payload.submitterEmail)
+        : "Unknown";
+
+  const fields: DiscordEmbedField[] = [
+    {
+      name: "School",
+      value: truncate(
+        `${payload.schoolName}\n(${payload.schoolSlug})\n${payload.organizationId}`,
+      ),
+      inline: true,
+    },
+    {
+      name: "Feature",
+      value: truncate(`${payload.featureLabel}\n(${payload.featureKey})`),
+      inline: true,
+    },
+    {
+      name: "Type",
+      value: truncate(
+        PARENT_PORTAL_FEEDBACK_TYPE_LABELS[payload.feedbackType] ??
+          payload.feedbackType,
+      ),
+      inline: true,
+    },
+    {
+      name: "Contact",
+      value: contactValue,
+      inline: true,
+    },
+  ];
+
+  if (payload.pagePath?.trim()) {
+    fields.push({
+      name: "Page",
+      value: truncate(payload.pagePath.trim()),
+    });
+  }
+
+  fields.push({
+    name: "Message",
+    value: truncate(payload.message.trim()),
+  });
+
+  await sendWebsiteNotificationDiscordEmbed({
+    title: "Parent portal feedback",
+    fields,
+  });
+}
+
 const SUPPORT_REQUEST_TOPIC_LABELS: Record<string, string> = {
   general: "General question",
   bug: "Something isn't working",

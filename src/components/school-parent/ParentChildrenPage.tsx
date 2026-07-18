@@ -168,32 +168,34 @@ export default function ParentChildrenPage({
 
   if (familyChildren.length === 0) {
     return (
-      <div
-        className="rounded-2xl border px-6 py-10 text-center"
-        style={{
-          borderColor: C.border,
-          backgroundColor: C.surface,
-          boxShadow: C.shadowCard,
-        }}
-      >
-        <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-          We don&apos;t have any student records from your applications yet. Visit
-          your{" "}
-          <Link
-            href={`/school/${schoolSlug}/apply`}
-            className="font-medium underline underline-offset-2"
-            style={{ color: C.accent }}
-          >
-            application dashboard
-          </Link>{" "}
-          to get started.
-        </p>
+      <div className="px-6 py-8">
+        <div
+          className="rounded-2xl border px-6 py-10 text-center"
+          style={{
+            borderColor: C.border,
+            backgroundColor: C.surface,
+            boxShadow: C.shadowCard,
+          }}
+        >
+          <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+            We don&apos;t have any student records from your applications yet. Visit
+            your{" "}
+            <Link
+              href={`/school/${schoolSlug}/apply`}
+              className="font-medium underline underline-offset-2"
+              style={{ color: C.accent }}
+            >
+              application dashboard
+            </Link>{" "}
+            to get started.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
+    <div className="px-6 py-8">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {familyChildren.map((child, index) => (
           <ChildCard
@@ -215,6 +217,6 @@ export default function ParentChildrenPage({
         application={selectedProfile?.application ?? null}
         checklist={selectedProfile?.checklist ?? null}
       />
-    </>
+    </div>
   );
 }
