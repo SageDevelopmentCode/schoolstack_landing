@@ -50,6 +50,18 @@ To surface PR Lighthouse scores in `/admin/performance` (CI tab), add repository
 
 Apply migration [`20260719_add_performance_ci_environment.sql`](../../supabase/migrations/20260719_add_performance_ci_environment.sql) on the target project first.
 
+### Troubleshooting Performance CI
+
+If Lighthouse fails with `Unable to connect to Chrome`, that is a **browser launch** issue in the GitHub Actions runner (Chrome path, sandbox flags, or Ubuntu AppArmor restrictions). Supabase secrets do not affect whether Lighthouse runs — they only control the optional upload step after a successful audit.
+
+Common signals:
+
+| Log message | Cause |
+|-------------|-------|
+| `Unable to connect to Chrome` | Chrome did not start in CI — check `lighthouserc.js` `chromeFlags` and the workflow Chrome setup |
+| `GitHub token not set` | Harmless — reports upload to `.lighthouseci/` on disk, not the LHCI server |
+| Upload step skipped | Lighthouse step failed (`if: success()`), or Supabase secrets are not configured |
+
 ### Workflows
 
 | Workflow | When it alerts |

@@ -2,6 +2,7 @@
 module.exports = {
   ci: {
     collect: {
+      chromePath: process.env.CHROME_PATH,
       url: [
         "http://localhost:3000/",
         "http://localhost:3000/get-started",
@@ -14,6 +15,9 @@ module.exports = {
         preset: "perf",
         formFactor: "mobile",
         screenEmulation: { mobile: true },
+        chromeFlags: process.env.CI
+          ? "--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
+          : "--headless",
       },
     },
     assert: {
