@@ -13,6 +13,7 @@ import {
   notifyRootedMeadowsParentApplicationStarted,
   type ApplyAuthMode,
 } from "@/lib/discord";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -135,6 +136,13 @@ export async function POST(request: Request) {
         });
       } catch (discordError) {
         console.error("applicant-bootstrap Discord notify failed:", discordError);
+        await logNotificationFailure(admin, {
+          organizationId,
+          operation: "parent_application_started_discord",
+          entityType: "application",
+          entityId: result.applicationId,
+          error: discordError,
+        });
       }
     }
 

@@ -139,6 +139,12 @@ async function handleCheckoutSessionCompleted(
   await completeApplicationPaymentAndSubmit(admin, payment.applicationId);
   void sendApplicationSubmittedNotifications(admin, payment.applicationId);
 
+  const { data: formRow } = await admin
+    .from("application_form_versions")
+    .select("title")
+    .eq("id", application.formVersionId)
+    .maybeSingle();
+
   void logActivityEvent(admin, {
     organizationId: application.organizationId,
     actorType: "system",
@@ -151,6 +157,23 @@ async function handleCheckoutSessionCompleted(
       paymentId: payment.id,
       checkoutSessionId,
       amountCents: payment.amountCents,
+    },
+  });
+
+  void logActivityEvent(admin, {
+    organizationId: application.organizationId,
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.APPLICATION_SUBMITTED,
+    entityType: "application",
+    entityId: payment.applicationId,
+    summary: `Application submitted${formRow?.title ? ` for “${String(formRow.title)}”` : ""} (after payment)`,
+    metadata: {
+      formVersionId: application.formVersionId,
+      programId: application.programId,
+      formTitle: formRow?.title ? String(formRow.title) : null,
+      paymentId: payment.id,
+      checkoutSessionId,
     },
   });
 }

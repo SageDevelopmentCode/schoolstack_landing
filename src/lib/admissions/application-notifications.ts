@@ -15,6 +15,10 @@ import {
   POST_SUBMIT_ACTION_TEMPLATES,
   postSubmitActionLabel,
 } from "@/lib/admissions/post-submit-templates";
+import {
+  logNotificationFailure,
+  logSettledNotificationFailures,
+} from "@/lib/admissions/notification-logging";
 import { notifyApplicationSubmitted, notifyPostSubmitVisitScheduled } from "@/lib/discord";
 import {
   sendApplicationSubmittedConfirmation,
@@ -88,6 +92,7 @@ export async function sendApplicationSubmittedNotifications(
   admin: SupabaseClient,
   applicationId: string,
 ): Promise<void> {
+  let organizationId: string | undefined;
   try {
     const { data: application, error } = await admin
       .from("applications")
@@ -111,6 +116,8 @@ export async function sendApplicationSubmittedNotifications(
       console.warn("Application submitted notifications: application not found", applicationId);
       return;
     }
+
+    organizationId = String(application.organization_id);
 
     const { data: org, error: orgError } = await admin
       .from("organizations")
@@ -201,9 +208,22 @@ export async function sendApplicationSubmittedNotifications(
       console.warn("Application submitted notifications: no applicant contact", applicationId);
     }
 
-    await Promise.allSettled(notificationTasks);
+    const notificationResults = await Promise.allSettled(notificationTasks);
+    await logSettledNotificationFailures(admin, {
+      organizationId: application.organization_id,
+      operation: "application_submitted_notifications",
+      entityType: "application",
+      entityId: applicationId,
+    }, notificationResults);
   } catch (error) {
     console.error("Application submitted notifications failed:", error);
+    await logNotificationFailure(admin, {
+      organizationId,
+      operation: "application_submitted_notifications",
+      entityType: "application",
+      entityId: applicationId,
+      error,
+    });
   }
 }
 
@@ -290,7 +310,7 @@ export async function sendPostSubmitVisitScheduledNotifications(
     }
     const studentName = extractStudentLabel(stringResponses) ?? undefined;
 
-    await Promise.allSettled([
+    const notificationResults = await Promise.allSettled([
       notifyPostSubmitVisitScheduled({
         schoolName,
         email: contact.email,
@@ -331,7 +351,20 @@ export async function sendPostSubmitVisitScheduledNotifications(
         applyDashboardUrl,
       }),
     ]);
+    await logSettledNotificationFailures(admin, {
+      organizationId: application.organization_id,
+      operation: "post_submit_visit_notifications",
+      entityType: "application",
+      entityId: applicationId,
+    }, notificationResults);
   } catch (error) {
     console.error("Post-submit visit notifications failed:", error);
+    await logNotificationFailure(admin, {
+      organizationId: undefined,
+      operation: "post_submit_visit_notifications",
+      entityType: "application",
+      entityId: applicationId,
+      error,
+    });
   }
 }

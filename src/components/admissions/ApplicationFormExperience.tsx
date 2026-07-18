@@ -28,6 +28,11 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
+import {
+  parseOperationalError,
+  reportPublicApplyOperationalError,
+  shouldReportApplyClientError,
+} from "@/lib/operational-errors-client";
 import { createClient } from "@/utils/supabase/client";
 
 type ExperienceStep =
@@ -77,6 +82,30 @@ const stepVariants = {
 };
 
 const stepTransition = { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
+
+function reportApplyOperationalError(
+  organizationId: string | undefined,
+  applicationId: string | undefined,
+  operation: string,
+  err: unknown,
+  responseStatus?: number,
+) {
+  if (!organizationId || !shouldReportApplyClientError(err, responseStatus)) {
+    return;
+  }
+
+  const parsed = parseOperationalError(err);
+  void reportPublicApplyOperationalError({
+    organizationId,
+    operation,
+    error: parsed.message,
+    code: parsed.code,
+    details: parsed.details,
+    entityType: applicationId ? "application" : undefined,
+    entityId: applicationId,
+    notify: true,
+  });
+}
 
 function buildSteps(
   schema: ApplicationFormSchema,
@@ -247,6 +276,12 @@ export default function ApplicationFormExperience({
       await persistDraft(stepIndex);
       await onExitToApplyDashboard();
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.save_and_exit",
+        error,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to save your progress.",
       );
@@ -281,6 +316,12 @@ export default function ApplicationFormExperience({
         setFieldErrors({});
         scrollToTop();
       } catch (error) {
+        reportApplyOperationalError(
+          organizationId,
+          applicationId,
+          "application_form.continue_save",
+          error,
+        );
         setSaveError(
           error instanceof Error ? error.message : "Failed to save your progress.",
         );
@@ -311,6 +352,12 @@ export default function ApplicationFormExperience({
         setFieldErrors({});
         scrollToTop();
       } catch (error) {
+        reportApplyOperationalError(
+          organizationId,
+          applicationId,
+          "application_form.back_save",
+          error,
+        );
         setSaveError(
           error instanceof Error ? error.message : "Failed to save your progress.",
         );
@@ -343,6 +390,12 @@ export default function ApplicationFormExperience({
       }
       setPaymentModalOpen(true);
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.pay_fee_save",
+        error,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to save your progress.",
       );
@@ -356,6 +409,7 @@ export default function ApplicationFormExperience({
     setActionLoading(true);
     setSaveError(null);
 
+    let responseStatus: number | undefined;
     try {
       const response = await fetch(
         `/api/admissions/applications/${applicationId}/checkout`,
@@ -365,6 +419,7 @@ export default function ApplicationFormExperience({
           body: JSON.stringify({ paymentMethod }),
         },
       );
+      responseStatus = response.status;
       const payload = (await response.json()) as { url?: string; error?: string };
 
       if (!response.ok || !payload.url) {
@@ -373,6 +428,13 @@ export default function ApplicationFormExperience({
 
       window.location.href = payload.url;
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.checkout",
+        error,
+        responseStatus,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to start checkout.",
       );
@@ -386,6 +448,7 @@ export default function ApplicationFormExperience({
     setActionLoading(true);
     setSaveError(null);
 
+    let responseStatus: number | undefined;
     try {
       if (canPersist) {
         await persistDraft(stepIndex);
@@ -395,6 +458,7 @@ export default function ApplicationFormExperience({
         `/api/admissions/applications/${applicationId}/submit`,
         { method: "POST" },
       );
+      responseStatus = response.status;
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
@@ -404,6 +468,13 @@ export default function ApplicationFormExperience({
       setApplicationStatus("submitted");
       onSubmitted?.();
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.submit",
+        error,
+        responseStatus,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to submit application.",
       );
@@ -421,6 +492,12 @@ export default function ApplicationFormExperience({
       await onImportResponses(bulkCopySourceId);
       setBulkCopyExpanded(false);
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.import_responses",
+        error,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to copy previous answers.",
       );
@@ -446,6 +523,12 @@ export default function ApplicationFormExperience({
           stepIndex,
         });
       } catch (error) {
+        reportApplyOperationalError(
+          organizationId,
+          applicationId,
+          "application_form.reuse_field_save",
+          error,
+        );
         setSaveError(
           error instanceof Error ? error.message : "Failed to save your progress.",
         );

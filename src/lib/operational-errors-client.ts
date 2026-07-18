@@ -78,3 +78,27 @@ export async function reportClientOperationalError(
     console.error("[operational-errors] client report failed:", reportError);
   }
 }
+
+export async function reportPublicApplyOperationalError(
+  payload: ClientOperationalErrorPayload,
+): Promise<void> {
+  try {
+    await fetch("/api/admissions/operational-errors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (reportError) {
+    console.error("[operational-errors] public apply report failed:", reportError);
+  }
+}
+
+export function shouldReportApplyClientError(
+  err: unknown,
+  responseStatus?: number,
+): boolean {
+  if (responseStatus !== undefined && responseStatus >= 400 && responseStatus < 500) {
+    return false;
+  }
+  return isUnexpectedOperationalError(err);
+}

@@ -75,8 +75,8 @@ test.describe("mobile apply flows", () => {
       timeout: 15_000,
     });
 
-    await page.getByLabel(/Student first name/i).fill("Jon");
-    await page.getByLabel(/Student last name/i).fill("Cecilia");
+    await page.locator("#student_first_name").fill("Jon");
+    await page.locator("#student_last_name").fill("Cecilia");
     await page.locator("#student_date_of_birth").click();
     await page.getByRole("button", { name: "Today" }).click();
 

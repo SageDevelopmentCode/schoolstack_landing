@@ -4,6 +4,7 @@ import {
   resolveApplicantContact,
 } from "@/lib/admissions/application-notifications";
 import { PAYMENT_METHOD_LABELS } from "@/lib/admissions/payment-records";
+import { logNotificationFailure, logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { notifyPaymentCompleted } from "@/lib/discord";
 import { sendPaymentReceiptConfirmation } from "@/lib/emails";
 import { getPaymentById } from "@/lib/stripe/application-payments";
@@ -99,7 +100,7 @@ export async function sendPaymentCompletedNotifications(
       ? PAYMENT_METHOD_LABELS[payment.paymentMethodType]
       : "—";
 
-    await Promise.allSettled([
+    const notificationResults = await Promise.allSettled([
       notifyPaymentCompleted({
         schoolName,
         email: contact.email,
@@ -127,7 +128,20 @@ export async function sendPaymentCompletedNotifications(
         applyDashboardUrl: `${SITE_URL}/school/${schoolSlug}/apply`,
       }),
     ]);
+    await logSettledNotificationFailures(admin, {
+      organizationId: payment.organizationId,
+      operation: "payment_completed_notifications",
+      entityType: "payment",
+      entityId: paymentId,
+    }, notificationResults);
   } catch (error) {
     console.error("Payment completed notifications failed:", error);
+    await logNotificationFailure(admin, {
+      organizationId: undefined,
+      operation: "payment_completed_notifications",
+      entityType: "payment",
+      entityId: paymentId,
+      error,
+    });
   }
 }
