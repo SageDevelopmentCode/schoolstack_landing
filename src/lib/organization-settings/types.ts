@@ -61,7 +61,6 @@ export type TeacherFeatures = {
 
 export type ParentFeatures = {
   portal: boolean;
-  enrollment_checklist: boolean;
   billing: boolean;
   messages: boolean;
   calendar: boolean;

@@ -23,6 +23,7 @@ import { parseApplicationFormStepIndex } from "./application-form-steps";
 import {
   listEnrollmentProgressForApplications,
   type EnrollmentProgressSummary,
+  type LoadedEnrollmentChecklist,
 } from "./enrollment-checklist-materialization";
 import {
   applicationOwnershipFilter,
@@ -84,6 +85,11 @@ export type ApplicationDetail = {
   postSubmitSteps: AdminPostSubmitStep[];
 };
 
+export type ChildProfileData = {
+  application: ApplicationDetail;
+  checklist: LoadedEnrollmentChecklist | null;
+};
+
 export type FamilyUserProfile = {
   email: string;
   displayName: string;
@@ -96,6 +102,7 @@ export type FamilyChildOverview = {
   status: string;
   statusLabel: string;
   isEnrolled: boolean;
+  checklistProgress: { completed: number; total: number } | null;
 };
 
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
@@ -425,6 +432,9 @@ export async function listFamilyChildrenForHome(
       status: displayStatus,
       statusLabel: applicationStatusLabel(displayStatus),
       isEnrolled,
+      checklistProgress: enrollmentProgress
+        ? { completed: enrollmentProgress.completed, total: enrollmentProgress.total }
+        : null,
     };
   });
 

@@ -35,15 +35,11 @@ export function buildParentQuickActions(
   return orderedKeys.map((key) => {
     const navItem = resolveFeatureNavItem("parent", key, portalNav);
     const iconSlug = navItem.icon ?? "puzzle";
-    const href =
-      key === "enrollment_checklist"
-        ? `/school/${slug}/apply`
-        : schoolParentPath(slug, key);
 
     return {
       key,
       label: getParentPageLabel(key, portalNav),
-      href,
+      href: schoolParentPath(slug, key),
       iconSlug,
     };
   });
