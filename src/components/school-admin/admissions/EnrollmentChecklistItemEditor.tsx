@@ -34,6 +34,7 @@ type EnrollmentChecklistItemEditorProps = {
   orgSlug?: string;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
+  selectedFieldId?: string | null;
   onChange: (item: EnrollmentChecklistItem) => void;
   onSelectField: (fieldId: string) => void;
   onAddVariant?: () => void;
@@ -71,6 +72,7 @@ export default function EnrollmentChecklistItemEditor({
   orgSlug,
   stripePaymentsReady = true,
   readOnly = false,
+  selectedFieldId = null,
   onChange,
   onSelectField,
   onAddVariant,
@@ -314,7 +316,7 @@ export default function EnrollmentChecklistItemEditor({
               C={C}
               stepId={item.formSchema.id}
               fields={fields}
-              selectedFieldId={null}
+              selectedFieldId={selectedFieldId}
               readOnly={readOnly}
               onSelectField={onSelectField}
               onAddField={(field: ApplicationField) => {

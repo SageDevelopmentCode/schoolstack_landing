@@ -123,6 +123,7 @@ export interface ApplicationFormNotificationConfig {
 }
 
 export const MAX_SUBMISSION_NOTIFY_EMAILS = 10;
+export const MAX_APPLICATION_FIELD_LABEL_LENGTH = 500;
 
 const SUBMISSION_NOTIFY_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -388,6 +389,11 @@ export function validateApplicationFormSchema(
     for (const field of section.fields) {
       if (!field.label.trim()) {
         errors.push("Every question needs a label.");
+      }
+      if (field.label.length > MAX_APPLICATION_FIELD_LABEL_LENGTH) {
+        errors.push(
+          `Question labels must be ${MAX_APPLICATION_FIELD_LABEL_LENGTH} characters or fewer.`,
+        );
       }
       if (fieldIds.has(field.id)) {
         errors.push(`Duplicate field id: ${field.id}`);

@@ -6,6 +6,7 @@ import SchoolAdminAccessDenied from "@/components/school-admin/SchoolAdminAccess
 import SchoolAdminBaseline from "@/components/school-admin/SchoolAdminBaseline";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import {
+  getSchoolAdminUserProfile,
   SchoolAdminAuthError,
   requireSchoolAdminUser,
   schoolAdminLoginPath,
@@ -66,6 +67,8 @@ export default async function SchoolAdminProtectedLayout({
     );
   }
 
+  const userProfile = user ? getSchoolAdminUserProfile(user) : null;
+
   return (
     <SchoolAdminBaseline
       slug={slug}
@@ -73,7 +76,7 @@ export default async function SchoolAdminProtectedLayout({
       schoolName={org.name}
       branding={org.branding}
       features={org.features}
-      userEmail={user?.email ?? null}
+      userProfile={userProfile}
     >
       {children}
     </SchoolAdminBaseline>

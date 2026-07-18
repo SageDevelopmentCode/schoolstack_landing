@@ -10,7 +10,7 @@ export function checklistFocusKey(focus: ChecklistBuilderFocus | null): string {
     case "item":
       return `item:${focus.itemId}`;
     case "field":
-      return `field:${focus.itemId}:${focus.fieldId}`;
+      return `item:${focus.itemId}`;
   }
 }
 

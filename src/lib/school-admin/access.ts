@@ -88,3 +88,27 @@ export async function requireSchoolAdminUser(
 export function schoolAdminLoginPath(slug: string): string {
   return `/school/${slug}/admin/login`;
 }
+
+export type SchoolAdminUserProfile = {
+  displayName: string;
+  email: string;
+};
+
+export function getSchoolAdminUserProfile(user: User): SchoolAdminUserProfile {
+  const metadata = user.user_metadata ?? {};
+  const metadataFullName =
+    typeof metadata.full_name === "string" ? metadata.full_name.trim() : "";
+  const metadataFirstName =
+    typeof metadata.first_name === "string" ? metadata.first_name.trim() : "";
+  const metadataLastName =
+    typeof metadata.last_name === "string" ? metadata.last_name.trim() : "";
+
+  const email = user.email?.trim() ?? "";
+  const displayName =
+    metadataFullName ||
+    [metadataFirstName, metadataLastName].filter(Boolean).join(" ") ||
+    email ||
+    "Account";
+
+  return { email, displayName };
+}
