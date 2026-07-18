@@ -71,9 +71,11 @@ export default function AdminTicketsPage() {
 
   useEffect(() => {
     if (!selected?.id || selected.attachments.length === 0) {
-      setAttachments([]);
-      setAttachmentsError(null);
-      setAttachmentsLoading(false);
+      queueMicrotask(() => {
+        setAttachments([]);
+        setAttachmentsError(null);
+        setAttachmentsLoading(false);
+      });
       return;
     }
 

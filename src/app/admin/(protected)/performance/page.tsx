@@ -157,7 +157,9 @@ export default function AdminPerformancePage() {
   }, [environment]);
 
   useEffect(() => {
-    void loadPages();
+    queueMicrotask(() => {
+      void loadPages();
+    });
   }, [loadPages]);
 
   useEffect(() => {

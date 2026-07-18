@@ -148,7 +148,7 @@ export default function ApplicationSubmissionsPage({
     if (!deepLinkApplicationId || loading) return;
     const match = submissions.find((row) => row.id === deepLinkApplicationId);
     if (match) {
-      setSelectedId(match.id);
+      queueMicrotask(() => setSelectedId(match.id));
     }
   }, [deepLinkApplicationId, loading, submissions]);
 

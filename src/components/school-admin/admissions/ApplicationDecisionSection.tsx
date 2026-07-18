@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import {
@@ -40,23 +40,35 @@ export default function ApplicationDecisionSection({
 }: ApplicationDecisionSectionProps) {
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [actions, setActions] = useState<ApplicationDecisionAction[]>(() =>
-    getApplicationDecisionActions(currentStatus),
-  );
-  const [loadingActions, setLoadingActions] = useState(
+  const [withdrawnActions, setWithdrawnActions] = useState<
+    ApplicationDecisionAction[]
+  >([]);
+  const [withdrawnLoading, setWithdrawnLoading] = useState(
     currentStatus === "withdrawn",
   );
 
+  const staticActions = useMemo(
+    () =>
+      currentStatus !== "withdrawn"
+        ? getApplicationDecisionActions(currentStatus)
+        : null,
+    [currentStatus],
+  );
+
+  const actions = staticActions ?? withdrawnActions;
+  const loadingActions = currentStatus === "withdrawn" && withdrawnLoading;
+
   useEffect(() => {
-    if (currentStatus !== "withdrawn") {
-      setActions(getApplicationDecisionActions(currentStatus));
-      setLoadingActions(false);
-      return;
-    }
+    if (currentStatus !== "withdrawn") return;
 
     let cancelled = false;
-    setLoadingActions(true);
-    setError(null);
+
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setWithdrawnLoading(true);
+        setError(null);
+      }
+    });
 
     void fetch(`/api/admissions/applications/${applicationId}/status`)
       .then(async (response) => {
@@ -68,7 +80,7 @@ export default function ApplicationDecisionSection({
           throw new Error(body.error ?? "Failed to load status actions.");
         }
         if (!cancelled) {
-          setActions(body.decisionActions ?? []);
+          setWithdrawnActions(body.decisionActions ?? []);
         }
       })
       .catch((err) => {
@@ -76,12 +88,12 @@ export default function ApplicationDecisionSection({
           setError(
             err instanceof Error ? err.message : "Failed to load status actions.",
           );
-          setActions([]);
+          setWithdrawnActions([]);
         }
       })
       .finally(() => {
         if (!cancelled) {
-          setLoadingActions(false);
+          setWithdrawnLoading(false);
         }
       });
 
