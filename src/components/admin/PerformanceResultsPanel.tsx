@@ -51,7 +51,7 @@ export function PerformanceResultsPanel({
 
   if (!result) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-text-faint">
+      <div className="flex h-full items-center justify-center text-sm text-admin-faint">
         Select a page to view audit details
       </div>
     );
@@ -61,59 +61,59 @@ export function PerformanceResultsPanel({
     <div className="space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="font-display text-lg font-semibold text-text">
+          <h1 className="text-lg font-semibold text-admin-text">
             {result.label}
           </h1>
-          <p className="font-secondary text-sm text-text-muted">
+          <p className="text-sm text-admin-muted">
             {result.category.replace(/_/g, " ")}
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-soft"
+          className="shrink-0 rounded-admin-md border border-admin-border px-2 py-1 text-xs text-admin-muted hover:bg-admin-neutral-bg"
         >
           Close
         </button>
       </div>
 
-      <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
-        <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
+      <section className="space-y-3 rounded-admin-md border border-admin-border bg-admin-surface p-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-admin-faint">
           Summary
         </h2>
-        <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm font-secondary sm:grid-cols-[120px_1fr]">
-          <dt className="text-text-muted">URL</dt>
+        <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+          <dt className="text-admin-muted">URL</dt>
           <dd className="break-all">
             <a
               href={result.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-clay hover:underline"
+              className="text-admin-accent hover:underline"
             >
               {result.url}
             </a>
           </dd>
-          <dt className="text-text-muted">Status</dt>
+          <dt className="text-admin-muted">Status</dt>
           <dd className="capitalize">{result.status}</dd>
           {result.skipReason ? (
             <>
-              <dt className="text-text-muted">Skip reason</dt>
+              <dt className="text-admin-muted">Skip reason</dt>
               <dd className="break-words">{result.skipReason.replace(/_/g, " ")}</dd>
             </>
           ) : null}
           {result.errorMessage ? (
             <>
-              <dt className="text-text-muted">Error</dt>
-              <dd className="break-words text-clay">{result.errorMessage}</dd>
+              <dt className="text-admin-muted">Error</dt>
+              <dd className="break-words text-admin-accent">{result.errorMessage}</dd>
             </>
           ) : null}
-          <dt className="text-text-muted">Last run</dt>
+          <dt className="text-admin-muted">Last run</dt>
           <dd>{new Date(result.createdAt).toLocaleString()}</dd>
         </dl>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
-        <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
+      <section className="space-y-3 rounded-admin-md border border-admin-border bg-admin-surface p-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-admin-faint">
           Scores
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -134,24 +134,24 @@ export function PerformanceResultsPanel({
       </section>
 
       {result.opportunities.length > 0 ? (
-        <section className="min-w-0 space-y-3 rounded-xl border border-border bg-surface p-4">
-          <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
+        <section className="min-w-0 space-y-3 rounded-admin-md border border-admin-border bg-admin-surface p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-admin-faint">
             Opportunities
           </h2>
           <ul className="space-y-3">
             {result.opportunities.map((item) => (
               <li
                 key={item.id}
-                className={`min-w-0 rounded-lg border p-3 ${opportunityCardClassName(item.score)}`}
+                className={`min-w-0 rounded-admin-md border p-3 ${opportunityCardClassName(item.score)}`}
               >
-                <p className="break-words text-sm font-medium text-text">
+                <p className="break-words text-sm font-medium text-admin-text">
                   {item.title}
                 </p>
                 {item.displayValue ? (
-                  <p className="mt-1 text-xs text-text-muted">{item.displayValue}</p>
+                  <p className="mt-1 text-xs text-admin-muted">{item.displayValue}</p>
                 ) : null}
                 {item.description ? (
-                  <p className="mt-2 break-words text-xs text-text-faint [overflow-wrap:anywhere]">
+                  <p className="mt-2 break-words text-xs text-admin-faint [overflow-wrap:anywhere]">
                     {item.description}
                   </p>
                 ) : null}
@@ -162,16 +162,16 @@ export function PerformanceResultsPanel({
       ) : null}
 
       {result.rawReport ? (
-        <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
+        <section className="space-y-3 rounded-admin-md border border-admin-border bg-admin-surface p-4">
           <button
             type="button"
             onClick={() => setShowRaw((value) => !value)}
-            className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint hover:text-text"
+            className="text-xs font-semibold uppercase tracking-wide text-admin-faint hover:text-admin-text"
           >
             {showRaw ? "Hide" : "Show"} raw JSON
           </button>
           {showRaw ? (
-            <pre className="max-h-96 overflow-auto rounded-lg border border-border bg-bg p-3 text-xs text-text-muted">
+            <pre className="max-h-96 overflow-auto rounded-admin-md border border-admin-border bg-admin-bg p-3 text-xs text-admin-muted">
               {JSON.stringify(result.rawReport, null, 2)}
             </pre>
           ) : null}
@@ -184,15 +184,15 @@ export function PerformanceResultsPanel({
 function MetricCard({
   label,
   value,
-  className = "text-text",
+  className = "text-admin-text",
 }: {
   label: string;
   value: string;
   className?: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-bg p-3">
-      <p className="text-xs text-text-faint">{label}</p>
+    <div className="rounded-admin-md border border-admin-border bg-admin-bg p-3">
+      <p className="text-xs text-admin-faint">{label}</p>
       <p className={`mt-1 text-lg font-semibold tabular-nums ${className}`}>{value}</p>
     </div>
   );

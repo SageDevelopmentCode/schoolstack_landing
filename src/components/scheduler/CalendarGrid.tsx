@@ -81,7 +81,7 @@ export function CalendarGrid({
                 type="button"
                 disabled={!isSelectable}
                 onClick={() => isSelectable && onSelect(key)}
-                className={`mx-auto flex ${cellSizeClass} items-center justify-center rounded-lg text-[14px] font-medium font-secondary transition-all duration-150`}
+                className={`mx-auto flex ${cellSizeClass} items-center justify-center rounded-admin-sm text-[14px] font-medium font-secondary transition-all duration-150`}
                 style={
                   isSelected
                     ? { backgroundColor: colors.accent, color: "#FFFFFF" }

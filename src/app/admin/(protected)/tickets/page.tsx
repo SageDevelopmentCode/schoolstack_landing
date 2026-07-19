@@ -3,11 +3,23 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
+import { AdminMasterDetail } from "@/components/admin/ui/AdminMasterDetail";
+import { AdminFilterChip } from "@/components/admin/ui/AdminFilterChip";
+import { AdminListItem } from "@/components/admin/ui/AdminListItem";
+import { AdminListPanelHeader } from "@/components/admin/ui/AdminListPanelHeader";
+import { AdminDetailHeader } from "@/components/admin/ui/AdminDetailHeader";
+import { AdminDetailSection } from "@/components/admin/ui/AdminDetailSection";
+import { AdminDetailLayout } from "@/components/admin/ui/AdminDetailLayout";
+import { AdminDetailEmpty } from "@/components/admin/ui/AdminDetailEmpty";
+import { AdminStatusBadge } from "@/components/admin/ui/AdminStatusBadge";
+import { AdminEmptyState } from "@/components/admin/ui/AdminEmptyState";
+import { AdminPageState } from "@/components/admin/ui/AdminPageState";
+import { AdminSelect } from "@/components/admin/ui/AdminSelect";
+import { TICKET_STATUS, type TicketStatus } from "@/lib/admin-ui/admin-status-styles";
 import {
   type AdminSupportRequestRow,
   type SupportRequestStatus,
   SUPPORT_REQUEST_STATUSES,
-  SUPPORT_REQUEST_STATUS_META,
   formatSupportRequestTopic,
   parseSupportRequestStatus,
 } from "@/lib/school-admin/support-request-types";
@@ -169,154 +181,105 @@ export default function AdminTicketsPage() {
     {} as Record<SupportRequestStatus, number>,
   );
 
-  if (loading) {
-    return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center text-sm font-secondary text-text-faint">
-        Loading…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center text-sm font-secondary text-clay">
-        {error}
-      </div>
-    );
-  }
+  if (loading) return <AdminPageState variant="loading" />;
+  if (error) return <AdminPageState variant="error" message={error} />;
 
   return (
-    <div
-      className="flex h-[calc(100vh-3rem)] overflow-hidden"
-      style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
-    >
-      <div className="flex w-96 shrink-0 flex-col border-r border-border bg-surface">
-        <div className="space-y-2 border-b border-border p-3">
-          <div className="flex flex-wrap gap-1">
-            {SUPPORT_REQUEST_STATUSES.map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() =>
-                  setStatusFilter(statusFilter === status ? "" : status)
-                }
-                className={`rounded-full border px-2 py-1 text-xs transition-colors ${
-                  statusFilter === status
-                    ? SUPPORT_REQUEST_STATUS_META[status].pill
-                    : "border-border bg-bg text-text-muted hover:bg-surface-soft"
-                }`}
-              >
-                {SUPPORT_REQUEST_STATUS_META[status].label}
-                {counts[status] ? ` (${counts[status]})` : ""}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {filtered.length === 0 ? (
-            <p className="py-8 text-center text-sm text-text-faint">No tickets</p>
-          ) : (
-            filtered.map((ticket) => (
-              <button
-                key={ticket.id}
-                type="button"
-                onClick={() => setSelectedId(ticket.id)}
-                className={`w-full border-b border-border px-3 py-3 text-left transition-colors hover:bg-bg ${
-                  selectedId === ticket.id ? "bg-clay-soft" : ""
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-text">
-                      {ticket.organization_name}
-                    </p>
-                    <p className="truncate text-xs text-text-muted">
-                      {formatSupportRequestTopic(ticket.topic)}
-                    </p>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded border px-1.5 py-0.5 text-xs ${SUPPORT_REQUEST_STATUS_META[ticket.status].pill}`}
-                  >
-                    {SUPPORT_REQUEST_STATUS_META[ticket.status].label}
-                  </span>
-                </div>
-                <p className="mt-1 truncate text-xs text-text-faint">
-                  {ticket.submitter_email}
-                </p>
-                <p className="mt-1 text-xs text-text-faint">
-                  {new Date(ticket.created_at).toLocaleDateString()}
-                </p>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto bg-bg/40">
-        {!selected ? (
-          <div className="flex h-full items-center justify-center text-sm text-text-faint">
-            Select a ticket
-          </div>
-        ) : (
-          <div className="mx-auto max-w-3xl space-y-6 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="font-display text-lg font-semibold text-text">
-                  {selected.submitter_email}
-                </h1>
-                <p className="font-secondary text-sm text-text-muted">
-                  {selected.organization_name}
-                </p>
-              </div>
-              <select
-                value={selected.status}
-                onChange={(event) => {
-                  const nextStatus = parseSupportRequestStatus(
-                    event.target.value,
-                  );
-                  if (!nextStatus) return;
-                  void handleStatusChange(selected.id, nextStatus);
-                }}
-                className={`rounded-lg border px-2 py-1 text-sm ${SUPPORT_REQUEST_STATUS_META[selected.status].pill}`}
-              >
-                {SUPPORT_REQUEST_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {SUPPORT_REQUEST_STATUS_META[status].label}
-                  </option>
-                ))}
-              </select>
+    <AdminMasterDetail
+      listWidth="md"
+      list={
+        <>
+          <AdminListPanelHeader>
+            <div className="flex flex-wrap gap-1.5">
+              {SUPPORT_REQUEST_STATUSES.map((status) => (
+                <AdminFilterChip
+                  key={status}
+                  label={TICKET_STATUS[status as TicketStatus].label}
+                  count={counts[status]}
+                  active={statusFilter === status}
+                  onClick={() =>
+                    setStatusFilter(statusFilter === status ? "" : status)
+                  }
+                />
+              ))}
             </div>
+          </AdminListPanelHeader>
 
-            <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
-              <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
-                Request
-              </h2>
-              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm font-secondary sm:grid-cols-[120px_1fr]">
-                <dt className="text-text-muted">Topic</dt>
+          <div className="flex-1 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <AdminEmptyState message="No tickets" />
+            ) : (
+              filtered.map((ticket) => (
+                <AdminListItem
+                  key={ticket.id}
+                  selected={selectedId === ticket.id}
+                  onClick={() => setSelectedId(ticket.id)}
+                  title={ticket.organization_name}
+                  subtitle={formatSupportRequestTopic(ticket.topic)}
+                  badge={
+                    <AdminStatusBadge
+                      label={TICKET_STATUS[ticket.status as TicketStatus].label}
+                      variant={TICKET_STATUS[ticket.status as TicketStatus].variant}
+                    />
+                  }
+                  footer={`${ticket.submitter_email} · ${new Date(ticket.created_at).toLocaleDateString()}`}
+                />
+              ))
+            )}
+          </div>
+        </>
+      }
+      detail={
+        !selected ? (
+          <AdminDetailEmpty message="Select a ticket" />
+        ) : (
+          <AdminDetailLayout>
+            <AdminDetailHeader
+              title={selected.submitter_email}
+              subtitle={selected.organization_name}
+              actions={
+                <AdminSelect
+                  value={selected.status}
+                  onChange={(event) => {
+                    const nextStatus = parseSupportRequestStatus(
+                      event.target.value,
+                    );
+                    if (!nextStatus) return;
+                    void handleStatusChange(selected.id, nextStatus);
+                  }}
+                >
+                  {SUPPORT_REQUEST_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {TICKET_STATUS[status as TicketStatus].label}
+                    </option>
+                  ))}
+                </AdminSelect>
+              }
+            />
+
+            <AdminDetailSection title="Request">
+              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+                <dt className="text-admin-muted">Topic</dt>
                 <dd>{formatSupportRequestTopic(selected.topic)}</dd>
               </dl>
-              <p className="whitespace-pre-wrap text-sm font-secondary text-text">
+              <p className="whitespace-pre-wrap text-sm text-admin-text">
                 {selected.description}
               </p>
-            </section>
+            </AdminDetailSection>
 
-            <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
-              <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
-                Context
-              </h2>
-              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm font-secondary sm:grid-cols-[120px_1fr]">
-                <dt className="text-text-muted">School</dt>
+            <AdminDetailSection title="Context">
+              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+                <dt className="text-admin-muted">School</dt>
                 <dd>{selected.organization_name}</dd>
-                <dt className="text-text-muted">Slug</dt>
+                <dt className="text-admin-muted">Slug</dt>
                 <dd>{selected.organization_slug}</dd>
                 {selected.source_page_path ? (
                   <>
-                    <dt className="text-text-muted">Page</dt>
+                    <dt className="text-admin-muted">Page</dt>
                     <dd className="break-all">
                       <Link
                         href={selected.source_page_path}
-                        className="text-clay hover:underline"
+                        className="text-admin-accent hover:underline"
                       >
                         {selected.source_page_path}
                       </Link>
@@ -324,30 +287,26 @@ export default function AdminTicketsPage() {
                   </>
                 ) : null}
               </dl>
-            </section>
+            </AdminDetailSection>
 
             {selected.attachments.length > 0 ? (
-              <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
-                <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
-                  Attachments
-                </h2>
-
+              <AdminDetailSection title="Attachments">
                 {attachmentsLoading ? (
-                  <p className="text-sm text-text-faint">Loading attachments…</p>
+                  <p className="text-sm text-admin-faint">Loading attachments…</p>
                 ) : attachmentsError ? (
-                  <p className="text-sm text-clay">{attachmentsError}</p>
+                  <p className="text-sm text-admin-error">{attachmentsError}</p>
                 ) : (
                   <div className="space-y-3">
                     {attachments.map((attachment) => (
                       <div
                         key={`${attachment.fileName}-${attachment.url}`}
-                        className="rounded-lg border border-border bg-bg p-3"
+                        className="rounded-admin-md border border-admin-border bg-admin-bg p-3"
                       >
                         <a
                           href={attachment.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm font-medium text-clay hover:underline"
+                          className="text-sm font-medium text-admin-accent hover:underline"
                         >
                           {attachment.fileName}
                         </a>
@@ -356,32 +315,29 @@ export default function AdminTicketsPage() {
                           <img
                             src={attachment.url}
                             alt={attachment.fileName}
-                            className="mt-3 max-h-80 w-full rounded-md border border-border object-contain"
+                            className="mt-3 max-h-80 w-full rounded-admin-sm border border-admin-border object-contain"
                           />
                         ) : null}
                       </div>
                     ))}
                   </div>
                 )}
-              </section>
+              </AdminDetailSection>
             ) : null}
 
-            <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
-              <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
-                Metadata
-              </h2>
-              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm font-secondary sm:grid-cols-[120px_1fr]">
-                <dt className="text-text-muted">Request ID</dt>
+            <AdminDetailSection title="Metadata">
+              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+                <dt className="text-admin-muted">Request ID</dt>
                 <dd className="break-all">{selected.id}</dd>
-                <dt className="text-text-muted">Created</dt>
+                <dt className="text-admin-muted">Created</dt>
                 <dd>{formatTimestamp(selected.created_at)}</dd>
-                <dt className="text-text-muted">Updated</dt>
+                <dt className="text-admin-muted">Updated</dt>
                 <dd>{formatTimestamp(selected.updated_at)}</dd>
               </dl>
-            </section>
-          </div>
-        )}
-      </div>
-    </div>
+            </AdminDetailSection>
+          </AdminDetailLayout>
+        )
+      }
+    />
   );
 }

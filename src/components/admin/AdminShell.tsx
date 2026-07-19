@@ -15,7 +15,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col pt-12">
+    <div className="admin-app min-h-screen bg-admin-bg flex flex-col pt-12">
       <AdminHeader variant="full" onSignOut={handleSignOut} />
       <main className="flex-1 min-h-0">{children}</main>
     </div>

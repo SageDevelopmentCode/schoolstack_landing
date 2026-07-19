@@ -39,7 +39,7 @@ const SURFACE_FILTERS: { value: SurfaceFilter; label: string }[] = [
 ];
 
 const SEVERITY_STYLES: Record<string, string> = {
-  info: "bg-surface-soft text-text-muted border-border",
+  info: "bg-admin-neutral-bg text-admin-muted border-admin-border",
   warning: "bg-amber-50 text-amber-800 border-amber-200",
   error: "bg-red-50 text-red-700 border-red-200",
 };
@@ -78,10 +78,10 @@ function ActivityFilters({
             key={preset.value}
             type="button"
             onClick={() => onDatePresetChange(preset.value)}
-            className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+            className={`text-xs px-2 py-1 rounded-admin-md border transition-colors ${
               datePreset === preset.value
-                ? "bg-clay-soft text-clay border-clay/20"
-                : "bg-bg text-text-muted border-border hover:bg-surface-soft"
+                ? "bg-admin-accent-soft text-admin-accent border-admin-accent/20"
+                : "bg-admin-bg text-admin-muted border-admin-border hover:bg-admin-neutral-bg"
             }`}
           >
             {preset.label}
@@ -92,7 +92,7 @@ function ActivityFilters({
       <select
         value={organizationId}
         onChange={(e) => onOrganizationChange(e.target.value)}
-        className="w-full text-xs rounded-lg border border-border bg-bg px-2 py-1.5 text-text"
+        className="w-full text-xs rounded-admin-md border border-admin-border bg-admin-bg px-2 py-1.5 text-admin-text"
       >
         <option value="">All organizations</option>
         {organizations.map((org) => (
@@ -177,19 +177,19 @@ export default function AdminActivityPage() {
     return (
       <div
         className="h-[calc(100vh-3rem)] flex flex-col"
-        style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
+        
       >
-        <div className="border-b border-border bg-surface px-4 py-3 space-y-3">
+        <div className="border-b border-admin-border bg-admin-surface px-4 py-3 space-y-3">
           <div className="flex gap-1 flex-wrap">
             {VIEW_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setView(option.value)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                className={`text-xs px-3 py-1.5 rounded-admin-md border transition-colors ${
                   view === option.value
-                    ? "bg-clay-soft text-clay border-clay/20"
-                    : "bg-bg text-text-muted border-border hover:bg-surface-soft"
+                    ? "bg-admin-accent-soft text-admin-accent border-admin-accent/20"
+                    : "bg-admin-bg text-admin-muted border-admin-border hover:bg-admin-neutral-bg"
                 }`}
               >
                 {option.label}
@@ -197,7 +197,7 @@ export default function AdminActivityPage() {
             ))}
           </div>
         </div>
-        <div className="flex items-center justify-center flex-1 text-sm text-text-faint font-secondary">
+        <div className="flex items-center justify-center flex-1 text-sm text-admin-faint ">
           Loading…
         </div>
       </div>
@@ -208,19 +208,19 @@ export default function AdminActivityPage() {
     return (
       <div
         className="h-[calc(100vh-3rem)] flex flex-col"
-        style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
+        
       >
-        <div className="border-b border-border bg-surface px-4 py-3 space-y-3">
+        <div className="border-b border-admin-border bg-admin-surface px-4 py-3 space-y-3">
           <div className="flex gap-1 flex-wrap">
             {VIEW_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setView(option.value)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                className={`text-xs px-3 py-1.5 rounded-admin-md border transition-colors ${
                   view === option.value
-                    ? "bg-clay-soft text-clay border-clay/20"
-                    : "bg-bg text-text-muted border-border hover:bg-surface-soft"
+                    ? "bg-admin-accent-soft text-admin-accent border-admin-accent/20"
+                    : "bg-admin-bg text-admin-muted border-admin-border hover:bg-admin-neutral-bg"
                 }`}
               >
                 {option.label}
@@ -228,7 +228,7 @@ export default function AdminActivityPage() {
             ))}
           </div>
         </div>
-        <div className="flex items-center justify-center flex-1 text-sm text-clay font-secondary">
+        <div className="flex items-center justify-center flex-1 text-sm text-admin-accent ">
           {error}
         </div>
       </div>
@@ -238,19 +238,19 @@ export default function AdminActivityPage() {
   return (
     <div
       className="h-[calc(100vh-3rem)] flex flex-col overflow-hidden"
-      style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
+      
     >
-      <div className="border-b border-border bg-surface px-4 py-3 space-y-3 shrink-0">
+      <div className="border-b border-admin-border bg-admin-surface px-4 py-3 space-y-3 shrink-0">
         <div className="flex gap-1 flex-wrap">
           {VIEW_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => setView(option.value)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+              className={`text-xs px-3 py-1.5 rounded-admin-md border transition-colors ${
                 view === option.value
-                  ? "bg-clay-soft text-clay border-clay/20"
-                  : "bg-bg text-text-muted border-border hover:bg-surface-soft"
+                  ? "bg-admin-accent-soft text-admin-accent border-admin-accent/20"
+                  : "bg-admin-bg text-admin-muted border-admin-border hover:bg-admin-neutral-bg"
               }`}
             >
               {option.label}
@@ -282,8 +282,8 @@ export default function AdminActivityPage() {
         </div>
       ) : (
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          <div className="w-96 shrink-0 border-r border-border flex flex-col bg-surface">
-            <div className="p-3 border-b border-border space-y-3">
+          <div className="w-96 shrink-0 border-r border-admin-border flex flex-col bg-admin-surface">
+            <div className="p-3 border-b border-admin-border space-y-3">
               <ActivityFilters
                 datePreset={datePreset}
                 organizationId={organizationId}
@@ -296,7 +296,7 @@ export default function AdminActivityPage() {
                   onChange={(e) =>
                     setSurfaceFilter(e.target.value as SurfaceFilter)
                   }
-                  className="w-full text-xs rounded-lg border border-border bg-bg px-2 py-1.5 text-text"
+                  className="w-full text-xs rounded-admin-md border border-admin-border bg-admin-bg px-2 py-1.5 text-admin-text"
                 >
                   {SURFACE_FILTERS.map((filter) => (
                     <option key={filter.value || "all"} value={filter.value}>
@@ -307,9 +307,9 @@ export default function AdminActivityPage() {
               </ActivityFilters>
 
               {error ? (
-                <p className="text-xs text-clay">{error}</p>
+                <p className="text-xs text-admin-accent">{error}</p>
               ) : (
-                <p className="text-xs text-text-faint">
+                <p className="text-xs text-admin-faint">
                   {events.length} event{events.length === 1 ? "" : "s"}
                 </p>
               )}
@@ -317,7 +317,7 @@ export default function AdminActivityPage() {
 
             <div className="flex-1 overflow-y-auto">
               {events.length === 0 ? (
-                <p className="text-sm text-text-faint text-center py-8">
+                <p className="text-sm text-admin-faint text-center py-8">
                   No activity for this filter
                 </p>
               ) : (
@@ -326,21 +326,21 @@ export default function AdminActivityPage() {
                     key={event.id}
                     type="button"
                     onClick={() => setSelectedId(event.id)}
-                    className={`w-full text-left px-3 py-3 border-b border-border hover:bg-bg transition-colors ${
-                      selectedId === event.id ? "bg-clay-soft" : ""
+                    className={`w-full text-left px-3 py-3 border-b border-admin-border hover:bg-admin-bg transition-colors ${
+                      selectedId === event.id ? "bg-admin-accent-soft" : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-text line-clamp-2">
+                        <p className="text-sm font-medium text-admin-text line-clamp-2">
                           {event.summary}
                         </p>
-                        <p className="text-xs text-text-muted truncate mt-0.5">
+                        <p className="text-xs text-admin-muted truncate mt-0.5">
                           {event.organizations?.name ?? "—"}
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full border ${
+                        className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-admin-md border ${
                           SEVERITY_STYLES[event.severity] ??
                           SEVERITY_STYLES.info
                         }`}
@@ -348,7 +348,7 @@ export default function AdminActivityPage() {
                         {formatActivityActionLabel(event.action)}
                       </span>
                     </div>
-                    <p className="text-[11px] text-text-faint mt-1">
+                    <p className="text-[11px] text-admin-faint mt-1">
                       {formatDateTime(event.created_at)}
                     </p>
                   </button>
@@ -359,57 +359,57 @@ export default function AdminActivityPage() {
 
           <div className="flex-1 overflow-y-auto">
             {!selected ? (
-              <div className="flex items-center justify-center h-full text-sm text-text-faint">
+              <div className="flex items-center justify-center h-full text-sm text-admin-faint">
                 Select an event to view details
               </div>
             ) : (
               <div className="max-w-3xl mx-auto p-6 space-y-6">
                 <div>
-                  <p className="text-xs font-semibold text-text-faint uppercase tracking-wide">
+                  <p className="text-xs font-semibold text-admin-faint uppercase tracking-wide">
                     Summary
                   </p>
-                  <h1 className="text-xl font-medium text-text mt-1">
+                  <h1 className="text-xl font-medium text-admin-text mt-1">
                     {selected.summary}
                   </h1>
-                  <p className="text-sm text-text-muted mt-1">
+                  <p className="text-sm text-admin-muted mt-1">
                     {formatDateTime(selected.created_at)}
                   </p>
                 </div>
 
-                <section className="bg-surface border border-border rounded-xl p-4 space-y-4">
-                  <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide">
+                <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
+                  <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide">
                     Event
                   </h2>
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     <div>
-                      <dt className="text-text-faint text-xs">Organization</dt>
-                      <dd className="text-text">
+                      <dt className="text-admin-faint text-xs">Organization</dt>
+                      <dd className="text-admin-text">
                         {selected.organizations?.name ?? "—"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-text-faint text-xs">Action</dt>
-                      <dd className="text-text font-mono text-xs">
+                      <dt className="text-admin-faint text-xs">Action</dt>
+                      <dd className="text-admin-text font-mono text-xs">
                         {selected.action}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-text-faint text-xs">Surface</dt>
-                      <dd className="text-text">{selected.surface}</dd>
+                      <dt className="text-admin-faint text-xs">Surface</dt>
+                      <dd className="text-admin-text">{selected.surface}</dd>
                     </div>
                     <div>
-                      <dt className="text-text-faint text-xs">Severity</dt>
-                      <dd className="text-text capitalize">
+                      <dt className="text-admin-faint text-xs">Severity</dt>
+                      <dd className="text-admin-text capitalize">
                         {selected.severity}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-text-faint text-xs">Actor type</dt>
-                      <dd className="text-text">{selected.actor_type}</dd>
+                      <dt className="text-admin-faint text-xs">Actor type</dt>
+                      <dd className="text-admin-text">{selected.actor_type}</dd>
                     </div>
                     <div>
-                      <dt className="text-text-faint text-xs">Actor email</dt>
-                      <dd className="text-text break-all">
+                      <dt className="text-admin-faint text-xs">Actor email</dt>
+                      <dd className="text-admin-text break-all">
                         {selected.actor_email ?? "—"}
                       </dd>
                     </div>
@@ -417,22 +417,22 @@ export default function AdminActivityPage() {
                 </section>
 
                 {(selected.entity_type || selected.entity_id) && (
-                  <section className="bg-surface border border-border rounded-xl p-4 space-y-3">
-                    <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide">
+                  <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
+                    <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide">
                       Entity
                     </h2>
                     <dl className="grid grid-cols-1 gap-3 text-sm">
                       {selected.entity_type ? (
                         <div>
-                          <dt className="text-text-faint text-xs">Type</dt>
-                          <dd className="text-text">{selected.entity_type}</dd>
+                          <dt className="text-admin-faint text-xs">Type</dt>
+                          <dd className="text-admin-text">{selected.entity_type}</dd>
                         </div>
                       ) : null}
                       {selected.entity_id ? (
                         <div>
-                          <dt className="text-text-faint text-xs">ID</dt>
+                          <dt className="text-admin-faint text-xs">ID</dt>
                           <dd className="flex items-center gap-2">
-                            <code className="text-xs bg-bg border border-border rounded px-2 py-1 break-all">
+                            <code className="text-xs bg-admin-bg border border-admin-border rounded px-2 py-1 break-all">
                               {selected.entity_id}
                             </code>
                             <button
@@ -440,7 +440,7 @@ export default function AdminActivityPage() {
                               onClick={() =>
                                 copyToClipboard(selected.entity_id!)
                               }
-                              className="text-xs text-clay hover:underline shrink-0"
+                              className="text-xs text-admin-accent hover:underline shrink-0"
                             >
                               Copy
                             </button>
@@ -451,11 +451,11 @@ export default function AdminActivityPage() {
                   </section>
                 )}
 
-                <section className="bg-surface border border-border rounded-xl p-4 space-y-3">
-                  <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide">
+                <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
+                  <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide">
                     Metadata
                   </h2>
-                  <pre className="text-xs bg-bg border border-border rounded-lg p-3 overflow-x-auto text-text-muted">
+                  <pre className="text-xs bg-admin-bg border border-admin-border rounded-admin-md p-3 overflow-x-auto text-admin-muted">
                     {JSON.stringify(selected.metadata, null, 2)}
                   </pre>
                 </section>

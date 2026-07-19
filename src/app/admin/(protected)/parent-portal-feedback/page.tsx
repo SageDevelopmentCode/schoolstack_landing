@@ -3,6 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { formatParentPortalFeedbackType } from "@/lib/parent-portal/coming-soon-content";
+import { AdminMasterDetail } from "@/components/admin/ui/AdminMasterDetail";
+import { AdminFilterChip } from "@/components/admin/ui/AdminFilterChip";
+import { AdminListItem } from "@/components/admin/ui/AdminListItem";
+import { AdminListPanelHeader } from "@/components/admin/ui/AdminListPanelHeader";
+import { AdminDetailHeader } from "@/components/admin/ui/AdminDetailHeader";
+import { AdminDetailSection } from "@/components/admin/ui/AdminDetailSection";
+import { AdminDetailLayout } from "@/components/admin/ui/AdminDetailLayout";
+import { AdminDetailEmpty } from "@/components/admin/ui/AdminDetailEmpty";
+import { AdminStatusBadge } from "@/components/admin/ui/AdminStatusBadge";
+import { AdminEmptyState } from "@/components/admin/ui/AdminEmptyState";
+import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 
 type ParentPortalFeedback = {
   id: string;
@@ -73,154 +84,109 @@ export default function ParentPortalFeedbackPage() {
     return acc;
   }, [feedback]);
 
-  if (loading) {
-    return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center text-sm font-secondary text-text-faint">
-        Loading…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center text-sm font-secondary text-clay">
-        {error}
-      </div>
-    );
-  }
+  if (loading) return <AdminPageState variant="loading" />;
+  if (error) return <AdminPageState variant="error" message={error} />;
 
   return (
-    <div
-      className="flex h-[calc(100vh-3rem)] overflow-hidden"
-      style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
-    >
-      <div className="flex w-80 shrink-0 flex-col border-r border-border bg-surface">
-        <div className="space-y-2 border-b border-border p-3">
-          {schools.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {schools.map(({ slug, name }) => (
-                <button
-                  key={slug}
-                  onClick={() =>
-                    setSchoolFilter(schoolFilter === slug ? "" : slug)
-                  }
-                  className={`max-w-full truncate rounded-full border px-2 py-1 text-xs transition-colors ${
-                    schoolFilter === slug
-                      ? "border-clay/20 bg-clay-soft text-clay"
-                      : "border-border bg-bg text-text-muted hover:bg-surface-soft"
-                  }`}
-                  title={name}
-                >
-                  {name}
-                  {counts[slug] ? ` (${counts[slug]})` : ""}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+    <AdminMasterDetail
+      list={
+        <>
+          <AdminListPanelHeader>
+            {schools.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {schools.map(({ slug, name }) => (
+                  <AdminFilterChip
+                    key={slug}
+                    label={name}
+                    count={counts[slug]}
+                    active={schoolFilter === slug}
+                    onClick={() =>
+                      setSchoolFilter(schoolFilter === slug ? "" : slug)
+                    }
+                    title={name}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </AdminListPanelHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          {filtered.length === 0 ? (
-            <p className="py-8 text-center text-sm text-text-faint">
-              No parent portal feedback yet
-            </p>
-          ) : (
-            filtered.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => setSelectedId(entry.id)}
-                className={`w-full border-b border-border px-3 py-3 text-left transition-colors hover:bg-bg ${
-                  selectedId === entry.id ? "bg-clay-soft" : ""
-                }`}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-text">
-                    {displayName(entry)}
-                  </p>
-                  <p className="truncate text-xs text-text-muted">
-                    {entry.feature_label} · {entry.school_name}
-                  </p>
-                </div>
-                <p className="mt-1 text-xs text-text-faint">
-                  {new Date(entry.created_at).toLocaleDateString()} ·{" "}
-                  {formatParentPortalFeedbackType(entry.feedback_type)}
-                </p>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto bg-bg/40">
-        {!selected ? (
-          <div className="flex h-full items-center justify-center text-sm text-text-faint">
-            Select feedback
+          <div className="flex-1 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <AdminEmptyState message="No parent portal feedback yet" />
+            ) : (
+              filtered.map((entry) => (
+                <AdminListItem
+                  key={entry.id}
+                  selected={selectedId === entry.id}
+                  onClick={() => setSelectedId(entry.id)}
+                  title={displayName(entry)}
+                  subtitle={`${entry.feature_label} · ${entry.school_name}`}
+                  footer={`${new Date(entry.created_at).toLocaleDateString()} · ${formatParentPortalFeedbackType(entry.feedback_type)}`}
+                />
+              ))
+            )}
           </div>
+        </>
+      }
+      detail={
+        !selected ? (
+          <AdminDetailEmpty message="Select feedback" />
         ) : (
-          <div className="mx-auto max-w-2xl space-y-6 p-6">
-            <div>
-              <h1 className="font-display text-lg font-semibold text-text">
-                {displayName(selected)}
-              </h1>
-              <p className="font-secondary text-sm text-text-muted">
-                {selected.school_name}
-              </p>
-              <span className="mt-2 inline-block rounded border border-border bg-bg px-2 py-0.5 font-secondary text-xs text-text-muted">
-                {formatParentPortalFeedbackType(selected.feedback_type)}
-              </span>
-            </div>
+          <AdminDetailLayout>
+            <AdminDetailHeader
+              title={displayName(selected)}
+              subtitle={selected.school_name}
+              badges={
+                <AdminStatusBadge
+                  label={formatParentPortalFeedbackType(selected.feedback_type)}
+                  variant="neutral"
+                />
+              }
+            />
 
-            <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
-              <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
-                Contact
-              </h2>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 font-secondary text-sm">
+            <AdminDetailSection title="Contact">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 {selected.submitter_email ? (
                   <>
-                    <dt className="text-text-muted">Email</dt>
+                    <dt className="text-admin-muted">Email</dt>
                     <dd>
                       <a
                         href={`mailto:${selected.submitter_email}`}
-                        className="text-clay hover:underline"
+                        className="text-admin-accent hover:underline"
                       >
                         {selected.submitter_email}
                       </a>
                     </dd>
                   </>
                 ) : null}
-                <dt className="text-text-muted">Submitted</dt>
+                <dt className="text-admin-muted">Submitted</dt>
                 <dd>{new Date(selected.created_at).toLocaleString()}</dd>
               </dl>
-            </section>
+            </AdminDetailSection>
 
-            <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
-              <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
-                Feature
-              </h2>
-              <div className="flex flex-wrap items-center gap-2 font-secondary text-sm">
-                <span className="rounded border border-border bg-bg px-2 py-0.5 text-xs text-text-muted">
-                  {selected.feature_key}
-                </span>
-                <span className="text-text">{selected.feature_label}</span>
+            <AdminDetailSection title="Feature">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <AdminStatusBadge
+                  label={selected.feature_key}
+                  variant="neutral"
+                />
+                <span className="text-admin-text">{selected.feature_label}</span>
               </div>
               {selected.page_path ? (
-                <p className="font-secondary text-xs text-text-muted">
+                <p className="text-xs text-admin-muted">
                   Page: {selected.page_path}
                 </p>
               ) : null}
-            </section>
+            </AdminDetailSection>
 
-            <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
-              <h2 className="font-secondary text-xs font-semibold uppercase tracking-wide text-text-faint">
-                Message
-              </h2>
-              <p className="whitespace-pre-wrap font-secondary text-sm text-text">
+            <AdminDetailSection title="Message">
+              <p className="whitespace-pre-wrap text-sm text-admin-text">
                 {selected.message}
               </p>
-            </section>
-          </div>
-        )}
-      </div>
-    </div>
+            </AdminDetailSection>
+          </AdminDetailLayout>
+        )
+      }
+    />
   );
 }

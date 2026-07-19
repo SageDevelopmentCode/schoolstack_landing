@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
+import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 import type { OrganizationSettingsRow } from "@/lib/organization-settings/types";
 
 type OrganizationStatus = "onboarding" | "live" | "paused" | "churned";
@@ -35,19 +36,19 @@ const STATUS: Record<
 > = {
   onboarding: {
     label: "Onboarding",
-    pill: "bg-clay-soft text-clay border-clay/20",
+    pill: "bg-admin-accent-soft text-admin-accent border-admin-accent/20",
   },
   live: {
     label: "Live",
-    pill: "bg-accent-highlight text-accent border-accent-soft",
+    pill: "bg-admin-success-bg text-admin-success border-admin-success-border",
   },
   paused: {
     label: "Paused",
-    pill: "bg-surface-soft text-text-muted border-border",
+    pill: "bg-admin-neutral-bg text-admin-muted border-admin-border",
   },
   churned: {
     label: "Churned",
-    pill: "bg-bg text-text-faint border-border",
+    pill: "bg-admin-bg text-admin-faint border-admin-border",
   },
 };
 
@@ -178,31 +179,15 @@ export default function AdminOrganizationsPage() {
     {} as Record<OrganizationStatus, number>,
   );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-3rem)] text-sm text-text-faint font-secondary">
-        Loading…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-3rem)] text-sm text-clay font-secondary">
-        {error}
-      </div>
-    );
-  }
+  if (loading) return <AdminPageState variant="loading" />;
+  if (error) return <AdminPageState variant="error" message={error} />;
 
   return (
-    <div
-      className="h-[calc(100vh-3rem)] flex overflow-hidden"
-      style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
-    >
+    <div className="h-[calc(100vh-3rem)] flex overflow-hidden">
       {/* List panel */}
-      <div className="w-80 shrink-0 border-r border-border flex flex-col bg-surface">
-        <div className="p-3 border-b border-border space-y-2">
-          <p className="text-xs font-semibold text-text-faint uppercase tracking-wide">
+      <div className="w-80 shrink-0 border-r border-admin-border flex flex-col bg-admin-surface">
+        <div className="p-3 border-b border-admin-border space-y-2">
+          <p className="text-xs font-semibold text-admin-faint uppercase tracking-wide">
             Product schools
           </p>
           <div className="flex gap-1 flex-wrap">
@@ -213,10 +198,10 @@ export default function AdminOrganizationsPage() {
                 onClick={() =>
                   setStatusFilter(statusFilter === status ? "" : status)
                 }
-                className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                className={`text-xs px-2 py-1 rounded-admin-md border transition-colors ${
                   statusFilter === status
                     ? STATUS[status].pill
-                    : "bg-bg text-text-muted border-border hover:bg-surface-soft"
+                    : "bg-admin-bg text-admin-muted border-admin-border hover:bg-admin-neutral-bg"
                 }`}
               >
                 {STATUS[status].label}
@@ -228,7 +213,7 @@ export default function AdminOrganizationsPage() {
 
         <div className="flex-1 overflow-y-auto">
           {filtered.length === 0 ? (
-            <p className="text-sm text-text-faint text-center py-8">
+            <p className="text-sm text-admin-faint text-center py-8">
               No organizations
             </p>
           ) : (
@@ -237,16 +222,16 @@ export default function AdminOrganizationsPage() {
                 key={org.id}
                 type="button"
                 onClick={() => setSelectedId(org.id)}
-                className={`w-full text-left px-3 py-3 border-b border-border hover:bg-bg transition-colors ${
-                  selectedId === org.id ? "bg-clay-soft" : ""
+                className={`w-full text-left px-3 py-3 border-b border-admin-border hover:bg-admin-bg transition-colors ${
+                  selectedId === org.id ? "bg-admin-accent-soft" : ""
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-text truncate">
+                    <p className="text-sm font-medium text-admin-text truncate">
                       {org.name}
                     </p>
-                    <p className="text-xs text-text-muted truncate font-mono">
+                    <p className="text-xs text-admin-muted truncate font-mono">
                       {org.slug}
                     </p>
                   </div>
@@ -256,7 +241,7 @@ export default function AdminOrganizationsPage() {
                     {STATUS[org.status].label}
                   </span>
                 </div>
-                <p className="text-xs text-text-faint mt-1">
+                <p className="text-xs text-admin-faint mt-1">
                   {new Date(org.created_at).toLocaleDateString()}
                 </p>
               </button>
@@ -266,29 +251,29 @@ export default function AdminOrganizationsPage() {
       </div>
 
       {/* Detail panel */}
-      <div className="flex-1 overflow-y-auto bg-bg/40">
+      <div className="flex-1 overflow-y-auto bg-admin-bg/40">
         {!selected ? (
-          <div className="h-full flex items-center justify-center text-sm text-text-faint">
+          <div className="h-full flex items-center justify-center text-sm text-admin-faint">
             Select an organization
           </div>
         ) : (
           <div className="max-w-3xl mx-auto p-6 space-y-6">
             <div>
-              <h1 className="text-lg font-semibold text-text font-display">
+              <h1 className="text-lg font-semibold text-admin-text ">
                 {selected.name}
               </h1>
-              <span className="inline-block mt-2 text-[11px] font-mono text-text-muted px-2 py-0.5 rounded-md bg-bg border border-border">
+              <span className="inline-block mt-2 text-[11px] font-mono text-admin-muted px-2 py-0.5 rounded-admin-sm bg-admin-bg border border-admin-border">
                 {selected.slug}
               </span>
             </div>
 
-            <section className="bg-surface border border-border rounded-lg p-4 space-y-4">
-              <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
+            <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
+              <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide ">
                 Settings
               </h2>
               <div className="space-y-3">
                 <label className="block space-y-1">
-                  <span className="text-xs text-text-muted font-secondary">
+                  <span className="text-xs text-admin-muted ">
                     Status
                   </span>
                   <select
@@ -300,7 +285,7 @@ export default function AdminOrganizationsPage() {
                         timezone: selected.timezone,
                       })
                     }
-                    className={`w-full text-sm border rounded-lg px-2 py-1.5 font-secondary ${STATUS[selected.status].pill}`}
+                    className={`w-full text-sm border rounded-admin-md px-2 py-1.5 ${STATUS[selected.status].pill}`}
                   >
                     {STATUSES.map((status) => (
                       <option key={status} value={status}>
@@ -310,7 +295,7 @@ export default function AdminOrganizationsPage() {
                   </select>
                 </label>
                 <label className="block space-y-1">
-                  <span className="text-xs text-text-muted font-secondary">
+                  <span className="text-xs text-admin-muted ">
                     Timezone
                   </span>
                   <select
@@ -322,7 +307,7 @@ export default function AdminOrganizationsPage() {
                         timezone: e.target.value,
                       })
                     }
-                    className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+                    className="w-full text-sm border border-admin-border rounded-admin-md px-2 py-1.5 bg-admin-bg"
                   >
                     {!TIMEZONE_OPTIONS.some(
                       (option) => option.value === selected.timezone,
@@ -367,24 +352,24 @@ export default function AdminOrganizationsPage() {
               organizationSlug={selected.slug}
             />
 
-            <section className="bg-surface border border-border rounded-lg p-4 space-y-3">
-              <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
+            <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
+              <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide ">
                 Details
               </h2>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm font-secondary">
-                <dt className="text-text-muted">CRM school ID</dt>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm ">
+                <dt className="text-admin-muted">CRM school ID</dt>
                 <dd className="font-mono text-xs break-all">
                   {selected.crm_school_id ?? "—"}
                 </dd>
-                <dt className="text-text-muted">Created</dt>
+                <dt className="text-admin-muted">Created</dt>
                 <dd>{formatDateTime(selected.created_at)}</dd>
-                <dt className="text-text-muted">Updated</dt>
+                <dt className="text-admin-muted">Updated</dt>
                 <dd>{formatDateTime(selected.updated_at)}</dd>
               </dl>
             </section>
 
-            <section className="bg-surface border border-border rounded-lg p-4 space-y-3">
-              <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
+            <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
+              <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide ">
                 Quick links
               </h2>
               <ul className="space-y-2">
@@ -393,7 +378,7 @@ export default function AdminOrganizationsPage() {
                     href={`/school/${selected.slug}/admin`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between gap-2 text-sm text-clay hover:underline font-secondary group"
+                    className="flex items-center justify-between gap-2 text-sm text-admin-accent hover:underline group"
                   >
                     <span>School admin</span>
                     <ArrowUpRight
@@ -401,7 +386,7 @@ export default function AdminOrganizationsPage() {
                       aria-hidden
                     />
                   </Link>
-                  <p className="text-xs text-text-faint mt-0.5">
+                  <p className="text-xs text-admin-faint mt-0.5">
                     /school/{selected.slug}/admin
                   </p>
                 </li>
@@ -410,7 +395,7 @@ export default function AdminOrganizationsPage() {
                     href={`/school/${selected.slug}/forms/apply`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between gap-2 text-sm text-clay hover:underline font-secondary group"
+                    className="flex items-center justify-between gap-2 text-sm text-admin-accent hover:underline group"
                   >
                     <span>Apply form</span>
                     <ArrowUpRight
@@ -418,7 +403,7 @@ export default function AdminOrganizationsPage() {
                       aria-hidden
                     />
                   </Link>
-                  <p className="text-xs text-text-faint mt-0.5">
+                  <p className="text-xs text-admin-faint mt-0.5">
                     /school/{selected.slug}/forms/apply
                   </p>
                 </li>
@@ -427,7 +412,7 @@ export default function AdminOrganizationsPage() {
                     href={`/timeline/${selected.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between gap-2 text-sm text-clay hover:underline font-secondary group"
+                    className="flex items-center justify-between gap-2 text-sm text-admin-accent hover:underline group"
                   >
                     <span>Rollout timeline</span>
                     <ArrowUpRight
@@ -435,7 +420,7 @@ export default function AdminOrganizationsPage() {
                       aria-hidden
                     />
                   </Link>
-                  <p className="text-xs text-text-faint mt-0.5">
+                  <p className="text-xs text-admin-faint mt-0.5">
                     /timeline/{selected.slug}
                   </p>
                 </li>
@@ -445,7 +430,7 @@ export default function AdminOrganizationsPage() {
                       href="/admin/research"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between gap-2 text-sm text-clay hover:underline font-secondary group"
+                      className="flex items-center justify-between gap-2 text-sm text-admin-accent hover:underline group"
                     >
                       <span>CRM record</span>
                       <ArrowUpRight
@@ -453,7 +438,7 @@ export default function AdminOrganizationsPage() {
                         aria-hidden
                       />
                     </Link>
-                    <p className="text-xs text-text-faint mt-0.5">
+                    <p className="text-xs text-admin-faint mt-0.5">
                       Search for{" "}
                       <span className="font-mono">{selected.crm_school_id}</span>{" "}
                       in CRM

@@ -69,33 +69,33 @@ export function PerformanceCategoryDrawer({
       />
 
       <aside
-        className="relative flex h-full w-full max-w-sm flex-col border-l border-border bg-surface shadow-xl"
+        className="relative flex h-full w-full max-w-sm flex-col border-l border-admin-border bg-admin-surface shadow-xl"
         style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="font-display text-base font-semibold text-text">Categories</h2>
+        <div className="flex items-center justify-between border-b border-admin-border px-4 py-3">
+          <h2 className="text-base font-semibold text-admin-text">Categories</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-text-muted hover:bg-bg hover:text-text"
+            className="rounded-admin-sm p-1 text-admin-muted hover:bg-admin-bg hover:text-admin-text"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="flex items-center gap-3 border-b border-border px-4 py-2 text-xs">
+        <div className="flex items-center gap-3 border-b border-admin-border px-4 py-2 text-xs">
           <button
             type="button"
             onClick={() => onChange(new Set(categories))}
-            className="text-clay hover:underline"
+            className="text-admin-accent hover:underline"
           >
             Select all
           </button>
           <button
             type="button"
             onClick={() => onChange(new Set())}
-            className="text-text-muted hover:text-text hover:underline"
+            className="text-admin-muted hover:text-admin-text hover:underline"
           >
             Clear
           </button>
@@ -109,17 +109,17 @@ export function PerformanceCategoryDrawer({
 
               return (
                 <li key={category}>
-                  <label className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-bg">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-admin-md px-2 py-2 hover:bg-admin-bg">
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleCategory(category)}
-                      className="h-4 w-4 rounded border-border text-clay focus:ring-clay"
+                      className="h-4 w-4 rounded border-admin-border text-admin-accent focus:ring-admin-accent"
                     />
-                    <span className="flex-1 text-sm capitalize text-text">
+                    <span className="flex-1 text-sm capitalize text-admin-text">
                       {formatCategoryLabel(category)}
                     </span>
-                    <span className="text-xs text-text-faint">({count})</span>
+                    <span className="text-xs text-admin-faint">({count})</span>
                   </label>
                 </li>
               );
@@ -127,17 +127,17 @@ export function PerformanceCategoryDrawer({
           </ul>
         </div>
 
-        <div className="space-y-2 border-t border-border px-4 py-3">
+        <div className="space-y-2 border-t border-admin-border px-4 py-3">
           {selected.size === 0 ? (
-            <p className="text-sm text-text-muted">Showing all categories</p>
+            <p className="text-sm text-admin-muted">Showing all categories</p>
           ) : (
-            <p className="text-sm text-text">
+            <p className="text-sm text-admin-text">
               {selectedPageCount} page{selectedPageCount === 1 ? "" : "s"} selected across{" "}
               {selected.size} categor{selected.size === 1 ? "y" : "ies"}
             </p>
           )}
           {hasAuthCategorySelected ? (
-            <p className="text-xs text-text-faint">
+            <p className="text-xs text-admin-faint">
               School admin and parent pages are skipped on production (auth required).
             </p>
           ) : null}

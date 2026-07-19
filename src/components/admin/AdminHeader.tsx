@@ -79,8 +79,10 @@ function isGroupActive(pathname: string, group: NavGroup) {
 }
 
 function navLinkClassName(active: boolean) {
-  return `flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-lg transition-colors duration-150 ${
-    active ? "bg-clay-soft text-clay font-medium" : "text-text-muted hover:text-text"
+  return `flex items-center gap-1.5 text-sm px-2.5 py-1.5 rounded-admin-md transition-colors duration-150 ${
+    active
+      ? "bg-admin-accent-soft text-admin-accent font-medium"
+      : "text-admin-muted hover:text-admin-text hover:bg-admin-neutral-bg"
   }`;
 }
 
@@ -161,7 +163,7 @@ function AdminNavDropdown({
       {isOpen ? (
         <div
           role="menu"
-          className="absolute left-1/2 top-full z-[210] mt-1 min-w-[180px] -translate-x-1/2 rounded-lg border border-border bg-white py-1 shadow-md"
+          className="absolute left-1/2 top-full z-[210] mt-1 min-w-[180px] -translate-x-1/2 rounded-admin-md border border-admin-border bg-admin-surface py-1 shadow-sm"
         >
           {group.items.map((item) => {
             const Icon = item.icon;
@@ -174,8 +176,8 @@ function AdminNavDropdown({
                 onClick={onClose}
                 className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors duration-150 ${
                   active
-                    ? "bg-clay-soft text-clay font-medium"
-                    : "text-text-muted hover:bg-surface-muted hover:text-text"
+                    ? "bg-admin-accent-soft text-admin-accent font-medium"
+                    : "text-admin-muted hover:bg-admin-neutral-bg hover:text-admin-text"
                 }`}
               >
                 <Icon
@@ -213,7 +215,7 @@ export default function AdminHeader({
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[200] overflow-visible border-b border-border bg-white font-secondary">
+    <header className="fixed top-0 left-0 right-0 z-[200] overflow-visible border-b border-admin-border bg-admin-surface">
       <div className="flex h-12 items-center justify-between gap-6 overflow-visible px-4 md:px-6">
         <Link href="/" className="flex shrink-0 items-center">
           <img
@@ -248,7 +250,7 @@ export default function AdminHeader({
             {onSignOut && (
               <button
                 onClick={onSignOut}
-                className="text-sm font-medium text-text-muted hover:text-text transition-colors duration-150 shrink-0"
+                className="text-sm font-medium text-admin-muted hover:text-admin-text transition-colors duration-150 shrink-0"
               >
                 Sign out
               </button>

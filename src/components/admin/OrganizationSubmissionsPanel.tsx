@@ -75,34 +75,34 @@ export default function OrganizationSubmissionsPanel({
   }, [loadSubmissions]);
 
   return (
-    <section className="bg-surface border border-border rounded-lg p-4 space-y-3">
+    <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
+        <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Submissions
         </h2>
         {!loading ? (
-          <span className="text-xs text-text-muted font-secondary">
+          <span className="text-xs text-admin-muted font-secondary">
             {submissions.length} total
           </span>
         ) : null}
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-6 text-sm text-text-faint font-secondary">
+        <div className="flex items-center gap-2 py-6 text-sm text-admin-faint font-secondary">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading submissions…
         </div>
       ) : error ? (
-        <p className="text-sm text-clay font-secondary">{error}</p>
+        <p className="text-sm text-admin-accent font-secondary">{error}</p>
       ) : submissions.length === 0 ? (
-        <p className="text-sm text-text-faint font-secondary py-4">
+        <p className="text-sm text-admin-faint py-4">
           No submissions for this school yet.
         </p>
       ) : (
         <div className="overflow-x-auto -mx-1">
           <table className="w-full min-w-[520px] text-sm font-secondary">
             <thead>
-              <tr className="text-left text-xs text-text-faint border-b border-border">
+              <tr className="text-left text-xs text-admin-faint border-b border-admin-border">
                 <th className="px-2 py-2 font-semibold">Student</th>
                 <th className="px-2 py-2 font-semibold">Contact</th>
                 <th className="px-2 py-2 font-semibold">Status</th>
@@ -120,30 +120,30 @@ export default function OrganizationSubmissionsPanel({
                 return (
                   <tr
                     key={submission.id}
-                    className="border-b border-border/70 last:border-b-0"
+                    className="border-b border-admin-border/70 last:border-b-0"
                   >
                     <td className="px-2 py-2.5 align-top">
-                      <p className="font-medium text-text">
+                      <p className="font-medium text-admin-text">
                         {submission.studentLabel ?? "—"}
                       </p>
-                      <p className="text-xs text-text-muted mt-0.5 truncate max-w-[180px]">
+                      <p className="text-xs text-admin-muted mt-0.5 truncate max-w-[180px]">
                         {submission.formTitle}
                       </p>
                     </td>
                     <td className="px-2 py-2.5 align-top">
-                      <p className="text-text truncate max-w-[160px]">
+                      <p className="text-admin-text truncate max-w-[160px]">
                         {submission.guardianName ?? "—"}
                       </p>
-                      <p className="text-xs text-text-muted mt-0.5 truncate max-w-[160px]">
+                      <p className="text-xs text-admin-muted mt-0.5 truncate max-w-[160px]">
                         {submission.contactEmail ?? "—"}
                       </p>
                     </td>
                     <td className="px-2 py-2.5 align-top">
-                      <span className="text-xs text-text-muted">
+                      <span className="text-xs text-admin-muted">
                         {applicationStatusLabel(submission.status)}
                       </span>
                     </td>
-                    <td className="px-2 py-2.5 align-top text-xs text-text-muted whitespace-nowrap">
+                    <td className="px-2 py-2.5 align-top text-xs text-admin-muted whitespace-nowrap">
                       {formatUpdatedAt(submission.updatedAt)}
                     </td>
                     <td className="px-2 py-2.5 align-top text-right">
@@ -152,7 +152,7 @@ export default function OrganizationSubmissionsPanel({
                           href={previewHref}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-clay hover:bg-bg transition-colors"
+                          className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
                           title="Open read-only family preview in a new tab"
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -160,7 +160,7 @@ export default function OrganizationSubmissionsPanel({
                         </a>
                       ) : (
                         <span
-                          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-text-faint opacity-60 cursor-not-allowed"
+                          className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
                           title="No linked family yet — preview unavailable for unlinked drafts"
                         >
                           <Eye className="h-3.5 w-3.5" />

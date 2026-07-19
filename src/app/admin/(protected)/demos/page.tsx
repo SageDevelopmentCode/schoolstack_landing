@@ -6,17 +6,17 @@ export default function AdminDemosPage() {
   const demos = listSchoolDemos();
 
   return (
-    <div className="h-[calc(100vh-3rem)] overflow-y-auto font-secondary">
+    <div className="h-[calc(100vh-3rem)] overflow-y-auto">
       <div className="max-w-5xl mx-auto px-6 py-8">
         <header className="mb-8">
-          <h1 className="text-2xl font-semibold text-text">Demos</h1>
-          <p className="text-sm text-text-muted mt-1">
+          <h1 className="text-2xl font-semibold text-admin-text">Demos</h1>
+          <p className="text-sm text-admin-muted mt-1">
             School-branded interactive walkthroughs
           </p>
         </header>
 
         {demos.length === 0 ? (
-          <p className="text-sm text-text-faint">No demos configured.</p>
+          <p className="text-sm text-admin-faint">No demos configured.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {demos.map((demo) => (
@@ -25,7 +25,7 @@ export default function AdminDemosPage() {
                 href={demo.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col rounded-xl border border-border bg-surface overflow-hidden transition-all duration-150 hover:border-clay/40 hover:shadow-sm"
+                className="group flex flex-col rounded-admin-md border border-admin-border bg-admin-surface overflow-hidden transition-all duration-150 hover:border-admin-accent/30 hover:shadow-sm"
               >
                 <div
                   className="h-1 shrink-0"
@@ -39,18 +39,18 @@ export default function AdminDemosPage() {
                     />
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-sm font-semibold text-text leading-snug">
+                    <h2 className="text-sm font-semibold text-admin-text leading-snug">
                       {demo.schoolName}
                     </h2>
-                    <p className="text-xs text-text-muted mt-1.5 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-admin-muted mt-1.5 line-clamp-2 leading-relaxed">
                       {demo.description}
                     </p>
                   </div>
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] font-medium text-text-faint px-2 py-0.5 rounded-full bg-bg border border-border">
+                    <span className="text-[11px] font-medium text-admin-faint px-2 py-0.5 rounded-admin-sm bg-admin-bg border border-admin-border">
                       {demo.slug}
                     </span>
-                    <span className="text-xs font-medium text-text-muted group-hover:text-clay transition-colors">
+                    <span className="text-xs font-medium text-admin-muted group-hover:text-admin-accent transition-colors">
                       Open demo →
                     </span>
                   </div>

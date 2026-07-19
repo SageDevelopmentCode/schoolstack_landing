@@ -5,7 +5,7 @@ type PerformanceResultsPanelSkeletonProps = {
 };
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div className={`rounded-md bg-surface-soft ${className}`} />;
+  return <div className={`rounded-admin-sm bg-admin-neutral-bg ${className}`} />;
 }
 
 export function PerformanceResultsPanelSkeleton({
@@ -19,9 +19,9 @@ export function PerformanceResultsPanelSkeleton({
         <div className="min-w-0 flex-1 space-y-2">
           {label ? (
             <>
-              <h1 className="font-display text-lg font-semibold text-text">{label}</h1>
+              <h1 className="text-lg font-semibold text-admin-text">{label}</h1>
               {category ? (
-                <p className="font-secondary text-sm text-text-muted capitalize">
+                <p className="text-sm text-admin-muted capitalize">
                   {category.replace(/_/g, " ")}
                 </p>
               ) : (
@@ -38,13 +38,13 @@ export function PerformanceResultsPanelSkeleton({
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-soft"
+          className="shrink-0 rounded-admin-md border border-admin-border px-2 py-1 text-xs text-admin-muted hover:bg-admin-neutral-bg"
         >
           Close
         </button>
       </div>
 
-      <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
+      <section className="space-y-3 rounded-admin-md border border-admin-border bg-admin-surface p-4">
         <SkeletonBlock className="h-3 w-16 animate-pulse" />
         <div className="space-y-3">
           <SkeletonBlock className="h-4 w-full animate-pulse" />
@@ -54,11 +54,11 @@ export function PerformanceResultsPanelSkeleton({
         </div>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
+      <section className="space-y-3 rounded-admin-md border border-admin-border bg-admin-surface p-4">
         <SkeletonBlock className="h-3 w-12 animate-pulse" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="rounded-lg border border-border bg-bg p-3">
+            <div key={index} className="rounded-admin-md border border-admin-border bg-admin-bg p-3">
               <SkeletonBlock className="mb-2 h-3 w-16 animate-pulse" />
               <SkeletonBlock className="h-6 w-10 animate-pulse" />
             </div>
@@ -66,11 +66,11 @@ export function PerformanceResultsPanelSkeleton({
         </div>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
+      <section className="space-y-3 rounded-admin-md border border-admin-border bg-admin-surface p-4">
         <SkeletonBlock className="h-3 w-24 animate-pulse" />
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="space-y-2 rounded-lg border border-border bg-bg p-3">
+            <div key={index} className="space-y-2 rounded-admin-md border border-admin-border bg-admin-bg p-3">
               <SkeletonBlock className="h-4 w-4/5 animate-pulse" />
               <SkeletonBlock className="h-3 w-1/3 animate-pulse" />
               <SkeletonBlock className="h-3 w-full animate-pulse" />

@@ -90,9 +90,9 @@ const EMPTY_CUSTOM_FORM: NewCustomFeatureForm = {
 };
 
 const fieldClass =
-  "text-sm border border-border rounded-md px-2 py-1.5 font-secondary bg-bg";
+  "text-sm border border-admin-border rounded-admin-sm px-2 py-1.5 bg-admin-bg";
 const compactSelectClass =
-  "text-sm border border-border rounded-md px-2 py-1 h-8 font-secondary bg-bg";
+  "text-sm border border-admin-border rounded-admin-sm px-2 py-1 h-8 bg-admin-bg";
 
 const FEATURE_PORTALS = ["admin", "teacher", "parent", "additional"] as const;
 type FeaturePortalTab = (typeof FEATURE_PORTALS)[number];
@@ -433,8 +433,8 @@ export default function OrganizationSettingsEditor({
 
   if (settingsLoading) {
     return (
-      <section className="bg-surface border border-border rounded-lg p-4">
-        <p className="text-sm text-text-faint font-secondary">
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4">
+        <p className="text-sm text-admin-faint font-secondary">
           Loading organization settings…
         </p>
       </section>
@@ -444,27 +444,27 @@ export default function OrganizationSettingsEditor({
   return (
     <div className="space-y-6">
       {!hasRow ? (
-        <div className="bg-clay-soft/30 border border-clay/20 rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-text-muted font-secondary">
+        <div className="bg-admin-accent-soft/30 border border-admin-accent/20 rounded-admin-md px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-admin-muted font-secondary">
             No settings row yet for {organizationName}. Edit below and click
             Save settings to create one.
           </p>
           <button
             type="button"
             onClick={initializeDefaults}
-            className="text-sm px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-bg transition-colors font-secondary"
+            className="text-sm px-3 py-1.5 rounded-admin-md border border-admin-border bg-admin-surface hover:bg-admin-bg transition-colors font-secondary"
           >
             Initialize defaults
           </button>
         </div>
       ) : null}
 
-      <section className="bg-surface border border-border rounded-lg p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
+        <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Branding preview
         </h2>
         <div
-          className="rounded-lg border p-4 space-y-3"
+          className="rounded-admin-md border p-4 space-y-3"
           style={{
             backgroundColor: branding.colors.bg,
             borderColor: branding.colors.border,
@@ -485,7 +485,7 @@ export default function OrganizationSettingsEditor({
           </p>
           <button
             type="button"
-            className="text-sm px-3 py-1.5 rounded-lg text-white font-secondary"
+            className="text-sm px-3 py-1.5 rounded-admin-md text-white font-secondary"
             style={{ backgroundColor: branding.colors.accent }}
           >
             Primary action
@@ -493,8 +493,8 @@ export default function OrganizationSettingsEditor({
         </div>
       </section>
 
-      <section className="bg-surface border border-border rounded-lg p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
+        <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Branding
         </h2>
 
@@ -504,7 +504,7 @@ export default function OrganizationSettingsEditor({
           )
           .map(([group, fields]) => (
             <div key={group} className="space-y-2">
-              <h3 className="text-xs font-medium text-text-muted font-secondary">
+              <h3 className="text-xs font-medium text-admin-muted font-secondary">
                 {group}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -525,9 +525,9 @@ export default function OrganizationSettingsEditor({
                             setBrandingValue(b, field.path, e.target.value),
                           )
                         }
-                        className="w-8 h-8 rounded border border-border cursor-pointer shrink-0"
+                        className="w-8 h-8 rounded border border-admin-border cursor-pointer shrink-0"
                       />
-                      <span className="text-text-muted min-w-0 flex-1 truncate">
+                      <span className="text-admin-muted min-w-0 flex-1 truncate">
                         {field.label}
                       </span>
                       <input
@@ -538,7 +538,7 @@ export default function OrganizationSettingsEditor({
                             setBrandingValue(b, field.path, e.target.value),
                           )
                         }
-                        className="w-28 text-[11px] font-mono border border-border rounded px-1.5 py-1 bg-bg"
+                        className="w-28 text-[11px] font-mono border border-admin-border rounded px-1.5 py-1 bg-admin-bg"
                       />
                     </label>
                   );
@@ -554,7 +554,7 @@ export default function OrganizationSettingsEditor({
         >
           <div className="pt-2 space-y-3">
             <LogoPreview branding={branding} compact />
-            <p className="text-xs text-text-faint font-secondary">
+            <p className="text-xs text-admin-faint font-secondary">
               Used in the school admin sidebar, apply flow, and other
               parent-facing pages. Images are optimized automatically before
               upload.
@@ -571,7 +571,7 @@ export default function OrganizationSettingsEditor({
                 type="button"
                 disabled={logoUploading || saving}
                 onClick={() => logoFileInputRef.current?.click()}
-                className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-lg border border-border bg-bg hover:bg-surface font-secondary disabled:opacity-60"
+                className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-admin-md border border-admin-border bg-admin-bg hover:bg-admin-surface disabled:opacity-60"
               >
                 {logoUploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -580,12 +580,12 @@ export default function OrganizationSettingsEditor({
                 )}
                 {logoUploading ? "Uploading…" : "Upload logo"}
               </button>
-              <span className="text-xs text-text-faint font-secondary">
+              <span className="text-xs text-admin-faint font-secondary">
                 PNG, JPEG, WebP, or SVG · max 2 MB
               </span>
             </div>
             {logoUploadError ? (
-              <p className="text-xs text-clay font-secondary" role="alert">
+              <p className="text-xs text-admin-accent font-secondary" role="alert">
                 {logoUploadError}
               </p>
             ) : null}
@@ -594,7 +594,7 @@ export default function OrganizationSettingsEditor({
               const raw = getBrandingValue(branding, field.path);
               return (
                 <label key={field.path} className="block space-y-1">
-                  <span className="text-xs text-text-muted font-secondary">
+                  <span className="text-xs text-admin-muted font-secondary">
                     {field.label}
                   </span>
                   <input
@@ -611,7 +611,7 @@ export default function OrganizationSettingsEditor({
                         ),
                       )
                     }
-                    className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+                    className="w-full text-sm border border-admin-border rounded-admin-md px-2 py-1.5 bg-admin-bg"
                   />
                 </label>
               );
@@ -631,7 +631,7 @@ export default function OrganizationSettingsEditor({
                 const raw = getBrandingValue(branding, field.path);
                 return (
                   <label key={field.path} className="block space-y-1">
-                    <span className="text-xs text-text-muted font-secondary">
+                    <span className="text-xs text-admin-muted font-secondary">
                       {field.label}
                     </span>
                     <input
@@ -643,7 +643,7 @@ export default function OrganizationSettingsEditor({
                           setBrandingValue(b, field.path, e.target.value),
                         )
                       }
-                      className="w-full text-sm border border-border rounded-lg px-2 py-1.5 font-secondary bg-bg"
+                      className="w-full text-sm border border-admin-border rounded-admin-md px-2 py-1.5 bg-admin-bg"
                     />
                   </label>
                 );
@@ -653,15 +653,15 @@ export default function OrganizationSettingsEditor({
         </CollapsibleSection>
       </section>
 
-      <section className="bg-surface border border-border rounded-lg p-4 space-y-5">
-        <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-5">
+        <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Features
         </h2>
 
         <div
           role="tablist"
           aria-label="Feature portals"
-          className="flex gap-4 overflow-x-auto border-b border-border"
+          className="flex gap-4 overflow-x-auto border-b border-admin-border"
         >
           {FEATURE_PORTALS.map((portal) => (
             <button
@@ -670,10 +670,10 @@ export default function OrganizationSettingsEditor({
               role="tab"
               aria-selected={activeFeaturePortal === portal}
               onClick={() => setActiveFeaturePortal(portal)}
-              className={`text-sm font-medium py-2 border-b-2 transition-colors whitespace-nowrap font-secondary ${
+              className={`text-sm font-medium py-2 border-b-2 transition-colors whitespace-nowrap ${
                 activeFeaturePortal === portal
-                  ? "border-clay text-clay"
-                  : "border-transparent text-text-muted hover:text-text"
+                  ? "border-admin-accent text-admin-accent"
+                  : "border-transparent text-admin-muted hover:text-admin-text"
               }`}
             >
               {PORTAL_LABELS[portal]}
@@ -911,9 +911,9 @@ export default function OrganizationSettingsEditor({
                   />
                 ) : null}
 
-                <div className="border border-border rounded-md divide-y divide-border">
+                <div className="border border-admin-border rounded-admin-sm divide-y divide-border">
                   {isNavPortal ? (
-                    <div className="hidden sm:grid sm:grid-cols-[auto_1fr_128px_148px_auto] gap-4 px-4 py-2.5 text-[11px] uppercase tracking-wide text-text-faint font-secondary">
+                    <div className="hidden sm:grid sm:grid-cols-[auto_1fr_128px_148px_auto] gap-4 px-4 py-2.5 text-[11px] uppercase tracking-wide text-admin-faint font-secondary">
                       <span aria-hidden="true" />
                       <span>Feature</span>
                       <span>Subsection</span>
@@ -921,7 +921,7 @@ export default function OrganizationSettingsEditor({
                       <span className="text-right">On</span>
                     </div>
                   ) : (
-                    <div className="hidden sm:grid sm:grid-cols-[1fr_auto] gap-4 px-4 py-2.5 text-[11px] uppercase tracking-wide text-text-faint font-secondary">
+                    <div className="hidden sm:grid sm:grid-cols-[1fr_auto] gap-4 px-4 py-2.5 text-[11px] uppercase tracking-wide text-admin-faint font-secondary">
                       <span>Feature</span>
                       <span className="text-right">On</span>
                     </div>
@@ -952,7 +952,7 @@ export default function OrganizationSettingsEditor({
                 </div>
 
                 {portal === "additional" ? (
-                  <div className="flex gap-2 border-t border-border pt-5">
+                  <div className="flex gap-2 border-t border-admin-border pt-5">
                     <input
                       type="text"
                       value={newKey}
@@ -969,7 +969,7 @@ export default function OrganizationSettingsEditor({
                       type="button"
                       onClick={() => addCustomPortalFeatureKey(portal)}
                       disabled={!canAddAdditional}
-                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-md border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
+                      className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-admin-sm border border-admin-border bg-admin-bg hover:bg-admin-neutral-bg disabled:opacity-40 font-secondary"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Add
@@ -1018,7 +1018,7 @@ export default function OrganizationSettingsEditor({
           type="button"
           onClick={handleSave}
           disabled={saving || !isDirty}
-          className={`text-sm px-4 py-2 rounded-lg bg-accent text-white font-secondary hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed ${BUTTON_LOADING_LAYOUT_CLASS}`}
+          className={`text-sm px-4 py-2 rounded-admin-md bg-accent text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed ${BUTTON_LOADING_LAYOUT_CLASS}`}
         >
           <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
             Save settings
@@ -1028,29 +1028,29 @@ export default function OrganizationSettingsEditor({
           <button
             type="button"
             onClick={initializeDefaults}
-            className="text-sm px-3 py-2 rounded-lg border border-border bg-surface hover:bg-bg font-secondary"
+            className="text-sm px-3 py-2 rounded-admin-md border border-admin-border bg-admin-surface hover:bg-admin-bg font-secondary"
           >
             Reset to defaults
           </button>
         ) : null}
         {saveMessage ? (
-          <span className="text-sm text-accent font-secondary flex items-center gap-2">
+          <span className="text-sm text-accent flex items-center gap-2">
             {saveMessage}
             <Link
               href={`/school/${organizationSlug}/admin`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-clay hover:underline"
+              className="text-admin-accent hover:underline"
             >
               Preview school admin
             </Link>
           </span>
         ) : null}
         {error ? (
-          <span className="text-sm text-clay font-secondary">{error}</span>
+          <span className="text-sm text-admin-accent font-secondary">{error}</span>
         ) : null}
         {isDirty && !saving ? (
-          <span className="text-xs text-text-faint font-secondary">
+          <span className="text-xs text-admin-faint font-secondary">
             Unsaved changes
           </span>
         ) : null}
@@ -1074,15 +1074,15 @@ function LogoPreview({
 
   return (
     <div
-      className={`rounded-lg border flex items-center justify-center ${
+      className={`rounded-admin-md border flex items-center justify-center ${
         compact ? "p-3 min-h-[72px]" : "p-4 min-h-[88px]"
       }`}
       style={{ borderColor: branding.colors.border }}
     >
       {!src ? (
-        <p className="text-xs text-text-faint font-secondary">No logo URL set</p>
+        <p className="text-xs text-admin-faint font-secondary">No logo URL set</p>
       ) : loadError ? (
-        <p className="text-xs text-clay font-secondary">Could not load logo</p>
+        <p className="text-xs text-admin-accent font-secondary">Could not load logo</p>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -1116,11 +1116,11 @@ function CollapsibleSection({
   children: ReactNode;
 }) {
   return (
-    <div className="border-t border-border pt-3">
+    <div className="border-t border-admin-border pt-3">
       <button
         type="button"
         onClick={onToggle}
-        className="flex items-center gap-1.5 text-xs font-medium text-text-muted font-secondary hover:text-text"
+        className="flex items-center gap-1.5 text-xs font-medium text-admin-muted hover:text-admin-text"
       >
         {open ? (
           <ChevronDown className="w-3.5 h-3.5" />
@@ -1162,9 +1162,9 @@ function SubsectionsToolbar({
   };
 
   return (
-    <div className="border-b border-border pb-5">
+    <div className="border-b border-admin-border pb-5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-text-muted font-secondary shrink-0">
+        <span className="text-xs font-medium text-admin-muted shrink-0">
           Subsections:
         </span>
         {groups.map((group) => {
@@ -1172,14 +1172,14 @@ function SubsectionsToolbar({
           return (
             <span
               key={group}
-              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-border bg-surface font-secondary"
+              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-admin-sm border border-admin-border bg-admin-surface font-secondary"
             >
               {group}
               {assignedCount === 0 ? (
                 <button
                   type="button"
                   onClick={() => onDelete(group)}
-                  className="text-text-faint hover:text-clay"
+                  className="text-admin-faint hover:text-admin-accent"
                   aria-label={`Remove ${group}`}
                 >
                   <Trash2 className="w-3 h-3" />
@@ -1192,7 +1192,7 @@ function SubsectionsToolbar({
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md border border-dashed border-border bg-bg hover:bg-surface-soft text-text-muted font-secondary"
+            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-admin-sm border border-dashed border-admin-border bg-admin-bg hover:bg-admin-neutral-bg text-admin-muted font-secondary"
           >
             <Plus className="w-3 h-3" />
             Add subsection
@@ -1213,14 +1213,14 @@ function SubsectionsToolbar({
             type="button"
             onClick={handleAdd}
             disabled={!newName.trim()}
-            className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-md border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary shrink-0"
+            className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-admin-sm border border-admin-border bg-admin-bg hover:bg-admin-neutral-bg disabled:opacity-40 shrink-0"
           >
             Add
           </button>
           <button
             type="button"
             onClick={handleCancel}
-            className="text-sm px-3 py-1.5 text-text-muted hover:text-text font-secondary shrink-0"
+            className="text-sm px-3 py-1.5 text-admin-muted hover:text-admin-text shrink-0"
           >
             Cancel
           </button>
@@ -1248,8 +1248,8 @@ function FeatureSubtabsEditor({
   const childKeys = subtabs.map((child) => child.key);
 
   return (
-    <div className="mt-3 ml-5 pl-3 border-l border-border space-y-2">
-      <p className="text-[11px] uppercase tracking-wide text-text-faint font-secondary">
+    <div className="mt-3 ml-5 pl-3 border-l border-admin-border space-y-2">
+      <p className="text-[11px] uppercase tracking-wide text-admin-faint font-secondary">
         Sub-tabs
       </p>
       <Reorder.Group
@@ -1296,12 +1296,12 @@ function FeatureSubtabRow({
       value={child.key}
       dragListener={false}
       dragControls={dragControls}
-      className="list-none rounded-md border border-border bg-bg/60 px-3 py-2"
+      className="list-none rounded-admin-sm border border-admin-border bg-admin-bg/60 px-3 py-2"
     >
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="cursor-grab active:cursor-grabbing text-text-faint hover:text-text-muted p-1 shrink-0 touch-none"
+          className="cursor-grab active:cursor-grabbing text-admin-faint hover:text-admin-muted p-1 shrink-0 touch-none"
           onPointerDown={(event) => dragControls.start(event)}
           aria-label="Drag to reorder sub-tab"
         >
@@ -1327,7 +1327,7 @@ function FeatureSubtabRow({
           label={`${label} sub-tab`}
         />
       </div>
-      <p className={`text-[11px] text-text-faint font-mono mt-1 pl-8 ${!enabled ? "opacity-50" : ""}`}>
+      <p className={`text-[11px] text-admin-faint font-mono mt-1 pl-8 ${!enabled ? "opacity-50" : ""}`}>
         {child.key}
       </p>
     </Reorder.Item>
@@ -1397,7 +1397,7 @@ function FeatureSettingsRow({
   const dragHandle = sortable ? (
     <button
       type="button"
-      className="cursor-grab active:cursor-grabbing text-text-faint hover:text-text-muted p-1 shrink-0 touch-none"
+      className="cursor-grab active:cursor-grabbing text-admin-faint hover:text-admin-muted p-1 shrink-0 touch-none"
       onPointerDown={(event) => dragControls.start(event)}
       aria-label="Drag to reorder"
     >
@@ -1412,7 +1412,7 @@ function FeatureSettingsRow({
           <button
             type="button"
             onClick={onToggleSubtabs}
-            className="p-0.5 text-text-faint hover:text-text-muted shrink-0"
+            className="p-0.5 text-admin-faint hover:text-admin-muted shrink-0"
             aria-label={subtabsExpanded ? "Hide sub-tabs" : "Show sub-tabs"}
           >
             {subtabsExpanded ? (
@@ -1431,19 +1431,19 @@ function FeatureSettingsRow({
               className={`w-full ${fieldClass}`}
             />
           ) : (
-            <p className="text-sm text-text font-secondary">{title}</p>
+            <p className="text-sm text-admin-text font-secondary">{title}</p>
           )}
         </div>
       </div>
       {subtitle ? (
         <p
-          className={`text-xs text-text-faint ${subtitleMono ? "font-mono" : "font-secondary"} ${hasSubtabs ? "pl-5" : ""}`}
+          className={`text-xs text-admin-faint ${subtitleMono ? "font-mono" : "font-secondary"} ${hasSubtabs ? "pl-5" : ""}`}
         >
           {subtitle}
         </p>
       ) : null}
       {hasSubtabs ? (
-        <p className={`text-xs text-text-faint font-secondary ${hasSubtabs ? "pl-5" : ""}`}>
+        <p className={`text-xs text-admin-faint ${hasSubtabs ? "pl-5" : ""}`}>
           Sub-tabs appear in the school admin sidebar under this feature.
         </p>
       ) : null}
@@ -1484,7 +1484,7 @@ function FeatureSettingsRow({
         <button
           type="button"
           onClick={onDelete}
-          className="p-1 text-text-faint hover:text-clay"
+          className="p-1 text-admin-faint hover:text-admin-accent"
           aria-label={`Remove ${title}`}
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -1552,13 +1552,13 @@ function AddCustomFeatureForm({
   onAdd: () => void;
 }) {
   return (
-    <div className="border-t border-border pt-5 space-y-4">
-      <p className="text-xs font-medium text-text-muted font-secondary">
+    <div className="border-t border-admin-border pt-5 space-y-4">
+      <p className="text-xs font-medium text-admin-muted font-secondary">
         Add custom feature
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <label className="block space-y-1">
-          <span className="text-xs text-text-muted font-secondary">
+          <span className="text-xs text-admin-muted font-secondary">
             Feature key
           </span>
           <input
@@ -1570,7 +1570,7 @@ function AddCustomFeatureForm({
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-xs text-text-muted font-secondary">
+          <span className="text-xs text-admin-muted font-secondary">
             Display label
           </span>
           <input
@@ -1582,7 +1582,7 @@ function AddCustomFeatureForm({
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-xs text-text-muted font-secondary">
+          <span className="text-xs text-admin-muted font-secondary">
             Subsection
           </span>
           <select
@@ -1608,7 +1608,7 @@ function AddCustomFeatureForm({
           type="button"
           onClick={onAdd}
           disabled={!canAdd}
-          className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-md border border-border bg-bg hover:bg-surface-soft disabled:opacity-40 font-secondary"
+          className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-admin-sm border border-admin-border bg-admin-bg hover:bg-admin-neutral-bg disabled:opacity-40 font-secondary"
         >
           <Plus className="w-3.5 h-3.5" />
           Add feature
@@ -1634,8 +1634,8 @@ function FeatureIconPicker({
   if (compact) {
     return (
       <div className="flex items-center gap-1.5 min-w-0">
-        <span className="w-7 h-7 rounded-md border border-border bg-bg flex items-center justify-center shrink-0">
-          {createElement(icon, { className: "w-3.5 h-3.5 text-text-muted" })}
+        <span className="w-7 h-7 rounded-admin-sm border border-admin-border bg-admin-bg flex items-center justify-center shrink-0">
+          {createElement(icon, { className: "w-3.5 h-3.5 text-admin-muted" })}
         </span>
         <select
           value={value}
@@ -1656,11 +1656,11 @@ function FeatureIconPicker({
   return (
     <label className="block space-y-1">
       {label ? (
-        <span className="text-xs text-text-muted font-secondary">{label}</span>
+        <span className="text-xs text-admin-muted font-secondary">{label}</span>
       ) : null}
       <div className="flex items-center gap-2">
-        <span className="w-7 h-7 rounded-md border border-border bg-bg flex items-center justify-center shrink-0">
-          {createElement(icon, { className: "w-3.5 h-3.5 text-text-muted" })}
+        <span className="w-7 h-7 rounded-admin-sm border border-admin-border bg-admin-bg flex items-center justify-center shrink-0">
+          {createElement(icon, { className: "w-3.5 h-3.5 text-admin-muted" })}
         </span>
         <select
           value={value}
@@ -1694,12 +1694,12 @@ function Toggle({
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+      className={`relative w-10 h-5 rounded-admin-md transition-colors shrink-0 ${
         checked ? "bg-accent" : "bg-border"
       }`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-admin-md bg-admin-surface shadow transition-transform ${
           checked ? "translate-x-5" : "translate-x-0"
         }`}
       />

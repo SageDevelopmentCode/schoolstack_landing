@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { AdminButton } from "@/components/admin/ui/AdminButton";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
@@ -40,36 +41,33 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-bg pt-20 pb-28 px-6">
+    <div className="admin-app min-h-screen bg-admin-bg pt-20 pb-28 px-6">
       <AdminHeader variant="minimal" />
 
       <div className="max-w-[420px] mx-auto">
         <div className="mb-8">
-          <h1 className="font-display text-[clamp(1.85rem,4.5vw,2.6rem)] leading-[1.05] text-text">
-            Admin{" "}
-            <em style={{ color: "var(--color-clay)", fontStyle: "italic" }}>
-              sign in
-            </em>
+          <h1 className="text-2xl font-semibold text-admin-text">
+            Admin sign in
           </h1>
-          <p className="text-[15px] text-text-muted font-secondary mt-3 leading-relaxed">
+          <p className="text-sm text-admin-muted mt-2">
             Internal tools for the MudKitchen team.
           </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-surface border border-border rounded-xl p-8 shadow-sm space-y-5"
+          className="bg-admin-surface border border-admin-border rounded-admin-md p-8 shadow-sm space-y-5"
         >
-          {error && (
-            <div className="text-sm text-clay bg-clay-soft/30 border border-clay/30 rounded-lg px-4 py-3 font-secondary">
+          {error ? (
+            <div className="text-sm text-admin-error bg-admin-error-bg border border-admin-error-border rounded-admin-md px-4 py-3">
               {error}
             </div>
-          )}
+          ) : null}
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="email"
-              className="text-[13px] font-medium font-secondary text-text-muted"
+              className="text-sm font-medium text-admin-muted"
             >
               Email
             </label>
@@ -80,14 +78,14 @@ function LoginForm() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-12 px-4 rounded-lg border border-border bg-bg text-[14px] font-secondary text-text placeholder:text-text-faint focus:outline-none focus:border-accent transition-colors duration-150 w-full"
+              className="h-11 px-3 rounded-admin-md border border-admin-border bg-admin-bg text-sm text-admin-text placeholder:text-admin-faint focus:outline-none focus:ring-2 focus:ring-admin-accent/30 w-full"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="password"
-              className="text-[13px] font-medium font-secondary text-text-muted"
+              className="text-sm font-medium text-admin-muted"
             >
               Password
             </label>
@@ -98,20 +96,20 @@ function LoginForm() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 px-4 rounded-lg border border-border bg-bg text-[14px] font-secondary text-text placeholder:text-text-faint focus:outline-none focus:border-accent transition-colors duration-150 w-full"
+              className="h-11 px-3 rounded-admin-md border border-admin-border bg-admin-bg text-sm text-admin-text placeholder:text-admin-faint focus:outline-none focus:ring-2 focus:ring-admin-accent/30 w-full"
             />
           </div>
 
-          <button
+          <AdminButton
             type="submit"
+            variant="primary"
             disabled={loading}
-            className={`w-full bg-clay text-white rounded-pill h-12 text-sm font-medium font-secondary hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-            style={{ backgroundColor: "var(--color-clay)" }}
+            className={`w-full h-11 ${BUTTON_LOADING_LAYOUT_CLASS}`}
           >
             <ButtonLoadingLabel loading={loading} loadingLabel="Signing in…">
               Sign in
             </ButtonLoadingLabel>
-          </button>
+          </AdminButton>
         </form>
       </div>
     </div>
@@ -120,14 +118,14 @@ function LoginForm() {
 
 function LoginFallback() {
   return (
-    <div className="min-h-screen bg-bg pt-20 pb-28 px-6">
+    <div className="admin-app min-h-screen bg-admin-bg pt-20 pb-28 px-6">
       <AdminHeader variant="minimal" />
       <div className="max-w-[420px] mx-auto">
-        <div className="h-8 w-48 bg-border/40 rounded animate-pulse mb-8" />
-        <div className="bg-surface border border-border rounded-xl p-8 shadow-sm space-y-5">
-          <div className="h-12 bg-border/30 rounded-lg animate-pulse" />
-          <div className="h-12 bg-border/30 rounded-lg animate-pulse" />
-          <div className="h-12 bg-border/30 rounded-lg animate-pulse" />
+        <div className="h-8 w-48 bg-admin-border/40 rounded-admin-sm animate-pulse mb-8" />
+        <div className="bg-admin-surface border border-admin-border rounded-admin-md p-8 shadow-sm space-y-5">
+          <div className="h-11 bg-admin-border/30 rounded-admin-md animate-pulse" />
+          <div className="h-11 bg-admin-border/30 rounded-admin-md animate-pulse" />
+          <div className="h-11 bg-admin-border/30 rounded-admin-md animate-pulse" />
         </div>
       </div>
     </div>
