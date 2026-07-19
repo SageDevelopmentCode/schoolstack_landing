@@ -361,6 +361,13 @@ export async function seedE2eDatabase(): Promise<void> {
   const admin = createAdminClient();
   const organizationId = await getOrganizationId(admin);
 
+  const { error: liveStatusError } = await admin
+    .from("organizations")
+    .update({ status: "live" })
+    .eq("id", organizationId);
+
+  if (liveStatusError) throw liveStatusError;
+
   const adminUserId = await ensureAuthUser(admin, {
     email: E2E_ADMIN_EMAIL,
     password: E2E_TEST_PASSWORD,

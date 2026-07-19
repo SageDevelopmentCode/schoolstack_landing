@@ -243,26 +243,8 @@ export default function ProductPreviewSection() {
               One system for the work of running a microschool.
             </h2>
           </FadeInView>
-          <FadeInView delay={0.16}>
-            <p className="text-[16px] text-text-muted leading-relaxed mt-5 max-w-[640px] mx-auto">
-              Mud Kitchen brings{' '}
-              <strong className="text-text font-semibold">enrollment, family communication, student information, schedules,</strong>
-              {' '}and everyday operations{' '}
-              <em className="font-display text-[17px]" style={{ color: 'var(--color-accent)', fontStyle: 'italic' }}>into one place</em>
-              , so school teams can stay organized without relying on a patchwork of{' '}
-              <span className="line-through text-text-faint">spreadsheets, forms, inboxes, and apps.</span>
-            </p>
-            <p className="text-[16px] text-text-muted leading-relaxed mt-4 max-w-[640px] mx-auto">
-              It is designed for the way{' '}
-              <strong className="text-text font-semibold">small schools actually work</strong>
-              {' '}—{' '}
-              <span style={{ color: 'var(--color-clay)' }}>high-touch, fast-moving, relationship-centered</span>
-              , and too often stuck stitching together tools that were never built for them.
-            </p>
-          </FadeInView>
-
           {/* Bullet cards */}
-          <FadeInView delay={0.22}>
+          <FadeInView delay={0.16}>
             <ul className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
               {[
                 { title: 'One place', body: 'for the work your team touches every day.' },
