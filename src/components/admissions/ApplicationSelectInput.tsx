@@ -152,15 +152,36 @@ export default function ApplicationSelectInput({
 
   return (
     <div ref={rootRef} className="relative">
+      {autoComplete ? (
+        <select
+          id={id}
+          name={id}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          disabled={disabled}
+          aria-hidden="true"
+          tabIndex={-1}
+          className="sr-only absolute h-px w-px overflow-hidden opacity-0 pointer-events-none"
+        >
+          <option value="" disabled hidden>
+            {placeholder}
+          </option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      ) : null}
       <button
-        id={id}
+        id={autoComplete ? undefined : id}
         type="button"
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
         aria-invalid={Boolean(error)}
-        autoComplete={autoComplete}
         onClick={() => (open ? close() : openPicker())}
         className="flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-sm outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
         style={{ ...inputStyle, ...focusRing }}
