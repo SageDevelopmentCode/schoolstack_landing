@@ -206,13 +206,14 @@ export async function bootstrapApplicant(
     guardianId = newGuardian.id as string;
   }
 
-  const { data: existingApplication, error: applicationLookupError } = await admin
+  const { data: existingApplications, error: applicationLookupError } = await admin
     .from("applications")
     .select("id")
     .eq("created_by_user_id", userId)
     .eq("form_version_id", formVersionId)
     .eq("status", "draft")
-    .maybeSingle();
+    .order("updated_at", { ascending: false })
+    .limit(1);
 
   if (applicationLookupError) {
     throw new BootstrapApplicantError(
@@ -221,6 +222,8 @@ export async function bootstrapApplicant(
       500,
     );
   }
+
+  const existingApplication = existingApplications?.[0];
 
   if (existingApplication) {
     return {

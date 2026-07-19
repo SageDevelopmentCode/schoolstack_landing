@@ -1,10 +1,24 @@
 import { test, expect } from "@playwright/test";
+import {
+  beginApplyFormTest,
+  endApplyFormTest,
+  openNewApplicationForm,
+} from "../helpers/apply-form";
 import { TEST_ORG_SLUG } from "../helpers/constants";
 
 const MOBILE_VIEWPORT = { width: 375, height: 812 };
 
 test.describe("mobile apply flows", () => {
+  test.describe.configure({ mode: "serial" });
   test.use({ viewport: MOBILE_VIEWPORT });
+
+  test.beforeEach(async () => {
+    await beginApplyFormTest();
+  });
+
+  test.afterEach(async () => {
+    await endApplyFormTest();
+  });
 
   test("dashboard shows full-width application CTAs without horizontal overflow", async ({
     page,
@@ -27,11 +41,7 @@ test.describe("mobile apply flows", () => {
   test("application form shows step label and full-width continue button", async ({
     page,
   }) => {
-    await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`);
-
-    await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
-      timeout: 15_000,
-    });
+    await openNewApplicationForm(page);
 
     const continueButton = page
       .getByRole("button", { name: /Save and continue|Continue/i })
@@ -50,13 +60,9 @@ test.describe("mobile apply flows", () => {
   });
 
   test("grade level dropdown opens as bottom sheet on mobile", async ({ page }) => {
-    await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`);
+    await openNewApplicationForm(page);
 
-    await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
-      timeout: 15_000,
-    });
-
-    const gradeTrigger = page.getByRole("button", { name: "Grade level" });
+    const gradeTrigger = page.locator("#student_grade");
     await expect(gradeTrigger).toBeVisible();
     await gradeTrigger.click();
 
@@ -69,11 +75,7 @@ test.describe("mobile apply flows", () => {
   test("save and continue blocks when required grade level is empty", async ({
     page,
   }) => {
-    await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`);
-
-    await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
-      timeout: 15_000,
-    });
+    await openNewApplicationForm(page);
 
     await page.locator("#student_first_name").fill("Jon");
     await page.locator("#student_last_name").fill("Cecilia");
@@ -84,7 +86,7 @@ test.describe("mobile apply flows", () => {
 
     await expect(page.getByText(/Step 1 of/i).first()).toBeVisible();
     await expect(page.getByText("Grade level is required.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Grade level" })).toHaveAttribute(
+    await expect(page.locator("#student_grade")).toHaveAttribute(
       "aria-invalid",
       "true",
     );

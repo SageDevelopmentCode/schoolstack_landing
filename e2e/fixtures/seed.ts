@@ -5,6 +5,7 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
+import { buildApplySystemSection, emptyApplyCustomSection } from "@/lib/admissions/apply-system-fields";
 import {
   E2E_ADMIN_EMAIL,
   E2E_NONADMIN_EMAIL,
@@ -186,21 +187,7 @@ async function ensureE2eApplicationFormContext(
     required_to_submit: true,
   };
   const e2eFormSchema = {
-    sections: [
-      {
-        id: "e2e-section-student",
-        title: "Student information",
-        fields: [
-          {
-            id: "student_first_name",
-            label: "First Name",
-            type: "text",
-            required: true,
-            width: "full",
-          },
-        ],
-      },
-    ],
+    sections: [buildApplySystemSection(), emptyApplyCustomSection()],
     acknowledgments: [],
   };
 

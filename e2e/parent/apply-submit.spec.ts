@@ -1,7 +1,19 @@
 import { test, expect } from "@playwright/test";
-import { TEST_ORG_SLUG } from "../helpers/constants";
+import {
+  beginApplyFormTest,
+  endApplyFormTest,
+  openNewApplicationForm,
+} from "../helpers/apply-form";
 
 test.describe.configure({ mode: "serial" });
+
+test.beforeEach(async () => {
+  await beginApplyFormTest();
+});
+
+test.afterEach(async () => {
+  await endApplyFormTest();
+});
 
 async function fillRequiredStudentFields(
   page: import("@playwright/test").Page,
@@ -32,11 +44,7 @@ async function submitApplication(page: import("@playwright/test").Page) {
 test("parent can complete and submit a new application without a fee", async ({
   page,
 }) => {
-  await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`);
-
-  await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
-    timeout: 15_000,
-  });
+  await openNewApplicationForm(page);
 
   await fillRequiredStudentFields(page);
 
@@ -52,11 +60,7 @@ test("parent can complete and submit a new application without a fee", async ({
 });
 
 test("submitted application appears on the apply dashboard", async ({ page }) => {
-  await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`);
-
-  await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
-    timeout: 15_000,
-  });
+  await openNewApplicationForm(page);
 
   const uniqueSuffix = Date.now().toString().slice(-6);
   const studentFirstName = `Dash${uniqueSuffix}`;
