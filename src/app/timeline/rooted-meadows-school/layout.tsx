@@ -4,14 +4,14 @@ import { pageMetadata } from "@/lib/metadata";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   display: "swap",
   variable: "--font-cormorant",
 });
 
 const sourceSans = Source_Sans_3({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   display: "swap",
   variable: "--font-source-sans",
 });

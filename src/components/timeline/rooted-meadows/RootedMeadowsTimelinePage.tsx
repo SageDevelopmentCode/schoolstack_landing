@@ -1,28 +1,27 @@
-"use client";
-
-import { useState } from "react";
+import dynamic from "next/dynamic";
 import RootedMeadowsDualBranding from "@/components/timeline/rooted-meadows/RootedMeadowsDualBranding";
 import RootedMeadowsTimelineHero from "@/components/timeline/rooted-meadows/RootedMeadowsTimelineHero";
-import RootedMeadowsTimelinePhases from "@/components/timeline/rooted-meadows/RootedMeadowsTimelinePhases";
+import RootedMeadowsTimelinePhasesSkeleton from "@/components/timeline/rooted-meadows/RootedMeadowsTimelinePhasesSkeleton";
 import RootedMeadowsTimelineProgressLog from "@/components/timeline/rooted-meadows/RootedMeadowsTimelineProgressLog";
 import type { OrganizationProgressEntry } from "@/lib/organization-progress";
+
+const RootedMeadowsTimelinePhasesSection = dynamic(
+  () =>
+    import("@/components/timeline/rooted-meadows/RootedMeadowsTimelinePhasesSection"),
+  { loading: () => <RootedMeadowsTimelinePhasesSkeleton /> },
+);
 
 interface Props {
   progressEntries: OrganizationProgressEntry[];
 }
 
 export default function RootedMeadowsTimelinePage({ progressEntries }: Props) {
-  const [activePhase, setActivePhase] = useState(0);
-
   return (
     <>
       <RootedMeadowsDualBranding />
       <main>
         <RootedMeadowsTimelineHero />
-        <RootedMeadowsTimelinePhases
-          activePhase={activePhase}
-          onPhaseSelect={setActivePhase}
-        />
+        <RootedMeadowsTimelinePhasesSection />
         <RootedMeadowsTimelineProgressLog entries={progressEntries} />
       </main>
     </>

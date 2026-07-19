@@ -16,6 +16,8 @@ interface SchoolDemoWordmarkProps {
   className?: string;
   onDark?: boolean;
   style?: CSSProperties;
+  sizes?: string;
+  priority?: boolean;
 }
 
 export default function SchoolDemoWordmark({
@@ -23,6 +25,8 @@ export default function SchoolDemoWordmark({
   className = "",
   onDark = false,
   style,
+  sizes,
+  priority,
 }: SchoolDemoWordmarkProps) {
   if (logo.text) {
     const baseClass =
@@ -66,6 +70,8 @@ export default function SchoolDemoWordmark({
       width={logo.width ?? 120}
       height={logo.height ?? 32}
       className={imageClass || undefined}
+      sizes={sizes}
+      priority={priority}
     />
   );
 }
