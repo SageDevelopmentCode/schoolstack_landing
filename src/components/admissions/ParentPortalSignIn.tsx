@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
-import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
+import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
+import { ApplyAuthShellLoader } from "@/components/admissions/ApplyAuthShellLoader";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
@@ -32,7 +32,6 @@ export default function ParentPortalSignIn({
 }: ParentPortalSignInProps) {
   const supabase = useMemo(() => createClient(), []);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-  const pageBg = branding.colors.bg;
 
   const [phase, setPhase] = useState<"email" | "verify">("email");
   const [email, setEmail] = useState("");
@@ -158,37 +157,24 @@ export default function ParentPortalSignIn({
 
   if (checkingSession) {
     return (
-      <div
-        className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6"
-        style={{ backgroundColor: pageBg, color: C.textSecondary }}
+      <ApplyAuthShell
+        branding={branding}
+        schoolName={schoolName}
+        title={title}
+        subtitle={subtitle}
       >
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: C.accent }} />
-        <p className="text-sm">Checking your session…</p>
-      </div>
+        <ApplyAuthShellLoader message="Checking your session…" C={C} />
+      </ApplyAuthShell>
     );
   }
 
   return (
-    <div
-      className="flex min-h-dvh flex-col items-center justify-center px-6 py-12"
-      style={{ backgroundColor: pageBg, color: C.textPrimary }}
+    <ApplyAuthShell
+      branding={branding}
+      schoolName={schoolName}
+      title={title}
+      subtitle={subtitle}
     >
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex justify-center">
-          <ApplyPortalBranding
-            branding={branding}
-            schoolName={schoolName}
-            schoolLogoClassName="h-8 w-auto max-w-[200px] object-contain"
-          />
-        </div>
-
-        <h1 className="text-center text-xl font-semibold sm:text-2xl" style={{ color: C.accentDark }}>
-          {title}
-        </h1>
-        <p className="mt-3 text-center text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-          {subtitle}
-        </p>
-
         {phase === "email" ? (
           <form onSubmit={handleEmailSubmit} className="mt-8 space-y-4">
             <div className="flex flex-col gap-1.5">
@@ -287,7 +273,6 @@ export default function ParentPortalSignIn({
             </div>
           </form>
         )}
-      </div>
-    </div>
+    </ApplyAuthShell>
   );
 }

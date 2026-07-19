@@ -434,15 +434,7 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
-      <AuthGatePromoPanel
-        activeSlide={activeSlide}
-        onSelectSlide={setActiveSlide}
-      />
-      <AuthGatePromoPanel
-        compact
-        activeSlide={activeSlide}
-        onSelectSlide={setActiveSlide}
-      />
+      <AuthGatePromoPanel activeSlide={activeSlide} />
 
       <div
         className="relative flex min-h-0 flex-1 flex-col lg:min-h-dvh"

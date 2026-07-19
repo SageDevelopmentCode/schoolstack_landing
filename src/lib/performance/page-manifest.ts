@@ -102,6 +102,13 @@ function buildAdmissionsPages(): PageTarget[] {
       path: `/school/${CANONICAL_SCHOOL_SLUG}/apply`,
       requiresAuth: "none",
     },
+    {
+      id: "admissions-apply-form",
+      category: "admissions",
+      label: "Apply form",
+      path: `/school/${CANONICAL_SCHOOL_SLUG}/forms/apply`,
+      requiresAuth: "none",
+    },
   ];
 }
 

@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import ApplicationAuthGate from "@/components/admissions/ApplicationAuthGate";
-import ApplicationFormExperience from "@/components/admissions/ApplicationFormExperience";
+import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
+import { ApplyAuthShellLoader } from "@/components/admissions/ApplyAuthShellLoader";
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import {
@@ -29,6 +30,12 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
+const ApplicationFormExperience = dynamic(
+  () => import("@/components/admissions/ApplicationFormExperience"),
+);
+
+type ServerAuthState = "unauthenticated" | "authenticated";
+
 type PublicApplicationFormClientProps = {
   branding: OrganizationBranding;
   schoolName: string;
@@ -39,9 +46,19 @@ type PublicApplicationFormClientProps = {
   feeConfig: ApplicationFormFeeConfig;
   organizationId: string;
   formVersionId: string;
+  shellLayout?: "standalone" | "embedded";
+  serverAuthState?: ServerAuthState;
 };
 
 type ClientPhase = "checking_session" | "auth" | "loading_draft" | "form" | "error";
+
+function getInitialPhase(serverAuthState?: ServerAuthState): ClientPhase {
+  if (serverAuthState === "unauthenticated") {
+    return "auth";
+  }
+
+  return "checking_session";
+}
 
 async function bootstrapApplicant(
   organizationId: string,
@@ -80,6 +97,8 @@ export default function PublicApplicationFormClient({
   feeConfig,
   organizationId,
   formVersionId,
+  shellLayout = "standalone",
+  serverAuthState,
 }: PublicApplicationFormClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -87,7 +106,9 @@ export default function PublicApplicationFormClient({
   const searchParams = useSearchParams();
   const forceNew = searchParams.get("new") === "1";
 
-  const [phase, setPhase] = useState<ClientPhase>("checking_session");
+  const [phase, setPhase] = useState<ClientPhase>(() =>
+    getInitialPhase(serverAuthState),
+  );
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ApplicationDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -187,18 +208,24 @@ export default function PublicApplicationFormClient({
   );
 
   useEffect(() => {
+    if (serverAuthState === "unauthenticated") {
+      return;
+    }
+
     let cancelled = false;
 
     async function checkSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      if (serverAuthState !== "authenticated") {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (!session) {
-        setPhase("auth");
-        return;
+        if (!session) {
+          setPhase("auth");
+          return;
+        }
       }
 
       try {
@@ -228,6 +255,7 @@ export default function PublicApplicationFormClient({
     formVersionId,
     handleBootstrapResult,
     organizationId,
+    serverAuthState,
     supabase.auth,
   ]);
 
@@ -338,39 +366,71 @@ export default function PublicApplicationFormClient({
     setImportGeneration((current) => current + 1);
   };
 
+  const embeddedLoader = (message: string) => (
+    <div className="flex min-h-dvh items-center justify-center">
+      <ApplyAuthShellLoader message={message} C={C} />
+    </div>
+  );
+
   if (phase === "checking_session" || phase === "loading_draft") {
+    const loader = (
+      <ApplyAuthShellLoader
+        message={
+          phase === "checking_session"
+            ? "Checking your session…"
+            : "Loading your application…"
+        }
+        C={C}
+      />
+    );
+
+    if (shellLayout === "embedded") {
+      return embeddedLoader(
+        phase === "checking_session"
+          ? "Checking your session…"
+          : "Loading your application…",
+      );
+    }
+
     return (
-      <ApplicationFormPageShell branding={branding}>
-        <div
-          className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6"
-          style={{ color: C.textSecondary }}
-        >
-          <Loader2 className="h-6 w-6 animate-spin" style={{ color: C.accent }} />
-          <p className="text-sm">
-            {phase === "checking_session"
-              ? "Checking your session…"
-              : "Loading your application…"}
-          </p>
-        </div>
-      </ApplicationFormPageShell>
+      <ApplyAuthShell branding={branding} schoolName={schoolName} title={title}>
+        {loader}
+      </ApplyAuthShell>
     );
   }
 
   if (phase === "error") {
-    return (
-      <ApplicationFormPageShell branding={branding}>
+    const errorContent = (
+      <p className="mt-3 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+        {error ?? "Something went wrong. Please try again."}
+      </p>
+    );
+
+    if (shellLayout === "embedded") {
+      return (
         <div
-          className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12"
-          style={{ color: C.textPrimary }}
+          className="flex min-h-dvh flex-col items-center justify-center px-6 py-12"
+          style={{ backgroundColor: branding.colors.bg, color: C.textPrimary }}
         >
-          <h1 className="text-xl font-semibold" style={{ color: C.accentDark }}>
+          <h2
+            className="text-center text-xl font-semibold"
+            style={{ color: C.accentDark }}
+          >
             Unable to open your application
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-            {error ?? "Something went wrong. Please try again."}
-          </p>
+          </h2>
+          {errorContent}
         </div>
-      </ApplicationFormPageShell>
+      );
+    }
+
+    return (
+      <ApplyAuthShell
+        branding={branding}
+        schoolName={schoolName}
+        title="Unable to open your application"
+      >
+        {errorContent}
+      </ApplyAuthShell>
     );
   }
 

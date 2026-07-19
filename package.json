@@ -17,6 +17,7 @@
     "import-schools": "tsx scripts/import-schools-csv.ts",
     "preview:emails": "tsx scripts/preview-emails.ts",
     "images:optimize": "tsx scripts/convert-images-to-webp.ts",
+    "images:favicons": "tsx scripts/generate-favicons.ts",
     "performance:audit": "tsx scripts/run-performance-audits.ts",
     "performance:audit:watch": "tsx scripts/run-performance-audits.ts --watch",
     "performance:ci": "lhci autorun",

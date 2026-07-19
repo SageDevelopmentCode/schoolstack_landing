@@ -2,7 +2,10 @@
 
 import type { ReactNode } from "react";
 import ApplyPortalNavbar from "@/components/admissions/ApplyPortalNavbar";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  ApplyPortalPageLayout,
+  ApplyPortalPageMain,
+} from "@/components/admissions/ApplyPortalPageLayout";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type ApplyPortalPageShellProps = {
@@ -14,9 +17,7 @@ type ApplyPortalPageShellProps = {
   previewMode?: boolean;
   previewHomeHref?: string;
   children: ReactNode;
-  /** Skip max-width content wrapper for full-bleed layouts (e.g. enrollment). */
   fullBleed?: boolean;
-  /** Let children fill remaining viewport height below the navbar. */
   fillHeight?: boolean;
 };
 
@@ -32,11 +33,8 @@ export default function ApplyPortalPageShell({
   fullBleed = false,
   fillHeight = false,
 }: ApplyPortalPageShellProps) {
-  const C = buildAdminThemeTokens(branding);
-  const pageBg = branding.colors.bg;
-
   return (
-    <div className="flex min-h-dvh flex-col" style={{ color: C.textPrimary }}>
+    <ApplyPortalPageLayout branding={branding}>
       <ApplyPortalNavbar
         branding={branding}
         schoolName={schoolName}
@@ -46,18 +44,13 @@ export default function ApplyPortalPageShell({
         previewMode={previewMode}
         previewHomeHref={previewHomeHref}
       />
-      <main
-        className={`flex-1 ${fillHeight ? "flex min-h-0 flex-col" : ""} ${
-          fullBleed ? "" : "px-4 py-8 sm:px-6 sm:py-10"
-        }`}
-        style={{ backgroundColor: pageBg }}
+      <ApplyPortalPageMain
+        branding={branding}
+        fullBleed={fullBleed}
+        fillHeight={fillHeight}
       >
-        {fullBleed ? (
-          children
-        ) : (
-          <div className="mx-auto max-w-3xl">{children}</div>
-        )}
-      </main>
-    </div>
+        {children}
+      </ApplyPortalPageMain>
+    </ApplyPortalPageLayout>
   );
 }

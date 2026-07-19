@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
-import ProductPreviewSection from "@/components/sections/ProductPreviewSection";
 import SectionFallback from "@/components/ui/SectionFallback";
 import JsonLd from "@/components/seo/JsonLd";
 import FaqJsonLd from "@/components/seo/FaqJsonLd";
@@ -23,6 +22,10 @@ export const metadata: Metadata = {
 };
 
 
+const ProductPreviewSection = dynamic(
+  () => import("@/components/sections/ProductPreviewSection"),
+  { loading: () => <SectionFallback minHeight="32rem" /> },
+);
 const PainSection = dynamic(
   () => import("@/components/sections/PainSection"),
   { loading: () => <SectionFallback minHeight="28rem" /> },

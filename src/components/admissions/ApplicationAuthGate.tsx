@@ -1,12 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, LogIn, UserPlus } from "lucide-react";
-import {
-  AuthGatePromoPanel,
-  AuthHelpButton,
-} from "@/components/admissions/AuthGatePromoPanel";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
@@ -19,7 +16,26 @@ import {
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { AUTH_GATE_PROMO } from "@/lib/site";
+import {
+  AuthGatePromoPlaceholder,
+} from "@/components/admissions/AuthGatePromoPanel";
 import { createClient } from "@/utils/supabase/client";
+
+const AuthGatePromoPanelLazy = dynamic(
+  () =>
+    import("@/components/admissions/AuthGatePromoPanel").then((mod) => ({
+      default: mod.AuthGatePromoPanel,
+    })),
+  { ssr: false },
+);
+
+const AuthHelpButton = dynamic(
+  () =>
+    import("@/components/admissions/AuthGatePromoPanel").then((mod) => ({
+      default: mod.AuthHelpButton,
+    })),
+  { ssr: false },
+);
 
 type AuthMode = "create" | "login";
 type AuthPhase = "choice" | "credentials" | "verify";
@@ -129,16 +145,48 @@ export default function ApplicationAuthGate({
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [activeSlide, setActiveSlide] = useState(0);
+  const [showPromo, setShowPromo] = useState(false);
+  const [carouselActive, setCarouselActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
+    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+    if (!isDesktop) {
+      return;
+    }
+
+    const enablePromo = () => setShowPromo(true);
+
+    if (typeof requestIdleCallback !== "undefined") {
+      const id = requestIdleCallback(enablePromo, { timeout: 3000 });
+      return () => cancelIdleCallback(id);
+    }
+
+    const id = window.setTimeout(enablePromo, 1000);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (!showPromo) return;
+
+    const id = window.setTimeout(() => {
+      setCarouselActive(true);
+    }, AUTH_GATE_PROMO.slideIntervalMs);
+
+    return () => window.clearTimeout(id);
+  }, [showPromo]);
+
+  useEffect(() => {
+    if (!carouselActive) return;
+
     const id = setInterval(() => {
       setActiveSlide((index) => (index + 1) % AUTH_GATE_PROMO.slides.length);
     }, AUTH_GATE_PROMO.slideIntervalMs);
+
     return () => clearInterval(id);
-  }, [activeSlide]);
+  }, [carouselActive]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -357,15 +405,11 @@ export default function ApplicationAuthGate({
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
-      <AuthGatePromoPanel
-        activeSlide={activeSlide}
-        onSelectSlide={setActiveSlide}
-      />
-      <AuthGatePromoPanel
-        compact
-        activeSlide={activeSlide}
-        onSelectSlide={setActiveSlide}
-      />
+      {showPromo ? (
+        <AuthGatePromoPanelLazy activeSlide={activeSlide} />
+      ) : (
+        <AuthGatePromoPlaceholder />
+      )}
 
       <div
         className="relative flex min-h-0 flex-1 flex-col lg:min-h-dvh"
@@ -396,6 +440,8 @@ export default function ApplicationAuthGate({
                   text: branding.logo.src ? undefined : schoolName,
                 }}
                 className="mb-6 h-8 w-auto max-w-[200px] object-contain"
+                sizes="200px"
+                priority
               />
 
               <h1

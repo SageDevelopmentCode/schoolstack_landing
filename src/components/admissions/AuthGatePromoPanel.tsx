@@ -7,60 +7,12 @@ import { AUTH_GATE_PROMO } from "@/lib/site";
 
 const slideFadeTransition = { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as const };
 
-function PromoSlideThumbnails({
-  slides,
-  activeSlide,
-  onSelectSlide,
-  className = "",
-}: {
-  slides: typeof AUTH_GATE_PROMO.slides;
-  activeSlide: number;
-  onSelectSlide: (index: number) => void;
-  className?: string;
-}) {
-  return (
-    <div className={`flex gap-1.5 overflow-x-auto ${className}`.trim()}>
-      {slides.map((item, index) => {
-        const isActive = index === activeSlide;
-        return (
-          <button
-            key={item.image}
-            type="button"
-            onClick={() => onSelectSlide(index)}
-            aria-label={`Show slide ${index + 1}`}
-            aria-current={isActive ? "true" : undefined}
-            className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-sm border-2 transition ${
-              isActive
-                ? "border-white opacity-100"
-                : "border-white/25 opacity-70 hover:border-white/40 hover:opacity-90"
-            }`}
-          >
-            <Image src={item.image} alt="" fill className="object-cover" sizes="40px" />
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-export function AuthGatePromoPanel({
-  compact = false,
-  activeSlide,
-  onSelectSlide,
-}: {
-  compact?: boolean;
-  activeSlide: number;
-  onSelectSlide: (index: number) => void;
-}) {
+export function AuthGatePromoPanel({ activeSlide }: { activeSlide: number }) {
   const slides = AUTH_GATE_PROMO.slides;
   const slide = slides[activeSlide];
 
   return (
-    <div
-      className={`relative overflow-hidden ${
-        compact ? "h-[28vh] min-h-[160px] max-h-[220px] lg:hidden" : "hidden lg:flex lg:min-h-dvh lg:flex-1"
-      }`}
-    >
+    <div className="relative hidden overflow-hidden lg:flex lg:min-h-dvh lg:flex-1">
       <AnimatePresence mode="wait">
         <motion.div
           key={slide.image}
@@ -74,9 +26,10 @@ export function AuthGatePromoPanel({
             src={slide.image}
             alt=""
             fill
-            priority={activeSlide === 0}
+            loading="lazy"
+            fetchPriority="low"
             className="object-cover"
-            sizes={compact ? "100vw" : "50vw"}
+            sizes="(max-width: 1023px) 100vw, 50vw"
           />
         </motion.div>
       </AnimatePresence>
@@ -84,9 +37,12 @@ export function AuthGatePromoPanel({
 
       <div className="relative z-10 flex h-full w-full flex-col p-6 lg:p-10">
         <div className="inline-flex w-fit items-center gap-2 rounded-pill bg-white px-3 py-1.5 shadow-sm">
-          <img
-            src="/images/Logo.png"
+          <Image
+            src="/images/Logo.webp"
             alt="MudKitchen"
+            width={24}
+            height={24}
+            sizes="24px"
             className="h-6 w-auto object-contain"
           />
           <span className="font-display text-base font-semibold text-clay">
@@ -94,7 +50,7 @@ export function AuthGatePromoPanel({
           </span>
         </div>
 
-        <div className={`mt-auto ${compact ? "max-w-lg" : "max-w-md"}`}>
+        <div className="mt-auto max-w-lg lg:max-w-md">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeSlide}
@@ -107,13 +63,7 @@ export function AuthGatePromoPanel({
                 {slide.badge}
               </span>
 
-              <h2
-                className={`mt-4 font-display font-medium leading-[1.12] text-white ${
-                  compact
-                    ? "text-[clamp(1.2rem,4.2vw,1.55rem)]"
-                    : "text-[clamp(1.35rem,1.65vw,1.75rem)]"
-                }`}
-              >
+              <h2 className="mt-4 font-display text-[clamp(1.2rem,4.2vw,1.75rem)] font-medium leading-[1.12] text-white lg:text-[clamp(1.35rem,1.65vw,1.75rem)]">
                 <span className="block">{slide.headlineLead}</span>
                 <em
                   className="mt-0 block text-[#E8D5C8]"
@@ -123,34 +73,23 @@ export function AuthGatePromoPanel({
                 </em>
               </h2>
 
-              <p
-                className={`mt-4 leading-relaxed text-white/75 ${
-                  compact ? "text-sm line-clamp-3" : "text-[15px]"
-                }`}
-              >
+              <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-white/75 lg:text-[15px] lg:line-clamp-none">
                 {slide.subtext}
               </p>
             </motion.div>
           </AnimatePresence>
-
-          {!compact ? (
-            <PromoSlideThumbnails
-              slides={slides}
-              activeSlide={activeSlide}
-              onSelectSlide={onSelectSlide}
-              className="mt-8"
-            />
-          ) : (
-            <PromoSlideThumbnails
-              slides={slides}
-              activeSlide={activeSlide}
-              onSelectSlide={onSelectSlide}
-              className="mt-4 pb-1"
-            />
-          )}
         </div>
       </div>
     </div>
+  );
+}
+
+export function AuthGatePromoPlaceholder() {
+  return (
+    <div
+      className="hidden bg-neutral-900 lg:block lg:min-h-dvh lg:flex-1"
+      aria-hidden
+    />
   );
 }
 
@@ -161,10 +100,11 @@ export function AuthHelpButton() {
       className="fixed bottom-4 right-4 z-50 inline-flex items-center gap-2 rounded-pill bg-clay px-4 py-2.5 text-xs font-medium text-white shadow-lg transition hover:opacity-90 sm:bottom-6 sm:right-6 sm:px-5 sm:py-3 sm:text-sm"
     >
       <Image
-        src="/images/Logo.png"
+        src="/images/Logo.webp"
         alt=""
         width={20}
         height={20}
+        sizes="20px"
         className="h-5 w-5 w-auto object-contain"
         aria-hidden
       />

@@ -70,6 +70,10 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
     );
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <Suspense>
       <PublicApplicationFormClient
@@ -82,6 +86,8 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
         feeConfig={form.fee_config}
         organizationId={org.id}
         formVersionId={form.id}
+        shellLayout="embedded"
+        serverAuthState={user ? "authenticated" : "unauthenticated"}
       />
     </Suspense>
   );
