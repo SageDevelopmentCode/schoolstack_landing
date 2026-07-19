@@ -1,13 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { TEST_ORG_SLUG } from "../helpers/constants";
+import { gotoSubmissions } from "../helpers/admin-submissions";
 
 test("logged-in school admin can view admissions submissions", async ({
   page,
 }) => {
-  await page.goto(`/school/${TEST_ORG_SLUG}/admin/admissions/submissions`);
+  await gotoSubmissions(page);
 
-  await expect(page).toHaveURL(
-    `/school/${TEST_ORG_SLUG}/admin/admissions/submissions`,
-  );
   await expect(page.getByText("Status", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Alpha Child" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Beta Child" })).toBeVisible();
 });

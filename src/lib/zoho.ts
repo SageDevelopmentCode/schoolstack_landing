@@ -53,6 +53,9 @@ function cleanEmailAddress(raw: string): string {
 }
 
 export async function isZohoConfigured(): Promise<boolean> {
+  const { isOutboundEmailDisabled } = await import("@/lib/outbound-email");
+  if (isOutboundEmailDisabled()) return false;
+
   return !!(
     ZOHO_CLIENT_ID &&
     ZOHO_CLIENT_SECRET &&
@@ -206,6 +209,11 @@ export async function sendZohoEmail(opts: {
   subject: string;
   content: string;
 }): Promise<{ success: boolean; error?: string }> {
+  const { isOutboundEmailDisabled } = await import("@/lib/outbound-email");
+  if (isOutboundEmailDisabled()) {
+    return { success: true };
+  }
+
   if (!ZOHO_FROM_ADDRESS) {
     return { success: false, error: "ZOHO_FROM_ADDRESS is not set" };
   }

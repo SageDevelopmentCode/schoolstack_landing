@@ -27,7 +27,7 @@ npm run test:e2e:install
 
 ```bash
 npm run test:e2e:setup   # optional: reset local DB
-npm run test:e2e         # 7 tests (setup + smoke + admin + parent)
+npm run test:e2e         # 27 tests (setup + smoke + admin + parent)
 npm run test:e2e:ui      # interactive mode
 ```
 
@@ -37,9 +37,9 @@ npm run test:e2e:ui      # interactive mode
 |---------|-------|------|
 | `setup` | Seed + authenticate test users | — |
 | `smoke` | Platform admin redirect, school admin redirect, parent auth gate | None |
-| `school-admin` | Admissions submissions page | `e2e-admin@schoolstack.test` |
+| `school-admin` | Admissions submissions list, detail panel, answers, status change, PDF | `e2e-admin@schoolstack.test` |
 | `non-admin` | Access denied for user without membership | `e2e-nonadmin@schoolstack.test` |
-| `parent` | Apply dashboard | `e2e-parent@schoolstack.test` |
+| `parent` | Apply dashboard, submit, mobile flows | `e2e-parent@schoolstack.test` |
 
 Seeded password (local only): `E2eTestPassword123!` — override via `.env.e2e.local`.
 
@@ -48,6 +48,8 @@ Seeded password (local only): `E2eTestPassword123!` — override via `.env.e2e.l
 - Loads `.env.e2e.local` when present; CI uses workflow env vars
 - `e2e/global-setup.ts` blocks production Supabase host `rxrmlfyoqzdpjxztluyd`
 - Stripe env vars cleared in Playwright web server
+- Outbound email disabled via `DISABLE_OUTBOUND_EMAIL=1` (Zoho/SMTP keys cleared)
+- Admissions Discord alerts route to `DISCORD_E2E_ALERTS_WEBHOOK_URL` from `.env.e2e.local`; prod `ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL` is cleared in Playwright web server
 
 ## CI
 

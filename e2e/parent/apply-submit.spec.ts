@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { TEST_ORG_SLUG } from "../helpers/constants";
 
+test.describe.configure({ mode: "serial" });
+
 async function fillRequiredStudentFields(
   page: import("@playwright/test").Page,
   firstName?: string,
@@ -12,7 +14,7 @@ async function fillRequiredStudentFields(
   await page.locator("#student_date_of_birth").click();
   await page.getByRole("button", { name: "Today" }).click();
 
-  const gradeTrigger = page.getByRole("button", { name: "Grade level" });
+  const gradeTrigger = page.locator("#student_grade");
   await gradeTrigger.click();
   await page.getByRole("option", { name: "Kindergarten" }).click();
 }
