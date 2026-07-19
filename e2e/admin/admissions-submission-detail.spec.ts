@@ -37,8 +37,14 @@ test("admin can view application answers", async ({ page }) => {
   ).toBeVisible();
 
   const answersModal = page.locator("#application-answers-print");
-  await expect(answersModal.getByText("First Name", { exact: true })).toBeVisible();
+  await expect(
+    answersModal.getByText("Student first name", { exact: true }),
+  ).toBeVisible();
   await expect(answersModal.getByText("Alpha", { exact: true }).first()).toBeVisible();
+  await expect(
+    answersModal.getByText("Student last name", { exact: true }),
+  ).toBeVisible();
+  await expect(answersModal.getByText("Child", { exact: true }).first()).toBeVisible();
 });
 
 test("admin can close submission detail panel", async ({ page }) => {
