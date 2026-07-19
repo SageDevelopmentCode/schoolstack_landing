@@ -7,7 +7,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
-  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -16,7 +15,10 @@ import {
   type AdminNavItem,
 } from "@/lib/organization-settings/admin-nav";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import { schoolAdminLoginPath } from "@/lib/school-admin/access";
+import {
+  schoolAdminLoginPath,
+  type SchoolAdminUserProfile,
+} from "@/lib/school-admin/access";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
@@ -27,6 +29,7 @@ import type {
 } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import AdminSupportRequestModal from "@/components/school-admin/AdminSupportRequestModal";
+import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
 
 type SchoolAdminBaselineProps = {
   slug: string;
@@ -34,7 +37,7 @@ type SchoolAdminBaselineProps = {
   schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
-  userEmail?: string | null;
+  userProfile: SchoolAdminUserProfile | null;
   children: ReactNode;
 };
 
@@ -204,7 +207,7 @@ function Sidebar({
   pathname,
   isExpanded,
   onToggleExpand,
-  userEmail,
+  userProfile,
   onSignOut,
   onOpenSupport,
 }: {
@@ -216,8 +219,8 @@ function Sidebar({
   pathname: string;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  userEmail?: string | null;
-  onSignOut: () => void;
+  userProfile: SchoolAdminUserProfile | null;
+  onSignOut: () => Promise<void>;
   onOpenSupport: () => void;
 }) {
   const { logo } = branding;
@@ -367,34 +370,14 @@ function Sidebar({
           padding: isExpanded ? "10px 12px" : "10px 6px",
         }}
       >
-        {isExpanded && userEmail ? (
-          <p
-            className="mb-2 truncate px-2 text-xs"
-            style={{ color: C.textTertiary }}
-            title={userEmail}
-          >
-            {userEmail}
-          </p>
+        {userProfile ? (
+          <SchoolAdminProfileMenu
+            C={C}
+            userProfile={userProfile}
+            isExpanded={isExpanded}
+            onSignOut={onSignOut}
+          />
         ) : null}
-        <button
-          type="button"
-          onClick={onSignOut}
-          title="Sign out"
-          className="mb-2 w-full flex items-center transition-colors duration-150"
-          style={{
-            justifyContent: isExpanded ? "flex-start" : "center",
-            gap: isExpanded ? "8px" : 0,
-            padding: "6px 8px",
-            borderRadius: C.r.sm,
-            color: C.textTertiary,
-            cursor: "pointer",
-            backgroundColor: "transparent",
-            border: "none",
-          }}
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          {isExpanded && <span className="text-xs font-medium">Sign out</span>}
-        </button>
         <button
           type="button"
           onClick={onToggleExpand}
@@ -431,7 +414,7 @@ export default function SchoolAdminBaseline({
   schoolName,
   branding,
   features,
-  userEmail,
+  userProfile,
   children,
 }: SchoolAdminBaselineProps) {
   const pathname = usePathname();
@@ -475,7 +458,7 @@ export default function SchoolAdminBaseline({
         pathname={pathname}
         isExpanded={sidebarExpanded}
         onToggleExpand={() => setSidebarExpanded((v) => !v)}
-        userEmail={userEmail}
+        userProfile={userProfile}
         onSignOut={handleSignOut}
         onOpenSupport={() => setSupportOpen(true)}
       />
@@ -485,7 +468,7 @@ export default function SchoolAdminBaseline({
         open={supportOpen}
         onClose={() => setSupportOpen(false)}
         organizationId={organizationId}
-        userEmail={userEmail}
+        userEmail={userProfile?.email ?? null}
         currentPath={pathname}
       />
 

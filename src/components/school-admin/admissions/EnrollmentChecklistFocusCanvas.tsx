@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import {
@@ -12,6 +11,7 @@ import {
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
+import BuilderFieldEditorPanel from "./BuilderFieldEditorPanel";
 import { BuilderSectionIntro } from "./builder-question-card";
 import {
   checklistFocusKey,
@@ -72,6 +72,7 @@ function ItemView({
   orgSlug,
   stripePaymentsReady,
   readOnly,
+  selectedFieldId,
   onUpdateItem,
   onFocusChange,
   onAddVariant,
@@ -86,6 +87,7 @@ function ItemView({
   orgSlug?: string;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
+  selectedFieldId?: string | null;
   onUpdateItem: (item: EnrollmentChecklistItem) => void;
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
   onAddVariant?: (itemId: string) => void;
@@ -108,6 +110,7 @@ function ItemView({
         orgSlug={orgSlug}
         stripePaymentsReady={stripePaymentsReady}
         readOnly={readOnly}
+        selectedFieldId={selectedFieldId}
         onChange={onUpdateItem}
         onSelectField={(fieldId) =>
           onFocusChange({ kind: "field", itemId: item.id, fieldId })
@@ -117,55 +120,6 @@ function ItemView({
           onSetDefaultVariant ? () => onSetDefaultVariant(item.id) : undefined
         }
         allItems={allItems}
-      />
-    </div>
-  );
-}
-
-function FieldView({
-  C,
-  item,
-  itemIdx,
-  field,
-  readOnly,
-  onBack,
-  onUpdateField,
-  onRequestDelete,
-}: {
-  C: AdminThemeTokens;
-  item: EnrollmentChecklistItem;
-  itemIdx: number;
-  field: ApplicationField;
-  readOnly?: boolean;
-  onBack: () => void;
-  onUpdateField: (patch: Partial<ApplicationField>) => void;
-  onRequestDelete: () => void;
-}) {
-  return (
-    <div className="w-full max-w-3xl space-y-5">
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-sm font-medium"
-        style={{ color: C.accent }}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to {item.label || `Item ${itemIdx + 1}`}
-      </button>
-
-      <BuilderSectionIntro
-        C={C}
-        eyebrow={`Item ${itemIdx + 1} · Question`}
-        title="Edit question"
-        subtitle="Set up what families see and how they answer this question."
-      />
-
-      <ApplicationFormFieldEditor
-        C={C}
-        field={field}
-        readOnly={readOnly}
-        onChange={onUpdateField}
-        onDelete={readOnly ? undefined : onRequestDelete}
       />
     </div>
   );
@@ -287,50 +241,64 @@ export default function EnrollmentChecklistFocusCanvas({
           onOpenPicker={onOpenPicker}
         />
 
-        <div className="min-w-0 flex-1 overflow-y-auto px-5 pb-4 pt-6">
-          <AnimatePresence mode="wait">
-            <motion.div key={key} {...canvasTransition}>
-              {focus?.kind === "item" && item && itemIdx >= 0 && (
-                <ItemView
-                  key={item.id}
-                  C={C}
-                  item={item}
-                  itemIdx={itemIdx}
-                  organizationId={organizationId}
-                  templateId={templateId}
-                  orgSlug={orgSlug}
-                  stripePaymentsReady={stripePaymentsReady}
-                  readOnly={readOnly}
-                  onUpdateItem={onUpdateItem}
-                  onFocusChange={onFocusChange}
-                  onAddVariant={onAddVariant}
-                  onSetDefaultVariant={onSetDefaultVariant}
-                  allItems={items}
-                />
-              )}
+        <div className="relative min-w-0 flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto px-5 pb-4 pt-6">
+            <AnimatePresence mode="wait">
+              <motion.div key={key} {...canvasTransition}>
+                {(focus?.kind === "item" || focus?.kind === "field") &&
+                  item &&
+                  itemIdx >= 0 && (
+                    <ItemView
+                      key={item.id}
+                      C={C}
+                      item={item}
+                      itemIdx={itemIdx}
+                      organizationId={organizationId}
+                      templateId={templateId}
+                      orgSlug={orgSlug}
+                      stripePaymentsReady={stripePaymentsReady}
+                      readOnly={readOnly}
+                      selectedFieldId={
+                        focus?.kind === "field" ? focus.fieldId : null
+                      }
+                      onUpdateItem={onUpdateItem}
+                      onFocusChange={onFocusChange}
+                      onAddVariant={onAddVariant}
+                      onSetDefaultVariant={onSetDefaultVariant}
+                      allItems={items}
+                    />
+                  )}
 
-              {focus?.kind === "field" && item && field && itemIdx >= 0 && (
-                <FieldView
-                  C={C}
-                  item={item}
-                  itemIdx={itemIdx}
-                  field={field}
-                  readOnly={readOnly}
-                  onBack={() => onFocusChange({ kind: "item", itemId: item.id })}
-                  onUpdateField={(patch) => updateField(item.id, field.id, patch)}
-                  onRequestDelete={() =>
-                    setPendingDeleteField({
-                      itemId: item.id,
-                      fieldId: field.id,
-                      fieldLabel: field.label || "Untitled question",
-                    })
-                  }
-                />
-              )}
+                {!focus && <EmptyCanvasView C={C} />}
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-              {!focus && <EmptyCanvasView C={C} />}
-            </motion.div>
-          </AnimatePresence>
+          {focus?.kind === "field" && item && field && itemIdx >= 0 && (
+            <BuilderFieldEditorPanel
+              C={C}
+              open
+              eyebrow={`Item ${itemIdx + 1} · Question`}
+              onClose={() => onFocusChange({ kind: "item", itemId: item.id })}
+            >
+              <ApplicationFormFieldEditor
+                C={C}
+                field={field}
+                readOnly={readOnly}
+                onChange={(patch) => updateField(item.id, field.id, patch)}
+                onDelete={
+                  readOnly
+                    ? undefined
+                    : () =>
+                        setPendingDeleteField({
+                          itemId: item.id,
+                          fieldId: field.id,
+                          fieldLabel: field.label || "Untitled question",
+                        })
+                }
+              />
+            </BuilderFieldEditorPanel>
+          )}
         </div>
       </div>
 

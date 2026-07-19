@@ -74,15 +74,15 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
     org.features.feature_nav?.parent,
   );
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    notFound();
+  }
+
   if (feature === "portal") {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      notFound();
-    }
-
     const [userProfile, familyChildren] = await Promise.all([
       getFamilyUserProfile(supabase, user.id, org.id, user),
       listFamilyChildrenForHome(supabase, org.id, user.id),
@@ -90,7 +90,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
     const quickActions = buildParentQuickActions(slug, org.features);
 
     return (
-      <SchoolParentPageShell title={pageName} hideTitle>
+      <SchoolParentPageShell title={pageName}>
         <ParentHomePage
           branding={org.branding}
           schoolSlug={slug}
@@ -102,9 +102,24 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
     );
   }
 
+  const userProfile = await getFamilyUserProfile(
+    supabase,
+    user.id,
+    org.id,
+    user,
+  );
+
   return (
     <SchoolParentPageShell title={pageName}>
-      <SchoolParentComingSoon branding={org.branding} />
+      <SchoolParentComingSoon
+        branding={org.branding}
+        schoolSlug={slug}
+        schoolName={org.name}
+        organizationId={org.id}
+        featureKey={feature}
+        featureLabel={pageName}
+        userProfile={userProfile}
+      />
     </SchoolParentPageShell>
   );
 }

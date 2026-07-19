@@ -55,10 +55,10 @@ import AdmissionsFamilyAccessGuideButton from "./AdmissionsFamilyAccessGuide";
 import ApplicationFormEditorToolbar from "./ApplicationFormEditorToolbar";
 import ChecklistProgramDropdown from "./ChecklistProgramDropdown";
 import ApplicationFormFocusCanvas from "./ApplicationFormFocusCanvas";
-import ApplicationFormList, {
-  type FlowListSelection,
-} from "./ApplicationFormList";
-import { StatusBadge, FLOW_TYPE_LABELS } from "./ApplicationFormListBadges";
+import EnrollmentFlowsSidebar from "./EnrollmentFlowsSidebar";
+import EnrollmentFlowsEmptyState from "./EnrollmentFlowsEmptyState";
+import type { FlowListSelection } from "./enrollment-flow-selection";
+import { StatusIcon } from "./ApplicationFormListBadges";
 import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
 import EnrollmentChecklistBuilder from "./EnrollmentChecklistBuilder";
@@ -295,6 +295,7 @@ export default function ApplicationFormsPage({
   const [checklistSavedSnapshot, setChecklistSavedSnapshot] = useState<string | null>(
     null,
   );
+  const [flowsSidebarOpen, setFlowsSidebarOpen] = useState(false);
   const isApplyDirtyRef = useRef(false);
   const isChecklistDirtyRef = useRef(false);
 
@@ -610,6 +611,7 @@ export default function ApplicationFormsPage({
       setForms((prev) => [created, ...prev]);
       setSelection({ kind: "apply", id: created.id });
       setFocus(DEFAULT_BUILDER_FOCUS);
+      setFlowsSidebarOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create apply form.");
     } finally {
@@ -630,6 +632,7 @@ export default function ApplicationFormsPage({
       const created = await createEnrollmentChecklistTemplate(supabase, organizationId);
       setChecklists((prev) => [created, ...prev]);
       setSelection({ kind: "checklist", id: created.id });
+      setFlowsSidebarOpen(false);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to create enrollment checklist.",
@@ -668,7 +671,14 @@ export default function ApplicationFormsPage({
   };
 
   const handleSelect = (nextSelection: FlowListSelection) => {
-    requestAction(() => setSelection(nextSelection));
+    requestAction(() => {
+      setSelection(nextSelection);
+      setFlowsSidebarOpen(false);
+    });
+  };
+
+  const toggleFlowsSidebar = () => {
+    setFlowsSidebarOpen((open) => !open);
   };
 
   const handleSave = async () => {
@@ -1051,21 +1061,47 @@ export default function ApplicationFormsPage({
     );
   }
 
-  return (
-    <div className="flex h-full overflow-hidden" style={{ backgroundColor: C.bg }}>
-      <ApplicationFormList
+  const hasFlows = forms.length > 0 || checklists.length > 0;
+
+  const flowsSidebarProps = {
+    C,
+    open: flowsSidebarOpen,
+    forms,
+    checklists,
+    selected: selection,
+    creating,
+    hasApplyForm,
+    hasEnrollmentChecklist,
+    onClose: () => setFlowsSidebarOpen(false),
+    onSelect: handleSelect,
+    onCreateApply: handleCreateApply,
+    onCreateChecklist: handleCreateChecklist,
+  };
+
+  const flowsSidebarToggle = (
+    <button
+      type="button"
+      onClick={toggleFlowsSidebar}
+      className="shrink-0 rounded-sm px-3 py-1.5 text-xs font-semibold"
+      style={getAdminButtonStyle(C, "secondary")}
+    >
+      Switch form
+    </button>
+  );
+
+  if (!hasFlows) {
+    return (
+      <EnrollmentFlowsEmptyState
         C={C}
-        forms={forms}
-        checklists={checklists}
-        selected={selection}
         creating={creating}
-        hasApplyForm={hasApplyForm}
-        hasEnrollmentChecklist={hasEnrollmentChecklist}
-        onSelect={handleSelect}
         onCreateApply={handleCreateApply}
         onCreateChecklist={handleCreateChecklist}
       />
+    );
+  }
 
+  return (
+    <div className="flex h-full overflow-hidden" style={{ backgroundColor: C.bg }}>
       {selectedChecklist && checklistEditable ? (
         <div
           className="flex flex-1 flex-col overflow-hidden"
@@ -1076,23 +1112,20 @@ export default function ApplicationFormsPage({
             style={{ borderColor: C.border }}
           >
             <div className="min-w-0 flex-1">
-              <input
-                type="text"
-                value={checklistEditable.name}
-                onChange={(e) =>
-                  handleChecklistEditableChange({ name: e.target.value })
-                }
-                disabled={checklistReadOnly}
-                className="w-full truncate bg-transparent text-base font-semibold outline-none"
-                style={{ color: C.textPrimary }}
-                placeholder="Enrollment checklist"
-              />
-              <div
-                className="mt-1 flex flex-wrap items-center gap-2 text-[11px]"
-                style={{ color: C.textTertiary }}
-              >
-                <StatusBadge C={C} status={selectedChecklist.status} />
-                <span>{FLOW_TYPE_LABELS.checklist}</span>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <input
+                  type="text"
+                  value={checklistEditable.name}
+                  onChange={(e) =>
+                    handleChecklistEditableChange({ name: e.target.value })
+                  }
+                  disabled={checklistReadOnly}
+                  className="min-w-0 flex-1 truncate bg-transparent text-base font-semibold outline-none"
+                  style={{ color: C.textPrimary }}
+                  placeholder="Enrollment checklist"
+                />
+                <StatusIcon status={selectedChecklist.status} variant="plain" size="lg" />
+                {flowsSidebarToggle}
               </div>
             </div>
 
@@ -1217,18 +1250,15 @@ export default function ApplicationFormsPage({
             style={{ borderColor: C.border }}
           >
             <div className="min-w-0 flex-1">
-              <p
-                className="truncate text-base font-semibold"
-                style={{ color: C.textPrimary }}
-              >
-                {editable.title || "Untitled form"}
-              </p>
-              <div
-                className="mt-1 flex flex-wrap items-center gap-2 text-[11px]"
-                style={{ color: C.textTertiary }}
-              >
-                <StatusBadge C={C} status={selectedForm.status} />
-                <span>{FLOW_TYPE_LABELS.apply}</span>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p
+                  className="truncate text-base font-semibold"
+                  style={{ color: C.textPrimary }}
+                >
+                  {editable.title || "Untitled form"}
+                </p>
+                <StatusIcon status={selectedForm.status} variant="plain" size="lg" />
+                {flowsSidebarToggle}
               </div>
             </div>
 
@@ -1306,7 +1336,8 @@ export default function ApplicationFormsPage({
           className="flex flex-1 items-center justify-center text-sm"
           style={{ color: C.textSecondary }}
         >
-          Select or create an application form to begin.
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading…
         </div>
       )}
 
@@ -1376,6 +1407,8 @@ export default function ApplicationFormsPage({
         onConfirm={confirmLeave}
         onClose={cancelLeave}
       />
+
+      <EnrollmentFlowsSidebar {...flowsSidebarProps} />
     </div>
   );
 }

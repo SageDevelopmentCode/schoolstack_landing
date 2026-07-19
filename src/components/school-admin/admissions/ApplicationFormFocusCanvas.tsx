@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import {
@@ -30,6 +30,7 @@ import {
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ApplicationFormAcknowledgmentsEditor from "./ApplicationFormAcknowledgmentsEditor";
 import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
+import BuilderFieldEditorPanel from "./BuilderFieldEditorPanel";
 import ApplicationFormFeePanel from "./ApplicationFormFeePanel";
 import ApplicationFormPostSubmitEditor from "./ApplicationFormPostSubmitEditor";
 import ApplicationFormQuestionList from "./ApplicationFormQuestionList";
@@ -686,60 +687,6 @@ function StepView({
   );
 }
 
-function FieldView({
-  C,
-  step,
-  stepIdx,
-  field,
-  readOnly,
-  lockSystemFields,
-  onBack,
-  onUpdateField,
-  onRequestDeleteField,
-}: {
-  C: AdminThemeTokens;
-  step: ApplicationSection;
-  stepIdx: number;
-  field: ApplicationField;
-  readOnly: boolean;
-  lockSystemFields: boolean;
-  onBack: () => void;
-  onUpdateField: (patch: Partial<ApplicationField>) => void;
-  onRequestDeleteField: () => void;
-}) {
-  const isLockedField =
-    lockSystemFields && (field.system === true || isSystemFieldId(field.id));
-
-  return (
-    <div className="w-full max-w-3xl space-y-5">
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-sm font-medium"
-        style={{ color: C.accent }}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to {step.title || `Step ${stepIdx + 1}`}
-      </button>
-
-      <BuilderSectionIntro
-        C={C}
-        eyebrow={`Step ${stepIdx + 1} · Question`}
-        title="Edit question"
-        subtitle="Set up what families see and how they answer this question."
-      />
-
-      <ApplicationFormFieldEditor
-        C={C}
-        field={field}
-        readOnly={readOnly || isLockedField}
-        onChange={onUpdateField}
-        onDelete={isLockedField ? undefined : onRequestDeleteField}
-      />
-    </div>
-  );
-}
-
 export default function ApplicationFormFocusCanvas({
   C,
   focus,
@@ -853,72 +800,63 @@ export default function ApplicationFormFocusCanvas({
           }
         : null;
 
+  const isLockedField =
+    field &&
+    lockSystemFields &&
+    (field.system === true || isSystemFieldId(field.id));
+
   return (
     <>
-    <div className="flex-1 overflow-y-auto px-5 py-4" style={{ backgroundColor: C.surface }}>
-      <AnimatePresence mode="wait">
-        <motion.div key={key} {...canvasTransition}>
-          {focus.kind === "setup" && (
-            <SetupView
-              C={C}
-              editable={editable}
-              programs={programs}
-              orgSlug={orgSlug}
-              readOnly={readOnly}
-              lockApplySlug={lockApplySlug}
-              setupHighlight={setupHighlight}
-              slugError={slugError}
-              onEditableChange={onEditableChange}
-            />
-          )}
+    <div
+      className="relative flex flex-1 flex-col overflow-hidden"
+      style={{ backgroundColor: C.surface }}
+    >
+      <div className="flex-1 overflow-y-auto px-5 py-8">
+        <AnimatePresence mode="wait">
+          <motion.div key={key} className="mx-auto w-full max-w-3xl" {...canvasTransition}>
+            {focus.kind === "setup" && (
+              <SetupView
+                C={C}
+                editable={editable}
+                programs={programs}
+                orgSlug={orgSlug}
+                readOnly={readOnly}
+                lockApplySlug={lockApplySlug}
+                setupHighlight={setupHighlight}
+                slugError={slugError}
+                onEditableChange={onEditableChange}
+              />
+            )}
 
-          {focus.kind === "step" && step && stepIdx >= 0 && (
-            <StepView
-              C={C}
-              step={step}
-              stepIdx={stepIdx}
-              readOnly={readOnly}
-              lockSystemFields={lockSystemFields}
-              selectedFieldId={null}
-              onFocusChange={onFocusChange}
-              onUpdateStep={(patch) => updateStep(step.id, patch)}
-              onRequestDeleteStep={() => {
-                if (lockSystemFields && isSystemSection(step)) return;
-                setPendingDelete({
-                  kind: "step",
-                  stepId: step.id,
-                  stepTitle: step.title || `Step ${stepIdx + 1}`,
-                  questionCount: step.fields.length,
-                });
-              }}
-              onAddField={(field) => addField(step.id, field)}
-              onReorderFields={(fields) =>
-                updateStep(step.id, { fields })
-              }
-            />
-          )}
-
-          {focus.kind === "field" && step && field && stepIdx >= 0 && (
-            <FieldView
-              C={C}
-              step={step}
-              stepIdx={stepIdx}
-              field={field}
-              readOnly={readOnly}
-              lockSystemFields={lockSystemFields}
-              onBack={() => onFocusChange({ kind: "step", stepId: step.id })}
-              onUpdateField={(patch) => updateField(step.id, field.id, patch)}
-              onRequestDeleteField={() => {
-                if (lockSystemFields && isSystemFieldId(field.id)) return;
-                setPendingDelete({
-                  kind: "field",
-                  stepId: step.id,
-                  fieldId: field.id,
-                  fieldLabel: field.label || "Untitled question",
-                });
-              }}
-            />
-          )}
+            {(focus.kind === "step" || focus.kind === "field") &&
+              step &&
+              stepIdx >= 0 && (
+                <StepView
+                  C={C}
+                  step={step}
+                  stepIdx={stepIdx}
+                  readOnly={readOnly}
+                  lockSystemFields={lockSystemFields}
+                  selectedFieldId={
+                    focus.kind === "field" ? focus.fieldId : null
+                  }
+                  onFocusChange={onFocusChange}
+                  onUpdateStep={(patch) => updateStep(step.id, patch)}
+                  onRequestDeleteStep={() => {
+                    if (lockSystemFields && isSystemSection(step)) return;
+                    setPendingDelete({
+                      kind: "step",
+                      stepId: step.id,
+                      stepTitle: step.title || `Step ${stepIdx + 1}`,
+                      questionCount: step.fields.length,
+                    });
+                  }}
+                  onAddField={(newField) => addField(step.id, newField)}
+                  onReorderFields={(fields) =>
+                    updateStep(step.id, { fields })
+                  }
+                />
+              )}
 
           {focus.kind === "fee" && (
             <div className="w-full max-w-3xl space-y-5">
@@ -975,20 +913,38 @@ export default function ApplicationFormFocusCanvas({
             </div>
           )}
 
-          {focus.kind === "field" && step && !field && (
-            <div className="w-full max-w-3xl text-sm" style={{ color: C.textTertiary }}>
-              Question not found.{" "}
-              <button
-                type="button"
-                onClick={() => onFocusChange({ kind: "step", stepId: step.id })}
-                style={{ color: C.accent }}
-              >
-                Back to step
-              </button>
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {focus.kind === "field" && step && field && stepIdx >= 0 && (
+        <BuilderFieldEditorPanel
+          C={C}
+          open
+          eyebrow={`Step ${stepIdx + 1} · Question`}
+          onClose={() => onFocusChange({ kind: "step", stepId: step.id })}
+        >
+          <ApplicationFormFieldEditor
+            C={C}
+            field={field}
+            readOnly={readOnly || isLockedField}
+            onChange={(patch) => updateField(step.id, field.id, patch)}
+            onDelete={
+              isLockedField
+                ? undefined
+                : () => {
+                    if (lockSystemFields && isSystemFieldId(field.id)) return;
+                    setPendingDelete({
+                      kind: "field",
+                      stepId: step.id,
+                      fieldId: field.id,
+                      fieldLabel: field.label || "Untitled question",
+                    });
+                  }
+            }
+          />
+        </BuilderFieldEditorPanel>
+      )}
     </div>
 
     <ConfirmDialog

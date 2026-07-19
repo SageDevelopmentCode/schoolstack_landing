@@ -88,7 +88,7 @@ function Step1TransitionMobileVisual() {
     <div className="lg:hidden w-full max-w-[400px] mx-auto px-4 py-4 select-none">
       <p
         className="text-center text-[11px] font-medium uppercase tracking-widest mb-4 font-secondary"
-        style={{ color: "rgba(247,241,231,0.45)" }}
+        style={{ color: "rgba(247,241,231,0.72)" }}
       >
         Scattered today
       </p>
@@ -454,7 +454,7 @@ function SetupMilestoneCard({
         </div>
         <p
           className="text-[11px] font-secondary leading-snug line-clamp-1"
-          style={{ color: "rgba(247,241,231,0.5)" }}
+          style={{ color: "rgba(247,241,231,0.72)" }}
         >
           {milestone.description}
         </p>
@@ -466,7 +466,7 @@ function SetupMilestoneCard({
                 className="text-[9px] font-secondary px-2 py-0.5 rounded-full"
                 style={{
                   backgroundColor: "rgba(255,255,255,0.06)",
-                  color: "rgba(247,241,231,0.4)",
+                  color: "rgba(247,241,231,0.72)",
                   border: "1px solid rgba(255,255,255,0.08)",
                 }}
               >
@@ -602,12 +602,12 @@ const STEP_PREVIEWS = [
                   {isLast ? (
                     <div className="w-2 h-2 rounded-full bg-white" />
                   ) : (
-                    <Check size={10} style={{ color: "rgba(247,241,231,0.45)" }} />
+                    <Check size={10} style={{ color: "rgba(247,241,231,0.72)" }} />
                   )}
                 </div>
                 <span
                   className="text-[9px] font-secondary font-medium"
-                  style={{ color: isLast ? "#E8D5C8" : "rgba(247,241,231,0.3)" }}
+                  style={{ color: isLast ? "#E8D5C8" : "rgba(247,241,231,0.72)" }}
                 >
                   {label}
                 </span>
@@ -644,7 +644,7 @@ const STEP_PREVIEWS = [
       </div>
       <p
         className="text-center text-[11px] mt-5 font-secondary"
-        style={{ color: "rgba(247,241,231,0.3)" }}
+        style={{ color: "rgba(247,241,231,0.72)" }}
       >
         Your school is ready. Families can enroll today.
       </p>
@@ -703,7 +703,7 @@ export default function WorkflowSection() {
                 className="shrink-0 rounded-pill text-[11px] font-semibold font-secondary px-4 h-8 cursor-pointer transition-all duration-200"
                 style={{
                   backgroundColor: active === i ? "#A05C45" : "rgba(255,255,255,0.08)",
-                  color: active === i ? "#ffffff" : "rgba(247,241,231,0.55)",
+                  color: active === i ? "#ffffff" : "rgba(247,241,231,0.75)",
                 }}
               >
                 {step.number}
@@ -739,14 +739,14 @@ export default function WorkflowSection() {
                         className="shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-semibold font-secondary mt-0.5 transition-all duration-200 relative z-10"
                         style={{
                           backgroundColor: isActive ? "#A05C45" : "rgba(255,255,255,0.1)",
-                          color: isActive ? "#ffffff" : "rgba(247,241,231,0.5)",
+                          color: isActive ? "#ffffff" : "rgba(247,241,231,0.72)",
                         }}
                       >
                         {i + 1}
                       </span>
                       <span
                         className="text-[13px] leading-snug font-medium font-secondary transition-all duration-200"
-                        style={{ color: isActive ? "#F7F1E7" : "rgba(247,241,231,0.4)" }}
+                        style={{ color: isActive ? "#F7F1E7" : "rgba(247,241,231,0.72)" }}
                       >
                         {step.title}
                       </span>
@@ -757,7 +757,7 @@ export default function WorkflowSection() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
                         className="text-[12px] leading-relaxed mt-2 pl-[34px] font-secondary"
-                        style={{ color: "rgba(247,241,231,0.5)" }}
+                        style={{ color: "rgba(247,241,231,0.72)" }}
                       >
                         {step.body}
                       </motion.p>
@@ -794,7 +794,7 @@ export default function WorkflowSection() {
               </h3>
               <p
                 className="text-sm leading-relaxed mt-2 font-secondary"
-                style={{ color: "rgba(247,241,231,0.55)" }}
+                style={{ color: "rgba(247,241,231,0.75)" }}
               >
                 {STEPS[active].body}
               </p>
@@ -832,7 +832,7 @@ export default function WorkflowSection() {
         >
           <p
             className="text-[13px] text-center sm:text-left font-secondary max-w-[460px]"
-            style={{ color: "rgba(247,241,231,0.38)" }}
+            style={{ color: "rgba(247,241,231,0.72)" }}
           >
             Designed for founder-led schools that want a better system, not a complicated implementation.
           </p>
@@ -848,7 +848,7 @@ export default function WorkflowSection() {
             <a
               href="#"
               className="inline-flex items-center gap-1.5 text-[13px] font-secondary hover:opacity-80 transition-all duration-200"
-              style={{ color: "rgba(247,241,231,0.5)" }}
+              style={{ color: "rgba(247,241,231,0.72)" }}
             >
               See how setup works
               <ArrowRight size={13} />

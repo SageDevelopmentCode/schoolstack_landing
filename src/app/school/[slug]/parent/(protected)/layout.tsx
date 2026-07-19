@@ -63,6 +63,7 @@ export default async function SchoolParentProtectedLayout({
   return (
     <SchoolParentBaseline
       slug={slug}
+      organizationId={org.id}
       schoolName={org.name}
       branding={org.branding}
       features={org.features}

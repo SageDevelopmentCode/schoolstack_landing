@@ -7,11 +7,14 @@ import { getParentPageLabel } from "./parent-nav";
 import { schoolParentPath } from "./parent-routes";
 import type { OrganizationFeatures } from "./types";
 
+export const PARENT_QUICK_ACTION_ENABLED_KEYS = new Set(["children"]);
+
 export type ParentQuickAction = {
   key: string;
   label: string;
   href: string;
   iconSlug: string;
+  enabled: boolean;
 };
 
 export function buildParentQuickActions(
@@ -35,16 +38,13 @@ export function buildParentQuickActions(
   return orderedKeys.map((key) => {
     const navItem = resolveFeatureNavItem("parent", key, portalNav);
     const iconSlug = navItem.icon ?? "puzzle";
-    const href =
-      key === "enrollment_checklist"
-        ? `/school/${slug}/apply`
-        : schoolParentPath(slug, key);
 
     return {
       key,
       label: getParentPageLabel(key, portalNav),
-      href,
+      href: schoolParentPath(slug, key),
       iconSlug,
+      enabled: PARENT_QUICK_ACTION_ENABLED_KEYS.has(key),
     };
   });
 }

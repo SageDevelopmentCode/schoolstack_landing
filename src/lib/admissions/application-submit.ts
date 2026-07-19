@@ -7,6 +7,17 @@ import {
 import {
   materializeApplicationStudent,
 } from "./application-entity-materialization";
+import {
+  validateAcknowledgmentsComplete,
+  validateApplicationForSubmit,
+  type ApplicationSubmitValidationError,
+} from "./application-form-validation";
+
+export {
+  validateAcknowledgmentsComplete,
+  validateApplicationForSubmit,
+  type ApplicationSubmitValidationError,
+};
 
 export type ApplicationRecord = {
   id: string;
@@ -58,18 +69,6 @@ export async function getApplicationForSubmit(
   };
 }
 
-export function validateAcknowledgmentsComplete(
-  schema: ApplicationFormSchema,
-  acknowledgments: Record<string, boolean>,
-): string | null {
-  for (const item of schema.acknowledgments) {
-    if (!acknowledgments[item.id]) {
-      return "Please confirm all acknowledgments before submitting.";
-    }
-  }
-  return null;
-}
-
 export async function submitApplicationRecord(
   supabase: SupabaseClient,
   applicationId: string,
@@ -87,25 +86,30 @@ export async function submitApplicationRecord(
   if (error) throw error;
 }
 
-export async function completeApplicationPaymentAndSubmit(
+export async function markApplicationFeePaid(
   supabase: SupabaseClient,
   applicationId: string,
 ): Promise<void> {
-  await materializeApplicationStudent(supabase, applicationId);
-
   const now = new Date().toISOString();
   const { error } = await supabase
     .from("applications")
     .update({
       fee_status: "paid",
       fee_paid_at: now,
-      status: "submitted",
-      submitted_at: now,
     })
     .eq("id", applicationId)
     .eq("status", "draft");
 
   if (error) throw error;
+}
+
+export async function completeApplicationPaymentAndSubmit(
+  supabase: SupabaseClient,
+  applicationId: string,
+): Promise<void> {
+  await markApplicationFeePaid(supabase, applicationId);
+  await materializeApplicationStudent(supabase, applicationId);
+  await submitApplicationRecord(supabase, applicationId);
 }
 
 export async function loadPublishedFormForApplication(

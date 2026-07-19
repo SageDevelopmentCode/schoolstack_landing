@@ -1,7 +1,4 @@
-"use client";
-
 import { Check } from "lucide-react";
-import { FadeInView } from "@/components/ui/FadeInView";
 import {
   phaseAccentByNumber,
   ROOTED_MEADOWS_TIMELINE_THEME,
@@ -21,29 +18,27 @@ export default function RootedMeadowsTimelineProgressLog({ entries }: Props) {
   return (
     <section className="px-6 py-10 pb-20 lg:px-16 lg:py-14 lg:pb-24">
       <div className="mx-auto max-w-[1100px]">
-        <FadeInView>
-          <div className="mb-10 text-center lg:text-left">
-            <p
-              className="font-secondary text-[11px] font-semibold uppercase tracking-widest"
-              style={{ color: ROOTED_MEADOWS_TIMELINE_THEME.textSecondary }}
-            >
-              Build progress
-            </p>
-            <h2
-              className="font-heading mt-2 text-[clamp(1.75rem,3vw,2.5rem)] font-medium leading-tight"
-              style={{ color: ROOTED_MEADOWS_TIMELINE_THEME.textPrimary }}
-            >
-              What we&apos;ve done so far
-            </h2>
-            <p
-              className="font-secondary mx-auto mt-3 max-w-[640px] text-[15px] leading-relaxed lg:mx-0"
-              style={{ color: ROOTED_MEADOWS_TIMELINE_THEME.textSecondary }}
-            >
-              A running log of the work we&apos;re doing for Rooted Meadows —
-              updated as we go.
-            </p>
-          </div>
-        </FadeInView>
+        <div className="mb-10 text-center lg:text-left">
+          <p
+            className="font-secondary text-[11px] font-semibold uppercase tracking-widest"
+            style={{ color: ROOTED_MEADOWS_TIMELINE_THEME.textSecondary }}
+          >
+            Build progress
+          </p>
+          <h2
+            className="font-heading mt-2 text-[clamp(1.75rem,3vw,2.5rem)] font-medium leading-tight"
+            style={{ color: ROOTED_MEADOWS_TIMELINE_THEME.textPrimary }}
+          >
+            What we&apos;ve done so far
+          </h2>
+          <p
+            className="font-secondary mx-auto mt-3 max-w-[640px] text-[15px] leading-relaxed lg:mx-0"
+            style={{ color: ROOTED_MEADOWS_TIMELINE_THEME.textSecondary }}
+          >
+            A running log of the work we&apos;re doing for Rooted Meadows —
+            updated as we go.
+          </p>
+        </div>
 
         <div className="relative space-y-5">
           <div
@@ -55,12 +50,12 @@ export default function RootedMeadowsTimelineProgressLog({ entries }: Props) {
             aria-hidden
           />
 
-          {entries.map((entry, index) => {
+          {entries.map((entry) => {
             const accent = phaseAccentByNumber(entry.phase_number);
 
             return (
-            <FadeInView key={entry.id} delay={index * 0.05}>
               <article
+                key={entry.id}
                 className="relative rounded-2xl border p-6 sm:ml-8 sm:p-7"
                 style={{
                   backgroundColor: "white",
@@ -119,10 +114,7 @@ export default function RootedMeadowsTimelineProgressLog({ entries }: Props) {
                 {entry.highlights.length > 0 ? (
                   <ul className="mt-5 space-y-2.5">
                     {entry.highlights.map((highlight) => (
-                      <li
-                        key={highlight}
-                        className="flex items-start gap-3"
-                      >
+                      <li key={highlight} className="flex items-start gap-3">
                         <div
                           className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
                           style={{
@@ -149,7 +141,6 @@ export default function RootedMeadowsTimelineProgressLog({ entries }: Props) {
                   </ul>
                 ) : null}
               </article>
-            </FadeInView>
             );
           })}
         </div>

@@ -1,8 +1,10 @@
 "use client";
 
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo, useState } from "react";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
+import AdminSupportRequestModal from "@/components/school-admin/AdminSupportRequestModal";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -13,6 +15,7 @@ import type {
 
 type SchoolParentBaselineProps = {
   slug: string;
+  organizationId: string;
   schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
@@ -20,8 +23,16 @@ type SchoolParentBaselineProps = {
   children: ReactNode;
 };
 
+function isParentHelpPage(pathname: string, slug: string): boolean {
+  return (
+    pathname === `/school/${slug}/parent/portal` ||
+    pathname === `/school/${slug}/parent/children`
+  );
+}
+
 export default function SchoolParentBaseline({
   slug,
+  organizationId,
   schoolName,
   branding,
   features,
@@ -29,9 +40,11 @@ export default function SchoolParentBaseline({
   children,
 }: SchoolParentBaselineProps) {
   const pathname = usePathname();
+  const [supportOpen, setSupportOpen] = useState(false);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const bodyFont =
     branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
+  const showHelpButton = isParentHelpPage(pathname, slug);
 
   return (
     <div
@@ -60,6 +73,40 @@ export default function SchoolParentBaseline({
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {showHelpButton ? (
+        <button
+          type="button"
+          title="Need help?"
+          onClick={() => setSupportOpen(true)}
+          className="fixed bottom-4 right-4 z-50 inline-flex items-center gap-2 rounded-pill px-4 py-2.5 text-xs font-medium shadow-lg transition hover:opacity-90 sm:bottom-6 sm:right-6 sm:px-5 sm:py-3 sm:text-sm"
+          style={{
+            backgroundColor: C.clayBg,
+            border: `1px solid ${C.clayBorder}`,
+            color: C.textSecondary,
+          }}
+        >
+          <Image
+            src="/images/Logo.png"
+            alt=""
+            width={20}
+            height={20}
+            className="h-5 w-5 w-auto object-contain"
+            aria-hidden
+          />
+          Need help?
+        </button>
+      ) : null}
+
+      <AdminSupportRequestModal
+        C={C}
+        open={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        organizationId={organizationId}
+        userEmail={userProfile.email}
+        currentPath={pathname}
+        submitEndpoint="/api/parent-portal/support-requests"
+      />
     </div>
   );
 }

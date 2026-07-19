@@ -70,7 +70,6 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
   },
   parent: {
     portal: true,
-    enrollment_checklist: true,
     billing: true,
     messages: true,
     calendar: true,
@@ -101,7 +100,6 @@ export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "teacher", key: "payroll", label: "Payroll", description: "Pay stubs and earnings" },
   { portal: "teacher", key: "forms_documents", label: "Forms & documents", description: "Required staff forms" },
   { portal: "parent", key: "portal", label: "Home", description: "Parent home overview" },
-  { portal: "parent", key: "enrollment_checklist", label: "Enrollment checklist", description: "Post-acceptance onboarding steps" },
   { portal: "parent", key: "billing", label: "Billing / tuition", description: "Pay tuition and view invoices" },
   { portal: "parent", key: "messages", label: "Messages", description: "School messaging" },
   { portal: "parent", key: "calendar", label: "Calendar / events", description: "School calendar and events" },

@@ -5,6 +5,8 @@ import { createClient } from "@/utils/supabase/server";
 
 const ROOTED_MEADOWS_ORG_SLUG = "rooted-meadows-school";
 
+export const revalidate = 300;
+
 export default async function RootedMeadowsTimelineRoutePage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);

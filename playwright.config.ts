@@ -32,7 +32,7 @@ export default defineConfig({
     },
     {
       name: "school-admin",
-      testMatch: /admin\/admissions-submissions\.spec\.ts/,
+      testMatch: /admin\/(?!access-denied).*\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],
@@ -68,8 +68,20 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
         process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
       NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? baseURL,
+      DISABLE_OUTBOUND_EMAIL: "1",
+      DISCORD_E2E_ALERTS_WEBHOOK_URL:
+        process.env.DISCORD_E2E_ALERTS_WEBHOOK_URL ?? "",
+      ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL: "",
       STRIPE_SECRET_KEY: "",
       STRIPE_WEBHOOK_SECRET: "",
+      ZOHO_CLIENT_ID: "",
+      ZOHO_CLIENT_SECRET: "",
+      ZOHO_REDIRECT_URI: "",
+      ZOHO_REFRESH_TOKEN: "",
+      ZOHO_ACCOUNT_ID: "",
+      ZOHO_FROM_ADDRESS: "",
+      ZOHO_SMTP_USER: "",
+      ZOHO_SMTP_PASSWORD: "",
     },
   },
 });

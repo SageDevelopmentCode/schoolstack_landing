@@ -111,10 +111,11 @@ export default function ApplyPortalNavbar({
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            className="flex max-w-[min(240px,60vw)] items-center gap-2 rounded-md border px-2.5 py-1.5 text-left sm:px-3 sm:py-2"
+            className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-left sm:max-w-[min(240px,60vw)] sm:gap-2 sm:px-3 sm:py-2"
             style={getAdminButtonStyle(C, "secondary")}
             aria-expanded={menuOpen}
             aria-haspopup="menu"
+            aria-label={userDisplayName}
           >
             <span
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
@@ -122,7 +123,7 @@ export default function ApplyPortalNavbar({
             >
               {initials !== "?" ? initials : <User className="h-3.5 w-3.5" />}
             </span>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">
+            <span className="hidden min-w-0 flex-1 truncate text-sm font-medium sm:block">
               {userDisplayName}
             </span>
             <ChevronDown

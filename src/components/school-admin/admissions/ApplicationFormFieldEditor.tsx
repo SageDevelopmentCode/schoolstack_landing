@@ -1,8 +1,10 @@
 "use client";
 
+import { useLayoutEffect, useRef } from "react";
 import { ChevronDown, Trash2 } from "lucide-react";
 import {
   APPLICATION_FIELD_TYPES,
+  MAX_APPLICATION_FIELD_LABEL_LENGTH,
   type ApplicationField,
   type ApplicationFieldType,
 } from "@/lib/admissions/application-form-schema";
@@ -12,6 +14,9 @@ import {
   fieldFromPreset,
 } from "@/lib/admissions/field-presets";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import ApplicationFieldOptionsEditor, {
+  createDefaultFieldOptions,
+} from "./ApplicationFieldOptionsEditor";
 import { BuilderQuestionCard } from "./builder-question-card";
 
 type ApplicationFormFieldEditorProps = {
@@ -36,6 +41,12 @@ function controlStyle(C: AdminThemeTokens): React.CSSProperties {
   };
 }
 
+function resizeTextarea(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 export default function ApplicationFormFieldEditor({
   C,
   field,
@@ -43,8 +54,18 @@ export default function ApplicationFormFieldEditor({
   onChange,
   onDelete,
 }: ApplicationFormFieldEditorProps) {
+  const labelTextareaRef = useRef<HTMLTextAreaElement>(null);
   const needsOptions = field.type === "select" || field.type === "radio";
   const style = controlStyle(C);
+
+  useLayoutEffect(() => {
+    const el = labelTextareaRef.current;
+    if (!el) return;
+    resizeTextarea(el);
+    const observer = new ResizeObserver(() => resizeTextarea(el));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [field.label, field.id]);
 
   return (
     <div className="space-y-5">
@@ -54,14 +75,30 @@ export default function ApplicationFormFieldEditor({
         question="What question do you want families to answer?"
         helper="This is the label families see above the answer field."
       >
-        <input
-          type="text"
-          value={field.label}
-          disabled={readOnly}
-          onChange={(e) => onChange({ label: e.target.value })}
-          placeholder="What families see on the form"
-          style={style}
-        />
+        <div className="space-y-1.5">
+          <textarea
+            ref={labelTextareaRef}
+            rows={1}
+            value={field.label}
+            disabled={readOnly}
+            maxLength={MAX_APPLICATION_FIELD_LABEL_LENGTH}
+            onChange={(e) => {
+              const label = e.target.value.slice(0, MAX_APPLICATION_FIELD_LABEL_LENGTH);
+              onChange({ label });
+              resizeTextarea(e.target);
+            }}
+            placeholder="What families see on the form"
+            style={{
+              ...style,
+              resize: "none",
+              overflow: "hidden",
+              lineHeight: 1.5,
+            }}
+          />
+          <p className="text-right text-xs" style={{ color: C.textTertiary }}>
+            {field.label.length} / {MAX_APPLICATION_FIELD_LABEL_LENGTH}
+          </p>
+        </div>
       </BuilderQuestionCard>
 
       <BuilderQuestionCard
@@ -74,9 +111,17 @@ export default function ApplicationFormFieldEditor({
           <select
             value={field.type}
             disabled={readOnly}
-            onChange={(e) =>
-              onChange({ type: e.target.value as ApplicationFieldType })
-            }
+            onChange={(e) => {
+              const type = e.target.value as ApplicationFieldType;
+              const patch: Partial<ApplicationField> = { type };
+              if (
+                (type === "select" || type === "radio") &&
+                (!field.options || field.options.length === 0)
+              ) {
+                patch.options = createDefaultFieldOptions();
+              }
+              onChange(patch);
+            }}
             style={{ ...style, appearance: "none", paddingRight: 36 }}
           >
             {APPLICATION_FIELD_TYPES.map((opt) => (
@@ -96,38 +141,34 @@ export default function ApplicationFormFieldEditor({
         C={C}
         tone="info"
         question="Is an answer required?"
-        helper="Required questions must be answered before families can continue."
-      >
-        <div
-          className="flex gap-1 rounded-lg border p-1"
-          style={{ borderColor: C.border, backgroundColor: C.bg }}
-        >
-          <button
-            type="button"
-            disabled={readOnly}
-            className="flex-1 rounded-md py-2 text-sm font-medium transition-colors"
-            style={{
-              backgroundColor: !field.required ? C.accentLight : "transparent",
-              color: !field.required ? C.accent : C.textTertiary,
-            }}
-            onClick={() => field.required && onChange({ required: false })}
-          >
-            Optional
-          </button>
-          <button
-            type="button"
-            disabled={readOnly}
-            className="flex-1 rounded-md py-2 text-sm font-medium transition-colors"
-            style={{
-              backgroundColor: field.required ? C.errorBg : "transparent",
-              color: field.required ? C.error : C.textTertiary,
-            }}
-            onClick={() => !field.required && onChange({ required: true })}
-          >
-            Required
-          </button>
-        </div>
-      </BuilderQuestionCard>
+        action={
+          <div className="flex shrink-0 items-center gap-2">
+            <span
+              className="text-sm font-medium"
+              style={{ color: field.required ? C.accent : C.textTertiary }}
+            >
+              {field.required ? "Required" : "Optional"}
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={field.required}
+              aria-label="Required"
+              disabled={readOnly}
+              onClick={() => onChange({ required: !field.required })}
+              className="relative h-5 w-10 shrink-0 rounded-full transition-colors disabled:opacity-50"
+              style={{ backgroundColor: field.required ? C.accent : C.border }}
+            >
+              <span
+                className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform"
+                style={{
+                  transform: field.required ? "translateX(1.25rem)" : "translateX(0)",
+                }}
+              />
+            </button>
+          </div>
+        }
+      />
 
       {(field.type === "text" ||
         field.type === "email" ||
@@ -155,27 +196,13 @@ export default function ApplicationFormFieldEditor({
           C={C}
           tone="info"
           question="What choices can they pick from?"
-          helper="One per line: value|Label (e.g. k|Kindergarten)"
+          helper="Add the choices families will see. Drag to reorder."
         >
-          <textarea
-            rows={4}
-            disabled={readOnly}
-            value={(field.options ?? [])
-              .map((o) => `${o.value}|${o.label}`)
-              .join("\n")}
-            onChange={(e) => {
-              const options = e.target.value
-                .split("\n")
-                .map((line) => line.trim())
-                .filter(Boolean)
-                .map((line) => {
-                  const [value, ...rest] = line.split("|");
-                  const label = rest.join("|").trim() || value.trim();
-                  return { value: value.trim(), label };
-                });
-              onChange({ options });
-            }}
-            style={{ ...style, resize: "vertical" }}
+          <ApplicationFieldOptionsEditor
+            C={C}
+            options={field.options ?? []}
+            readOnly={readOnly}
+            onChange={(options) => onChange({ options })}
           />
         </BuilderQuestionCard>
       )}

@@ -7,8 +7,14 @@ import {
 import { sendApplicationSubmittedNotifications } from "@/lib/admissions/application-notifications";
 import { sendPaymentCompletedNotifications } from "@/lib/admissions/payment-notifications";
 import {
-  completeApplicationPaymentAndSubmit,
+  materializeApplicationStudent,
+} from "@/lib/admissions/application-entity-materialization";
+import {
   getApplicationForSubmit,
+  loadPublishedFormForApplication,
+  markApplicationFeePaid,
+  submitApplicationRecord,
+  validateApplicationForSubmit,
 } from "@/lib/admissions/application-submit";
 import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
 import { apiError } from "@/lib/api/route-errors";
@@ -136,8 +142,45 @@ async function handleCheckoutSessionCompleted(
     return;
   }
 
-  await completeApplicationPaymentAndSubmit(admin, payment.applicationId);
+  const { schema } = await loadPublishedFormForApplication(admin, application);
+  const validationError = validateApplicationForSubmit(schema, application);
+
+  await markApplicationFeePaid(admin, payment.applicationId);
+
+  if (validationError) {
+    console.warn(
+      "checkout.session.completed: application paid but not ready to submit",
+      payment.applicationId,
+      validationError.code,
+    );
+
+    void logActivityEvent(admin, {
+      organizationId: application.organizationId,
+      actorType: "system",
+      surface: "system",
+      action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+      entityType: "application",
+      entityId: payment.applicationId,
+      summary: "Application fee payment completed",
+      metadata: {
+        paymentId: payment.id,
+        checkoutSessionId,
+        amountCents: payment.amountCents,
+        submitBlocked: validationError.code,
+      },
+    });
+    return;
+  }
+
+  await materializeApplicationStudent(admin, payment.applicationId);
+  await submitApplicationRecord(admin, payment.applicationId);
   void sendApplicationSubmittedNotifications(admin, payment.applicationId);
+
+  const { data: formRow } = await admin
+    .from("application_form_versions")
+    .select("title")
+    .eq("id", application.formVersionId)
+    .maybeSingle();
 
   void logActivityEvent(admin, {
     organizationId: application.organizationId,
@@ -151,6 +194,23 @@ async function handleCheckoutSessionCompleted(
       paymentId: payment.id,
       checkoutSessionId,
       amountCents: payment.amountCents,
+    },
+  });
+
+  void logActivityEvent(admin, {
+    organizationId: application.organizationId,
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.APPLICATION_SUBMITTED,
+    entityType: "application",
+    entityId: payment.applicationId,
+    summary: `Application submitted${formRow?.title ? ` for “${String(formRow.title)}”` : ""} (after payment)`,
+    metadata: {
+      formVersionId: application.formVersionId,
+      programId: application.programId,
+      formTitle: formRow?.title ? String(formRow.title) : null,
+      paymentId: payment.id,
+      checkoutSessionId,
     },
   });
 }

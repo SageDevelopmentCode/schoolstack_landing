@@ -1,7 +1,4 @@
-"use client";
-
 import Image from "next/image";
-import { motion } from "framer-motion";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { ROOTED_MEADOWS_ADMIN_LOGO } from "@/data/school-demos/rootedmeadows-admin-demo";
 import {
@@ -34,10 +31,11 @@ export default function RootedMeadowsDualBranding() {
         <div className="flex items-center justify-center gap-3 sm:gap-4">
           <div className="flex shrink-0 flex-col items-center gap-0.5">
             <Image
-              src="/images/Logo.png"
+              src="/images/Logo.webp"
               alt="MudKitchen"
               width={28}
               height={28}
+              priority
               className="h-7 w-auto shrink-0 object-contain"
             />
             <span
@@ -56,6 +54,7 @@ export default function RootedMeadowsDualBranding() {
             <SchoolDemoWordmark
               logo={ROOTED_MEADOWS_ADMIN_LOGO}
               className="h-9 w-auto max-w-[160px] object-contain text-center sm:h-10 sm:max-w-[200px]"
+              sizes="(max-width: 640px) 160px, 200px"
             />
           </div>
         </div>
@@ -69,12 +68,12 @@ export default function RootedMeadowsDualBranding() {
         aria-valuemax={100}
         aria-label="Rollout progress toward v1"
       >
-        <motion.div
-          className="h-full"
-          style={{ backgroundColor: ROOTED_MEADOWS_TIMELINE_THEME.accent }}
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        <div
+          className="h-full transition-[width] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{
+            width: `${progress}%`,
+            backgroundColor: ROOTED_MEADOWS_TIMELINE_THEME.accent,
+          }}
         />
       </div>
     </header>

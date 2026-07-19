@@ -21,6 +21,7 @@ type ApplicationDatePickerProps = {
   minDate?: string;
   maxDate?: string;
   placeholder?: string;
+  error?: string | null;
 };
 
 function parseIsoDate(iso: string): { year: number; month: number; day: number } | null {
@@ -60,6 +61,7 @@ export default function ApplicationDatePicker({
   minDate,
   maxDate,
   placeholder = "Select date…",
+  error = null,
 }: ApplicationDatePickerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -89,7 +91,7 @@ export default function ApplicationDatePicker({
   const todaySelectable = isDateInRange(today, minDate, maxDate);
 
   const inputStyle = {
-    borderColor: C.border,
+    borderColor: error ? C.errorBorder : C.border,
     color: disabled ? C.textTertiary : C.textPrimary,
     backgroundColor: "#FFFFFF",
   } as const;
@@ -171,6 +173,7 @@ export default function ApplicationDatePicker({
         disabled={disabled}
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-invalid={Boolean(error)}
         onClick={() => (open ? setOpen(false) : openPicker())}
         className="flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-sm outline-none transition focus:ring-2"
         style={{ ...inputStyle, ...focusRing }}
@@ -285,6 +288,11 @@ export default function ApplicationDatePicker({
             </button>
           </div>
         </div>
+      ) : null}
+      {error ? (
+        <p className="mt-1.5 text-xs" style={{ color: C.error }}>
+          {error}
+        </p>
       ) : null}
     </div>
   );

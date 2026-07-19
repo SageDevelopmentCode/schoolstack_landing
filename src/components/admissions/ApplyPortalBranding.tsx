@@ -29,10 +29,12 @@ export default function ApplyPortalBranding({
   const platformBranding = (
     <div className="flex shrink-0 items-center gap-0.5">
       <Image
-        src="/images/Logo.png"
+        src="/images/Logo.webp"
         alt="MudKitchen"
         width={40}
         height={40}
+        priority
+        sizes="40px"
         className="h-10 w-auto shrink-0 object-contain"
       />
       <span className="font-display text-xs font-semibold leading-tight text-clay">
@@ -51,6 +53,7 @@ export default function ApplyPortalBranding({
         text: branding.logo.src ? undefined : schoolName,
       }}
       className={schoolLogoClassName}
+      sizes="(max-width: 640px) 160px, 200px"
     />
   );
 

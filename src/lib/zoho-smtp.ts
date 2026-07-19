@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { isOutboundEmailDisabled } from "@/lib/outbound-email";
 
 const ZOHO_SMTP_HOST = process.env.ZOHO_SMTP_HOST ?? "smtp.zoho.com";
 const ZOHO_SMTP_PORT = parseInt(process.env.ZOHO_SMTP_PORT ?? "465", 10);
@@ -8,6 +9,7 @@ const ZOHO_FROM_ADDRESS = process.env.ZOHO_FROM_ADDRESS;
 const ZOHO_FROM_NAME = process.env.ZOHO_FROM_NAME ?? "Julius Cecilia";
 
 export function isSmtpConfigured(): boolean {
+  if (isOutboundEmailDisabled()) return false;
   return !!(ZOHO_SMTP_USER && ZOHO_SMTP_PASSWORD && ZOHO_FROM_ADDRESS);
 }
 

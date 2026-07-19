@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import ApplicationSelectInput from "@/components/admissions/ApplicationSelectInput";
 import {
   parseApplicationAddressFieldValue,
   serializeApplicationAddressFieldValue,
@@ -15,6 +16,7 @@ type ApplicationAddressInputProps = {
   onChange: (value: string) => void;
   C: AdminThemeTokens;
   disabled?: boolean;
+  error?: string | null;
 };
 
 function fieldClassName() {
@@ -41,11 +43,12 @@ export default function ApplicationAddressInput({
   onChange,
   C,
   disabled = false,
+  error = null,
 }: ApplicationAddressInputProps) {
   const address = parseApplicationAddressFieldValue(value);
 
   const style = {
-    borderColor: C.border,
+    borderColor: error ? C.errorBorder : C.border,
     color: disabled ? C.textTertiary : C.textPrimary,
     backgroundColor: "#FFFFFF",
   } as const;
@@ -62,7 +65,14 @@ export default function ApplicationAddressInput({
   };
 
   return (
-    <div className="space-y-4">
+    <div
+      className={
+        error
+          ? "space-y-4 rounded-md border p-4"
+          : "space-y-4"
+      }
+      style={error ? { borderColor: C.errorBorder } : undefined}
+    >
       <div>
         <SubFieldLabel C={C}>Address line 1</SubFieldLabel>
         <input
@@ -111,22 +121,17 @@ export default function ApplicationAddressInput({
 
         <div>
           <SubFieldLabel C={C}>State</SubFieldLabel>
-          <select
+          <ApplicationSelectInput
             id={`${idPrefix}-state`}
-            autoComplete="address-level1"
             value={address.state}
-            onChange={(e) => updateAddress({ state: e.target.value })}
+            onChange={(state) => updateAddress({ state })}
+            options={US_STATES}
+            placeholder="Select state..."
             disabled={disabled}
-            className={fieldClassName()}
-            style={{ ...style, ...focusRing }}
-          >
-            <option value="">Select state...</option>
-            {US_STATES.map((state) => (
-              <option key={state.value} value={state.value}>
-                {state.label}
-              </option>
-            ))}
-          </select>
+            ariaLabel="State"
+            autoComplete="address-level1"
+            C={C}
+          />
         </div>
       </div>
 
@@ -145,6 +150,11 @@ export default function ApplicationAddressInput({
           style={{ ...style, ...focusRing }}
         />
       </div>
+      {error ? (
+        <p className="text-xs" style={{ color: C.error }}>
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

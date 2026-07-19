@@ -19,7 +19,7 @@ export function focusKey(focus: BuilderFocus): string {
     case "step":
       return `step:${focus.stepId}`;
     case "field":
-      return `field:${focus.stepId}:${focus.fieldId}`;
+      return `step:${focus.stepId}`;
   }
 }
 

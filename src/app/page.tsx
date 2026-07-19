@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
-import ProductPreviewSkeleton from "@/components/sections/ProductPreviewSkeleton";
 import SectionFallback from "@/components/ui/SectionFallback";
 import JsonLd from "@/components/seo/JsonLd";
 import FaqJsonLd from "@/components/seo/FaqJsonLd";
@@ -22,11 +21,11 @@ export const metadata: Metadata = {
   },
 };
 
+
 const ProductPreviewSection = dynamic(
   () => import("@/components/sections/ProductPreviewSection"),
-  { loading: () => <ProductPreviewSkeleton /> },
+  { loading: () => <SectionFallback minHeight="32rem" /> },
 );
-
 const PainSection = dynamic(
   () => import("@/components/sections/PainSection"),
   { loading: () => <SectionFallback minHeight="28rem" /> },
@@ -75,6 +74,12 @@ const FloatingQuestionButton = dynamic(
 export default function Home() {
   return (
     <>
+      <link
+        rel="preload"
+        as="image"
+        href="/images/stock/ImageOne.webp"
+        fetchPriority="high"
+      />
       <JsonLd />
       <FaqJsonLd faqs={HOME_FAQ} />
       <Navbar />

@@ -11,6 +11,7 @@ type ApplicationRadioInputProps = {
   options: ApplicationFieldOption[];
   disabled?: boolean;
   ariaLabel: string;
+  error?: string | null;
   C: AdminThemeTokens;
 };
 
@@ -21,16 +22,20 @@ export default function ApplicationRadioInput({
   options,
   disabled = false,
   ariaLabel,
+  error = null,
   C,
 }: ApplicationRadioInputProps) {
   const focusRing = { "--tw-ring-color": `${C.accent}40` } as CSSProperties;
 
   return (
-    <div
-      role="radiogroup"
-      aria-label={ariaLabel}
-      className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
-    >
+    <div>
+      <div
+        role="radiogroup"
+        aria-label={ariaLabel}
+        aria-invalid={Boolean(error)}
+        className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:flex-wrap"
+        style={{ borderColor: error ? C.errorBorder : "transparent" }}
+      >
       {options.map((option) => {
         const isSelected = value === option.value;
 
@@ -55,7 +60,7 @@ export default function ApplicationRadioInput({
                   }
                 : {
                     backgroundColor: "#FFFFFF",
-                    borderColor: C.border,
+                    borderColor: error ? C.errorBorder : C.border,
                     color: C.textPrimary,
                     ...focusRing,
                   }
@@ -79,6 +84,12 @@ export default function ApplicationRadioInput({
           </button>
         );
       })}
+      </div>
+      {error ? (
+        <p className="mt-1.5 text-xs" style={{ color: C.error }}>
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

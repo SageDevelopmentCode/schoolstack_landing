@@ -17,6 +17,7 @@ import ButtonLoadingLabel, {
 } from "@/components/ui/ButtonLoadingLabel";
 import type { SaveApplicationDraftInput } from "@/lib/admissions/application-draft";
 import type { ApplicationFileUploadContext } from "@/lib/admissions/application-file-storage";
+import { validateApplicationSectionResponses, validateApplicationForSubmit } from "@/lib/admissions/application-form-validation";
 import {
   formatFeeAmount,
   type ApplicationFormFeeConfig,
@@ -27,6 +28,11 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
+import {
+  parseOperationalError,
+  reportPublicApplyOperationalError,
+  shouldReportApplyClientError,
+} from "@/lib/operational-errors-client";
 import { createClient } from "@/utils/supabase/client";
 
 type ExperienceStep =
@@ -76,6 +82,30 @@ const stepVariants = {
 };
 
 const stepTransition = { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
+
+function reportApplyOperationalError(
+  organizationId: string | undefined,
+  applicationId: string | undefined,
+  operation: string,
+  err: unknown,
+  responseStatus?: number,
+) {
+  if (!organizationId || !shouldReportApplyClientError(err, responseStatus)) {
+    return;
+  }
+
+  const parsed = parseOperationalError(err);
+  void reportPublicApplyOperationalError({
+    organizationId,
+    operation,
+    error: parsed.message,
+    code: parsed.code,
+    details: parsed.details,
+    entityType: applicationId ? "application" : undefined,
+    entityId: applicationId,
+    notify: true,
+  });
+}
 
 function buildSteps(
   schema: ApplicationFormSchema,
@@ -166,6 +196,7 @@ export default function ApplicationFormExperience({
   );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [actionLoading, setActionLoading] = useState(false);
   const [feeStatus, setFeeStatus] = useState(initialFeeStatus);
   const [applicationStatus, setApplicationStatus] = useState(initialStatus);
@@ -175,12 +206,15 @@ export default function ApplicationFormExperience({
     () => copyableApplications[0]?.id ?? "",
   );
   const [importing, setImporting] = useState(false);
+  const [bulkCopyExpanded, setBulkCopyExpanded] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   const currentStep = steps[stepIndex];
   const totalSteps = steps.length;
   const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === totalSteps - 1;
+  const showBulkCopyPanel =
+    isFirstStep && copyableApplications.length > 0 && !!onImportResponses;
 
   const stepLabel = getStepLabel(currentStep, schema, stepIndex, totalSteps);
 
@@ -202,6 +236,26 @@ export default function ApplicationFormExperience({
   const updateValue = (fieldId: string, value: string) => {
     setValues((prev) => ({ ...prev, [fieldId]: value }));
     setSaveError(null);
+    setFieldErrors((prev) => {
+      if (!prev[fieldId]) return prev;
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
+  };
+
+  const scrollToFirstFieldError = (errors: Record<string, string>) => {
+    const firstFieldId = Object.keys(errors)[0];
+    if (!firstFieldId) return;
+
+    requestAnimationFrame(() => {
+      const element = document.querySelector(`[data-field-id="${firstFieldId}"]`);
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusable = element?.querySelector<HTMLElement>(
+        "input, textarea, button, select, [tabindex]:not([tabindex='-1'])",
+      );
+      focusable?.focus({ preventScroll: true });
+    });
   };
 
   const persistDraft = async (nextStepIndex: number) => {
@@ -222,6 +276,12 @@ export default function ApplicationFormExperience({
       await persistDraft(stepIndex);
       await onExitToApplyDashboard();
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.save_and_exit",
+        error,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to save your progress.",
       );
@@ -233,6 +293,17 @@ export default function ApplicationFormExperience({
   const handleContinue = async () => {
     if (stepIndex >= totalSteps - 1) return;
 
+    if (currentStep?.kind === "section" && section) {
+      const errors = validateApplicationSectionResponses(section, values);
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        setSaveError(null);
+        scrollToFirstFieldError(errors);
+        return;
+      }
+      setFieldErrors({});
+    }
+
     const nextStepIndex = stepIndex + 1;
 
     if (canPersist) {
@@ -242,8 +313,15 @@ export default function ApplicationFormExperience({
         await persistDraft(nextStepIndex);
         setDirection(1);
         setStepIndex(nextStepIndex);
+        setFieldErrors({});
         scrollToTop();
       } catch (error) {
+        reportApplyOperationalError(
+          organizationId,
+          applicationId,
+          "application_form.continue_save",
+          error,
+        );
         setSaveError(
           error instanceof Error ? error.message : "Failed to save your progress.",
         );
@@ -255,6 +333,7 @@ export default function ApplicationFormExperience({
 
     setDirection(1);
     setStepIndex(nextStepIndex);
+    setFieldErrors({});
     scrollToTop();
   };
 
@@ -270,8 +349,15 @@ export default function ApplicationFormExperience({
         await persistDraft(previousStepIndex);
         setDirection(-1);
         setStepIndex(previousStepIndex);
+        setFieldErrors({});
         scrollToTop();
       } catch (error) {
+        reportApplyOperationalError(
+          organizationId,
+          applicationId,
+          "application_form.back_save",
+          error,
+        );
         setSaveError(
           error instanceof Error ? error.message : "Failed to save your progress.",
         );
@@ -283,6 +369,7 @@ export default function ApplicationFormExperience({
 
     setDirection(-1);
     setStepIndex(previousStepIndex);
+    setFieldErrors({});
     scrollToTop();
   };
 
@@ -295,6 +382,15 @@ export default function ApplicationFormExperience({
 
     setSaveError(null);
 
+    const validationError = validateApplicationForSubmit(schema, {
+      responses: values,
+      acknowledgments,
+    });
+    if (validationError) {
+      setSaveError(validationError.error);
+      return;
+    }
+
     try {
       if (canPersist) {
         setSaving(true);
@@ -303,6 +399,12 @@ export default function ApplicationFormExperience({
       }
       setPaymentModalOpen(true);
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.pay_fee_save",
+        error,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to save your progress.",
       );
@@ -316,6 +418,17 @@ export default function ApplicationFormExperience({
     setActionLoading(true);
     setSaveError(null);
 
+    const validationError = validateApplicationForSubmit(schema, {
+      responses: values,
+      acknowledgments,
+    });
+    if (validationError) {
+      setSaveError(validationError.error);
+      setActionLoading(false);
+      return;
+    }
+
+    let responseStatus: number | undefined;
     try {
       const response = await fetch(
         `/api/admissions/applications/${applicationId}/checkout`,
@@ -325,6 +438,7 @@ export default function ApplicationFormExperience({
           body: JSON.stringify({ paymentMethod }),
         },
       );
+      responseStatus = response.status;
       const payload = (await response.json()) as { url?: string; error?: string };
 
       if (!response.ok || !payload.url) {
@@ -333,6 +447,13 @@ export default function ApplicationFormExperience({
 
       window.location.href = payload.url;
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.checkout",
+        error,
+        responseStatus,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to start checkout.",
       );
@@ -346,6 +467,7 @@ export default function ApplicationFormExperience({
     setActionLoading(true);
     setSaveError(null);
 
+    let responseStatus: number | undefined;
     try {
       if (canPersist) {
         await persistDraft(stepIndex);
@@ -355,6 +477,7 @@ export default function ApplicationFormExperience({
         `/api/admissions/applications/${applicationId}/submit`,
         { method: "POST" },
       );
+      responseStatus = response.status;
       const payload = (await response.json()) as { error?: string };
 
       if (!response.ok) {
@@ -364,6 +487,13 @@ export default function ApplicationFormExperience({
       setApplicationStatus("submitted");
       onSubmitted?.();
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.submit",
+        error,
+        responseStatus,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to submit application.",
       );
@@ -379,7 +509,14 @@ export default function ApplicationFormExperience({
     setSaveError(null);
     try {
       await onImportResponses(bulkCopySourceId);
+      setBulkCopyExpanded(false);
     } catch (error) {
+      reportApplyOperationalError(
+        organizationId,
+        applicationId,
+        "application_form.import_responses",
+        error,
+      );
       setSaveError(
         error instanceof Error ? error.message : "Failed to copy previous answers.",
       );
@@ -405,6 +542,12 @@ export default function ApplicationFormExperience({
           stepIndex,
         });
       } catch (error) {
+        reportApplyOperationalError(
+          organizationId,
+          applicationId,
+          "application_form.reuse_field_save",
+          error,
+        );
         setSaveError(
           error instanceof Error ? error.message : "Failed to save your progress.",
         );
@@ -526,47 +669,76 @@ export default function ApplicationFormExperience({
             ))}
           </div>
 
-          {isFirstStep && copyableApplications.length > 0 && onImportResponses ? (
+          {showBulkCopyPanel ? (
             <div
-              className="mb-6 rounded-lg border px-4 py-4"
+              className={`mb-6 rounded-lg border px-4 ${bulkCopyExpanded ? "py-4" : "py-3"}`}
               style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
             >
-              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                Applying for another child?
-              </p>
-              <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-                Copy answers from a previous application, then update student-specific
-                details.
-              </p>
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <select
-                  value={bulkCopySourceId}
-                  onChange={(event) => setBulkCopySourceId(event.target.value)}
-                  className="w-full rounded-md border px-3 py-2 text-sm sm:max-w-xs"
-                  style={{
-                    borderColor: C.inputBorder,
-                    backgroundColor: C.input,
-                    color: C.textPrimary,
-                  }}
-                >
-                  {copyableApplications.map((application) => (
-                    <option key={application.id} value={application.id}>
-                      {application.label}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  Applying for another child?
+                </p>
                 <button
                   type="button"
-                  onClick={() => void handleBulkCopy()}
-                  disabled={importing || !bulkCopySourceId}
-                  className={`rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
-                  style={getAdminButtonStyle(C, "primary")}
+                  onClick={() =>
+                    bulkCopyExpanded
+                      ? setBulkCopyExpanded(false)
+                      : setBulkCopyExpanded(true)
+                  }
+                  aria-expanded={bulkCopyExpanded}
+                  aria-controls="bulk-copy-panel"
+                  className="shrink-0 text-sm font-medium underline-offset-2 hover:underline"
+                  style={{ color: C.accent }}
                 >
-                  <ButtonLoadingLabel loading={importing} loadingLabel="Copying…">
-                    Copy answers
-                  </ButtonLoadingLabel>
+                  {bulkCopyExpanded ? "Cancel" : "Copy answers"}
                 </button>
               </div>
+              <AnimatePresence initial={false}>
+                {bulkCopyExpanded ? (
+                  <motion.div
+                    id="bulk-copy-panel"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
+                      Copy answers from a previous application, then update
+                      student-specific details.
+                    </p>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <select
+                        value={bulkCopySourceId}
+                        onChange={(event) => setBulkCopySourceId(event.target.value)}
+                        className="w-full rounded-md border px-3 py-2 text-sm sm:max-w-xs"
+                        style={{
+                          borderColor: C.inputBorder,
+                          backgroundColor: C.input,
+                          color: C.textPrimary,
+                        }}
+                      >
+                        {copyableApplications.map((application) => (
+                          <option key={application.id} value={application.id}>
+                            {application.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void handleBulkCopy()}
+                        disabled={importing || !bulkCopySourceId}
+                        className={`rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60 ${BUTTON_LOADING_LAYOUT_CLASS}`}
+                        style={getAdminButtonStyle(C, "primary")}
+                      >
+                        <ButtonLoadingLabel loading={importing} loadingLabel="Copying…">
+                          Copy answers
+                        </ButtonLoadingLabel>
+                      </button>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
             </div>
           ) : null}
 
@@ -597,10 +769,12 @@ export default function ApplicationFormExperience({
                   section={section}
                   values={values}
                   onChange={updateValue}
+                  fieldErrors={fieldErrors}
                   priorFieldValues={priorFieldValues}
                   onReuseField={(fieldId) => void handleReuseField(fieldId)}
                   supabase={supabase ?? undefined}
                   uploadContext={uploadContext}
+                  hideStepNotice={showBulkCopyPanel}
                 />
               ) : null}
             </motion.div>
@@ -741,21 +915,26 @@ function SectionStep({
   section,
   values,
   onChange,
+  fieldErrors = {},
   priorFieldValues,
   onReuseField,
   supabase,
   uploadContext,
+  hideStepNotice,
 }: {
   C: ReturnType<typeof buildAdminThemeTokens>;
   section: ApplicationSection;
   values: Record<string, string>;
   onChange: (fieldId: string, value: string) => void;
+  fieldErrors?: Record<string, string>;
   priorFieldValues?: Record<string, string>;
   onReuseField?: (fieldId: string) => void;
   supabase?: SupabaseClient;
   uploadContext?: ApplicationFileUploadContext;
+  hideStepNotice?: boolean;
 }) {
   const topNotice =
+    !hideStepNotice &&
     section.stepNotice?.body.trim() &&
     section.stepNotice.placement === "top"
       ? section.stepNotice.body.trim()
@@ -822,6 +1001,7 @@ function SectionStep({
               field={field}
               value={values[field.id] ?? ""}
               onChange={(value) => onChange(field.id, value)}
+              error={fieldErrors[field.id]}
               C={C}
               supabase={supabase}
               uploadContext={uploadContext}
@@ -830,7 +1010,11 @@ function SectionStep({
 
           if (useDivWrapper) {
             return (
-              <div key={field.id} className={wrapperClassName}>
+              <div
+                key={field.id}
+                data-field-id={field.id}
+                className={wrapperClassName}
+              >
                 {fieldLabel}
                 {fieldInput}
               </div>
@@ -838,7 +1022,11 @@ function SectionStep({
           }
 
           return (
-            <label key={field.id} className={wrapperClassName}>
+            <label
+              key={field.id}
+              data-field-id={field.id}
+              className={wrapperClassName}
+            >
               {fieldLabel}
               {fieldInput}
             </label>

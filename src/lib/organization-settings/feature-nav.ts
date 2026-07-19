@@ -155,7 +155,6 @@ const TEACHER_ICON_DEFAULTS: Record<string, string> = {
 
 const PARENT_ICON_DEFAULTS: Record<string, string> = {
   portal: "home",
-  enrollment_checklist: "clipboard-list",
   billing: "dollar-sign",
   messages: "message-square",
   calendar: "calendar-days",

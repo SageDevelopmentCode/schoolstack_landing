@@ -83,6 +83,29 @@ async function sendWebsiteNotificationDiscordEmbed(
   await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
 }
 
+export function resolveAdmissionsDiscordWebhookUrl(): string | null {
+  return (
+    process.env.DISCORD_E2E_ALERTS_WEBHOOK_URL?.trim() ||
+    process.env.ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL?.trim() ||
+    null
+  );
+}
+
+async function sendAdmissionsDiscordEmbed(
+  embed: DiscordEmbed,
+  options?: { content?: string },
+) {
+  const webhookUrl = resolveAdmissionsDiscordWebhookUrl();
+  if (!webhookUrl) {
+    console.warn(
+      "No admissions Discord webhook configured (DISCORD_E2E_ALERTS_WEBHOOK_URL or ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL); skipping Discord notification.",
+    );
+    return;
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
+}
+
 export async function notifyWebsiteApiError(payload: {
   route: string;
   method: string;
@@ -289,7 +312,7 @@ export async function notifyApplicationSubmitted(payload: {
     });
   }
 
-  await sendWebsiteNotificationDiscordEmbed({ title, fields });
+  await sendAdmissionsDiscordEmbed({ title, fields });
 }
 
 export async function notifyPaymentCompleted(payload: {
@@ -353,7 +376,7 @@ export async function notifyPaymentCompleted(payload: {
     });
   }
 
-  await sendWebsiteNotificationDiscordEmbed({ title, fields });
+  await sendAdmissionsDiscordEmbed({ title, fields });
 }
 
 const POST_SUBMIT_VISIT_DISCORD_TITLES: Record<string, string> = {
@@ -418,7 +441,7 @@ export async function notifyPostSubmitVisitScheduled(payload: {
     });
   }
 
-  await sendWebsiteNotificationDiscordEmbed({ title, fields });
+  await sendAdmissionsDiscordEmbed({ title, fields });
 }
 
 const ROLES: Record<string, string> = {
@@ -638,6 +661,77 @@ export async function notifyHomepageQuestion(payload: {
         value: truncate(payload.message.trim()),
       },
     ],
+  });
+}
+
+const PARENT_PORTAL_FEEDBACK_TYPE_LABELS: Record<string, string> = {
+  feature_request: "Feature request",
+  feedback: "General feedback",
+  bug: "Something isn't working",
+};
+
+export async function notifyParentPortalFeedback(payload: {
+  schoolSlug: string;
+  schoolName: string;
+  organizationId: string;
+  submitterName: string | null;
+  submitterEmail: string | null;
+  featureKey: string;
+  featureLabel: string;
+  feedbackType: string;
+  message: string;
+  pagePath?: string | null;
+}) {
+  const contactValue =
+    payload.submitterName && payload.submitterEmail
+      ? truncate(`${payload.submitterName}\n${payload.submitterEmail}`)
+      : payload.submitterEmail
+        ? truncate(payload.submitterEmail)
+        : "Unknown";
+
+  const fields: DiscordEmbedField[] = [
+    {
+      name: "School",
+      value: truncate(
+        `${payload.schoolName}\n(${payload.schoolSlug})\n${payload.organizationId}`,
+      ),
+      inline: true,
+    },
+    {
+      name: "Feature",
+      value: truncate(`${payload.featureLabel}\n(${payload.featureKey})`),
+      inline: true,
+    },
+    {
+      name: "Type",
+      value: truncate(
+        PARENT_PORTAL_FEEDBACK_TYPE_LABELS[payload.feedbackType] ??
+          payload.feedbackType,
+      ),
+      inline: true,
+    },
+    {
+      name: "Contact",
+      value: contactValue,
+      inline: true,
+    },
+  ];
+
+  if (payload.pagePath?.trim()) {
+    fields.push({
+      name: "Page",
+      value: truncate(payload.pagePath.trim()),
+    });
+  }
+
+  fields.push({
+    name: "Message",
+    value: truncate(payload.message.trim()),
+  });
+
+  await sendWebsiteNotificationDiscordEmbed({
+    title: "Parent portal feedback",
+    fields,
   });
 }
 

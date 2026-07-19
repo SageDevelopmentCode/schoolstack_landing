@@ -80,7 +80,7 @@ export function BuilderQuestionCard({
       }}
     >
       <div className={helper ? "space-y-1" : undefined}>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <p
             className="min-w-0 flex-1 text-base font-semibold"
             style={{ color: C.textPrimary }}

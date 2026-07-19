@@ -5,6 +5,7 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
+import { buildApplySystemSection, emptyApplyCustomSection } from "@/lib/admissions/apply-system-fields";
 import {
   E2E_ADMIN_EMAIL,
   E2E_NONADMIN_EMAIL,
@@ -186,21 +187,7 @@ async function ensureE2eApplicationFormContext(
     required_to_submit: true,
   };
   const e2eFormSchema = {
-    sections: [
-      {
-        id: "e2e-section-student",
-        title: "Student information",
-        fields: [
-          {
-            id: "student_first_name",
-            label: "First Name",
-            type: "text",
-            required: true,
-            width: "full",
-          },
-        ],
-      },
-    ],
+    sections: [buildApplySystemSection(), emptyApplyCustomSection()],
     acknowledgments: [],
   };
 
@@ -260,7 +247,7 @@ async function seedParentApplication(
     studentName,
     formContext,
   }: SeedParentApplicationInput,
-): Promise<void> {
+): Promise<string> {
   const { error: membershipError } = await admin
     .from("organization_memberships")
     .upsert(
@@ -342,24 +329,54 @@ async function seedParentApplication(
     .eq("organization_id", organizationId)
     .eq("created_by_user_id", userId);
 
-  const { error: applicationInsertError } = await admin.from("applications").insert({
-    organization_id: organizationId,
-    program_id: formContext.programId,
-    form_version_id: formContext.formVersionId,
-    family_id: familyId,
-    primary_guardian_id: guardianId,
-    created_by_user_id: userId,
-    status: "submitted",
-    submitted_at: new Date().toISOString(),
-    responses,
-  });
+  const { data: application, error: applicationInsertError } = await admin
+    .from("applications")
+    .insert({
+      organization_id: organizationId,
+      program_id: formContext.programId,
+      form_version_id: formContext.formVersionId,
+      family_id: familyId,
+      primary_guardian_id: guardianId,
+      created_by_user_id: userId,
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+      responses,
+    })
+    .select("id")
+    .single();
 
   if (applicationInsertError) throw applicationInsertError;
+  if (!application?.id) {
+    throw new Error(`Failed to seed application for ${email}`);
+  }
+
+  return application.id as string;
+}
+
+const SEED_MANIFEST_PATH = path.join(process.cwd(), "e2e/.seed-manifest.json");
+
+export type E2eSeedManifest = {
+  applications: {
+    alphaChild: string;
+    betaChild: string;
+  };
+};
+
+function writeSeedManifest(manifest: E2eSeedManifest): void {
+  fs.mkdirSync(path.dirname(SEED_MANIFEST_PATH), { recursive: true });
+  fs.writeFileSync(SEED_MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 }
 
 export async function seedE2eDatabase(): Promise<void> {
   const admin = createAdminClient();
   const organizationId = await getOrganizationId(admin);
+
+  const { error: liveStatusError } = await admin
+    .from("organizations")
+    .update({ status: "live" })
+    .eq("id", organizationId);
+
+  if (liveStatusError) throw liveStatusError;
 
   const adminUserId = await ensureAuthUser(admin, {
     email: E2E_ADMIN_EMAIL,
@@ -470,7 +487,7 @@ export async function seedE2eDatabase(): Promise<void> {
 
   const formContext = await ensureE2eApplicationFormContext(admin, organizationId);
 
-  await seedParentApplication(admin, {
+  const alphaChildApplicationId = await seedParentApplication(admin, {
     organizationId,
     userId: parentUserId,
     email: E2E_PARENT_EMAIL,
@@ -479,12 +496,19 @@ export async function seedE2eDatabase(): Promise<void> {
     formContext,
   });
 
-  await seedParentApplication(admin, {
+  const betaChildApplicationId = await seedParentApplication(admin, {
     organizationId,
     userId: otherParentUserId,
     email: E2E_OTHER_PARENT_EMAIL,
     familyName: "E2E Parent B Family",
     studentName: "Beta Child",
     formContext,
+  });
+
+  writeSeedManifest({
+    applications: {
+      alphaChild: alphaChildApplicationId,
+      betaChild: betaChildApplicationId,
+    },
   });
 }

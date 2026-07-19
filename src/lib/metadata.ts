@@ -27,6 +27,16 @@ function defaultOgImages(alt: string, imagePath = "/opengraph-image") {
   ];
 }
 
+function siteIcons() {
+  return {
+    icon: [
+      { url: "/images/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/images/icon-192.webp", sizes: "192x192", type: "image/webp" },
+    ],
+    apple: "/images/apple-touch-icon.png",
+  };
+}
+
 function sharedMetadataFields(
   title: string,
   description: string,
@@ -35,10 +45,7 @@ function sharedMetadataFields(
   return {
     applicationName: SITE_NAME,
     category: "Education",
-    icons: {
-      icon: "/images/Logo.png",
-      apple: "/images/Logo.png",
-    },
+    icons: siteIcons(),
     ...(GOOGLE_SITE_VERIFICATION
       ? { verification: { google: GOOGLE_SITE_VERIFICATION } }
       : {}),
@@ -115,10 +122,7 @@ export function rootMetadata(): Metadata {
     alternates: {
       canonical: "/",
     },
-    icons: {
-      icon: "/images/Logo.png",
-      apple: "/images/Logo.png",
-    },
+    icons: siteIcons(),
     ...(GOOGLE_SITE_VERIFICATION
       ? { verification: { google: GOOGLE_SITE_VERIFICATION } }
       : {}),

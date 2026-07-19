@@ -43,6 +43,7 @@ export type AdminSupportRequestModalProps = {
   organizationId: string;
   userEmail?: string | null;
   currentPath?: string;
+  submitEndpoint?: string;
 };
 
 function inputStyle(C: AdminThemeTokens): React.CSSProperties {
@@ -106,6 +107,7 @@ export default function AdminSupportRequestModal({
   organizationId,
   userEmail,
   currentPath,
+  submitEndpoint = "/api/school-admin/support-requests",
 }: AdminSupportRequestModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [topic, setTopic] = useState<TopicValue>("general");
@@ -214,7 +216,7 @@ export default function AdminSupportRequestModal({
     }
 
     try {
-      const response = await fetch("/api/school-admin/support-requests", {
+      const response = await fetch(submitEndpoint, {
         method: "POST",
         body: formData,
       });
@@ -269,7 +271,7 @@ export default function AdminSupportRequestModal({
                 ? "admin-support-success-description"
                 : "admin-support-modal-description"
             }
-            className="flex max-h-[min(90vh,720px)] w-full max-w-[480px] flex-col overflow-hidden rounded-xl shadow-xl"
+            className="flex max-h-[min(90vh,720px)] w-full max-w-[480px] flex-col overflow-hidden rounded-lg shadow-xl"
             style={{
               backgroundColor: C.surface,
               border: `1px solid ${C.border}`,
@@ -414,7 +416,7 @@ export default function AdminSupportRequestModal({
 
                     {attachments.length === 0 ? (
                       <div
-                        className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-8 text-center"
+                        className="flex flex-col items-center justify-center rounded-md border-2 border-dashed px-4 py-8 text-center"
                         style={{
                           borderColor: C.borderStrong,
                           backgroundColor: "#FFFFFF",
@@ -467,7 +469,7 @@ export default function AdminSupportRequestModal({
                       </div>
                     ) : (
                       <div
-                        className="rounded-lg border px-3 py-3"
+                        className="rounded-md border px-3 py-3"
                         style={{
                           borderColor: C.border,
                           backgroundColor: "#FFFFFF",

@@ -327,7 +327,7 @@ const DEMO_CHILDREN = {
     initials: "EM",
     color: "#7FA888",
     image:
-      "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",
+      "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash-thumb.webp",
     teachers: [
       {
         name: "Ms. Taylor Reyes",
@@ -351,7 +351,7 @@ const DEMO_CHILDREN = {
       "Very social and energetic. Enjoys music and movement-based activities.",
     initials: "JM",
     color: "#f29a8f",
-    image: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg",
+    image: "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash-thumb.webp",
     teachers: [
       {
         name: "Ms. Paige Sun",
@@ -369,7 +369,7 @@ const DEMO_CHILDREN = {
     notes: "Curious and creative. Enjoys puzzles and building activities.",
     initials: "LM",
     color: "#a78bfa",
-    image: "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",
+    image: "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash-thumb.webp",
     teachers: [
       {
         name: "Ms. Taylor Reyes",
@@ -1034,6 +1034,8 @@ function Avatar({
       <img
         src={src}
         alt={initials}
+        loading="lazy"
+        decoding="async"
         className={`${sz} rounded-full object-cover flex-shrink-0`}
       />
     );
@@ -3362,6 +3364,8 @@ function BillingPage({
                     <img
                       src={getPendingBanner(t)}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className={`w-full h-full object-cover ${
                         isInvoiceClickable
                           ? "transition-transform duration-500 group-hover:scale-105"
@@ -4138,6 +4142,8 @@ function HomeAttendanceSidebar({
           <img
             src={child.image}
             alt={firstName}
+            loading="lazy"
+            decoding="async"
             className="w-9 h-9 rounded-xl object-cover flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
@@ -4388,6 +4394,10 @@ function HomeDashboard({
                     <img
                       src={child.image}
                       alt={firstName}
+                      width={64}
+                      height={64}
+                      loading="lazy"
+                      decoding="async"
                       className="w-16 h-16 rounded-2xl object-cover"
                     />
                     <div className="text-center min-w-0 w-full">
@@ -4619,6 +4629,8 @@ function HomeDashboard({
                   <img
                     src="/images/stock/ImageFive.webp"
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-black/10" />
@@ -4647,6 +4659,8 @@ function HomeDashboard({
                   <img
                     src="/images/stock/ImageNine.webp"
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-black/10" />
@@ -4738,8 +4752,10 @@ function DemoHeader({
       {/* Logo — left */}
       <div className="flex items-center gap-2 flex-1">
         <img
-          src="/images/Logo.png"
+          src="/images/Logo.webp"
           alt="SchoolLayer"
+          width={28}
+          height={28}
           className="h-7 w-auto object-contain"
         />
         {/* <span className="text-sm font-semibold text-gray-700">SchoolLayer</span> */}
@@ -4872,10 +4888,16 @@ const TOUR_RESUME_MS = 1500;
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 
-export default function ParentDashboardDemo({ initialTab = "home", disableTour = false, hideNav = false }: { initialTab?: NavTab; disableTour?: boolean; hideNav?: boolean }) {
+export default function ParentDashboardDemo({ initialTab = "home", disableTour = false, hideNav = false, onMount }: { initialTab?: NavTab; disableTour?: boolean; hideNav?: boolean; onMount?: () => void }) {
   const [activeNavTab, setActiveNavTab] = useState<NavTab>(initialTab);
   const [activeChildId, setActiveChildId] = useState<ChildId>("emma");
   const [openModal, setOpenModal] = useState<ModalId>(null);
+
+  useEffect(() => {
+    onMount?.();
+    // onMount is a one-time mount notification for lazy-load shells
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Per-child signatures — Emma pre-seeded with contracts 1 & 2 + assumption of risk
   const [signaturesEmma, setSignaturesEmma] = useState<Record<string, string>>({
@@ -5672,6 +5694,8 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
                                 key={i}
                                 src={att.src}
                                 alt={att.name || ""}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-40 h-40 object-cover rounded-xl mb-3 shrink-0"
                               />
                             ) : null
@@ -5725,7 +5749,7 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
                           <p className="text-sm text-gray-700 leading-relaxed">{feedSelectedPost.text}</p>
                           {feedSelectedPost.attachments?.map((att, i) =>
                             att.type === "image" ? (
-                              <img key={i} src={att.src} alt={att.name || ""} className="w-full max-h-44 object-cover rounded-xl" />
+                              <img key={i} src={att.src} alt={att.name || ""} loading="lazy" decoding="async" className="w-full max-h-44 object-cover rounded-xl" />
                             ) : null
                           )}
                           <div className="border-t border-gray-100 pt-3">

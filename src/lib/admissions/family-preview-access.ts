@@ -328,6 +328,9 @@ export async function listFamilyChildrenForHomeByFamilyId(
       status: displayStatus,
       statusLabel: applicationStatusLabel(displayStatus),
       isEnrolled,
+      checklistProgress: enrollmentProgress
+        ? { completed: enrollmentProgress.completed, total: enrollmentProgress.total }
+        : null,
     };
   });
 

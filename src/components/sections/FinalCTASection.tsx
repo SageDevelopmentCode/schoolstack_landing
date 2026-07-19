@@ -44,7 +44,7 @@ export default function FinalCTASection() {
 
           <p
             className="text-sm mt-5"
-            style={{ color: 'rgba(247,241,231,0.45)' }}
+            style={{ color: 'rgba(247,241,231,0.72)' }}
           >
             No commitment. No sales pressure. Just a conversation.
           </p>

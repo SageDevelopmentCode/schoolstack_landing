@@ -299,6 +299,28 @@ export default function ParentHomePage({
                       action.iconSlug,
                     );
                     const Icon = getFeatureIcon(action.iconSlug);
+                    const chipStyle = {
+                      borderColor: C.border,
+                      boxShadow: C.shadowCard,
+                    };
+                    const chipContent = (
+                      <>
+                        <div
+                          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${action.enabled ? "transition-transform duration-200 group-hover:scale-110" : ""} ${iconBg}`}
+                        >
+                          <Icon
+                            className={`h-4 w-4 ${iconColor}`}
+                            style={
+                              iconColor ? undefined : { color: C.accent }
+                            }
+                            strokeWidth={1.5}
+                          />
+                        </div>
+                        <span className="whitespace-nowrap text-sm font-semibold text-gray-700">
+                          {action.label}
+                        </span>
+                      </>
+                    );
 
                     return (
                       <motion.div
@@ -309,31 +331,25 @@ export default function ParentHomePage({
                         variants={fadeUp}
                         className="flex-shrink-0"
                       >
-                        <motion.div whileTap={{ scale: 0.98 }}>
-                          <Link
-                            href={action.href}
-                            className="group flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 transition-colors duration-200 hover:bg-gray-50/80"
-                            style={{
-                              borderColor: C.border,
-                              boxShadow: C.shadowCard,
-                            }}
-                          >
-                            <div
-                              className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110 ${iconBg}`}
+                        {action.enabled ? (
+                          <motion.div whileTap={{ scale: 0.98 }}>
+                            <Link
+                              href={action.href}
+                              className="group flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 transition-colors duration-200 hover:bg-gray-50/80"
+                              style={chipStyle}
                             >
-                              <Icon
-                                className={`h-4 w-4 ${iconColor}`}
-                                style={
-                                  iconColor ? undefined : { color: C.accent }
-                                }
-                                strokeWidth={1.5}
-                              />
-                            </div>
-                            <span className="whitespace-nowrap text-sm font-semibold text-gray-700">
-                              {action.label}
-                            </span>
-                          </Link>
-                        </motion.div>
+                              {chipContent}
+                            </Link>
+                          </motion.div>
+                        ) : (
+                          <div
+                            aria-disabled="true"
+                            className="flex cursor-not-allowed items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 opacity-50"
+                            style={chipStyle}
+                          >
+                            {chipContent}
+                          </div>
+                        )}
                       </motion.div>
                     );
                   })}

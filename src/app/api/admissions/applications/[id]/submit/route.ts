@@ -9,13 +9,12 @@ import {
   ApplicationMaterializationError,
   materializeApplicationStudent,
 } from "@/lib/admissions/application-entity-materialization";
-import { validateStudentResponses } from "@/lib/admissions/apply-system-fields";
 import { sendApplicationSubmittedNotifications } from "@/lib/admissions/application-notifications";
 import {
   getApplicationForSubmit,
   loadPublishedFormForApplication,
   submitApplicationRecord,
-  validateAcknowledgmentsComplete,
+  validateApplicationForSubmit,
 } from "@/lib/admissions/application-submit";
 import {
   ACTIVITY_ACTIONS,
@@ -88,26 +87,13 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const ackError = validateAcknowledgmentsComplete(
-      schema,
-      application.acknowledgments,
-    );
-    if (ackError) {
+    const validationError = validateApplicationForSubmit(schema, application);
+    if (validationError) {
       return apiError(ROUTE, {
         request,
         status: 400,
-        error: ackError,
-        code: "acknowledgments_incomplete",
-      });
-    }
-
-    const studentError = validateStudentResponses(application.responses);
-    if (studentError) {
-      return apiError(ROUTE, {
-        request,
-        status: 400,
-        error: studentError,
-        code: "student_fields_incomplete",
+        error: validationError.error,
+        code: validationError.code,
       });
     }
 
