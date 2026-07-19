@@ -183,12 +183,11 @@ function HeroScaledDemoFrame({
 
 export default function HeroSection() {
   const [demoTab, setDemoTab] = useState<HeroDemoTab>('parent')
-  const [loadedTabs, setLoadedTabs] = useState<Set<HeroDemoTab>>(() => new Set())
+  const [loadedTabs, setLoadedTabs] = useState<Set<HeroDemoTab>>(() => new Set(['parent']))
   const [readyTabs, setReadyTabs] = useState<Set<HeroDemoTab>>(() => new Set())
   const t = demoTab === 'parent'
 
   useEffect(() => {
-    setLoadedTabs((prev) => new Set(prev).add('parent'))
     prefetchParentDemo()
   }, [])
 

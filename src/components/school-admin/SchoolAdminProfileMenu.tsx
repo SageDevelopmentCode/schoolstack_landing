@@ -59,10 +59,7 @@ export default function SchoolAdminProfileMenu({
   };
 
   useLayoutEffect(() => {
-    if (!menuOpen) {
-      setPopoverPosition(null);
-      return;
-    }
+    if (!menuOpen) return;
 
     updatePopoverPosition();
 
