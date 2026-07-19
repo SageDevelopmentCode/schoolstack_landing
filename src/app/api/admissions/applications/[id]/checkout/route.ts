@@ -9,6 +9,7 @@ import {
   getApplicationForSubmit,
   loadPublishedFormForApplication,
 } from "@/lib/admissions/application-submit";
+import { validateApplicationForSubmit } from "@/lib/admissions/application-form-validation";
 import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
 import {
   ACTIVITY_ACTIONS,
@@ -103,10 +104,20 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const { feeConfig, publicSlug } = await loadPublishedFormForApplication(
+    const { feeConfig, publicSlug, schema } = await loadPublishedFormForApplication(
       admin,
       application,
     );
+
+    const validationError = validateApplicationForSubmit(schema, application);
+    if (validationError) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: validationError.error,
+        code: validationError.code,
+      });
+    }
 
     if (!feeConfig.enabled) {
       return apiError(ROUTE, {

@@ -17,7 +17,7 @@ import ButtonLoadingLabel, {
 } from "@/components/ui/ButtonLoadingLabel";
 import type { SaveApplicationDraftInput } from "@/lib/admissions/application-draft";
 import type { ApplicationFileUploadContext } from "@/lib/admissions/application-file-storage";
-import { validateApplicationSectionResponses } from "@/lib/admissions/application-form-validation";
+import { validateApplicationSectionResponses, validateApplicationForSubmit } from "@/lib/admissions/application-form-validation";
 import {
   formatFeeAmount,
   type ApplicationFormFeeConfig,
@@ -382,6 +382,15 @@ export default function ApplicationFormExperience({
 
     setSaveError(null);
 
+    const validationError = validateApplicationForSubmit(schema, {
+      responses: values,
+      acknowledgments,
+    });
+    if (validationError) {
+      setSaveError(validationError.error);
+      return;
+    }
+
     try {
       if (canPersist) {
         setSaving(true);
@@ -408,6 +417,16 @@ export default function ApplicationFormExperience({
 
     setActionLoading(true);
     setSaveError(null);
+
+    const validationError = validateApplicationForSubmit(schema, {
+      responses: values,
+      acknowledgments,
+    });
+    if (validationError) {
+      setSaveError(validationError.error);
+      setActionLoading(false);
+      return;
+    }
 
     let responseStatus: number | undefined;
     try {
