@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { prepareBootstrapResumeFixture } from "../helpers/api-fixtures";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
 test("bootstrap returns 401 when unauthenticated", async ({ playwright, baseURL }) => {
@@ -34,6 +35,7 @@ test("bootstrap resumes an existing application for authenticated parent", async
   request,
 }) => {
   const manifest = getSeedManifest();
+  await prepareBootstrapResumeFixture(manifest);
   const response = await request.post("/api/admissions/applicant-bootstrap", {
     data: {
       organizationId: manifest.organizationId,

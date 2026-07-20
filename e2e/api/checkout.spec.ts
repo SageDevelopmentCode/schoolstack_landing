@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { ensureNoFeeDraftFixture } from "../helpers/api-fixtures";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
 test("checkout returns 400 for invalid payment method", async ({ request }) => {
@@ -19,6 +20,7 @@ test("checkout returns fee_not_pending when no fee is required", async ({
   request,
 }) => {
   const manifest = getSeedManifest();
+  await ensureNoFeeDraftFixture(manifest);
   const response = await request.post(
     `/api/admissions/applications/${manifest.applications.noFeeDraft}/checkout`,
     {

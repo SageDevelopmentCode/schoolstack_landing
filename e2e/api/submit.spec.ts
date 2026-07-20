@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { ensureNoFeeSubmitDraftFixture } from "../helpers/api-fixtures";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
 test("submit returns 401 when unauthenticated", async ({ playwright, baseURL }) => {
@@ -45,6 +46,7 @@ test("submit succeeds for a complete no-fee draft application", async ({
   request,
 }) => {
   const manifest = getSeedManifest();
+  await ensureNoFeeSubmitDraftFixture(manifest);
   const response = await request.post(
     `/api/admissions/applications/${manifest.applications.noFeeSubmitDraft}/submit`,
   );
