@@ -28,6 +28,8 @@ import {
   validateResolutionMap,
 } from "./enrollment-checklist-variants";
 
+const ENROLLED_STUDENT_STATUS = "active" as const;
+
 export class EnrollmentMaterializationError extends Error {
   code: string;
   status: number;
@@ -263,6 +265,172 @@ export async function startEnrollmentFromApplication(
   });
 
   return { enrollmentId, checklistId, applicationId };
+}
+
+export type MarkedEnrollment = {
+  enrollmentId: string;
+  applicationId: string;
+};
+
+export async function markApplicationAsEnrolled(
+  supabase: SupabaseClient,
+  input: {
+    applicationId: string;
+    actorUserId: string;
+    note?: string;
+  },
+): Promise<MarkedEnrollment> {
+  const { applicationId, actorUserId, note } = input;
+
+  const { data: application, error: appError } = await supabase
+    .from("applications")
+    .select("id, organization_id, program_id, student_id, status, family_id")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (appError) throw appError;
+  if (!application) {
+    throw new EnrollmentMaterializationError(
+      "Application not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  if (application.status === "enrolled") {
+    throw new EnrollmentMaterializationError(
+      "Application is already enrolled.",
+      "already_enrolled",
+      400,
+    );
+  }
+
+  if (application.status !== "accepted") {
+    throw new EnrollmentMaterializationError(
+      "Only accepted applications can be marked as enrolled.",
+      "invalid_status",
+      400,
+    );
+  }
+
+  if (!application.student_id || !application.program_id) {
+    throw new EnrollmentMaterializationError(
+      "Application is missing student or program information.",
+      "incomplete_application",
+      400,
+    );
+  }
+
+  const existingChecklist = await getChecklistForApplication(supabase, applicationId);
+  if (existingChecklist) {
+    throw new EnrollmentMaterializationError(
+      "Enrollment has already been started for this application.",
+      "already_started",
+      400,
+    );
+  }
+
+  const studentId = String(application.student_id);
+  const programId = String(application.program_id);
+
+  const { data: existingEnrollment, error: existingEnrollmentError } = await supabase
+    .from("enrollments")
+    .select("id, status")
+    .eq("student_id", studentId)
+    .eq("program_id", programId)
+    .maybeSingle();
+
+  if (existingEnrollmentError) throw existingEnrollmentError;
+
+  let enrollmentId: string;
+
+  if (existingEnrollment) {
+    if (existingEnrollment.status === "enrolled") {
+      if (application.status !== "accepted") {
+        throw new EnrollmentMaterializationError(
+          "This student is already enrolled in this program.",
+          "already_enrolled",
+          400,
+        );
+      }
+
+      enrollmentId = String(existingEnrollment.id);
+    } else {
+      enrollmentId = String(existingEnrollment.id);
+      const { error: enrollmentUpdateError } = await supabase
+        .from("enrollments")
+        .update({ status: "enrolled" })
+        .eq("id", enrollmentId);
+
+      if (enrollmentUpdateError) throw enrollmentUpdateError;
+    }
+  } else {
+    const { data: enrollment, error: enrollmentError } = await supabase
+      .from("enrollments")
+      .insert({
+        organization_id: application.organization_id,
+        student_id: studentId,
+        program_id: programId,
+        status: "enrolled",
+      })
+      .select("id")
+      .single();
+
+    if (enrollmentError) {
+      if (enrollmentError.code === "23505") {
+        throw new EnrollmentMaterializationError(
+          "This student already has an enrollment for this program.",
+          "duplicate_enrollment",
+          400,
+        );
+      }
+      throw enrollmentError;
+    }
+
+    enrollmentId = String(enrollment.id);
+  }
+
+  const { error: studentUpdateError } = await supabase
+    .from("students")
+    .update({ status: ENROLLED_STUDENT_STATUS })
+    .eq("id", studentId);
+
+  if (studentUpdateError) throw studentUpdateError;
+
+  const { data: updatedApplication, error: statusError } = await supabase
+    .from("applications")
+    .update({ status: "enrolled" })
+    .eq("id", applicationId)
+    .eq("status", "accepted")
+    .select("id")
+    .maybeSingle();
+
+  if (statusError) throw statusError;
+  if (!updatedApplication) {
+    throw new EnrollmentMaterializationError(
+      "Application status changed before enrollment could be completed.",
+      "invalid_status",
+      400,
+    );
+  }
+
+  void logActivityEvent(supabase, {
+    organizationId: String(application.organization_id),
+    actorType: "school_admin",
+    actorUserId,
+    surface: "school_admin",
+    action: ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED,
+    entityType: "enrollment",
+    entityId: enrollmentId,
+    summary: "Student marked as enrolled (checklist bypassed)",
+    metadata: {
+      applicationId,
+      bypassedChecklist: true,
+      ...(note ? { note } : {}),
+    },
+  });
+
+  return { enrollmentId, applicationId };
 }
 
 export type LoadedEnrollmentChecklist = {
@@ -602,7 +770,7 @@ async function finalizeEnrollmentIfComplete(
     if (enrollment.student_id) {
       await supabase
         .from("students")
-        .update({ status: "enrolled" })
+        .update({ status: ENROLLED_STUDENT_STATUS })
         .eq("id", enrollment.student_id);
     }
 
