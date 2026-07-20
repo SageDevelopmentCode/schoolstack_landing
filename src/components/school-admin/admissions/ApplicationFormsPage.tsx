@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
   createApplyForm,
@@ -300,6 +301,44 @@ function EnrollmentChecklistProgramGate({
   );
 }
 
+function resolveFlowSelection(
+  formRows: ApplicationFormVersion[],
+  checklistRows: EnrollmentChecklistTemplate[],
+  flowParam: string | null,
+  previous: FlowListSelection,
+): FlowListSelection {
+  const applyForm = formRows.find(
+    (form) => isApplyFormSlug(form.public_slug) && form.status !== "archived",
+  );
+  const checklist = checklistRows.find((row) => row.status !== "archived");
+
+  if (flowParam === "checklist" && checklist) {
+    return { kind: "checklist", id: checklist.id };
+  }
+  if (flowParam === "apply" && applyForm) {
+    return { kind: "apply", id: applyForm.id };
+  }
+
+  if (
+    previous?.kind === "apply" &&
+    formRows.some((form) => form.id === previous.id)
+  ) {
+    return previous;
+  }
+  if (
+    previous?.kind === "checklist" &&
+    checklistRows.some((row) => row.id === previous.id)
+  ) {
+    return previous;
+  }
+
+  if (applyForm) return { kind: "apply", id: applyForm.id };
+  if (checklist) return { kind: "checklist", id: checklist.id };
+  if (formRows[0]) return { kind: "apply", id: formRows[0].id };
+  if (checklistRows[0]) return { kind: "checklist", id: checklistRows[0].id };
+  return null;
+}
+
 export default function ApplicationFormsPage({
   organizationId,
   branding,
@@ -308,6 +347,8 @@ export default function ApplicationFormsPage({
 }: ApplicationFormsPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+  const flowParam = searchParams.get("flow");
 
   const [forms, setForms] = useState<ApplicationFormVersion[]>([]);
   const [checklists, setChecklists] = useState<EnrollmentChecklistTemplate[]>([]);
@@ -415,29 +456,15 @@ export default function ApplicationFormsPage({
       setChecklists(checklistRows);
       setPrograms(programRows);
       setStripePaymentsReady(paymentsReady);
-      setSelection((prev) => {
-        if (
-          prev?.kind === "apply" &&
-          formRows.some((form) => form.id === prev.id)
-        ) {
-          return prev;
-        }
-        if (
-          prev?.kind === "checklist" &&
-          checklistRows.some((checklist) => checklist.id === prev.id)
-        ) {
-          return prev;
-        }
-        if (formRows[0]) return { kind: "apply", id: formRows[0].id };
-        if (checklistRows[0]) return { kind: "checklist", id: checklistRows[0].id };
-        return null;
-      });
+      setSelection((prev) =>
+        resolveFlowSelection(formRows, checklistRows, flowParam, prev),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load forms.");
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [flowParam, organizationId, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
