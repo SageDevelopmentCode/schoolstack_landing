@@ -6,7 +6,9 @@ import ScheduleCalendarShell from "@/components/school-admin/schedule/ScheduleCa
 import { useScheduleCalendar } from "@/components/school-admin/schedule/useScheduleCalendar";
 import {
   ADMISSIONS_TIME_SLOT_GROUPS,
+  type AdmissionsAvailabilitySlotKey,
   type AdmissionsTimeSlotPeriod,
+  availabilitySlotKey,
   countAdmissionsAvailabilitySlotsInMonth,
   listAdmissionsAvailabilitySlots,
   toggleAdmissionsAvailabilitySlot,
@@ -37,8 +39,8 @@ export default function AdmissionsAvailabilityEditor({
   onMonthSlotCountChange,
 }: AdmissionsAvailabilityEditorProps) {
   const supabase = useMemo(() => createClient(), []);
-  const [openSlots, setOpenSlots] = useState<Set<string>>(new Set());
-  const [occupiedSlots, setOccupiedSlots] = useState<Set<string>>(new Set());
+  const [openSlots, setOpenSlots] = useState<Set<AdmissionsAvailabilitySlotKey>>(new Set());
+  const [occupiedSlots, setOccupiedSlots] = useState<Set<AdmissionsAvailabilitySlotKey>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export default function AdmissionsAvailabilityEditor({
   async function toggleSlot(timeSlot: string) {
     if (!selectedDate || selectedDate < today || readOnly) return;
 
-    const key = `${selectedDate}|${timeSlot}`;
+    const key = availabilitySlotKey(selectedDate, timeSlot);
     const isOpen = openSlots.has(key);
     const isBooked = occupiedSlots.has(key);
 
@@ -185,7 +187,7 @@ export default function AdmissionsAvailabilityEditor({
       if (!selectedDate) return 0;
       const group = ADMISSIONS_TIME_SLOT_GROUPS.find((entry) => entry.id === period);
       if (!group) return 0;
-      return group.slots.filter((slot) => openSlots.has(`${selectedDate}|${slot}`)).length;
+      return group.slots.filter((slot) => openSlots.has(availabilitySlotKey(selectedDate, slot))).length;
     },
     [openSlots, selectedDate],
   );
@@ -323,7 +325,7 @@ export default function AdmissionsAvailabilityEditor({
 
                 <div className="flex flex-col gap-2" role="tabpanel">
                   {activePeriodGroup.slots.map((slot) => {
-                    const slotKey = `${selectedDate}|${slot}`;
+                    const slotKey = availabilitySlotKey(selectedDate, slot);
                     const isOpen = openSlots.has(slotKey);
                     const isBooked = occupiedSlots.has(slotKey);
                     const disabled = toggling === slot || readOnly || (isBooked && isOpen);

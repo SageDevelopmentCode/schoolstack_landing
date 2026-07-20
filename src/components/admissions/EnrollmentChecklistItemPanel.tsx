@@ -140,21 +140,26 @@ function DocumentSignInlinePanel({
       : getAgreementResumeSectionIndex(sections, storedSignatures),
   );
   const [direction, setDirection] = useState(1);
-  const [signature, setSignature] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
   const section = sections[sectionIndex];
   const isLastSection = sectionIndex >= sections.length - 1;
 
-  useEffect(() => {
-    if (isCompleted) {
-      setSignature(parseStoredSignerName(existingResponses));
-      return;
-    }
-    const stored = section ? signatureBySectionId.get(section.id) : undefined;
-    setSignature(stored?.signerName ?? "");
-  }, [existingResponses, isCompleted, section, signatureBySectionId]);
+  const expectedSignature = isCompleted
+    ? parseStoredSignerName(existingResponses)
+    : (section ? signatureBySectionId.get(section.id)?.signerName ?? "" : "");
+  const signatureSourceKey = isCompleted
+    ? `completed:${section?.id ?? ""}`
+    : `${section?.id ?? ""}:${expectedSignature}`;
+  const [trackedSignatureKey, setTrackedSignatureKey] = useState(signatureSourceKey);
+  const [signature, setSignature] = useState(expectedSignature);
+
+  if (signatureSourceKey !== trackedSignatureKey) {
+    setTrackedSignatureKey(signatureSourceKey);
+    setSignature(expectedSignature);
+  }
+
+  const [submitting, setSubmitting] = useState(false);
 
   const saveCurrentSection = async () => {
     if (!isLive || !instanceId || !section) return;

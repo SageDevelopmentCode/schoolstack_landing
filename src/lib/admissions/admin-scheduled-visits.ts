@@ -248,7 +248,7 @@ export async function listOccupiedSlotKeysForDateRange(
       scheduledDate: String(row.scheduled_date),
       startTimeSlot: String(row.start_time_slot),
       durationMinutes: Number(row.duration_minutes),
-      status: String(row.status),
+      status: "scheduled" as const,
     })),
   );
 }

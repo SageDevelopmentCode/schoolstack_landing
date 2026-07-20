@@ -638,13 +638,16 @@ export default function PaymentsSetupPage({
   const isReady = Boolean(status?.isReady);
   const hasAccount = Boolean(status?.checklist.accountCreated);
   const phase = getSetupPhase(loading, isReady, hasAccount);
+  const isPolling = phase === "in_progress" && !isReady;
+
+  if (!isPolling && pollExhausted) {
+    setPollExhausted(false);
+  }
 
   useEffect(() => {
-    if (phase !== "in_progress" || isReady) {
-      pollCountRef.current = 0;
-      setPollExhausted(false);
-      return;
-    }
+    if (!isPolling) return;
+
+    pollCountRef.current = 0;
 
     const intervalId = window.setInterval(() => {
       pollCountRef.current += 1;
@@ -657,8 +660,11 @@ export default function PaymentsSetupPage({
       void loadStatus({ silent: true });
     }, POLL_INTERVAL_MS);
 
-    return () => window.clearInterval(intervalId);
-  }, [isReady, loadStatus, phase]);
+    return () => {
+      window.clearInterval(intervalId);
+      pollCountRef.current = 0;
+    };
+  }, [isPolling, loadStatus]);
   const hero = getHeroCopy(phase, schoolName);
 
   const activeChecklistIndex = status

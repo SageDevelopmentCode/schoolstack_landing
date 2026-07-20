@@ -66,10 +66,12 @@ export default function AdminDashboardPage({
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [status, setStatus] = useState(initialStatus);
+  const [prevInitialStatus, setPrevInitialStatus] = useState(initialStatus);
 
-  useEffect(() => {
+  if (initialStatus !== prevInitialStatus) {
+    setPrevInitialStatus(initialStatus);
     setStatus(initialStatus);
-  }, [initialStatus]);
+  }
 
   const refreshStatus = useCallback(async () => {
     try {

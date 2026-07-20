@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 type AdminPageContentShellProps = {
   children: ReactNode;
@@ -9,14 +9,15 @@ type AdminPageContentShellProps = {
 export default function AdminPageContentShell({
   children,
 }: AdminPageContentShellProps) {
-  const contentRef = useRef(children);
+  const [persistedChildren, setPersistedChildren] = useState(children);
+
   if (children) {
-    contentRef.current = children;
+    setPersistedChildren(children);
   }
 
   return (
     <div className="h-full transition-opacity duration-200">
-      {contentRef.current}
+      {children ?? persistedChildren}
     </div>
   );
 }
