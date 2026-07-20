@@ -9,6 +9,10 @@ import DetailPanelStepTimeline, {
   type DetailPanelStepTimelineItem,
 } from "@/components/school-admin/admissions/DetailPanelStepTimeline";
 import {
+  getAgreementSectionProgressLabel,
+  parseAgreementSectionSignatures,
+} from "@/lib/admissions/enrollment-agreement-progress";
+import {
   computeChecklistProgress,
   getChecklistForApplication,
   loadEnrollmentChecklistForApplication,
@@ -17,6 +21,7 @@ import type {
   EnrollmentChecklistItem,
   EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
+import { isInlineAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 
@@ -155,6 +160,11 @@ export default function EnrollmentStatusCard({
     return loaded.items.map((item) => {
       const instance = instanceByTemplateId.get(item.id);
       const status = instance?.status ?? "not_started";
+      const sectionSignatures = parseAgreementSectionSignatures(instance?.responses);
+      const sectionMeta =
+        status === "in_progress" && isInlineAgreementItem(item) && item.document?.kind === "inline_sections"
+          ? getAgreementSectionProgressLabel(item.document.sections, sectionSignatures)
+          : undefined;
 
       return {
         id: item.id,
@@ -162,6 +172,7 @@ export default function EnrollmentStatusCard({
         status,
         kindLabel: checklistItemTypeLabel(item.type),
         optional: !item.required,
+        meta: sectionMeta,
         onClick: () => openStepDetail(item.id),
       };
     });

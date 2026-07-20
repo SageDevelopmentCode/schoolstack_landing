@@ -36,6 +36,11 @@ import {
   buildEmbeddedPdfViewerUrl,
   getEnrollmentChecklistPdfSignedUrl,
 } from "@/lib/admissions/enrollment-checklist-document-storage";
+import {
+  getAgreementResumeSectionIndex,
+  parseAgreementSectionSignatures,
+  signaturesBySectionId,
+} from "@/lib/admissions/enrollment-agreement-progress";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import { hasPaymentBreakdown, isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -54,6 +59,7 @@ type EnrollmentChecklistItemPanelProps = {
   instancePaymentStatus?: string;
   existingResponses?: Record<string, unknown>;
   onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
+  onPartialProgress?: (responses: Record<string, unknown>) => Promise<void> | void;
 };
 
 function initFormStateFromResponses(
@@ -108,6 +114,7 @@ function DocumentSignInlinePanel({
   instanceStatus,
   existingResponses,
   onComplete,
+  onPartialProgress,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
@@ -115,19 +122,81 @@ function DocumentSignInlinePanel({
   instanceId?: string;
   instanceStatus?: string;
   existingResponses?: Record<string, unknown>;
-  onComplete?: () => Promise<void> | void;
+  onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
+  onPartialProgress?: (responses: Record<string, unknown>) => Promise<void> | void;
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
-  const [sectionIndex, setSectionIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const [signature, setSignature] = useState(() =>
-    instanceStatus === "completed" ? parseStoredSignerName(existingResponses) : "",
+  const storedSignatures = useMemo(
+    () => parseAgreementSectionSignatures(existingResponses),
+    [existingResponses],
   );
+  const signatureBySectionId = useMemo(
+    () => signaturesBySectionId(storedSignatures),
+    [storedSignatures],
+  );
+  const [sectionIndex, setSectionIndex] = useState(() =>
+    instanceStatus === "completed"
+      ? Math.max(sections.length - 1, 0)
+      : getAgreementResumeSectionIndex(sections, storedSignatures),
+  );
+  const [direction, setDirection] = useState(1);
+  const [signature, setSignature] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
   const section = sections[sectionIndex];
   const isLastSection = sectionIndex >= sections.length - 1;
+
+  useEffect(() => {
+    if (isCompleted) {
+      setSignature(parseStoredSignerName(existingResponses));
+      return;
+    }
+    const stored = section ? signatureBySectionId.get(section.id) : undefined;
+    setSignature(stored?.signerName ?? "");
+  }, [existingResponses, isCompleted, section, signatureBySectionId]);
+
+  const saveCurrentSection = async () => {
+    if (!isLive || !instanceId || !section) return;
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/admissions/enrollment-checklist-items/${instanceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agreementSection: {
+            sectionId: section.id,
+            signerName: signature.trim(),
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save agreement section.");
+      }
+
+      const data = (await response.json()) as {
+        status?: string;
+        responses?: Record<string, unknown>;
+      };
+      const nextResponses = data.responses ?? existingResponses ?? {};
+
+      if (data.status === "completed") {
+        await onComplete?.(nextResponses);
+        return;
+      }
+
+      await onPartialProgress?.(nextResponses);
+
+      if (!isLastSection) {
+        setDirection(1);
+        setSectionIndex((idx) => idx + 1);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (sections.length === 0) {
     return (
@@ -217,24 +286,13 @@ function DocumentSignInlinePanel({
           type="button"
           disabled={(isLive && !signature.trim()) || submitting || isCompleted}
           onClick={async () => {
+            if (!isLive) return;
             if (!isLastSection) {
-              setDirection(1);
-              setSectionIndex((idx) => idx + 1);
-              setSignature("");
+              await saveCurrentSection();
               return;
             }
-            if (isLive && instanceId && onComplete) {
-              setSubmitting(true);
-              try {
-                await fetch(`/api/admissions/enrollment-checklist-items/${instanceId}`, {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ signerName: signature.trim() }),
-                });
-                await onComplete();
-              } finally {
-                setSubmitting(false);
-              }
+            if (instanceId && onComplete) {
+              await saveCurrentSection();
             }
           }}
           className={`ml-auto rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
@@ -987,6 +1045,7 @@ export default function EnrollmentChecklistItemPanel({
   instancePaymentStatus,
   existingResponses,
   onComplete,
+  onPartialProgress,
 }: EnrollmentChecklistItemPanelProps) {
   const content = useMemo(() => {
     if (isPdfAgreementItem(item)) {
@@ -1028,6 +1087,7 @@ export default function EnrollmentChecklistItemPanel({
             instanceStatus={instanceStatus}
             existingResponses={existingResponses}
             onComplete={onComplete}
+            onPartialProgress={onPartialProgress}
           />
         );
       case "form":
@@ -1092,6 +1152,7 @@ export default function EnrollmentChecklistItemPanel({
     item,
     mode,
     onComplete,
+    onPartialProgress,
     organizationId,
   ]);
 

@@ -151,6 +151,7 @@ function ChecklistItemList({
         const isActive = item.id === activeItemId;
         const instance = instanceByTemplateId.get(item.id);
         const isComplete = instance?.status === "completed";
+        const isInProgress = instance?.status === "in_progress";
         return (
           <button
             key={item.id}
@@ -169,13 +170,23 @@ function ChecklistItemList({
               style={{
                 backgroundColor: isComplete
                   ? C.successBg
-                  : isActive
-                    ? `${C.accent}26`
-                    : C.bg,
+                  : isInProgress
+                    ? C.accentLight
+                    : isActive
+                      ? `${C.accent}26`
+                      : C.bg,
+                ...(isInProgress && !isComplete
+                  ? { border: `2px solid ${C.accent}` }
+                  : {}),
               }}
             >
               {isComplete ? (
                 <Check className="h-3 w-3" style={{ color: C.success }} />
+              ) : isInProgress ? (
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: C.accent }}
+                />
               ) : (
                 <Icon
                   className="h-3 w-3"
@@ -243,6 +254,21 @@ export default function EnrollmentChecklistExperience({
     setTaskPickerOpen(false);
   };
 
+  const handlePartialProgress = async (responses: Record<string, unknown>) => {
+    if (!activeInstance) return;
+    const nextInstances = localInstances.map((instance) =>
+      instance.id === activeInstance.id
+        ? {
+            ...instance,
+            status: "in_progress" as const,
+            responses,
+          }
+        : instance,
+    );
+    setLocalInstances(nextInstances);
+    onInstancesChange?.(nextInstances);
+  };
+
   const handleComplete = async (responses?: Record<string, unknown>) => {
     if (!activeItem || !activeInstance) return;
     const nextInstances = localInstances.map((instance) =>
@@ -308,6 +334,7 @@ export default function EnrollmentChecklistExperience({
           instancePaymentStatus={activeInstance?.paymentStatus}
           existingResponses={activeInstance?.responses}
           onComplete={mode === "live" ? handleComplete : undefined}
+          onPartialProgress={mode === "live" ? handlePartialProgress : undefined}
         />
       </motion.div>
     </AnimatePresence>

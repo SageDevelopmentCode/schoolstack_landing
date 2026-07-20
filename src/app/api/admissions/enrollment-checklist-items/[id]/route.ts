@@ -9,6 +9,7 @@ import {
 import {
   completeChecklistItem,
   EnrollmentMaterializationError,
+  saveAgreementSectionSignature,
 } from "@/lib/admissions/enrollment-checklist-materialization";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -27,6 +28,10 @@ type RouteContext = {
 type CompleteBody = {
   responses?: Record<string, unknown>;
   signerName?: string;
+  agreementSection?: {
+    sectionId: string;
+    signerName: string;
+  };
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -100,6 +105,22 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     if (isAdmin) {
       await requireSchoolAdminUser(supabase, organizationId);
+    }
+
+    if (body.agreementSection) {
+      const result = await saveAgreementSectionSignature(admin, {
+        instanceId,
+        sectionId: body.agreementSection.sectionId,
+        signerName: body.agreementSection.signerName,
+        actorUserId: user.id,
+        organizationId,
+      });
+
+      return NextResponse.json({
+        success: true,
+        status: result.status,
+        responses: result.responses,
+      });
     }
 
     await completeChecklistItem(admin, {

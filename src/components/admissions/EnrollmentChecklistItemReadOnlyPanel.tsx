@@ -25,6 +25,10 @@ import type {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import { hasPaymentBreakdown } from "@/lib/admissions/enrollment-checklist-schema";
 import { parseStoredSignerName } from "@/components/admissions/TypedSignatureField";
+import {
+  parseAgreementSectionSignatures,
+  signaturesBySectionId,
+} from "@/lib/admissions/enrollment-agreement-progress";
 import { greatVibes } from "@/lib/fonts";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
@@ -132,38 +136,97 @@ function DocumentSignInlineReadOnly({
   C,
   item,
   responses,
+  instanceStatus,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
   responses: Record<string, unknown>;
+  instanceStatus?: string;
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
-  const signerName = parseStoredSignerName(responses);
+  const sectionSignatures = parseAgreementSectionSignatures(responses);
+  const signatureBySectionId = signaturesBySectionId(sectionSignatures);
+  const legacySignerName = parseStoredSignerName(responses);
+  const hasSectionSignatures = sectionSignatures.length > 0;
 
   if (sections.length === 0) {
     return <EmptySubmissionNote C={C} message="No agreement sections configured." />;
   }
 
+  if (!hasSectionSignatures && legacySignerName) {
+    return (
+      <div className="space-y-6">
+        {sections.map((section) => (
+          <section key={section.id}>
+            <h3 className="text-base font-semibold" style={{ color: C.textPrimary }}>
+              {section.title}
+            </h3>
+            <p
+              className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
+              style={{ color: C.textPrimary }}
+            >
+              {section.body}
+            </p>
+          </section>
+        ))}
+        <ReadOnlySignature C={C} signerName={legacySignerName} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {sections.map((section) => (
-        <section key={section.id}>
-          <h3 className="text-base font-semibold" style={{ color: C.textPrimary }}>
-            {section.title}
-          </h3>
-          <p
-            className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
-            style={{ color: C.textPrimary }}
+      {sections.map((section, index) => {
+        const sectionSignature = signatureBySectionId.get(section.id);
+        const isSigned = Boolean(sectionSignature);
+        const isPending = instanceStatus === "in_progress" && !isSigned;
+
+        return (
+          <section
+            key={section.id}
+            className="rounded-lg border p-4"
+            style={{
+              borderColor: isSigned ? C.success : isPending ? C.border : C.border,
+              backgroundColor: isSigned ? C.successBg : C.bg,
+            }}
           >
-            {section.body}
-          </p>
-        </section>
-      ))}
-      {signerName ? (
-        <ReadOnlySignature C={C} signerName={signerName} />
-      ) : (
-        <EmptySubmissionNote C={C} message="No signature submitted yet." />
-      )}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
+                  Section {index + 1} of {sections.length}
+                </p>
+                <h3 className="mt-1 text-base font-semibold" style={{ color: C.textPrimary }}>
+                  {section.title}
+                </h3>
+              </div>
+              <span
+                className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                style={{
+                  backgroundColor: isSigned ? C.success : C.elevated,
+                  color: isSigned ? "#FFFFFF" : C.textSecondary,
+                }}
+              >
+                {isSigned ? "Signed" : "Not signed"}
+              </span>
+            </div>
+            <p
+              className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
+              style={{ color: C.textPrimary }}
+            >
+              {section.body}
+            </p>
+            {sectionSignature ? (
+              <div className="mt-4">
+                <ReadOnlySignature C={C} signerName={sectionSignature.signerName} />
+              </div>
+            ) : (
+              <div className="mt-4">
+                <EmptySubmissionNote C={C} message="Not signed yet." />
+              </div>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -471,7 +534,12 @@ export default function EnrollmentChecklistItemReadOnlyPanel({
   return (
     <div className="space-y-4">
       {item.type === "document_sign" && item.document?.kind === "inline_sections" ? (
-        <DocumentSignInlineReadOnly C={C} item={item} responses={responses} />
+        <DocumentSignInlineReadOnly
+          C={C}
+          item={item}
+          responses={responses}
+          instanceStatus={instance?.status}
+        />
       ) : null}
 
       {item.type === "document_sign_pdf" ||
