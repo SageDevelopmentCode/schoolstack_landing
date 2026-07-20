@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import {
   beginApplyFormTest,
   endApplyFormTest,
+  fillStudentDateOfBirth,
   openNewApplicationForm,
 } from "../helpers/apply-form";
 import { TEST_ORG_SLUG } from "../helpers/constants";
@@ -66,11 +67,9 @@ test.describe("mobile apply flows", () => {
     await expect(gradeTrigger).toBeVisible();
     await gradeTrigger.click();
 
-    await expect(page.getByRole("dialog", { name: "Grade level" })).toBeVisible();
-    await page
-      .getByRole("listbox", { name: "Grade level" })
-      .getByRole("option", { name: "Kindergarten" })
-      .click();
+    const gradeDialog = page.getByRole("dialog", { name: "Grade level" });
+    await expect(gradeDialog).toBeVisible({ timeout: 10_000 });
+    await gradeDialog.getByRole("option", { name: "Kindergarten" }).click();
 
     await expect(gradeTrigger).toHaveText(/Kindergarten/);
   });
@@ -82,8 +81,7 @@ test.describe("mobile apply flows", () => {
 
     await page.locator("#student_first_name").fill("Jon");
     await page.locator("#student_last_name").fill("Cecilia");
-    await page.locator("#student_date_of_birth").click();
-    await page.getByRole("button", { name: "Today" }).click();
+    await fillStudentDateOfBirth(page);
 
     await page.getByRole("button", { name: /Save and continue/i }).click();
 

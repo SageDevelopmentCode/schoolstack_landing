@@ -355,17 +355,6 @@ async function seedNoFeeDraftApplication(
     throw new Error(`E2E no-fee draft seed aborted: guardian not found for ${input.email}`);
   }
 
-  const { data: existingDraft, error: existingDraftError } = await admin
-    .from("applications")
-    .select("id")
-    .eq("organization_id", input.organizationId)
-    .eq("created_by_user_id", input.userId)
-    .eq("form_version_id", input.formContext.formVersionId)
-    .eq("status", "draft")
-    .maybeSingle();
-
-  if (existingDraftError) throw existingDraftError;
-
   const responses = {
     student_first_name: "NoFee",
     student_last_name: "Draft",
@@ -373,13 +362,136 @@ async function seedNoFeeDraftApplication(
     student_grade: "k",
   };
 
+  const { data: existingDrafts, error: existingDraftError } = await admin
+    .from("applications")
+    .select("id, responses, status")
+    .eq("organization_id", input.organizationId)
+    .eq("created_by_user_id", input.userId)
+    .eq("form_version_id", input.formContext.formVersionId);
+
+  if (existingDraftError) throw existingDraftError;
+
+  const existingDraft = (existingDrafts ?? []).find((row) => {
+    const rowResponses = row.responses as {
+      student_first_name?: string;
+      student_last_name?: string;
+    } | null;
+    return (
+      rowResponses?.student_first_name === responses.student_first_name &&
+      rowResponses?.student_last_name === responses.student_last_name
+    );
+  });
+
   if (existingDraft?.id) {
     const { error: updateError } = await admin
       .from("applications")
       .update({
+        status: "draft",
         fee_status: "not_required",
         responses,
         acknowledgments: {},
+        submitted_at: null,
+      })
+      .eq("id", existingDraft.id);
+
+    if (updateError) throw updateError;
+    return String(existingDraft.id);
+  }
+
+  const { data: application, error: applicationError } = await admin
+    .from("applications")
+    .insert({
+      organization_id: input.organizationId,
+      program_id: input.formContext.programId,
+      form_version_id: input.formContext.formVersionId,
+      family_id: family.id,
+      primary_guardian_id: guardian.id,
+      created_by_user_id: input.userId,
+      status: "draft",
+      fee_status: "not_required",
+      responses,
+      acknowledgments: {},
+    })
+    .select("id")
+    .single();
+
+  if (applicationError) throw applicationError;
+  return String(application.id);
+}
+
+async function seedAdditionalNoFeeDraftApplication(
+  admin: ReturnType<typeof createAdminClient>,
+  input: {
+    organizationId: string;
+    userId: string;
+    email: string;
+    formContext: ApplicationFormContext;
+  },
+): Promise<string> {
+  const { data: family, error: familyError } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("primary_email", input.email)
+    .maybeSingle();
+
+  if (familyError) throw familyError;
+  if (!family?.id) {
+    throw new Error(
+      `E2E no-fee submit draft seed aborted: family not found for ${input.email}`,
+    );
+  }
+
+  const { data: guardian, error: guardianError } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("user_id", input.userId)
+    .maybeSingle();
+
+  if (guardianError) throw guardianError;
+  if (!guardian?.id) {
+    throw new Error(
+      `E2E no-fee submit draft seed aborted: guardian not found for ${input.email}`,
+    );
+  }
+
+  const responses = {
+    student_first_name: "Submit",
+    student_last_name: "Target",
+    student_date_of_birth: "2020-07-20",
+    student_grade: "k",
+  };
+
+  const { data: existingDrafts, error: existingDraftError } = await admin
+    .from("applications")
+    .select("id, responses, status")
+    .eq("organization_id", input.organizationId)
+    .eq("created_by_user_id", input.userId)
+    .eq("form_version_id", input.formContext.formVersionId);
+
+  if (existingDraftError) throw existingDraftError;
+
+  const existingDraft = (existingDrafts ?? []).find((row) => {
+    const rowResponses = row.responses as {
+      student_first_name?: string;
+      student_last_name?: string;
+    } | null;
+    return (
+      rowResponses?.student_first_name === responses.student_first_name &&
+      rowResponses?.student_last_name === responses.student_last_name
+    );
+  });
+
+  if (existingDraft?.id) {
+    const { error: updateError } = await admin
+      .from("applications")
+      .update({
+        status: "draft",
+        fee_status: "not_required",
+        responses,
+        acknowledgments: {},
+        submitted_at: null,
       })
       .eq("id", existingDraft.id);
 
@@ -700,6 +812,7 @@ export type E2eSeedManifest = {
     enrollTarget: string;
     feePendingDraft: string;
     noFeeDraft: string;
+    noFeeSubmitDraft: string;
   };
 };
 
@@ -867,6 +980,16 @@ export async function seedE2eDatabase(): Promise<void> {
     formContext: { ...formContext, feeFormVersionId },
   });
 
+  const noFeeSubmitDraftApplicationId = await seedAdditionalNoFeeDraftApplication(
+    admin,
+    {
+      organizationId,
+      userId: parentUserId,
+      email: E2E_PARENT_EMAIL,
+      formContext,
+    },
+  );
+
   const noFeeDraftApplicationId = await seedNoFeeDraftApplication(admin, {
     organizationId,
     userId: parentUserId,
@@ -886,6 +1009,7 @@ export async function seedE2eDatabase(): Promise<void> {
       enrollTarget: enrollTargetApplicationId,
       feePendingDraft: feePendingDraftApplicationId,
       noFeeDraft: noFeeDraftApplicationId,
+      noFeeSubmitDraft: noFeeSubmitDraftApplicationId,
     },
   });
 }

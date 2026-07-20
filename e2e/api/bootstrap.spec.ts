@@ -46,6 +46,6 @@ test("bootstrap resumes an existing application for authenticated parent", async
   expect(response.status()).toBe(200);
   const body = await response.json();
   expect(body.action).toBe("resume");
-  expect(body.applicationId).toBeTruthy();
+  expect(body.applicationId).toBe(manifest.applications.noFeeDraft);
   expect(body.familyId).toBeTruthy();
 });

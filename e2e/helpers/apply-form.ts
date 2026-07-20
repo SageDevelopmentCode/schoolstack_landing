@@ -117,6 +117,7 @@ export async function cleanupParentDraftApplications(): Promise<void> {
   const preservedDraftIds = [
     manifest.applications.feePendingDraft,
     manifest.applications.noFeeDraft,
+    manifest.applications.noFeeSubmitDraft,
   ];
 
   const { error: deleteError } = await admin
@@ -128,6 +129,13 @@ export async function cleanupParentDraftApplications(): Promise<void> {
     .not("id", "in", `(${preservedDraftIds.join(",")})`);
 
   if (deleteError) throw deleteError;
+}
+
+export async function fillStudentDateOfBirth(page: Page): Promise<void> {
+  await page.locator("#student_date_of_birth").click();
+  const dateDialog = page.getByRole("dialog", { name: "Choose a date" });
+  await expect(dateDialog).toBeVisible({ timeout: 10_000 });
+  await dateDialog.getByRole("button", { name: "Today" }).click();
 }
 
 export async function openNewApplicationForm(page: Page): Promise<void> {

@@ -22,7 +22,8 @@ export function getSeedManifest(): E2eSeedManifest {
     !manifest.applications?.betaChild ||
     !manifest.applications?.enrollTarget ||
     !manifest.applications?.feePendingDraft ||
-    !manifest.applications?.noFeeDraft
+    !manifest.applications?.noFeeDraft ||
+    !manifest.applications?.noFeeSubmitDraft
   ) {
     throw new Error(
       `E2E seed manifest at ${SEED_MANIFEST_PATH} is missing required IDs.`,

@@ -46,7 +46,7 @@ test("submit succeeds for a complete no-fee draft application", async ({
 }) => {
   const manifest = getSeedManifest();
   const response = await request.post(
-    `/api/admissions/applications/${manifest.applications.noFeeDraft}/submit`,
+    `/api/admissions/applications/${manifest.applications.noFeeSubmitDraft}/submit`,
   );
 
   expect(response.status()).toBe(200);

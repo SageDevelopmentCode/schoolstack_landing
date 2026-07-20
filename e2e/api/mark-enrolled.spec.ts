@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 import { materializeApplicationStudent } from "../../src/lib/admissions/application-entity-materialization";
 import { AUTH_STATE_PATHS } from "../fixtures/constants";
 import { getSeedManifest } from "../helpers/seed-manifest";
@@ -14,6 +15,7 @@ function createAdminClient() {
 
   return createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    realtime: { transport: ws as never },
   });
 }
 
