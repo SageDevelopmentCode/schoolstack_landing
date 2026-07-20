@@ -244,5 +244,15 @@ describeIntegration("handleAccountUpdated", () => {
     assert.equal(account?.charges_enabled, true);
     assert.equal(account?.payouts_enabled, true);
     assert.equal(account?.onboarding_status, "complete");
+
+    const { data: activity } = await admin
+      .from("activity_events")
+      .select("action, summary")
+      .eq("organization_id", organizationId)
+      .eq("action", "payments.stripe_connected")
+      .maybeSingle();
+
+    assert.equal(activity?.action, "payments.stripe_connected");
+    assert.match(String(activity?.summary), /ready to accept payments/i);
   });
 });

@@ -6,6 +6,9 @@ export function createMockStripeClient(overrides?: {
   sessionsCreate?: (
     params: Stripe.Checkout.SessionCreateParams,
   ) => Promise<Stripe.Checkout.Session>;
+  accountsCreateLoginLink?: (
+    accountId: string,
+  ) => Promise<Stripe.LoginLink>;
 }): Stripe {
   const stripe = new Stripe(DUMMY_SECRET_KEY);
 
@@ -20,6 +23,16 @@ export function createMockStripeClient(overrides?: {
               url: "https://checkout.stripe.test/mock",
             }) as Stripe.Checkout.Session),
       },
+    },
+    accounts: {
+      createLoginLink:
+        overrides?.accountsCreateLoginLink ??
+        (async (accountId: string) =>
+          ({
+            object: "login_link",
+            created: Math.floor(Date.now() / 1000),
+            url: `https://connect.stripe.test/express/${accountId}`,
+          }) as Stripe.LoginLink),
     },
     webhooks: stripe.webhooks,
   } as unknown as Stripe;

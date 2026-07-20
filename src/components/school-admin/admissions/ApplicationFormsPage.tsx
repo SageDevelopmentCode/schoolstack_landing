@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
   createApplyForm,
@@ -64,6 +65,10 @@ import ApplicationFormPreview from "./ApplicationFormPreview";
 import EnrollmentChecklistBuilder from "./EnrollmentChecklistBuilder";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import {
+  SchoolAdminCanvasSkeleton,
+  SchoolAdminSplitPaneSkeleton,
+} from "@/components/school-admin/skeletons";
+import {
   DEFAULT_BUILDER_FOCUS,
   type BuilderFocus,
 } from "./builder-focus";
@@ -90,6 +95,41 @@ type ApplicationFormsPageProps = {
 type EditableFormState = EditableFormSnapshot;
 
 type ChecklistEditableState = ChecklistEditableSnapshot;
+
+function isPaymentsSetupError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("connect stripe") ||
+    normalized.includes("payments before publishing")
+  );
+}
+
+function PaymentsSetupErrorMessage({
+  message,
+  orgSlug,
+  C,
+}: {
+  message: string;
+  orgSlug: string;
+  C: AdminThemeTokens;
+}) {
+  if (!isPaymentsSetupError(message)) {
+    return <>{message}</>;
+  }
+
+  return (
+    <>
+      {message}{" "}
+      <Link
+        href={schoolAdminPath(orgSlug, "admissions", "payments")}
+        className="font-medium underline underline-offset-2"
+        style={{ color: C.accent }}
+      >
+        Set up payments
+      </Link>
+    </>
+  );
+}
 
 function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentChecklistItem[] {
   return items.map((item) => ({
@@ -1050,15 +1090,7 @@ export default function ApplicationFormsPage({
   };
 
   if (loading) {
-    return (
-      <div
-        className="flex h-full items-center justify-center gap-2 text-sm"
-        style={{ color: C.textSecondary }}
-      >
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading application forms…
-      </div>
-    );
+    return <SchoolAdminSplitPaneSkeleton C={C} label="Loading enrollment flows" />;
   }
 
   const hasFlows = forms.length > 0 || checklists.length > 0;
@@ -1204,7 +1236,7 @@ export default function ApplicationFormsPage({
                 border: `1px solid ${C.errorBorder}`,
               }}
             >
-              {error}
+              <PaymentsSetupErrorMessage message={error} orgSlug={slug} C={C} />
             </div>
           ) : null}
 
@@ -1233,13 +1265,7 @@ export default function ApplicationFormsPage({
           )}
         </div>
       ) : selectedChecklist ? (
-        <div
-          className="flex flex-1 items-center justify-center gap-2 text-sm"
-          style={{ color: C.textSecondary }}
-        >
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading enrollment checklist…
-        </div>
+        <SchoolAdminCanvasSkeleton C={C} label="Loading enrollment checklist" />
       ) : selectedForm && editable ? (
         <div
           className="flex flex-1 flex-col overflow-hidden"
@@ -1293,7 +1319,7 @@ export default function ApplicationFormsPage({
                 border: `1px solid ${C.errorBorder}`,
               }}
             >
-              {error}
+              <PaymentsSetupErrorMessage message={error} orgSlug={slug} C={C} />
             </div>
           )}
 
@@ -1332,13 +1358,7 @@ export default function ApplicationFormsPage({
           </div>
         </div>
       ) : (
-        <div
-          className="flex flex-1 items-center justify-center text-sm"
-          style={{ color: C.textSecondary }}
-        >
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading…
-        </div>
+        <SchoolAdminCanvasSkeleton C={C} label="Loading form editor" />
       )}
 
       <ApplicationFormPreview

@@ -1,14 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import {
-  Check,
-  CircleDot,
-  CreditCard,
-  Loader2,
-  MinusCircle,
-  X,
-} from "lucide-react";
+import { Check, CircleDot, CreditCard, MinusCircle, X } from "lucide-react";
+import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   listApplicationPayments,
@@ -310,9 +304,14 @@ export default function SubmissionPaymentsPanel({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
-      </div>
+      <SchoolAdminTableSkeleton
+        C={C}
+        rows={3}
+        columns={4}
+        showFilters={false}
+        compact
+        label="Loading payments"
+      />
     );
   }
 

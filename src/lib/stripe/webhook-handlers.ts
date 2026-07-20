@@ -24,6 +24,7 @@ import {
   resolveCheckoutSessionCustomerId,
   resolveCheckoutSessionSupabaseUserId,
 } from "@/lib/stripe/customer";
+import { notifyPaymentsReadyIfNeeded } from "@/lib/stripe/connect-notifications";
 import { syncPaymentAccountFromStripe } from "@/lib/stripe/organization-payment-account";
 
 export async function handleCheckoutSessionCompleted(
@@ -266,18 +267,11 @@ export async function handleAccountUpdated(
   await syncPaymentAccountFromStripe(admin, account.id, account);
 
   if (!wasChargesEnabled && chargesNowEnabled && existing?.organization_id) {
-    void logActivityEvent(admin, {
+    await notifyPaymentsReadyIfNeeded(admin, {
       organizationId: String(existing.organization_id),
-      actorType: "system",
-      surface: "system",
-      action: ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED,
-      entityType: "organization_payment_account",
-      summary: "Stripe Connect account is ready to accept payments",
-      metadata: {
-        stripeConnectAccountId: account.id,
-        chargesEnabled: chargesNowEnabled,
-        payoutsEnabled: Boolean(account.payouts_enabled),
-      },
+      stripeConnectAccountId: account.id,
+      chargesEnabled: chargesNowEnabled,
+      payoutsEnabled: Boolean(account.payouts_enabled),
     });
   }
 }

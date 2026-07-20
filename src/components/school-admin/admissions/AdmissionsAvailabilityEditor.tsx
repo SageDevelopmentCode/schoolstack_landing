@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons";
 import { CalendarGrid } from "@/components/scheduler/CalendarGrid";
 import {
   ADMISSIONS_TIME_SLOT_GROUPS,
@@ -229,11 +230,7 @@ export default function AdmissionsAvailabilityEditor({
   );
 
   if (loading) {
-    return (
-      <p className="py-8 text-center text-sm" style={{ color: C.textTertiary }}>
-        Loading availability…
-      </p>
-    );
+    return <SchoolAdminCalendarSkeleton C={C} compactLayout={compactLayout} label="Loading availability" />;
   }
 
   return (

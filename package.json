@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:errors": "eslint --quiet",
-    "test": "tsx --test src/lib/admissions/admissions-observation-booking.test.ts src/lib/admissions/application-form-validation.test.ts src/lib/admissions/application-form-schema.test.ts src/lib/admissions/application-submit.test.ts src/lib/activity-funnel.test.ts",
+    "test": "tsx --test src/lib/admissions/admissions-observation-booking.test.ts src/lib/admissions/application-form-validation.test.ts src/lib/admissions/application-form-schema.test.ts src/lib/admissions/application-submit.test.ts src/lib/activity-funnel.test.ts src/lib/stripe/connect-status.test.ts src/lib/stripe/dashboard-link.test.ts",
     "test:integration": "tsx --test 'src/**/*.integration.test.ts' src/lib/stripe/checkout-session.test.ts",
     "test:integration:setup": "supabase db reset",
     "test:e2e": "playwright test",

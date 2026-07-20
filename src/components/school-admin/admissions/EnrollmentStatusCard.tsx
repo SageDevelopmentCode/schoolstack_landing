@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { SchoolAdminEnrollmentStatusSkeleton } from "@/components/school-admin/skeletons";
 import EnrollmentChecklistStepDetailModal from "@/components/school-admin/admissions/EnrollmentChecklistStepDetailModal";
 import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
@@ -171,12 +171,7 @@ export default function EnrollmentStatusCard({
     loaded ? loaded.progress.completed < loaded.progress.total : true;
 
   if (loading) {
-    return (
-      <section className="flex items-center gap-2 text-sm" style={{ color: C.textTertiary }}>
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading enrollment status…
-      </section>
-    );
+    return <SchoolAdminEnrollmentStatusSkeleton C={C} />;
   }
 
   if (error) {

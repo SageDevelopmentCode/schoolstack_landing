@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
 import AdmissionsAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsAvailabilityEditor";
 import AdmissionsObservationDayAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsObservationDayAvailabilityEditor";
 import ApplicationSubmissionDetailPanel from "@/components/school-admin/admissions/ApplicationSubmissionDetailPanel";
@@ -153,8 +153,18 @@ export default function SchedulePage({
         </div>
 
         {loadingSubmission ? (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
+          <div
+            className="absolute inset-y-0 right-0 z-10 flex w-full max-w-lg flex-col border-l shadow-lg sm:max-w-xl"
+            style={{
+              borderColor: C.border,
+              backgroundColor: C.surface,
+            }}
+            aria-busy="true"
+            aria-label="Loading application"
+          >
+            <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+              <SchoolAdminDetailPanelSkeleton C={C} label="Loading application" />
+            </div>
           </div>
         ) : null}
       </div>

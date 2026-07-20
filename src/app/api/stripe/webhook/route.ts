@@ -1,3 +1,12 @@
+/**
+ * Stripe webhook endpoint.
+ *
+ * Production must subscribe to:
+ * - checkout.session.completed
+ * - account.updated
+ *
+ * Configure STRIPE_WEBHOOK_SECRET in the environment for signature verification.
+ */
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { apiError } from "@/lib/api/route-errors";

@@ -1,3 +1,7 @@
+import {
+  resolveSchoolAdminStructureColors,
+  SCHOOL_ADMIN_LIGHT_NEUTRALS,
+} from "./school-admin-neutrals";
 import type { OrganizationBranding } from "./types";
 
 export type AdminThemeTokens = {
@@ -43,15 +47,16 @@ export function buildAdminThemeTokens(
   branding: OrganizationBranding,
 ): AdminThemeTokens {
   const { colors } = branding;
+  const structure = resolveSchoolAdminStructureColors(colors);
 
   return {
-    bg: colors.bg,
-    surface: "#FFFFFF",
-    elevated: "#FDFCFB",
-    input: "#FAFAFA",
-    inputBorder: "#E4E4E7",
-    border: colors.border,
-    borderStrong: colors.borderStrong,
+    bg: structure.bg,
+    surface: SCHOOL_ADMIN_LIGHT_NEUTRALS.surface,
+    elevated: SCHOOL_ADMIN_LIGHT_NEUTRALS.elevated,
+    input: SCHOOL_ADMIN_LIGHT_NEUTRALS.input,
+    inputBorder: SCHOOL_ADMIN_LIGHT_NEUTRALS.inputBorder,
+    border: structure.border,
+    borderStrong: structure.borderStrong,
     accent: colors.accent,
     accentBright: colors.accentBright,
     accentLight: colors.accentLight,
@@ -62,10 +67,10 @@ export function buildAdminThemeTokens(
     clay: colors.clay,
     clayBg: colors.clayBg,
     clayBorder: colors.clayBorder,
-    textPrimary: colors.textPrimary,
-    textSecondary: colors.textSecondary,
-    textTertiary: "#8A7B6E",
-    textQuaternary: "#B8A898",
+    textPrimary: structure.textPrimary,
+    textSecondary: structure.textSecondary,
+    textTertiary: SCHOOL_ADMIN_LIGHT_NEUTRALS.textTertiary,
+    textQuaternary: SCHOOL_ADMIN_LIGHT_NEUTRALS.textQuaternary,
     success: "#16A34A",
     successBg: "rgba(22, 163, 74, 0.08)",
     successBorder: "rgba(22, 163, 74, 0.25)",
@@ -78,8 +83,8 @@ export function buildAdminThemeTokens(
     info: "#0284C7",
     infoBg: "rgba(2, 132, 199, 0.08)",
     infoBorder: "rgba(2, 132, 199, 0.25)",
-    shadowCard: "0 1px 3px rgba(43,36,29,0.06), 0 1px 2px rgba(43,36,29,0.04)",
-    shadowMedium: "0 4px 16px rgba(43,36,29,0.08)",
+    shadowCard: SCHOOL_ADMIN_LIGHT_NEUTRALS.shadowCard,
+    shadowMedium: SCHOOL_ADMIN_LIGHT_NEUTRALS.shadowMedium,
     r: { sm: "3px", md: "5px", lg: "6px", xl: "8px", full: "9999px" },
   };
 }

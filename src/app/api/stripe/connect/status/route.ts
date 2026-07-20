@@ -6,7 +6,11 @@ import {
 } from "@/lib/admissions/application-auth";
 import { apiError } from "@/lib/api/route-errors";
 import { canManageOrganization } from "@/lib/school-admin/access";
-import { buildConnectStatusResult } from "@/lib/stripe/connect-status";
+import {
+  buildConnectStatusResult,
+  isStripeTestMode,
+} from "@/lib/stripe/connect-status";
+import { notifyPaymentsReadyIfNeeded } from "@/lib/stripe/connect-notifications";
 import { getStripeClient } from "@/lib/stripe/client";
 import {
   getOrganizationPaymentAccount,
@@ -51,6 +55,7 @@ export async function GET(request: Request) {
     }
 
     const admin = createAdminClient();
+    const syncedAt = new Date().toISOString();
 
     const { data: org, error: orgError } = await admin
       .from("organizations")
@@ -69,8 +74,15 @@ export async function GET(request: Request) {
     }
 
     let account = await getOrganizationPaymentAccount(admin, organizationId);
+    const wasChargesEnabled = Boolean(account?.chargesEnabled);
     let stripeAccount: {
       details_submitted?: boolean;
+      requirements?: {
+        currently_due?: string[] | null;
+        past_due?: string[] | null;
+      };
+      charges_enabled?: boolean;
+      payouts_enabled?: boolean;
     } | null = null;
 
     if (account?.stripeConnectAccountId) {
@@ -85,6 +97,20 @@ export async function GET(request: Request) {
         retrieved,
       );
       account = await getOrganizationPaymentAccount(admin, organizationId);
+
+      const chargesNowEnabled = Boolean(account?.chargesEnabled);
+      if (
+        !wasChargesEnabled &&
+        chargesNowEnabled &&
+        account?.stripeConnectAccountId
+      ) {
+        void notifyPaymentsReadyIfNeeded(admin, {
+          organizationId,
+          stripeConnectAccountId: account.stripeConnectAccountId,
+          chargesEnabled: chargesNowEnabled,
+          payoutsEnabled: Boolean(account.payoutsEnabled),
+        });
+      }
     }
 
     const { data: publishedForm } = await admin
@@ -103,6 +129,8 @@ export async function GET(request: Request) {
         ? String(publishedForm.public_slug)
         : null,
       stripeAccount,
+      syncedAt,
+      isTestMode: isStripeTestMode(),
     });
 
     return NextResponse.json(status);

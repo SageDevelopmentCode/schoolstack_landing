@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons";
 import { CalendarGrid } from "@/components/scheduler/CalendarGrid";
 import {
   countObservationDaysInMonth,
@@ -215,11 +216,7 @@ export default function AdmissionsObservationDayAvailabilityEditor({
   }
 
   if (loading) {
-    return (
-      <p className="py-8 text-center text-sm" style={{ color: C.textTertiary }}>
-        Loading observation days…
-      </p>
-    );
+    return <SchoolAdminCalendarSkeleton C={C} compactLayout={compactLayout} label="Loading observation days" />;
   }
 
   return (

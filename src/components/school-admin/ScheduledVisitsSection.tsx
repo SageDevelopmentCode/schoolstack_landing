@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import {
   listOrgScheduledVisits,
   type AdminScheduledVisit,
@@ -170,9 +170,14 @@ export default function ScheduledVisitsSection({
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
-        </div>
+        <SchoolAdminTableSkeleton
+          C={C}
+          rows={5}
+          columns={5}
+          showFilters={false}
+          compact
+          label="Loading scheduled visits"
+        />
       ) : error ? (
         <p className="text-sm" style={{ color: C.error }}>
           {error}

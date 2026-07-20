@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
 import {
   createProgram,
   deleteProgram,
@@ -225,6 +226,10 @@ export default function ProgramsPage({
     }
   };
 
+  if (loading) {
+    return <SchoolAdminSplitPaneSkeleton C={C} label="Loading programs" />;
+  }
+
   return (
     <div className="flex h-full min-h-0" style={{ backgroundColor: C.surface }}>
       <div
@@ -254,14 +259,7 @@ export default function ProgramsPage({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center px-3 py-8">
-              <Loader2
-                className="h-5 w-5 animate-spin"
-                style={{ color: C.textTertiary }}
-              />
-            </div>
-          ) : programs.length === 0 && !isNew ? (
+          {programs.length === 0 && !isNew ? (
             <p className="px-3 py-4 text-xs leading-relaxed" style={{ color: C.textTertiary }}>
               No programs yet. Create one before linking an application form.
             </p>
@@ -386,7 +384,7 @@ export default function ProgramsPage({
             </p>
           ) : null}
 
-          {!editable && !loading ? (
+          {!editable ? (
             <div className="mx-auto max-w-lg text-center">
               <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
                 Create your first program

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { SchoolAdminTimelineSkeleton } from "@/components/school-admin/skeletons";
 import AdmissionHistoryTimeline from "@/components/school-admin/admissions/AdmissionHistoryTimeline";
 import type { FamilyAdmissionTimelineEvent } from "@/lib/admissions/application-submissions";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -48,11 +48,7 @@ export default function ApplicationSubmissionHistorySection({
   onSelect,
 }: ApplicationSubmissionHistorySectionProps) {
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
-      </div>
-    );
+    return <SchoolAdminTimelineSkeleton C={C} label="Loading admission history" />;
   }
 
   if (unlinked) {

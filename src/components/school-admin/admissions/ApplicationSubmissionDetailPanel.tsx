@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
+import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
 import ApplicationSubmissionPostSubmitSection from "@/components/admissions/ApplicationSubmissionPostSubmitSection";
 import ApplicationSubmissionHistorySection, {
   buildAdmissionHistoryContextDescription,
@@ -411,9 +412,7 @@ export default function ApplicationSubmissionDetailPanel({
         className="flex-1 overflow-y-auto px-4 pb-6 pt-4 sm:px-5 sm:pb-8 sm:pt-5"
       >
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
-          </div>
+          <SchoolAdminDetailPanelSkeleton C={C} label="Loading application" />
         ) : error ? (
           <p className="text-sm" style={{ color: C.error }}>
             {error}
