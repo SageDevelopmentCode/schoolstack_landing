@@ -3,7 +3,10 @@ import { getSeedManifest } from "../helpers/seed-manifest";
 
 test("submit returns 401 when unauthenticated", async ({ playwright, baseURL }) => {
   const manifest = getSeedManifest();
-  const context = await playwright.request.newContext({ baseURL });
+  const context = await playwright.request.newContext({
+    baseURL,
+    storageState: { cookies: [], origins: [] },
+  });
   const response = await context.post(
     `/api/admissions/applications/${manifest.applications.noFeeDraft}/submit`,
   );

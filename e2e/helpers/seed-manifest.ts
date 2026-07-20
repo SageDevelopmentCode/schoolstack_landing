@@ -20,6 +20,7 @@ export function getSeedManifest(): E2eSeedManifest {
     !manifest.forms?.withFee ||
     !manifest.applications?.alphaChild ||
     !manifest.applications?.betaChild ||
+    !manifest.applications?.enrollTarget ||
     !manifest.applications?.feePendingDraft ||
     !manifest.applications?.noFeeDraft
   ) {

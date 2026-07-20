@@ -23,8 +23,12 @@ export async function openSubmissionByStudent(
 }
 
 export async function closeSubmissionDetail(page: Page): Promise<void> {
-  await page.getByLabel("Close").first().click();
-  await expect(
-    page.getByRole("tablist", { name: "Application sections" }),
-  ).toHaveCount(0);
+  const tablist = page.getByRole("tablist", { name: "Application sections" });
+  await tablist
+    .locator(
+      'xpath=ancestor::motion.div[contains(@class,"flex-col")][contains(@class,"overflow-hidden")] | ancestor::div[contains(@class,"flex-col")][contains(@class,"overflow-hidden")]',
+    )
+    .getByLabel("Close")
+    .click();
+  await expect(tablist).toBeHidden({ timeout: 10_000 });
 }

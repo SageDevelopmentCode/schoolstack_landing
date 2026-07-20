@@ -67,7 +67,10 @@ test.describe("mobile apply flows", () => {
     await gradeTrigger.click();
 
     await expect(page.getByRole("dialog", { name: "Grade level" })).toBeVisible();
-    await page.getByRole("option", { name: "Kindergarten" }).click();
+    await page
+      .getByRole("listbox", { name: "Grade level" })
+      .getByRole("option", { name: "Kindergarten" })
+      .click();
 
     await expect(gradeTrigger).toHaveText(/Kindergarten/);
   });

@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { E2E_PARENT_EMAIL } from "../fixtures/constants";
 import { TEST_ORG_SLUG } from "./constants";
+import { getSeedManifest } from "./seed-manifest";
 
 const APPLY_FORM_LOCK_PATH = path.join(process.cwd(), "e2e/.apply-form.lock");
 const APPLY_FORM_LOCK_STALE_MS = 120_000;
@@ -112,12 +113,19 @@ export async function cleanupParentDraftApplications(): Promise<void> {
     throw new Error(`E2E apply helper aborted: organization "${TEST_ORG_SLUG}" not found.`);
   }
 
+  const manifest = getSeedManifest();
+  const preservedDraftIds = [
+    manifest.applications.feePendingDraft,
+    manifest.applications.noFeeDraft,
+  ];
+
   const { error: deleteError } = await admin
     .from("applications")
     .delete()
     .eq("organization_id", organization.id)
     .eq("created_by_user_id", parentUserId)
-    .eq("status", "draft");
+    .eq("status", "draft")
+    .not("id", "in", `(${preservedDraftIds.join(",")})`);
 
   if (deleteError) throw deleteError;
 }

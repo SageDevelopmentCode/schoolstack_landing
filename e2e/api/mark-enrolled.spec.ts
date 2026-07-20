@@ -55,7 +55,7 @@ test("mark-enrolled POST marks an accepted application as enrolled", async ({
 }) => {
   const manifest = getSeedManifest();
   const admin = createAdminClient();
-  const applicationId = manifest.applications.betaChild;
+  const applicationId = manifest.applications.enrollTarget;
 
   await materializeApplicationStudent(admin, applicationId);
 

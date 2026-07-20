@@ -619,6 +619,73 @@ async function seedParentApplication(
   return application.id as string;
 }
 
+async function seedAdditionalSubmittedApplication(
+  admin: ReturnType<typeof createAdminClient>,
+  {
+    organizationId,
+    userId,
+    email,
+    studentName,
+    formContext,
+  }: Omit<SeedParentApplicationInput, "familyName">,
+): Promise<string> {
+  const { data: family, error: familyLookupError } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("primary_email", email)
+    .maybeSingle();
+
+  if (familyLookupError) throw familyLookupError;
+  if (!family?.id) {
+    throw new Error(`E2E additional application seed aborted: family not found for ${email}`);
+  }
+
+  const { data: guardian, error: guardianLookupError } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (guardianLookupError) throw guardianLookupError;
+  if (!guardian?.id) {
+    throw new Error(`E2E additional application seed aborted: guardian not found for ${email}`);
+  }
+
+  const [studentFirstName, ...studentLastParts] = studentName.split(" ");
+  const studentLastName = studentLastParts.join(" ") || "Student";
+  const responses = {
+    student_first_name: studentFirstName,
+    student_last_name: studentLastName,
+    student_date_of_birth: "2020-07-20",
+    student_grade: "k",
+  };
+
+  const { data: application, error: applicationInsertError } = await admin
+    .from("applications")
+    .insert({
+      organization_id: organizationId,
+      program_id: formContext.programId,
+      form_version_id: formContext.formVersionId,
+      family_id: family.id,
+      primary_guardian_id: guardian.id,
+      created_by_user_id: userId,
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+      responses,
+    })
+    .select("id")
+    .single();
+
+  if (applicationInsertError) throw applicationInsertError;
+  if (!application?.id) {
+    throw new Error(`Failed to seed additional application for ${email}`);
+  }
+
+  return application.id as string;
+}
+
 const SEED_MANIFEST_PATH = path.join(process.cwd(), "e2e/.seed-manifest.json");
 
 export type E2eSeedManifest = {
@@ -630,6 +697,7 @@ export type E2eSeedManifest = {
   applications: {
     alphaChild: string;
     betaChild: string;
+    enrollTarget: string;
     feePendingDraft: string;
     noFeeDraft: string;
   };
@@ -784,6 +852,14 @@ export async function seedE2eDatabase(): Promise<void> {
     formContext,
   });
 
+  const enrollTargetApplicationId = await seedAdditionalSubmittedApplication(admin, {
+    organizationId,
+    userId: otherParentUserId,
+    email: E2E_OTHER_PARENT_EMAIL,
+    studentName: "Gamma Child",
+    formContext,
+  });
+
   const feePendingDraftApplicationId = await seedFeePendingDraftApplication(admin, {
     organizationId,
     userId: parentUserId,
@@ -807,6 +883,7 @@ export async function seedE2eDatabase(): Promise<void> {
     applications: {
       alphaChild: alphaChildApplicationId,
       betaChild: betaChildApplicationId,
+      enrollTarget: enrollTargetApplicationId,
       feePendingDraft: feePendingDraftApplicationId,
       noFeeDraft: noFeeDraftApplicationId,
     },

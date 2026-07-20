@@ -28,7 +28,10 @@ async function fillRequiredStudentFields(
 
   const gradeTrigger = page.locator("#student_grade");
   await gradeTrigger.click();
-  await page.getByRole("option", { name: "Kindergarten" }).click();
+  await page
+    .getByRole("listbox", { name: "Grade level" })
+    .getByRole("option", { name: "Kindergarten" })
+    .click();
 }
 
 async function submitApplication(page: import("@playwright/test").Page) {
