@@ -4,6 +4,7 @@ import {
   endApplyFormTest,
   fillStudentDateOfBirth,
   openNewApplicationForm,
+  selectGradeLevel,
 } from "../helpers/apply-form";
 
 test.describe.configure({ mode: "serial" });
@@ -26,12 +27,7 @@ async function fillRequiredStudentFields(
   await page.locator("#student_last_name").fill("SubmitTest");
   await fillStudentDateOfBirth(page);
 
-  const gradeTrigger = page.locator("#student_grade");
-  await gradeTrigger.click();
-  await page
-    .getByRole("listbox", { name: "Grade level" })
-    .getByRole("option", { name: "Kindergarten" })
-    .click();
+  await selectGradeLevel(page);
 }
 
 async function submitApplication(page: import("@playwright/test").Page) {

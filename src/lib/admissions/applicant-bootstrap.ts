@@ -225,7 +225,7 @@ export async function bootstrapApplicant(
 
   const existingApplication = existingApplications?.[0];
 
-  if (existingApplication) {
+  if (existingApplication && !forceNew) {
     return {
       action: "resume",
       applicationId: existingApplication.id as string,

@@ -4,6 +4,7 @@ import {
   endApplyFormTest,
   fillStudentDateOfBirth,
   openNewApplicationForm,
+  selectGradeLevel,
 } from "../helpers/apply-form";
 import { TEST_ORG_SLUG } from "../helpers/constants";
 
@@ -63,15 +64,9 @@ test.describe("mobile apply flows", () => {
   test("grade level dropdown opens as bottom sheet on mobile", async ({ page }) => {
     await openNewApplicationForm(page);
 
-    const gradeTrigger = page.locator("#student_grade");
-    await expect(gradeTrigger).toBeVisible();
-    await gradeTrigger.click();
+    await selectGradeLevel(page);
 
-    const gradeDialog = page.getByRole("dialog", { name: "Grade level" });
-    await expect(gradeDialog).toBeVisible({ timeout: 10_000 });
-    await gradeDialog.getByRole("option", { name: "Kindergarten" }).click();
-
-    await expect(gradeTrigger).toHaveText(/Kindergarten/);
+    await expect(page.locator("#student_grade")).toHaveText(/Kindergarten/);
   });
 
   test("save and continue blocks when required grade level is empty", async ({

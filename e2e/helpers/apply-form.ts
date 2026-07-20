@@ -138,13 +138,46 @@ export async function fillStudentDateOfBirth(page: Page): Promise<void> {
   await dateDialog.getByRole("button", { name: "Today" }).click();
 }
 
+export async function selectGradeLevel(
+  page: Page,
+  optionLabel = "Kindergarten",
+): Promise<void> {
+  const gradeTrigger = page.locator("#student_grade");
+  await expect(gradeTrigger).toBeVisible();
+  await gradeTrigger.click();
+
+  const isMobile = (page.viewportSize()?.width ?? 1280) < 640;
+
+  if (isMobile) {
+    const dialog = page.getByRole("dialog", { name: "Grade level" });
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    const option = dialog.getByRole("option", { name: optionLabel });
+    await expect(option).toBeVisible();
+    await option.click();
+    await expect(dialog).toBeHidden({ timeout: 5_000 });
+    return;
+  }
+
+  const listbox = page.getByRole("listbox", { name: "Grade level" });
+  await expect(listbox).toBeVisible({ timeout: 10_000 });
+  const option = listbox.getByRole("option", { name: optionLabel });
+  await expect(option).toBeVisible();
+  await option.click();
+  await expect(listbox).toHaveCount(0, { timeout: 5_000 });
+}
+
 export async function openNewApplicationForm(page: Page): Promise<void> {
   await cleanupParentDraftApplications();
-  await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`);
+  await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`, {
+    waitUntil: process.env.CI ? "domcontentloaded" : "load",
+    timeout: process.env.CI ? 60_000 : 30_000,
+  });
 
-  await expect(page.locator("#student_first_name")).toBeVisible({
+  const firstName = page.locator("#student_first_name");
+  await expect(firstName).toBeVisible({
     timeout: 15_000,
   });
+  await expect(firstName).toHaveValue("");
   await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
     timeout: 15_000,
   });

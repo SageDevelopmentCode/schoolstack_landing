@@ -77,8 +77,14 @@ export default function ApplicationSelectInput({
 }: ApplicationSelectInputProps) {
   const [open, setOpen] = useState(false);
   const [opensUpward, setOpensUpward] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const isDesktop = useMediaQuery("(min-width: 640px)");
+  const isDesktopQuery = useMediaQuery("(min-width: 640px)");
+  const isDesktop = mounted && isDesktopQuery;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value) ?? null,
