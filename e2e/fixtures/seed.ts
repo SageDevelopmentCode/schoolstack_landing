@@ -228,6 +228,272 @@ async function ensureE2eApplicationFormContext(
   return { programId, formVersionId };
 }
 
+async function ensureE2eFeeApplicationFormContext(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  programId: string,
+): Promise<string> {
+  const { data: existingForm, error: formLookupError } = await admin
+    .from("application_form_versions")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("public_slug", "apply-with-fee")
+    .in("status", ["draft", "published"])
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (formLookupError) throw formLookupError;
+
+  const e2eFormSchema = {
+    sections: [buildApplySystemSection(), emptyApplyCustomSection()],
+    acknowledgments: [],
+  };
+  const e2eFormFeeConfig = {
+    enabled: true,
+    label: "Application fee",
+    amount_cents: 5000,
+    required_to_submit: true,
+  };
+
+  if (existingForm?.id) {
+    const { error: formUpdateError } = await admin
+      .from("application_form_versions")
+      .update({
+        schema: e2eFormSchema,
+        fee_config: e2eFormFeeConfig,
+        status: "published",
+        published_at: new Date().toISOString(),
+      })
+      .eq("id", existingForm.id);
+
+    if (formUpdateError) throw formUpdateError;
+    return String(existingForm.id);
+  }
+
+  const { data: maxVersionRow, error: versionLookupError } = await admin
+    .from("application_form_versions")
+    .select("version")
+    .eq("organization_id", organizationId)
+    .eq("program_id", programId)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (versionLookupError) throw versionLookupError;
+
+  const nextVersion = Number(maxVersionRow?.version ?? 0) + 1;
+
+  const { data: formVersion, error: formInsertError } = await admin
+    .from("application_form_versions")
+    .insert({
+      organization_id: organizationId,
+      program_id: programId,
+      version: nextVersion,
+      status: "published",
+      title: "E2E Application With Fee",
+      public_slug: "apply-with-fee",
+      schema: e2eFormSchema,
+      fee_config: e2eFormFeeConfig,
+      published_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (formInsertError) throw formInsertError;
+  return String(formVersion.id);
+}
+
+async function ensureE2ePaymentAccount(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+): Promise<void> {
+  const { error } = await admin.from("organization_payment_accounts").upsert(
+    {
+      organization_id: organizationId,
+      stripe_connect_account_id: "acct_test_e2e_connect",
+      onboarding_status: "complete",
+      charges_enabled: true,
+      payouts_enabled: true,
+    },
+    { onConflict: "organization_id" },
+  );
+
+  if (error) throw error;
+}
+
+async function seedNoFeeDraftApplication(
+  admin: ReturnType<typeof createAdminClient>,
+  input: {
+    organizationId: string;
+    userId: string;
+    email: string;
+    formContext: ApplicationFormContext;
+  },
+): Promise<string> {
+  const { data: family, error: familyError } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("primary_email", input.email)
+    .maybeSingle();
+
+  if (familyError) throw familyError;
+  if (!family?.id) {
+    throw new Error(`E2E no-fee draft seed aborted: family not found for ${input.email}`);
+  }
+
+  const { data: guardian, error: guardianError } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("user_id", input.userId)
+    .maybeSingle();
+
+  if (guardianError) throw guardianError;
+  if (!guardian?.id) {
+    throw new Error(`E2E no-fee draft seed aborted: guardian not found for ${input.email}`);
+  }
+
+  const { data: existingDraft, error: existingDraftError } = await admin
+    .from("applications")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("created_by_user_id", input.userId)
+    .eq("form_version_id", input.formContext.formVersionId)
+    .eq("status", "draft")
+    .maybeSingle();
+
+  if (existingDraftError) throw existingDraftError;
+
+  const responses = {
+    student_first_name: "NoFee",
+    student_last_name: "Draft",
+    student_date_of_birth: "2020-07-20",
+    student_grade: "k",
+  };
+
+  if (existingDraft?.id) {
+    const { error: updateError } = await admin
+      .from("applications")
+      .update({
+        fee_status: "not_required",
+        responses,
+        acknowledgments: {},
+      })
+      .eq("id", existingDraft.id);
+
+    if (updateError) throw updateError;
+    return String(existingDraft.id);
+  }
+
+  const { data: application, error: applicationError } = await admin
+    .from("applications")
+    .insert({
+      organization_id: input.organizationId,
+      program_id: input.formContext.programId,
+      form_version_id: input.formContext.formVersionId,
+      family_id: family.id,
+      primary_guardian_id: guardian.id,
+      created_by_user_id: input.userId,
+      status: "draft",
+      fee_status: "not_required",
+      responses,
+      acknowledgments: {},
+    })
+    .select("id")
+    .single();
+
+  if (applicationError) throw applicationError;
+  return String(application.id);
+}
+
+async function seedFeePendingDraftApplication(
+  admin: ReturnType<typeof createAdminClient>,
+  input: {
+    organizationId: string;
+    userId: string;
+    email: string;
+    formContext: ApplicationFormContext & { feeFormVersionId: string };
+  },
+): Promise<string> {
+  const { data: family, error: familyError } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("primary_email", input.email)
+    .maybeSingle();
+
+  if (familyError) throw familyError;
+  if (!family?.id) {
+    throw new Error(`E2E fee draft seed aborted: family not found for ${input.email}`);
+  }
+
+  const { data: guardian, error: guardianError } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("user_id", input.userId)
+    .maybeSingle();
+
+  if (guardianError) throw guardianError;
+  if (!guardian?.id) {
+    throw new Error(`E2E fee draft seed aborted: guardian not found for ${input.email}`);
+  }
+
+  const { data: existingDraft, error: existingDraftError } = await admin
+    .from("applications")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("created_by_user_id", input.userId)
+    .eq("form_version_id", input.formContext.feeFormVersionId)
+    .eq("status", "draft")
+    .maybeSingle();
+
+  if (existingDraftError) throw existingDraftError;
+
+  const responses = {
+    student_first_name: "Fee",
+    student_last_name: "Pending",
+    student_date_of_birth: "2020-07-20",
+    student_grade: "k",
+  };
+
+  if (existingDraft?.id) {
+    const { error: updateError } = await admin
+      .from("applications")
+      .update({
+        fee_status: "pending",
+        responses,
+        acknowledgments: {},
+      })
+      .eq("id", existingDraft.id);
+
+    if (updateError) throw updateError;
+    return String(existingDraft.id);
+  }
+
+  const { data: application, error: applicationError } = await admin
+    .from("applications")
+    .insert({
+      organization_id: input.organizationId,
+      program_id: input.formContext.programId,
+      form_version_id: input.formContext.feeFormVersionId,
+      family_id: family.id,
+      primary_guardian_id: guardian.id,
+      created_by_user_id: input.userId,
+      status: "draft",
+      fee_status: "pending",
+      responses,
+      acknowledgments: {},
+    })
+    .select("id")
+    .single();
+
+  if (applicationError) throw applicationError;
+  return String(application.id);
+}
+
 type SeedParentApplicationInput = {
   organizationId: string;
   userId: string;
@@ -356,9 +622,16 @@ async function seedParentApplication(
 const SEED_MANIFEST_PATH = path.join(process.cwd(), "e2e/.seed-manifest.json");
 
 export type E2eSeedManifest = {
+  organizationId: string;
+  forms: {
+    default: string;
+    withFee: string;
+  };
   applications: {
     alphaChild: string;
     betaChild: string;
+    feePendingDraft: string;
+    noFeeDraft: string;
   };
 };
 
@@ -486,6 +759,12 @@ export async function seedE2eDatabase(): Promise<void> {
   `);
 
   const formContext = await ensureE2eApplicationFormContext(admin, organizationId);
+  const feeFormVersionId = await ensureE2eFeeApplicationFormContext(
+    admin,
+    organizationId,
+    formContext.programId,
+  );
+  await ensureE2ePaymentAccount(admin, organizationId);
 
   const alphaChildApplicationId = await seedParentApplication(admin, {
     organizationId,
@@ -505,10 +784,31 @@ export async function seedE2eDatabase(): Promise<void> {
     formContext,
   });
 
+  const feePendingDraftApplicationId = await seedFeePendingDraftApplication(admin, {
+    organizationId,
+    userId: parentUserId,
+    email: E2E_PARENT_EMAIL,
+    formContext: { ...formContext, feeFormVersionId },
+  });
+
+  const noFeeDraftApplicationId = await seedNoFeeDraftApplication(admin, {
+    organizationId,
+    userId: parentUserId,
+    email: E2E_PARENT_EMAIL,
+    formContext,
+  });
+
   writeSeedManifest({
+    organizationId,
+    forms: {
+      default: formContext.formVersionId,
+      withFee: feeFormVersionId,
+    },
     applications: {
       alphaChild: alphaChildApplicationId,
       betaChild: betaChildApplicationId,
+      feePendingDraft: feePendingDraftApplicationId,
+      noFeeDraft: noFeeDraftApplicationId,
     },
   });
 }

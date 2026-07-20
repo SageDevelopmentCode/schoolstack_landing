@@ -57,6 +57,22 @@ export default defineConfig({
         storageState: AUTH_STATE_PATHS.parent,
       },
     },
+    {
+      name: "api-parent",
+      testMatch: /api\/(submit|bootstrap|checkout)\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        storageState: AUTH_STATE_PATHS.parent,
+      },
+    },
+    {
+      name: "api-admin",
+      testMatch: /api\/status\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        storageState: AUTH_STATE_PATHS.schoolAdmin,
+      },
+    },
   ],
   webServer: {
     command: "npm run dev:next",

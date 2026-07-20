@@ -103,6 +103,28 @@ export async function markApplicationFeePaid(
   if (error) throw error;
 }
 
+export type SubmitAfterFeePaidResult =
+  | { submitted: true }
+  | { submitted: false; validationError: ApplicationSubmitValidationError };
+
+export async function submitApplicationAfterFeePaid(
+  supabase: SupabaseClient,
+  applicationId: string,
+  schema: ApplicationFormSchema,
+  application: ApplicationRecord,
+): Promise<SubmitAfterFeePaidResult> {
+  const validationError = validateApplicationForSubmit(schema, application);
+  await markApplicationFeePaid(supabase, applicationId);
+
+  if (validationError) {
+    return { submitted: false, validationError };
+  }
+
+  await materializeApplicationStudent(supabase, applicationId);
+  await submitApplicationRecord(supabase, applicationId);
+  return { submitted: true };
+}
+
 export async function completeApplicationPaymentAndSubmit(
   supabase: SupabaseClient,
   applicationId: string,

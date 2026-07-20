@@ -1,8 +1,20 @@
 import Stripe from "stripe";
 
 let stripeClient: Stripe | null = null;
+let stripeClientOverride: Stripe | null = null;
+
+export function setStripeClientForTests(client: Stripe | null): void {
+  stripeClientOverride = client;
+  if (!client) {
+    stripeClient = null;
+  }
+}
 
 export function getStripeClient(): Stripe {
+  if (stripeClientOverride) {
+    return stripeClientOverride;
+  }
+
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
     throw new Error("Missing STRIPE_SECRET_KEY");
