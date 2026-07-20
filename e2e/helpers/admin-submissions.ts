@@ -6,7 +6,7 @@ export const SUBMISSIONS_PATH = `/school/${TEST_ORG_SLUG}/admin/admissions/submi
 export async function gotoSubmissions(page: Page): Promise<void> {
   await page.goto(SUBMISSIONS_PATH);
   await expect(page).toHaveURL(SUBMISSIONS_PATH);
-  await expect(page.locator("table tbody tr").first()).toBeVisible({
+  await expect(page.getByRole("cell", { name: "Alpha Child" })).toBeVisible({
     timeout: 15_000,
   });
 }

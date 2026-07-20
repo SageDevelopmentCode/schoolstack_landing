@@ -111,12 +111,14 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
 
   if (feature === "admissions" && subtab === "submissions") {
     return (
-      <ApplicationSubmissionsPage
-        organizationId={org.id}
-        branding={org.branding}
-        schoolName={org.name}
-        slug={slug}
-      />
+      <Suspense>
+        <ApplicationSubmissionsPage
+          organizationId={org.id}
+          branding={org.branding}
+          schoolName={org.name}
+          slug={slug}
+        />
+      </Suspense>
     );
   }
 

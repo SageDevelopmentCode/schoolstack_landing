@@ -72,8 +72,9 @@ test("deep link opens submission detail", async ({ page }) => {
 test("status filter narrows the submissions table", async ({ page }) => {
   await gotoSubmissions(page);
 
-  await page.getByRole("button", { name: /^All\b/ }).click();
-  await expect(page.locator("table tbody tr")).toHaveCount(2);
+  await page.getByRole("button", { name: /^All \d+/ }).click();
+  await expect(page.getByRole("cell", { name: "Alpha Child" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Beta Child" })).toBeVisible();
 
   await page.getByRole("button", { name: /^Submitted/ }).click();
 
