@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, X } from "lucide-react";
+import { useHydrated } from "@/hooks/useHydrated";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
@@ -78,7 +79,9 @@ export default function ApplicationSelectInput({
   const [open, setOpen] = useState(false);
   const [opensUpward, setOpensUpward] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const isDesktop = useMediaQuery("(min-width: 640px)");
+  const hydrated = useHydrated();
+  const isDesktopQuery = useMediaQuery("(min-width: 640px)");
+  const isDesktop = hydrated && isDesktopQuery;
 
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value) ?? null,

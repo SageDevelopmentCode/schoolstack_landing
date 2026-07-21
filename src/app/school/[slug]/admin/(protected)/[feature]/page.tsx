@@ -11,8 +11,10 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import SchedulePage from "@/components/school-admin/SchedulePage";
+import AdminDashboardPage from "@/components/school-admin/AdminDashboardPage";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { fetchAdmissionsSetupStatus } from "@/lib/school-admin/admissions-setup-status";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +69,20 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
         branding={org.branding}
         schoolName={org.name}
         slug={slug}
+      />
+    );
+  }
+
+  if (feature === "dashboard") {
+    const setupStatus = await fetchAdmissionsSetupStatus(supabase, org.id, slug);
+
+    return (
+      <AdminDashboardPage
+        organizationId={org.id}
+        slug={slug}
+        branding={org.branding}
+        schoolName={org.name}
+        initialStatus={setupStatus}
       />
     );
   }

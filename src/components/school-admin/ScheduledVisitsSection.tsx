@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import {
   listOrgScheduledVisits,
   type AdminScheduledVisit,
   type ScheduledVisitTiming,
 } from "@/lib/admissions/admin-scheduled-visits";
+import type { PostSubmitActionType } from "@/lib/admissions/application-form-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 
@@ -16,15 +17,24 @@ type ScheduledVisitsSectionProps = {
   selectedApplicationId: string | null;
   loadingSubmission: boolean;
   onVisitClick: (visit: AdminScheduledVisit) => void;
+  showHeader?: boolean;
 };
 
 type TimingFilter = "all" | ScheduledVisitTiming;
+type VisitTypeFilter = "all" | PostSubmitActionType;
 
 const TIMING_FILTERS: { value: TimingFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "upcoming", label: "Upcoming" },
   { value: "happening", label: "Happening" },
   { value: "past", label: "Past" },
+];
+
+const VISIT_TYPE_FILTERS: { value: VisitTypeFilter; label: string }[] = [
+  { value: "all", label: "All types" },
+  { value: "schedule_campus_tour", label: "Tours" },
+  { value: "schedule_family_interview", label: "Interviews" },
+  { value: "schedule_observation_day", label: "Shadow days" },
 ];
 
 const TIMING_LABELS: Record<ScheduledVisitTiming, string> = {
@@ -100,12 +110,14 @@ export default function ScheduledVisitsSection({
   selectedApplicationId,
   loadingSubmission,
   onVisitClick,
+  showHeader = true,
 }: ScheduledVisitsSectionProps) {
   const supabase = useMemo(() => createClient(), []);
   const [visits, setVisits] = useState<AdminScheduledVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timingFilter, setTimingFilter] = useState<TimingFilter>("all");
+  const [visitTypeFilter, setVisitTypeFilter] = useState<VisitTypeFilter>("all");
 
   const loadVisits = useCallback(async () => {
     setLoading(true);
@@ -138,20 +150,52 @@ export default function ScheduledVisitsSection({
     return counts;
   }, [visits]);
 
+  const visitTypeCounts = useMemo(() => {
+    const counts: Record<VisitTypeFilter, number> = {
+      all: visits.length,
+      schedule_campus_tour: 0,
+      schedule_family_interview: 0,
+      schedule_observation_day: 0,
+    };
+    for (const visit of visits) {
+      counts[visit.actionType] += 1;
+    }
+    return counts;
+  }, [visits]);
+
   const filteredVisits = useMemo(() => {
-    if (timingFilter === "all") return visits;
-    return visits.filter((visit) => visit.timing === timingFilter);
-  }, [timingFilter, visits]);
+    return visits.filter((visit) => {
+      const matchesTiming = timingFilter === "all" || visit.timing === timingFilter;
+      const matchesType =
+        visitTypeFilter === "all" || visit.actionType === visitTypeFilter;
+      return matchesTiming && matchesType;
+    });
+  }, [timingFilter, visitTypeFilter, visits]);
 
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-          Scheduled visits
-        </h2>
-        <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-          Tours, interviews, and observation days booked by families
-        </p>
+      {showHeader ? (
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+            Scheduled visits
+          </h2>
+          <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+            Tours, interviews, and observation days booked by families
+          </p>
+        </div>
+      ) : null}
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {VISIT_TYPE_FILTERS.map((filter) => (
+          <FilterChip
+            key={filter.value}
+            active={visitTypeFilter === filter.value}
+            label={filter.label}
+            count={visitTypeCounts[filter.value]}
+            onClick={() => setVisitTypeFilter(filter.value)}
+            C={C}
+          />
+        ))}
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -170,9 +214,14 @@ export default function ScheduledVisitsSection({
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
-        </div>
+        <SchoolAdminTableSkeleton
+          C={C}
+          rows={5}
+          columns={5}
+          showFilters={false}
+          compact
+          label="Loading scheduled visits"
+        />
       ) : error ? (
         <p className="text-sm" style={{ color: C.error }}>
           {error}

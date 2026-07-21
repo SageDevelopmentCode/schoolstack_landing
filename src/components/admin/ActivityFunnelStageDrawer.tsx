@@ -63,22 +63,22 @@ export default function ActivityFunnelStageDrawer({
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 320 }}
             aria-busy={loading}
-            className="relative flex h-full w-full max-w-lg flex-col border-l border-border bg-surface shadow-xl"
+            className="relative flex h-full w-full max-w-lg flex-col border-l border-admin-border bg-admin-surface shadow-xl"
             style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+            <div className="flex items-start justify-between gap-4 border-b border-admin-border px-5 py-4">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-text-faint">
+                <p className="text-xs font-semibold uppercase tracking-wide text-admin-faint">
                   Funnel stage
                 </p>
-                <h2 className="text-lg font-medium text-text mt-1">
+                <h2 className="text-lg font-medium text-admin-text mt-1">
                   {details?.stageLabel ?? "Stage details"}
                 </h2>
                 {filterSummary ? (
-                  <p className="text-xs text-text-muted mt-1">{filterSummary}</p>
+                  <p className="text-xs text-admin-muted mt-1">{filterSummary}</p>
                 ) : null}
                 {details ? (
-                  <p className="text-xs text-text-faint mt-1 tabular-nums">
+                  <p className="text-xs text-admin-faint mt-1 tabular-nums">
                     {details.rows.length} application
                     {details.rows.length === 1 ? "" : "s"}
                   </p>
@@ -87,7 +87,7 @@ export default function ActivityFunnelStageDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="shrink-0 rounded-lg border border-border p-1.5 text-text-muted hover:bg-surface-soft"
+                className="shrink-0 rounded-admin-md border border-admin-border p-1.5 text-admin-muted hover:bg-admin-neutral-bg"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
@@ -96,15 +96,15 @@ export default function ActivityFunnelStageDrawer({
 
             <div className="min-h-0 flex-1 overflow-y-auto p-5">
               {loading ? (
-                <div className="flex items-center justify-center py-16 text-sm text-text-faint">
+                <div className="flex items-center justify-center py-16 text-sm text-admin-faint">
                   Loading stage details…
                 </div>
               ) : error ? (
-                <p className="rounded-lg border border-clay/30 bg-clay/5 px-3 py-2 text-sm text-clay">
+                <p className="rounded-admin-md border border-admin-accent/30 bg-admin-accent-soft px-3 py-2 text-sm text-admin-accent">
                   {error}
                 </p>
               ) : details && details.rows.length === 0 ? (
-                <p className="text-sm text-text-faint text-center py-12">
+                <p className="text-sm text-admin-faint text-center py-12">
                   No applications found for this stage.
                 </p>
               ) : details ? (
@@ -112,21 +112,21 @@ export default function ActivityFunnelStageDrawer({
                   {details.rows.map((row) => (
                     <article
                       key={row.applicationId}
-                      className="rounded-xl border border-border bg-bg p-4 space-y-3"
+                      className="rounded-admin-md border border-admin-border bg-admin-bg p-4 space-y-3"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-text">
+                          <p className="text-sm font-medium text-admin-text">
                             {row.studentLabel ?? "Unnamed student"}
                           </p>
-                          <p className="text-xs text-text-muted mt-0.5 break-all">
+                          <p className="text-xs text-admin-muted mt-0.5 break-all">
                             {row.actorEmail ?? "No parent email"}
                           </p>
                         </div>
                         {row.previewHref ? (
                           <Link
                             href={row.previewHref}
-                            className="inline-flex shrink-0 items-center gap-1 text-xs text-clay hover:underline"
+                            className="inline-flex shrink-0 items-center gap-1 text-xs text-admin-accent hover:underline"
                           >
                             View
                             <ChevronRight className="h-3.5 w-3.5" />
@@ -136,14 +136,14 @@ export default function ActivityFunnelStageDrawer({
 
                       <dl className="grid grid-cols-1 gap-2 text-xs">
                         <div className="flex items-start justify-between gap-3">
-                          <dt className="text-text-faint">School</dt>
-                          <dd className="text-text text-right">
+                          <dt className="text-admin-faint">School</dt>
+                          <dd className="text-admin-text text-right">
                             {row.organizationName ?? "—"}
                           </dd>
                         </div>
                         <div className="flex items-start justify-between gap-3">
-                          <dt className="text-text-faint">Status</dt>
-                          <dd className="text-text text-right">
+                          <dt className="text-admin-faint">Status</dt>
+                          <dd className="text-admin-text text-right">
                             {row.applicationStatus
                               ? applicationStatusLabel(row.applicationStatus)
                               : "—"}
@@ -151,21 +151,21 @@ export default function ActivityFunnelStageDrawer({
                         </div>
                         {row.formTitle ? (
                           <div className="flex items-start justify-between gap-3">
-                            <dt className="text-text-faint">Form</dt>
-                            <dd className="text-text text-right">
+                            <dt className="text-admin-faint">Form</dt>
+                            <dd className="text-admin-text text-right">
                               {row.formTitle}
                             </dd>
                           </div>
                         ) : null}
                         <div className="flex items-start justify-between gap-3">
-                          <dt className="text-text-faint">Reached at</dt>
-                          <dd className="text-text text-right">
+                          <dt className="text-admin-faint">Reached at</dt>
+                          <dd className="text-admin-text text-right">
                             {formatDateTime(row.reachedAt)}
                           </dd>
                         </div>
                         <div className="flex items-start justify-between gap-3">
-                          <dt className="text-text-faint">Application ID</dt>
-                          <dd className="text-text font-mono text-[11px] text-right break-all">
+                          <dt className="text-admin-faint">Application ID</dt>
+                          <dd className="text-admin-text font-mono text-[11px] text-right break-all">
                             {row.applicationId}
                           </dd>
                         </div>

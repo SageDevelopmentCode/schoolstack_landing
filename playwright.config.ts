@@ -57,6 +57,22 @@ export default defineConfig({
         storageState: AUTH_STATE_PATHS.parent,
       },
     },
+    {
+      name: "api-parent",
+      testMatch: /api\/(submit|bootstrap|checkout)\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        storageState: AUTH_STATE_PATHS.parent,
+      },
+    },
+    {
+      name: "api-admin",
+      testMatch: /api\/(status|mark-enrolled)\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        storageState: AUTH_STATE_PATHS.schoolAdmin,
+      },
+    },
   ],
   webServer: {
     command: "npm run dev:next",
@@ -67,6 +83,7 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
         process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
       NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? baseURL,
       DISABLE_OUTBOUND_EMAIL: "1",
       DISCORD_E2E_ALERTS_WEBHOOK_URL:

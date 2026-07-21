@@ -6,7 +6,7 @@ export const SUBMISSIONS_PATH = `/school/${TEST_ORG_SLUG}/admin/admissions/submi
 export async function gotoSubmissions(page: Page): Promise<void> {
   await page.goto(SUBMISSIONS_PATH);
   await expect(page).toHaveURL(SUBMISSIONS_PATH);
-  await expect(page.locator("table tbody tr").first()).toBeVisible({
+  await expect(page.getByRole("cell", { name: "Alpha Child" })).toBeVisible({
     timeout: 15_000,
   });
 }
@@ -23,8 +23,12 @@ export async function openSubmissionByStudent(
 }
 
 export async function closeSubmissionDetail(page: Page): Promise<void> {
-  await page.getByLabel("Close").first().click();
-  await expect(
-    page.getByRole("tablist", { name: "Application sections" }),
-  ).toHaveCount(0);
+  const tablist = page.getByRole("tablist", { name: "Application sections" });
+  await tablist
+    .locator(
+      'xpath=ancestor::motion.div[contains(@class,"flex-col")][contains(@class,"overflow-hidden")] | ancestor::div[contains(@class,"flex-col")][contains(@class,"overflow-hidden")]',
+    )
+    .getByLabel("Close")
+    .click();
+  await expect(tablist).toBeHidden({ timeout: 10_000 });
 }

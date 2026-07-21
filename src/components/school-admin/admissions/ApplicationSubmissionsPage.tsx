@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import ApplicationSubmissionDetailPanel from "./ApplicationSubmissionDetailPanel";
 import {
   applicationStatusBadgeStyle,
@@ -282,9 +283,13 @@ export default function ApplicationSubmissionsPage({
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
-          </div>
+          <SchoolAdminTableSkeleton
+            C={C}
+            rows={8}
+            columns={7}
+            showFilters={false}
+            label="Loading submissions"
+          />
         ) : error ? (
           <p className="px-4 py-8 text-sm sm:px-5" style={{ color: C.error }}>
             {error}

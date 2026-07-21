@@ -27,7 +27,7 @@ npm run test:e2e:install
 
 ```bash
 npm run test:e2e:setup   # optional: reset local DB
-npm run test:e2e         # 27 tests (setup + smoke + admin + parent)
+npm run test:e2e         # 41 tests (setup + smoke + admin + parent + API)
 npm run test:e2e:ui      # interactive mode
 ```
 
@@ -40,6 +40,8 @@ npm run test:e2e:ui      # interactive mode
 | `school-admin` | Admissions submissions list, detail panel, answers, status change, PDF | `e2e-admin@schoolstack.test` |
 | `non-admin` | Access denied for user without membership | `e2e-nonadmin@schoolstack.test` |
 | `parent` | Apply dashboard, submit, mobile flows | `e2e-parent@schoolstack.test` |
+| `api-parent` | Admissions submit, bootstrap, checkout API routes | `e2e-parent@schoolstack.test` |
+| `api-admin` | Admissions status API routes | `e2e-admin@schoolstack.test` |
 
 Seeded password (local only): `E2eTestPassword123!` — override via `.env.e2e.local`.
 

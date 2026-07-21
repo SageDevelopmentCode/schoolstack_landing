@@ -3,6 +3,12 @@ import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
 } from "@/lib/activity-log";
+import {
+  allAgreementSectionsSigned,
+  buildAgreementResponsesPatch,
+  mergeAgreementSectionSignature,
+  parseAgreementSectionSignatures,
+} from "./enrollment-agreement-progress";
 import { getEnrollmentChecklistWithItems } from "./enrollment-checklist-items";
 import type {
   ChecklistItemInstanceStatus,
@@ -10,6 +16,7 @@ import type {
   EnrollmentChecklistItem,
   EnrollmentChecklistItemInstance,
   EnrollmentChecklistMetadata,
+  EnrollmentContractSection,
 } from "./enrollment-checklist-schema";
 import { getItemVariantConfig } from "./enrollment-checklist-schema";
 import { getPublishedEnrollmentChecklistForProgram } from "./enrollment-checklist-templates";
@@ -20,6 +27,8 @@ import {
   type VariantResolutionMap,
   validateResolutionMap,
 } from "./enrollment-checklist-variants";
+
+const ENROLLED_STUDENT_STATUS = "active" as const;
 
 export class EnrollmentMaterializationError extends Error {
   code: string;
@@ -256,6 +265,172 @@ export async function startEnrollmentFromApplication(
   });
 
   return { enrollmentId, checklistId, applicationId };
+}
+
+export type MarkedEnrollment = {
+  enrollmentId: string;
+  applicationId: string;
+};
+
+export async function markApplicationAsEnrolled(
+  supabase: SupabaseClient,
+  input: {
+    applicationId: string;
+    actorUserId: string;
+    note?: string;
+  },
+): Promise<MarkedEnrollment> {
+  const { applicationId, actorUserId, note } = input;
+
+  const { data: application, error: appError } = await supabase
+    .from("applications")
+    .select("id, organization_id, program_id, student_id, status, family_id")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (appError) throw appError;
+  if (!application) {
+    throw new EnrollmentMaterializationError(
+      "Application not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  if (application.status === "enrolled") {
+    throw new EnrollmentMaterializationError(
+      "Application is already enrolled.",
+      "already_enrolled",
+      400,
+    );
+  }
+
+  if (application.status !== "accepted") {
+    throw new EnrollmentMaterializationError(
+      "Only accepted applications can be marked as enrolled.",
+      "invalid_status",
+      400,
+    );
+  }
+
+  if (!application.student_id || !application.program_id) {
+    throw new EnrollmentMaterializationError(
+      "Application is missing student or program information.",
+      "incomplete_application",
+      400,
+    );
+  }
+
+  const existingChecklist = await getChecklistForApplication(supabase, applicationId);
+  if (existingChecklist) {
+    throw new EnrollmentMaterializationError(
+      "Enrollment has already been started for this application.",
+      "already_started",
+      400,
+    );
+  }
+
+  const studentId = String(application.student_id);
+  const programId = String(application.program_id);
+
+  const { data: existingEnrollment, error: existingEnrollmentError } = await supabase
+    .from("enrollments")
+    .select("id, status")
+    .eq("student_id", studentId)
+    .eq("program_id", programId)
+    .maybeSingle();
+
+  if (existingEnrollmentError) throw existingEnrollmentError;
+
+  let enrollmentId: string;
+
+  if (existingEnrollment) {
+    if (existingEnrollment.status === "enrolled") {
+      if (application.status !== "accepted") {
+        throw new EnrollmentMaterializationError(
+          "This student is already enrolled in this program.",
+          "already_enrolled",
+          400,
+        );
+      }
+
+      enrollmentId = String(existingEnrollment.id);
+    } else {
+      enrollmentId = String(existingEnrollment.id);
+      const { error: enrollmentUpdateError } = await supabase
+        .from("enrollments")
+        .update({ status: "enrolled" })
+        .eq("id", enrollmentId);
+
+      if (enrollmentUpdateError) throw enrollmentUpdateError;
+    }
+  } else {
+    const { data: enrollment, error: enrollmentError } = await supabase
+      .from("enrollments")
+      .insert({
+        organization_id: application.organization_id,
+        student_id: studentId,
+        program_id: programId,
+        status: "enrolled",
+      })
+      .select("id")
+      .single();
+
+    if (enrollmentError) {
+      if (enrollmentError.code === "23505") {
+        throw new EnrollmentMaterializationError(
+          "This student already has an enrollment for this program.",
+          "duplicate_enrollment",
+          400,
+        );
+      }
+      throw enrollmentError;
+    }
+
+    enrollmentId = String(enrollment.id);
+  }
+
+  const { error: studentUpdateError } = await supabase
+    .from("students")
+    .update({ status: ENROLLED_STUDENT_STATUS })
+    .eq("id", studentId);
+
+  if (studentUpdateError) throw studentUpdateError;
+
+  const { data: updatedApplication, error: statusError } = await supabase
+    .from("applications")
+    .update({ status: "enrolled" })
+    .eq("id", applicationId)
+    .eq("status", "accepted")
+    .select("id")
+    .maybeSingle();
+
+  if (statusError) throw statusError;
+  if (!updatedApplication) {
+    throw new EnrollmentMaterializationError(
+      "Application status changed before enrollment could be completed.",
+      "invalid_status",
+      400,
+    );
+  }
+
+  void logActivityEvent(supabase, {
+    organizationId: String(application.organization_id),
+    actorType: "school_admin",
+    actorUserId,
+    surface: "school_admin",
+    action: ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED,
+    entityType: "enrollment",
+    entityId: enrollmentId,
+    summary: "Student marked as enrolled (checklist bypassed)",
+    metadata: {
+      applicationId,
+      bypassedChecklist: true,
+      ...(note ? { note } : {}),
+    },
+  });
+
+  return { enrollmentId, applicationId };
 }
 
 export type LoadedEnrollmentChecklist = {
@@ -595,7 +770,7 @@ async function finalizeEnrollmentIfComplete(
     if (enrollment.student_id) {
       await supabase
         .from("students")
-        .update({ status: "enrolled" })
+        .update({ status: ENROLLED_STUDENT_STATUS })
         .eq("id", enrollment.student_id);
     }
 
@@ -681,6 +856,230 @@ export async function completeChecklistPaymentFromWebhook(
     actorUserId: input.actorUserId ?? undefined,
     organizationId,
   });
+}
+
+function parseInlineAgreementSections(content: unknown): EnrollmentContractSection[] {
+  if (!content || typeof content !== "object" || Array.isArray(content)) {
+    return [];
+  }
+  const record = content as Record<string, unknown>;
+  if (!Array.isArray(record.sections)) return [];
+
+  return record.sections
+    .filter(
+      (section): section is Record<string, unknown> =>
+        typeof section === "object" && section !== null && !Array.isArray(section),
+    )
+    .map((section) => ({
+      id: String(section.id ?? ""),
+      title: String(section.title ?? ""),
+      body: String(section.body ?? ""),
+    }))
+    .filter((section) => section.id.length > 0);
+}
+
+export async function saveAgreementSectionSignature(
+  supabase: SupabaseClient,
+  input: {
+    instanceId: string;
+    sectionId: string;
+    signerName: string;
+    actorUserId?: string;
+    organizationId: string;
+  },
+): Promise<{ status: ChecklistItemInstanceStatus; responses: Record<string, unknown> }> {
+  const { instanceId, sectionId, signerName, actorUserId, organizationId } = input;
+  const trimmedSignerName = signerName.trim();
+  if (!trimmedSignerName) {
+    throw new EnrollmentMaterializationError(
+      "Signature is required.",
+      "signature_required",
+      400,
+    );
+  }
+
+  const { data: instance, error: instanceError } = await supabase
+    .from("enrollment_checklist_items")
+    .select(
+      `
+      id,
+      checklist_id,
+      template_item_id,
+      status,
+      responses,
+      organization_id,
+      enrollment_checklists!inner (
+        application_id,
+        template_id,
+        metadata
+      )
+    `,
+    )
+    .eq("id", instanceId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (instanceError) throw instanceError;
+  if (!instance) {
+    throw new EnrollmentMaterializationError(
+      "Checklist item not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  if (instance.status === "waived") {
+    throw new EnrollmentMaterializationError(
+      "This checklist item does not apply.",
+      "waived",
+      400,
+    );
+  }
+
+  if (instance.status === "completed") {
+    throw new EnrollmentMaterializationError(
+      "This agreement has already been completed.",
+      "already_completed",
+      400,
+    );
+  }
+
+  const { data: templateItem, error: templateItemError } = await supabase
+    .from("enrollment_checklist_template_items")
+    .select(
+      `
+      type,
+      document_templates (
+        kind,
+        content
+      )
+    `,
+    )
+    .eq("id", instance.template_item_id)
+    .maybeSingle();
+
+  if (templateItemError) throw templateItemError;
+  if (!templateItem || templateItem.type !== "document_sign") {
+    throw new EnrollmentMaterializationError(
+      "This checklist item does not support agreement sections.",
+      "invalid_item_type",
+      400,
+    );
+  }
+
+  const documentTemplate = templateItem.document_templates as
+    | { kind?: string; content?: unknown }
+    | { kind?: string; content?: unknown }[]
+    | null;
+  const documentRow = Array.isArray(documentTemplate)
+    ? documentTemplate[0]
+    : documentTemplate;
+
+  if (!documentRow || documentRow.kind !== "inline_sections") {
+    throw new EnrollmentMaterializationError(
+      "This checklist item does not support agreement sections.",
+      "invalid_item_type",
+      400,
+    );
+  }
+
+  const sections = parseInlineAgreementSections(documentRow.content);
+  if (sections.length === 0) {
+    throw new EnrollmentMaterializationError(
+      "No agreement sections are configured.",
+      "no_sections",
+      400,
+    );
+  }
+
+  if (!sections.some((section) => section.id === sectionId)) {
+    throw new EnrollmentMaterializationError(
+      "Agreement section not found.",
+      "invalid_section",
+      400,
+    );
+  }
+
+  const checklist = instance.enrollment_checklists as
+    | {
+        application_id?: string;
+        template_id?: string;
+        metadata?: unknown;
+      }
+    | {
+        application_id?: string;
+        template_id?: string;
+        metadata?: unknown;
+      }[]
+    | null;
+  const checklistRow = Array.isArray(checklist) ? checklist[0] : checklist;
+  const checklistId = String(instance.checklist_id);
+
+  const existingResponses =
+    instance.responses &&
+    typeof instance.responses === "object" &&
+    !Array.isArray(instance.responses)
+      ? (instance.responses as Record<string, unknown>)
+      : {};
+
+  const existingSignatures = parseAgreementSectionSignatures(existingResponses);
+  const sectionSignatures = mergeAgreementSectionSignature(
+    existingSignatures,
+    sectionId,
+    trimmedSignerName,
+  );
+  const isComplete = allAgreementSectionsSigned(sections, sectionSignatures);
+
+  const patch: Record<string, unknown> = {
+    status: isComplete ? "completed" : "in_progress",
+    responses: buildAgreementResponsesPatch(
+      existingResponses,
+      sectionSignatures,
+      isComplete ? trimmedSignerName : undefined,
+    ),
+  };
+
+  if (isComplete) {
+    patch.completed_at = new Date().toISOString();
+    if (actorUserId) {
+      patch.completed_by_user_id = actorUserId;
+    }
+  } else {
+    patch.completed_at = null;
+    patch.completed_by_user_id = null;
+  }
+
+  const { error: updateError } = await supabase
+    .from("enrollment_checklist_items")
+    .update(patch)
+    .eq("id", instanceId);
+
+  if (updateError) throw updateError;
+
+  await recomputeChecklistStatus(supabase, checklistId);
+
+  if (isComplete) {
+    void logActivityEvent(supabase, {
+      organizationId,
+      actorType: "parent",
+      actorUserId,
+      surface: "parent_portal",
+      action: ACTIVITY_ACTIONS.ENROLLMENT_CHECKLIST_ITEM_COMPLETED,
+      entityType: "enrollment_checklist_item",
+      entityId: instanceId,
+      summary: "Completed an enrollment checklist item",
+      metadata: {
+        checklistId,
+        applicationId: checklistRow?.application_id ?? null,
+        templateItemId: instance.template_item_id,
+      },
+    });
+  }
+
+  return {
+    status: isComplete ? "completed" : "in_progress",
+    responses: patch.responses as Record<string, unknown>,
+  };
 }
 
 export async function completeChecklistItem(

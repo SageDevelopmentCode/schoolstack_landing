@@ -61,6 +61,35 @@
   --font-secondary:   var(--font-poppins), "Poppins", sans-serif;
   --font-mono:        var(--font-fragment-mono), "Fragment Mono", monospace;
   --font-handwritten: var(--font-delicious), "Delicious Handrawn", cursive;
+
+  /* Admin app palette (scoped via .admin-app) */
+  --color-admin-bg:           #F8FAFC;
+  --color-admin-surface:      #FFFFFF;
+  --color-admin-border:       #E2E8F0;
+  --color-admin-border-strong:#CBD5E1;
+  --color-admin-text:         #0F172A;
+  --color-admin-muted:        #64748B;
+  --color-admin-faint:        #94A3B8;
+  --color-admin-accent:       #2E4A3C;
+  --color-admin-accent-hover: #233B2F;
+  --color-admin-accent-soft:  #E8F0EC;
+  --color-admin-success:      #166534;
+  --color-admin-success-bg:   #DCFCE7;
+  --color-admin-success-border:#BBF7D0;
+  --color-admin-warning:      #B45309;
+  --color-admin-warning-bg:   #FEF3C7;
+  --color-admin-warning-border:#FDE68A;
+  --color-admin-neutral:      #475569;
+  --color-admin-neutral-bg:   #F1F5F9;
+  --color-admin-neutral-border:#E2E8F0;
+  --color-admin-error:        #B91C1C;
+  --color-admin-error-bg:     #FEE2E2;
+  --color-admin-error-border: #FECACA;
+
+  /* Admin radius (sharper corners, scoped to admin UI) */
+  --radius-admin-sm: 4px;
+  --radius-admin-md: 6px;
+  --radius-admin-lg: 8px;
 }
 
 @theme inline {
@@ -202,4 +231,21 @@ html[data-skip-entrance] .hero-frame-enter {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Admin app — reset marketing typography inside shell */
+.admin-app {
+  background-color: var(--color-admin-bg);
+  color: var(--color-admin-text);
+  font-family: var(--font-body);
+}
+
+.admin-app h1,
+.admin-app h2,
+.admin-app h3,
+.admin-app p,
+.admin-app button {
+  font-family: var(--font-body);
+  letter-spacing: normal;
+  line-height: normal;
 }

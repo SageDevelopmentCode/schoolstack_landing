@@ -1,250 +1,25 @@
+/**
+ * Stripe webhook endpoint.
+ *
+ * Production must subscribe to:
+ * - checkout.session.completed
+ * - account.updated
+ *
+ * Configure STRIPE_WEBHOOK_SECRET in the environment for signature verification.
+ */
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import {
-  ACTIVITY_ACTIONS,
-  logActivityEvent,
-} from "@/lib/activity-log";
-import { sendApplicationSubmittedNotifications } from "@/lib/admissions/application-notifications";
-import { sendPaymentCompletedNotifications } from "@/lib/admissions/payment-notifications";
-import {
-  materializeApplicationStudent,
-} from "@/lib/admissions/application-entity-materialization";
-import {
-  getApplicationForSubmit,
-  loadPublishedFormForApplication,
-  markApplicationFeePaid,
-  submitApplicationRecord,
-  validateApplicationForSubmit,
-} from "@/lib/admissions/application-submit";
-import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
 import { apiError } from "@/lib/api/route-errors";
-import {
-  attachCheckoutSessionToPayment,
-  getApplicationPaymentByCheckoutSession,
-  getPaymentById,
-  markPaymentSucceeded,
-} from "@/lib/stripe/application-payments";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/stripe/client";
 import {
-  backfillStripeCustomerId,
-  resolveCheckoutSessionCustomerId,
-  resolveCheckoutSessionSupabaseUserId,
-} from "@/lib/stripe/customer";
-import { syncPaymentAccountFromStripe } from "@/lib/stripe/organization-payment-account";
+  handleAccountUpdated,
+  handleCheckoutSessionCompleted,
+} from "@/lib/stripe/webhook-handlers";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/stripe/webhook";
 
 export const runtime = "nodejs";
-
-async function handleCheckoutSessionCompleted(
-  session: Stripe.Checkout.Session,
-): Promise<void> {
-  const admin = createAdminClient();
-  const checkoutSessionId = session.id;
-  const paymentIntentId =
-    typeof session.payment_intent === "string"
-      ? session.payment_intent
-      : session.payment_intent?.id;
-
-  const metadata = session.metadata ?? {};
-
-  const stripeCustomerId = resolveCheckoutSessionCustomerId(session);
-  const supabaseUserId = resolveCheckoutSessionSupabaseUserId(session);
-  if (stripeCustomerId && supabaseUserId) {
-    await backfillStripeCustomerId(admin, supabaseUserId, stripeCustomerId);
-  }
-
-  if (
-    metadata.payment_type === "enrollment_checklist" &&
-    metadata.checklist_item_id &&
-    metadata.organization_id
-  ) {
-    const paymentId =
-      typeof metadata.payment_id === "string" ? metadata.payment_id : null;
-    let payment = paymentId ? await getPaymentById(admin, paymentId) : null;
-
-    if (!payment) {
-      payment = await getApplicationPaymentByCheckoutSession(
-        admin,
-        checkoutSessionId,
-      );
-    }
-
-    if (payment && payment.status !== "succeeded") {
-      payment = await markPaymentSucceeded(admin, payment.id, {
-        stripePaymentIntentId: paymentIntentId,
-        stripeCheckoutSessionId: checkoutSessionId,
-      });
-      if (payment) {
-        void sendPaymentCompletedNotifications(admin, payment.id);
-      }
-    }
-
-    await completeChecklistPaymentFromWebhook(admin, {
-      instanceId: metadata.checklist_item_id,
-      organizationId: metadata.organization_id,
-      checkoutSessionId,
-      paymentIntentId,
-    });
-
-    void logActivityEvent(admin, {
-      organizationId: metadata.organization_id,
-      actorType: "system",
-      surface: "system",
-      action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
-      entityType: "enrollment_checklist_item",
-      entityId: metadata.checklist_item_id,
-      summary: "Enrollment checklist payment completed",
-      metadata: {
-        checkoutSessionId,
-        applicationId: metadata.application_id ?? null,
-        paymentId: payment?.id ?? paymentId ?? null,
-      },
-    });
-    return;
-  }
-
-  let payment = await getApplicationPaymentByCheckoutSession(
-    admin,
-    checkoutSessionId,
-  );
-
-  const paymentId = metadata.payment_id;
-
-  if (!payment && paymentId) {
-    await attachCheckoutSessionToPayment(admin, paymentId, checkoutSessionId);
-    payment = await getPaymentById(admin, paymentId);
-  }
-
-  if (payment && payment.status !== "succeeded") {
-    payment = await markPaymentSucceeded(admin, payment.id, {
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutSessionId: checkoutSessionId,
-    });
-    if (payment) {
-      void sendPaymentCompletedNotifications(admin, payment.id);
-    }
-  }
-
-  if (!payment) {
-    console.warn("checkout.session.completed: payment not found", checkoutSessionId);
-    return;
-  }
-
-  const application = await getApplicationForSubmit(admin, payment.applicationId);
-  if (!application) {
-    console.warn("checkout.session.completed: application not found", payment.applicationId);
-    return;
-  }
-
-  if (application.status !== "draft") {
-    return;
-  }
-
-  const { schema } = await loadPublishedFormForApplication(admin, application);
-  const validationError = validateApplicationForSubmit(schema, application);
-
-  await markApplicationFeePaid(admin, payment.applicationId);
-
-  if (validationError) {
-    console.warn(
-      "checkout.session.completed: application paid but not ready to submit",
-      payment.applicationId,
-      validationError.code,
-    );
-
-    void logActivityEvent(admin, {
-      organizationId: application.organizationId,
-      actorType: "system",
-      surface: "system",
-      action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
-      entityType: "application",
-      entityId: payment.applicationId,
-      summary: "Application fee payment completed",
-      metadata: {
-        paymentId: payment.id,
-        checkoutSessionId,
-        amountCents: payment.amountCents,
-        submitBlocked: validationError.code,
-      },
-    });
-    return;
-  }
-
-  await materializeApplicationStudent(admin, payment.applicationId);
-  await submitApplicationRecord(admin, payment.applicationId);
-  void sendApplicationSubmittedNotifications(admin, payment.applicationId);
-
-  const { data: formRow } = await admin
-    .from("application_form_versions")
-    .select("title")
-    .eq("id", application.formVersionId)
-    .maybeSingle();
-
-  void logActivityEvent(admin, {
-    organizationId: application.organizationId,
-    actorType: "system",
-    surface: "system",
-    action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
-    entityType: "application",
-    entityId: payment.applicationId,
-    summary: `Application fee payment completed`,
-    metadata: {
-      paymentId: payment.id,
-      checkoutSessionId,
-      amountCents: payment.amountCents,
-    },
-  });
-
-  void logActivityEvent(admin, {
-    organizationId: application.organizationId,
-    actorType: "system",
-    surface: "system",
-    action: ACTIVITY_ACTIONS.APPLICATION_SUBMITTED,
-    entityType: "application",
-    entityId: payment.applicationId,
-    summary: `Application submitted${formRow?.title ? ` for “${String(formRow.title)}”` : ""} (after payment)`,
-    metadata: {
-      formVersionId: application.formVersionId,
-      programId: application.programId,
-      formTitle: formRow?.title ? String(formRow.title) : null,
-      paymentId: payment.id,
-      checkoutSessionId,
-    },
-  });
-}
-
-async function handleAccountUpdated(account: Stripe.Account): Promise<void> {
-  const admin = createAdminClient();
-
-  const { data: existing } = await admin
-    .from("organization_payment_accounts")
-    .select("organization_id, charges_enabled")
-    .eq("stripe_connect_account_id", account.id)
-    .maybeSingle();
-
-  const wasChargesEnabled = Boolean(existing?.charges_enabled);
-  const chargesNowEnabled = Boolean(account.charges_enabled);
-
-  await syncPaymentAccountFromStripe(admin, account.id, account);
-
-  if (!wasChargesEnabled && chargesNowEnabled && existing?.organization_id) {
-    void logActivityEvent(admin, {
-      organizationId: String(existing.organization_id),
-      actorType: "system",
-      surface: "system",
-      action: ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED,
-      entityType: "organization_payment_account",
-      summary: "Stripe Connect account is ready to accept payments",
-      metadata: {
-        stripeConnectAccountId: account.id,
-        chargesEnabled: chargesNowEnabled,
-        payoutsEnabled: Boolean(account.payouts_enabled),
-      },
-    });
-  }
-}
 
 export async function POST(request: Request) {
   const stripe = getStripeClient();
@@ -278,14 +53,16 @@ export async function POST(request: Request) {
   }
 
   try {
+    const admin = createAdminClient();
     switch (event.type) {
       case "checkout.session.completed":
         await handleCheckoutSessionCompleted(
+          admin,
           event.data.object as Stripe.Checkout.Session,
         );
         break;
       case "account.updated":
-        await handleAccountUpdated(event.data.object as Stripe.Account);
+        await handleAccountUpdated(admin, event.data.object as Stripe.Account);
         break;
       default:
         break;

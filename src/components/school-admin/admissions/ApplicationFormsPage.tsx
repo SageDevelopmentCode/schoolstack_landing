@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
   createApplyForm,
@@ -64,6 +66,10 @@ import ApplicationFormPreview from "./ApplicationFormPreview";
 import EnrollmentChecklistBuilder from "./EnrollmentChecklistBuilder";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import {
+  SchoolAdminCanvasSkeleton,
+  SchoolAdminSplitPaneSkeleton,
+} from "@/components/school-admin/skeletons";
+import {
   DEFAULT_BUILDER_FOCUS,
   type BuilderFocus,
 } from "./builder-focus";
@@ -90,6 +96,41 @@ type ApplicationFormsPageProps = {
 type EditableFormState = EditableFormSnapshot;
 
 type ChecklistEditableState = ChecklistEditableSnapshot;
+
+function isPaymentsSetupError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("connect stripe") ||
+    normalized.includes("payments before publishing")
+  );
+}
+
+function PaymentsSetupErrorMessage({
+  message,
+  orgSlug,
+  C,
+}: {
+  message: string;
+  orgSlug: string;
+  C: AdminThemeTokens;
+}) {
+  if (!isPaymentsSetupError(message)) {
+    return <>{message}</>;
+  }
+
+  return (
+    <>
+      {message}{" "}
+      <Link
+        href={schoolAdminPath(orgSlug, "admissions", "payments")}
+        className="font-medium underline underline-offset-2"
+        style={{ color: C.accent }}
+      >
+        Set up payments
+      </Link>
+    </>
+  );
+}
 
 function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentChecklistItem[] {
   return items.map((item) => ({
@@ -260,6 +301,44 @@ function EnrollmentChecklistProgramGate({
   );
 }
 
+function resolveFlowSelection(
+  formRows: ApplicationFormVersion[],
+  checklistRows: EnrollmentChecklistTemplate[],
+  flowParam: string | null,
+  previous: FlowListSelection,
+): FlowListSelection {
+  const applyForm = formRows.find(
+    (form) => isApplyFormSlug(form.public_slug) && form.status !== "archived",
+  );
+  const checklist = checklistRows.find((row) => row.status !== "archived");
+
+  if (flowParam === "checklist" && checklist) {
+    return { kind: "checklist", id: checklist.id };
+  }
+  if (flowParam === "apply" && applyForm) {
+    return { kind: "apply", id: applyForm.id };
+  }
+
+  if (
+    previous?.kind === "apply" &&
+    formRows.some((form) => form.id === previous.id)
+  ) {
+    return previous;
+  }
+  if (
+    previous?.kind === "checklist" &&
+    checklistRows.some((row) => row.id === previous.id)
+  ) {
+    return previous;
+  }
+
+  if (applyForm) return { kind: "apply", id: applyForm.id };
+  if (checklist) return { kind: "checklist", id: checklist.id };
+  if (formRows[0]) return { kind: "apply", id: formRows[0].id };
+  if (checklistRows[0]) return { kind: "checklist", id: checklistRows[0].id };
+  return null;
+}
+
 export default function ApplicationFormsPage({
   organizationId,
   branding,
@@ -268,6 +347,8 @@ export default function ApplicationFormsPage({
 }: ApplicationFormsPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+  const flowParam = searchParams.get("flow");
 
   const [forms, setForms] = useState<ApplicationFormVersion[]>([]);
   const [checklists, setChecklists] = useState<EnrollmentChecklistTemplate[]>([]);
@@ -375,29 +456,15 @@ export default function ApplicationFormsPage({
       setChecklists(checklistRows);
       setPrograms(programRows);
       setStripePaymentsReady(paymentsReady);
-      setSelection((prev) => {
-        if (
-          prev?.kind === "apply" &&
-          formRows.some((form) => form.id === prev.id)
-        ) {
-          return prev;
-        }
-        if (
-          prev?.kind === "checklist" &&
-          checklistRows.some((checklist) => checklist.id === prev.id)
-        ) {
-          return prev;
-        }
-        if (formRows[0]) return { kind: "apply", id: formRows[0].id };
-        if (checklistRows[0]) return { kind: "checklist", id: checklistRows[0].id };
-        return null;
-      });
+      setSelection((prev) =>
+        resolveFlowSelection(formRows, checklistRows, flowParam, prev),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load forms.");
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [flowParam, organizationId, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -1050,15 +1117,7 @@ export default function ApplicationFormsPage({
   };
 
   if (loading) {
-    return (
-      <div
-        className="flex h-full items-center justify-center gap-2 text-sm"
-        style={{ color: C.textSecondary }}
-      >
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading application forms…
-      </div>
-    );
+    return <SchoolAdminSplitPaneSkeleton C={C} label="Loading enrollment flows" />;
   }
 
   const hasFlows = forms.length > 0 || checklists.length > 0;
@@ -1204,7 +1263,7 @@ export default function ApplicationFormsPage({
                 border: `1px solid ${C.errorBorder}`,
               }}
             >
-              {error}
+              <PaymentsSetupErrorMessage message={error} orgSlug={slug} C={C} />
             </div>
           ) : null}
 
@@ -1233,13 +1292,7 @@ export default function ApplicationFormsPage({
           )}
         </div>
       ) : selectedChecklist ? (
-        <div
-          className="flex flex-1 items-center justify-center gap-2 text-sm"
-          style={{ color: C.textSecondary }}
-        >
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading enrollment checklist…
-        </div>
+        <SchoolAdminCanvasSkeleton C={C} label="Loading enrollment checklist" />
       ) : selectedForm && editable ? (
         <div
           className="flex flex-1 flex-col overflow-hidden"
@@ -1293,7 +1346,7 @@ export default function ApplicationFormsPage({
                 border: `1px solid ${C.errorBorder}`,
               }}
             >
-              {error}
+              <PaymentsSetupErrorMessage message={error} orgSlug={slug} C={C} />
             </div>
           )}
 
@@ -1332,13 +1385,7 @@ export default function ApplicationFormsPage({
           </div>
         </div>
       ) : (
-        <div
-          className="flex flex-1 items-center justify-center text-sm"
-          style={{ color: C.textSecondary }}
-        >
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading…
-        </div>
+        <SchoolAdminCanvasSkeleton C={C} label="Loading form editor" />
       )}
 
       <ApplicationFormPreview

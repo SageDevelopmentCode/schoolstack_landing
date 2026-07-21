@@ -14,9 +14,19 @@ export function getSeedManifest(): E2eSeedManifest {
   const raw = fs.readFileSync(SEED_MANIFEST_PATH, "utf8");
   const manifest = JSON.parse(raw) as E2eSeedManifest;
 
-  if (!manifest.applications?.alphaChild || !manifest.applications?.betaChild) {
+  if (
+    !manifest.organizationId ||
+    !manifest.forms?.default ||
+    !manifest.forms?.withFee ||
+    !manifest.applications?.alphaChild ||
+    !manifest.applications?.betaChild ||
+    !manifest.applications?.enrollTarget ||
+    !manifest.applications?.feePendingDraft ||
+    !manifest.applications?.noFeeDraft ||
+    !manifest.applications?.noFeeSubmitDraft
+  ) {
     throw new Error(
-      `E2E seed manifest at ${SEED_MANIFEST_PATH} is missing application IDs.`,
+      `E2E seed manifest at ${SEED_MANIFEST_PATH} is missing required IDs.`,
     );
   }
 

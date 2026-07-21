@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { CreditCard, Loader2 } from "lucide-react";
+import { CreditCard } from "lucide-react";
+import {
+  SchoolAdminSummaryCardsSkeleton,
+  SchoolAdminTableSkeleton,
+} from "@/components/school-admin/skeletons";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   listApplicationPayments,
@@ -375,9 +379,13 @@ export default function PaymentsHistoryPanel({
   ) : null;
 
   const tableContent = loading ? (
-    <div className="flex items-center justify-center py-16">
-      <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
-    </div>
+    <SchoolAdminTableSkeleton
+      C={C}
+      rows={8}
+      columns={columnHeadings.length}
+      showFilters={!applicationId}
+      label="Loading payments"
+    />
   ) : error ? (
     <p className="px-4 py-8 text-sm sm:px-5" style={{ color: C.error }}>
       {error}
@@ -538,12 +546,16 @@ export default function PaymentsHistoryPanel({
           />
         </div>
       ) : null}
-      <PaymentLedgerSummaryCards
-        summary={summary}
-        branding={branding}
-        mode={mode}
-      />
-      {filters}
+      {loading ? (
+        <SchoolAdminSummaryCardsSkeleton C={C} />
+      ) : (
+        <PaymentLedgerSummaryCards
+          summary={summary}
+          branding={branding}
+          mode={mode}
+        />
+      )}
+      {!loading ? filters : null}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {tableContent}
       </div>

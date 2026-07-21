@@ -2,7 +2,9 @@ import { test, expect } from "@playwright/test";
 import {
   beginApplyFormTest,
   endApplyFormTest,
+  fillStudentDateOfBirth,
   openNewApplicationForm,
+  selectGradeLevel,
 } from "../helpers/apply-form";
 import { TEST_ORG_SLUG } from "../helpers/constants";
 
@@ -62,14 +64,9 @@ test.describe("mobile apply flows", () => {
   test("grade level dropdown opens as bottom sheet on mobile", async ({ page }) => {
     await openNewApplicationForm(page);
 
-    const gradeTrigger = page.locator("#student_grade");
-    await expect(gradeTrigger).toBeVisible();
-    await gradeTrigger.click();
+    await selectGradeLevel(page);
 
-    await expect(page.getByRole("dialog", { name: "Grade level" })).toBeVisible();
-    await page.getByRole("option", { name: "Kindergarten" }).click();
-
-    await expect(gradeTrigger).toHaveText(/Kindergarten/);
+    await expect(page.locator("#student_grade")).toHaveText(/Kindergarten/);
   });
 
   test("save and continue blocks when required grade level is empty", async ({
@@ -79,8 +76,7 @@ test.describe("mobile apply flows", () => {
 
     await page.locator("#student_first_name").fill("Jon");
     await page.locator("#student_last_name").fill("Cecilia");
-    await page.locator("#student_date_of_birth").click();
-    await page.getByRole("button", { name: "Today" }).click();
+    await fillStudentDateOfBirth(page);
 
     await page.getByRole("button", { name: /Save and continue/i }).click();
 

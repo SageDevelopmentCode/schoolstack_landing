@@ -9,6 +9,7 @@ import {
   type BulkRunProgress,
 } from "@/components/admin/PerformanceRunProgressBanner";
 import type { PerformanceResultDetail } from "@/components/admin/PerformanceResultsPanel";
+import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import {
   performanceScoreClassName,
@@ -530,38 +531,22 @@ export default function AdminPerformancePage() {
     }
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center text-sm font-secondary text-text-faint">
-        Loading…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center text-sm font-secondary text-clay">
-        {error}
-      </div>
-    );
-  }
+  if (loading) return <AdminPageState variant="loading" />;
+  if (error) return <AdminPageState variant="error" message={error} />;
 
   return (
-    <div
-      className="flex h-[calc(100vh-3rem)] flex-col overflow-hidden"
-      style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
-    >
-      <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3">
-        <div className="flex items-center gap-1 rounded-lg border border-border p-1">
+    <div className="flex h-[calc(100vh-3rem)] flex-col overflow-hidden">
+      <div className="flex flex-wrap items-center gap-3 border-b border-admin-border bg-admin-surface px-4 py-3">
+        <div className="flex items-center gap-1 rounded-admin-md border border-admin-border p-1">
           {(["production", "local", "ci"] as const).map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => setEnvironment(value)}
-              className={`rounded-md px-3 py-1.5 text-sm uppercase transition-colors ${
+              className={`rounded-admin-sm px-3 py-1.5 text-sm uppercase transition-colors ${
                 environment === value
-                  ? "bg-clay-soft text-clay font-medium"
-                  : "text-text-muted hover:text-text"
+                  ? "bg-admin-accent-soft text-admin-accent font-medium"
+                  : "text-admin-muted hover:text-admin-text"
               }`}
             >
               {value}
@@ -569,16 +554,16 @@ export default function AdminPerformancePage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1 rounded-lg border border-border p-1">
+        <div className="flex items-center gap-1 rounded-admin-md border border-admin-border p-1">
           {(["mobile", "desktop"] as const).map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => setFormFactor(value)}
-              className={`rounded-md px-3 py-1.5 text-sm capitalize transition-colors ${
+              className={`rounded-admin-sm px-3 py-1.5 text-sm capitalize transition-colors ${
                 formFactor === value
-                  ? "bg-clay-soft text-clay font-medium"
-                  : "text-text-muted hover:text-text"
+                  ? "bg-admin-accent-soft text-admin-accent font-medium"
+                  : "text-admin-muted hover:text-admin-text"
               }`}
             >
               {value}
@@ -589,10 +574,10 @@ export default function AdminPerformancePage() {
         <button
           type="button"
           onClick={() => setCategoryDrawerOpen(true)}
-          className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+          className={`rounded-admin-md border px-3 py-2 text-sm transition-colors ${
             selectedCategories.size > 0
-              ? "border-clay/40 bg-clay-soft text-clay font-medium"
-              : "border-border bg-bg text-text hover:bg-surface-soft"
+              ? "border-admin-accent/40 bg-admin-accent-soft text-admin-accent font-medium"
+              : "border-admin-border bg-admin-bg text-admin-text hover:bg-admin-neutral-bg"
           }`}
         >
           Categories
@@ -603,14 +588,14 @@ export default function AdminPerformancePage() {
           type="button"
           disabled={environment === "ci" || runningAll || !canRunBulk}
           onClick={() => void runAudit(bulkPageIds)}
-          className="rounded-lg bg-clay px-3 py-2 text-sm font-medium text-white hover:bg-clay/90 disabled:opacity-60"
+          className="rounded-admin-md bg-admin-accent px-3 py-2 text-sm font-medium text-white hover:bg-admin-accent-hover disabled:opacity-60"
         >
           <ButtonLoadingLabel loading={runningAll} loadingLabel="Running…">
             {runButtonLabel}
           </ButtonLoadingLabel>
         </button>
 
-        <span className="rounded-full border border-border bg-bg px-2.5 py-1 text-xs text-text-muted">
+        <span className="rounded-admin-md border border-admin-border bg-admin-bg px-2.5 py-1 text-xs text-admin-muted">
           {environment === "ci"
             ? "GitHub Actions PR audits"
             : environment === "local"
@@ -621,12 +606,12 @@ export default function AdminPerformancePage() {
         </span>
 
         {environment === "ci" ? (
-          <p className="w-full text-xs text-text-faint">
+          <p className="w-full text-xs text-admin-faint">
             CI results are uploaded automatically from pull request Lighthouse runs.
             Only marketing pages in the PR gate are audited here.
           </p>
         ) : environment === "local" ? (
-          <p className="w-full text-xs text-text-faint">
+          <p className="w-full text-xs text-admin-faint">
             Auth-gated school pages audit the login screen locally until Phase 2 adds
             Playwright login.
           </p>
@@ -653,7 +638,7 @@ export default function AdminPerformancePage() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="min-w-0 flex-1 overflow-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="sticky top-0 z-10 border-b border-border bg-surface text-xs uppercase tracking-wide text-text-faint">
+            <thead className="sticky top-0 z-10 border-b border-admin-border bg-admin-surface text-xs uppercase tracking-wide text-admin-faint">
               <tr>
                 <th className="px-4 py-3 font-medium">Page</th>
                 <th className="px-4 py-3 font-medium">Category</th>
@@ -679,23 +664,23 @@ export default function AdminPerformancePage() {
                     onClick={() => {
                       if (canView) void viewLatestResult(page);
                     }}
-                    className={`border-b border-border transition-colors ${
+                    className={`border-b border-admin-border transition-colors ${
                       isRunning
-                        ? "bg-clay-soft/60"
+                        ? "bg-admin-accent-soft/60"
                         : isSelected
-                          ? "bg-clay-soft/40"
+                          ? "bg-admin-accent-soft/40"
                           : canView
-                            ? "cursor-pointer hover:bg-bg/50"
-                            : "hover:bg-bg/50"
+                            ? "cursor-pointer hover:bg-admin-bg/50"
+                            : "hover:bg-admin-bg/50"
                     }`}
                   >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-text">{page.label}</div>
-                      <div className="max-w-xs truncate text-xs text-text-faint">
+                      <div className="font-medium text-admin-text">{page.label}</div>
+                      <div className="max-w-xs truncate text-xs text-admin-faint">
                         {page.url}
                       </div>
                     </td>
-                    <td className="px-4 py-3 capitalize text-text-muted">
+                    <td className="px-4 py-3 capitalize text-admin-muted">
                       {page.category.replace(/_/g, " ")}
                     </td>
                     <td className="px-4 py-3">
@@ -708,25 +693,25 @@ export default function AdminPerformancePage() {
                     <td className="px-4 py-3">{formatMs(latest?.lcpMs ?? null)}</td>
                     <td className="px-4 py-3">{formatMs(latest?.fcpMs ?? null)}</td>
                     <td className="px-4 py-3">{formatMs(latest?.tbtMs ?? null)}</td>
-                    <td className="px-4 py-3 text-text-muted">
+                    <td className="px-4 py-3 text-admin-muted">
                       {latest ? new Date(latest.createdAt).toLocaleString() : "—"}
                     </td>
-                    <td className="px-4 py-3 text-text-muted">
+                    <td className="px-4 py-3 text-admin-muted">
                       {latest ? (
                         <div className="space-y-1">
                           <span
-                            className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${statusBadgeClassName(latest.status)}`}
+                            className={`inline-flex rounded-admin-md border px-2 py-0.5 text-xs font-medium capitalize ${statusBadgeClassName(latest.status)}`}
                           >
                             {latest.status}
                           </span>
                           {latest.skipReason ? (
-                            <div className="text-xs text-text-faint">
+                            <div className="text-xs text-admin-faint">
                               {latest.skipReason.replace(/_/g, " ")}
                             </div>
                           ) : null}
                           {latest.status === "failed" && latest.errorMessage ? (
                             <div
-                              className="text-xs text-clay"
+                              className="text-xs text-admin-accent"
                               title={latest.errorMessage}
                             >
                               {truncateError(latest.errorMessage)}
@@ -743,7 +728,7 @@ export default function AdminPerformancePage() {
                           type="button"
                           disabled={environment === "ci" || isRunning || runningAll}
                           onClick={() => void runAudit([page.id])}
-                          className="rounded-md border border-border px-2 py-1 text-xs hover:bg-surface-soft disabled:opacity-60"
+                          className="rounded-admin-sm border border-admin-border px-2 py-1 text-xs hover:bg-admin-neutral-bg disabled:opacity-60"
                         >
                           <ButtonLoadingLabel loading={isRunning} loadingLabel="…">
                             Run
@@ -753,7 +738,7 @@ export default function AdminPerformancePage() {
                           type="button"
                           disabled={!latest}
                           onClick={() => void viewLatestResult(page)}
-                          className="rounded-md border border-border px-2 py-1 text-xs hover:bg-surface-soft disabled:opacity-60"
+                          className="rounded-admin-sm border border-admin-border px-2 py-1 text-xs hover:bg-admin-neutral-bg disabled:opacity-60"
                         >
                           View
                         </button>

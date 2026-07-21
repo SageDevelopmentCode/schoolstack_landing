@@ -50,18 +50,27 @@ npm run test:e2e:install
 
 ```bash
 npm run test:e2e:setup   # optional: supabase db reset
-npm run test:e2e         # 27 tests; starts dev:next automatically
+npm run test:e2e         # 41 tests; starts dev:next automatically
 npm run test:e2e:ui      # interactive mode
 ```
 
-**Expected:** 27 passed (1 setup + 5 smoke + 9 school-admin + 1 non-admin + 11 parent).
+**Expected:** 41 passed (1 setup + 5 smoke + 9 school-admin + 1 non-admin + 11 parent + 14 API).
+
+## Integration tests (no Playwright)
+
+```bash
+npm run test:integration:setup   # optional: supabase db reset
+npm run test:integration         # webhook handlers + route signature (local Supabase)
+```
+
+Uses `.env.e2e.local` when present. Does not call Stripe's API — fixtures and `generateTestHeaderString` only.
 
 ## What runs
 
 1. **globalSetup** (`e2e/global-setup.ts`) — env guards + seed users/data via `e2e/fixtures/seed.ts` (writes `e2e/.seed-manifest.json` with application IDs)
 2. **webServer** — `dev:next` with E2E Supabase env from `playwright.config.ts`
 3. **setup project** (`e2e/auth.setup.ts`) — password login UI → `e2e/.auth/*.json`
-4. **Tests** — smoke, school-admin, non-admin, parent projects
+4. **Tests** — smoke, school-admin, non-admin, parent, and API projects
 
 ## Test users (local only)
 
@@ -91,4 +100,4 @@ Password: `E2eTestPassword123!` (override via `E2E_TEST_PASSWORD` in `.env.e2e.l
 ## More detail
 
 - Human docs: `e2e/README.md`
-- CI workflow: `.github/workflows/e2e.yml`
+- CI workflows: `.github/workflows/e2e.yml`, `.github/workflows/integration.yml`

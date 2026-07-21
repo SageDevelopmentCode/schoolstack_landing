@@ -5,6 +5,8 @@ export interface CalendarGridColors {
   accentLight: string;
   text: string;
   textFaint: string;
+  warning?: string;
+  warningBg?: string;
 }
 
 export function CalendarGrid({
@@ -14,6 +16,7 @@ export function CalendarGrid({
   selectedDates,
   onSelect,
   availableDates,
+  bookedDates,
   minDate,
   maxDate,
   editable = false,
@@ -26,6 +29,8 @@ export function CalendarGrid({
   selectedDates?: Set<string>;
   onSelect: (date: string) => void;
   availableDates: Set<string>;
+  /** Dates with at least one booking — shown with a subtle indicator */
+  bookedDates?: Set<string>;
   minDate?: string;
   maxDate?: string;
   /** Admin mode: any non-past date is selectable; availableDates only highlights configured days */
@@ -69,6 +74,7 @@ export function CalendarGrid({
           const isBeforeMin = minDate ? key < minDate : !maxDate && isPastDate(key);
           const isAfterMax = maxDate ? key > maxDate : false;
           const hasSlots = availableDates.has(key);
+          const isBooked = bookedDates?.has(key) ?? false;
           const isSelectable = editable
             ? !isBeforeMin && !isAfterMax
             : hasSlots && !isBeforeMin && !isAfterMax;
@@ -81,7 +87,7 @@ export function CalendarGrid({
                 type="button"
                 disabled={!isSelectable}
                 onClick={() => isSelectable && onSelect(key)}
-                className={`mx-auto flex ${cellSizeClass} items-center justify-center rounded-lg text-[14px] font-medium font-secondary transition-all duration-150`}
+                className={`relative mx-auto flex ${cellSizeClass} flex-col items-center justify-center rounded-admin-sm text-[14px] font-medium font-secondary transition-all duration-150`}
                 style={
                   isSelected
                     ? { backgroundColor: colors.accent, color: "#FFFFFF" }
@@ -92,11 +98,24 @@ export function CalendarGrid({
                             color: colors.accent,
                             cursor: "pointer",
                           }
+                        : isBooked
+                          ? {
+                              backgroundColor: colors.warningBg ?? colors.accentLight,
+                              color: colors.warning ?? colors.accent,
+                              cursor: "pointer",
+                            }
                         : { color: colors.text, cursor: "pointer" }
                       : { color: colors.textFaint, cursor: "default" }
                 }
               >
-                {day}
+                <span>{day}</span>
+                {isBooked && !isSelected ? (
+                  <span
+                    className="absolute bottom-1 h-1 w-1 rounded-full"
+                    style={{ backgroundColor: colors.warning ?? colors.accent }}
+                    aria-hidden="true"
+                  />
+                ) : null}
               </button>
             );
           }

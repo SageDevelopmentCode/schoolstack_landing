@@ -10,9 +10,9 @@ export const ROOTED_MEADOWS_ADMIN_LOGO = {
 export const ROOTED_MEADOWS_ADMIN_COMPACT_ROWS = 7;
 
 export const ROOTED_MEADOWS_ADMIN_COLORS = {
-  bg: "#FAF8F4",
-  border: "#E8E0D4",
-  borderStrong: "#D4C9BA",
+  bg: "#F8FAFC",
+  border: "#E2E8F0",
+  borderStrong: "#CBD5E1",
   accent: "#827096",
   accentBright: "#6E5D7F",
   accentLight: "rgba(130, 112, 150, 0.10)",
@@ -23,6 +23,6 @@ export const ROOTED_MEADOWS_ADMIN_COLORS = {
   clay: "#b3b462",
   clayBg: "rgba(179, 180, 98, 0.12)",
   clayBorder: "rgba(179, 180, 98, 0.30)",
-  textPrimary: "#2b2a26",
-  textSecondary: "#6B6560",
+  textPrimary: "#0F172A",
+  textSecondary: "#64748B",
 } as const;

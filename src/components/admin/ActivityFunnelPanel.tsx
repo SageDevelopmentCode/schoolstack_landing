@@ -144,11 +144,11 @@ export default function ActivityFunnelPanel({
     <div className="h-full overflow-y-auto">
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-text-faint uppercase tracking-wide">
+          <p className="text-xs font-semibold text-admin-faint uppercase tracking-wide">
             Product funnel
           </p>
-          <h1 className="text-2xl font-medium text-text">{funnel.label}</h1>
-          <p className="text-sm text-text-muted">{funnel.description}</p>
+          <h1 className="text-2xl font-medium text-admin-text">{funnel.label}</h1>
+          <p className="text-sm text-admin-muted">{funnel.description}</p>
         </div>
 
         <div className="flex gap-1 flex-wrap">
@@ -157,10 +157,10 @@ export default function ActivityFunnelPanel({
               key={option.id}
               type="button"
               onClick={() => setFunnelId(option.id)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+              className={`text-xs px-3 py-1.5 rounded-admin-md border transition-colors ${
                 funnelId === option.id
-                  ? "bg-clay-soft text-clay border-clay/20"
-                  : "bg-bg text-text-muted border-border hover:bg-surface-soft"
+                  ? "bg-admin-accent-soft text-admin-accent border-admin-accent/20"
+                  : "bg-admin-bg text-admin-muted border-admin-border hover:bg-admin-neutral-bg"
               }`}
             >
               {option.label}
@@ -169,57 +169,57 @@ export default function ActivityFunnelPanel({
         </div>
 
         {error ? (
-          <p className="text-sm text-clay">{error}</p>
+          <p className="text-sm text-admin-accent">{error}</p>
         ) : null}
 
         {loading && !metrics ? (
-          <div className="flex items-center justify-center py-16 text-sm text-text-faint font-secondary">
+          <div className="flex items-center justify-center py-16 text-sm text-admin-faint font-secondary">
             Loading funnel…
           </div>
         ) : metrics ? (
           <>
             <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-surface border border-border rounded-xl p-4">
-                <p className="text-xs text-text-faint">Cohort size</p>
-                <p className="text-2xl font-medium text-text tabular-nums mt-1">
+              <div className="bg-admin-surface border border-admin-border rounded-admin-md p-4">
+                <p className="text-xs text-admin-faint">Cohort size</p>
+                <p className="text-2xl font-medium text-admin-text tabular-nums mt-1">
                   {formatCount(metrics.cohortSize)}
                 </p>
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-xs text-admin-muted mt-1">
                   {selectedOrgName ? selectedOrgName : "All organizations"}
                 </p>
               </div>
-              <div className="bg-surface border border-border rounded-xl p-4">
-                <p className="text-xs text-text-faint">Overall conversion</p>
-                <p className="text-2xl font-medium text-text tabular-nums mt-1">
+              <div className="bg-admin-surface border border-admin-border rounded-admin-md p-4">
+                <p className="text-xs text-admin-faint">Overall conversion</p>
+                <p className="text-2xl font-medium text-admin-text tabular-nums mt-1">
                   {formatPercent(overallConversion, 1)}
                 </p>
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-xs text-admin-muted mt-1">
                   {metrics.stages[metrics.stages.length - 1]?.label ?? "Final stage"}
                 </p>
               </div>
-              <div className="bg-surface border border-border rounded-xl p-4">
-                <p className="text-xs text-text-faint">Stages</p>
-                <p className="text-2xl font-medium text-text tabular-nums mt-1">
+              <div className="bg-admin-surface border border-admin-border rounded-admin-md p-4">
+                <p className="text-xs text-admin-faint">Stages</p>
+                <p className="text-2xl font-medium text-admin-text tabular-nums mt-1">
                   {metrics.stages.length}
                 </p>
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-xs text-admin-muted mt-1">
                   Milestone-based funnel
                 </p>
               </div>
             </section>
 
-            <section className="bg-surface border border-border rounded-xl p-5 space-y-5">
+            <section className="bg-admin-surface border border-admin-border rounded-admin-md p-5 space-y-5">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide">
+                <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide">
                   Funnel stages
                 </h2>
                 {loading ? (
-                  <span className="text-xs text-text-faint">Refreshing…</span>
+                  <span className="text-xs text-admin-faint">Refreshing…</span>
                 ) : null}
               </div>
 
               {metrics.cohortSize === 0 ? (
-                <p className="text-sm text-text-faint text-center py-8">
+                <p className="text-sm text-admin-faint text-center py-8">
                   No cohort entries for this filter. Try a wider date range or a
                   different organization.
                 </p>
@@ -236,11 +236,11 @@ export default function ActivityFunnelPanel({
                       <>
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-text">
+                            <p className="text-sm font-medium text-admin-text">
                               {index + 1}. {stage.label}
                             </p>
                             {index > 0 ? (
-                              <p className="text-xs text-text-muted mt-0.5">
+                              <p className="text-xs text-admin-muted mt-0.5">
                                 {formatPercent(stage.conversionFromPrevious, 0)}{" "}
                                 from previous stage
                                 {stage.dropOffFromPrevious !== null
@@ -248,28 +248,28 @@ export default function ActivityFunnelPanel({
                                   : ""}
                               </p>
                             ) : (
-                              <p className="text-xs text-text-muted mt-0.5">
+                              <p className="text-xs text-admin-muted mt-0.5">
                                 Cohort entry point
                               </p>
                             )}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <div className="text-right">
-                              <p className="text-lg font-medium text-text tabular-nums">
+                              <p className="text-lg font-medium text-admin-text tabular-nums">
                                 {formatCount(stage.count)}
                               </p>
-                              <p className="text-xs text-text-faint tabular-nums">
+                              <p className="text-xs text-admin-faint tabular-nums">
                                 {formatPercent(stage.percentOfCohort, 0)} of cohort
                               </p>
                             </div>
                             {isClickable ? (
-                              <ChevronRight className="h-4 w-4 text-text-faint" />
+                              <ChevronRight className="h-4 w-4 text-admin-faint" />
                             ) : null}
                           </div>
                         </div>
-                        <div className="h-3 rounded-full bg-bg border border-border overflow-hidden">
+                        <div className="h-3 rounded-admin-md bg-admin-bg border border-admin-border overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-clay/80 transition-all"
+                            className="h-full rounded-admin-md bg-admin-accent/80 transition-all"
                             style={{ width: `${widthPercent}%` }}
                           />
                         </div>
@@ -281,7 +281,7 @@ export default function ActivityFunnelPanel({
                         key={stage.key}
                         type="button"
                         onClick={() => void handleStageClick(stage.key)}
-                        className="w-full space-y-2 rounded-xl border border-transparent px-2 py-2 -mx-2 text-left transition-colors hover:border-border hover:bg-bg cursor-pointer"
+                        className="w-full space-y-2 rounded-admin-md border border-transparent px-2 py-2 -mx-2 text-left transition-colors hover:border-admin-border hover:bg-admin-bg cursor-pointer"
                       >
                         {content}
                       </button>
@@ -297,7 +297,7 @@ export default function ActivityFunnelPanel({
           </>
         ) : null}
 
-        <section className="text-xs text-text-faint space-y-1 border-t border-border pt-4">
+        <section className="text-xs text-admin-faint space-y-1 border-t border-admin-border pt-4">
           <p>
             Metrics are derived from activity events and only cover the period
             since instrumentation began.

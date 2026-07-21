@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, FileText, Loader2, X } from "lucide-react";
+import { Check, FileText, X } from "lucide-react";
+import { SchoolAdminModalListSkeleton } from "@/components/school-admin/skeletons";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { VariantResolutionMap } from "@/lib/admissions/enrollment-checklist-variants";
@@ -188,9 +189,7 @@ export default function StartEnrollmentModal({
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
               {loading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textTertiary }} />
-                </div>
+                <SchoolAdminModalListSkeleton C={C} label="Loading enrollment options" />
               ) : error ? (
                 <p className="text-sm" style={{ color: C.error }}>
                   {error}

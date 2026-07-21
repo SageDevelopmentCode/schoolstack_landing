@@ -2,7 +2,9 @@ import { test, expect } from "@playwright/test";
 import {
   beginApplyFormTest,
   endApplyFormTest,
+  fillStudentDateOfBirth,
   openNewApplicationForm,
+  selectGradeLevel,
 } from "../helpers/apply-form";
 
 test.describe.configure({ mode: "serial" });
@@ -23,12 +25,9 @@ async function fillRequiredStudentFields(
 
   await page.locator("#student_first_name").fill(firstName ?? `E2E${uniqueSuffix}`);
   await page.locator("#student_last_name").fill("SubmitTest");
-  await page.locator("#student_date_of_birth").click();
-  await page.getByRole("button", { name: "Today" }).click();
+  await fillStudentDateOfBirth(page);
 
-  const gradeTrigger = page.locator("#student_grade");
-  await gradeTrigger.click();
-  await page.getByRole("option", { name: "Kindergarten" }).click();
+  await selectGradeLevel(page);
 }
 
 async function submitApplication(page: import("@playwright/test").Page) {

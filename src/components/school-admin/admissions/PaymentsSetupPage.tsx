@@ -25,6 +25,7 @@ import {
   BuilderSectionIntro,
   type BuilderCardTone,
 } from "@/components/school-admin/admissions/builder-question-card";
+import { SkeletonBlock } from "@/components/school-admin/skeletons";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import {
   buildAdminThemeTokens,
@@ -36,6 +37,7 @@ import type {
   ConnectStatusNextStep,
   ConnectStatusResult,
 } from "@/lib/stripe/connect-status";
+import { STRIPE_DASHBOARD_LINK_SENTINEL } from "@/lib/stripe/connect-status";
 import PaymentsHistoryPanel from "./PaymentsHistoryPanel";
 
 type PaymentsSetupPageProps = {
@@ -46,6 +48,9 @@ type PaymentsSetupPageProps = {
 };
 
 type SetupPhase = "loading" | "not_started" | "in_progress" | "ready";
+
+const POLL_INTERVAL_MS = 60_000;
+const MAX_POLLS = 20;
 
 const SETUP_STEPS: Array<{
   key: keyof ConnectStatusChecklist;
@@ -78,6 +83,22 @@ const HOW_IT_WORKS = [
     tone: "success" as BuilderCardTone,
   },
 ];
+
+function formatRelativeTime(isoTimestamp: string): string {
+  const syncedAt = new Date(isoTimestamp).getTime();
+  if (Number.isNaN(syncedAt)) return "just now";
+
+  const diffMs = Date.now() - syncedAt;
+  if (diffMs < 60_000) return "just now";
+
+  const diffMinutes = Math.floor(diffMs / 60_000);
+  if (diffMinutes < 60) {
+    return `${diffMinutes} min ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  return `${diffHours} hr ago`;
+}
 
 function getSetupPhase(loading: boolean, isReady: boolean, hasAccount: boolean): SetupPhase {
   if (loading) return "loading";
@@ -223,17 +244,30 @@ function getNextStepMeta(step: ConnectStatusNextStep): {
   icon: LucideIcon;
   description: string;
   isFootnote: boolean;
+  isDashboard: boolean;
 } {
+  const isDashboard = step.href === STRIPE_DASHBOARD_LINK_SENTINEL;
   const isFootnote =
-    step.label.length > 55 ||
-    step.label.toLowerCase().includes("managed in") ||
-    step.label.toLowerCase().includes("payouts are");
+    !isDashboard &&
+    (step.label.length > 55 ||
+      step.label.toLowerCase().includes("managed in") ||
+      step.label.toLowerCase().includes("payouts are"));
+
+  if (isDashboard && step.label.toLowerCase().includes("open your stripe")) {
+    return {
+      icon: Wallet,
+      description: "View balance, payouts, and bank account settings.",
+      isFootnote: false,
+      isDashboard: true,
+    };
+  }
 
   if (step.label.toLowerCase().includes("publish")) {
     return {
       icon: FileText,
       description: "Make your form live so families can apply and pay.",
       isFootnote,
+      isDashboard: false,
     };
   }
   if (step.label.toLowerCase().includes("test")) {
@@ -241,6 +275,7 @@ function getNextStepMeta(step: ConnectStatusNextStep): {
       icon: ExternalLink,
       description: "Walk through the apply flow as a family would.",
       isFootnote,
+      isDashboard: false,
     };
   }
   if (step.href.startsWith("http")) {
@@ -248,21 +283,103 @@ function getNextStepMeta(step: ConnectStatusNextStep): {
       icon: Wallet,
       description: "View payouts and account settings in Stripe.",
       isFootnote,
+      isDashboard: false,
     };
   }
   return {
     icon: ArrowRight,
     description: step.label,
     isFootnote,
+    isDashboard: false,
   };
+}
+
+function RequirementsPanel({
+  requirements,
+  C,
+  onContinue,
+  connecting,
+}: {
+  requirements: string[];
+  C: AdminThemeTokens;
+  onContinue: () => void;
+  connecting: boolean;
+}) {
+  if (requirements.length === 0) return null;
+
+  return (
+    <div
+      className="mt-4 rounded-lg border px-4 py-3"
+      style={{
+        borderColor: C.infoBorder ?? C.border,
+        backgroundColor: C.infoBg ?? C.elevated,
+      }}
+    >
+      <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+        Stripe needs a few more details
+      </p>
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm" style={{ color: C.textSecondary }}>
+        {requirements.map((requirement) => (
+          <li key={requirement}>{requirement}</li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={onContinue}
+        disabled={connecting}
+        className="mt-3 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        style={getAdminButtonStyle(C, "primary")}
+      >
+        {connecting ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Opening Stripe…
+          </>
+        ) : (
+          "Continue in Stripe"
+        )}
+      </button>
+    </div>
+  );
+}
+
+function TestModeBanner({ C }: { C: AdminThemeTokens }) {
+  return (
+    <div
+      className="rounded-lg border px-4 py-3 text-sm"
+      style={{
+        borderColor: C.border,
+        backgroundColor: C.elevated,
+        color: C.textSecondary,
+      }}
+    >
+      You&apos;re in Stripe test mode. Verification can take a few minutes. Use{" "}
+      <a
+        href="https://docs.stripe.com/testing"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-medium underline underline-offset-2"
+        style={{ color: C.accent }}
+      >
+        Stripe test cards
+      </a>{" "}
+      when testing checkout.
+    </div>
+  );
 }
 
 function NextStepTile({
   step,
   C,
+  organizationId,
+  onOpenDashboard,
+  openingDashboard,
 }: {
   step: ConnectStatusNextStep;
   C: AdminThemeTokens;
+  organizationId: string;
+  onOpenDashboard: (organizationId: string) => void;
+  openingDashboard: boolean;
 }) {
   const meta = getNextStepMeta(step);
   const Icon = meta.icon;
@@ -274,7 +391,11 @@ function NextStepTile({
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
         style={{ backgroundColor: C.accentLight, color: C.accent }}
       >
-        <Icon className="h-4 w-4" aria-hidden />
+        {meta.isDashboard && openingDashboard ? (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        ) : (
+          <Icon className="h-4 w-4" aria-hidden />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
@@ -293,7 +414,21 @@ function NextStepTile({
   );
 
   const className =
-    "group flex items-center gap-3 rounded-lg border p-4 text-left transition-colors hover:opacity-95";
+    "group flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60";
+
+  if (meta.isDashboard) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenDashboard(organizationId)}
+        disabled={openingDashboard}
+        className={className}
+        style={{ backgroundColor: C.elevated, borderColor: C.border }}
+      >
+        {content}
+      </button>
+    );
+  }
 
   if (isExternal) {
     return (
@@ -380,16 +515,28 @@ export default function PaymentsSetupPage({
 
   const [status, setStatus] = useState<ConnectStatusResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [openingDashboard, setOpeningDashboard] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pollExhausted, setPollExhausted] = useState(false);
   const returnHandledRef = useRef(false);
+  const refreshHandledRef = useRef(false);
+  const wasReadyRef = useRef(false);
+  const pollCountRef = useRef(0);
   const [activeTab, setActiveTab] = useState<"setup" | "history">("setup");
 
   const loadStatus = useCallback(
-    async (options?: { handleReturn?: boolean }) => {
-      setLoading(true);
-      setError(null);
+    async (options?: { silent?: boolean; handleReturn?: boolean }) => {
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      if (!options?.silent) {
+        setError(null);
+      }
 
       try {
         const response = await fetch(
@@ -405,10 +552,18 @@ export default function PaymentsSetupPage({
           );
         }
 
+        if (options?.silent && !wasReadyRef.current && payload.isReady) {
+          setNotice(
+            "Stripe is connected. You're ready to collect application fees.",
+          );
+        }
+
+        wasReadyRef.current = payload.isReady;
         setStatus(payload);
 
         if (options?.handleReturn) {
           const connected = searchParams.get("connected");
+          const refresh = searchParams.get("refresh");
           if (connected === "1") {
             if (payload.isReady) {
               setNotice(
@@ -423,20 +578,28 @@ export default function PaymentsSetupPage({
             }
           } else if (connected === "0") {
             setError("We could not confirm your Stripe setup. Please try again.");
+          } else if (refresh === "1") {
+            setNotice("Continue setup in Stripe to finish connecting payments.");
           }
         }
 
         return payload;
       } catch (loadError) {
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Failed to load payment setup status.",
-        );
-        setStatus(null);
+        if (!options?.silent) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Failed to load payment setup status.",
+          );
+          setStatus(null);
+        }
         return null;
       } finally {
-        setLoading(false);
+        if (options?.silent) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
       }
     },
     [organizationId, searchParams],
@@ -444,6 +607,7 @@ export default function PaymentsSetupPage({
 
   useEffect(() => {
     const connected = searchParams.get("connected");
+    const refresh = searchParams.get("refresh");
 
     if (
       (connected === "1" || connected === "0") &&
@@ -458,12 +622,49 @@ export default function PaymentsSetupPage({
       return;
     }
 
+    if (refresh === "1" && !refreshHandledRef.current) {
+      refreshHandledRef.current = true;
+      void loadStatus({ handleReturn: true }).then(() => {
+        router.replace(`/school/${orgSlug}/admin/admissions/payments`, {
+          scroll: false,
+        });
+      });
+      return;
+    }
+
     void loadStatus();
   }, [loadStatus, orgSlug, router, searchParams]);
 
   const isReady = Boolean(status?.isReady);
   const hasAccount = Boolean(status?.checklist.accountCreated);
   const phase = getSetupPhase(loading, isReady, hasAccount);
+  const isPolling = phase === "in_progress" && !isReady;
+
+  if (!isPolling && pollExhausted) {
+    setPollExhausted(false);
+  }
+
+  useEffect(() => {
+    if (!isPolling) return;
+
+    pollCountRef.current = 0;
+
+    const intervalId = window.setInterval(() => {
+      pollCountRef.current += 1;
+      if (pollCountRef.current > MAX_POLLS) {
+        setPollExhausted(true);
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      void loadStatus({ silent: true });
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+      pollCountRef.current = 0;
+    };
+  }, [isPolling, loadStatus]);
   const hero = getHeroCopy(phase, schoolName);
 
   const activeChecklistIndex = status
@@ -474,6 +675,32 @@ export default function PaymentsSetupPage({
     status?.nextSteps.filter((step) => !getNextStepMeta(step).isFootnote) ?? [];
   const footnoteSteps =
     status?.nextSteps.filter((step) => getNextStepMeta(step).isFootnote) ?? [];
+
+  const handleOpenDashboard = async (orgId: string) => {
+    setOpeningDashboard(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/stripe/connect/dashboard-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId: orgId }),
+      });
+      const payload = (await response.json()) as { url?: string; error?: string };
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? "Failed to open Stripe dashboard.");
+      }
+
+      window.open(payload.url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to open Stripe dashboard.",
+      );
+    } finally {
+      setOpeningDashboard(false);
+    }
+  };
 
   const handleConnect = async () => {
     setConnecting(true);
@@ -583,6 +810,10 @@ export default function PaymentsSetupPage({
               ) : null}
             </AnimatePresence>
 
+            {!loading && status?.isTestMode && !isReady ? (
+              <TestModeBanner C={C} />
+            ) : null}
+
             {!loading && phase === "not_started" ? (
               <HowItWorksExplainer C={C} />
             ) : null}
@@ -638,11 +869,21 @@ export default function PaymentsSetupPage({
 
                 {loading ? (
                   <div
-                    className="mt-4 flex items-center gap-2 text-sm"
-                    style={{ color: C.textTertiary }}
+                    className="mt-5 overflow-hidden rounded-lg border"
+                    style={{ borderColor: C.border, backgroundColor: C.surface }}
+                    aria-busy="true"
+                    aria-label="Loading payment status"
                   >
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading payment status…
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0"
+                        style={{ borderColor: C.border }}
+                      >
+                        <SkeletonBlock C={C} className="h-5 w-5 rounded-full" />
+                        <SkeletonBlock C={C} className="h-4 w-48" />
+                      </div>
+                    ))}
                   </div>
                 ) : null}
 
@@ -680,6 +921,33 @@ export default function PaymentsSetupPage({
                   </ul>
                 ) : null}
 
+                {!loading && hasAccount && status?.syncedAt ? (
+                  <p className="mt-2 text-xs" style={{ color: C.textTertiary }}>
+                    Last checked: {formatRelativeTime(status.syncedAt)}
+                    {refreshing ? " · checking…" : ""}
+                  </p>
+                ) : null}
+
+                {!loading &&
+                hasAccount &&
+                status &&
+                !isReady &&
+                status.requirementsDue.length > 0 ? (
+                  <RequirementsPanel
+                    requirements={status.requirementsDue}
+                    C={C}
+                    onContinue={handleConnect}
+                    connecting={connecting}
+                  />
+                ) : null}
+
+                {!loading && hasAccount && !isReady && pollExhausted ? (
+                  <p className="mt-3 text-sm" style={{ color: C.textSecondary }}>
+                    Still verifying? Continue in Stripe or contact support if this
+                    takes longer than expected.
+                  </p>
+                ) : null}
+
                 {!loading && !hasAccount ? (
                   <ul className="mt-4 space-y-2 text-sm" style={{ color: C.textSecondary }}>
                     <li className="flex items-start gap-2">
@@ -698,24 +966,48 @@ export default function PaymentsSetupPage({
                 ) : null}
 
                 {!isReady && !loading ? (
-                  <button
-                    type="button"
-                    onClick={handleConnect}
-                    disabled={connecting}
-                    className="mt-5 inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                    style={getAdminButtonStyle(C, "primary")}
-                  >
-                    {connecting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Opening Stripe…
-                      </>
-                    ) : hasAccount ? (
-                      "Continue in Stripe"
-                    ) : (
-                      "Connect Stripe"
-                    )}
-                  </button>
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleConnect}
+                      disabled={connecting}
+                      className="inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      style={getAdminButtonStyle(C, "primary")}
+                    >
+                      {connecting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Opening Stripe…
+                        </>
+                      ) : hasAccount ? (
+                        "Continue in Stripe"
+                      ) : (
+                        "Connect Stripe"
+                      )}
+                    </button>
+                    {hasAccount ? (
+                      <button
+                        type="button"
+                        onClick={() => void loadStatus({ silent: true })}
+                        disabled={refreshing}
+                        className="inline-flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium transition enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{
+                          borderColor: C.border,
+                          color: C.textSecondary,
+                          backgroundColor: C.elevated,
+                        }}
+                      >
+                        {refreshing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Checking…
+                          </>
+                        ) : (
+                          "Check status"
+                        )}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </motion.div>
@@ -727,11 +1019,18 @@ export default function PaymentsSetupPage({
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {actionableSteps.map((step) => (
-                    <NextStepTile key={step.href} step={step} C={C} />
+                    <NextStepTile
+                      key={`${step.label}-${step.href}`}
+                      step={step}
+                      C={C}
+                      organizationId={organizationId}
+                      onOpenDashboard={handleOpenDashboard}
+                      openingDashboard={openingDashboard}
+                    />
                   ))}
                 </div>
                 {footnoteSteps.map((step) => (
-                  <p key={step.href} className="text-xs" style={{ color: C.textTertiary }}>
+                  <p key={step.label} className="text-xs" style={{ color: C.textTertiary }}>
                     {step.label}
                   </p>
                 ))}

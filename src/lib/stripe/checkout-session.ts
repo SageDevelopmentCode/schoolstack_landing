@@ -26,9 +26,10 @@ export type AdmissionsCheckoutSessionResult = {
 
 export async function createAdmissionsCheckoutSession(
   input: CreateAdmissionsCheckoutSessionInput,
+  options?: { stripe?: Stripe },
 ): Promise<AdmissionsCheckoutSessionResult> {
   const quote = quoteProcessingFee(input.netAmountCents, input.paymentMethod);
-  const stripe = getStripeClient();
+  const stripe = options?.stripe ?? getStripeClient();
 
   const paymentMethodTypes: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] =
     input.paymentMethod === "card" ? ["card"] : ["us_bank_account"];

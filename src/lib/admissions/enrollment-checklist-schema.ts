@@ -15,6 +15,12 @@ export type EnrollmentContractSection = {
   body: string;
 };
 
+export type AgreementSectionSignature = {
+  sectionId: string;
+  signerName: string;
+  signedAt: string;
+};
+
 export type InlineDocumentConfig = {
   kind: "inline_sections";
   sections: EnrollmentContractSection[];

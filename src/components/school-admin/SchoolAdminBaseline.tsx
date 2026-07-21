@@ -29,6 +29,7 @@ import type {
 } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import AdminSupportRequestModal from "@/components/school-admin/AdminSupportRequestModal";
+import AdminPageContentShell from "@/components/school-admin/AdminPageContentShell";
 import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
 
 type SchoolAdminBaselineProps = {
@@ -474,18 +475,7 @@ export default function SchoolAdminBaseline({
 
       <main className="flex-1 overflow-hidden">
         <div className="relative h-full overflow-y-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="h-full"
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <AdminPageContentShell>{children}</AdminPageContentShell>
         </div>
       </main>
     </div>

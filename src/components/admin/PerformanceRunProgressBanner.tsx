@@ -52,33 +52,33 @@ export function PerformanceRunProgressBanner({
     <div
       className={`border-b px-4 py-3 ${
         isFailed
-          ? "border-clay/30 bg-clay/5"
+          ? "border-admin-accent/30 bg-admin-accent-soft"
           : isComplete
             ? "border-emerald-200 bg-emerald-50/50"
-            : "border-border bg-surface-soft"
+            : "border-admin-border bg-admin-neutral-bg"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-2">
           <p
             className={`text-sm font-medium ${
-              isFailed ? "text-clay" : isComplete ? "text-emerald-800" : "text-text"
+              isFailed ? "text-admin-accent" : isComplete ? "text-emerald-800" : "text-admin-text"
             }`}
           >
             {getProgressMessage(progress)}
           </p>
           {!isComplete && !isFailed ? (
-            <div className="h-1.5 overflow-hidden rounded-full bg-border">
+            <div className="h-1.5 overflow-hidden rounded-admin-md bg-border">
               <div
-                className="h-full rounded-full bg-clay transition-all duration-300"
+                className="h-full rounded-admin-md bg-admin-accent transition-all duration-300"
                 style={{ width: `${percent}%` }}
               />
             </div>
           ) : null}
           {progress.status === "queued" ? (
-            <p className="text-xs text-text-faint">
+            <p className="text-xs text-admin-faint">
               Start the runner with{" "}
-              <code className="rounded bg-bg px-1 py-0.5">npm run performance:audit:watch</code>{" "}
+              <code className="rounded bg-admin-bg px-1 py-0.5">npm run performance:audit:watch</code>{" "}
               while your dev server is running.
             </p>
           ) : null}
@@ -87,7 +87,7 @@ export function PerformanceRunProgressBanner({
           <button
             type="button"
             onClick={onDismiss}
-            className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-text-muted hover:bg-bg"
+            className="shrink-0 rounded-admin-sm border border-admin-border px-2 py-1 text-xs text-admin-muted hover:bg-admin-bg"
           >
             Dismiss
           </button>

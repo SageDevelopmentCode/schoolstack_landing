@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { E2E_PARENT_EMAIL } from "../fixtures/constants";
 import { TEST_ORG_SLUG } from "./constants";
+import { getSeedManifest } from "./seed-manifest";
 
 const APPLY_FORM_LOCK_PATH = path.join(process.cwd(), "e2e/.apply-form.lock");
 const APPLY_FORM_LOCK_STALE_MS = 120_000;
@@ -112,23 +113,71 @@ export async function cleanupParentDraftApplications(): Promise<void> {
     throw new Error(`E2E apply helper aborted: organization "${TEST_ORG_SLUG}" not found.`);
   }
 
+  const manifest = getSeedManifest();
+  const preservedDraftIds = [
+    manifest.applications.feePendingDraft,
+    manifest.applications.noFeeDraft,
+    manifest.applications.noFeeSubmitDraft,
+  ];
+
   const { error: deleteError } = await admin
     .from("applications")
     .delete()
     .eq("organization_id", organization.id)
     .eq("created_by_user_id", parentUserId)
-    .eq("status", "draft");
+    .eq("status", "draft")
+    .not("id", "in", `(${preservedDraftIds.join(",")})`);
 
   if (deleteError) throw deleteError;
 }
 
+export async function fillStudentDateOfBirth(page: Page): Promise<void> {
+  await page.locator("#student_date_of_birth").click();
+  const dateDialog = page.getByRole("dialog", { name: "Choose a date" });
+  await expect(dateDialog).toBeVisible({ timeout: 10_000 });
+  await dateDialog.getByRole("button", { name: "Today" }).click();
+}
+
+export async function selectGradeLevel(
+  page: Page,
+  optionLabel = "Kindergarten",
+): Promise<void> {
+  const gradeTrigger = page.locator("#student_grade");
+  await expect(gradeTrigger).toBeVisible();
+  await gradeTrigger.click();
+
+  const isMobile = (page.viewportSize()?.width ?? 1280) < 640;
+
+  if (isMobile) {
+    const dialog = page.getByRole("dialog", { name: "Grade level" });
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    const option = dialog.getByRole("option", { name: optionLabel });
+    await expect(option).toBeVisible();
+    await option.click();
+    await expect(dialog).toBeHidden({ timeout: 5_000 });
+    return;
+  }
+
+  const listbox = page.getByRole("listbox", { name: "Grade level" });
+  await expect(listbox).toBeVisible({ timeout: 10_000 });
+  const option = listbox.getByRole("option", { name: optionLabel });
+  await expect(option).toBeVisible();
+  await option.click();
+  await expect(listbox).toHaveCount(0, { timeout: 5_000 });
+}
+
 export async function openNewApplicationForm(page: Page): Promise<void> {
   await cleanupParentDraftApplications();
-  await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`);
+  await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`, {
+    waitUntil: process.env.CI ? "domcontentloaded" : "load",
+    timeout: process.env.CI ? 60_000 : 30_000,
+  });
 
-  await expect(page.locator("#student_first_name")).toBeVisible({
+  const firstName = page.locator("#student_first_name");
+  await expect(firstName).toBeVisible({
     timeout: 15_000,
   });
+  await expect(firstName).toHaveValue("");
   await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
     timeout: 15_000,
   });

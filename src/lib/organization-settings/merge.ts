@@ -1,4 +1,5 @@
 import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "./catalog";
+import { migrateLegacyNeutralBranding } from "./school-admin-neutrals";
 import type { OrganizationBranding, OrganizationFeatures } from "./types";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -41,6 +42,8 @@ export function mergeBranding(
   if (!merged.logo.src?.trim()) {
     merged.logo.src = "";
   }
+
+  merged.colors = migrateLegacyNeutralBranding(merged.colors);
 
   return merged;
 }

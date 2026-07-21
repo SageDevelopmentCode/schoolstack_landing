@@ -63,7 +63,7 @@ export function PerformanceDetailDrawer({
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 320 }}
             aria-busy={loading}
-            className="relative flex h-full w-full max-w-md flex-col border-l border-border bg-surface shadow-xl"
+            className="relative flex h-full w-full max-w-md flex-col border-l border-admin-border bg-admin-surface shadow-xl"
             style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
           >
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -75,10 +75,10 @@ export function PerformanceDetailDrawer({
                     <div className="min-w-0">
                       {preview ? (
                         <>
-                          <h1 className="font-display text-lg font-semibold text-text">
+                          <h1 className="text-lg font-semibold text-admin-text">
                             {preview.label}
                           </h1>
-                          <p className="font-secondary text-sm text-text-muted capitalize">
+                          <p className="text-sm text-admin-muted capitalize">
                             {preview.category.replace(/_/g, " ")}
                           </p>
                         </>
@@ -87,12 +87,12 @@ export function PerformanceDetailDrawer({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-soft"
+                      className="shrink-0 rounded-admin-md border border-admin-border px-2 py-1 text-xs text-admin-muted hover:bg-admin-neutral-bg"
                     >
                       Close
                     </button>
                   </div>
-                  <p className="rounded-lg border border-clay/30 bg-clay/5 px-3 py-2 text-sm text-clay">
+                  <p className="rounded-admin-md border border-admin-accent/30 bg-admin-accent-soft px-3 py-2 text-sm text-admin-accent">
                     {error}
                   </p>
                 </div>

@@ -4,9 +4,11 @@ import {
   formatScheduledVisitWhenLabel,
   getOrganizationTimezone,
   parseAdmissionsTimeSlot,
+  type AdmissionsAvailabilitySlotKey,
   type ScheduledVisitTiming,
 } from "./admissions-availability";
 import type { AdmissionsSchedulingMode } from "./admissions-booking";
+import { buildOccupiedSlotKeys } from "./admissions-booking";
 import type { PostSubmitActionType } from "./application-form-schema";
 import { parseApplicationFormPostSubmitConfig } from "./application-form-schema";
 import { extractStudentLabel } from "./application-submissions";
@@ -219,4 +221,44 @@ export async function listOrgScheduledVisits(
   });
 
   return visits.sort(compareVisits);
+}
+
+export async function listOccupiedSlotKeysForDateRange(
+  supabase: SupabaseClient,
+  organizationId: string,
+  startDate: string,
+  endDate: string,
+): Promise<Set<AdmissionsAvailabilitySlotKey>> {
+  const { data, error } = await supabase
+    .from("admissions_scheduled_visits")
+    .select("scheduling_mode, scheduled_date, start_time_slot, duration_minutes, status")
+    .eq("organization_id", organizationId)
+    .eq("status", "scheduled")
+    .gte("scheduled_date", startDate)
+    .lte("scheduled_date", endDate);
+
+  if (error) throw error;
+
+  return buildOccupiedSlotKeys(
+    (data ?? []).map((row) => ({
+      schedulingMode:
+        row.scheduling_mode === "whole_day"
+          ? ("whole_day" as const)
+          : ("time_slot" as const),
+      scheduledDate: String(row.scheduled_date),
+      startTimeSlot: String(row.start_time_slot),
+      durationMinutes: Number(row.duration_minutes),
+      status: "scheduled" as const,
+    })),
+  );
+}
+
+export function occupiedSlotKeysToBookedDates(
+  occupiedSlots: Set<AdmissionsAvailabilitySlotKey>,
+): Set<string> {
+  const dates = new Set<string>();
+  for (const key of occupiedSlots) {
+    dates.add(key.split("|")[0] ?? key);
+  }
+  return dates;
 }

@@ -133,12 +133,12 @@ export default function OrganizationAccessPanel({
   };
 
   return (
-    <section className="bg-surface border border-border rounded-lg p-4 space-y-4">
+    <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
       <div>
-        <h2 className="text-xs font-semibold text-text-faint uppercase tracking-wide font-secondary">
+        <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           School admin access
         </h2>
-        <p className="mt-1 text-sm text-text-muted font-secondary">
+        <p className="mt-1 text-sm text-admin-muted font-secondary">
           Assign who can sign in to {organizationName}&apos;s admin portal.
           Users must already exist in Supabase Auth.
         </p>
@@ -146,7 +146,7 @@ export default function OrganizationAccessPanel({
 
       {error ? (
         <p
-          className="rounded-lg border border-clay/30 bg-clay-soft/30 px-3 py-2 text-sm text-clay font-secondary"
+          className="rounded-admin-md border border-admin-accent/30 bg-admin-accent-soft/30 px-3 py-2 text-sm text-admin-accent font-secondary"
           role="alert"
         >
           {error}
@@ -155,24 +155,24 @@ export default function OrganizationAccessPanel({
 
       <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
         <label className="block space-y-1">
-          <span className="text-xs text-text-muted font-secondary">Email</span>
+          <span className="text-xs text-admin-muted font-secondary">Email</span>
           <input
             type="email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="admin@school.org"
-            className="w-full text-sm border border-border rounded-lg px-3 py-2 font-secondary bg-bg"
+            className="w-full text-sm border border-admin-border rounded-admin-md px-3 py-2 bg-admin-bg"
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-xs text-text-muted font-secondary">Role</span>
+          <span className="text-xs text-admin-muted font-secondary">Role</span>
           <select
             value={role}
             onChange={(event) =>
               setRole(event.target.value as "admin" | "owner")
             }
-            className="w-full text-sm border border-border rounded-lg px-3 py-2 font-secondary bg-bg"
+            className="w-full text-sm border border-admin-border rounded-admin-md px-3 py-2 bg-admin-bg"
           >
             <option value="admin">Admin</option>
             <option value="owner">Owner</option>
@@ -182,7 +182,7 @@ export default function OrganizationAccessPanel({
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-clay px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-admin-md bg-admin-accent px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -196,26 +196,26 @@ export default function OrganizationAccessPanel({
 
       <div className="space-y-2">
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-text-faint font-secondary">
+          <div className="flex items-center gap-2 text-sm text-admin-faint font-secondary">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading access list…
           </div>
         ) : memberships.length === 0 ? (
-          <p className="text-sm text-text-faint font-secondary">
+          <p className="text-sm text-admin-faint font-secondary">
             No school admins assigned yet.
           </p>
         ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+          <ul className="divide-y divide-border rounded-admin-md border border-admin-border overflow-hidden">
             {memberships.map((membership) => (
               <li
                 key={membership.id}
-                className="flex items-center justify-between gap-3 bg-bg px-3 py-3"
+                className="flex items-center justify-between gap-3 bg-admin-bg px-3 py-3"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-text truncate">
+                  <p className="text-sm font-medium text-admin-text truncate">
                     {membership.email ?? membership.userId}
                   </p>
-                  <p className="text-xs text-text-muted font-secondary">
+                  <p className="text-xs text-admin-muted font-secondary">
                     {membership.role} · {membership.status} · added{" "}
                     {formatDateTime(membership.createdAt)}
                   </p>
@@ -225,7 +225,7 @@ export default function OrganizationAccessPanel({
                     type="button"
                     disabled={saving}
                     onClick={() => void handleDisable(membership.id)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-text-muted hover:bg-surface-soft disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-1 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-muted hover:bg-admin-neutral-bg disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <UserMinus className="h-3.5 w-3.5" />
                     Remove

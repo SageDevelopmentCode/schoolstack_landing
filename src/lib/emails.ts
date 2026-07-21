@@ -481,3 +481,43 @@ export async function sendPaymentReceiptConfirmation(payload: {
     console.error("Payment receipt confirmation email failed:", result.error);
   }
 }
+
+export function buildStripePaymentsReadyHtml(payload: {
+  schoolName: string;
+  paymentsAdminUrl: string;
+}): string {
+  return composeEmail({
+    preheader: `${payload.schoolName} can now collect application and enrollment fees online.`,
+    contentHtml: `
+      ${emailBadge("Payments Live")}
+      ${emailHeading("You're ready to collect fees")}
+      ${emailParagraph(
+        `${escapeHtml(payload.schoolName)} can now accept application and enrollment fees online. Funds from family payments go directly to your school's Stripe account.`,
+      )}
+      ${emailParagraph(
+        "Publish your application form so families can apply and pay. You can view payment history in your admissions dashboard, and manage payouts in your Stripe Express dashboard.",
+      )}
+      ${emailCta({ label: "Open payments setup", href: payload.paymentsAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendStripePaymentsReadyNotification(payload: {
+  email: string;
+  schoolName: string;
+  paymentsAdminUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildStripePaymentsReadyHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Payments are live — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Stripe payments ready notification email failed:", result.error);
+  }
+}

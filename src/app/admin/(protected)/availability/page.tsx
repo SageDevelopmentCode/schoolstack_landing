@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { CalendarGrid } from "@/components/scheduler/CalendarGrid";
 import { PublicSchedulerPreviewModal } from "@/components/scheduler/PublicSchedulerPreviewModal";
+import { AdminPageState } from "@/components/admin/ui/AdminPageState";
+import { ADMIN_CALENDAR_COLORS } from "@/lib/admin-ui/tokens";
 import {
   TIME_SLOTS,
   MONTH_NAMES,
@@ -161,61 +163,54 @@ export default function AvailabilityPage() {
   const bookedTimes = new Set(bookedSlots.map((b) => b.scheduled_time));
   const canEditSelected = selectedDate !== null && selectedDate >= today;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-3rem)] text-sm text-text-faint font-secondary">
-        Loading…
-      </div>
-    );
-  }
+  if (loading) return <AdminPageState variant="loading" />;
 
   return (
-    <div
-      className="h-[calc(100vh-3rem)] flex overflow-hidden"
-      style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}
-    >
+    <div className="h-[calc(100vh-3rem)] flex overflow-hidden">
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div className="flex-1 p-6 md:p-8 overflow-y-auto">
           <div className="max-w-md mx-auto">
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-lg font-medium text-text mb-1">Demo availability</h1>
-                <p className="text-sm text-text-muted font-secondary">
-                  Toggle open time slots for each day. Booked slots stay visible but
-                  won&apos;t appear on the public calendar.
+                <h1 className="text-lg font-semibold text-admin-text mb-1">
+                  Demo availability
+                </h1>
+                <p className="text-sm text-admin-muted">
+                  Toggle open time slots for each day. Booked slots stay visible
+                  but won&apos;t appear on the public calendar.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowPreview(true)}
-                className="shrink-0 flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm font-medium font-secondary text-text-muted hover:text-text hover:border-border-strong transition-colors"
+                className="shrink-0 flex items-center gap-2 h-9 px-3 rounded-admin-md border border-admin-border text-sm font-medium text-admin-muted hover:text-admin-text hover:bg-admin-neutral-bg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/30"
               >
                 <Eye size={15} />
                 Preview public calendar
               </button>
             </div>
 
-            {error && (
-              <p className="text-sm text-clay font-secondary mb-4">{error}</p>
-            )}
+            {error ? (
+              <p className="text-sm text-admin-error mb-4">{error}</p>
+            ) : null}
 
-            <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
+            <div className="bg-admin-surface border border-admin-border rounded-admin-md p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <button
                   type="button"
                   onClick={prevMonth}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-border/30 transition-all duration-150"
+                  className="w-8 h-8 flex items-center justify-center rounded-admin-sm text-admin-muted hover:text-admin-text hover:bg-admin-neutral-bg transition-all duration-150"
                   aria-label="Previous month"
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <span className="text-[14px] font-medium font-secondary text-text">
+                <span className="text-sm font-medium text-admin-text">
                   {MONTH_NAMES[viewMonth]} {viewYear}
                 </span>
                 <button
                   type="button"
                   onClick={nextMonth}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-border/30 transition-all duration-150"
+                  className="w-8 h-8 flex items-center justify-center rounded-admin-sm text-admin-muted hover:text-admin-text hover:bg-admin-neutral-bg transition-all duration-150"
                   aria-label="Next month"
                 >
                   <ChevronRight size={16} />
@@ -230,24 +225,25 @@ export default function AvailabilityPage() {
                 availableDates={availableDates}
                 minDate={today}
                 editable
+                colors={ADMIN_CALENDAR_COLORS}
               />
             </div>
           </div>
         </div>
 
-        <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-border bg-surface flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-border">
+        <div className="w-full md:w-80 shrink-0 border-t md:border-t-0 md:border-l border-admin-border bg-admin-surface flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-admin-border">
             {selectedDate ? (
               <>
-                <p className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-0.5">
+                <p className="text-[10px] font-medium text-admin-faint uppercase tracking-widest mb-0.5">
                   Time slots
                 </p>
-                <p className="text-[13px] font-medium font-secondary text-text">
+                <p className="text-sm font-medium text-admin-text">
                   {formatSelectedDate(selectedDate)}
                 </p>
               </>
             ) : (
-              <p className="text-sm text-text-muted font-secondary">
+              <p className="text-sm text-admin-muted">
                 Select a date to manage slots
               </p>
             )}
@@ -255,11 +251,11 @@ export default function AvailabilityPage() {
 
           <div className="flex-1 overflow-y-auto p-4">
             {!selectedDate ? (
-              <p className="text-sm text-text-faint text-center py-8">
+              <p className="text-sm text-admin-faint text-center py-8">
                 Click a date on the calendar to add or remove time slots
               </p>
             ) : selectedDate < today ? (
-              <p className="text-sm text-text-faint text-center py-8">
+              <p className="text-sm text-admin-faint text-center py-8">
                 Past dates can&apos;t be edited
               </p>
             ) : (
@@ -275,19 +271,19 @@ export default function AvailabilityPage() {
                       type="button"
                       disabled={disabled}
                       onClick={() => toggleSlot(slot)}
-                      className={`w-full h-10 rounded-lg border-2 text-[13px] font-medium font-secondary transition-all duration-150 ${
+                      className={`w-full h-10 rounded-admin-md border text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent/30 ${
                         isOpen
-                          ? "border-accent bg-accent/10 text-accent"
-                          : "border-border text-text-muted hover:border-accent hover:text-accent"
+                          ? "border-admin-accent bg-admin-accent-soft text-admin-accent"
+                          : "border-admin-border text-admin-muted hover:border-admin-accent hover:text-admin-accent"
                       } disabled:opacity-60`}
                     >
                       <span className="flex items-center justify-center gap-2">
                         {slot}
-                        {isBooked && (
-                          <span className="text-[10px] uppercase tracking-wide text-clay">
+                        {isBooked ? (
+                          <span className="text-[10px] uppercase tracking-wide text-admin-warning">
                             Booked
                           </span>
-                        )}
+                        ) : null}
                       </span>
                     </button>
                   );
@@ -295,18 +291,18 @@ export default function AvailabilityPage() {
               </div>
             )}
 
-            {bookedSlots.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-border">
-                <p className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-3">
+            {bookedSlots.length > 0 ? (
+              <div className="mt-6 pt-4 border-t border-admin-border">
+                <p className="text-[10px] font-medium text-admin-faint uppercase tracking-widest mb-3">
                   Bookings
                 </p>
                 <ul className="flex flex-col gap-2">
                   {bookedSlots.map((b) => (
                     <li
                       key={b.scheduled_time}
-                      className="text-[12px] font-secondary text-text-muted"
+                      className="text-xs text-admin-muted"
                     >
-                      <span className="font-medium text-text">
+                      <span className="font-medium text-admin-text">
                         {b.scheduled_time}
                       </span>
                       {" — "}
@@ -315,14 +311,14 @@ export default function AvailabilityPage() {
                   ))}
                 </ul>
               </div>
-            )}
+            ) : null}
           </div>
 
-          {canEditSelected && (
-            <div className="p-4 border-t border-border text-[11px] text-text-faint font-secondary">
+          {canEditSelected ? (
+            <div className="p-4 border-t border-admin-border text-[11px] text-admin-faint">
               Click a slot to open or close it. Changes save immediately.
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
