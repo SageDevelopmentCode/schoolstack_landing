@@ -53,6 +53,7 @@ Run after `add_product_enrollment_checklist_templates.sql` and `add_product_docu
 | File | Step | Notes |
 |------|------|-------|
 | `seed_rooted_meadows_enrollment_agreement_variants.sql` | Enrollment Agreement (variant group) | Standard + Conditional Support agreements; idempotent |
+| `seed_rooted_meadows_idaho_parent_choice_tax_credit_step.sql` | Idaho Parent Choice Tax Credit | Form step for upfront tax-credit intent; target org `rooted-meadows`; idempotent |
 
 To sync into the demo sandbox, run this seed against `rooted-meadows-school` first, then re-run `migrations_manual/clone_rooted_meadows_demo.sql`.
 
