@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import PaymentSchedulePreviewPanel from "@/components/school-admin/tuition/PaymentSchedulePreviewPanel";
-import SchoolAdminSegmentedControl from "@/components/school-admin/ui/SchoolAdminSegmentedControl";
+import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
 import {
   formatCents,
   formatTierAmountRange,
@@ -23,6 +22,7 @@ import {
   validateCustomPaymentCount,
   type WizardTierInput,
 } from "@/lib/tuition/setup-wizard";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type TuitionPaymentOptionsStepProps = {
@@ -71,6 +71,7 @@ export default function TuitionPaymentOptionsStep({
   const [customCount, setCustomCount] = useState("");
   const [customError, setCustomError] = useState<string | null>(null);
   const [addCardExpanded, setAddCardExpanded] = useState(false);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
   const schoolYearMonths = schoolYearMonthSpan(effectiveStart, effectiveEnd);
   const maxInstallments = maxInstallmentsForSchoolYear(effectiveStart, effectiveEnd);
@@ -102,18 +103,7 @@ export default function TuitionPaymentOptionsStep({
   );
   const resolvedDefaultCount =
     defaultCount ?? (selectedCounts.length > 0 ? selectedCounts[0] : null);
-  const defaultPreview =
-    selectedPreviews.find((preview) => preview.count === resolvedDefaultCount) ??
-    selectedPreviews[0] ??
-    null;
-  const otherPreviews = selectedPreviews.filter(
-    (preview) => preview.count !== defaultPreview?.count,
-  );
-
-  const defaultOptions = selectedPreviews.map((preview) => ({
-    value: String(preview.count),
-    label: paymentScheduleLabel(preview.count),
-  }));
+  const showDefaultControls = selectedCounts.length > 1;
 
   const customInputMax =
     maxInstallments != null
@@ -159,9 +149,20 @@ export default function TuitionPaymentOptionsStep({
       </div>
 
       <div className="flex flex-col gap-3">
-        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-          Payment schedules
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+            Payment schedules
+          </p>
+          <button
+            type="button"
+            disabled={selectedCounts.length === 0}
+            onClick={() => setPreviewModalOpen(true)}
+            className="text-sm px-3 py-1.5 rounded-md font-medium shrink-0 disabled:opacity-50"
+            style={getAdminButtonStyle(C, "secondary")}
+          >
+            Preview schedules
+          </button>
+        </div>
         {schoolYearMonths != null ? (
           <p className="text-xs" style={{ color: C.textTertiary }}>
             Based on your school year ({schoolYearMonths} months), installment schedules
@@ -178,6 +179,7 @@ export default function TuitionPaymentOptionsStep({
               schedule.count,
             ])[0];
             const selected = selectedCounts.includes(schedule.count);
+            const isDefault = resolvedDefaultCount === schedule.count;
             return (
               <ScheduleCardShell
                 key={schedule.count}
@@ -192,6 +194,9 @@ export default function TuitionPaymentOptionsStep({
                   perPayment={preview ? formatCents(preview.amountCents) : "—"}
                   annualTotal={formatCents(annualAmountCents)}
                   onToggle={() => onToggleCount(schedule.count)}
+                  isDefault={selected && isDefault}
+                  showDefaultControl={selected && showDefaultControls && !isDefault}
+                  onSetDefault={() => onSetDefault(schedule.count)}
                 />
               </ScheduleCardShell>
             );
@@ -200,6 +205,7 @@ export default function TuitionPaymentOptionsStep({
           {customOnlyCounts.map((count) => {
             const preview = buildPaymentOptionPreviews(annualAmountCents, [count])[0];
             const selected = selectedCounts.includes(count);
+            const isDefault = resolvedDefaultCount === count;
             return (
               <ScheduleCardShell key={count} C={C} selected={selected}>
                 <div className="flex items-start gap-2">
@@ -212,6 +218,9 @@ export default function TuitionPaymentOptionsStep({
                     annualTotal={formatCents(annualAmountCents)}
                     onToggle={() => onToggleCount(count)}
                     compact
+                    isDefault={selected && isDefault}
+                    showDefaultControl={selected && showDefaultControls && !isDefault}
+                    onSetDefault={() => onSetDefault(count)}
                   />
                   <button
                     type="button"
@@ -247,65 +256,24 @@ export default function TuitionPaymentOptionsStep({
             {customError}
           </p>
         ) : null}
+        {selectedCounts.length === 0 ? (
+          <p className="text-sm" style={{ color: C.error }}>
+            Select at least one payment schedule to continue.
+          </p>
+        ) : null}
       </div>
 
       {selectedCounts.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          <div>
-            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-              Default schedule
-            </p>
-            <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
-              Used when a family has no specific payment schedule assigned.
-            </p>
-          </div>
-          {resolvedDefaultCount != null && defaultOptions.length <= 4 ? (
-            <SchoolAdminSegmentedControl
-              C={C}
-              value={String(resolvedDefaultCount)}
-              onChange={(value) => onSetDefault(Number(value))}
-              ariaLabel="Default payment schedule"
-              className="self-start"
-              options={defaultOptions}
-            />
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {defaultOptions.map((option) => {
-                const isActive = resolvedDefaultCount === Number(option.value);
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => onSetDefault(Number(option.value))}
-                    className="text-sm px-3 py-1.5 rounded-md font-medium"
-                    style={{
-                      backgroundColor: isActive ? C.accentLight : C.bg,
-                      color: isActive ? C.accent : C.textSecondary,
-                      border: `1px solid ${isActive ? C.accent : C.border}`,
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      ) : (
-        <p className="text-sm" style={{ color: C.error }}>
-          Select at least one payment schedule to continue.
-        </p>
-      )}
-
-      {defaultPreview ? (
-        <PaymentSchedulePreviewPanel
+        <PaymentSchedulePreviewModal
           C={C}
+          open={previewModalOpen}
+          previews={selectedPreviews}
+          defaultCount={resolvedDefaultCount ?? selectedCounts[0]!}
           annualAmountCents={annualAmountCents}
-          defaultPreview={defaultPreview}
-          otherPreviews={otherPreviews}
           effectiveStart={effectiveStart}
           effectiveEnd={effectiveEnd}
           schoolYearMonths={schoolYearMonths}
+          onClose={() => setPreviewModalOpen(false)}
         />
       ) : null}
     </div>
@@ -444,6 +412,9 @@ function ScheduleCard({
   annualTotal,
   onToggle,
   compact = false,
+  isDefault = false,
+  showDefaultControl = false,
+  onSetDefault,
 }: {
   C: AdminThemeTokens;
   selected: boolean;
@@ -453,6 +424,9 @@ function ScheduleCard({
   annualTotal: string;
   onToggle: () => void;
   compact?: boolean;
+  isDefault?: boolean;
+  showDefaultControl?: boolean;
+  onSetDefault?: () => void;
 }) {
   return (
     <label
@@ -474,6 +448,27 @@ function ScheduleCard({
         <p className="text-xs mt-1.5" style={{ color: C.textSecondary }}>
           {perPayment} per payment · {annualTotal}/yr
         </p>
+        {isDefault ? (
+          <span
+            className="inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-2"
+            style={{ backgroundColor: C.accentLight, color: C.accent }}
+          >
+            Default
+          </span>
+        ) : showDefaultControl ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onSetDefault?.();
+            }}
+            className="text-xs font-medium mt-2 underline-offset-2 hover:underline"
+            style={{ color: C.accent }}
+          >
+            Set as default
+          </button>
+        ) : null}
       </div>
     </label>
   );

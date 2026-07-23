@@ -5,24 +5,19 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { BuilderSectionIntro } from "@/components/school-admin/admissions/builder-question-card";
 import TuitionFeesStep from "@/components/school-admin/tuition/TuitionFeesStep";
 import TuitionPaymentOptionsStep from "@/components/school-admin/tuition/TuitionPaymentOptionsStep";
+import TuitionReviewStep from "@/components/school-admin/tuition/TuitionReviewStep";
 import TuitionTiersStep from "@/components/school-admin/tuition/TuitionTiersStep";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import SchoolAdminDatePicker, {
   schoolAdminDateRangeBounds,
 } from "@/components/school-admin/ui/SchoolAdminDatePicker";
 import { listProgramsDetailed, type Program } from "@/lib/admissions/programs";
+import type { TuitionInputMode } from "@/lib/tuition/pricing";
 import {
-  formatCents,
-  tuitionInputToAnnualCents,
-  type TuitionInputMode,
-} from "@/lib/tuition/pricing";
-import {
-  buildPaymentOptionPreviews,
   createRatePlanFromWizard,
   DEFAULT_PAYMENT_COUNT,
   DEFAULT_PAYMENT_COUNTS,
   filterAllowedPaymentCounts,
-  paymentScheduleLabel,
   suggestPlanNameFromProgram,
   validateWizardFees,
   validateWizardTiers,
@@ -251,6 +246,11 @@ export default function TuitionSetupWizard({
     setStepIndex((prev) => Math.max(prev - 1, 0));
   };
 
+  const goToStep = (index: number) => {
+    setError(null);
+    setStepIndex(index);
+  };
+
   const handleActivate = async () => {
     const validationError = validateStep();
     if (validationError) {
@@ -437,72 +437,20 @@ export default function TuitionSetupWizard({
           ) : null}
 
           {!activated && stepIndex === 4 ? (
-            <div
-              className="rounded-lg p-5 flex flex-col gap-4 text-sm"
-              style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
-            >
-              <div>
-                <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
-                  Program
-                </p>
-                <p style={{ color: C.textPrimary }}>
-                  {selectedProgram?.name ?? "—"} · {planName}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide mb-1" style={{ color: C.textTertiary }}>
-                  Tuition rates
-                </p>
-                <ul className="space-y-1" style={{ color: C.textSecondary }}>
-                  {tiers.map((tier, index) => {
-                    const annualCents = tuitionInputToAnnualCents(
-                      Number(tier.amount),
-                      tuitionInputMode,
-                    );
-                    return (
-                      <li key={index}>
-                        {tier.label || "Unnamed rate"}: {formatCents(annualCents)}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide mb-1" style={{ color: C.textTertiary }}>
-                  Payment options
-                </p>
-                <ul className="space-y-1" style={{ color: C.textSecondary }}>
-                  {buildPaymentOptionPreviews(annualAmountCents, paymentCounts).map(
-                    (preview) => (
-                      <li key={preview.count}>
-                        {preview.label}: {formatCents(preview.amountCents)} each
-                        {(defaultPaymentCount ?? paymentCounts[0]) === preview.count
-                          ? " (default)"
-                          : ""}
-                      </li>
-                    ),
-                  )}
-                </ul>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide mb-1" style={{ color: C.textTertiary }}>
-                  Additional fees
-                </p>
-                {fees.filter((fee) => fee.label.trim() && fee.amountCents > 0).length ? (
-                  <ul className="space-y-1" style={{ color: C.textSecondary }}>
-                    {fees
-                      .filter((fee) => fee.label.trim() && fee.amountCents > 0)
-                      .map((fee, index) => (
-                        <li key={fee.code ?? `${fee.label}-${index}`}>
-                          {fee.label}: {formatCents(fee.amountCents)} at enrollment
-                        </li>
-                      ))}
-                  </ul>
-                ) : (
-                  <p style={{ color: C.textSecondary }}>No additional fees</p>
-                )}
-              </div>
-            </div>
+            <TuitionReviewStep
+              C={C}
+              programName={selectedProgram?.name ?? ""}
+              planName={planName}
+              effectiveStart={effectiveStart || null}
+              effectiveEnd={effectiveEnd || null}
+              tuitionInputMode={tuitionInputMode}
+              tiers={tiers}
+              annualAmountCents={annualAmountCents}
+              paymentCounts={paymentCounts}
+              defaultPaymentCount={defaultPaymentCount}
+              fees={fees}
+              onGoToStep={goToStep}
+            />
           ) : null}
 
           {error ? (
