@@ -8,6 +8,7 @@ import TuitionFeesStep from "@/components/school-admin/tuition/TuitionFeesStep";
 import TuitionPaymentOptionsStep from "@/components/school-admin/tuition/TuitionPaymentOptionsStep";
 import TuitionReviewStep from "@/components/school-admin/tuition/TuitionReviewStep";
 import TuitionTiersStep from "@/components/school-admin/tuition/TuitionTiersStep";
+import TuitionWizardStepNav from "@/components/school-admin/tuition/TuitionWizardStepNav";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import SchoolAdminDatePicker, {
   schoolAdminDateRangeBounds,
@@ -22,7 +23,7 @@ import {
   DEFAULT_PAYMENT_COUNTS,
   filterAllowedPaymentCounts,
   saveWizardDraft,
-  serializeWizardState,
+  serializeWizardFormState,
   suggestPlanNameFromProgram,
   validateWizardFees,
   validateWizardTiers,
@@ -47,11 +48,11 @@ type TuitionSetupWizardProps = {
 };
 
 const STEPS = [
-  { id: "program", title: "Program & schedule" },
-  { id: "tiers", title: "Tuition rates" },
-  { id: "payments", title: "Payment options" },
-  { id: "fees", title: "Additional fees" },
-  { id: "review", title: "Review & activate" },
+  { id: "program", title: "Program & schedule", shortLabel: "Program" },
+  { id: "tiers", title: "Tuition rates", shortLabel: "Rates" },
+  { id: "payments", title: "Payment options", shortLabel: "Payments" },
+  { id: "fees", title: "Additional fees", shortLabel: "Fees" },
+  { id: "review", title: "Review & activate", shortLabel: "Review" },
 ] as const;
 
 const DEFAULT_TIERS: WizardTierInput[] = [
@@ -87,6 +88,9 @@ export default function TuitionSetupWizard({
   const initialPlanId = editRatePlanId ?? draftRatePlanId ?? null;
 
   const [stepIndex, setStepIndex] = useState(0);
+  const [maxReachedStep, setMaxReachedStep] = useState(() =>
+    isEditMode ? STEPS.length - 1 : 0,
+  );
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
   const [loadingPlan, setLoadingPlan] = useState(Boolean(initialPlanId));
@@ -98,7 +102,7 @@ export default function TuitionSetupWizard({
   const [savedRatePlanId, setSavedRatePlanId] = useState<string | null>(
     draftRatePlanId ?? null,
   );
-  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+  const [savedFormSnapshot, setSavedFormSnapshot] = useState<string | null>(null);
 
   const [programId, setProgramId] = useState("");
   const [planName, setPlanName] = useState("");
@@ -115,9 +119,9 @@ export default function TuitionSetupWizard({
   );
   const [fees, setFees] = useState<WizardFeeInput[]>([]);
 
-  const currentSnapshot = useMemo(
+  const currentFormSnapshot = useMemo(
     () =>
-      serializeWizardState({
+      serializeWizardFormState({
         programId,
         planName,
         pricingMode,
@@ -128,7 +132,6 @@ export default function TuitionSetupWizard({
         paymentCounts,
         defaultPaymentCount,
         fees,
-        stepIndex,
       }),
     [
       programId,
@@ -141,14 +144,14 @@ export default function TuitionSetupWizard({
       paymentCounts,
       defaultPaymentCount,
       fees,
-      stepIndex,
     ],
   );
 
-  const isDirty = savedSnapshot != null && currentSnapshot !== savedSnapshot;
+  const isDirty =
+    savedFormSnapshot != null && currentFormSnapshot !== savedFormSnapshot;
 
   const { dialogOpen: leaveDialogOpen, requestAction, confirmLeave, cancelLeave } =
-    useUnsavedChangesGuard({ isDirty, enabled: !activated && savedSnapshot != null });
+    useUnsavedChangesGuard({ isDirty, enabled: !activated && savedFormSnapshot != null });
 
   const applyPlanToState = useCallback((plan: RatePlanWithDetails) => {
     const state = wizardStateFromRatePlan(plan);
@@ -165,6 +168,7 @@ export default function TuitionSetupWizard({
     setFees(state.fees ?? []);
     if (!isEditMode) {
       setStepIndex(state.wizardStepIndex);
+      setMaxReachedStep(state.wizardStepIndex);
       setSavedRatePlanId(plan.id);
     }
   }, [isEditMode]);
@@ -206,9 +210,9 @@ export default function TuitionSetupWizard({
 
   useEffect(() => {
     if (loadingPrograms || loadingPlan) return;
-    if (savedSnapshot != null) return;
-    setSavedSnapshot(currentSnapshot);
-  }, [loadingPrograms, loadingPlan, savedSnapshot, currentSnapshot]);
+    if (savedFormSnapshot != null) return;
+    setSavedFormSnapshot(currentFormSnapshot);
+  }, [loadingPrograms, loadingPlan, savedFormSnapshot, currentFormSnapshot]);
 
   useEffect(() => {
     setPaymentCounts((prev) => {
@@ -230,7 +234,6 @@ export default function TuitionSetupWizard({
   const selectedProgram = programs.find((p) => p.id === programId) ?? null;
   const annualAmountCents = wizardTiersToAnnualCents(tiers, tuitionInputMode);
   const schoolYearDateBounds = useMemo(() => schoolAdminDateRangeBounds(), []);
-  const progress = ((stepIndex + 1) / STEPS.length) * 100;
 
   const handleProgramChange = (nextProgramId: string) => {
     setProgramId(nextProgramId);
@@ -335,20 +338,7 @@ export default function TuitionSetupWizard({
         buildDraftInput(nextStepIndex, options.strict),
       );
       setSavedRatePlanId(ratePlan.id);
-      const snapshot = serializeWizardState({
-        programId,
-        planName,
-        pricingMode,
-        tuitionInputMode,
-        tiers,
-        effectiveStart,
-        effectiveEnd,
-        paymentCounts,
-        defaultPaymentCount,
-        fees,
-        stepIndex: nextStepIndex,
-      });
-      setSavedSnapshot(snapshot);
+      setSavedFormSnapshot(currentFormSnapshot);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save progress.");
@@ -371,33 +361,22 @@ export default function TuitionSetupWizard({
     setError(null);
 
     const nextStepIndex = Math.min(stepIndex + 1, STEPS.length - 1);
-    if (shouldSaveDraft) {
+    const needsPersist = shouldSaveDraft && (!savedRatePlanId || isDirty);
+
+    if (needsPersist) {
       const saved = await saveDraft(nextStepIndex, { strict: true, source: "continue" });
       if (!saved) return;
-    } else {
-      setSavedSnapshot(
-        serializeWizardState({
-          programId,
-          planName,
-          pricingMode,
-          tuitionInputMode,
-          tiers,
-          effectiveStart,
-          effectiveEnd,
-          paymentCounts,
-          defaultPaymentCount,
-          fees,
-          stepIndex: nextStepIndex,
-        }),
-      );
+    } else if (!shouldSaveDraft) {
+      setSavedFormSnapshot(currentFormSnapshot);
     }
 
     setStepIndex(nextStepIndex);
+    setMaxReachedStep((prev) => Math.max(prev, nextStepIndex));
   };
 
   const handleSaveProgress = async () => {
     if (!shouldSaveDraft) {
-      setSavedSnapshot(currentSnapshot);
+      setSavedFormSnapshot(currentFormSnapshot);
       return;
     }
 
@@ -415,6 +394,7 @@ export default function TuitionSetupWizard({
   };
 
   const goToStep = (index: number) => {
+    if (index > maxReachedStep || index === stepIndex) return;
     setError(null);
     setStepIndex(index);
   };
@@ -449,7 +429,7 @@ export default function TuitionSetupWizard({
         ratePlanId: savedRatePlanId ?? editRatePlanId ?? undefined,
       });
       setActivated(true);
-      setSavedSnapshot(currentSnapshot);
+      setSavedFormSnapshot(currentFormSnapshot);
       window.setTimeout(() => {
         onComplete();
       }, 1200);
@@ -494,21 +474,20 @@ export default function TuitionSetupWizard({
                   : "A quick guided setup so families know what to pay and how they can pay it."
               }
             />
-            {savedSnapshot != null && !activated ? (
+            {savedFormSnapshot != null && !activated ? (
               <span className="text-xs shrink-0 pt-1" style={{ color: C.textTertiary }}>
                 {savingDraft ? "Saving…" : isDirty ? "Unsaved changes" : "Saved"}
               </span>
             ) : null}
           </div>
-          <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: C.bg }}>
-            <div
-              className="h-full transition-all duration-300"
-              style={{ width: `${progress}%`, backgroundColor: C.accent }}
-            />
-          </div>
-          <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
-            Step {stepIndex + 1} of {STEPS.length}: {STEPS[stepIndex].title}
-          </p>
+          <TuitionWizardStepNav
+            C={C}
+            steps={STEPS}
+            stepIndex={stepIndex}
+            maxReachedStep={maxReachedStep}
+            disabled={isBusy}
+            onGoToStep={goToStep}
+          />
         </div>
 
         <div className="px-6 py-5 min-h-[360px]">
@@ -672,11 +651,11 @@ export default function TuitionSetupWizard({
               ) : null}
             </div>
             <div className="flex gap-2">
-              {shouldSaveDraft ? (
+              {shouldSaveDraft && isDirty ? (
                 <button
                   type="button"
                   onClick={() => void handleSaveProgress()}
-                  disabled={isBusy || !isDirty}
+                  disabled={isBusy}
                   className="text-sm px-4 py-2 rounded-md disabled:opacity-50"
                   style={{ color: C.textSecondary }}
                 >

@@ -135,7 +135,7 @@ export function parseWizardMetadata(
   return { wizardStepIndex, pricingMode };
 }
 
-export function serializeWizardState(state: WizardPersistedState): string {
+function normalizeWizardStateForSerialize(state: WizardPersistedState) {
   const normalizedTiers = state.tiers.map((tier) => ({
     code: tier.code ?? "",
     label: tier.label,
@@ -149,7 +149,7 @@ export function serializeWizardState(state: WizardPersistedState): string {
     timing: fee.timing ?? "enrollment",
   }));
 
-  return JSON.stringify({
+  return {
     programId: state.programId,
     planName: state.planName,
     pricingMode: state.pricingMode,
@@ -160,6 +160,18 @@ export function serializeWizardState(state: WizardPersistedState): string {
     paymentCounts: [...state.paymentCounts].sort((a, b) => a - b),
     defaultPaymentCount: state.defaultPaymentCount,
     fees: normalizedFees,
+  };
+}
+
+export function serializeWizardFormState(
+  state: Omit<WizardPersistedState, "stepIndex">,
+): string {
+  return JSON.stringify(normalizeWizardStateForSerialize({ ...state, stepIndex: 0 }));
+}
+
+export function serializeWizardState(state: WizardPersistedState): string {
+  return JSON.stringify({
+    ...normalizeWizardStateForSerialize(state),
     stepIndex: state.stepIndex,
   });
 }

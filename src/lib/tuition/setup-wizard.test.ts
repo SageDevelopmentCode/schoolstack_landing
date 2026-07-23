@@ -11,6 +11,7 @@ import {
   paymentScheduleCadence,
   paymentScheduleLabel,
   schoolYearMonthSpan,
+  serializeWizardFormState,
   serializeWizardState,
   slugifyFeeCode,
   suggestPlanNameFromProgram,
@@ -212,6 +213,31 @@ describe("setup wizard helpers", () => {
       planName: "School Year 2027–28",
     });
     assert.notEqual(first, changed);
+  });
+
+  it("serializes wizard form state without step index", () => {
+    const base = {
+      programId: "program-1",
+      planName: "School Year 2026–27",
+      pricingMode: "single" as const,
+      tuitionInputMode: "annual" as const,
+      tiers: [{ label: "Standard", amount: "7200", isDefault: true }],
+      effectiveStart: "2026-08-01",
+      effectiveEnd: "2027-05-31",
+      paymentCounts: [1, 10],
+      defaultPaymentCount: 10,
+      fees: [] as Array<{ label: string; amountCents: number }>,
+    };
+
+    const stepZero = serializeWizardFormState(base);
+    const stepThree = serializeWizardFormState(base);
+    assert.equal(stepZero, stepThree);
+
+    const changed = serializeWizardFormState({
+      ...base,
+      planName: "School Year 2027–28",
+    });
+    assert.notEqual(stepZero, changed);
   });
 
   it("round-trips wizard metadata", () => {
