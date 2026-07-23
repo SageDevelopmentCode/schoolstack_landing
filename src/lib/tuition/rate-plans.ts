@@ -135,6 +135,7 @@ export async function createRatePlan(
     effectiveStart?: string | null;
     effectiveEnd?: string | null;
     status?: RatePlanStatus;
+    metadata?: Record<string, unknown>;
   },
 ): Promise<TuitionRatePlan> {
   const { data, error } = await supabase
@@ -149,6 +150,7 @@ export async function createRatePlan(
       effective_start: input.effectiveStart ?? null,
       effective_end: input.effectiveEnd ?? null,
       status: input.status ?? "active",
+      metadata: input.metadata ?? {},
     })
     .select("*")
     .single();
@@ -167,6 +169,8 @@ export async function updateRatePlan(
     status: RatePlanStatus;
     effectiveStart: string | null;
     effectiveEnd: string | null;
+    programId: string | null;
+    metadata: Record<string, unknown>;
   }>,
 ): Promise<TuitionRatePlan> {
   const patch: Record<string, unknown> = {};
@@ -176,6 +180,8 @@ export async function updateRatePlan(
   if (input.status !== undefined) patch.status = input.status;
   if (input.effectiveStart !== undefined) patch.effective_start = input.effectiveStart;
   if (input.effectiveEnd !== undefined) patch.effective_end = input.effectiveEnd;
+  if (input.programId !== undefined) patch.program_id = input.programId;
+  if (input.metadata !== undefined) patch.metadata = input.metadata;
 
   const { data, error } = await supabase
     .from("tuition_rate_plans")
@@ -272,6 +278,25 @@ export async function publishRatePlan(
   ratePlanId: string,
 ): Promise<TuitionRatePlan> {
   return updateRatePlan(supabase, ratePlanId, { status: "active" });
+}
+
+export async function getDraftRatePlanForOrganization(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<RatePlanWithDetails | null> {
+  const { data, error } = await supabase
+    .from("tuition_rate_plans")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("status", "draft")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return getRatePlanWithDetails(supabase, String(data.id));
 }
 
 export async function getRatePlanWithDetails(

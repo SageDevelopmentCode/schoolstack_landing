@@ -2,20 +2,25 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildPaymentOptionPreviews,
+  buildWizardMetadata,
   filterAllowedPaymentCounts,
   formatPaymentSchedulePreview,
   isPaymentCountAllowed,
+  parseWizardMetadata,
   paymentOptionLabel,
   paymentScheduleCadence,
   paymentScheduleLabel,
   schoolYearMonthSpan,
+  serializeWizardState,
   slugifyFeeCode,
   suggestPlanNameFromProgram,
   validateCustomPaymentCount,
   validateWizardFees,
+  validateWizardTiers,
   wizardFeesFromRatePlan,
+  wizardStateFromRatePlan,
 } from "./setup-wizard";
-import type { TuitionFeeComponent } from "./types";
+import type { RatePlanWithDetails, TuitionFeeComponent } from "./types";
 
 describe("setup wizard helpers", () => {
   it("builds payment previews for Rooted Meadows annual tuition", () => {
@@ -181,5 +186,98 @@ describe("setup wizard helpers", () => {
   it("slugifies fee codes from labels", () => {
     assert.equal(slugifyFeeCode("Technology Fee"), "technology_fee");
     assert.equal(slugifyFeeCode("Supply Fee"), "supply_fee");
+  });
+
+  it("serializes wizard state deterministically for dirty checks", () => {
+    const base = {
+      programId: "program-1",
+      planName: "School Year 2026–27",
+      pricingMode: "single" as const,
+      tuitionInputMode: "annual" as const,
+      tiers: [{ label: "Standard", amount: "7200", isDefault: true }],
+      effectiveStart: "2026-08-01",
+      effectiveEnd: "2027-05-31",
+      paymentCounts: [1, 10],
+      defaultPaymentCount: 10,
+      fees: [] as Array<{ label: string; amountCents: number }>,
+      stepIndex: 2,
+    };
+
+    const first = serializeWizardState(base);
+    const second = serializeWizardState(base);
+    assert.equal(first, second);
+
+    const changed = serializeWizardState({
+      ...base,
+      planName: "School Year 2027–28",
+    });
+    assert.notEqual(first, changed);
+  });
+
+  it("round-trips wizard metadata", () => {
+    const metadata = buildWizardMetadata(3, "multiple");
+    const parsed = parseWizardMetadata(metadata);
+    assert.deepEqual(parsed, {
+      wizardStepIndex: 3,
+      pricingMode: "multiple",
+    });
+  });
+
+  it("clamps wizard metadata step index to valid range", () => {
+    assert.deepEqual(parseWizardMetadata({ wizardStepIndex: 99 }).wizardStepIndex, 4);
+    assert.deepEqual(parseWizardMetadata({ wizardStepIndex: -2 }).wizardStepIndex, 0);
+  });
+
+  it("restores draft wizard state with empty payments and saved step", () => {
+    const plan: RatePlanWithDetails = {
+      id: "plan-1",
+      organizationId: "org-1",
+      programId: "program-1",
+      name: "Draft plan",
+      billingBasis: "annual",
+      amountCents: 0,
+      currency: "USD",
+      effectiveStart: "2026-08-01",
+      effectiveEnd: "2027-05-31",
+      status: "draft",
+      metadata: buildWizardMetadata(2, "multiple"),
+      createdAt: "",
+      updatedAt: "",
+      programName: "Primary",
+      paymentPlans: [],
+      feeComponents: [],
+      tiers: [
+        {
+          id: "tier-1",
+          organizationId: "org-1",
+          ratePlanId: "plan-1",
+          code: "standard",
+          label: "Standard",
+          amountCents: 0,
+          sortOrder: 0,
+          isDefault: true,
+          metadata: {},
+          createdAt: "",
+          updatedAt: "",
+        },
+      ],
+    };
+
+    const state = wizardStateFromRatePlan(plan);
+    assert.equal(state.wizardStepIndex, 2);
+    assert.equal(state.pricingMode, "multiple");
+    assert.deepEqual(state.paymentCounts, []);
+    assert.equal(state.defaultPaymentCount, null);
+  });
+
+  it("requires valid tiers for strict step-1 validation", () => {
+    assert.equal(
+      validateWizardTiers([{ label: "Standard", amount: "", isDefault: true }]),
+      "Each tuition rate needs an amount greater than zero.",
+    );
+    assert.equal(
+      validateWizardTiers([{ label: "Standard", amount: "7200", isDefault: true }]),
+      null,
+    );
   });
 });

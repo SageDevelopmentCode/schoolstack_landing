@@ -63,9 +63,10 @@ export default function TuitionDashboard({
       ]);
       setRatePlans(plans);
       setKpis(kpiData);
+      const activePlans = plans.filter((plan) => plan.status !== "draft");
       setSelectedPlanId((prev) => {
-        if (prev && plans.some((p) => p.id === prev)) return prev;
-        return plans[0]?.id ?? null;
+        if (prev && activePlans.some((p) => p.id === prev)) return prev;
+        return activePlans[0]?.id ?? null;
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load tuition data.");
@@ -92,6 +93,7 @@ export default function TuitionDashboard({
       <TuitionSetupWizard
         organizationId={organizationId}
         branding={branding}
+        draftRatePlanId={setupStatus.draftRatePlanId}
         onComplete={() => void handleSetupComplete()}
         onCancelEdit={() => setShowSetupWizard(false)}
       />

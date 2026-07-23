@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { BuilderSectionIntro } from "@/components/school-admin/admissions/builder-question-card";
+import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import TuitionFeesStep from "@/components/school-admin/tuition/TuitionFeesStep";
 import TuitionPaymentOptionsStep from "@/components/school-admin/tuition/TuitionPaymentOptionsStep";
 import TuitionReviewStep from "@/components/school-admin/tuition/TuitionReviewStep";
@@ -11,13 +12,17 @@ import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import SchoolAdminDatePicker, {
   schoolAdminDateRangeBounds,
 } from "@/components/school-admin/ui/SchoolAdminDatePicker";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { listProgramsDetailed, type Program } from "@/lib/admissions/programs";
 import type { TuitionInputMode } from "@/lib/tuition/pricing";
+import { getRatePlanWithDetails } from "@/lib/tuition/rate-plans";
 import {
   createRatePlanFromWizard,
   DEFAULT_PAYMENT_COUNT,
   DEFAULT_PAYMENT_COUNTS,
   filterAllowedPaymentCounts,
+  saveWizardDraft,
+  serializeWizardState,
   suggestPlanNameFromProgram,
   validateWizardFees,
   validateWizardTiers,
@@ -26,7 +31,6 @@ import {
   type WizardFeeInput,
   type WizardTierInput,
 } from "@/lib/tuition/setup-wizard";
-import { getRatePlanWithDetails } from "@/lib/tuition/rate-plans";
 import type { RatePlanWithDetails } from "@/lib/tuition/types";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
@@ -38,6 +42,7 @@ type TuitionSetupWizardProps = {
   branding: OrganizationBranding;
   onComplete: () => void;
   editRatePlanId?: string | null;
+  draftRatePlanId?: string | null;
   onCancelEdit?: () => void;
 };
 
@@ -72,18 +77,28 @@ export default function TuitionSetupWizard({
   branding,
   onComplete,
   editRatePlanId,
+  draftRatePlanId,
   onCancelEdit,
 }: TuitionSetupWizardProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
   const isEditMode = Boolean(editRatePlanId);
+  const shouldSaveDraft = !isEditMode;
+  const initialPlanId = editRatePlanId ?? draftRatePlanId ?? null;
 
   const [stepIndex, setStepIndex] = useState(0);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
+  const [loadingPlan, setLoadingPlan] = useState(Boolean(initialPlanId));
   const [saving, setSaving] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [continuing, setContinuing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activated, setActivated] = useState(false);
+  const [savedRatePlanId, setSavedRatePlanId] = useState<string | null>(
+    draftRatePlanId ?? null,
+  );
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
   const [programId, setProgramId] = useState("");
   const [planName, setPlanName] = useState("");
@@ -100,13 +115,67 @@ export default function TuitionSetupWizard({
   );
   const [fees, setFees] = useState<WizardFeeInput[]>([]);
 
+  const currentSnapshot = useMemo(
+    () =>
+      serializeWizardState({
+        programId,
+        planName,
+        pricingMode,
+        tuitionInputMode,
+        tiers,
+        effectiveStart,
+        effectiveEnd,
+        paymentCounts,
+        defaultPaymentCount,
+        fees,
+        stepIndex,
+      }),
+    [
+      programId,
+      planName,
+      pricingMode,
+      tuitionInputMode,
+      tiers,
+      effectiveStart,
+      effectiveEnd,
+      paymentCounts,
+      defaultPaymentCount,
+      fees,
+      stepIndex,
+    ],
+  );
+
+  const isDirty = savedSnapshot != null && currentSnapshot !== savedSnapshot;
+
+  const { dialogOpen: leaveDialogOpen, requestAction, confirmLeave, cancelLeave } =
+    useUnsavedChangesGuard({ isDirty, enabled: !activated && savedSnapshot != null });
+
+  const applyPlanToState = useCallback((plan: RatePlanWithDetails) => {
+    const state = wizardStateFromRatePlan(plan);
+    setProgramId(plan.programId ?? "");
+    setPlanName(state.name);
+    const billingBasis = state.billingBasis ?? "annual";
+    setTuitionInputMode(billingBasis);
+    setTiers(state.tiers);
+    setPricingMode(state.pricingMode);
+    setEffectiveStart(state.effectiveStart ?? "");
+    setEffectiveEnd(state.effectiveEnd ?? "");
+    setPaymentCounts(state.paymentCounts);
+    setDefaultPaymentCount(state.defaultPaymentCount ?? DEFAULT_PAYMENT_COUNT);
+    setFees(state.fees ?? []);
+    if (!isEditMode) {
+      setStepIndex(state.wizardStepIndex);
+      setSavedRatePlanId(plan.id);
+    }
+  }, [isEditMode]);
+
   useEffect(() => {
     void (async () => {
       setLoadingPrograms(true);
       try {
         const rows = await listProgramsDetailed(supabase, organizationId);
         setPrograms(rows);
-        if (!editRatePlanId && rows[0]) {
+        if (!initialPlanId && rows[0]) {
           setProgramId((current) => current || rows[0].id);
           setPlanName((current) => current || suggestPlanNameFromProgram(rows[0].name));
           setEffectiveStart((current) => current || rows[0].start_date || "");
@@ -116,16 +185,30 @@ export default function TuitionSetupWizard({
         setLoadingPrograms(false);
       }
     })();
-  }, [organizationId, supabase, editRatePlanId]);
+  }, [organizationId, supabase, initialPlanId]);
 
   useEffect(() => {
-    if (!editRatePlanId) return;
+    if (!initialPlanId) {
+      setLoadingPlan(false);
+      return;
+    }
     void (async () => {
-      const plan = await getRatePlanWithDetails(supabase, editRatePlanId);
-      if (!plan) return;
-      applyPlanToState(plan);
+      setLoadingPlan(true);
+      try {
+        const plan = await getRatePlanWithDetails(supabase, initialPlanId);
+        if (!plan) return;
+        applyPlanToState(plan);
+      } finally {
+        setLoadingPlan(false);
+      }
     })();
-  }, [editRatePlanId, supabase]);
+  }, [initialPlanId, supabase, applyPlanToState]);
+
+  useEffect(() => {
+    if (loadingPrograms || loadingPlan) return;
+    if (savedSnapshot != null) return;
+    setSavedSnapshot(currentSnapshot);
+  }, [loadingPrograms, loadingPlan, savedSnapshot, currentSnapshot]);
 
   useEffect(() => {
     setPaymentCounts((prev) => {
@@ -143,21 +226,6 @@ export default function TuitionSetupWizard({
       return filtered;
     });
   }, [effectiveStart, effectiveEnd]);
-
-  function applyPlanToState(plan: RatePlanWithDetails) {
-    const state = wizardStateFromRatePlan(plan);
-    setProgramId(plan.programId ?? "");
-    setPlanName(state.name);
-    const billingBasis = state.billingBasis ?? "annual";
-    setTuitionInputMode(billingBasis);
-    setTiers(state.tiers);
-    setPricingMode(state.tiers.length > 1 ? "multiple" : "single");
-    setEffectiveStart(state.effectiveStart ?? "");
-    setEffectiveEnd(state.effectiveEnd ?? "");
-    setPaymentCounts(state.paymentCounts);
-    setDefaultPaymentCount(state.defaultPaymentCount ?? DEFAULT_PAYMENT_COUNT);
-    setFees(state.fees ?? []);
-  }
 
   const selectedProgram = programs.find((p) => p.id === programId) ?? null;
   const annualAmountCents = wizardTiersToAnnualCents(tiers, tuitionInputMode);
@@ -231,14 +299,114 @@ export default function TuitionSetupWizard({
     return null;
   };
 
-  const goNext = () => {
+  const buildDraftInput = (nextStepIndex: number, strict: boolean) => ({
+    organizationId,
+    programId,
+    name: planName.trim() || suggestPlanNameFromProgram(selectedProgram?.name ?? ""),
+    billingBasis: tuitionInputMode,
+    tiers,
+    effectiveStart: effectiveStart || null,
+    effectiveEnd: effectiveEnd || null,
+    paymentCounts,
+    defaultPaymentCount: defaultPaymentCount ?? undefined,
+    fees,
+    ratePlanId: savedRatePlanId ?? undefined,
+    stepIndex: nextStepIndex,
+    pricingMode,
+    strict,
+    validatedThroughStep: strict ? stepIndex : undefined,
+  });
+
+  const saveDraft = async (
+    nextStepIndex: number,
+    options: { strict: boolean; source: "continue" | "manual" },
+  ): Promise<boolean> => {
+    if (!shouldSaveDraft) return true;
+
+    if (options.source === "manual") {
+      setSavingDraft(true);
+    } else {
+      setContinuing(true);
+    }
+    setError(null);
+    try {
+      const ratePlan = await saveWizardDraft(
+        supabase,
+        buildDraftInput(nextStepIndex, options.strict),
+      );
+      setSavedRatePlanId(ratePlan.id);
+      const snapshot = serializeWizardState({
+        programId,
+        planName,
+        pricingMode,
+        tuitionInputMode,
+        tiers,
+        effectiveStart,
+        effectiveEnd,
+        paymentCounts,
+        defaultPaymentCount,
+        fees,
+        stepIndex: nextStepIndex,
+      });
+      setSavedSnapshot(snapshot);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save progress.");
+      return false;
+    } finally {
+      if (options.source === "manual") {
+        setSavingDraft(false);
+      } else {
+        setContinuing(false);
+      }
+    }
+  };
+
+  const goNext = async () => {
     const validationError = validateStep();
     if (validationError) {
       setError(validationError);
       return;
     }
     setError(null);
-    setStepIndex((prev) => Math.min(prev + 1, STEPS.length - 1));
+
+    const nextStepIndex = Math.min(stepIndex + 1, STEPS.length - 1);
+    if (shouldSaveDraft) {
+      const saved = await saveDraft(nextStepIndex, { strict: true, source: "continue" });
+      if (!saved) return;
+    } else {
+      setSavedSnapshot(
+        serializeWizardState({
+          programId,
+          planName,
+          pricingMode,
+          tuitionInputMode,
+          tiers,
+          effectiveStart,
+          effectiveEnd,
+          paymentCounts,
+          defaultPaymentCount,
+          fees,
+          stepIndex: nextStepIndex,
+        }),
+      );
+    }
+
+    setStepIndex(nextStepIndex);
+  };
+
+  const handleSaveProgress = async () => {
+    if (!shouldSaveDraft) {
+      setSavedSnapshot(currentSnapshot);
+      return;
+    }
+
+    if (!programId) {
+      setError("Select a program before saving.");
+      return;
+    }
+
+    await saveDraft(stepIndex, { strict: false, source: "manual" });
   };
 
   const goBack = () => {
@@ -249,6 +417,11 @@ export default function TuitionSetupWizard({
   const goToStep = (index: number) => {
     setError(null);
     setStepIndex(index);
+  };
+
+  const handleCancel = () => {
+    if (!onCancelEdit) return;
+    requestAction(onCancelEdit);
   };
 
   const handleActivate = async () => {
@@ -273,9 +446,10 @@ export default function TuitionSetupWizard({
         defaultPaymentCount:
           defaultPaymentCount ?? paymentCounts[0] ?? DEFAULT_PAYMENT_COUNT,
         fees,
-        ratePlanId: editRatePlanId ?? undefined,
+        ratePlanId: savedRatePlanId ?? editRatePlanId ?? undefined,
       });
       setActivated(true);
+      setSavedSnapshot(currentSnapshot);
       window.setTimeout(() => {
         onComplete();
       }, 1200);
@@ -286,7 +460,9 @@ export default function TuitionSetupWizard({
     }
   };
 
-  if (loadingPrograms) {
+  const isBusy = saving || savingDraft || continuing;
+
+  if (loadingPrograms || loadingPlan) {
     return (
       <div className="flex items-center justify-center min-h-[480px] p-6">
         <Loader2 className="w-5 h-5 animate-spin" style={{ color: C.textSecondary }} />
@@ -305,18 +481,25 @@ export default function TuitionSetupWizard({
         }}
       >
         <div className="px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${C.border}` }}>
-          <BuilderSectionIntro
-            C={C}
-            eyebrow={isEditMode ? "Edit rate plan" : "Get started"}
-            title={
-              isEditMode ? "Update your tuition rate plan" : "Set up your tuition rate plan"
-            }
-            subtitle={
-              isEditMode
-                ? "Adjust your program tuition, payment options, and fees."
-                : "A quick guided setup so families know what to pay and how they can pay it."
-            }
-          />
+          <div className="flex items-start justify-between gap-4">
+            <BuilderSectionIntro
+              C={C}
+              eyebrow={isEditMode ? "Edit rate plan" : "Get started"}
+              title={
+                isEditMode ? "Update your tuition rate plan" : "Set up your tuition rate plan"
+              }
+              subtitle={
+                isEditMode
+                  ? "Adjust your program tuition, payment options, and fees."
+                  : "A quick guided setup so families know what to pay and how they can pay it."
+              }
+            />
+            {savedSnapshot != null && !activated ? (
+              <span className="text-xs shrink-0 pt-1" style={{ color: C.textTertiary }}>
+                {savingDraft ? "Saving…" : isDirty ? "Unsaved changes" : "Saved"}
+              </span>
+            ) : null}
+          </div>
           <div className="mt-4 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: C.bg }}>
             <div
               className="h-full transition-all duration-300"
@@ -470,15 +653,17 @@ export default function TuitionSetupWizard({
                 <button
                   type="button"
                   onClick={goBack}
+                  disabled={isBusy}
                   className="text-sm px-4 py-2 rounded-md"
                   style={{ color: C.textSecondary }}
                 >
                   Back
                 </button>
-              ) : isEditMode && onCancelEdit ? (
+              ) : onCancelEdit ? (
                 <button
                   type="button"
-                  onClick={onCancelEdit}
+                  onClick={handleCancel}
+                  disabled={isBusy}
                   className="text-sm px-4 py-2 rounded-md"
                   style={{ color: C.textSecondary }}
                 >
@@ -487,20 +672,37 @@ export default function TuitionSetupWizard({
               ) : null}
             </div>
             <div className="flex gap-2">
+              {shouldSaveDraft ? (
+                <button
+                  type="button"
+                  onClick={() => void handleSaveProgress()}
+                  disabled={isBusy || !isDirty}
+                  className="text-sm px-4 py-2 rounded-md disabled:opacity-50"
+                  style={{ color: C.textSecondary }}
+                >
+                  {savingDraft ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Save progress"
+                  )}
+                </button>
+              ) : null}
               {stepIndex < STEPS.length - 1 ? (
                 <button
                   type="button"
-                  onClick={goNext}
+                  onClick={() => void goNext()}
+                  disabled={isBusy}
                   style={getAdminButtonStyle(C, "primary")}
-                  className="px-4 py-2 text-sm font-medium"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
                 >
+                  {continuing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   Continue
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={() => void handleActivate()}
-                  disabled={saving}
+                  disabled={isBusy}
                   style={getAdminButtonStyle(C, "primary")}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
                 >
@@ -512,6 +714,18 @@ export default function TuitionSetupWizard({
           </div>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        C={C}
+        open={leaveDialogOpen}
+        title="Unsaved changes"
+        description="You have unsaved changes. If you leave now, your changes will be lost."
+        confirmLabel="Leave without saving"
+        cancelLabel="Keep editing"
+        variant="destructive"
+        onConfirm={confirmLeave}
+        onClose={cancelLeave}
+      />
     </div>
   );
 }

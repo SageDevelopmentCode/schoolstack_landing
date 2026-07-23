@@ -89,8 +89,13 @@ export default function TuitionRateCatalogPanel({
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
 
+  const catalogRatePlans = useMemo(
+    () => ratePlans.filter((plan) => plan.status !== "draft"),
+    [ratePlans],
+  );
+
   const selectedPlan =
-    ratePlans.find((plan) => plan.id === selectedPlanId) ?? null;
+    catalogRatePlans.find((plan) => plan.id === selectedPlanId) ?? null;
 
   const [localPlan, setLocalPlan] = useState<RatePlanWithDetails | null>(null);
   const [paymentCounts, setPaymentCounts] = useState<number[]>([]);
@@ -247,7 +252,7 @@ export default function TuitionRateCatalogPanel({
     );
   }
 
-  if (!ratePlans.length) {
+  if (!catalogRatePlans.length) {
     return (
       <div
         className="rounded-xl p-10 text-center flex flex-col items-center gap-4"
@@ -278,7 +283,7 @@ export default function TuitionRateCatalogPanel({
         className="rounded-lg p-3 flex flex-col gap-2"
         style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
       >
-        {ratePlans.map((plan) => (
+        {catalogRatePlans.map((plan) => (
           <button
             key={plan.id}
             type="button"

@@ -52,6 +52,7 @@ export default function TuitionPage({
       <TuitionSetupWizard
         organizationId={organizationId}
         branding={branding}
+        draftRatePlanId={setupStatus.draftRatePlanId}
         onComplete={() => void loadSetupStatus()}
       />
     );
