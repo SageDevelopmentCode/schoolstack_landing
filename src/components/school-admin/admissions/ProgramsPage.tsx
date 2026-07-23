@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
+import SchoolAdminDatePicker, {
+  schoolAdminDateRangeBounds,
+} from "@/components/school-admin/ui/SchoolAdminDatePicker";
 import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
 import {
   createProgram,
@@ -427,44 +431,42 @@ export default function ProgramsPage({
                   <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
                     Type
                   </label>
-                  <select
+                  <SchoolAdminSelect
+                    C={C}
                     value={editable.type}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setEditable((prev) =>
-                        prev ? { ...prev, type: e.target.value } : prev,
+                        prev ? { ...prev, type: value as ProgramType } : prev,
                       )
                     }
-                    style={inputStyle(C)}
-                  >
-                    {PROGRAM_TYPE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={PROGRAM_TYPE_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    ariaLabel="Program type"
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
                     Status
                   </label>
-                  <select
+                  <SchoolAdminSelect
+                    C={C}
                     value={editable.status}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setEditable((prev) =>
                         prev
-                          ? { ...prev, status: e.target.value as ProgramStatus }
+                          ? { ...prev, status: value as ProgramStatus }
                           : prev,
                       )
                     }
-                    style={inputStyle(C)}
-                  >
-                    {PROGRAM_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={PROGRAM_STATUS_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    ariaLabel="Program status"
+                  />
                 </div>
               </div>
 
@@ -473,15 +475,17 @@ export default function ProgramsPage({
                   <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
                     Start date
                   </label>
-                  <input
-                    type="date"
+                  <SchoolAdminDatePicker
+                    id="program-start-date"
+                    C={C}
                     value={editable.startDate}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setEditable((prev) =>
-                        prev ? { ...prev, startDate: e.target.value } : prev,
+                        prev ? { ...prev, startDate: value } : prev,
                       )
                     }
-                    style={inputStyle(C)}
+                    maxDate={editable.endDate || schoolAdminDateRangeBounds().maxDate}
+                    placeholder="Select start date"
                   />
                 </div>
 
@@ -489,15 +493,17 @@ export default function ProgramsPage({
                   <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
                     End date
                   </label>
-                  <input
-                    type="date"
+                  <SchoolAdminDatePicker
+                    id="program-end-date"
+                    C={C}
                     value={editable.endDate}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setEditable((prev) =>
-                        prev ? { ...prev, endDate: e.target.value } : prev,
+                        prev ? { ...prev, endDate: value } : prev,
                       )
                     }
-                    style={inputStyle(C)}
+                    minDate={editable.startDate || schoolAdminDateRangeBounds().minDate}
+                    placeholder="Select end date"
                   />
                 </div>
               </div>

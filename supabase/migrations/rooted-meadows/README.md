@@ -50,6 +50,10 @@ Run after `add_product_organization_progress_log.sql`. Independent of the form s
 
 Run after `add_product_enrollment_checklist_templates.sql` and `add_product_document_templates.sql`. The demo org (`rooted-meadows-demo`) must have the `School Year 2026–27` program (see `seed_rooted_meadows_program_and_link_form.sql`).
 
+| File | Purpose |
+|------|---------|
+| `seed_rooted_meadows_tuition_rates.sql` | Tuition rate plan ($7,200/yr, 10×$720), supply/activities fees, sibling discount rule; target org `rooted-meadows-demo` |
+
 | File | Step | Notes |
 |------|------|-------|
 | `seed_rooted_meadows_enrollment_agreement_variants.sql` | Enrollment Agreement (variant group) | Standard + Conditional Support agreements; idempotent |

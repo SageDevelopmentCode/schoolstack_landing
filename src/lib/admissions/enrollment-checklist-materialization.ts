@@ -27,6 +27,7 @@ import {
   type VariantResolutionMap,
   validateResolutionMap,
 } from "./enrollment-checklist-variants";
+import { tryAutoAssignTuitionForEnrollment } from "@/lib/tuition/enrollment-hook";
 
 const ENROLLED_STUDENT_STATUS = "active" as const;
 
@@ -430,6 +431,16 @@ export async function markApplicationAsEnrolled(
     },
   });
 
+  if (application.family_id) {
+    await tryAutoAssignTuitionForEnrollment(supabase, {
+      organizationId: String(application.organization_id),
+      enrollmentId,
+      familyId: String(application.family_id),
+      programId,
+      assignedByUserId: actorUserId,
+    });
+  }
+
   return { enrollmentId, applicationId };
 }
 
@@ -752,12 +763,14 @@ async function finalizeEnrollmentIfComplete(
 
   const { data: enrollment, error: enrollmentError } = await supabase
     .from("enrollments")
-    .select("id, student_id, status")
+    .select("id, student_id, program_id, status, organization_id")
     .eq("id", enrollmentId)
     .maybeSingle();
 
   if (enrollmentError) throw enrollmentError;
   if (!enrollment) return;
+
+  let becameEnrolled = false;
 
   if (enrollment.status !== "enrolled") {
     const { error: enrollmentUpdateError } = await supabase
@@ -766,6 +779,8 @@ async function finalizeEnrollmentIfComplete(
       .eq("id", enrollmentId);
 
     if (enrollmentUpdateError) throw enrollmentUpdateError;
+
+    becameEnrolled = true;
 
     if (enrollment.student_id) {
       await supabase
@@ -795,6 +810,23 @@ async function finalizeEnrollmentIfComplete(
       .update({ status: "enrolled" })
       .eq("id", checklist.application_id)
       .eq("status", "enrolling");
+  }
+
+  if (becameEnrolled && enrollment.student_id) {
+    const { data: student, error: studentError } = await supabase
+      .from("students")
+      .select("family_id")
+      .eq("id", enrollment.student_id)
+      .maybeSingle();
+
+    if (!studentError && student?.family_id && enrollment.program_id) {
+      await tryAutoAssignTuitionForEnrollment(supabase, {
+        organizationId: String(enrollment.organization_id),
+        enrollmentId,
+        familyId: String(student.family_id),
+        programId: String(enrollment.program_id),
+      });
+    }
   }
 }
 

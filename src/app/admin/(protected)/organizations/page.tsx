@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
+import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 import type { OrganizationSettingsRow } from "@/lib/organization-settings/types";
 
@@ -276,7 +277,7 @@ export default function AdminOrganizationsPage() {
                   <span className="text-xs text-admin-muted ">
                     Status
                   </span>
-                  <select
+                  <AdminSelect
                     value={selected.status}
                     disabled={saving}
                     onChange={(e) =>
@@ -286,19 +287,20 @@ export default function AdminOrganizationsPage() {
                       })
                     }
                     className={`w-full text-sm border rounded-admin-md px-2 py-1.5 ${STATUS[selected.status].pill}`}
+                    aria-label="Organization status"
                   >
                     {STATUSES.map((status) => (
                       <option key={status} value={status}>
                         {STATUS[status].label}
                       </option>
                     ))}
-                  </select>
+                  </AdminSelect>
                 </label>
                 <label className="block space-y-1">
                   <span className="text-xs text-admin-muted ">
                     Timezone
                   </span>
-                  <select
+                  <AdminSelect
                     value={selected.timezone}
                     disabled={saving}
                     onChange={(e) =>
@@ -308,6 +310,7 @@ export default function AdminOrganizationsPage() {
                       })
                     }
                     className="w-full text-sm border border-admin-border rounded-admin-md px-2 py-1.5 bg-admin-bg"
+                    aria-label="Organization timezone"
                   >
                     {!TIMEZONE_OPTIONS.some(
                       (option) => option.value === selected.timezone,
@@ -321,7 +324,7 @@ export default function AdminOrganizationsPage() {
                         {option.label}
                       </option>
                     ))}
-                  </select>
+                  </AdminSelect>
                 </label>
               </div>
             </section>

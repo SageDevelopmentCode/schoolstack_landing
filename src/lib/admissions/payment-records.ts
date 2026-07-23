@@ -19,6 +19,7 @@ export type PaymentRecordDisplayRow = PaymentRecord & {
 export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
   application_fee: "Application fee",
   enrollment_checklist: "Enrollment",
+  tuition: "Tuition",
 };
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
@@ -43,6 +44,7 @@ export type PaymentRowsSummary = {
   refundedCents: number;
   applicationFeeCents: number;
   enrollmentCents: number;
+  tuitionCents: number;
 };
 
 function paymentTimestamp(row: PaymentRecordDisplayRow): Date | null {
@@ -68,6 +70,7 @@ export function summarizePaymentRows(
   let refundedCents = 0;
   let applicationFeeCents = 0;
   let enrollmentCents = 0;
+  let tuitionCents = 0;
 
   for (const row of rows) {
     const amount = row.amountCents;
@@ -84,6 +87,8 @@ export function summarizePaymentRows(
         applicationFeeCents += amount;
       } else if (row.paymentType === "enrollment_checklist") {
         enrollmentCents += amount;
+      } else if (row.paymentType === "tuition") {
+        tuitionCents += amount;
       }
     } else if (row.status === "pending") {
       pendingCount += 1;
@@ -106,6 +111,7 @@ export function summarizePaymentRows(
     refundedCents,
     applicationFeeCents,
     enrollmentCents,
+    tuitionCents,
   };
 }
 

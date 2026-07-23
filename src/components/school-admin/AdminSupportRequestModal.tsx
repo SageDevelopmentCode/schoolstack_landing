@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 
 const MAX_FILES = 5;
@@ -373,21 +374,18 @@ export default function AdminSupportRequestModal({
                     <label htmlFor="support-topic" style={labelStyle(C)}>
                       Topic
                     </label>
-                    <select
+                    <SchoolAdminSelect
                       id="support-topic"
+                      C={C}
                       value={topic}
                       disabled={submitting}
-                      onChange={(event) =>
-                        setTopic(event.target.value as TopicValue)
-                      }
-                      style={style}
-                    >
-                      {TOPIC_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => setTopic(value as TopicValue)}
+                      options={TOPIC_OPTIONS.map((option) => ({
+                        value: option.value,
+                        label: option.label,
+                      }))}
+                      ariaLabel="Support topic"
+                    />
                   </div>
 
                   <div>

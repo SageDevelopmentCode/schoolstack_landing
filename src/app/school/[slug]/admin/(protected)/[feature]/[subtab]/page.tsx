@@ -14,6 +14,7 @@ import PaymentsSetupPage from "@/components/school-admin/admissions/PaymentsSetu
 import ProgramsPage from "@/components/school-admin/admissions/ProgramsPage";
 import FinancesRevenuePage from "@/components/school-admin/finances/FinancesRevenuePage";
 import FinancesTransactionsPage from "@/components/school-admin/finances/FinancesTransactionsPage";
+import TuitionPage from "@/components/school-admin/tuition/TuitionPage";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -138,6 +139,16 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
         organizationId={org.id}
         slug={slug}
         branding={org.branding}
+      />
+    );
+  }
+
+  if (feature === "my_school" && subtab === "tuition") {
+    return (
+      <TuitionPage
+        organizationId={org.id}
+        branding={org.branding}
+        slug={slug}
       />
     );
   }

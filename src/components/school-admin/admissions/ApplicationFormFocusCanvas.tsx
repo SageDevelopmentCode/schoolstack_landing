@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import {
   APPLY_FORM_PUBLIC_SLUG,
@@ -294,21 +295,20 @@ function SetupView({
         helper="Each submission is tied to one program. Required before you can publish."
       >
         <div className="space-y-2">
-          <select
+          <SchoolAdminSelect
+            C={C}
             value={editable.programId ?? ""}
             disabled={readOnly}
-            onChange={(e) =>
-              onEditableChange({ programId: e.target.value || null })
+            onChange={(value) =>
+              onEditableChange({ programId: value || null })
             }
-            style={inputStyle(C)}
-          >
-            <option value="">Select a program (required)</option>
-            {programs.map((program) => (
-              <option key={program.id} value={program.id}>
-                {program.name}
-              </option>
-            ))}
-          </select>
+            options={programs.map((program) => ({
+              value: program.id,
+              label: program.name,
+            }))}
+            placeholder="Select a program (required)"
+            ariaLabel="Admissions program"
+          />
           {!editable.programId ? (
             <p className="text-xs font-medium" style={{ color: C.error }}>
               {programs.length === 0 ? (

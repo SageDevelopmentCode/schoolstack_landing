@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
 import ActivityFunnelPanel from "@/components/admin/ActivityFunnelPanel";
+import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import {
   fetchActivityEvents,
   formatActivityActionLabel,
@@ -89,10 +90,11 @@ function ActivityFilters({
         ))}
       </div>
 
-      <select
+      <AdminSelect
         value={organizationId}
         onChange={(e) => onOrganizationChange(e.target.value)}
         className="w-full text-xs rounded-admin-md border border-admin-border bg-admin-bg px-2 py-1.5 text-admin-text"
+        aria-label="Organization filter"
       >
         <option value="">All organizations</option>
         {organizations.map((org) => (
@@ -100,7 +102,7 @@ function ActivityFilters({
             {org.name}
           </option>
         ))}
-      </select>
+      </AdminSelect>
 
       {children}
     </div>
@@ -291,19 +293,20 @@ export default function AdminActivityPage() {
                 onDatePresetChange={setDatePreset}
                 onOrganizationChange={setOrganizationId}
               >
-                <select
+                <AdminSelect
                   value={surfaceFilter}
                   onChange={(e) =>
                     setSurfaceFilter(e.target.value as SurfaceFilter)
                   }
                   className="w-full text-xs rounded-admin-md border border-admin-border bg-admin-bg px-2 py-1.5 text-admin-text"
+                  aria-label="Surface filter"
                 >
                   {SURFACE_FILTERS.map((filter) => (
                     <option key={filter.value || "all"} value={filter.value}>
                       {filter.label}
                     </option>
                   ))}
-                </select>
+                </AdminSelect>
               </ActivityFilters>
 
               {error ? (

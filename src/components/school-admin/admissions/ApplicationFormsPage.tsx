@@ -65,6 +65,7 @@ import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
 import EnrollmentChecklistBuilder from "./EnrollmentChecklistBuilder";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import {
   SchoolAdminCanvasSkeleton,
   SchoolAdminSplitPaneSkeleton,
@@ -278,23 +279,19 @@ function EnrollmentChecklistProgramGate({
           <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>
             Choose a program before adding checklist items.
           </p>
-          <select
+          <SchoolAdminSelect
+            C={C}
             value={programId ?? ""}
-            onChange={(e) => onProgramChange(e.target.value || null)}
-            className="mt-4 w-full max-w-xs rounded-sm px-3 py-2 text-xs font-medium"
-            style={{
-              border: `1px solid ${C.border}`,
-              backgroundColor: C.input,
-              color: C.textPrimary,
-            }}
-          >
-            <option value="">Select a program</option>
-            {programs.map((program) => (
-              <option key={program.id} value={program.id}>
-                {program.name}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => onProgramChange(value || null)}
+            options={programs.map((program) => ({
+              value: program.id,
+              label: program.name,
+            }))}
+            placeholder="Select a program"
+            ariaLabel="Program"
+            className="mt-4 w-full max-w-xs"
+            triggerClassName="text-xs font-medium"
+          />
         </div>
       )}
     </div>

@@ -2,14 +2,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded";
 
-export type PaymentType = "application_fee" | "enrollment_checklist";
+export type PaymentType = "application_fee" | "enrollment_checklist" | "tuition";
 
 export type PaymentMethodType = "card" | "us_bank_account";
 
 export type PaymentRecord = {
   id: string;
   organizationId: string;
-  applicationId: string;
+  applicationId: string | null;
+  familyId: string | null;
+  tuitionChargeId: string | null;
   paymentType: PaymentType;
   enrollmentChecklistItemId: string | null;
   label: string | null;
@@ -44,7 +46,11 @@ function rowToPayment(row: Record<string, unknown>): PaymentRecord {
   return {
     id: String(row.id),
     organizationId: String(row.organization_id),
-    applicationId: String(row.application_id),
+    applicationId:
+      typeof row.application_id === "string" ? row.application_id : null,
+    familyId: typeof row.family_id === "string" ? row.family_id : null,
+    tuitionChargeId:
+      typeof row.tuition_charge_id === "string" ? row.tuition_charge_id : null,
     paymentType: (row.payment_type as PaymentType) ?? "application_fee",
     enrollmentChecklistItemId:
       typeof row.enrollment_checklist_item_id === "string"

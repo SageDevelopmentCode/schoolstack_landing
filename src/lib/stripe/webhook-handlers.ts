@@ -12,6 +12,7 @@ import {
   submitApplicationAfterFeePaid,
 } from "@/lib/admissions/application-submit";
 import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
+import { markChargePaid } from "@/lib/tuition/charges";
 import {
   attachCheckoutSessionToPayment,
   getApplicationPaymentByCheckoutSession,
@@ -52,6 +53,19 @@ export async function handleCheckoutSessionCompleted(
   ) {
     await handleEnrollmentChecklistCheckoutCompleted(admin, {
       session,
+      checkoutSessionId,
+      paymentIntentId,
+      metadata,
+    });
+    return;
+  }
+
+  if (
+    metadata.payment_type === "tuition" &&
+    metadata.tuition_charge_id &&
+    metadata.organization_id
+  ) {
+    await handleTuitionCheckoutCompleted(admin, {
       checkoutSessionId,
       paymentIntentId,
       metadata,
@@ -121,6 +135,55 @@ async function handleEnrollmentChecklistCheckoutCompleted(
   });
 }
 
+async function handleTuitionCheckoutCompleted(
+  admin: SupabaseClient,
+  input: {
+    checkoutSessionId: string;
+    paymentIntentId: string | undefined;
+    metadata: Stripe.Metadata;
+  },
+): Promise<void> {
+  const { checkoutSessionId, paymentIntentId, metadata } = input;
+  const paymentId =
+    typeof metadata.payment_id === "string" ? metadata.payment_id : null;
+  let payment = paymentId ? await getPaymentById(admin, paymentId) : null;
+
+  if (!payment) {
+    payment = await getApplicationPaymentByCheckoutSession(admin, checkoutSessionId);
+  }
+
+  if (payment && payment.status !== "succeeded") {
+    payment = await markPaymentSucceeded(admin, payment.id, {
+      stripePaymentIntentId: paymentIntentId,
+      stripeCheckoutSessionId: checkoutSessionId,
+    });
+  }
+
+  const chargeId =
+    typeof metadata.tuition_charge_id === "string"
+      ? metadata.tuition_charge_id
+      : payment?.tuitionChargeId;
+
+  if (chargeId) {
+    await markChargePaid(admin, chargeId);
+  }
+
+  void logActivityEvent(admin, {
+    organizationId: metadata.organization_id as string,
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+    entityType: "tuition_charge",
+    entityId: chargeId ?? payment?.id ?? checkoutSessionId,
+    summary: "Tuition payment completed",
+    metadata: {
+      checkoutSessionId,
+      paymentId: payment?.id ?? paymentId ?? null,
+      tuitionChargeId: chargeId ?? null,
+    },
+  });
+}
+
 async function handleApplicationFeeCheckoutCompleted(
   admin: SupabaseClient,
   input: {
@@ -167,6 +230,11 @@ async function processApplicationFeePayment(
   payment: PaymentRecord,
   checkoutSessionId: string,
 ): Promise<void> {
+  if (!payment.applicationId) {
+    console.warn("checkout.session.completed: application payment missing application id");
+    return;
+  }
+
   const application = await getApplicationForSubmit(admin, payment.applicationId);
   if (!application) {
     console.warn("checkout.session.completed: application not found", payment.applicationId);
