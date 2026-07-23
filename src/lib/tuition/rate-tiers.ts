@@ -23,6 +23,29 @@ export function slugifyTierCode(label: string, index = 0): string {
   return index > 0 ? `tier_${index}` : "tier";
 }
 
+export async function getDefaultTierForRatePlan(
+  supabase: SupabaseClient,
+  ratePlanId: string,
+): Promise<TuitionRateTier | null> {
+  const tiers = await listTiersForRatePlan(supabase, ratePlanId);
+  if (tiers.length === 0) return null;
+  return tiers.find((tier) => tier.isDefault) ?? tiers[0] ?? null;
+}
+
+export async function getTierById(
+  supabase: SupabaseClient,
+  tierId: string,
+): Promise<TuitionRateTier | null> {
+  const { data, error } = await supabase
+    .from("tuition_rate_tiers")
+    .select("*")
+    .eq("id", tierId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? rowToRateTier(data) : null;
+}
+
 export async function listTiersForRatePlan(
   supabase: SupabaseClient,
   ratePlanId: string,

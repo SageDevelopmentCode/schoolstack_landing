@@ -95,20 +95,36 @@ export type TuitionBillingAccount = {
   updatedAt: string;
 };
 
+export type TuitionAssignmentMetadata = {
+  pendingPaymentPlanSelection?: boolean;
+};
+
 export type TuitionEnrollmentAssignment = {
   id: string;
   organizationId: string;
   enrollmentId: string;
   familyId: string;
   ratePlanId: string;
+  rateTierId: string | null;
   paymentPlanId: string;
   assignmentSource: AssignmentSource;
   assignedByUserId: string | null;
   effectiveStart: string | null;
   effectiveEnd: string | null;
   status: AssignmentStatus;
+  metadata: TuitionAssignmentMetadata;
   createdAt: string;
   updatedAt: string;
+};
+
+export type FamilyAssignmentSummary = {
+  assignmentId: string;
+  enrollmentId: string;
+  studentName: string | null;
+  ratePlanName: string;
+  tierLabel: string | null;
+  paymentPlanLabel: string;
+  pendingPaymentPlanSelection: boolean;
 };
 
 export type TuitionAdjustment = {
@@ -199,6 +215,7 @@ export type FamilyBillingSummary = {
   autopayEnabled: boolean;
   status: "current" | "overdue" | "invoice_sent";
   assignmentIds: string[];
+  assignments: FamilyAssignmentSummary[];
 };
 
 export type RatePlanWithDetails = TuitionRatePlan & {

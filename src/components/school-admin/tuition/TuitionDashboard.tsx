@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import TuitionAdjustModal from "@/components/school-admin/tuition/TuitionAdjustModal";
+import TuitionAssignmentModal from "@/components/school-admin/tuition/TuitionAssignmentModal";
 import TuitionFamiliesPanel from "@/components/school-admin/tuition/TuitionFamiliesPanel";
 import TuitionRateCatalogPanel from "@/components/school-admin/tuition/TuitionRateCatalogPanel";
 import TuitionRulesPanel from "@/components/school-admin/tuition/TuitionRulesPanel";
@@ -51,6 +52,7 @@ export default function TuitionDashboard({
   });
   const [adjustFamilyId, setAdjustFamilyId] = useState<string | null>(null);
   const [adjustAssignmentId, setAdjustAssignmentId] = useState<string | null>(null);
+  const [editAssignmentId, setEditAssignmentId] = useState<string | null>(null);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -182,6 +184,7 @@ export default function TuitionDashboard({
             setAdjustFamilyId(familyId);
             setAdjustAssignmentId(assignmentId);
           }}
+          onEditAssignment={(assignmentId) => setEditAssignmentId(assignmentId)}
           onRefresh={() => void loadData()}
         />
       ) : null}
@@ -204,6 +207,18 @@ export default function TuitionDashboard({
           organizationId={organizationId}
           branding={branding}
           onRefresh={() => void loadData()}
+        />
+      ) : null}
+
+      {editAssignmentId ? (
+        <TuitionAssignmentModal
+          assignmentId={editAssignmentId}
+          branding={branding}
+          onClose={() => setEditAssignmentId(null)}
+          onSaved={() => {
+            setEditAssignmentId(null);
+            void loadData();
+          }}
         />
       ) : null}
 

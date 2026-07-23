@@ -14,6 +14,7 @@ type TuitionFamiliesPanelProps = {
   organizationId: string;
   branding: OrganizationBranding;
   onAdjust: (familyId: string, assignmentId: string) => void;
+  onEditAssignment: (assignmentId: string) => void;
   onRefresh: () => void;
 };
 
@@ -21,6 +22,7 @@ export default function TuitionFamiliesPanel({
   organizationId,
   branding,
   onAdjust,
+  onEditAssignment,
 }: TuitionFamiliesPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -153,18 +155,70 @@ export default function TuitionFamiliesPanel({
               </p>
             </div>
             {selectedFamily.assignmentIds[0] ? (
-              <button
-                type="button"
-                onClick={() =>
-                  onAdjust(selectedFamily.familyId, selectedFamily.assignmentIds[0])
-                }
-                className="text-sm font-medium px-3 py-1.5 rounded-md"
-                style={{ backgroundColor: C.accentLight, color: C.accent }}
-              >
-                Adjust tuition
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => onEditAssignment(selectedFamily.assignmentIds[0]!)}
+                  className="text-sm font-medium px-3 py-1.5 rounded-md"
+                  style={{ backgroundColor: C.bg, color: C.textPrimary, border: `1px solid ${C.border}` }}
+                >
+                  Edit assignment
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onAdjust(selectedFamily.familyId, selectedFamily.assignmentIds[0]!)
+                  }
+                  className="text-sm font-medium px-3 py-1.5 rounded-md"
+                  style={{ backgroundColor: C.accentLight, color: C.accent }}
+                >
+                  Adjust tuition
+                </button>
+              </div>
             ) : null}
           </div>
+
+          {selectedFamily.assignments.length > 0 ? (
+            <div
+              className="rounded-lg p-4 flex flex-col gap-3"
+              style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+            >
+              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                Enrollment assignments
+              </p>
+              <ul className="flex flex-col gap-3">
+                {selectedFamily.assignments.map((assignment) => (
+                  <li
+                    key={assignment.assignmentId}
+                    className="flex flex-col gap-1 text-sm"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span style={{ color: C.textPrimary }}>
+                        {assignment.studentName ?? "Student"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onEditAssignment(assignment.assignmentId)}
+                        className="text-xs font-medium"
+                        style={{ color: C.accent }}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                    <p className="text-xs" style={{ color: C.textSecondary }}>
+                      {assignment.ratePlanName}
+                      {assignment.tierLabel ? ` · ${assignment.tierLabel}` : ""}
+                      {" · "}
+                      {assignment.paymentPlanLabel}
+                      {assignment.pendingPaymentPlanSelection
+                        ? " · Awaiting family schedule choice"
+                        : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-3 gap-3">
             <div>

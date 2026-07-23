@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { rowToCharge } from "./row-mappers";
-import type { ChargeStatus, FamilyBillingSummary, TuitionCharge } from "./types";
+import type { ChargeStatus, FamilyAssignmentSummary, FamilyBillingSummary, TuitionCharge } from "./types";
+import { paymentScheduleLabel } from "./setup-wizard";
 
 export async function listChargesForFamily(
   supabase: SupabaseClient,
@@ -115,6 +116,9 @@ export async function listFamilyBillingSummaries(
     { data: students },
     { data: enrollments },
     { data: programs },
+    { data: ratePlans },
+    { data: tiers },
+    { data: paymentPlans },
   ] = await Promise.all([
     supabase
       .from("tuition_billing_accounts")
@@ -123,7 +127,9 @@ export async function listFamilyBillingSummaries(
       .in("family_id", familyIds),
     supabase
       .from("tuition_enrollment_assignments")
-      .select("id, family_id, enrollment_id, rate_plan_id")
+      .select(
+        "id, family_id, enrollment_id, rate_plan_id, rate_tier_id, payment_plan_id, metadata",
+      )
       .eq("organization_id", organizationId)
       .eq("status", "active"),
     supabase
@@ -145,6 +151,18 @@ export async function listFamilyBillingSummaries(
       .from("programs")
       .select("id, name")
       .eq("organization_id", organizationId),
+    supabase
+      .from("tuition_rate_plans")
+      .select("id, name")
+      .eq("organization_id", organizationId),
+    supabase
+      .from("tuition_rate_tiers")
+      .select("id, rate_plan_id, label")
+      .eq("organization_id", organizationId),
+    supabase
+      .from("tuition_payment_plans")
+      .select("id, rate_plan_id, name, installment_count")
+      .eq("organization_id", organizationId),
   ]);
 
   const programMap = new Map(
@@ -161,6 +179,21 @@ export async function listFamilyBillingSummaries(
   );
   const enrollmentToProgram = new Map(
     (enrollments ?? []).map((e) => [String(e.id), String(e.program_id)]),
+  );
+  const ratePlanMap = new Map(
+    (ratePlans ?? []).map((plan) => [String(plan.id), String(plan.name)]),
+  );
+  const tierMap = new Map(
+    (tiers ?? []).map((tier) => [String(tier.id), String(tier.label)]),
+  );
+  const paymentPlanMap = new Map(
+    (paymentPlans ?? []).map((plan) => [
+      String(plan.id),
+      {
+        name: String(plan.name),
+        installmentCount: Number(plan.installment_count),
+      },
+    ]),
   );
 
   const yearStart = new Date();
@@ -200,9 +233,12 @@ export async function listFamilyBillingSummaries(
 
     const children = new Set<string>();
     const programNames = new Set<string>();
+    const assignmentSummaries: FamilyAssignmentSummary[] = [];
     for (const assignment of familyAssignments) {
-      const studentId = enrollmentToStudent.get(String(assignment.enrollment_id));
-      const programId = enrollmentToProgram.get(String(assignment.enrollment_id));
+      const enrollmentId = String(assignment.enrollment_id);
+      const studentId = enrollmentToStudent.get(enrollmentId);
+      const programId = enrollmentToProgram.get(enrollmentId);
+      const studentName = studentId ? studentMap.get(studentId) ?? null : null;
       if (studentId) {
         const name = studentMap.get(studentId);
         if (name) children.add(name);
@@ -211,6 +247,32 @@ export async function listFamilyBillingSummaries(
         const name = programMap.get(programId);
         if (name) programNames.add(name);
       }
+
+      const paymentPlanId = String(assignment.payment_plan_id);
+      const paymentPlan = paymentPlanMap.get(paymentPlanId);
+      const ratePlanId = String(assignment.rate_plan_id);
+      const metadata =
+        assignment.metadata &&
+        typeof assignment.metadata === "object" &&
+        !Array.isArray(assignment.metadata)
+          ? (assignment.metadata as Record<string, unknown>)
+          : {};
+
+      assignmentSummaries.push({
+        assignmentId: String(assignment.id),
+        enrollmentId,
+        studentName,
+        ratePlanName: ratePlanMap.get(ratePlanId) ?? "Rate plan",
+        tierLabel:
+          typeof assignment.rate_tier_id === "string"
+            ? tierMap.get(assignment.rate_tier_id) ?? null
+            : null,
+        paymentPlanLabel: paymentPlan
+          ? paymentPlan.name ||
+            paymentScheduleLabel(paymentPlan.installmentCount)
+          : "Payment plan",
+        pendingPaymentPlanSelection: metadata.pendingPaymentPlanSelection === true,
+      });
     }
 
     const familyStudentIds = new Set(
@@ -258,6 +320,7 @@ export async function listFamilyBillingSummaries(
           ? "invoice_sent"
           : "current",
       assignmentIds: familyAssignments.map((a) => String(a.id)),
+      assignments: assignmentSummaries,
       hasBillingActivity,
     } satisfies FamilyBillingSummary & { hasBillingActivity: boolean };
   })

@@ -39,6 +39,7 @@ export type EnrollmentChecklistExperienceProps = {
   onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
   onAllRequiredComplete?: () => void;
   backLink?: { href: string; label: string };
+  tuitionSelectionSlot?: React.ReactNode;
 };
 
 const panelTransition = {
@@ -222,6 +223,7 @@ export default function EnrollmentChecklistExperience({
   onInstancesChange,
   onAllRequiredComplete,
   backLink,
+  tuitionSelectionSlot,
 }: EnrollmentChecklistExperienceProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const [activeItemId, setActiveItemId] = useState<string | null>(() =>
@@ -423,7 +425,7 @@ export default function EnrollmentChecklistExperience({
 
         <div className="min-w-0 flex-1 overflow-hidden" style={{ backgroundColor: C.surface }}>
           <div className="h-full overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-            {detailPanel}
+            {tuitionSelectionSlot ?? detailPanel}
           </div>
         </div>
       </div>

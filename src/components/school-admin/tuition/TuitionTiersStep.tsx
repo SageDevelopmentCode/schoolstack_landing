@@ -110,8 +110,8 @@ export default function TuitionTiersStep({
     <div className="flex flex-col gap-4">
       <p className="text-sm" style={{ color: C.textSecondary }}>
         Define one or more tuition rates for this plan. All tiers share the same
-        payment schedule and fees. Families will choose a tier when assigned
-        (coming soon).
+        payment schedule and fees. Staff assign the tier per enrollment; families
+        choose their payment schedule when multiple options are enabled.
       </p>
 
       <div className="flex flex-col gap-3">

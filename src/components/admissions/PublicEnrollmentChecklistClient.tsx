@@ -5,10 +5,16 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
 import EnrollmentChecklistExperience from "@/components/admissions/EnrollmentChecklistExperience";
 import EnrollmentCompleteModal from "@/components/admissions/EnrollmentCompleteModal";
+import EnrollmentTuitionPlanStep from "@/components/admissions/EnrollmentTuitionPlanStep";
 import type { LoadedEnrollmentChecklist } from "@/lib/admissions/enrollment-checklist-materialization";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
+import {
+  getEnrollmentTuitionSelectionContext,
+  type EnrollmentTuitionSelectionContext,
+} from "@/lib/tuition/enrollment-selection";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { createClient } from "@/utils/supabase/client";
 
 type PublicEnrollmentChecklistClientProps = {
   branding: OrganizationBranding;
@@ -48,6 +54,9 @@ export default function PublicEnrollmentChecklistClient({
   const [instances, setInstances] = useState(checklist.instances);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [pollingPayment, setPollingPayment] = useState(false);
+  const [tuitionContext, setTuitionContext] =
+    useState<EnrollmentTuitionSelectionContext | null>(null);
+  const supabase = useMemo(() => createClient(), []);
 
   const clearPaymentQueryParams = useCallback(() => {
     router.replace(pathname);
@@ -120,9 +129,47 @@ export default function PublicEnrollmentChecklistClient({
     [checklist, instances],
   );
 
+  const loadTuitionSelection = useCallback(async () => {
+    if (previewMode) {
+      setTuitionContext(null);
+      return;
+    }
+
+    const { data: enrollment, error } = await supabase
+      .from("enrollments")
+      .select("program_id")
+      .eq("id", checklist.enrollmentId)
+      .maybeSingle();
+
+    if (error || !enrollment?.program_id) {
+      setTuitionContext(null);
+      return;
+    }
+
+    const context = await getEnrollmentTuitionSelectionContext(supabase, {
+      organizationId,
+      enrollmentId: checklist.enrollmentId,
+      programId: String(enrollment.program_id),
+    });
+    setTuitionContext(context);
+  }, [
+    checklist.enrollmentId,
+    organizationId,
+    previewMode,
+    supabase,
+  ]);
+
   const handleAllRequiredComplete = useCallback(() => {
     maybeShowCelebration("completed", checklist.checklistId);
-  }, [checklist.checklistId, maybeShowCelebration]);
+    window.setTimeout(() => {
+      void loadTuitionSelection();
+      router.refresh();
+    }, 500);
+  }, [checklist.checklistId, loadTuitionSelection, maybeShowCelebration, router]);
+
+  useEffect(() => {
+    void loadTuitionSelection();
+  }, [loadTuitionSelection, instances, checklist.status]);
 
   const resolvedProfile = userProfile ?? {
     email: "",
@@ -156,6 +203,18 @@ export default function PublicEnrollmentChecklistClient({
           href: backHref ?? `/school/${schoolSlug}/apply`,
           label: "Back to applications",
         }}
+        tuitionSelectionSlot={
+          tuitionContext ? (
+            <EnrollmentTuitionPlanStep
+              C={C}
+              context={tuitionContext}
+              onComplete={() => {
+                void loadTuitionSelection();
+                router.refresh();
+              }}
+            />
+          ) : null
+        }
       />
 
       {pollingPayment && !previewMode ? (

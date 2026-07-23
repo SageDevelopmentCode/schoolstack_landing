@@ -110,6 +110,18 @@ export function rowToBillingAccount(
   };
 }
 
+function parseAssignmentMetadata(
+  value: unknown,
+): TuitionEnrollmentAssignment["metadata"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  const record = value as Record<string, unknown>;
+  return {
+    pendingPaymentPlanSelection: record.pendingPaymentPlanSelection === true,
+  };
+}
+
 export function rowToAssignment(
   row: Record<string, unknown>,
 ): TuitionEnrollmentAssignment {
@@ -119,6 +131,8 @@ export function rowToAssignment(
     enrollmentId: String(row.enrollment_id),
     familyId: String(row.family_id),
     ratePlanId: String(row.rate_plan_id),
+    rateTierId:
+      typeof row.rate_tier_id === "string" ? row.rate_tier_id : null,
     paymentPlanId: String(row.payment_plan_id),
     assignmentSource: row.assignment_source as TuitionEnrollmentAssignment["assignmentSource"],
     assignedByUserId:
@@ -130,6 +144,7 @@ export function rowToAssignment(
     effectiveEnd:
       typeof row.effective_end === "string" ? row.effective_end : null,
     status: row.status as TuitionEnrollmentAssignment["status"],
+    metadata: parseAssignmentMetadata(row.metadata),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };

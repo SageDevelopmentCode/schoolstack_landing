@@ -1,8 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
+import {
+  AddScheduleCard,
+  AdminScheduleCard,
+  ScheduleCardShell,
+} from "@/components/school-admin/tuition/TuitionPaymentScheduleCards";
 import {
   formatCents,
   formatTierAmountRange,
@@ -39,20 +44,6 @@ type TuitionPaymentOptionsStepProps = {
   onAddCustomCount: (count: number) => void;
   onRemoveCustomCount: (count: number) => void;
 };
-
-function inputStyle(C: AdminThemeTokens): React.CSSProperties {
-  return {
-    backgroundColor: C.input,
-    border: `1px solid ${C.inputBorder}`,
-    color: C.textPrimary,
-    borderRadius: C.r.md,
-    fontSize: "14px",
-    padding: "10px 12px",
-    width: "100%",
-    boxSizing: "border-box",
-    outline: "none",
-  };
-}
 
 export default function TuitionPaymentOptionsStep({
   C,
@@ -186,7 +177,7 @@ export default function TuitionPaymentOptionsStep({
                 C={C}
                 selected={selected}
               >
-                <ScheduleCard
+                <AdminScheduleCard
                   C={C}
                   selected={selected}
                   label={schedule.label}
@@ -209,7 +200,7 @@ export default function TuitionPaymentOptionsStep({
             return (
               <ScheduleCardShell key={count} C={C} selected={selected}>
                 <div className="flex items-start gap-2">
-                  <ScheduleCard
+                  <AdminScheduleCard
                     C={C}
                     selected={selected}
                     label={paymentScheduleLabel(count)}
@@ -277,199 +268,5 @@ export default function TuitionPaymentOptionsStep({
         />
       ) : null}
     </div>
-  );
-}
-
-function ScheduleCardShell({
-  C,
-  selected,
-  children,
-}: {
-  C: AdminThemeTokens;
-  selected: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="rounded-lg p-4"
-      style={{
-        border: `1px solid ${selected ? C.accent : C.border}`,
-        backgroundColor: selected ? C.accentLight : C.surface,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function AddScheduleCard({
-  C,
-  expanded,
-  customCount,
-  customInputMax,
-  maxInstallments,
-  onExpand,
-  onCollapse,
-  onCustomCountChange,
-  onAdd,
-}: {
-  C: AdminThemeTokens;
-  expanded: boolean;
-  customCount: string;
-  customInputMax: number;
-  maxInstallments: number | null;
-  onExpand: () => void;
-  onCollapse: () => void;
-  onCustomCountChange: (value: string) => void;
-  onAdd: () => void;
-}) {
-  if (!expanded) {
-    return (
-      <button
-        type="button"
-        onClick={onExpand}
-        className="rounded-lg p-4 flex flex-col items-center justify-center gap-2 min-h-[108px] w-full transition-colors"
-        style={{
-          border: `1px dashed ${C.borderStrong}`,
-          backgroundColor: C.surface,
-          color: C.textTertiary,
-        }}
-      >
-        <Plus className="h-5 w-5" />
-        <span className="text-sm font-medium">Add schedule</span>
-      </button>
-    );
-  }
-
-  return (
-    <div
-      className="rounded-lg p-4 flex flex-col gap-3 min-h-[108px]"
-      style={{
-        border: `1px dashed ${C.borderStrong}`,
-        backgroundColor: C.surface,
-      }}
-    >
-      <label className="flex flex-col gap-1 text-sm">
-        <span style={{ color: C.textSecondary }}>Installment count</span>
-        <input
-          style={inputStyle(C)}
-          type="number"
-          min={1}
-          max={customInputMax}
-          placeholder="e.g. 6"
-          value={customCount}
-          autoFocus
-          onChange={(e) => onCustomCountChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              onAdd();
-            }
-            if (e.key === "Escape") {
-              e.preventDefault();
-              onCollapse();
-            }
-          }}
-        />
-      </label>
-      {maxInstallments != null ? (
-        <p className="text-xs" style={{ color: C.textTertiary }}>
-          Up to {maxInstallments} installments for your school year
-        </p>
-      ) : null}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onAdd}
-          className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md font-medium"
-          style={{
-            backgroundColor: C.accentLight,
-            color: C.accent,
-            border: `1px solid ${C.accent}`,
-          }}
-        >
-          Add
-        </button>
-        <button
-          type="button"
-          onClick={onCollapse}
-          className="text-sm px-3 py-1.5 rounded-md"
-          style={{ color: C.textSecondary }}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ScheduleCard({
-  C,
-  selected,
-  label,
-  cadence,
-  perPayment,
-  annualTotal,
-  onToggle,
-  compact = false,
-  isDefault = false,
-  showDefaultControl = false,
-  onSetDefault,
-}: {
-  C: AdminThemeTokens;
-  selected: boolean;
-  label: string;
-  cadence: string;
-  perPayment: string;
-  annualTotal: string;
-  onToggle: () => void;
-  compact?: boolean;
-  isDefault?: boolean;
-  showDefaultControl?: boolean;
-  onSetDefault?: () => void;
-}) {
-  return (
-    <label
-      className={`flex items-start gap-3 cursor-pointer ${compact ? "flex-1 min-w-0" : ""}`}
-    >
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={onToggle}
-        className="mt-1"
-      />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-          {label}
-        </p>
-        <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-          {cadence}
-        </p>
-        <p className="text-xs mt-1.5" style={{ color: C.textSecondary }}>
-          {perPayment} per payment · {annualTotal}/yr
-        </p>
-        {isDefault ? (
-          <span
-            className="inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-2"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
-          >
-            Default
-          </span>
-        ) : showDefaultControl ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onSetDefault?.();
-            }}
-            className="text-xs font-medium mt-2 underline-offset-2 hover:underline"
-            style={{ color: C.accent }}
-          >
-            Set as default
-          </button>
-        ) : null}
-      </div>
-    </label>
   );
 }

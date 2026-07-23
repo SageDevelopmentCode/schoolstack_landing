@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Pencil, Plus, Save } from "lucide-react";
+import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
 import TuitionSetupWizard from "@/components/school-admin/tuition/TuitionSetupWizard";
 import {
   annualCentsFromTiers,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/tuition/rate-plans";
 import type { RatePlanWithDetails } from "@/lib/tuition/types";
 import {
+  buildPaymentOptionPreviews,
   DEFAULT_PAYMENT_COUNT,
   filterAllowedPaymentCounts,
   isPaymentCountAllowed,
@@ -103,6 +105,7 @@ export default function TuitionRateCatalogPanel({
   const [customCount, setCustomCount] = useState("");
   const [savingPlan, setSavingPlan] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const activePlan = localPlan ?? selectedPlan;
@@ -129,6 +132,11 @@ export default function TuitionRateCatalogPanel({
         isPaymentCountAllowed(schedule.count, maxInstallments),
       ),
     [maxInstallments],
+  );
+
+  const selectedPreviews = buildPaymentOptionPreviews(
+    annualAmountCents,
+    paymentCounts,
   );
 
   const syncLocalFromSelected = (plan: RatePlanWithDetails | null) => {
@@ -383,9 +391,20 @@ export default function TuitionRateCatalogPanel({
           </div>
 
           <div>
-            <p className="text-sm font-medium mb-3" style={{ color: C.textPrimary }}>
-              Payment options
-            </p>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                Payment options
+              </p>
+              <button
+                type="button"
+                disabled={paymentCounts.length === 0}
+                onClick={() => setPreviewModalOpen(true)}
+                className="text-sm px-3 py-1.5 rounded-md font-medium shrink-0 disabled:opacity-50"
+                style={getAdminButtonStyle(C, "secondary")}
+              >
+                Preview schedules
+              </button>
+            </div>
             {schoolYearMonths != null ? (
               <p className="text-xs mb-3" style={{ color: C.textTertiary }}>
                 Based on your school year ({schoolYearMonths} months), installment
@@ -532,6 +551,20 @@ export default function TuitionRateCatalogPanel({
             Save payment options
           </button>
         </div>
+      ) : null}
+
+      {activePlan && paymentCounts.length > 0 ? (
+        <PaymentSchedulePreviewModal
+          C={C}
+          open={previewModalOpen}
+          previews={selectedPreviews}
+          defaultCount={defaultPaymentCount}
+          annualAmountCents={annualAmountCents}
+          effectiveStart={activePlan.effectiveStart}
+          effectiveEnd={activePlan.effectiveEnd}
+          schoolYearMonths={schoolYearMonths}
+          onClose={() => setPreviewModalOpen(false)}
+        />
       ) : null}
     </div>
   );

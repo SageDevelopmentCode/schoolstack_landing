@@ -67,7 +67,7 @@ export default defineConfig({
     },
     {
       name: "api-admin",
-      testMatch: /api\/(status|mark-enrolled)\.spec\.ts/,
+      testMatch: /api\/(status|mark-enrolled)\.spec\.ts|tuition\/.*\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         storageState: AUTH_STATE_PATHS.schoolAdmin,

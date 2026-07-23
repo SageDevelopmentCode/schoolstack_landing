@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeAdjustedAmountCents } from "./pricing";
-import { rowToAdjustment, rowToCharge } from "./row-mappers";
+import {
+  assignmentNeedsPaymentPlanSelection,
+  computeInstallmentAmountCents,
+  resolveAssignmentTier,
+} from "./assignments";
+import { rowToAdjustment, rowToAssignment, rowToCharge } from "./row-mappers";
 import type {
   TuitionAdjustment,
   TuitionCharge,
@@ -58,11 +63,14 @@ export function buildChargeDrafts(input: {
   feeComponents: TuitionFeeComponent[];
   adjustments: TuitionAdjustment[];
   startDate?: Date;
+  installmentAmountCents?: number;
 }): ChargeDraft[] {
   const { paymentPlan, feeComponents, adjustments } = input;
   const startDate = input.startDate ?? new Date();
   const dueDates = buildInstallmentDueDates(paymentPlan, startDate);
   const drafts: ChargeDraft[] = [];
+  const perInstallmentCents =
+    input.installmentAmountCents ?? paymentPlan.installmentAmountCents;
 
   const activeAdjustments = adjustments.filter((a) => a.status === "active");
 
@@ -84,7 +92,7 @@ export function buildChargeDrafts(input: {
   }
 
   dueDates.forEach((dueDate, index) => {
-    const baseAmountCents = paymentPlan.installmentAmountCents;
+    const baseAmountCents = perInstallmentCents;
     const amountCents = computeAdjustedAmountCents(
       baseAmountCents,
       activeAdjustments,
@@ -110,13 +118,20 @@ export async function regenerateFutureCharges(
   const { data: assignment, error: assignmentError } = await supabase
     .from("tuition_enrollment_assignments")
     .select(
-      "id, organization_id, family_id, payment_plan_id, rate_plan_id, effective_start",
+      "id, organization_id, family_id, payment_plan_id, rate_plan_id, rate_tier_id, effective_start, metadata",
     )
     .eq("id", assignmentId)
     .maybeSingle();
 
   if (assignmentError) throw assignmentError;
   if (!assignment) throw new Error("Assignment not found");
+
+  const parsedAssignment = rowToAssignment(assignment);
+  if (assignmentNeedsPaymentPlanSelection(parsedAssignment)) {
+    return [];
+  }
+
+  const tier = await resolveAssignmentTier(supabase, parsedAssignment);
 
   const { data: paymentPlan, error: planError } = await supabase
     .from("tuition_payment_plans")
@@ -146,13 +161,19 @@ export async function regenerateFutureCharges(
     ? new Date(`${assignment.effective_start}T00:00:00Z`)
     : new Date();
 
+  const paymentPlanRow = paymentPlan;
+  const installmentCount = Number(paymentPlanRow.installment_count);
+  const installmentAmountCents = tier
+    ? computeInstallmentAmountCents(tier.amountCents, installmentCount)
+    : Number(paymentPlanRow.installment_amount_cents);
+
   const drafts = buildChargeDrafts({
     paymentPlan: {
       id: String(paymentPlan.id),
       organizationId: String(paymentPlan.organization_id),
       ratePlanId: String(paymentPlan.rate_plan_id),
       name: String(paymentPlan.name),
-      installmentCount: Number(paymentPlan.installment_count),
+      installmentCount,
       installmentAmountCents: Number(paymentPlan.installment_amount_cents),
       billingDayOfMonth:
         typeof paymentPlan.billing_day_of_month === "number"
@@ -177,6 +198,7 @@ export async function regenerateFutureCharges(
     })),
     adjustments: (adjustments ?? []).map(rowToAdjustment),
     startDate,
+    installmentAmountCents,
   });
 
   const { data: existingCharges, error: existingError } = await supabase
