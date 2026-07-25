@@ -5,6 +5,7 @@ import { computeInstallmentAmountCents } from "../../src/lib/tuition/assignments
 import { regenerateFutureCharges } from "../../src/lib/tuition/charge-generator";
 import { AUTH_STATE_PATHS } from "../fixtures/constants";
 import { E2E_PARENT_EMAIL } from "../fixtures/constants";
+import { TEST_ORG_SLUG } from "../helpers/constants";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
 function createAdminClient() {
@@ -455,6 +456,129 @@ test("admin can mark a charge sent as invoice", async ({ playwright, baseURL }) 
 
   const payload = (await response.json()) as { charge?: { status?: string } };
   expect(payload.charge?.status).toBe("sent");
+
+  await adminContext.dispose();
+});
+
+test("tuition dashboard shows readiness banner when enrollments lack assignments", async ({
+  page,
+}) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: family } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: student } = await admin
+    .from("students")
+    .insert({
+      organization_id: organizationId,
+      family_id: family!.id,
+      first_name: "Readiness",
+      last_name: "Banner",
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  const { data: enrollment } = await admin
+    .from("enrollments")
+    .insert({
+      organization_id: organizationId,
+      student_id: student!.id,
+      program_id: program!.id,
+      status: "enrolled",
+    })
+    .select("id")
+    .single();
+
+  expect(enrollment?.id).toBeTruthy();
+
+  await page.goto(`/school/${TEST_ORG_SLUG}/admin/tuition`);
+  await expect(page.getByTestId("tuition-readiness-banner")).toBeVisible();
+  await expect(
+    page.getByText(/still need tuition assignments|need a tuition assignment/i),
+  ).toBeVisible();
+});
+
+test("assign-unassigned API creates tuition assignments for enrolled students", async ({
+  playwright,
+  baseURL,
+}) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: family } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: student } = await admin
+    .from("students")
+    .insert({
+      organization_id: organizationId,
+      family_id: family!.id,
+      first_name: "Assign",
+      last_name: "Unassigned",
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  const { data: enrollment } = await admin
+    .from("enrollments")
+    .insert({
+      organization_id: organizationId,
+      student_id: student!.id,
+      program_id: program!.id,
+      status: "enrolled",
+    })
+    .select("id")
+    .single();
+
+  const adminContext = await playwright.request.newContext({
+    baseURL,
+    storageState: AUTH_STATE_PATHS.schoolAdmin,
+  });
+
+  const response = await adminContext.post("/api/tuition/assign-unassigned", {
+    data: { organizationId },
+  });
+
+  expect(response.status()).toBe(200);
+
+  const payload = (await response.json()) as {
+    assignedCount?: number;
+    results?: Array<{ enrollmentId: string; assignmentId: string | null }>;
+  };
+
+  const created = (payload.results ?? []).find(
+    (result) => result.enrollmentId === enrollment!.id,
+  );
+  expect(created?.assignmentId).toBeTruthy();
+  expect((payload.assignedCount ?? 0) >= 1).toBe(true);
 
   await adminContext.dispose();
 });

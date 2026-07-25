@@ -25,6 +25,7 @@ export default function TuitionFamiliesPanel({
   branding,
   onAdjust,
   onEditAssignment,
+  onRefresh,
 }: TuitionFamiliesPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -32,6 +33,7 @@ export default function TuitionFamiliesPanel({
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   const loadFamilies = useCallback(async () => {
     setLoading(true);
@@ -90,6 +92,36 @@ export default function TuitionFamiliesPanel({
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleAssignEnrollment = async (enrollmentId: string) => {
+    setActionLoading(enrollmentId);
+    setAssignError(null);
+    try {
+      const response = await fetch(`/api/tuition/enrollments/${enrollmentId}/assign`, {
+        method: "POST",
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setAssignError(payload.error ?? "Failed to assign tuition.");
+        return;
+      }
+      await loadFamilies();
+      onRefresh();
+    } catch (error) {
+      setAssignError(
+        error instanceof Error ? error.message : "Failed to assign tuition.",
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const familyStatusLabel = (family: FamilyBillingSummary) => {
+    if (family.readiness === "ready") {
+      return `Balance ${formatCents(family.balanceDueCents)} · ${family.status}`;
+    }
+    return "Setup needed";
   };
 
   const [familyCharges, setFamilyCharges] = useState<
@@ -160,7 +192,7 @@ export default function TuitionFamiliesPanel({
               {family.familyName}
             </p>
             <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-              Balance {formatCents(family.balanceDueCents)} · {family.status}
+              {familyStatusLabel(family)}
             </p>
           </button>
         ))}
@@ -211,6 +243,102 @@ export default function TuitionFamiliesPanel({
               </div>
             ) : null}
           </div>
+
+          {selectedFamily.readiness !== "ready" ? (
+            <div
+              className="rounded-lg p-4 flex flex-col gap-3"
+              style={{
+                backgroundColor: C.accentLight,
+                border: `1px solid ${C.border}`,
+              }}
+            >
+              <div>
+                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  {selectedFamily.readiness === "needs_assignment"
+                    ? "Tuition has not been assigned yet"
+                    : selectedFamily.readiness === "needs_payment_plan"
+                      ? "Choose a payment schedule"
+                      : "Billing schedule is not ready yet"}
+                </p>
+                <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+                  {selectedFamily.readiness === "needs_assignment"
+                    ? "Assign a rate plan to each enrolled student to generate this family's tuition schedule."
+                    : selectedFamily.readiness === "needs_payment_plan"
+                      ? "Finalize the installment plan for each student before charges can be generated."
+                      : "Charges appear after tuition is assigned and the payment schedule is confirmed."}
+                </p>
+              </div>
+
+              {selectedFamily.readiness === "needs_assignment" ? (
+                <ul className="flex flex-col gap-2">
+                  {selectedFamily.unassignedEnrollments.map((enrollment) => (
+                    <li
+                      key={enrollment.enrollmentId}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <span style={{ color: C.textPrimary }}>
+                        {enrollment.studentName} · {enrollment.programName}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={actionLoading === enrollment.enrollmentId}
+                        onClick={() => void handleAssignEnrollment(enrollment.enrollmentId)}
+                        className="text-xs font-medium px-2 py-1 rounded"
+                        style={{ backgroundColor: C.accent, color: "#fff" }}
+                      >
+                        Assign tuition
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {selectedFamily.readiness === "needs_payment_plan" ? (
+                <ul className="flex flex-col gap-2">
+                  {selectedFamily.assignments
+                    .filter((assignment) => assignment.pendingPaymentPlanSelection)
+                    .map((assignment) => (
+                      <li
+                        key={assignment.assignmentId}
+                        className="flex items-center justify-between gap-3 text-sm"
+                      >
+                        <span style={{ color: C.textPrimary }}>
+                          {assignment.studentName ?? "Student"} · awaiting schedule choice
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onEditAssignment(assignment.assignmentId)}
+                          className="text-xs font-medium px-2 py-1 rounded"
+                          style={{ backgroundColor: C.accent, color: "#fff" }}
+                        >
+                          Choose payment plan
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              ) : null}
+
+              {selectedFamily.readiness === "no_charges" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const assignmentId = selectedFamily.assignmentIds[0];
+                    if (assignmentId) onEditAssignment(assignmentId);
+                  }}
+                  className="self-start text-xs font-medium px-2 py-1 rounded"
+                  style={{ backgroundColor: C.accent, color: "#fff" }}
+                >
+                  Review assignment
+                </button>
+              ) : null}
+
+              {assignError ? (
+                <p className="text-sm" style={{ color: C.error }}>
+                  {assignError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {selectedFamily.assignments.length > 0 ? (
             <div
@@ -288,7 +416,8 @@ export default function TuitionFamiliesPanel({
               Schedule
             </p>
             <div className="flex flex-col gap-2">
-              {familyCharges.map((charge) => (
+              {familyCharges.length > 0 ? (
+                familyCharges.map((charge) => (
                 <div
                   key={charge.id}
                   className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
@@ -330,7 +459,12 @@ export default function TuitionFamiliesPanel({
                     ) : null}
                   </div>
                 </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm px-3 py-2 rounded-md" style={{ color: C.textSecondary, backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+                  No charges yet. Assign a rate plan and choose a payment schedule to generate the billing schedule.
+                </p>
+              )}
             </div>
           </div>
 

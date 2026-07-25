@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyTuitionBillingCronSummary } from "@/lib/discord";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
 import { processAutopayForOrganization } from "@/lib/tuition/autopay";
 import { sendTuitionDueReminders } from "@/lib/tuition/reminders";
@@ -44,14 +45,22 @@ export async function GET(request: Request) {
     autopayFailed += autopayResult.failed;
   }
 
-  return NextResponse.json({
+  const summary = {
     organizations: organizations?.length ?? 0,
     overdueCount,
     remindersSent,
     rulesEvaluated,
     autopayProcessed,
     autopayFailed,
-  });
+  };
+
+  try {
+    await notifyTuitionBillingCronSummary(summary);
+  } catch (error) {
+    console.error("Tuition billing cron Discord notification failed:", error);
+  }
+
+  return NextResponse.json(summary);
 }
 
 export async function POST(request: Request) {

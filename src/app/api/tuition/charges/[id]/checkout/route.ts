@@ -100,7 +100,8 @@ export async function POST(request: Request, context: RouteContext) {
       admin,
       charge.organizationId,
     );
-    if (!paymentAccount || !isPaymentReady(paymentAccount)) {
+    const stripeConnectAccountId = paymentAccount?.stripeConnectAccountId;
+    if (!paymentAccount || !stripeConnectAccountId || !isPaymentReady(paymentAccount)) {
       return apiError(ROUTE, {
         request,
         status: 400,
@@ -109,7 +110,10 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const stripeCustomerId = await getOrCreateStripeCustomer(admin, user.id);
+    const stripeCustomerId = await getOrCreateStripeCustomer(admin, {
+      userId: user.id,
+      email: user.email,
+    });
     const payment = await createTuitionPaymentRecord(admin, {
       organizationId: charge.organizationId,
       familyId: charge.familyId,
@@ -129,7 +133,7 @@ export async function POST(request: Request, context: RouteContext) {
       netAmountCents: charge.amountCents,
       paymentMethod: body.paymentMethod,
       label: charge.label,
-      stripeConnectAccountId: paymentAccount.stripeConnectAccountId,
+      stripeConnectAccountId,
       stripeCustomerId,
       payerUserId: user.id,
       successUrl,

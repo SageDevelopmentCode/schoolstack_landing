@@ -238,7 +238,8 @@ export async function processAutopayForOrganization(
   const today = new Date().toISOString().slice(0, 10);
 
   const paymentAccount = await getOrganizationPaymentAccount(supabase, organizationId);
-  if (!paymentAccount || !isPaymentReady(paymentAccount)) {
+  const stripeConnectAccountId = paymentAccount?.stripeConnectAccountId;
+  if (!paymentAccount || !stripeConnectAccountId || !isPaymentReady(paymentAccount)) {
     return { processed: 0, skipped: 0, failed: 0 };
   }
 
@@ -305,7 +306,7 @@ export async function processAutopayForOrganization(
           amountCents: Number(charge.amount_cents),
           label: String(charge.label),
           currency: typeof charge.currency === "string" ? charge.currency : "USD",
-          stripeConnectAccountId: paymentAccount.stripeConnectAccountId,
+          stripeConnectAccountId,
           stripeCustomerId: stripeCustomer.stripe_customer_id,
           stripePaymentMethodId: String(account.default_payment_method_id),
           payerUserId: String(guardian.user_id),

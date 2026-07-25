@@ -43,7 +43,9 @@ export async function createTuitionPaymentRecord(
   return {
     id: String(data.id),
     organizationId: String(data.organization_id),
-    applicationId: data.application_id ? String(data.application_id) : "",
+    applicationId: null,
+    familyId: input.familyId,
+    tuitionChargeId: input.tuitionChargeId,
     paymentType: "tuition",
     enrollmentChecklistItemId: null,
     label: typeof data.label === "string" ? data.label : null,
@@ -91,7 +93,11 @@ export async function listTuitionPaymentsForFamily(
   return (data ?? []).map((row) => ({
     id: String(row.id),
     organizationId: String(row.organization_id),
-    applicationId: row.application_id ? String(row.application_id) : "",
+    applicationId: null,
+    familyId:
+      typeof row.family_id === "string" ? row.family_id : familyId,
+    tuitionChargeId:
+      typeof row.tuition_charge_id === "string" ? row.tuition_charge_id : null,
     paymentType: "tuition" as const,
     enrollmentChecklistItemId: null,
     label: typeof row.label === "string" ? row.label : null,

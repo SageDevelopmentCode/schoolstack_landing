@@ -131,3 +131,52 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
   await expect(page.getByText("Upcoming charges")).toBeVisible();
   await expect(page.getByText(/Tuition/)).toHaveCount(5);
 });
+
+test("parent billing page shows readiness guidance when charges are missing", async ({
+  page,
+}) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: family } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("primary_email", E2E_PARENT_EMAIL)
+    .maybeSingle();
+
+  expect(family?.id).toBeTruthy();
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: student } = await admin
+    .from("students")
+    .insert({
+      organization_id: organizationId,
+      family_id: family!.id,
+      first_name: "Readiness",
+      last_name: "Parent",
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  await admin.from("enrollments").insert({
+    organization_id: organizationId,
+    student_id: student!.id,
+    program_id: program!.id,
+    status: "enrolled",
+  });
+
+  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await expect(page.getByTestId("parent-billing-readiness")).toBeVisible();
+  await expect(
+    page.getByText(/Tuition has not been assigned yet|Choose your payment schedule/i),
+  ).toBeVisible();
+});

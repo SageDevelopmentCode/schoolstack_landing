@@ -203,6 +203,18 @@ export type TuitionOrgSettings = {
   reminderDaysBefore?: number[];
 };
 
+export type FamilyBillingReadinessState =
+  | "ready"
+  | "needs_assignment"
+  | "needs_payment_plan"
+  | "no_charges";
+
+export type UnassignedEnrollmentSummary = {
+  enrollmentId: string;
+  studentName: string;
+  programName: string;
+};
+
 export type FamilyBillingSummary = {
   familyId: string;
   familyName: string;
@@ -216,6 +228,8 @@ export type FamilyBillingSummary = {
   status: "current" | "overdue" | "invoice_sent";
   assignmentIds: string[];
   assignments: FamilyAssignmentSummary[];
+  unassignedEnrollments: UnassignedEnrollmentSummary[];
+  readiness: FamilyBillingReadinessState;
 };
 
 export type RatePlanWithDetails = TuitionRatePlan & {

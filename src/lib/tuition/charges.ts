@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { computeFamilyBillingReadiness } from "./tuition-readiness";
 import { rowToCharge } from "./row-mappers";
-import type { ChargeStatus, FamilyAssignmentSummary, FamilyBillingSummary, TuitionCharge } from "./types";
+import type { ChargeStatus, FamilyAssignmentSummary, FamilyBillingSummary, TuitionCharge, UnassignedEnrollmentSummary } from "./types";
 import { paymentScheduleLabel } from "./setup-wizard";
 
 export async function listChargesForFamily(
@@ -280,9 +281,23 @@ export async function listFamilyBillingSummaries(
         .filter((s) => String(s.family_id) === familyId)
         .map((s) => String(s.id)),
     );
-    for (const enrollment of enrollments ?? []) {
+    const familyEnrollments = (enrollments ?? []).filter((enrollment) =>
+      familyStudentIds.has(String(enrollment.student_id)),
+    );
+    const assignedEnrollmentIds = new Set(
+      familyAssignments.map((assignment) => String(assignment.enrollment_id)),
+    );
+    const unassignedEnrollments: UnassignedEnrollmentSummary[] = familyEnrollments
+      .filter((enrollment) => !assignedEnrollmentIds.has(String(enrollment.id)))
+      .map((enrollment) => ({
+        enrollmentId: String(enrollment.id),
+        studentName: studentMap.get(String(enrollment.student_id)) ?? "Student",
+        programName:
+          programMap.get(String(enrollment.program_id)) ?? "Program",
+      }));
+
+    for (const enrollment of familyEnrollments) {
       const studentId = String(enrollment.student_id);
-      if (!familyStudentIds.has(studentId)) continue;
       const name = studentMap.get(studentId);
       if (name) children.add(name);
       const programId = enrollmentToProgram.get(String(enrollment.id));
@@ -291,6 +306,14 @@ export async function listFamilyBillingSummaries(
         if (programName) programNames.add(programName);
       }
     }
+
+    const readiness = computeFamilyBillingReadiness({
+      enrolledEnrollmentIds: familyEnrollments.map((enrollment) =>
+        String(enrollment.id),
+      ),
+      assignments: assignmentSummaries,
+      chargeCount: familyCharges.length,
+    });
 
     const hasBillingActivity =
       familyAssignments.length > 0 ||
@@ -321,6 +344,8 @@ export async function listFamilyBillingSummaries(
           : "current",
       assignmentIds: familyAssignments.map((a) => String(a.id)),
       assignments: assignmentSummaries,
+      unassignedEnrollments,
+      readiness,
       hasBillingActivity,
     } satisfies FamilyBillingSummary & { hasBillingActivity: boolean };
   })

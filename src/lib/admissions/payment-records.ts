@@ -224,9 +224,11 @@ async function enrichPaymentDisplayRows(
     return {
       ...record,
       payerEmail,
-      applicantLabel: resolveApplicantLabel(
-        applicationById.get(record.applicationId)?.responses,
-      ),
+      applicantLabel: record.applicationId
+        ? resolveApplicantLabel(
+            applicationById.get(record.applicationId)?.responses,
+          )
+        : null,
       organizationName: organizationById.get(record.organizationId)?.name
         ? String(organizationById.get(record.organizationId)?.name)
         : null,

@@ -52,7 +52,12 @@ export async function sendPaymentCompletedNotifications(
 ): Promise<void> {
   try {
     const payment = await getPaymentById(admin, paymentId);
-    if (!payment || payment.status !== "succeeded") {
+    if (
+      !payment ||
+      payment.status !== "succeeded" ||
+      payment.paymentType === "tuition" ||
+      !payment.applicationId
+    ) {
       return;
     }
 

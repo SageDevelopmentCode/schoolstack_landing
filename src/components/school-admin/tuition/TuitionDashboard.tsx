@@ -6,12 +6,15 @@ import TuitionAdjustModal from "@/components/school-admin/tuition/TuitionAdjustM
 import TuitionAssignmentModal from "@/components/school-admin/tuition/TuitionAssignmentModal";
 import TuitionFamiliesPanel from "@/components/school-admin/tuition/TuitionFamiliesPanel";
 import TuitionRateCatalogPanel from "@/components/school-admin/tuition/TuitionRateCatalogPanel";
+import TuitionReadinessBanner from "@/components/school-admin/tuition/TuitionReadinessBanner";
 import TuitionRulesPanel from "@/components/school-admin/tuition/TuitionRulesPanel";
 import TuitionSetupWizard from "@/components/school-admin/tuition/TuitionSetupWizard";
 import { formatCents } from "@/lib/tuition/pricing";
 import { listRatePlansWithDetails } from "@/lib/tuition/rate-plans";
 import type { RatePlanWithDetails } from "@/lib/tuition/types";
 import { getTuitionKpis } from "@/lib/tuition/charges";
+import { fetchTuitionReadinessStatus } from "@/lib/tuition/tuition-readiness";
+import type { TuitionReadinessStatus } from "@/lib/tuition/tuition-readiness";
 import type { TuitionSetupStatus } from "@/lib/tuition/setup-status";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
@@ -31,6 +34,7 @@ type TabKey = "families" | "catalog" | "rules";
 export default function TuitionDashboard({
   organizationId,
   branding,
+  slug,
   setupStatus,
   onRefreshSetupStatus,
 }: TuitionDashboardProps) {
@@ -54,17 +58,21 @@ export default function TuitionDashboard({
   const [adjustAssignmentId, setAdjustAssignmentId] = useState<string | null>(null);
   const [editAssignmentId, setEditAssignmentId] = useState<string | null>(null);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [readiness, setReadiness] = useState<TuitionReadinessStatus | null>(null);
+  const [familiesRefreshKey, setFamiliesRefreshKey] = useState(0);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [plans, kpiData] = await Promise.all([
+      const [plans, kpiData, readinessStatus] = await Promise.all([
         listRatePlansWithDetails(supabase, organizationId),
         getTuitionKpis(supabase, organizationId),
+        fetchTuitionReadinessStatus(supabase, organizationId),
       ]);
       setRatePlans(plans);
       setKpis(kpiData);
+      setReadiness(readinessStatus);
       const activePlans = plans.filter((plan) => plan.status !== "draft");
       setSelectedPlanId((prev) => {
         if (prev && activePlans.some((p) => p.id === prev)) return prev;
@@ -124,6 +132,21 @@ export default function TuitionDashboard({
         </button>
       </div>
 
+      {readiness ? (
+        <TuitionReadinessBanner
+          C={C}
+          organizationId={organizationId}
+          readiness={readiness}
+          onOpenSetupWizard={() => setShowSetupWizard(true)}
+          onSwitchToCatalog={() => setTab("catalog")}
+          onSwitchToFamilies={() => {
+            setTab("families");
+            setFamiliesRefreshKey((value) => value + 1);
+          }}
+          onRefresh={loadData}
+        />
+      ) : null}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "Collected YTD", value: formatCents(kpis.collectedYtdCents) },
@@ -178,6 +201,7 @@ export default function TuitionDashboard({
 
       {tab === "families" ? (
         <TuitionFamiliesPanel
+          key={familiesRefreshKey}
           organizationId={organizationId}
           branding={branding}
           onAdjust={(familyId, assignmentId) => {

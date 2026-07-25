@@ -10,7 +10,9 @@ import {
   getEnabledFeatureNavChildren,
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
+import { Suspense } from "react";
 import SchedulePage from "@/components/school-admin/SchedulePage";
+import CommitteesPage from "@/components/school-admin/committees/CommitteesPage";
 import AdminDashboardPage from "@/components/school-admin/AdminDashboardPage";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -70,6 +72,19 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
         schoolName={org.name}
         slug={slug}
       />
+    );
+  }
+
+  if (feature === "committees") {
+    return (
+      <Suspense>
+        <CommitteesPage
+          organizationId={org.id}
+          branding={org.branding}
+          schoolName={org.name}
+          slug={slug}
+        />
+      </Suspense>
     );
   }
 
