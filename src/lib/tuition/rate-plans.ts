@@ -277,7 +277,10 @@ export async function publishRatePlan(
   supabase: SupabaseClient,
   ratePlanId: string,
 ): Promise<TuitionRatePlan> {
-  return updateRatePlan(supabase, ratePlanId, { status: "active" });
+  const ratePlan = await updateRatePlan(supabase, ratePlanId, { status: "active" });
+  const { backfillTuitionAssignmentsForRatePlan } = await import("./assignments");
+  await backfillTuitionAssignmentsForRatePlan(supabase, ratePlanId);
+  return ratePlan;
 }
 
 export async function getDraftRatePlanForOrganization(

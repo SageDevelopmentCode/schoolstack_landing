@@ -17,6 +17,9 @@ type PaymentSchedulePreviewModalProps = {
   effectiveStart?: string | null;
   effectiveEnd?: string | null;
   schoolYearMonths?: number | null;
+  title?: string;
+  closeLabel?: string;
+  testId?: string;
   onClose: () => void;
 };
 
@@ -29,6 +32,9 @@ export default function PaymentSchedulePreviewModal({
   effectiveStart,
   effectiveEnd,
   schoolYearMonths,
+  title = "Payment schedules",
+  closeLabel = "Done",
+  testId,
   onClose,
 }: PaymentSchedulePreviewModalProps) {
   const [activeCount, setActiveCount] = useState(defaultCount);
@@ -55,6 +61,7 @@ export default function PaymentSchedulePreviewModal({
       ? previews.find((preview) => preview.count === activeCount) ?? previews[0]!
       : null;
   const isActiveDefault = activePreview?.count === defaultCount;
+  const showScheduleTabs = previews.length > 1;
 
   return (
     <AnimatePresence>
@@ -83,6 +90,7 @@ export default function PaymentSchedulePreviewModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="payment-schedule-modal-title"
+            data-testid={testId}
           >
             <div
               className="flex flex-shrink-0 items-center justify-between gap-3 px-5 py-4"
@@ -93,7 +101,7 @@ export default function PaymentSchedulePreviewModal({
                 className="text-base font-semibold"
                 style={{ color: C.textPrimary }}
               >
-                Payment schedules
+                {title}
               </h2>
               <button
                 type="button"
@@ -106,51 +114,59 @@ export default function PaymentSchedulePreviewModal({
               </button>
             </div>
 
-            <div
-              className="flex-shrink-0 overflow-x-auto px-5"
-              style={{ borderBottom: `1px solid ${C.border}` }}
-            >
-              <div className="-mb-px flex gap-6" role="tablist" aria-label="Payment schedules">
-                {previews.map((preview) => {
-                  const isActive = activePreview.count === preview.count;
-                  const tabId = `schedule-tab-${preview.count}`;
-                  const panelId = `schedule-panel-${preview.count}`;
-                  const isDefault = preview.count === defaultCount;
+            {showScheduleTabs ? (
+              <div
+                className="flex-shrink-0 overflow-x-auto px-5"
+                style={{ borderBottom: `1px solid ${C.border}` }}
+              >
+                <div className="-mb-px flex gap-6" role="tablist" aria-label="Payment schedules">
+                  {previews.map((preview) => {
+                    const isActive = activePreview.count === preview.count;
+                    const tabId = `schedule-tab-${preview.count}`;
+                    const panelId = `schedule-panel-${preview.count}`;
+                    const isDefault = preview.count === defaultCount;
 
-                  return (
-                    <button
-                      key={preview.count}
-                      id={tabId}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      aria-controls={panelId}
-                      onClick={() => setActiveCount(preview.count)}
-                      className="flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors"
-                      style={{
-                        borderBottomColor: isActive ? C.accent : "transparent",
-                        color: isActive ? C.accent : C.textTertiary,
-                      }}
-                    >
-                      {paymentScheduleLabel(preview.count)}
-                      {isDefault ? (
-                        <span
-                          className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                          style={{ backgroundColor: C.accentLight, color: C.accent }}
-                        >
-                          Default
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={preview.count}
+                        id={tabId}
+                        type="button"
+                        role="tab"
+                        aria-selected={isActive}
+                        aria-controls={panelId}
+                        onClick={() => setActiveCount(preview.count)}
+                        className="flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors"
+                        style={{
+                          borderBottomColor: isActive ? C.accent : "transparent",
+                          color: isActive ? C.accent : C.textTertiary,
+                        }}
+                      >
+                        {paymentScheduleLabel(preview.count)}
+                        {isDefault ? (
+                          <span
+                            className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: C.accentLight, color: C.accent }}
+                          >
+                            Default
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <div
-              id={`schedule-panel-${activePreview.count}`}
-              role="tabpanel"
-              aria-labelledby={`schedule-tab-${activePreview.count}`}
+              id={
+                showScheduleTabs
+                  ? `schedule-panel-${activePreview.count}`
+                  : "schedule-panel-single"
+              }
+              role={showScheduleTabs ? "tabpanel" : undefined}
+              aria-labelledby={
+                showScheduleTabs ? `schedule-tab-${activePreview.count}` : undefined
+              }
               className="flex-1 overflow-y-auto px-5 py-4"
             >
               <PaymentSchedulePreviewContent
@@ -175,7 +191,7 @@ export default function PaymentSchedulePreviewModal({
                 className="px-4 py-2 text-sm font-medium rounded-md"
                 style={getAdminButtonStyle(C, "primary")}
               >
-                Done
+                {closeLabel}
               </button>
             </div>
           </motion.div>

@@ -8,7 +8,6 @@ import type {
 
 export type TuitionReadinessStepId =
   | "rate_plan"
-  | "assign_enrollments"
   | "payment_plans"
   | "billing_schedule";
 
@@ -71,6 +70,12 @@ export function computeAssignEnrollmentsStepStatus(
   return "in_progress";
 }
 
+function enrollmentsAreAssigned(
+  data: Pick<TuitionReadinessRawData, "hasActiveRatePlan" | "unassignedEnrollmentCount">,
+): boolean {
+  return data.hasActiveRatePlan && data.unassignedEnrollmentCount === 0;
+}
+
 export function computePaymentPlansStepStatus(
   data: Pick<
     TuitionReadinessRawData,
@@ -78,9 +83,8 @@ export function computePaymentPlansStepStatus(
     | "unassignedEnrollmentCount"
     | "pendingPaymentPlanCount"
   >,
-  assignStatus: TuitionReadinessStepStatus,
 ): TuitionReadinessStepStatus {
-  if (!data.hasActiveRatePlan || assignStatus !== "completed") {
+  if (!enrollmentsAreAssigned(data)) {
     return "not_started";
   }
   if (data.pendingPaymentPlanCount === 0) return "completed";
@@ -92,17 +96,13 @@ export function computeBillingScheduleStepStatus(
     TuitionReadinessRawData,
     | "hasActiveRatePlan"
     | "enrolledCount"
+    | "unassignedEnrollmentCount"
     | "assignmentsWithoutChargesCount"
     | "pendingPaymentPlanCount"
   >,
-  assignStatus: TuitionReadinessStepStatus,
   paymentPlanStatus: TuitionReadinessStepStatus,
 ): TuitionReadinessStepStatus {
-  if (
-    !data.hasActiveRatePlan ||
-    assignStatus !== "completed" ||
-    paymentPlanStatus !== "completed"
-  ) {
+  if (!enrollmentsAreAssigned(data) || paymentPlanStatus !== "completed") {
     return "not_started";
   }
   if (data.enrolledCount === 0 || data.assignmentsWithoutChargesCount === 0) {
@@ -115,13 +115,8 @@ export function buildTuitionReadinessStatus(
   data: TuitionReadinessRawData,
 ): TuitionReadinessStatus {
   const ratePlanStatus = computeRatePlanStepStatus(data.hasActiveRatePlan);
-  const assignStatus = computeAssignEnrollmentsStepStatus(data);
-  const paymentPlanStatus = computePaymentPlansStepStatus(data, assignStatus);
-  const billingStatus = computeBillingScheduleStepStatus(
-    data,
-    assignStatus,
-    paymentPlanStatus,
-  );
+  const paymentPlanStatus = computePaymentPlansStepStatus(data);
+  const billingStatus = computeBillingScheduleStepStatus(data, paymentPlanStatus);
 
   const steps: TuitionReadinessStep[] = [
     {
@@ -132,17 +127,10 @@ export function buildTuitionReadinessStatus(
       status: ratePlanStatus,
     },
     {
-      id: "assign_enrollments",
-      title: "Assign tuition to enrolled students",
-      description:
-        "Link each enrolled student to your active rate plan so billing can begin.",
-      status: assignStatus,
-    },
-    {
       id: "payment_plans",
-      title: "Confirm payment schedules",
+      title: "Families choose payment schedules",
       description:
-        "Choose an installment plan when multiple options are available.",
+        "When multiple installment options exist, families confirm their schedule in the parent portal under Billing. Admins can override in Edit assignment if needed.",
       status: paymentPlanStatus,
     },
     {
@@ -503,7 +491,7 @@ export async function fetchFamilyBillingReadiness(
     unassignedEnrollments[0]?.enrollmentId ??
     null;
 
-  if (pendingEnrollmentId) {
+  if (pendingEnrollmentId && state !== "needs_payment_plan") {
     const { data: checklist, error: checklistError } = await supabase
       .from("enrollment_checklists")
       .select("application_id")
@@ -547,18 +535,10 @@ export function tuitionReadinessPrimaryAction(
   switch (status.firstIncompleteStepId) {
     case "rate_plan":
       return { stepId: "rate_plan", label: "Set up rate plan" };
-    case "assign_enrollments":
-      return {
-        stepId: "assign_enrollments",
-        label:
-          status.unassignedEnrollmentCount === 1
-            ? "Assign tuition to enrolled student"
-            : `Assign tuition to ${status.unassignedEnrollmentCount} enrolled students`,
-      };
     case "payment_plans":
       return {
         stepId: "payment_plans",
-        label: "Choose payment schedules",
+        label: "View families waiting",
       };
     case "billing_schedule":
       return {

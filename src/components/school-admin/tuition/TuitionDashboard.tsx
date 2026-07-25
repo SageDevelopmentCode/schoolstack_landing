@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import TuitionAdjustModal from "@/components/school-admin/tuition/TuitionAdjustModal";
 import TuitionAssignmentModal from "@/components/school-admin/tuition/TuitionAssignmentModal";
+import TuitionSetupButton from "@/components/school-admin/tuition/TuitionSetupButton";
+import TuitionSetupPanel from "@/components/school-admin/tuition/TuitionSetupPanel";
 import TuitionFamiliesPanel from "@/components/school-admin/tuition/TuitionFamiliesPanel";
 import TuitionRateCatalogPanel from "@/components/school-admin/tuition/TuitionRateCatalogPanel";
-import TuitionReadinessBanner from "@/components/school-admin/tuition/TuitionReadinessBanner";
 import TuitionRulesPanel from "@/components/school-admin/tuition/TuitionRulesPanel";
 import TuitionSetupWizard from "@/components/school-admin/tuition/TuitionSetupWizard";
 import { formatCents } from "@/lib/tuition/pricing";
@@ -58,6 +59,7 @@ export default function TuitionDashboard({
   const [adjustAssignmentId, setAdjustAssignmentId] = useState<string | null>(null);
   const [editAssignmentId, setEditAssignmentId] = useState<string | null>(null);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [showSetupPanel, setShowSetupPanel] = useState(false);
   const [readiness, setReadiness] = useState<TuitionReadinessStatus | null>(null);
   const [familiesRefreshKey, setFamiliesRefreshKey] = useState(0);
 
@@ -65,6 +67,12 @@ export default function TuitionDashboard({
     setLoading(true);
     setError(null);
     try {
+      await fetch("/api/tuition/sync-assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId }),
+      });
+
       const [plans, kpiData, readinessStatus] = await Promise.all([
         listRatePlansWithDetails(supabase, organizationId),
         getTuitionKpis(supabase, organizationId),
@@ -121,31 +129,25 @@ export default function TuitionDashboard({
             Configure rates, manage family billing, and apply adjustments.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowSetupWizard(true)}
-          style={getAdminButtonStyle(C, "primary")}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          New rate plan
-        </button>
+        <div className="flex items-center gap-2">
+          {readiness ? (
+            <TuitionSetupButton
+              C={C}
+              readiness={readiness}
+              onClick={() => setShowSetupPanel(true)}
+            />
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setShowSetupWizard(true)}
+            style={getAdminButtonStyle(C, "primary")}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            New rate plan
+          </button>
+        </div>
       </div>
-
-      {readiness ? (
-        <TuitionReadinessBanner
-          C={C}
-          organizationId={organizationId}
-          readiness={readiness}
-          onOpenSetupWizard={() => setShowSetupWizard(true)}
-          onSwitchToCatalog={() => setTab("catalog")}
-          onSwitchToFamilies={() => {
-            setTab("families");
-            setFamiliesRefreshKey((value) => value + 1);
-          }}
-          onRefresh={loadData}
-        />
-      ) : null}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
@@ -203,6 +205,7 @@ export default function TuitionDashboard({
         <TuitionFamiliesPanel
           key={familiesRefreshKey}
           organizationId={organizationId}
+          slug={slug}
           branding={branding}
           onAdjust={(familyId, assignmentId) => {
             setAdjustFamilyId(familyId);
@@ -261,6 +264,30 @@ export default function TuitionDashboard({
             setAdjustAssignmentId(null);
             void loadData();
           }}
+        />
+      ) : null}
+
+      {readiness ? (
+        <TuitionSetupPanel
+          open={showSetupPanel}
+          C={C}
+          organizationId={organizationId}
+          readiness={readiness}
+          onClose={() => setShowSetupPanel(false)}
+          onOpenSetupWizard={() => {
+            setShowSetupPanel(false);
+            setShowSetupWizard(true);
+          }}
+          onSwitchToCatalog={() => {
+            setShowSetupPanel(false);
+            setTab("catalog");
+          }}
+          onSwitchToFamilies={() => {
+            setShowSetupPanel(false);
+            setTab("families");
+            setFamiliesRefreshKey((value) => value + 1);
+          }}
+          onRefresh={loadData}
         />
       ) : null}
     </div>

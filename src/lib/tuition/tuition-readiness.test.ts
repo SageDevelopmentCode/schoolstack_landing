@@ -74,20 +74,20 @@ describe("computeAssignEnrollmentsStepStatus", () => {
 describe("computePaymentPlansStepStatus", () => {
   it("waits until enrollments are assigned", () => {
     assert.equal(
-      computePaymentPlansStepStatus(
-        { ...baseData, unassignedEnrollmentCount: 1 },
-        "in_progress",
-      ),
+      computePaymentPlansStepStatus({
+        ...baseData,
+        unassignedEnrollmentCount: 1,
+      }),
       "not_started",
     );
   });
 
   it("is in progress when payment plans still need selection", () => {
     assert.equal(
-      computePaymentPlansStepStatus(
-        { ...baseData, pendingPaymentPlanCount: 2 },
-        "completed",
-      ),
+      computePaymentPlansStepStatus({
+        ...baseData,
+        pendingPaymentPlanCount: 2,
+      }),
       "in_progress",
     );
   });
@@ -98,7 +98,6 @@ describe("computeBillingScheduleStepStatus", () => {
     assert.equal(
       computeBillingScheduleStepStatus(
         { ...baseData, assignmentsWithoutChargesCount: 2 },
-        "completed",
         "in_progress",
       ),
       "not_started",
@@ -110,7 +109,6 @@ describe("computeBillingScheduleStepStatus", () => {
       computeBillingScheduleStepStatus(
         { ...baseData, assignmentsWithoutChargesCount: 2 },
         "completed",
-        "completed",
       ),
       "in_progress",
     );
@@ -118,21 +116,39 @@ describe("computeBillingScheduleStepStatus", () => {
 });
 
 describe("buildTuitionReadinessStatus", () => {
-  it("identifies assign_enrollments as the first incomplete step", () => {
+  it("gates payment_plans when enrollments lack assignments", () => {
     const status = buildTuitionReadinessStatus({
       ...baseData,
       unassignedEnrollmentCount: 3,
     });
 
-    assert.equal(status.firstIncompleteStepId, "assign_enrollments");
+    assert.equal(status.firstIncompleteStepId, "payment_plans");
     assert.equal(status.completedCount, 1);
+    assert.equal(status.totalCount, 3);
+    assert.equal(status.steps[1]?.status, "not_started");
+    assert.equal(status.unassignedEnrollmentCount, 3);
+  });
+
+  it("uses family-facing copy for payment plan step", () => {
+    const status = buildTuitionReadinessStatus({
+      ...baseData,
+      pendingPaymentPlanCount: 2,
+    });
+
+    assert.equal(status.firstIncompleteStepId, "payment_plans");
+    assert.equal(status.steps[1]?.title, "Families choose payment schedules");
+    assert.match(
+      status.steps[1]?.description ?? "",
+      /parent portal under Billing/i,
+    );
   });
 
   it("marks all steps complete when billing is ready", () => {
     const status = buildTuitionReadinessStatus(baseData);
 
     assert.equal(status.firstIncompleteStepId, null);
-    assert.equal(status.completedCount, 4);
+    assert.equal(status.completedCount, 3);
+    assert.equal(status.totalCount, 3);
   });
 });
 

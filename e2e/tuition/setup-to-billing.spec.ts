@@ -460,7 +460,7 @@ test("admin can mark a charge sent as invoice", async ({ playwright, baseURL }) 
   await adminContext.dispose();
 });
 
-test("tuition dashboard shows readiness banner when enrollments lack assignments", async ({
+test("tuition dashboard auto-syncs assignments for newly enrolled students", async ({
   page,
 }) => {
   const admin = createAdminClient();
@@ -507,13 +507,19 @@ test("tuition dashboard shows readiness banner when enrollments lack assignments
   expect(enrollment?.id).toBeTruthy();
 
   await page.goto(`/school/${TEST_ORG_SLUG}/admin/tuition`);
-  await expect(page.getByTestId("tuition-readiness-banner")).toBeVisible();
-  await expect(
-    page.getByText(/still need tuition assignments|need a tuition assignment/i),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
+
+  const { data: assignment } = await admin
+    .from("tuition_enrollment_assignments")
+    .select("id")
+    .eq("enrollment_id", enrollment!.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  expect(assignment?.id).toBeTruthy();
 });
 
-test("assign-unassigned API creates tuition assignments for enrolled students", async ({
+test("sync-assignments API creates tuition assignments for enrolled students", async ({
   playwright,
   baseURL,
 }) => {
@@ -563,7 +569,7 @@ test("assign-unassigned API creates tuition assignments for enrolled students", 
     storageState: AUTH_STATE_PATHS.schoolAdmin,
   });
 
-  const response = await adminContext.post("/api/tuition/assign-unassigned", {
+  const response = await adminContext.post("/api/tuition/sync-assignments", {
     data: { organizationId },
   });
 
@@ -581,4 +587,18 @@ test("assign-unassigned API creates tuition assignments for enrolled students", 
   expect((payload.assignedCount ?? 0) >= 1).toBe(true);
 
   await adminContext.dispose();
+});
+
+test("tuition setup panel opens from header button with three steps", async ({
+  page,
+}) => {
+  await page.goto(`/school/${TEST_ORG_SLUG}/admin/tuition`);
+  await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
+
+  await page.getByTestId("tuition-setup-button").click();
+  const panel = page.getByTestId("tuition-setup-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText("Publish a rate plan")).toBeVisible();
+  await expect(panel.getByText("Families choose payment schedules")).toBeVisible();
+  await expect(panel.getByText("Generate billing schedules")).toBeVisible();
 });

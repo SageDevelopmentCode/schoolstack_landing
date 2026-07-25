@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { PaymentSchedulePreviewContent } from "@/components/school-admin/tuition/PaymentSchedulePreviewPanel";
+import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
 import { PaymentScheduleSelectionCard } from "@/components/school-admin/tuition/TuitionPaymentScheduleCards";
 import { computeInstallmentAmountCents } from "@/lib/tuition/assignments";
 import { formatCents } from "@/lib/tuition/pricing";
@@ -14,17 +14,25 @@ import {
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 
-type EnrollmentTuitionPlanStepProps = {
+function possessiveFirstName(fullName: string): string {
+  const firstName = fullName.trim().split(/\s+/)[0] ?? fullName;
+  if (!firstName) return "Your";
+  return `${firstName}'s`;
+}
+
+type ParentTuitionPlanSelectorProps = {
   C: AdminThemeTokens;
   context: EnrollmentTuitionSelectionContext;
+  studentName?: string;
   onComplete: () => void;
 };
 
-export default function EnrollmentTuitionPlanStep({
+export default function ParentTuitionPlanSelector({
   C,
   context,
+  studentName,
   onComplete,
-}: EnrollmentTuitionPlanStepProps) {
+}: ParentTuitionPlanSelectorProps) {
   const { assignment, ratePlan } = context;
   const tier =
     ratePlan.tiers.find((item) => item.id === assignment.rateTierId) ??
@@ -40,8 +48,12 @@ export default function EnrollmentTuitionPlanStep({
   );
 
   const [selectedPlanId, setSelectedPlanId] = useState(
-    assignment.paymentPlanId || ratePlan.paymentPlans.find((p) => p.isDefault)?.id || ratePlan.paymentPlans[0]?.id || "",
+    assignment.paymentPlanId ||
+      ratePlan.paymentPlans.find((p) => p.isDefault)?.id ||
+      ratePlan.paymentPlans[0]?.id ||
+      "",
   );
+  const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +72,10 @@ export default function EnrollmentTuitionPlanStep({
       totalCents: amountCents * selectedPlan.installmentCount,
     };
   }, [annualAmountCents, selectedPlan]);
+
+  const heading = studentName
+    ? `${possessiveFirstName(studentName)} payment schedule`
+    : "Your payment schedule";
 
   const handleConfirm = async () => {
     if (!selectedPlanId) {
@@ -91,13 +107,17 @@ export default function EnrollmentTuitionPlanStep({
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
+    <div
+      className="flex flex-col gap-6 w-full rounded-xl p-5"
+      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+      data-testid="parent-tuition-plan-selector"
+    >
       <div>
         <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-          Choose your payment schedule
+          {heading}
         </h2>
         <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-          Select how you would like to pay {ratePlan.name} tuition
+          Annual tuition {formatCents(annualAmountCents)} · {ratePlan.name}
           {tier ? ` (${tier.label})` : ""} for the school year.
         </p>
       </div>
@@ -144,34 +164,53 @@ export default function EnrollmentTuitionPlanStep({
         </div>
       ) : null}
 
-      {selectedPreview ? (
-        <PaymentSchedulePreviewContent
-          C={C}
-          preview={selectedPreview}
-          annualAmountCents={annualAmountCents}
-          effectiveStart={ratePlan.effectiveStart}
-          effectiveEnd={ratePlan.effectiveEnd}
-          schoolYearMonths={schoolYearMonths}
-          embedded
-        />
-      ) : null}
-
       {error ? (
         <p className="text-sm" style={{ color: C.error }}>
           {error}
         </p>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => void handleConfirm()}
-        disabled={saving}
-        style={getAdminButtonStyle(C, "primary")}
-        className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium self-start"
-      >
-        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-        Confirm payment schedule
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setShowPreview(true)}
+          disabled={!selectedPreview}
+          data-testid="parent-schedule-preview-button"
+          style={getAdminButtonStyle(C, "secondary")}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
+        >
+          See schedule preview
+        </button>
+
+        <button
+          type="button"
+          onClick={() => void handleConfirm()}
+          disabled={saving}
+          style={getAdminButtonStyle(C, "primary")}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Confirm payment schedule
+        </button>
+      </div>
+
+      <PaymentSchedulePreviewModal
+        C={C}
+        open={showPreview}
+        title={
+          studentName
+            ? `${possessiveFirstName(studentName)} schedule preview`
+            : "Schedule preview"
+        }
+        previews={selectedPreview ? [selectedPreview] : []}
+        defaultCount={selectedPreview?.count ?? 1}
+        annualAmountCents={annualAmountCents}
+        effectiveStart={ratePlan.effectiveStart}
+        effectiveEnd={ratePlan.effectiveEnd}
+        schoolYearMonths={schoolYearMonths}
+        testId="parent-schedule-preview-modal"
+        onClose={() => setShowPreview(false)}
+      />
     </div>
   );
 }

@@ -1,0 +1,56 @@
+"use client";
+
+import type { ParentBillingChildView } from "@/lib/tuition/parent-billing-summary";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+
+type ParentBillingChildTabsProps = {
+  C: AdminThemeTokens;
+  children: ParentBillingChildView[];
+  activeChildKey: string;
+  onChange: (childKey: string) => void;
+};
+
+function childFirstName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? name;
+}
+
+export default function ParentBillingChildTabs({
+  C,
+  children,
+  activeChildKey,
+  onChange,
+}: ParentBillingChildTabsProps) {
+  return (
+    <div className="flex flex-col gap-4" data-testid="parent-billing-child-tabs">
+      <div className="-mb-px flex gap-6 border-b" style={{ borderColor: C.border }}>
+        {children.map((child) => {
+          const active = child.childKey === activeChildKey;
+          return (
+            <button
+              key={child.childKey}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => onChange(child.childKey)}
+              className="inline-flex items-center gap-2 px-1 py-2 text-sm font-medium -mb-px"
+              style={{
+                color: active ? C.accent : C.textSecondary,
+                borderBottom: active ? `2px solid ${C.accent}` : "2px solid transparent",
+              }}
+            >
+              {childFirstName(child.studentName)}
+              {child.status === "needs_schedule" ? (
+                <span
+                  className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                  style={{ backgroundColor: C.accentLight, color: C.accent }}
+                >
+                  Setup
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

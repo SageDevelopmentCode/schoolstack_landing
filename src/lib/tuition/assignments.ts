@@ -120,7 +120,7 @@ export async function autoAssignTuitionForEnrollment(
   },
 ): Promise<TuitionEnrollmentAssignment | null> {
   const existing = await getAssignmentForEnrollment(supabase, input.enrollmentId);
-  if (existing) return existing;
+  if (existing?.status === "active") return existing;
 
   const ratePlan = await getDefaultRatePlanForProgram(
     supabase,
@@ -139,21 +139,34 @@ export async function autoAssignTuitionForEnrollment(
   await ensureBillingAccount(supabase, input.organizationId, input.familyId);
 
   const multiplePaymentPlans = ratePlan.paymentPlans.length > 1;
+  const metadata = multiplePaymentPlans
+    ? { pendingPaymentPlanSelection: true }
+    : {};
 
-  const assignment = await createEnrollmentAssignment(supabase, {
-    organizationId: input.organizationId,
-    enrollmentId: input.enrollmentId,
-    familyId: input.familyId,
-    ratePlanId: ratePlan.id,
-    rateTierId: defaultTier?.id ?? null,
-    paymentPlanId: defaultPaymentPlan.id,
-    assignmentSource: "default",
-    assignedByUserId: input.assignedByUserId ?? null,
-    effectiveStart: ratePlan.effectiveStart,
-    metadata: multiplePaymentPlans
-      ? { pendingPaymentPlanSelection: true }
-      : {},
-  });
+  let assignment: TuitionEnrollmentAssignment;
+
+  if (existing) {
+    assignment = await updateAssignment(supabase, existing.id, {
+      ratePlanId: ratePlan.id,
+      rateTierId: defaultTier?.id ?? null,
+      paymentPlanId: defaultPaymentPlan.id,
+      status: "active",
+      metadata,
+    });
+  } else {
+    assignment = await createEnrollmentAssignment(supabase, {
+      organizationId: input.organizationId,
+      enrollmentId: input.enrollmentId,
+      familyId: input.familyId,
+      ratePlanId: ratePlan.id,
+      rateTierId: defaultTier?.id ?? null,
+      paymentPlanId: defaultPaymentPlan.id,
+      assignmentSource: "default",
+      assignedByUserId: input.assignedByUserId ?? null,
+      effectiveStart: ratePlan.effectiveStart,
+      metadata,
+    });
+  }
 
   await evaluateAndApplyRulesForAssignment(supabase, assignment.id);
 
@@ -162,6 +175,170 @@ export async function autoAssignTuitionForEnrollment(
   }
 
   return assignment;
+}
+
+export type TuitionAssignmentBackfillResult = {
+  assignedCount: number;
+  failedCount: number;
+  total: number;
+};
+
+export async function backfillTuitionAssignmentsForRatePlan(
+  supabase: SupabaseClient,
+  ratePlanId: string,
+  assignedByUserId?: string | null,
+): Promise<TuitionAssignmentBackfillResult> {
+  const { data: ratePlan, error: ratePlanError } = await supabase
+    .from("tuition_rate_plans")
+    .select("id, organization_id, program_id, status")
+    .eq("id", ratePlanId)
+    .maybeSingle();
+
+  if (ratePlanError) throw ratePlanError;
+  if (!ratePlan || ratePlan.status !== "active") {
+    return { assignedCount: 0, failedCount: 0, total: 0 };
+  }
+
+  return backfillTuitionAssignmentsForProgram(
+    supabase,
+    {
+      organizationId: String(ratePlan.organization_id),
+      programId: String(ratePlan.program_id),
+      assignedByUserId,
+    },
+  );
+}
+
+export async function backfillTuitionAssignmentsForProgram(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    programId: string;
+    assignedByUserId?: string | null;
+  },
+): Promise<TuitionAssignmentBackfillResult> {
+  const { data: enrollments, error: enrollmentsError } = await supabase
+    .from("enrollments")
+    .select("id, student_id")
+    .eq("organization_id", input.organizationId)
+    .eq("program_id", input.programId)
+    .eq("status", "enrolled");
+
+  if (enrollmentsError) throw enrollmentsError;
+  if (!enrollments?.length) {
+    return { assignedCount: 0, failedCount: 0, total: 0 };
+  }
+
+  const enrollmentIds = enrollments.map((row) => String(row.id));
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from("tuition_enrollment_assignments")
+    .select("enrollment_id")
+    .eq("organization_id", input.organizationId)
+    .eq("status", "active")
+    .in("enrollment_id", enrollmentIds);
+
+  if (assignmentsError) throw assignmentsError;
+
+  const assignedEnrollmentIds = new Set(
+    (assignments ?? []).map((row) => String(row.enrollment_id)),
+  );
+  const unassigned = enrollments.filter(
+    (row) => !assignedEnrollmentIds.has(String(row.id)),
+  );
+
+  const studentIds = unassigned.map((row) => String(row.student_id));
+  const { data: students, error: studentsError } = studentIds.length
+    ? await supabase
+        .from("students")
+        .select("id, family_id")
+        .in("id", studentIds)
+    : { data: [], error: null };
+
+  if (studentsError) throw studentsError;
+
+  const familyByStudent = new Map(
+    (students ?? []).map((student) => [String(student.id), String(student.family_id)]),
+  );
+
+  let assignedCount = 0;
+  let failedCount = 0;
+
+  for (const enrollment of unassigned) {
+    const familyId = familyByStudent.get(String(enrollment.student_id));
+    if (!familyId) {
+      failedCount += 1;
+      continue;
+    }
+
+    try {
+      const assignment = await autoAssignTuitionForEnrollment(supabase, {
+        organizationId: input.organizationId,
+        enrollmentId: String(enrollment.id),
+        familyId,
+        programId: input.programId,
+        assignedByUserId: input.assignedByUserId,
+      });
+      if (assignment) assignedCount += 1;
+      else failedCount += 1;
+    } catch {
+      failedCount += 1;
+    }
+  }
+
+  return {
+    assignedCount,
+    failedCount,
+    total: unassigned.length,
+  };
+}
+
+export async function backfillTuitionAssignmentsForOrganization(
+  supabase: SupabaseClient,
+  organizationId: string,
+  assignedByUserId?: string | null,
+): Promise<TuitionAssignmentBackfillResult> {
+  const { data: ratePlans, error: ratePlansError } = await supabase
+    .from("tuition_rate_plans")
+    .select("id, program_id")
+    .eq("organization_id", organizationId)
+    .eq("status", "active");
+
+  if (ratePlansError) throw ratePlansError;
+  if (!ratePlans?.length) {
+    return { assignedCount: 0, failedCount: 0, total: 0 };
+  }
+
+  let assignedCount = 0;
+  let failedCount = 0;
+  let total = 0;
+
+  for (const ratePlan of ratePlans) {
+    const result = await backfillTuitionAssignmentsForProgram(supabase, {
+      organizationId,
+      programId: String(ratePlan.program_id),
+      assignedByUserId,
+    });
+    assignedCount += result.assignedCount;
+    failedCount += result.failedCount;
+    total += result.total;
+  }
+
+  return { assignedCount, failedCount, total };
+}
+
+export async function unassignTuitionAssignment(
+  supabase: SupabaseClient,
+  assignmentId: string,
+): Promise<TuitionEnrollmentAssignment> {
+  const { error: voidError } = await supabase
+    .from("tuition_charges")
+    .update({ status: "void" })
+    .eq("assignment_id", assignmentId)
+    .in("status", ["scheduled", "sent", "overdue"]);
+
+  if (voidError) throw voidError;
+
+  return updateAssignment(supabase, assignmentId, { status: "ended" });
 }
 
 export async function finalizeEnrollmentPaymentPlan(

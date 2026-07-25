@@ -180,3 +180,276 @@ test("parent billing page shows readiness guidance when charges are missing", as
     page.getByText(/Tuition has not been assigned yet|Choose your payment schedule/i),
   ).toBeVisible();
 });
+
+test("parent billing page lets family choose payment schedule inline", async ({
+  page,
+}) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: family } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("primary_email", E2E_PARENT_EMAIL)
+    .maybeSingle();
+
+  expect(family?.id).toBeTruthy();
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: student } = await admin
+    .from("students")
+    .insert({
+      organization_id: organizationId,
+      family_id: family!.id,
+      first_name: "Schedule",
+      last_name: "Picker",
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  const { data: enrollment } = await admin
+    .from("enrollments")
+    .insert({
+      organization_id: organizationId,
+      student_id: student!.id,
+      program_id: program!.id,
+      status: "enrolled",
+    })
+    .select("id")
+    .single();
+
+  const { data: ratePlan } = await admin
+    .from("tuition_rate_plans")
+    .insert({
+      organization_id: organizationId,
+      program_id: program!.id,
+      name: "Parent Schedule Picker E2E",
+      billing_basis: "annual",
+      amount_cents: 720000,
+      status: "active",
+      effective_start: "2026-08-01",
+      effective_end: "2027-05-31",
+    })
+    .select("id")
+    .single();
+
+  const { data: tier } = await admin
+    .from("tuition_rate_tiers")
+    .insert({
+      organization_id: organizationId,
+      rate_plan_id: ratePlan!.id,
+      code: "standard",
+      label: "Standard",
+      amount_cents: 720000,
+      sort_order: 0,
+      is_default: true,
+    })
+    .select("id")
+    .single();
+
+  const { data: paymentPlans } = await admin
+    .from("tuition_payment_plans")
+    .insert([
+      {
+        organization_id: organizationId,
+        rate_plan_id: ratePlan!.id,
+        name: "10 payments",
+        installment_count: 10,
+        installment_amount_cents: 72000,
+        billing_day_of_month: 1,
+        is_default: true,
+      },
+      {
+        organization_id: organizationId,
+        rate_plan_id: ratePlan!.id,
+        name: "Pay in full",
+        installment_count: 1,
+        installment_amount_cents: 720000,
+        billing_day_of_month: 1,
+        is_default: false,
+      },
+    ])
+    .select("id, installment_count");
+
+  const defaultPlanId = String(
+    paymentPlans!.find((plan) => plan.installment_count === 10)!.id,
+  );
+
+  await admin.from("tuition_enrollment_assignments").insert({
+    organization_id: organizationId,
+    enrollment_id: enrollment!.id,
+    family_id: family!.id,
+    rate_plan_id: ratePlan!.id,
+    rate_tier_id: tier!.id,
+    payment_plan_id: defaultPlanId,
+    assignment_source: "default",
+    status: "active",
+    metadata: { pendingPaymentPlanSelection: true },
+    effective_start: "2026-08-01",
+  });
+
+  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await expect(page.getByTestId("parent-tuition-plan-selector")).toBeVisible();
+  await expect(page.getByText("Pay in full")).toBeVisible();
+  await page.getByText("Pay in full").click();
+  await page.getByRole("button", { name: "Confirm payment schedule" }).click();
+
+  await expect(page.getByText("Upcoming charges")).toBeVisible();
+  await expect(page.getByText(/Tuition/)).toHaveCount(1);
+});
+
+test("parent billing page uses child tabs for multiple pending schedules", async ({
+  page,
+}) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: family } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("primary_email", E2E_PARENT_EMAIL)
+    .maybeSingle();
+
+  expect(family?.id).toBeTruthy();
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: ratePlan } = await admin
+    .from("tuition_rate_plans")
+    .insert({
+      organization_id: organizationId,
+      program_id: program!.id,
+      name: "Multi Child Billing E2E",
+      billing_basis: "annual",
+      amount_cents: 720000,
+      status: "active",
+      effective_start: "2026-08-01",
+      effective_end: "2027-05-31",
+    })
+    .select("id")
+    .single();
+
+  const { data: tier } = await admin
+    .from("tuition_rate_tiers")
+    .insert({
+      organization_id: organizationId,
+      rate_plan_id: ratePlan!.id,
+      code: "standard",
+      label: "Standard",
+      amount_cents: 720000,
+      sort_order: 0,
+      is_default: true,
+    })
+    .select("id")
+    .single();
+
+  const { data: paymentPlans } = await admin
+    .from("tuition_payment_plans")
+    .insert([
+      {
+        organization_id: organizationId,
+        rate_plan_id: ratePlan!.id,
+        name: "10 payments",
+        installment_count: 10,
+        installment_amount_cents: 72000,
+        billing_day_of_month: 1,
+        is_default: true,
+      },
+      {
+        organization_id: organizationId,
+        rate_plan_id: ratePlan!.id,
+        name: "Pay in full",
+        installment_count: 1,
+        installment_amount_cents: 720000,
+        billing_day_of_month: 1,
+        is_default: false,
+      },
+    ])
+    .select("id, installment_count");
+
+  const defaultPlanId = String(
+    paymentPlans!.find((plan) => plan.installment_count === 10)!.id,
+  );
+
+  for (const [firstName, lastName] of [
+    ["Julia", "Tabs"],
+    ["Caleb", "Tabs"],
+  ] as const) {
+    const { data: student } = await admin
+      .from("students")
+      .insert({
+        organization_id: organizationId,
+        family_id: family!.id,
+        first_name: firstName,
+        last_name: lastName,
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    const { data: enrollment } = await admin
+      .from("enrollments")
+      .insert({
+        organization_id: organizationId,
+        student_id: student!.id,
+        program_id: program!.id,
+        status: "enrolled",
+      })
+      .select("id")
+      .single();
+
+    await admin.from("tuition_enrollment_assignments").insert({
+      organization_id: organizationId,
+      enrollment_id: enrollment!.id,
+      family_id: family!.id,
+      rate_plan_id: ratePlan!.id,
+      rate_tier_id: tier!.id,
+      payment_plan_id: defaultPlanId,
+      assignment_source: "default",
+      status: "active",
+      metadata: { pendingPaymentPlanSelection: true },
+      effective_start: "2026-08-01",
+    });
+  }
+
+  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await expect(page.getByTestId("parent-billing-summary")).toBeVisible();
+  await expect(page.getByText("Estimated annual tuition")).toBeVisible();
+  await expect(page.getByTestId("parent-billing-child-tabs")).toBeVisible();
+  await expect(page.getByTestId("parent-tuition-plan-selector")).toHaveCount(1);
+  await expect(page.getByRole("tab", { name: /Julia/ })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /Caleb/ })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Julia's payment schedule" }),
+  ).toBeVisible();
+
+  await page.getByTestId("parent-schedule-preview-button").click();
+  await expect(page.getByTestId("parent-schedule-preview-modal")).toBeVisible();
+  await expect(page.getByText("Installment timeline")).toBeVisible();
+  await expect(page.getByText("Estimated due dates")).toBeVisible();
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByTestId("parent-schedule-preview-modal")).not.toBeVisible();
+
+  await page.getByRole("tab", { name: /Caleb/ }).click();
+  await expect(page.getByTestId("parent-tuition-plan-selector")).toHaveCount(1);
+  await expect(
+    page.getByRole("heading", { name: "Caleb's payment schedule" }),
+  ).toBeVisible();
+  await expect(page.getByText("Annual tuition $7,200")).toBeVisible();
+});

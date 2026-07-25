@@ -2,12 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CreditCard, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
+import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
+import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { formatAdjustmentSummary, formatCents } from "@/lib/tuition/pricing";
 import { setAutopayEnabled } from "@/lib/tuition/autopay";
+import {
+  fetchParentBillingFamilySummary,
+  pickInitialChildKey,
+  pickNextPendingChildKey,
+  type ParentBillingFamilySummary,
+} from "@/lib/tuition/parent-billing-summary";
 import {
   fetchFamilyBillingReadiness,
   type FamilyBillingReadiness,
@@ -41,8 +50,12 @@ export default function ParentBillingPage({
   const [loading, setLoading] = useState(true);
   const [payingChargeId, setPayingChargeId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<FamilyBillingReadiness | null>(null);
+  const [familySummary, setFamilySummary] = useState<ParentBillingFamilySummary | null>(
+    null,
+  );
+  const [activeChildKey, setActiveChildKey] = useState<string | null>(null);
 
-  const loadBilling = useCallback(async () => {
+  const loadBilling = useCallback(async (): Promise<ParentBillingFamilySummary | null> => {
     setLoading(true);
     try {
       const [chargeRows, paymentRows, adjustmentRows, readinessState] = await Promise.all([
@@ -55,10 +68,24 @@ export default function ParentBillingPage({
           slug,
         }),
       ]);
+
+      const summary = await fetchParentBillingFamilySummary(supabase, {
+        organizationId,
+        familyId,
+        charges: chargeRows,
+      });
+
       setCharges(chargeRows);
       setPayments(paymentRows);
       setAdjustments(adjustmentRows);
       setReadiness(readinessState);
+      setFamilySummary(summary);
+      setActiveChildKey((prev) => {
+        if (prev && summary.children.some((child) => child.childKey === prev)) {
+          return prev;
+        }
+        return pickInitialChildKey(summary.children);
+      });
 
       const { data: account } = await supabase
         .from("tuition_billing_accounts")
@@ -68,6 +95,7 @@ export default function ParentBillingPage({
         .maybeSingle();
 
       setAutopayEnabledState(Boolean(account?.autopay_enabled));
+      return summary;
     } finally {
       setLoading(false);
     }
@@ -79,23 +107,32 @@ export default function ParentBillingPage({
     });
   }, [loadBilling]);
 
-  const openCharges = charges.filter(
-    (c) => c.status === "scheduled" || c.status === "sent" || c.status === "overdue",
-  );
-  const balanceDueCents = openCharges.reduce((sum, c) => sum + c.amountCents, 0);
-  const nextCharge = openCharges.sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+  const childViews = familySummary?.children ?? [];
+  const activeChild =
+    childViews.find((child) => child.childKey === activeChildKey) ?? childViews[0] ?? null;
+  const hasMultipleChildren = childViews.length > 1;
+  const hasPendingSelections = childViews.some((child) => child.selectionItem);
+
   const today = new Date().toISOString().slice(0, 10);
   const allChargesAreFuture =
-    charges.length > 0 &&
-    charges.every((charge) => charge.dueDate > today);
+    charges.length > 0 && charges.every((charge) => charge.dueDate > today);
+
+  const nextChargeRecord = familySummary?.nextCharge
+    ? charges.find(
+        (charge) =>
+          charge.label === familySummary.nextCharge?.label &&
+          charge.dueDate === familySummary.nextCharge?.dueDate &&
+          charge.amountCents === familySummary.nextCharge?.amountCents,
+      )
+    : null;
 
   const readinessMessage = (() => {
+    if (hasPendingSelections) return null;
     if (!readiness) return null;
     if (charges.length > 0 && readiness.state === "ready" && allChargesAreFuture) {
-      const firstCharge = readiness.firstChargeDue ?? nextCharge;
+      const firstCharge = readiness.firstChargeDue ?? familySummary?.nextCharge;
       if (!firstCharge) return null;
-      const dueDate =
-        "dueDate" in firstCharge ? firstCharge.dueDate : firstCharge.date;
+      const dueDate = "dueDate" in firstCharge ? firstCharge.dueDate : firstCharge.date;
       const amountCents = firstCharge.amountCents;
       return {
         title: "Your tuition schedule is ready",
@@ -122,9 +159,9 @@ export default function ParentBillingPage({
       case "needs_payment_plan":
         return {
           title: "Choose your payment schedule",
-          body: "Select an installment plan to generate your tuition charges.",
-          href: readiness.enrollmentChecklistHref,
-          cta: "Choose payment schedule",
+          body: "Select an installment plan below to generate your tuition charges.",
+          href: null,
+          cta: null,
         };
       case "no_charges":
         return {
@@ -161,9 +198,90 @@ export default function ParentBillingPage({
     setAutopayEnabledState(next);
   };
 
+  const handleScheduleComplete = async () => {
+    const currentKey = activeChildKey;
+    const summary = await loadBilling();
+    if (currentKey && summary) {
+      setActiveChildKey(
+        pickNextPendingChildKey(summary.children, currentKey) ?? currentKey,
+      );
+    }
+  };
+
+  const renderChildCharges = (assignmentId: string | null) => {
+    const childCharges = assignmentId
+      ? charges.filter((charge) => charge.assignmentId === assignmentId)
+      : charges;
+
+    return (
+      <>
+        <div>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
+            Upcoming charges
+          </h2>
+          <div className="flex flex-col gap-2">
+            {childCharges.length > 0 ? (
+              childCharges.map((charge) => (
+                <div
+                  key={charge.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm"
+                  style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+                >
+                  <div>
+                    <p style={{ color: C.textPrimary }}>{charge.label}</p>
+                    <p className="text-xs" style={{ color: C.textTertiary }}>
+                      Due {charge.dueDate} · {charge.status}
+                      {charge.baseAmountCents !== charge.amountCents ? " · adjusted" : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium" style={{ color: C.textPrimary }}>
+                      {formatCents(charge.amountCents)}
+                    </span>
+                    {charge.status !== "paid" && charge.status !== "void" ? (
+                      <button
+                        type="button"
+                        onClick={() => void handlePay(charge.id)}
+                        className="text-xs font-medium px-2 py-1 rounded"
+                        style={{ backgroundColor: C.accentLight, color: C.accent }}
+                      >
+                        Pay
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm" style={{ color: C.textTertiary }}>
+                No upcoming charges yet.
+              </p>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const renderActiveChildPanel = () => {
+    if (!activeChild) return null;
+
+    if (activeChild.selectionItem) {
+      return (
+        <ParentTuitionPlanSelector
+          C={C}
+          context={activeChild.selectionItem.context}
+          studentName={activeChild.studentName}
+          onComplete={() => void handleScheduleComplete()}
+        />
+      );
+    }
+
+    return renderChildCharges(activeChild.assignmentId);
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-6 text-sm" style={{ color: C.textSecondary }}>
+      <div className="flex items-center justify-center gap-2 p-6 text-sm" style={{ color: C.textSecondary }}>
         <Loader2 className="w-4 h-4 animate-spin" />
         Loading billing…
       </div>
@@ -171,8 +289,8 @@ export default function ParentBillingPage({
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-3xl">
-      <div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
+      <div className="text-center sm:text-left">
         <h1 className="text-xl font-semibold" style={{ color: C.textPrimary }}>
           Billing
         </h1>
@@ -207,51 +325,33 @@ export default function ParentBillingPage({
         </div>
       ) : null}
 
-      <div
-        className="rounded-xl p-5 flex flex-col gap-4"
-        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
-              Balance due
-            </p>
-            <p className="text-2xl font-semibold mt-1" style={{ color: C.textPrimary }}>
-              {formatCents(balanceDueCents)}
-            </p>
-            {nextCharge ? (
-              <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-                Next: {nextCharge.label} due {nextCharge.dueDate}
-              </p>
-            ) : null}
-          </div>
-          {nextCharge ? (
-            <button
-              type="button"
-              disabled={payingChargeId === nextCharge.id}
-              onClick={() => void handlePay(nextCharge.id)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-              style={{ backgroundColor: C.accent, color: "#fff" }}
-            >
-              {payingChargeId === nextCharge.id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CreditCard className="w-4 h-4" />
-              )}
-              Pay now
-            </button>
-          ) : null}
-        </div>
+      {familySummary ? (
+        <ParentBillingSummaryCard
+          C={C}
+          summary={familySummary}
+          autopayEnabled={autopayEnabled}
+          payingChargeId={payingChargeId}
+          onPay={(chargeId) => void handlePay(chargeId)}
+          onAutopayToggle={() => void handleAutopayToggle()}
+          nextChargeId={nextChargeRecord?.id ?? null}
+        />
+      ) : null}
 
-        <label className="flex items-center gap-2 text-sm" style={{ color: C.textSecondary }}>
-          <input
-            type="checkbox"
-            checked={autopayEnabled}
-            onChange={() => void handleAutopayToggle()}
-          />
-          Enable autopay for due charges
-        </label>
-      </div>
+      {childViews.length > 0 ? (
+        <div className="flex flex-col gap-4" data-testid="parent-billing-child-panel">
+          {hasMultipleChildren && activeChildKey ? (
+            <ParentBillingChildTabs
+              C={C}
+              children={childViews}
+              activeChildKey={activeChildKey}
+              onChange={setActiveChildKey}
+            />
+          ) : null}
+          {renderActiveChildPanel()}
+        </div>
+      ) : (
+        renderChildCharges(null)
+      )}
 
       {adjustments.length > 0 ? (
         <div>
@@ -281,52 +381,6 @@ export default function ParentBillingPage({
           </div>
         </div>
       ) : null}
-
-      <div>
-        <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
-          Upcoming charges
-        </h2>
-        <div className="flex flex-col gap-2">
-          {charges.length > 0 ? (
-            charges.map((charge) => (
-            <div
-              key={charge.id}
-              className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm"
-              style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-            >
-              <div>
-                <p style={{ color: C.textPrimary }}>{charge.label}</p>
-                <p className="text-xs" style={{ color: C.textTertiary }}>
-                  Due {charge.dueDate} · {charge.status}
-                  {charge.baseAmountCents !== charge.amountCents
-                    ? " · adjusted"
-                    : ""}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium" style={{ color: C.textPrimary }}>
-                  {formatCents(charge.amountCents)}
-                </span>
-                {charge.status !== "paid" && charge.status !== "void" ? (
-                  <button
-                    type="button"
-                    onClick={() => void handlePay(charge.id)}
-                    className="text-xs font-medium px-2 py-1 rounded"
-                    style={{ backgroundColor: C.accentLight, color: C.accent }}
-                  >
-                    Pay
-                  </button>
-                ) : null}
-              </div>
-            </div>
-            ))
-          ) : (
-            <p className="text-sm" style={{ color: C.textTertiary }}>
-              No upcoming charges yet.
-            </p>
-          )}
-        </div>
-      </div>
 
       <div>
         <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>

@@ -39,6 +39,7 @@ export default function TuitionAssignmentModal({
   const [paymentOptions, setPaymentOptions] = useState<
     Array<{ value: string; label: string }>
   >([]);
+  const [pendingPaymentPlanSelection, setPendingPaymentPlanSelection] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -57,6 +58,9 @@ export default function TuitionAssignmentModal({
         }
 
         setRatePlanName(ratePlan.name);
+        setPendingPaymentPlanSelection(
+          assignment.metadata.pendingPaymentPlanSelection === true,
+        );
         setRateTierId(assignment.rateTierId ?? ratePlan.tiers.find((t) => t.isDefault)?.id ?? ratePlan.tiers[0]?.id ?? "");
         setPaymentPlanId(assignment.paymentPlanId);
         setTierOptions(
@@ -165,7 +169,9 @@ export default function TuitionAssignmentModal({
               </label>
 
               <p className="text-xs" style={{ color: C.textTertiary }}>
-                Changing tier or schedule regenerates future unpaid charges.
+                {pendingPaymentPlanSelection
+                  ? "The family has not confirmed a payment schedule yet. You can override the schedule here if needed."
+                  : "Changing tier or schedule regenerates future unpaid charges."}
               </p>
             </>
           )}
