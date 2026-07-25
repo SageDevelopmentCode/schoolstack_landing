@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 function inputStyle(C: AdminThemeTokens): React.CSSProperties {
@@ -140,6 +140,43 @@ export function AddScheduleCard({
   );
 }
 
+export function ScheduleSelectionToggle({
+  C,
+  selected,
+  onToggle,
+  ariaLabel,
+}: {
+  C: AdminThemeTokens;
+  selected: boolean;
+  onToggle: () => void;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={selected}
+      aria-label={ariaLabel}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onToggle();
+      }}
+      className="shrink-0 flex items-center justify-center rounded-md p-2 -m-2 min-h-[44px] min-w-[44px]"
+    >
+      <span
+        className="flex h-[22px] w-[22px] items-center justify-center rounded-md transition-colors"
+        style={{
+          border: `2px solid ${selected ? C.accent : C.borderStrong}`,
+          backgroundColor: selected ? C.accent : C.surface,
+        }}
+      >
+        {selected ? <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} /> : null}
+      </span>
+    </button>
+  );
+}
+
 export function AdminScheduleCard({
   C,
   selected,
@@ -166,14 +203,14 @@ export function AdminScheduleCard({
   onSetDefault?: () => void;
 }) {
   return (
-    <label
-      className={`flex items-start gap-3 cursor-pointer ${compact ? "flex-1 min-w-0" : ""}`}
+    <div
+      className={`flex items-center gap-3 ${compact ? "flex-1 min-w-0" : ""}`}
     >
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={onToggle}
-        className="mt-1"
+      <ScheduleSelectionToggle
+        C={C}
+        selected={selected}
+        onToggle={onToggle}
+        ariaLabel={`${selected ? "Deselect" : "Select"} ${label}`}
       />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
@@ -207,7 +244,7 @@ export function AdminScheduleCard({
           </button>
         ) : null}
       </div>
-    </label>
+    </div>
   );
 }
 

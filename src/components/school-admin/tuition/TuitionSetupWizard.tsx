@@ -8,6 +8,7 @@ import TuitionFeesStep from "@/components/school-admin/tuition/TuitionFeesStep";
 import TuitionPaymentOptionsStep from "@/components/school-admin/tuition/TuitionPaymentOptionsStep";
 import TuitionReviewStep from "@/components/school-admin/tuition/TuitionReviewStep";
 import TuitionTiersStep from "@/components/school-admin/tuition/TuitionTiersStep";
+import TuitionSetupWizardSkeleton from "@/components/school-admin/tuition/TuitionSetupWizardSkeleton";
 import TuitionWizardStepNav from "@/components/school-admin/tuition/TuitionWizardStepNav";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import SchoolAdminDatePicker, {
@@ -455,14 +456,12 @@ export default function TuitionSetupWizard({
   const isBusy = saving || savingDraft || continuing;
 
   if (loadingPrograms || loadingPlan) {
+    if (isModal) {
+      return <TuitionSetupWizardSkeleton C={C} />;
+    }
+
     return (
-      <div
-        className={
-          isModal
-            ? "flex items-center justify-center py-16"
-            : "flex items-center justify-center min-h-[480px] p-6"
-        }
-      >
+      <div className="flex items-center justify-center min-h-[480px] p-6">
         <Loader2 className="w-5 h-5 animate-spin" style={{ color: C.textSecondary }} />
       </div>
     );

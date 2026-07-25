@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Pencil, Plus, Save } from "lucide-react";
+import { Loader2, Pencil, Save, Trash2 } from "lucide-react";
 import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
+import {
+  AddScheduleCard,
+  AdminScheduleCard,
+  ScheduleCardShell,
+} from "@/components/school-admin/tuition/TuitionPaymentScheduleCards";
 import TuitionSetupWizardModal from "@/components/school-admin/tuition/TuitionSetupWizardModal";
 import {
   annualCentsFromTiers,
@@ -19,6 +24,7 @@ import {
   DEFAULT_PAYMENT_COUNT,
   filterAllowedPaymentCounts,
   isPaymentCountAllowed,
+  isSuggestedPaymentCount,
   MAX_PAYMENT_INSTALLMENT_COUNT,
   maxInstallmentsForSchoolYear,
   paymentScheduleCadence,
@@ -124,6 +130,8 @@ export default function TuitionRateCatalogPanel({
   const [paymentCounts, setPaymentCounts] = useState<number[]>([]);
   const [defaultPaymentCount, setDefaultPaymentCount] = useState(DEFAULT_PAYMENT_COUNT);
   const [customCount, setCustomCount] = useState("");
+  const [addCardExpanded, setAddCardExpanded] = useState(false);
+  const [customPaymentError, setCustomPaymentError] = useState<string | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -154,6 +162,21 @@ export default function TuitionRateCatalogPanel({
       ),
     [maxInstallments],
   );
+
+  const customOnlyCounts = useMemo(
+    () =>
+      paymentCounts
+        .filter((count) => !isSuggestedPaymentCount(count))
+        .sort((a, b) => a - b),
+    [paymentCounts],
+  );
+
+  const customInputMax =
+    maxInstallments != null
+      ? Math.min(maxInstallments, MAX_PAYMENT_INSTALLMENT_COUNT)
+      : MAX_PAYMENT_INSTALLMENT_COUNT;
+
+  const showDefaultControls = paymentCounts.length > 1;
 
   const selectedPreviews = buildPaymentOptionPreviews(
     annualAmountCents,
@@ -237,12 +260,29 @@ export default function TuitionRateCatalogPanel({
       maxInstallments,
     );
     if (validationError) {
-      setError(validationError);
+      setCustomPaymentError(validationError);
       return;
     }
     setPaymentCounts((prev) => [...prev, count].sort((a, b) => a - b));
     setCustomCount("");
-    setError(null);
+    setCustomPaymentError(null);
+    setAddCardExpanded(false);
+  };
+
+  const closeAddCard = () => {
+    setAddCardExpanded(false);
+    setCustomCount("");
+    setCustomPaymentError(null);
+  };
+
+  const removeCustomCount = (count: number) => {
+    setPaymentCounts((prev) => {
+      const next = prev.filter((value) => value !== count);
+      if (defaultPaymentCount === count) {
+        setDefaultPaymentCount(next[0] ?? DEFAULT_PAYMENT_COUNT);
+      }
+      return next;
+    });
   };
 
   const handleSavePlan = async () => {
@@ -333,23 +373,9 @@ export default function TuitionRateCatalogPanel({
 
       {activePlan ? (
         <div
-          className="rounded-lg p-5 flex flex-col gap-5"
+          className="rounded-lg p-6 flex flex-col gap-8"
           style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
         >
-          <div
-            className="rounded-md px-4 py-3 text-sm"
-            style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.textSecondary }}
-          >
-            <p className="font-medium" style={{ color: C.textPrimary }}>
-              Editing rate plans
-            </p>
-            <p className="mt-1">
-              Payment schedules can be updated inline below. For tuition tiers, fees,
-              program dates, and full review, use <strong>Edit setup</strong> — that
-              opens the setup wizard in a popup.
-            </p>
-          </div>
-
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
@@ -385,8 +411,11 @@ export default function TuitionRateCatalogPanel({
             </label>
           </div>
 
-          <div>
-            <p className="text-sm font-medium mb-3" style={{ color: C.textPrimary }}>
+          <section
+            className="flex flex-col gap-4 pt-6 border-t"
+            style={{ borderColor: C.border }}
+          >
+            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
               Tuition rates
             </p>
             {(activePlan.tiers.length ? activePlan.tiers : []).length ? (
@@ -419,12 +448,15 @@ export default function TuitionRateCatalogPanel({
                 {formatTierDisplayAmount(activePlan.amountCents, activePlan.billingBasis)}
               </p>
             )}
-            <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
+            <p className="text-xs" style={{ color: C.textTertiary }}>
               Use Edit setup to change tuition rates and tiers.
             </p>
-          </div>
+          </section>
 
-          <div>
+          <section
+            className="flex flex-col gap-4 pt-6 border-t"
+            style={{ borderColor: C.border }}
+          >
             <div className="flex items-center justify-between gap-3 mb-3">
               <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
                 Payment options
@@ -445,83 +477,90 @@ export default function TuitionRateCatalogPanel({
                 schedules are limited to {schoolYearMonths} payments or fewer.
               </p>
             ) : null}
-            <div className="grid gap-2 sm:grid-cols-2">
-              {[
-                ...availableSuggestedSchedules,
-                ...paymentCounts
-                  .filter(
-                    (count) =>
-                      !availableSuggestedSchedules.some(
-                        (schedule) => schedule.count === count,
-                      ),
-                  )
-                  .map((count) => ({
-                    count,
-                    label: paymentScheduleLabel(count),
-                    cadence: paymentScheduleCadence(count, schoolYearMonths),
-                  })),
-              ].map((schedule) => {
+            <div className="grid gap-3 sm:grid-cols-2">
+              {availableSuggestedSchedules.map((schedule) => {
+                const preview = buildPaymentOptionPreviews(annualAmountCents, [
+                  schedule.count,
+                ])[0];
                 const selected = paymentCounts.includes(schedule.count);
-                const amountCents = Math.round(annualAmountCents / schedule.count);
+                const isDefault = defaultPaymentCount === schedule.count;
                 return (
-                  <label
+                  <ScheduleCardShell
                     key={schedule.count}
-                    className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
-                    style={{
-                      border: `1px solid ${selected ? C.accent : C.border}`,
-                      backgroundColor: selected ? C.accentLight : C.bg,
-                    }}
+                    C={C}
+                    selected={selected}
                   >
-                    <span className="flex items-center gap-2 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleCount(schedule.count)}
-                      />
-                      <span className="min-w-0">
-                        <span
-                          className="block font-medium"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {schedule.label}
-                        </span>
-                        <span className="block text-xs" style={{ color: C.textTertiary }}>
-                          {schedule.cadence}
-                        </span>
-                      </span>
-                    </span>
-                    <span className="shrink-0" style={{ color: C.textSecondary }}>
-                      {formatCents(amountCents)}
-                    </span>
-                  </label>
+                    <AdminScheduleCard
+                      C={C}
+                      selected={selected}
+                      label={schedule.label}
+                      cadence={paymentScheduleCadence(schedule.count, schoolYearMonths)}
+                      perPayment={preview ? formatCents(preview.amountCents) : "—"}
+                      annualTotal={formatCents(annualAmountCents)}
+                      onToggle={() => toggleCount(schedule.count)}
+                      isDefault={selected && isDefault}
+                      showDefaultControl={selected && showDefaultControls && !isDefault}
+                      onSetDefault={() => setDefaultPaymentCount(schedule.count)}
+                    />
+                  </ScheduleCardShell>
                 );
               })}
-            </div>
-            <div className="flex items-center gap-2 mt-3">
-              <input
-                style={{ ...inputStyle(C), maxWidth: 120 }}
-                type="number"
-                min={1}
-                max={
-                  maxInstallments != null
-                    ? Math.min(maxInstallments, MAX_PAYMENT_INSTALLMENT_COUNT)
-                    : MAX_PAYMENT_INSTALLMENT_COUNT
-                }
-                placeholder="Custom"
-                value={customCount}
-                onChange={(e) => setCustomCount(e.target.value)}
+
+              {customOnlyCounts.map((count) => {
+                const preview = buildPaymentOptionPreviews(annualAmountCents, [count])[0];
+                const selected = paymentCounts.includes(count);
+                const isDefault = defaultPaymentCount === count;
+                return (
+                  <ScheduleCardShell key={count} C={C} selected={selected}>
+                    <div className="flex items-center gap-2">
+                      <AdminScheduleCard
+                        C={C}
+                        selected={selected}
+                        label={paymentScheduleLabel(count)}
+                        cadence={paymentScheduleCadence(count, schoolYearMonths)}
+                        perPayment={preview ? formatCents(preview.amountCents) : "—"}
+                        annualTotal={formatCents(annualAmountCents)}
+                        onToggle={() => toggleCount(count)}
+                        compact
+                        isDefault={selected && isDefault}
+                        showDefaultControl={selected && showDefaultControls && !isDefault}
+                        onSetDefault={() => setDefaultPaymentCount(count)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCustomCount(count)}
+                        className="p-1.5 rounded-md shrink-0"
+                        style={{ color: C.textTertiary }}
+                        aria-label={`Remove ${count} payment schedule`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </ScheduleCardShell>
+                );
+              })}
+
+              <AddScheduleCard
+                C={C}
+                expanded={addCardExpanded}
+                customCount={customCount}
+                customInputMax={customInputMax}
+                maxInstallments={maxInstallments}
+                onExpand={() => setAddCardExpanded(true)}
+                onCollapse={closeAddCard}
+                onCustomCountChange={(value) => {
+                  setCustomCount(value);
+                  setCustomPaymentError(null);
+                }}
+                onAdd={addCustomCount}
               />
-              <button
-                type="button"
-                onClick={addCustomCount}
-                className="inline-flex items-center gap-1 text-sm px-3 py-2 rounded-md"
-                style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add option
-              </button>
             </div>
-            <div className="mt-3">
+            {customPaymentError ? (
+              <p className="text-sm" style={{ color: C.error }}>
+                {customPaymentError}
+              </p>
+            ) : null}
+            <div className="mt-4">
               <p className="text-xs mb-2" style={{ color: C.textTertiary }}>
                 Default payment option
               </p>
@@ -543,10 +582,13 @@ export default function TuitionRateCatalogPanel({
                 ))}
               </div>
             </div>
-          </div>
+          </section>
 
-          <div>
-            <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
+          <section
+            className="flex flex-col gap-4 pt-6 border-t"
+            style={{ borderColor: C.border }}
+          >
+            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
               Fee components
             </p>
             {activePlan.feeComponents.length ? (
@@ -562,7 +604,7 @@ export default function TuitionRateCatalogPanel({
                 No additional fees. Use Edit setup to add fees.
               </p>
             )}
-          </div>
+          </section>
 
           {error ? (
             <p className="text-sm" style={{ color: C.error }}>
