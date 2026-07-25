@@ -29,6 +29,7 @@ import type {
 } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import AdminSupportRequestModal from "@/components/school-admin/AdminSupportRequestModal";
+import AdminToaster from "@/components/school-admin/AdminToaster";
 import AdminPageContentShell from "@/components/school-admin/AdminPageContentShell";
 import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
 
@@ -472,6 +473,8 @@ export default function SchoolAdminBaseline({
         userEmail={userProfile?.email ?? null}
         currentPath={pathname}
       />
+
+      <AdminToaster C={C} />
 
       <main className="flex-1 overflow-hidden">
         <div className="relative h-full overflow-y-auto">

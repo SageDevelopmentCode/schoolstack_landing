@@ -14,6 +14,7 @@ import {
 } from "@/lib/committees/committees";
 import type { Committee, CommitteeListItem, CommitteeTemplate } from "@/lib/committees/types";
 import { createClient } from "@/utils/supabase/client";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import CommitteeListView from "./CommitteeListView";
 import CommitteeWorkspaceShell from "./CommitteeWorkspaceShell";
 import CreateCommitteeModal from "./modals/CreateCommitteeModal";
@@ -141,28 +142,40 @@ export default function CommitteesPage({
     name: string;
     termLabel: string;
   }) => {
-    const created = await createCommitteeFromTemplate(supabase, organizationId, {
-      templateId: input.templateId,
-      platformSlug: input.platformSlug,
-      name: input.name,
-      termLabel: input.termLabel,
-      status: "active",
-    });
-    await loadList();
-    setUrl(created.id, "home");
-    setActiveCommittee(created);
+    try {
+      const created = await createCommitteeFromTemplate(supabase, organizationId, {
+        templateId: input.templateId,
+        platformSlug: input.platformSlug,
+        name: input.name,
+        termLabel: input.termLabel,
+        status: "active",
+      });
+      await loadList();
+      setUrl(created.id, "home");
+      setActiveCommittee(created);
+      adminToast.success("Committee created");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to create committee."));
+      throw err;
+    }
   };
 
   const handleArchive = async () => {
     if (!activeCommittee) return;
-    const updated = await archiveCommittee(
-      supabase,
-      organizationId,
-      activeCommittee.id,
-    );
-    setActiveCommittee(updated);
-    await loadList();
-    setShowArchive(false);
+    try {
+      const updated = await archiveCommittee(
+        supabase,
+        organizationId,
+        activeCommittee.id,
+      );
+      setActiveCommittee(updated);
+      await loadList();
+      setShowArchive(false);
+      adminToast.success("Committee archived");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to archive committee."));
+      throw err;
+    }
   };
 
   if (loading) {

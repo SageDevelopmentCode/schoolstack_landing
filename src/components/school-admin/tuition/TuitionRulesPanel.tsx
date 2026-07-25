@@ -11,6 +11,7 @@ import {
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { TuitionAdjustmentRule } from "@/lib/tuition/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
 
 type TuitionRulesPanelProps = {
@@ -45,50 +46,79 @@ export default function TuitionRulesPanel({
   }, [loadRules]);
 
   const handleCreateSiblingRule = async () => {
-    await createAdjustmentRule(supabase, {
-      organizationId,
-      name: "Sibling discount",
-      priority: 10,
-      conditions: {
-        all: [{ field: "active_enrollments_in_family", op: "gte", value: 2 }],
-      },
-      adjustmentType: "percent_discount",
-      valuePercent: 10,
-      reason: "Sibling discount",
-    });
-    await loadRules();
+    try {
+      await createAdjustmentRule(supabase, {
+        organizationId,
+        name: "Sibling discount",
+        priority: 10,
+        conditions: {
+          all: [{ field: "active_enrollments_in_family", op: "gte", value: 2 }],
+        },
+        adjustmentType: "percent_discount",
+        valuePercent: 10,
+        reason: "Sibling discount",
+      });
+      adminToast.success("Sibling discount rule added");
+      await loadRules();
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to add sibling rule."));
+    }
   };
 
   const handleToggleRule = async (rule: TuitionAdjustmentRule) => {
-    await updateAdjustmentRule(supabase, rule.id, { active: !rule.active });
-    await loadRules();
+    try {
+      await updateAdjustmentRule(supabase, rule.id, { active: !rule.active });
+      adminToast.success(rule.active ? "Rule deactivated" : "Rule activated");
+      await loadRules();
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to update rule."));
+    }
   };
 
   const handleImport = async () => {
-    const response = await fetch("/api/tuition/import-financial-aid", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ organizationId, csvContent }),
-    });
-    const result = (await response.json()) as { imported?: number; skipped?: number };
-    setImportResult(
-      `Imported ${result.imported ?? 0}, skipped ${result.skipped ?? 0}.`,
-    );
+    try {
+      const response = await fetch("/api/tuition/import-financial-aid", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId, csvContent }),
+      });
+      const result = (await response.json()) as {
+        imported?: number;
+        skipped?: number;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(result.error ?? "Failed to import financial aid.");
+      }
+      const message = `Imported ${result.imported ?? 0}, skipped ${result.skipped ?? 0}.`;
+      setImportResult(message);
+      adminToast.success("Financial aid import complete");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to import financial aid."));
+    }
   };
 
   const handleProcessDue = async () => {
-    const response = await fetch("/api/tuition/process-due", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ organizationId, graceDays: 5 }),
-    });
-    const result = (await response.json()) as {
-      overdueCount?: number;
-      rulesEvaluated?: number;
-    };
-    setImportResult(
-      `Marked ${result.overdueCount ?? 0} overdue, re-evaluated ${result.rulesEvaluated ?? 0} assignments.`,
-    );
+    try {
+      const response = await fetch("/api/tuition/process-due", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId, graceDays: 5 }),
+      });
+      const result = (await response.json()) as {
+        overdueCount?: number;
+        rulesEvaluated?: number;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(result.error ?? "Failed to process due charges.");
+      }
+      const message = `Marked ${result.overdueCount ?? 0} overdue, re-evaluated ${result.rulesEvaluated ?? 0} assignments.`;
+      setImportResult(message);
+      adminToast.success("Due charges processed");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to process due charges."));
+    }
   };
 
   const handlePreviewRule = async (rule: TuitionAdjustmentRule) => {

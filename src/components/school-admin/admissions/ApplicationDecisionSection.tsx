@@ -10,6 +10,7 @@ import {
 } from "@/lib/admissions/application-status-transitions";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 type ApplicationDecisionSectionProps = {
   C: AdminThemeTokens;
@@ -126,8 +127,11 @@ export default function ApplicationDecisionSection({
       }
 
       onStatusChanged(String(body.status));
+      adminToast.success("Application status updated");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status.");
+      const message = formatActionError(err, "Failed to update status.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setPendingStatus(null);
     }

@@ -7,6 +7,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { Committee } from "@/lib/committees/types";
 import { postMessage } from "@/lib/committees/messages";
 import { getCommittee } from "@/lib/committees/committees";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 export default function CommitteeMessagesSection({
   committee,
@@ -32,6 +33,9 @@ export default function CommitteeMessagesSection({
       setText("");
       const updated = await getCommittee(supabase, organizationId, committee.id);
       if (updated) onCommitteeChange(updated);
+      adminToast.success("Message sent");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to send message."));
     } finally {
       setSending(false);
     }

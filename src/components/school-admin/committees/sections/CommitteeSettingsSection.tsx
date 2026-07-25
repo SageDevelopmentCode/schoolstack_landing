@@ -6,6 +6,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { Committee, CommitteeWorkspaceSection } from "@/lib/committees/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { updateCommittee } from "@/lib/committees/committees";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 export default function CommitteeSettingsSection({
   committee,
@@ -38,6 +39,9 @@ export default function CommitteeSettingsSection({
         termEnd: termEnd || null,
       });
       onCommitteeChange(updated);
+      adminToast.success("Term saved");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to save term."));
     } finally {
       setSaving(false);
     }

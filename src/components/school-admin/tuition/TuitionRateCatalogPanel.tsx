@@ -29,6 +29,7 @@ import {
 } from "@/lib/tuition/setup-wizard";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -237,9 +238,12 @@ export default function TuitionRateCatalogPanel({
         paymentCounts,
         defaultPaymentCount,
       });
+      adminToast.success("Payment options saved");
       onRefresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save rate plan.");
+      const message = formatActionError(err, "Failed to save rate plan.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setSavingPlan(false);
     }

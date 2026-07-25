@@ -35,6 +35,7 @@ import {
 import type { RatePlanWithDetails } from "@/lib/tuition/types";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -339,9 +340,14 @@ export default function TuitionSetupWizard({
       );
       setSavedRatePlanId(ratePlan.id);
       setSavedFormSnapshot(currentFormSnapshot);
+      if (options.source === "manual") {
+        adminToast.success("Progress saved");
+      }
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save progress.");
+      const message = formatActionError(err, "Failed to save progress.");
+      setError(message);
+      adminToast.error(message);
       return false;
     } finally {
       if (options.source === "manual") {
@@ -428,13 +434,16 @@ export default function TuitionSetupWizard({
         fees,
         ratePlanId: savedRatePlanId ?? editRatePlanId ?? undefined,
       });
+      adminToast.success(isEditMode ? "Rate plan updated" : "Rate plan activated");
       setActivated(true);
       setSavedFormSnapshot(currentFormSnapshot);
       window.setTimeout(() => {
         onComplete();
       }, 1200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save rate plan.");
+      const message = formatActionError(err, "Failed to save rate plan.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setSaving(false);
     }

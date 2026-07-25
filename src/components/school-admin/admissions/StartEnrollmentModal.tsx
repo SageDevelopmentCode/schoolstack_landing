@@ -6,6 +6,7 @@ import { Check, FileText, X } from "lucide-react";
 import { SchoolAdminModalListSkeleton } from "@/components/school-admin/skeletons";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { VariantResolutionMap } from "@/lib/admissions/enrollment-checklist-variants";
 
 type PreviewVariant = {
@@ -124,8 +125,11 @@ export default function StartEnrollmentModal({
       }
       onStarted();
       onClose();
+      adminToast.success("Enrollment started");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start enrollment.");
+      const message = formatActionError(err, "Failed to start enrollment.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setSubmitting(false);
     }

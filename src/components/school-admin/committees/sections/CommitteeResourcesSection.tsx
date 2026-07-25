@@ -8,6 +8,7 @@ import type { Committee, CommitteeResourceType } from "@/lib/committees/types";
 import { createResource, deleteResource } from "@/lib/committees/resources";
 import { getCommittee } from "@/lib/committees/committees";
 import { formatResourceAccessLabel } from "@/lib/committees/permissions";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 export default function CommitteeResourcesSection({
   committee,
@@ -49,14 +50,22 @@ export default function CommitteeResourcesSection({
       setDescription("");
       setShowAdd(false);
       await refresh();
+      adminToast.success("Resource added");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to add resource."));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (resourceId: string) => {
-    await deleteResource(supabase, resourceId);
-    await refresh();
+    try {
+      await deleteResource(supabase, resourceId);
+      await refresh();
+      adminToast.success("Resource deleted");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to delete resource."));
+    }
   };
 
   return (

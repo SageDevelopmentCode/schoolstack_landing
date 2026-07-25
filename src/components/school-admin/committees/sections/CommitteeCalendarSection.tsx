@@ -7,6 +7,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { Committee, CommitteeEventType } from "@/lib/committees/types";
 import { createEvent, deleteEvent } from "@/lib/committees/events";
 import { getCommittee } from "@/lib/committees/committees";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 export default function CommitteeCalendarSection({
   committee,
@@ -51,14 +52,22 @@ export default function CommitteeCalendarSection({
       setLocation("");
       setShowAdd(false);
       await refresh();
+      adminToast.success("Event added");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to add event."));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (eventId: string) => {
-    await deleteEvent(supabase, eventId);
-    await refresh();
+    try {
+      await deleteEvent(supabase, eventId);
+      await refresh();
+      adminToast.success("Event deleted");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to delete event."));
+    }
   };
 
   return (

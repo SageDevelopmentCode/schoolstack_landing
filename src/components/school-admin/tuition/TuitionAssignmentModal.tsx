@@ -8,6 +8,7 @@ import { getRatePlanWithDetails } from "@/lib/tuition/rate-plans";
 import { paymentScheduleLabel } from "@/lib/tuition/setup-wizard";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -99,9 +100,12 @@ export default function TuitionAssignmentModal({
         const body = (await response.json()) as { error?: string };
         throw new Error(body.error ?? "Failed to update assignment.");
       }
+      adminToast.success("Tuition assignment saved");
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update assignment.");
+      const message = formatActionError(err, "Failed to update assignment.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setSaving(false);
     }

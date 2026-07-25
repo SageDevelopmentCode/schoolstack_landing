@@ -9,6 +9,7 @@ import DetailPanelStepTimeline, {
 } from "@/components/school-admin/admissions/DetailPanelStepTimeline";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import {
   tuitionReadinessPrimaryAction,
   type TuitionReadinessStatus,
@@ -154,12 +155,13 @@ export default function TuitionSetupPanel({
           "No tuition assignments were created. Confirm an active rate plan exists for each program.",
         );
       }
+      adminToast.success("Tuition assignments synced");
       await onRefresh();
       onSwitchToFamilies();
     } catch (error) {
-      setActionError(
-        error instanceof Error ? error.message : "Failed to sync tuition assignments.",
-      );
+      const message = formatActionError(error, "Failed to sync tuition assignments.");
+      setActionError(message);
+      adminToast.error(message);
     } finally {
       setSyncLoading(false);
     }

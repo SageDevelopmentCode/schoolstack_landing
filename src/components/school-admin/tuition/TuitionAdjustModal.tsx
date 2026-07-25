@@ -8,6 +8,7 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { AdjustmentType, TuitionAdjustment } from "@/lib/tuition/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
 
 const ADJUST_REASONS = [
@@ -85,7 +86,10 @@ export default function TuitionAdjustModal({
         reason,
         source: "manual",
       });
+      adminToast.success("Adjustment saved");
       onSaved();
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to save adjustment."));
     } finally {
       setSaving(false);
     }

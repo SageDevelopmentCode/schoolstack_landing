@@ -19,6 +19,7 @@ import {
 } from "@/lib/admissions/admin-scheduled-visits";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
 
 type AdmissionsAvailabilityEditorProps = {
@@ -169,8 +170,11 @@ export default function AdmissionsAvailabilityEditor({
         viewMonth,
       );
       onMonthSlotCountChangeRef.current?.(count);
+      adminToast.success(isOpen ? "Slot closed" : "Slot opened");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update slot.");
+      const message = formatActionError(err, "Failed to update slot.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setToggling(null);
     }

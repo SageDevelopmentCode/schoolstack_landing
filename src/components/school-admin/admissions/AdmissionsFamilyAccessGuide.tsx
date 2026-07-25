@@ -26,6 +26,7 @@ import {
   getAdminButtonStyle,
   type AdminButtonVariant,
 } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast } from "@/lib/school-admin/admin-toast";
 import { SITE_URL } from "@/lib/site";
 
 function toPublicDisplayUrl(path: string): string {
@@ -801,8 +802,9 @@ export function AdmissionsFamilyAccessGuideModal({
       await navigator.clipboard.writeText(absoluteUrl);
       setCopiedPath(path);
       window.setTimeout(() => setCopiedPath(null), 1500);
+      adminToast.success("Link copied");
     } catch {
-      // Clipboard unavailable — no-op
+      adminToast.error("Could not copy link to clipboard.");
     }
   }, []);
 

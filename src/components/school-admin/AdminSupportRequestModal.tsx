@@ -13,6 +13,7 @@ import {
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast } from "@/lib/school-admin/admin-toast";
 
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -233,12 +234,16 @@ export default function AdminSupportRequestModal({
           // ignore JSON parse errors
         }
         setSubmitError(message);
+        adminToast.error(message);
         return;
       }
 
       setSubmitted(true);
+      adminToast.success("Support request submitted");
     } catch {
-      setSubmitError("Failed to submit your request. Please try again.");
+      const message = "Failed to submit your request. Please try again.";
+      setSubmitError(message);
+      adminToast.error(message);
     } finally {
       setSubmitting(false);
     }

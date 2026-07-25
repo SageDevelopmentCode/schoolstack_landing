@@ -32,6 +32,7 @@ import {
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type {
   ConnectStatusChecklist,
   ConnectStatusNextStep,
@@ -693,10 +694,11 @@ export default function PaymentsSetupPage({
       }
 
       window.open(payload.url, "_blank", "noopener,noreferrer");
+      adminToast.success("Stripe dashboard opened");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to open Stripe dashboard.",
-      );
+      const message = formatActionError(err, "Failed to open Stripe dashboard.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setOpeningDashboard(false);
     }
@@ -722,9 +724,9 @@ export default function PaymentsSetupPage({
 
       window.location.href = payload.url;
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to start Stripe onboarding.",
-      );
+      const message = formatActionError(err, "Failed to start Stripe onboarding.");
+      setError(message);
+      adminToast.error(message);
       setConnecting(false);
     }
   };

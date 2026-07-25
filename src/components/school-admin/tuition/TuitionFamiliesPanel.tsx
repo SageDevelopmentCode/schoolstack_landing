@@ -10,6 +10,7 @@ import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization
 import type { FamilyAssignmentSummary, FamilyBillingSummary } from "@/lib/tuition/types";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
 
 type TuitionFamiliesPanelProps = {
@@ -109,10 +110,19 @@ export default function TuitionFamiliesPanel({
   const handleManualPayment = async (chargeId: string) => {
     setActionLoading(chargeId);
     try {
-      await fetch(`/api/tuition/charges/${chargeId}/manual-payment`, {
+      const response = await fetch(`/api/tuition/charges/${chargeId}/manual-payment`, {
         method: "POST",
       });
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        throw new Error(payload.error ?? "Failed to record manual payment.");
+      }
+      adminToast.success("Manual payment recorded");
       await loadFamilies();
+    } catch (err) {
+      const message = formatActionError(err, "Failed to record manual payment.");
+      setPanelError(message);
+      adminToast.error(message);
     } finally {
       setActionLoading(null);
     }
@@ -130,15 +140,21 @@ export default function TuitionFamiliesPanel({
         emailed?: boolean;
       };
       if (!response.ok) {
-        setPanelError(payload.error ?? "Failed to send invoice.");
+        const message = payload.error ?? "Failed to send invoice.";
+        setPanelError(message);
+        adminToast.error(message);
         return;
       }
-      setInvoiceNotice(
-        payload.emailed
-          ? "Invoice sent by email."
-          : "Charge marked sent. Email was not sent (mail not configured or family has no email).",
-      );
+      const notice = payload.emailed
+        ? "Invoice sent by email."
+        : "Charge marked sent. Email was not sent (mail not configured or family has no email).";
+      setInvoiceNotice(notice);
+      adminToast.success(payload.emailed ? "Invoice sent" : "Charge marked sent");
       await loadFamilies();
+    } catch (err) {
+      const message = formatActionError(err, "Failed to send invoice.");
+      setPanelError(message);
+      adminToast.error(message);
     } finally {
       setActionLoading(null);
     }
@@ -147,10 +163,19 @@ export default function TuitionFamiliesPanel({
   const handleRefund = async (paymentId: string) => {
     setActionLoading(paymentId);
     try {
-      await fetch(`/api/tuition/payments/${paymentId}/refund`, {
+      const response = await fetch(`/api/tuition/payments/${paymentId}/refund`, {
         method: "POST",
       });
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        throw new Error(payload.error ?? "Failed to process refund.");
+      }
+      adminToast.success("Refund processed");
       await loadFamilies();
+    } catch (err) {
+      const message = formatActionError(err, "Failed to process refund.");
+      setPanelError(message);
+      adminToast.error(message);
     } finally {
       setActionLoading(null);
     }
@@ -173,15 +198,18 @@ export default function TuitionFamiliesPanel({
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setPanelError(payload.error ?? "Failed to unassign tuition.");
+        const message = payload.error ?? "Failed to unassign tuition.";
+        setPanelError(message);
+        adminToast.error(message);
         return;
       }
+      adminToast.success("Tuition unassigned");
       await loadFamilies();
       onRefresh();
     } catch (error) {
-      setPanelError(
-        error instanceof Error ? error.message : "Failed to unassign tuition.",
-      );
+      const message = formatActionError(error, "Failed to unassign tuition.");
+      setPanelError(message);
+      adminToast.error(message);
     } finally {
       setActionLoading(null);
     }
@@ -198,15 +226,18 @@ export default function TuitionFamiliesPanel({
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setPanelError(payload.error ?? "Failed to sync tuition assignments.");
+        const message = payload.error ?? "Failed to sync tuition assignments.";
+        setPanelError(message);
+        adminToast.error(message);
         return;
       }
+      adminToast.success("Tuition assignments synced");
       await loadFamilies();
       onRefresh();
     } catch (error) {
-      setPanelError(
-        error instanceof Error ? error.message : "Failed to sync tuition assignments.",
-      );
+      const message = formatActionError(error, "Failed to sync tuition assignments.");
+      setPanelError(message);
+      adminToast.error(message);
     } finally {
       setActionLoading(null);
     }

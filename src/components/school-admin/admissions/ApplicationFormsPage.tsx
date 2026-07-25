@@ -51,6 +51,7 @@ import {
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import AdmissionsFamilyAccessGuideButton from "./AdmissionsFamilyAccessGuide";
@@ -359,8 +360,6 @@ export default function ApplicationFormsPage({
   const [creating, setCreating] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [savedPulse, setSavedPulse] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
   const [setupHighlight, setSetupHighlight] = useState<"publicSlug" | null>(null);
   const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [checklistUnpublishOpen, setChecklistUnpublishOpen] = useState(false);
@@ -676,8 +675,11 @@ export default function ApplicationFormsPage({
       setSelection({ kind: "apply", id: created.id });
       setFocus(DEFAULT_BUILDER_FOCUS);
       setFlowsSidebarOpen(false);
+      adminToast.success("Application form created");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create apply form.");
+      const message = formatActionError(err, "Failed to create apply form.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setCreating(false);
     }
@@ -697,10 +699,11 @@ export default function ApplicationFormsPage({
       setChecklists((prev) => [created, ...prev]);
       setSelection({ kind: "checklist", id: created.id });
       setFlowsSidebarOpen(false);
+      adminToast.success("Enrollment checklist created");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create enrollment checklist.",
-      );
+      const message = formatActionError(err, "Failed to create enrollment checklist.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setCreating(false);
     }
@@ -721,8 +724,11 @@ export default function ApplicationFormsPage({
       setForms((prev) => [copy, ...prev]);
       setSelection({ kind: "apply", id: copy.id });
       setFocus(DEFAULT_BUILDER_FOCUS);
+      adminToast.success("Form duplicated");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to duplicate form.");
+      const message = formatActionError(err, "Failed to duplicate form.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setCreating(false);
     }
@@ -788,16 +794,15 @@ export default function ApplicationFormsPage({
       const nextEditable = toEditableState(updated);
       setEditable(nextEditable);
       setApplySavedSnapshot(serializeEditableFormState(nextEditable));
-      setSavedPulse(true);
-      setTimeout(() => setSavedPulse(false), 1500);
+      adminToast.success(isPublished ? "Form saved" : "Draft saved");
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to save form.";
+      const message = formatActionError(err, "Failed to save form.");
       if (isSlugRelatedError(message)) {
         focusSlugSetup(message);
       } else {
         setError(message);
       }
+      adminToast.error(message);
     } finally {
       setSaving(false);
     }
@@ -865,14 +870,15 @@ export default function ApplicationFormsPage({
       await loadForms();
       setSelection({ kind: "apply", id: published.id });
       setSetupHighlight(null);
+      adminToast.success("Form published");
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to publish form.";
+      const message = formatActionError(err, "Failed to publish form.");
       if (isSlugRelatedError(message)) {
         focusSlugSetup(message);
       } else {
         setError(message);
       }
+      adminToast.error(message);
     } finally {
       setPublishing(false);
     }
@@ -889,8 +895,11 @@ export default function ApplicationFormsPage({
         prev.map((f) => (f.id === unpublished.id ? unpublished : f)),
       );
       setUnpublishOpen(false);
+      adminToast.success("Form unpublished");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to unpublish form.");
+      const message = formatActionError(err, "Failed to unpublish form.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setUnpublishing(false);
     }
@@ -943,10 +952,11 @@ export default function ApplicationFormsPage({
       };
       setChecklistEditable(nextChecklist);
       setChecklistSavedSnapshot(serializeChecklistEditableState(nextChecklist));
-      setSavedPulse(true);
-      setTimeout(() => setSavedPulse(false), 1500);
+      adminToast.success(checklistIsPublished ? "Checklist saved" : "Checklist draft saved");
     } catch (err) {
-      setError(formatSupabaseError(err, "Failed to save checklist."));
+      const message = formatSupabaseError(err, "Failed to save checklist.");
+      setError(message);
+      adminToast.error(message);
       void reportChecklistOperationalError(
         organizationId,
         "checklist.save",
@@ -1009,8 +1019,11 @@ export default function ApplicationFormsPage({
       }
       await loadForms();
       setSelection({ kind: "checklist", id: published.id });
+      adminToast.success("Checklist published");
     } catch (err) {
-      setError(formatSupabaseError(err, "Failed to publish checklist."));
+      const message = formatSupabaseError(err, "Failed to publish checklist.");
+      setError(message);
+      adminToast.error(message);
       void reportChecklistOperationalError(
         organizationId,
         "checklist.publish",
@@ -1038,8 +1051,11 @@ export default function ApplicationFormsPage({
         ),
       );
       setChecklistUnpublishOpen(false);
+      adminToast.success("Checklist unpublished");
     } catch (err) {
-      setError(formatSupabaseError(err, "Failed to unpublish checklist."));
+      const message = formatSupabaseError(err, "Failed to unpublish checklist.");
+      setError(message);
+      adminToast.error(message);
       void reportChecklistOperationalError(
         organizationId,
         "checklist.unpublish",
@@ -1070,10 +1086,11 @@ export default function ApplicationFormsPage({
         : publishedPublicUrl;
     try {
       await navigator.clipboard.writeText(absoluteUrl);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 1500);
+      adminToast.success("Link copied");
     } catch {
-      setError("Could not copy link to clipboard.");
+      const message = "Could not copy link to clipboard.";
+      setError(message);
+      adminToast.error(message);
     }
   };
 
@@ -1207,18 +1224,14 @@ export default function ApplicationFormsPage({
                     onClick={handleChecklistSave}
                     disabled={saving || !isChecklistDirty}
                     className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                    style={
-                      savedPulse
-                        ? getAdminButtonStyle(C, "success")
-                        : getAdminButtonStyle(C, "primary")
-                    }
+                    style={getAdminButtonStyle(C, "primary")}
                   >
                     {saving ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <Save className="h-3.5 w-3.5" />
                     )}
-                    {savedPulse ? "Saved" : checklistIsPublished ? "Save" : "Save draft"}
+                    {checklistIsPublished ? "Save" : "Save draft"}
                   </button>
                   {checklistIsPublished ? (
                     <button
@@ -1319,10 +1332,8 @@ export default function ApplicationFormsPage({
               isPublished={isPublished}
               publishedPublicUrl={publishedPublicUrl}
               saving={saving}
-              savedPulse={savedPulse}
               isApplyDirty={isApplyDirty}
               isApplyFormSelected={isApplyFormSelected}
-              copiedLink={copiedLink}
               publishing={publishing}
               creating={creating}
               onSave={handleSave}

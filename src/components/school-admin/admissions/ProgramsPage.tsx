@@ -25,6 +25,7 @@ import {
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -200,8 +201,11 @@ export default function ProgramsPage({
             .sort((a, b) => a.name.localeCompare(b.name)),
         );
       }
+      adminToast.success(isNew ? "Program created" : "Program saved");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save program.");
+      const message = formatActionError(err, "Failed to save program.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setSaving(false);
     }
@@ -222,8 +226,11 @@ export default function ProgramsPage({
         return remaining[0]?.id ?? null;
       });
       setDeleteOpen(false);
+      adminToast.success("Program deleted");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete program.");
+      const message = formatActionError(err, "Failed to delete program.");
+      setError(message);
+      adminToast.error(message);
       setDeleteOpen(false);
     } finally {
       setDeleting(false);

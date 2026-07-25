@@ -8,6 +8,7 @@ import type { Committee, CommitteeTaskStatus } from "@/lib/committees/types";
 import { createTask, updateTask } from "@/lib/committees/tasks";
 import { getCommittee } from "@/lib/committees/committees";
 import { TASK_STATUS_LABELS } from "@/lib/committees/task-utils";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 const COLUMNS: CommitteeTaskStatus[] = ["open", "claimed", "in_progress", "done"];
 
@@ -44,14 +45,22 @@ export default function CommitteeTasksSection({
       setTitle("");
       setShowAdd(false);
       await refresh();
+      adminToast.success("Task added");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to add task."));
     } finally {
       setSaving(false);
     }
   };
 
   const handleStatusChange = async (taskId: string, status: CommitteeTaskStatus) => {
-    await updateTask(supabase, taskId, { status });
-    await refresh();
+    try {
+      await updateTask(supabase, taskId, { status });
+      await refresh();
+      adminToast.success("Task updated");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to update task."));
+    }
   };
 
   const groupLabel = (key: string) =>

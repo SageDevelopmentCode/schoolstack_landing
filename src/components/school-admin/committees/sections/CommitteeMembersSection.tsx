@@ -9,6 +9,7 @@ import type { Committee, CommitteeRole } from "@/lib/committees/types";
 import { inviteCommitteeMember, removeCommitteeMember } from "@/lib/committees/members";
 import { getCommittee } from "@/lib/committees/committees";
 import { memberInitials } from "@/lib/committees/task-utils";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 const ROLE_LABELS: Record<CommitteeRole, string> = {
   member: "Member",
@@ -56,14 +57,22 @@ export default function CommitteeMembersSection({
       setEmail("");
       setShowInvite(false);
       await refresh();
+      adminToast.success("Member invited");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to invite member."));
     } finally {
       setSaving(false);
     }
   };
 
   const handleRemove = async (memberId: string) => {
-    await removeCommitteeMember(supabase, memberId);
-    await refresh();
+    try {
+      await removeCommitteeMember(supabase, memberId);
+      await refresh();
+      adminToast.success("Member removed");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to remove member."));
+    }
   };
 
   return (

@@ -6,6 +6,7 @@ import type { Committee } from "@/lib/committees/types";
 import { memberInitials } from "@/lib/committees/task-utils";
 import { updateDutyRole } from "@/lib/committees/duty-roles";
 import { updateCommittee } from "@/lib/committees/committees";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export default function CommitteeAboutSection({
@@ -31,16 +32,24 @@ export default function CommitteeAboutSection({
         aboutHtml,
       });
       onCommitteeChange(updated);
+      adminToast.success("Overview saved");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to save overview."));
     } finally {
       setSaving(false);
     }
   };
 
   const handleAssignRole = async (dutyRoleId: string, memberId: string | null) => {
-    await updateDutyRole(supabase, dutyRoleId, { assigneeMemberId: memberId });
-    const { getCommittee } = await import("@/lib/committees/committees");
-    const updated = await getCommittee(supabase, organizationId, committee.id);
-    if (updated) onCommitteeChange(updated);
+    try {
+      await updateDutyRole(supabase, dutyRoleId, { assigneeMemberId: memberId });
+      const { getCommittee } = await import("@/lib/committees/committees");
+      const updated = await getCommittee(supabase, organizationId, committee.id);
+      if (updated) onCommitteeChange(updated);
+      adminToast.success(memberId ? "Duty role assigned" : "Duty role unassigned");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to assign duty role."));
+    }
   };
 
   return (
