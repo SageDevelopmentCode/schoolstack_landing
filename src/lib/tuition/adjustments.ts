@@ -23,6 +23,31 @@ export async function listAdjustmentsForAssignment(
   return (data ?? []).map(rowToAdjustment);
 }
 
+export async function listAdjustmentsForFamily(
+  supabase: SupabaseClient,
+  familyId: string,
+): Promise<TuitionAdjustment[]> {
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from("tuition_enrollment_assignments")
+    .select("id")
+    .eq("family_id", familyId)
+    .eq("status", "active");
+
+  if (assignmentsError) throw assignmentsError;
+  if (!assignments?.length) return [];
+
+  const assignmentIds = assignments.map((row) => String(row.id));
+  const { data, error } = await supabase
+    .from("tuition_adjustments")
+    .select("*")
+    .in("assignment_id", assignmentIds)
+    .eq("status", "active")
+    .order("priority", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map(rowToAdjustment);
+}
+
 export async function createAdjustment(
   supabase: SupabaseClient,
   input: {

@@ -22,6 +22,7 @@ import type {
   EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import { computeChecklistProgress } from "@/lib/admissions/enrollment-checklist-materialization";
+import { resolveEnrollmentChecklistInitialItemId } from "@/lib/admissions/enrollment-checklist-progress";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -37,6 +38,7 @@ export type EnrollmentChecklistExperienceProps = {
   initialItemId?: string;
   instances?: EnrollmentChecklistItemInstance[];
   onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
+  onActiveItemChange?: (templateItemId: string) => void;
   onAllRequiredComplete?: () => void;
   backLink?: { href: string; label: string };
   tuitionSelectionSlot?: React.ReactNode;
@@ -68,13 +70,12 @@ function itemIcon(type: EnrollmentChecklistItem["type"]) {
 
 function resolveInitialItemId(
   items: EnrollmentChecklistItem[],
-  initialItemId?: string,
+  instances: EnrollmentChecklistItemInstance[],
+  explicitItemId?: string,
 ): string | null {
-  if (items.length === 0) return null;
-  if (initialItemId && items.some((item) => item.id === initialItemId)) {
-    return initialItemId;
-  }
-  return items[0].id;
+  return resolveEnrollmentChecklistInitialItemId(items, instances, {
+    explicitItemId,
+  });
 }
 
 function findNextIncompleteItemId(
@@ -221,13 +222,14 @@ export default function EnrollmentChecklistExperience({
   initialItemId,
   instances = [],
   onInstancesChange,
+  onActiveItemChange,
   onAllRequiredComplete,
   backLink,
   tuitionSelectionSlot,
 }: EnrollmentChecklistExperienceProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const [activeItemId, setActiveItemId] = useState<string | null>(() =>
-    resolveInitialItemId(items, initialItemId),
+    resolveInitialItemId(items, instances, initialItemId),
   );
   const [localInstances, setLocalInstances] = useState(instances);
   const [taskPickerOpen, setTaskPickerOpen] = useState(false);
@@ -238,9 +240,14 @@ export default function EnrollmentChecklistExperience({
 
   useEffect(() => {
     queueMicrotask(() =>
-      setActiveItemId(resolveInitialItemId(items, initialItemId)),
+      setActiveItemId(resolveInitialItemId(items, instances, initialItemId)),
     );
   }, [items, initialItemId]);
+
+  const persistActiveItem = (itemId: string) => {
+    setActiveItemId(itemId);
+    onActiveItemChange?.(itemId);
+  };
 
   const instanceByTemplateId = useMemo(
     () => new Map(localInstances.map((instance) => [instance.templateItemId, instance])),
@@ -252,7 +259,7 @@ export default function EnrollmentChecklistExperience({
   const activeInstance = activeItem ? instanceByTemplateId.get(activeItem.id) : undefined;
 
   const handleSelectItem = (itemId: string) => {
-    setActiveItemId(itemId);
+    persistActiveItem(itemId);
     setTaskPickerOpen(false);
   };
 
@@ -287,7 +294,7 @@ export default function EnrollmentChecklistExperience({
 
     const nextItemId = findNextIncompleteItemId(items, nextInstances, activeItem.id);
     if (nextItemId) {
-      setActiveItemId(nextItemId);
+      persistActiveItem(nextItemId);
     }
 
     const nextProgress = computeChecklistProgress(items, nextInstances);

@@ -13,6 +13,7 @@ import {
 } from "@/lib/admissions/application-submit";
 import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
 import { markChargePaid } from "@/lib/tuition/charges";
+import { trySaveTuitionPaymentMethod } from "@/lib/tuition/autopay";
 import {
   attachCheckoutSessionToPayment,
   getApplicationPaymentByCheckoutSession,
@@ -166,6 +167,15 @@ async function handleTuitionCheckoutCompleted(
 
   if (chargeId) {
     await markChargePaid(admin, chargeId);
+  }
+
+  if (payment?.familyId && paymentIntentId) {
+    await trySaveTuitionPaymentMethod(admin, {
+      familyId: payment.familyId,
+      organizationId: String(metadata.organization_id),
+      paymentIntentId,
+      payerUserId: payment.payerUserId,
+    });
   }
 
   void logActivityEvent(admin, {

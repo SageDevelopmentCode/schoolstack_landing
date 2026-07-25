@@ -1,4 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getStripeClient } from "@/lib/stripe/client";
+import { executeTuitionAutopayCharge } from "@/lib/stripe/tuition-autopay-charge";
+import {
+  getOrganizationPaymentAccount,
+  isPaymentReady,
+} from "@/lib/stripe/organization-payment-account";
 import { createAdjustment } from "./adjustments";
 import { regenerateFutureCharges } from "./charge-generator";
 import { rowToBillingAccount } from "./row-mappers";
@@ -87,6 +93,50 @@ export async function saveFamilyPaymentMethod(
     .from("tuition_billing_accounts")
     .update({ default_payment_method_id: input.stripePaymentMethodId })
     .eq("id", input.billingAccountId);
+}
+
+export async function trySaveTuitionPaymentMethod(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    familyId: string;
+    paymentIntentId: string;
+    payerUserId?: string | null;
+  },
+): Promise<void> {
+  const stripe = getStripeClient();
+  const paymentIntent = await stripe.paymentIntents.retrieve(input.paymentIntentId);
+  const paymentMethodId =
+    typeof paymentIntent.payment_method === "string"
+      ? paymentIntent.payment_method
+      : paymentIntent.payment_method?.id;
+
+  if (!paymentMethodId) return;
+
+  const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+  const card = paymentMethod.card;
+
+  const { data: billingAccount, error: billingError } = await supabase
+    .from("tuition_billing_accounts")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("family_id", input.familyId)
+    .maybeSingle();
+
+  if (billingError) throw billingError;
+  if (!billingAccount) return;
+
+  await saveFamilyPaymentMethod(supabase, {
+    organizationId: input.organizationId,
+    familyId: input.familyId,
+    billingAccountId: String(billingAccount.id),
+    stripePaymentMethodId: paymentMethodId,
+    brand: card?.brand,
+    last4: card?.last4,
+    expMonth: card?.exp_month,
+    expYear: card?.exp_year,
+    isDefault: true,
+  });
 }
 
 export type FinancialAidImportRow = {
@@ -184,8 +234,13 @@ export async function importFinancialAidCsv(
 export async function processAutopayForOrganization(
   supabase: SupabaseClient,
   organizationId: string,
-): Promise<{ processed: number; skipped: number }> {
+): Promise<{ processed: number; skipped: number; failed: number }> {
   const today = new Date().toISOString().slice(0, 10);
+
+  const paymentAccount = await getOrganizationPaymentAccount(supabase, organizationId);
+  if (!paymentAccount || !isPaymentReady(paymentAccount)) {
+    return { processed: 0, skipped: 0, failed: 0 };
+  }
 
   const { data: accounts, error: accountsError } = await supabase
     .from("tuition_billing_accounts")
@@ -198,11 +253,12 @@ export async function processAutopayForOrganization(
 
   let processed = 0;
   let skipped = 0;
+  let failed = 0;
 
   for (const account of accounts ?? []) {
     const { data: dueCharges, error: chargesError } = await supabase
       .from("tuition_charges")
-      .select("id, amount_cents, label")
+      .select("id, amount_cents, label, currency")
       .eq("family_id", account.family_id)
       .eq("due_date", today)
       .in("status", ["scheduled", "sent"]);
@@ -213,12 +269,56 @@ export async function processAutopayForOrganization(
       continue;
     }
 
-    // Autopay charge execution is delegated to Stripe PaymentIntents in API layer.
-    // This function identifies due charges for cron/edge invocation.
-    processed += dueCharges.length;
+    const { data: guardian, error: guardianError } = await supabase
+      .from("guardians")
+      .select("user_id, email")
+      .eq("family_id", account.family_id)
+      .not("user_id", "is", null)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (guardianError) throw guardianError;
+    if (!guardian?.user_id) {
+      skipped += dueCharges.length;
+      continue;
+    }
+
+    const { data: stripeCustomer, error: customerError } = await supabase
+      .from("user_stripe_customers")
+      .select("stripe_customer_id")
+      .eq("user_id", guardian.user_id)
+      .maybeSingle();
+
+    if (customerError) throw customerError;
+    if (!stripeCustomer?.stripe_customer_id) {
+      skipped += dueCharges.length;
+      continue;
+    }
+
+    for (const charge of dueCharges) {
+      try {
+        await executeTuitionAutopayCharge(supabase, {
+          organizationId,
+          familyId: String(account.family_id),
+          chargeId: String(charge.id),
+          amountCents: Number(charge.amount_cents),
+          label: String(charge.label),
+          currency: typeof charge.currency === "string" ? charge.currency : "USD",
+          stripeConnectAccountId: paymentAccount.stripeConnectAccountId,
+          stripeCustomerId: stripeCustomer.stripe_customer_id,
+          stripePaymentMethodId: String(account.default_payment_method_id),
+          payerUserId: String(guardian.user_id),
+        });
+        processed++;
+      } catch (error) {
+        console.error("Autopay charge failed:", charge.id, error);
+        failed++;
+      }
+    }
   }
 
-  return { processed, skipped };
+  return { processed, skipped, failed };
 }
 
 export async function refundTuitionPayment(
@@ -227,13 +327,23 @@ export async function refundTuitionPayment(
 ): Promise<void> {
   const { data: payment, error: paymentError } = await supabase
     .from("application_payments")
-    .select("id, tuition_charge_id, status")
+    .select("id, tuition_charge_id, status, stripe_payment_intent_id, amount_cents")
     .eq("id", paymentId)
     .eq("payment_type", "tuition")
     .maybeSingle();
 
   if (paymentError) throw paymentError;
   if (!payment) throw new Error("Tuition payment not found");
+  if (payment.status !== "succeeded") {
+    throw new Error("Only succeeded payments can be refunded.");
+  }
+
+  if (payment.stripe_payment_intent_id) {
+    const stripe = getStripeClient();
+    await stripe.refunds.create({
+      payment_intent: payment.stripe_payment_intent_id,
+    });
+  }
 
   const { error: updateError } = await supabase
     .from("application_payments")

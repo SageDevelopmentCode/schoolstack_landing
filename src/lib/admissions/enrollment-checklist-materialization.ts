@@ -54,15 +54,24 @@ function parseChecklistMetadata(value: unknown): EnrollmentChecklistMetadata {
     return {};
   }
   const record = value as Record<string, unknown>;
+  const metadata: EnrollmentChecklistMetadata = {};
+
   const variantResolutions = record.variantResolutions;
   if (
-    !variantResolutions ||
-    typeof variantResolutions !== "object" ||
-    Array.isArray(variantResolutions)
+    variantResolutions &&
+    typeof variantResolutions === "object" &&
+    !Array.isArray(variantResolutions)
   ) {
-    return {};
+    metadata.variantResolutions =
+      variantResolutions as EnrollmentChecklistMetadata["variantResolutions"];
   }
-  return { variantResolutions: variantResolutions as EnrollmentChecklistMetadata["variantResolutions"] };
+
+  const lastActiveTemplateItemId = record.lastActiveTemplateItemId;
+  if (typeof lastActiveTemplateItemId === "string" && lastActiveTemplateItemId.trim()) {
+    metadata.lastActiveTemplateItemId = lastActiveTemplateItemId;
+  }
+
+  return metadata;
 }
 
 export async function getChecklistForApplication(
@@ -1112,6 +1121,138 @@ export async function saveAgreementSectionSignature(
     status: isComplete ? "completed" : "in_progress",
     responses: patch.responses as Record<string, unknown>,
   };
+}
+
+export async function saveChecklistItemDraft(
+  supabase: SupabaseClient,
+  input: {
+    instanceId: string;
+    responses: Record<string, unknown>;
+    organizationId: string;
+  },
+): Promise<{ status: string; responses: Record<string, unknown> }> {
+  const { instanceId, responses, organizationId } = input;
+
+  const { data: instance, error: instanceError } = await supabase
+    .from("enrollment_checklist_items")
+    .select("id, checklist_id, template_item_id, status, responses, organization_id")
+    .eq("id", instanceId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (instanceError) throw instanceError;
+  if (!instance) {
+    throw new EnrollmentMaterializationError(
+      "Checklist item not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  if (instance.status === "waived") {
+    throw new EnrollmentMaterializationError(
+      "This checklist item does not apply.",
+      "waived",
+      400,
+    );
+  }
+
+  if (instance.status === "completed") {
+    throw new EnrollmentMaterializationError(
+      "Completed checklist items cannot be saved as drafts.",
+      "already_completed",
+      400,
+    );
+  }
+
+  const { data: templateItem, error: templateItemError } = await supabase
+    .from("enrollment_checklist_template_items")
+    .select("type")
+    .eq("id", instance.template_item_id)
+    .maybeSingle();
+
+  if (templateItemError) throw templateItemError;
+
+  if (templateItem?.type !== "form") {
+    throw new EnrollmentMaterializationError(
+      "Only form checklist items support draft saves.",
+      "invalid_item_type",
+      400,
+    );
+  }
+
+  const existingResponses =
+    instance.responses &&
+    typeof instance.responses === "object" &&
+    !Array.isArray(instance.responses)
+      ? (instance.responses as Record<string, unknown>)
+      : {};
+
+  const nextResponses = {
+    ...existingResponses,
+    ...responses,
+  };
+
+  const checklistId = String(instance.checklist_id);
+
+  const { error: updateError } = await supabase
+    .from("enrollment_checklist_items")
+    .update({
+      status: "in_progress",
+      responses: nextResponses,
+      completed_at: null,
+      completed_by_user_id: null,
+    })
+    .eq("id", instanceId);
+
+  if (updateError) throw updateError;
+
+  await recomputeChecklistStatus(supabase, checklistId);
+
+  return {
+    status: "in_progress",
+    responses: nextResponses,
+  };
+}
+
+export async function saveEnrollmentChecklistActiveItem(
+  supabase: SupabaseClient,
+  input: {
+    checklistId: string;
+    templateItemId: string;
+    organizationId: string;
+  },
+): Promise<void> {
+  const { checklistId, templateItemId, organizationId } = input;
+
+  const { data: checklist, error: checklistError } = await supabase
+    .from("enrollment_checklists")
+    .select("id, metadata")
+    .eq("id", checklistId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (checklistError) throw checklistError;
+  if (!checklist) {
+    throw new EnrollmentMaterializationError(
+      "Enrollment checklist not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  const metadata = parseChecklistMetadata(checklist.metadata);
+  const nextMetadata = {
+    ...metadata,
+    lastActiveTemplateItemId: templateItemId,
+  };
+
+  const { error: updateError } = await supabase
+    .from("enrollment_checklists")
+    .update({ metadata: nextMetadata })
+    .eq("id", checklistId);
+
+  if (updateError) throw updateError;
 }
 
 export async function completeChecklistItem(

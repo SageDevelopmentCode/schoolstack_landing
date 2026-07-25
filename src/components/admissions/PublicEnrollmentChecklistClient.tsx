@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
 import EnrollmentChecklistExperience from "@/components/admissions/EnrollmentChecklistExperience";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/tuition/enrollment-selection";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { resolveEnrollmentChecklistInitialItemId } from "@/lib/admissions/enrollment-checklist-progress";
 import { createClient } from "@/utils/supabase/client";
 
 type PublicEnrollmentChecklistClientProps = {
@@ -57,6 +58,45 @@ export default function PublicEnrollmentChecklistClient({
   const [tuitionContext, setTuitionContext] =
     useState<EnrollmentTuitionSelectionContext | null>(null);
   const supabase = useMemo(() => createClient(), []);
+  const activeItemPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [resolvedInitialItemId] = useState(() =>
+    resolveEnrollmentChecklistInitialItemId(checklist.items, checklist.instances, {
+      lastActiveTemplateItemId: checklist.metadata.lastActiveTemplateItemId,
+    }),
+  );
+
+  const persistActiveItem = useCallback(
+    (templateItemId: string) => {
+      if (previewMode) return;
+
+      if (activeItemPersistTimeoutRef.current) {
+        clearTimeout(activeItemPersistTimeoutRef.current);
+      }
+
+      activeItemPersistTimeoutRef.current = setTimeout(() => {
+        void fetch(`/api/admissions/enrollment-checklists/${checklist.checklistId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lastActiveTemplateItemId: templateItemId }),
+        });
+      }, 300);
+    },
+    [checklist.checklistId, previewMode],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (activeItemPersistTimeoutRef.current) {
+        clearTimeout(activeItemPersistTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (previewMode || !resolvedInitialItemId) return;
+    persistActiveItem(resolvedInitialItemId);
+  }, [persistActiveItem, previewMode, resolvedInitialItemId]);
 
   const clearPaymentQueryParams = useCallback(() => {
     router.replace(pathname);
@@ -196,7 +236,9 @@ export default function PublicEnrollmentChecklistClient({
         instances={liveChecklist.instances}
         organizationId={organizationId}
         checklistId={liveChecklist.checklistId}
+        initialItemId={resolvedInitialItemId ?? undefined}
         onInstancesChange={previewMode ? undefined : setInstances}
+        onActiveItemChange={previewMode ? undefined : persistActiveItem}
         onAllRequiredComplete={previewMode ? undefined : handleAllRequiredComplete}
         mode={previewMode ? "preview" : "live"}
         backLink={{

@@ -1,0 +1,28 @@
+---
+description: Do not write to Supabase directly; provide SQL files for manual paste instead
+alwaysApply: true
+---
+
+# Supabase: manual SQL only
+
+When the task involves Supabase data changes (seeds, progress logs, one-off inserts, manual migrations, demo resets, etc.):
+
+- **Do not** write to the database on the user's behalf.
+- **Do not** run scripts that use service-role keys or `.env.local` credentials to mutate remote or shared Supabase state.
+
+## MCP: read only
+
+Supabase MCP is for **reading data only** — never for writes.
+
+- **Allowed:** `select` queries, schema inspection (`list_tables`), docs lookup, read-only debugging.
+- **Not allowed:** `apply_migration`, `execute_sql` inserts/updates/deletes/DDL, or any MCP call that mutates database state.
+
+If a task needs a data change, create a SQL file for the user to copy-paste into the Supabase SQL Editor instead.
+
+## Deliverable pattern
+
+1. Create or update a SQL file (e.g. under `supabase/migrations/rooted-meadows/` or `supabase/migrations_manual/`).
+2. Match existing project conventions: idempotent inserts, `on conflict ... do nothing` where appropriate, clear comments with date/purpose.
+3. Give the user the snippet in the response and tell them to run it themselves so they can verify before it goes live.
+
+If the user explicitly asks you to run SQL against their database, confirm first — default is manual paste only.

@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { listFamilyBillingSummaries } from "@/lib/tuition/charges";
 import { listChargesForFamily } from "@/lib/tuition/charges";
+import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { formatCents } from "@/lib/tuition/pricing";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { FamilyBillingSummary } from "@/lib/tuition/types";
+import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -66,16 +68,48 @@ export default function TuitionFamiliesPanel({
     }
   };
 
+  const handleSendInvoice = async (chargeId: string) => {
+    setActionLoading(chargeId);
+    try {
+      await fetch(`/api/tuition/charges/${chargeId}/send`, {
+        method: "POST",
+      });
+      await loadFamilies();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRefund = async (paymentId: string) => {
+    setActionLoading(paymentId);
+    try {
+      await fetch(`/api/tuition/payments/${paymentId}/refund`, {
+        method: "POST",
+      });
+      await loadFamilies();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const [familyCharges, setFamilyCharges] = useState<
     Awaited<ReturnType<typeof listChargesForFamily>>
   >([]);
+  const [familyPayments, setFamilyPayments] = useState<PaymentRecord[]>([]);
 
   useEffect(() => {
     if (!selectedFamilyId) {
       setFamilyCharges([]);
+      setFamilyPayments([]);
       return;
     }
-    void listChargesForFamily(supabase, selectedFamilyId).then(setFamilyCharges);
+    void Promise.all([
+      listChargesForFamily(supabase, selectedFamilyId),
+      listTuitionPaymentsForFamily(supabase, selectedFamilyId),
+    ]).then(([charges, payments]) => {
+      setFamilyCharges(charges);
+      setFamilyPayments(payments);
+    });
   }, [selectedFamilyId, supabase, families]);
 
   if (loading) {
@@ -271,21 +305,78 @@ export default function TuitionFamiliesPanel({
                       {formatCents(charge.amountCents)}
                     </span>
                     {charge.status !== "paid" && charge.status !== "void" ? (
-                      <button
-                        type="button"
-                        disabled={actionLoading === charge.id}
-                        onClick={() => void handleManualPayment(charge.id)}
-                        className="text-xs font-medium px-2 py-1 rounded"
-                        style={{ backgroundColor: C.accentLight, color: C.accent }}
-                      >
-                        Mark paid
-                      </button>
+                      <>
+                        {charge.status === "scheduled" ? (
+                          <button
+                            type="button"
+                            disabled={actionLoading === charge.id}
+                            onClick={() => void handleSendInvoice(charge.id)}
+                            className="text-xs font-medium px-2 py-1 rounded"
+                            style={{ backgroundColor: C.bg, color: C.textPrimary, border: `1px solid ${C.border}` }}
+                          >
+                            Send invoice
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          disabled={actionLoading === charge.id}
+                          onClick={() => void handleManualPayment(charge.id)}
+                          className="text-xs font-medium px-2 py-1 rounded"
+                          style={{ backgroundColor: C.accentLight, color: C.accent }}
+                        >
+                          Mark paid
+                        </button>
+                      </>
                     ) : null}
                   </div>
                 </div>
               ))}
             </div>
           </div>
+
+          {familyPayments.some((payment) => payment.status === "succeeded") ? (
+            <div>
+              <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
+                Recent payments
+              </p>
+              <div className="flex flex-col gap-2">
+                {familyPayments
+                  .filter((payment) => payment.status === "succeeded")
+                  .map((payment) => (
+                    <div
+                      key={payment.id}
+                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
+                      style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                    >
+                      <div>
+                        <p style={{ color: C.textPrimary }}>
+                          {payment.label ?? "Tuition payment"}
+                        </p>
+                        <p className="text-xs" style={{ color: C.textTertiary }}>
+                          {payment.paidAt
+                            ? new Date(payment.paidAt).toLocaleDateString()
+                            : payment.status}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium" style={{ color: C.textPrimary }}>
+                          {formatCents(payment.amountCents)}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={actionLoading === payment.id}
+                          onClick={() => void handleRefund(payment.id)}
+                          className="text-xs font-medium px-2 py-1 rounded"
+                          style={{ backgroundColor: C.bg, color: C.textPrimary, border: `1px solid ${C.border}` }}
+                        >
+                          Refund
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

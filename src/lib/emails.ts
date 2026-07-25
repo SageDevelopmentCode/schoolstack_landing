@@ -521,3 +521,58 @@ export async function sendStripePaymentsReadyNotification(payload: {
     console.error("Stripe payments ready notification email failed:", result.error);
   }
 }
+
+export function buildTuitionDueReminderHtml(payload: {
+  familyName: string;
+  schoolName: string;
+  dueDate: string;
+  totalDue: string;
+  chargeLines: string[];
+  billingUrl?: string;
+}): string {
+  const chargeList = payload.chargeLines
+    .map((line) => `<li>${escapeHtml(line)}</li>`)
+    .join("");
+
+  return composeEmail({
+    preheader: `Tuition payment of ${payload.totalDue} is due ${payload.dueDate}.`,
+    contentHtml: `
+      ${emailBadge("Tuition Reminder")}
+      ${emailHeading(`Upcoming tuition due for ${escapeHtml(payload.familyName)}`)}
+      ${emailParagraph(
+        `${escapeHtml(payload.schoolName)} has tuition charges coming due on ${escapeHtml(payload.dueDate)}.`,
+      )}
+      ${emailDetailCard([
+        { label: "Total due", value: payload.totalDue },
+        { label: "Due date", value: payload.dueDate },
+      ])}
+      ${emailParagraph("Charges:")}
+      <ul style="margin:0 0 16px 20px;padding:0;color:#374151;font-size:15px;line-height:1.6;">${chargeList}</ul>
+      ${payload.billingUrl ? emailCta({ label: "View billing", href: payload.billingUrl }) : ""}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTuitionDueReminderEmail(payload: {
+  to: string;
+  schoolName: string;
+  html: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Tuition reminder — ${payload.schoolName}`,
+    content: payload.html,
+  });
+
+  if (!result.success) {
+    console.error("Tuition due reminder email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}

@@ -316,6 +316,20 @@ export default function TuitionRateCatalogPanel({
           className="rounded-lg p-5 flex flex-col gap-5"
           style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
         >
+          <div
+            className="rounded-md px-4 py-3 text-sm"
+            style={{ backgroundColor: C.bg, border: `1px solid ${C.border}`, color: C.textSecondary }}
+          >
+            <p className="font-medium" style={{ color: C.textPrimary }}>
+              Editing rate plans
+            </p>
+            <p className="mt-1">
+              Payment schedules can be updated inline below. For tuition tiers, fees,
+              program dates, and full review, use <strong>Edit setup</strong> — that
+              reopens the same wizard used during initial setup.
+            </p>
+          </div>
+
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>

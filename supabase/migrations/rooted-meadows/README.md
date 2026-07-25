@@ -45,6 +45,7 @@ Run after `add_product_organization_progress_log.sql`. Independent of the form s
 | `add_organization_progress_log_2026_07_12.sql` | July 12 — Phase 1 complete; admissions polish, payments, and parent security |
 | `add_organization_progress_log_2026_07_14.sql` | July 14 — Phase 2 started; imported real applications and answer review |
 | `add_organization_progress_log_2026_07_15.sql` | July 15 — shadow day scheduling and application submission alerts |
+| `add_organization_progress_log_2026_07_22.sql` | July 22 — Phase 3 started; tuition setup wizard, family billing, and parent payments |
 
 ## Enrollment checklist seeds
 

@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CreditCard, Loader2 } from "lucide-react";
 import { listChargesForFamily } from "@/lib/tuition/charges";
+import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
-import { formatCents } from "@/lib/tuition/pricing";
+import { formatAdjustmentSummary, formatCents } from "@/lib/tuition/pricing";
 import { setAutopayEnabled } from "@/lib/tuition/autopay";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import type { TuitionCharge } from "@/lib/tuition/types";
+import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import { createClient } from "@/utils/supabase/client";
 
@@ -30,6 +31,7 @@ export default function ParentBillingPage({
 
   const [charges, setCharges] = useState<TuitionCharge[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [adjustments, setAdjustments] = useState<TuitionAdjustment[]>([]);
   const [autopayEnabled, setAutopayEnabledState] = useState(false);
   const [loading, setLoading] = useState(true);
   const [payingChargeId, setPayingChargeId] = useState<string | null>(null);
@@ -37,12 +39,14 @@ export default function ParentBillingPage({
   const loadBilling = useCallback(async () => {
     setLoading(true);
     try {
-      const [chargeRows, paymentRows] = await Promise.all([
+      const [chargeRows, paymentRows, adjustmentRows] = await Promise.all([
         listChargesForFamily(supabase, familyId),
         listTuitionPaymentsForFamily(supabase, familyId),
+        listAdjustmentsForFamily(supabase, familyId),
       ]);
       setCharges(chargeRows);
       setPayments(paymentRows);
+      setAdjustments(adjustmentRows);
 
       const { data: account } = await supabase
         .from("tuition_billing_accounts")
@@ -157,6 +161,35 @@ export default function ParentBillingPage({
           Enable autopay for due charges
         </label>
       </div>
+
+      {adjustments.length > 0 ? (
+        <div>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
+            Applied adjustments
+          </h2>
+          <div className="flex flex-col gap-2">
+            {adjustments.map((adjustment) => (
+              <div
+                key={adjustment.id}
+                className="px-4 py-3 rounded-lg text-sm"
+                style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+              >
+                <p style={{ color: C.textPrimary }}>
+                  {formatAdjustmentSummary(
+                    adjustment.adjustmentType,
+                    adjustment.valuePercent,
+                    adjustment.valueCents,
+                    adjustment.reason,
+                  )}
+                </p>
+                <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+                  {adjustment.scope === "annual_total" ? "Annual total" : "Per installment"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div>
         <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>

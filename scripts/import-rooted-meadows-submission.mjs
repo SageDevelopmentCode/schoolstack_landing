@@ -40,6 +40,12 @@ const IMPORTS = {
     storagePath:
       "1085332b-aef4-4910-a35d-ccb2611d9b11/applications/a0f1b245-6d2e-7a8b-1c9d-4e5f6a7b8c93/f3e7b469d1a5/d4e5f6a7-8b9c-0d1e-2f3a-4b5c6d7e8f90_26-27_Ritchie_Olivia_Application.pdf",
   },
+  "calvert-arrow": {
+    sqlFile: "supabase/migrations_manual/import_rooted_meadows_submission_calvert_arrow.sql",
+    pdfPath: "/Users/juliuscecilia/Downloads/26-27 Calvert, Arrow application.pdf",
+    storagePath:
+      "8adbfe08-b25b-4626-b3ac-23424a1a0a3b/applications/d4e5f6a7-b8c9-4012-e345-6789abcdef01/f3e7b469d1a5/f6a7b8c9-d0e1-4234-a567-89abcdef0123_26-27_Calvert_Arrow_Application.pdf",
+  },
 };
 
 async function main() {
