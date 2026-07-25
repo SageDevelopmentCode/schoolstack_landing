@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, X } from "lucide-react";
 import { BuilderSectionIntro } from "@/components/school-admin/admissions/builder-question-card";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import TuitionFeesStep from "@/components/school-admin/tuition/TuitionFeesStep";
@@ -46,6 +46,7 @@ type TuitionSetupWizardProps = {
   editRatePlanId?: string | null;
   draftRatePlanId?: string | null;
   onCancelEdit?: () => void;
+  layout?: "page" | "modal";
 };
 
 const STEPS = [
@@ -81,9 +82,11 @@ export default function TuitionSetupWizard({
   editRatePlanId,
   draftRatePlanId,
   onCancelEdit,
+  layout = "page",
 }: TuitionSetupWizardProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const isModal = layout === "modal";
   const isEditMode = Boolean(editRatePlanId);
   const shouldSaveDraft = !isEditMode;
   const initialPlanId = editRatePlanId ?? draftRatePlanId ?? null;
@@ -453,53 +456,76 @@ export default function TuitionSetupWizard({
 
   if (loadingPrograms || loadingPlan) {
     return (
-      <div className="flex items-center justify-center min-h-[480px] p-6">
+      <div
+        className={
+          isModal
+            ? "flex items-center justify-center py-16"
+            : "flex items-center justify-center min-h-[480px] p-6"
+        }
+      >
         <Loader2 className="w-5 h-5 animate-spin" style={{ color: C.textSecondary }} />
       </div>
     );
   }
 
-  return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-120px)] p-6">
-      <div
-        className="w-full max-w-3xl rounded-2xl overflow-hidden"
-        style={{
-          backgroundColor: C.surface,
-          border: `1px solid ${C.border}`,
-          boxShadow: "0 12px 40px rgba(0,0,0,0.06)",
-        }}
-      >
-        <div className="px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${C.border}` }}>
-          <div className="flex items-start justify-between gap-4">
-            <BuilderSectionIntro
-              C={C}
-              eyebrow={isEditMode ? "Edit rate plan" : "Get started"}
-              title={
-                isEditMode ? "Update your tuition rate plan" : "Set up your tuition rate plan"
-              }
-              subtitle={
-                isEditMode
-                  ? "Adjust your program tuition, payment options, and fees."
-                  : "A quick guided setup so families know what to pay and how they can pay it."
-              }
-            />
+  const wizardCard = (
+    <div
+      className={`w-full max-w-3xl rounded-2xl overflow-hidden ${
+        isModal ? "max-h-[90vh] flex flex-col" : ""
+      }`}
+      style={{
+        backgroundColor: C.surface,
+        border: `1px solid ${C.border}`,
+        boxShadow: isModal ? undefined : "0 12px 40px rgba(0,0,0,0.06)",
+      }}
+    >
+      <div className="px-6 pt-6 pb-4 shrink-0" style={{ borderBottom: `1px solid ${C.border}` }}>
+        <div className="flex items-start justify-between gap-4">
+          <BuilderSectionIntro
+            C={C}
+            eyebrow={isEditMode ? "Edit rate plan" : "Get started"}
+            title={
+              isEditMode ? "Update your tuition rate plan" : "Set up your tuition rate plan"
+            }
+            subtitle={
+              isEditMode
+                ? "Adjust your program tuition, payment options, and fees."
+                : "A quick guided setup so families know what to pay and how they can pay it."
+            }
+          />
+          <div className="flex items-start gap-2 shrink-0">
             {savedFormSnapshot != null && !activated ? (
-              <span className="text-xs shrink-0 pt-1" style={{ color: C.textTertiary }}>
+              <span className="text-xs pt-1" style={{ color: C.textTertiary }}>
                 {savingDraft ? "Saving…" : isDirty ? "Unsaved changes" : "Saved"}
               </span>
             ) : null}
+            {isModal && onCancelEdit ? (
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={isBusy}
+                className="p-1 rounded-md disabled:opacity-50"
+                style={{ color: C.textTertiary }}
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            ) : null}
           </div>
-          <TuitionWizardStepNav
-            C={C}
-            steps={STEPS}
-            stepIndex={stepIndex}
-            maxReachedStep={maxReachedStep}
-            disabled={isBusy}
-            onGoToStep={goToStep}
-          />
         </div>
+        <TuitionWizardStepNav
+          C={C}
+          steps={STEPS}
+          stepIndex={stepIndex}
+          maxReachedStep={maxReachedStep}
+          disabled={isBusy}
+          onGoToStep={goToStep}
+        />
+      </div>
 
-        <div className="px-6 py-5 min-h-[360px]">
+      <div
+        className={`px-6 py-5 ${isModal ? "flex-1 overflow-y-auto" : "min-h-[360px]"}`}
+      >
           {activated ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <CheckCircle2 className="w-12 h-12" style={{ color: C.success }} />
@@ -633,7 +659,7 @@ export default function TuitionSetupWizard({
 
         {!activated ? (
           <div
-            className="px-6 py-4 flex items-center justify-between gap-3"
+            className="px-6 py-4 flex items-center justify-between gap-3 shrink-0"
             style={{ borderTop: `1px solid ${C.border}` }}
           >
             <div>
@@ -703,7 +729,18 @@ export default function TuitionSetupWizard({
             </div>
           </div>
         ) : null}
-      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {isModal ? (
+        wizardCard
+      ) : (
+        <div className="flex items-center justify-center min-h-[calc(100vh-120px)] p-6">
+          {wizardCard}
+        </div>
+      )}
 
       <ConfirmDialog
         C={C}
@@ -716,6 +753,6 @@ export default function TuitionSetupWizard({
         onConfirm={confirmLeave}
         onClose={cancelLeave}
       />
-    </div>
+    </>
   );
 }

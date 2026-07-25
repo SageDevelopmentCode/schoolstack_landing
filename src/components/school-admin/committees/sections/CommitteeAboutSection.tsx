@@ -25,7 +25,10 @@ export default function CommitteeAboutSection({
   const [aboutHtml, setAboutHtml] = useState(committee.aboutHtml);
   const [saving, setSaving] = useState(false);
 
+  const isAboutDirty = aboutHtml !== committee.aboutHtml;
+
   const handleSaveAbout = async () => {
+    if (!isAboutDirty) return;
     setSaving(true);
     try {
       const updated = await updateCommittee(supabase, organizationId, committee.id, {
@@ -69,8 +72,8 @@ export default function CommitteeAboutSection({
         <button
           type="button"
           onClick={handleSaveAbout}
-          disabled={saving}
-          className="mt-3 px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
+          disabled={saving || !isAboutDirty}
+          className="mt-3 px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           style={{ backgroundColor: C.accent }}
         >
           {saving ? "Saving…" : "Save overview"}

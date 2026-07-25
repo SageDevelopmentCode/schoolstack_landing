@@ -11,10 +11,27 @@ export default function AdminToaster({ C }: AdminToasterProps) {
   return (
     <>
       <style>{`
+        [data-sonner-toast] {
+          overflow: visible !important;
+        }
+
+        :where([data-sonner-toaster][dir='ltr'] button[data-close-button]) {
+          --toast-close-button-start: auto;
+          --toast-close-button-end: 0;
+          --toast-close-button-transform: translate(35%, -35%);
+        }
+
         [data-sonner-toast] [data-close-button] {
-          background: rgba(255, 255, 255, 0.1) !important;
-          border-color: rgba(255, 255, 255, 0.2) !important;
+          z-index: 10 !important;
+          opacity: 1 !important;
+          background: rgba(255, 255, 255, 0.28) !important;
+          border: 1px solid rgba(255, 255, 255, 0.45) !important;
+          border-radius: ${C.r.md} !important;
           color: #fff !important;
+        }
+
+        [data-sonner-toast] [data-close-button]:hover {
+          background: rgba(255, 255, 255, 0.42) !important;
         }
       `}</style>
       <Toaster
@@ -28,7 +45,7 @@ export default function AdminToaster({ C }: AdminToasterProps) {
             backgroundColor: C.textPrimary,
             color: "#FFFFFF",
             border: "1px solid rgba(255, 255, 255, 0.12)",
-            borderRadius: C.r.lg,
+            borderRadius: C.r.xl,
             boxShadow: C.shadowMedium,
           },
         }}

@@ -16,12 +16,17 @@ function softenedSolid(color: string, vividPercent = 84): string {
   return `color-mix(in srgb, ${color} ${vividPercent}%, white)`;
 }
 
-function solidSoftButton(color: string, vividPercent = 84): CSSProperties {
+function solidSoftButton(
+  C: AdminThemeTokens,
+  color: string,
+  vividPercent = 84,
+): CSSProperties {
   const backgroundColor = softenedSolid(color, vividPercent);
   return {
     backgroundColor,
     color: "#FFFFFF",
     border: `1px solid ${backgroundColor}`,
+    borderRadius: C.r.md,
   };
 }
 
@@ -31,34 +36,37 @@ export function getAdminButtonStyle(
 ): CSSProperties {
   switch (variant) {
     case "primary":
-      return solidSoftButton(C.accent, 88);
+      return solidSoftButton(C, C.accent, 88);
     case "secondary":
       return {
         backgroundColor: C.accentLight,
         color: C.accent,
         border: `1px solid ${C.secondaryBtnBorder}`,
+        borderRadius: C.r.md,
       };
     case "neutral":
       return {
         backgroundColor: C.elevated,
         color: C.textPrimary,
         border: `1px solid ${C.borderStrong}`,
+        borderRadius: C.r.md,
       };
     case "danger":
-      return solidSoftButton(C.error);
+      return solidSoftButton(C, C.error);
     case "success":
-      return solidSoftButton(C.success);
+      return solidSoftButton(C, C.success);
     case "info":
-      return solidSoftButton(C.info);
+      return solidSoftButton(C, C.info);
     case "accentMid":
-      return solidSoftButton(C.accentMid, 92);
+      return solidSoftButton(C, C.accentMid, 92);
     case "warning":
-      return solidSoftButton(C.warning);
+      return solidSoftButton(C, C.warning);
     default:
       return {
         backgroundColor: C.accentLight,
         color: C.accent,
         border: `1px solid ${C.secondaryBtnBorder}`,
+        borderRadius: C.r.md,
       };
   }
 }

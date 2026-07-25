@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Pencil, Plus, Save } from "lucide-react";
 import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
-import TuitionSetupWizard from "@/components/school-admin/tuition/TuitionSetupWizard";
+import TuitionSetupWizardModal from "@/components/school-admin/tuition/TuitionSetupWizardModal";
 import {
   annualCentsFromTiers,
   formatCents,
@@ -79,6 +79,26 @@ function formatTierDisplayAmount(
   return `${formatCents(amountCents)}/yr`;
 }
 
+function savedPaymentOptionsFromPlan(plan: RatePlanWithDetails) {
+  const counts = plan.paymentPlans.length
+    ? plan.paymentPlans.map((p) => p.installmentCount)
+    : [DEFAULT_PAYMENT_COUNT];
+  const allowedCounts = filterAllowedPaymentCounts(
+    counts,
+    plan.effectiveStart,
+    plan.effectiveEnd,
+  )
+    .slice()
+    .sort((a, b) => a - b);
+  const defaultPlan =
+    plan.paymentPlans.find((p) => p.isDefault) ?? plan.paymentPlans[0];
+  const defaultCount = defaultPlan?.installmentCount ?? DEFAULT_PAYMENT_COUNT;
+  const resolvedDefault = allowedCounts.includes(defaultCount)
+    ? defaultCount
+    : (allowedCounts[0] ?? DEFAULT_PAYMENT_COUNT);
+  return { counts: allowedCounts, defaultPaymentCount: resolvedDefault };
+}
+
 export default function TuitionRateCatalogPanel({
   organizationId,
   branding,
@@ -139,6 +159,17 @@ export default function TuitionRateCatalogPanel({
     annualAmountCents,
     paymentCounts,
   );
+
+  const isPaymentOptionsDirty = useMemo(() => {
+    if (!selectedPlan) return false;
+    const saved = savedPaymentOptionsFromPlan(selectedPlan);
+    const currentCounts = [...paymentCounts].sort((a, b) => a - b);
+    if (currentCounts.length !== saved.counts.length) return true;
+    if (currentCounts.some((count, index) => count !== saved.counts[index])) {
+      return true;
+    }
+    return defaultPaymentCount !== saved.defaultPaymentCount;
+  }, [selectedPlan, paymentCounts, defaultPaymentCount]);
 
   const syncLocalFromSelected = (plan: RatePlanWithDetails | null) => {
     if (!plan) {
@@ -215,7 +246,7 @@ export default function TuitionRateCatalogPanel({
   };
 
   const handleSavePlan = async () => {
-    if (!activePlan) return;
+    if (!activePlan || !isPaymentOptionsDirty) return;
     if (annualAmountCents <= 0) {
       setError("Rate plan has no valid default tuition tier.");
       return;
@@ -248,21 +279,6 @@ export default function TuitionRateCatalogPanel({
       setSavingPlan(false);
     }
   };
-
-  if (editingPlanId) {
-    return (
-      <TuitionSetupWizard
-        organizationId={organizationId}
-        branding={branding}
-        editRatePlanId={editingPlanId}
-        onCancelEdit={() => setEditingPlanId(null)}
-        onComplete={() => {
-          setEditingPlanId(null);
-          onRefresh();
-        }}
-      />
-    );
-  }
 
   if (!catalogRatePlans.length) {
     return (
@@ -330,7 +346,7 @@ export default function TuitionRateCatalogPanel({
             <p className="mt-1">
               Payment schedules can be updated inline below. For tuition tiers, fees,
               program dates, and full review, use <strong>Edit setup</strong> — that
-              reopens the same wizard used during initial setup.
+              opens the setup wizard in a popup.
             </p>
           </div>
 
@@ -557,9 +573,9 @@ export default function TuitionRateCatalogPanel({
           <button
             type="button"
             onClick={() => void handleSavePlan()}
-            disabled={savingPlan || saving}
+            disabled={savingPlan || saving || !isPaymentOptionsDirty}
             style={getAdminButtonStyle(C, "primary")}
-            className="self-start inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
+            className="self-start inline-flex items-center gap-2 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
           >
             {savingPlan ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -582,6 +598,20 @@ export default function TuitionRateCatalogPanel({
           effectiveEnd={activePlan.effectiveEnd}
           schoolYearMonths={schoolYearMonths}
           onClose={() => setPreviewModalOpen(false)}
+        />
+      ) : null}
+
+      {editingPlanId ? (
+        <TuitionSetupWizardModal
+          open
+          organizationId={organizationId}
+          branding={branding}
+          editRatePlanId={editingPlanId}
+          onClose={() => setEditingPlanId(null)}
+          onComplete={() => {
+            setEditingPlanId(null);
+            onRefresh();
+          }}
         />
       ) : null}
     </div>

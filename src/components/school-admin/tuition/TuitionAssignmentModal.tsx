@@ -41,6 +41,15 @@ export default function TuitionAssignmentModal({
     Array<{ value: string; label: string }>
   >([]);
   const [pendingPaymentPlanSelection, setPendingPaymentPlanSelection] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState<{
+    rateTierId: string;
+    paymentPlanId: string;
+  } | null>(null);
+
+  const isAssignmentDirty =
+    savedSnapshot != null &&
+    (rateTierId !== savedSnapshot.rateTierId ||
+      paymentPlanId !== savedSnapshot.paymentPlanId);
 
   useEffect(() => {
     void (async () => {
@@ -64,6 +73,14 @@ export default function TuitionAssignmentModal({
         );
         setRateTierId(assignment.rateTierId ?? ratePlan.tiers.find((t) => t.isDefault)?.id ?? ratePlan.tiers[0]?.id ?? "");
         setPaymentPlanId(assignment.paymentPlanId);
+        setSavedSnapshot({
+          rateTierId:
+            assignment.rateTierId ??
+            ratePlan.tiers.find((t) => t.isDefault)?.id ??
+            ratePlan.tiers[0]?.id ??
+            "",
+          paymentPlanId: assignment.paymentPlanId,
+        });
         setTierOptions(
           ratePlan.tiers.map((tier) => ({
             value: tier.id,
@@ -85,6 +102,7 @@ export default function TuitionAssignmentModal({
   }, [assignmentId, supabase]);
 
   const handleSave = async () => {
+    if (!isAssignmentDirty) return;
     setSaving(true);
     setError(null);
     try {
@@ -100,6 +118,7 @@ export default function TuitionAssignmentModal({
         const body = (await response.json()) as { error?: string };
         throw new Error(body.error ?? "Failed to update assignment.");
       }
+      setSavedSnapshot({ rateTierId, paymentPlanId });
       adminToast.success("Tuition assignment saved");
       onSaved();
     } catch (err) {
@@ -203,9 +222,9 @@ export default function TuitionAssignmentModal({
           <button
             type="button"
             onClick={() => void handleSave()}
-            disabled={saving || loading}
+            disabled={saving || loading || !isAssignmentDirty}
             style={getAdminButtonStyle(C, "primary")}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Save changes

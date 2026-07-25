@@ -30,7 +30,13 @@ export default function CommitteeSettingsSection({
   const [termEnd, setTermEnd] = useState(committee.termEnd);
   const [saving, setSaving] = useState(false);
 
+  const isTermDirty =
+    termLabel !== committee.termLabel ||
+    termStart !== committee.termStart ||
+    termEnd !== committee.termEnd;
+
   const handleSaveTerm = async () => {
+    if (!isTermDirty) return;
     setSaving(true);
     try {
       const updated = await updateCommittee(supabase, organizationId, committee.id, {
@@ -94,8 +100,8 @@ export default function CommitteeSettingsSection({
         <button
           type="button"
           onClick={handleSaveTerm}
-          disabled={saving}
-          className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
+          disabled={saving || !isTermDirty}
+          className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           style={{ backgroundColor: C.accent }}
         >
           {saving ? "Saving…" : "Save term"}

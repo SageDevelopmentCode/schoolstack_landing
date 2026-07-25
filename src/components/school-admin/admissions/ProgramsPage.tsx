@@ -150,6 +150,21 @@ export default function ProgramsPage({
     queueMicrotask(() => setEditable(toEditableState(selectedProgram)));
   }, [isNew, selectedProgram?.id, selectedProgram?.updated_at]);
 
+  const isProgramDirty = useMemo(() => {
+    if (!editable) return false;
+    if (isNew) return editable.name.trim().length > 0;
+    if (!selectedProgram) return false;
+    const saved = toEditableState(selectedProgram);
+    return (
+      editable.name !== saved.name ||
+      editable.type !== saved.type ||
+      editable.status !== saved.status ||
+      editable.startDate !== saved.startDate ||
+      editable.endDate !== saved.endDate ||
+      editable.capacity !== saved.capacity
+    );
+  }, [editable, isNew, selectedProgram]);
+
   const handleCreate = () => {
     setSelectedId(NEW_PROGRAM_ID);
     setEditable(emptyEditableState());
@@ -157,7 +172,7 @@ export default function ProgramsPage({
   };
 
   const handleSave = async () => {
-    if (!editable) return;
+    if (!editable || !isProgramDirty) return;
 
     setSaving(true);
     setError(null);
@@ -365,8 +380,8 @@ export default function ProgramsPage({
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                disabled={saving || !isProgramDirty}
+                className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ backgroundColor: C.accent }}
               >
                 {saving ? (
