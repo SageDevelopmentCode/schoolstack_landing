@@ -5,7 +5,8 @@ import {
   AuthError,
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
-import { getChargeById, markChargeSent } from "@/lib/tuition/charges";
+import { getChargeById } from "@/lib/tuition/charges";
+import { sendTuitionInvoice } from "@/lib/tuition/send-invoice";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -61,8 +62,8 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const updated = await markChargeSent(admin, charge.id);
-    return NextResponse.json({ charge: updated });
+    const { charge: updated, emailed } = await sendTuitionInvoice(admin, charge.id);
+    return NextResponse.json({ charge: updated, emailed });
   } catch (error) {
     if (error instanceof AuthError) {
       return apiError(ROUTE, {

@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
 import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
 import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
 import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
-import { formatAdjustmentSummary, formatCents } from "@/lib/tuition/pricing";
+import { formatCents } from "@/lib/tuition/pricing";
 import { setAutopayEnabled } from "@/lib/tuition/autopay";
 import {
   fetchParentBillingFamilySummary,
@@ -34,7 +36,24 @@ type ParentBillingPageProps = {
   slug: string;
 };
 
-export default function ParentBillingPage({
+function ParentBillingPageFallback({
+  branding,
+}: {
+  branding: OrganizationBranding;
+}) {
+  const C = buildAdminThemeTokens(branding);
+  return (
+    <div
+      className="flex items-center justify-center gap-2 p-6 text-sm"
+      style={{ color: C.textSecondary }}
+    >
+      <Loader2 className="w-4 h-4 animate-spin" />
+      Loading billing…
+    </div>
+  );
+}
+
+function ParentBillingPageContent({
   organizationId,
   familyId,
   branding,
@@ -42,6 +61,8 @@ export default function ParentBillingPage({
 }: ParentBillingPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+  const deepLinkChargeId = searchParams.get("charge");
 
   const [charges, setCharges] = useState<TuitionCharge[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -49,11 +70,23 @@ export default function ParentBillingPage({
   const [autopayEnabled, setAutopayEnabledState] = useState(false);
   const [loading, setLoading] = useState(true);
   const [payingChargeId, setPayingChargeId] = useState<string | null>(null);
+  const [highlightedChargeId, setHighlightedChargeId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<FamilyBillingReadiness | null>(null);
   const [familySummary, setFamilySummary] = useState<ParentBillingFamilySummary | null>(
     null,
   );
   const [activeChildKey, setActiveChildKey] = useState<string | null>(null);
+  const chargeRowRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+
+  const adjustmentsByAssignment = useMemo(() => {
+    const map = new Map<string, TuitionAdjustment[]>();
+    for (const adjustment of adjustments) {
+      const existing = map.get(adjustment.assignmentId) ?? [];
+      existing.push(adjustment);
+      map.set(adjustment.assignmentId, existing);
+    }
+    return map;
+  }, [adjustments]);
 
   const loadBilling = useCallback(async (): Promise<ParentBillingFamilySummary | null> => {
     setLoading(true);
@@ -106,6 +139,32 @@ export default function ParentBillingPage({
       void loadBilling();
     });
   }, [loadBilling]);
+
+  useEffect(() => {
+    if (!deepLinkChargeId || loading) return;
+
+    const targetCharge = charges.find((charge) => charge.id === deepLinkChargeId);
+    if (!targetCharge) return;
+
+    const childWithCharge = familySummary?.children.find(
+      (child) => child.assignmentId === targetCharge.assignmentId,
+    );
+    if (childWithCharge) {
+      setActiveChildKey(childWithCharge.childKey);
+    }
+
+    const row = chargeRowRefs.current.get(deepLinkChargeId);
+    if (row) {
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    setHighlightedChargeId(deepLinkChargeId);
+    const timeout = window.setTimeout(() => {
+      setHighlightedChargeId(null);
+    }, 3000);
+
+    return () => window.clearTimeout(timeout);
+  }, [charges, deepLinkChargeId, familySummary?.children, loading]);
 
   const childViews = familySummary?.children ?? [];
   const activeChild =
@@ -214,52 +273,35 @@ export default function ParentBillingPage({
       : charges;
 
     return (
-      <>
-        <div>
-          <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
-            Upcoming charges
-          </h2>
-          <div className="flex flex-col gap-2">
-            {childCharges.length > 0 ? (
-              childCharges.map((charge) => (
-                <div
-                  key={charge.id}
-                  data-testid="parent-billing-charge-row"
-                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm"
-                  style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-                >
-                  <div>
-                    <p style={{ color: C.textPrimary }}>{charge.label}</p>
-                    <p className="text-xs" style={{ color: C.textTertiary }}>
-                      Due {charge.dueDate} · {charge.status}
-                      {charge.baseAmountCents !== charge.amountCents ? " · adjusted" : ""}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium" style={{ color: C.textPrimary }}>
-                      {formatCents(charge.amountCents)}
-                    </span>
-                    {charge.status !== "paid" && charge.status !== "void" ? (
-                      <button
-                        type="button"
-                        onClick={() => void handlePay(charge.id)}
-                        className="text-xs font-medium px-2 py-1 rounded"
-                        style={{ backgroundColor: C.accentLight, color: C.accent }}
-                      >
-                        Pay
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm" style={{ color: C.textTertiary }}>
-                No upcoming charges yet.
-              </p>
-            )}
-          </div>
+      <div>
+        <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
+          Upcoming charges
+        </h2>
+        <div className="flex flex-col gap-2">
+          {childCharges.length > 0 ? (
+            childCharges.map((charge) => (
+              <ParentBillingChargeRow
+                key={charge.id}
+                C={C}
+                charge={charge}
+                adjustmentsForAssignment={
+                  adjustmentsByAssignment.get(charge.assignmentId) ?? []
+                }
+                payingChargeId={payingChargeId}
+                highlighted={highlightedChargeId === charge.id}
+                onAssignRef={(node) => {
+                  chargeRowRefs.current.set(charge.id, node);
+                }}
+                onPay={(chargeId) => void handlePay(chargeId)}
+              />
+            ))
+          ) : (
+            <p className="text-sm" style={{ color: C.textTertiary }}>
+              No upcoming charges yet.
+            </p>
+          )}
         </div>
-      </>
+      </div>
     );
   };
 
@@ -281,12 +323,7 @@ export default function ParentBillingPage({
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center gap-2 p-6 text-sm" style={{ color: C.textSecondary }}>
-        <Loader2 className="w-4 h-4 animate-spin" />
-        Loading billing…
-      </div>
-    );
+    return <ParentBillingPageFallback branding={branding} />;
   }
 
   return (
@@ -354,35 +391,6 @@ export default function ParentBillingPage({
         renderChildCharges(null)
       )}
 
-      {adjustments.length > 0 ? (
-        <div>
-          <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
-            Applied adjustments
-          </h2>
-          <div className="flex flex-col gap-2">
-            {adjustments.map((adjustment) => (
-              <div
-                key={adjustment.id}
-                className="px-4 py-3 rounded-lg text-sm"
-                style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-              >
-                <p style={{ color: C.textPrimary }}>
-                  {formatAdjustmentSummary(
-                    adjustment.adjustmentType,
-                    adjustment.valuePercent,
-                    adjustment.valueCents,
-                    adjustment.reason,
-                  )}
-                </p>
-                <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
-                  {adjustment.scope === "annual_total" ? "Annual total" : "Per installment"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       <div>
         <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
           Payment history
@@ -416,5 +424,13 @@ export default function ParentBillingPage({
         )}
       </div>
     </div>
+  );
+}
+
+export default function ParentBillingPage(props: ParentBillingPageProps) {
+  return (
+    <Suspense fallback={<ParentBillingPageFallback branding={props.branding} />}>
+      <ParentBillingPageContent {...props} />
+    </Suspense>
   );
 }

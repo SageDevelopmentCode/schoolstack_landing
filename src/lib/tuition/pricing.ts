@@ -86,6 +86,71 @@ export function formatAdjustmentSummary(
   }
 }
 
+export type ChargeBreakdownLineKind = "base" | "adjustment" | "total";
+
+export type ChargeBreakdownLine = {
+  kind: ChargeBreakdownLineKind;
+  label: string;
+  amountCents: number;
+};
+
+export function buildChargeAdjustmentBreakdown(input: {
+  baseAmountCents: number;
+  amountCents: number;
+  adjustments: Pick<
+    TuitionAdjustment,
+    | "adjustmentType"
+    | "valuePercent"
+    | "valueCents"
+    | "priority"
+    | "scope"
+    | "reason"
+    | "status"
+  >[];
+}): ChargeBreakdownLine[] {
+  const { baseAmountCents, amountCents } = input;
+
+  const applicable = input.adjustments
+    .filter((adjustment) => adjustment.status === "active")
+    .filter(
+      (adjustment) =>
+        adjustment.scope === "installment" || adjustment.scope === "annual_total",
+    )
+    .sort((a, b) => a.priority - b.priority);
+
+  const hasAdjustment = baseAmountCents !== amountCents || applicable.length > 0;
+
+  if (!hasAdjustment) {
+    return [{ kind: "total", label: "You pay", amountCents }];
+  }
+
+  const lines: ChargeBreakdownLine[] = [
+    { kind: "base", label: "Base amount", amountCents: baseAmountCents },
+  ];
+
+  let running = baseAmountCents;
+  for (const adjustment of applicable) {
+    const next = applySingleAdjustment(running, adjustment);
+    const delta = next - running;
+    if (delta !== 0) {
+      lines.push({
+        kind: "adjustment",
+        label: formatAdjustmentSummary(
+          adjustment.adjustmentType,
+          adjustment.valuePercent,
+          adjustment.valueCents,
+          adjustment.reason,
+        ),
+        amountCents: delta,
+      });
+    }
+    running = next;
+  }
+
+  lines.push({ kind: "total", label: "You pay", amountCents: amountCents });
+  return lines;
+}
+
 export function annualCentsFromTiers(
   tiers: Pick<TuitionRateTier, "amountCents" | "isDefault">[],
 ): number {

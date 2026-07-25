@@ -6,8 +6,8 @@ import { listFamilyBillingSummaries } from "@/lib/tuition/charges";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { formatCents } from "@/lib/tuition/pricing";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
-import type { FamilyBillingSummary } from "@/lib/tuition/types";
+import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { FamilyAssignmentSummary, FamilyBillingSummary } from "@/lib/tuition/types";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -20,6 +20,51 @@ type TuitionFamiliesPanelProps = {
   onEditAssignment: (assignmentId: string) => void;
   onRefresh: () => void;
 };
+
+function AssignmentMetaBadges({
+  assignment,
+  C,
+}: {
+  assignment: FamilyAssignmentSummary;
+  C: AdminThemeTokens;
+}) {
+  const neutralStyle = { backgroundColor: C.accentLight, color: C.accentDark };
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <span
+        className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+        style={neutralStyle}
+      >
+        {assignment.ratePlanName}
+      </span>
+      {assignment.tierLabel ? (
+        <span
+          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+          style={neutralStyle}
+        >
+          {assignment.tierLabel}
+        </span>
+      ) : null}
+      {!assignment.pendingPaymentPlanSelection ? (
+        <span
+          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+          style={neutralStyle}
+        >
+          {assignment.paymentPlanLabel}
+        </span>
+      ) : null}
+      {assignment.pendingPaymentPlanSelection ? (
+        <span
+          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+          style={{ backgroundColor: C.accent, color: "#fff" }}
+        >
+          Awaiting schedule choice
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 export default function TuitionFamiliesPanel({
   organizationId,
@@ -36,6 +81,7 @@ export default function TuitionFamiliesPanel({
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
+  const [invoiceNotice, setInvoiceNotice] = useState<string | null>(null);
 
   const loadFamilies = useCallback(async () => {
     setLoading(true);
@@ -74,10 +120,24 @@ export default function TuitionFamiliesPanel({
 
   const handleSendInvoice = async (chargeId: string) => {
     setActionLoading(chargeId);
+    setInvoiceNotice(null);
     try {
-      await fetch(`/api/tuition/charges/${chargeId}/send`, {
+      const response = await fetch(`/api/tuition/charges/${chargeId}/send`, {
         method: "POST",
       });
+      const payload = (await response.json()) as {
+        error?: string;
+        emailed?: boolean;
+      };
+      if (!response.ok) {
+        setPanelError(payload.error ?? "Failed to send invoice.");
+        return;
+      }
+      setInvoiceNotice(
+        payload.emailed
+          ? "Invoice sent by email."
+          : "Charge marked sent. Email was not sent (mail not configured or family has no email).",
+      );
       await loadFamilies();
     } finally {
       setActionLoading(null);
@@ -243,43 +303,29 @@ export default function TuitionFamiliesPanel({
           className="rounded-lg p-5 flex flex-col gap-4"
           style={{ border: `1px solid ${C.border}`, backgroundColor: C.surface }}
         >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
-                {selectedFamily.familyName}
-              </h2>
-              <p className="text-sm" style={{ color: C.textSecondary }}>
-                {selectedFamily.children.join(", ") || "No students"}
-              </p>
-              <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
-                {selectedFamily.programs.join(", ")}
-              </p>
-            </div>
-            {selectedFamily.assignmentIds[0] ? (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => onEditAssignment(selectedFamily.assignmentIds[0]!)}
-                  className="text-sm font-medium px-3 py-1.5 rounded-md"
-                  style={{ backgroundColor: C.bg, color: C.textPrimary, border: `1px solid ${C.border}` }}
-                >
-                  Edit assignment
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onAdjust(selectedFamily.familyId, selectedFamily.assignmentIds[0]!)
-                  }
-                  className="text-sm font-medium px-3 py-1.5 rounded-md"
-                  style={{ backgroundColor: C.accentLight, color: C.accent }}
-                >
-                  Adjust tuition
-                </button>
-              </div>
-            ) : null}
+          {invoiceNotice ? (
+            <p
+              className="text-sm rounded-md px-3 py-2"
+              style={{ backgroundColor: C.bg, color: C.textSecondary, border: `1px solid ${C.border}` }}
+              data-testid="tuition-invoice-notice"
+            >
+              {invoiceNotice}
+            </p>
+          ) : null}
+
+          <div>
+            <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
+              {selectedFamily.familyName}
+            </h2>
           </div>
 
-          {selectedFamily.readiness !== "ready" ? (
+          {panelError ? (
+            <p className="text-sm" style={{ color: C.error }}>
+              {panelError}
+            </p>
+          ) : null}
+
+          {selectedFamily.readiness === "needs_assignment" ? (
             <div
               className="rounded-lg p-4 flex flex-col gap-3"
               style={{
@@ -289,83 +335,36 @@ export default function TuitionFamiliesPanel({
             >
               <div>
                 <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                  {selectedFamily.readiness === "needs_assignment"
-                    ? "Tuition has not been assigned yet"
-                    : selectedFamily.readiness === "needs_payment_plan"
-                      ? "Awaiting family payment schedule choice"
-                      : "Billing schedule is not ready yet"}
+                  Tuition has not been assigned yet
                 </p>
                 <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-                  {selectedFamily.readiness === "needs_assignment"
-                    ? "Tuition is assigned automatically at enrollment. Sync assignments if this student enrolled before your rate plan was ready."
-                    : selectedFamily.readiness === "needs_payment_plan"
-                      ? "The family chooses their installment plan in the parent portal under Billing. Charges generate after they confirm, unless you override the schedule in Edit assignment."
-                      : "Charges appear after tuition is assigned and the payment schedule is confirmed."}
+                  Tuition is assigned automatically at enrollment. Sync assignments if this
+                  student enrolled before your rate plan was ready.
                 </p>
               </div>
 
-              {selectedFamily.readiness === "needs_assignment" ? (
-                <div className="flex flex-col gap-2">
-                  <ul className="flex flex-col gap-2">
-                    {selectedFamily.unassignedEnrollments.map((enrollment) => (
-                      <li
-                        key={enrollment.enrollmentId}
-                        className="text-sm"
-                        style={{ color: C.textPrimary }}
-                      >
-                        {enrollment.studentName} · {enrollment.programName}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    disabled={actionLoading === "sync"}
-                    onClick={() => void handleSyncAssignments()}
-                    className="self-start text-xs font-medium px-2 py-1 rounded"
-                    style={{ backgroundColor: C.accent, color: "#fff" }}
-                  >
-                    Sync assignments
-                  </button>
-                </div>
-              ) : null}
-
-              {selectedFamily.readiness === "needs_payment_plan" ? (
+              <div className="flex flex-col gap-2">
                 <ul className="flex flex-col gap-2">
-                  {selectedFamily.assignments
-                    .filter((assignment) => assignment.pendingPaymentPlanSelection)
-                    .map((assignment) => (
-                      <li
-                        key={assignment.assignmentId}
-                        className="flex flex-col gap-2 text-sm"
-                      >
-                        <span style={{ color: C.textPrimary }}>
-                          {assignment.studentName ?? "Student"} · awaiting family schedule
-                          choice
-                        </span>
-                      </li>
-                    ))}
+                  {selectedFamily.unassignedEnrollments.map((enrollment) => (
+                    <li
+                      key={enrollment.enrollmentId}
+                      className="text-sm"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {enrollment.studentName} · {enrollment.programName}
+                    </li>
+                  ))}
                 </ul>
-              ) : null}
-
-              {selectedFamily.readiness === "no_charges" ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    const assignmentId = selectedFamily.assignmentIds[0];
-                    if (assignmentId) onEditAssignment(assignmentId);
-                  }}
+                  disabled={actionLoading === "sync"}
+                  onClick={() => void handleSyncAssignments()}
                   className="self-start text-xs font-medium px-2 py-1 rounded"
                   style={{ backgroundColor: C.accent, color: "#fff" }}
                 >
-                  Review assignment
+                  Sync assignments
                 </button>
-              ) : null}
-
-              {panelError ? (
-                <p className="text-sm" style={{ color: C.error }}>
-                  {panelError}
-                </p>
-              ) : null}
+              </div>
             </div>
           ) : null}
 
@@ -377,6 +376,12 @@ export default function TuitionFamiliesPanel({
               <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
                 Enrollment assignments
               </p>
+              {selectedFamily.readiness === "no_charges" ? (
+                <p className="text-sm" style={{ color: C.textSecondary }}>
+                  Charges appear after tuition is assigned and the payment schedule is
+                  confirmed.
+                </p>
+              ) : null}
               <ul className="flex flex-col gap-3">
                 {selectedFamily.assignments.map((assignment) => (
                   <li
@@ -387,35 +392,45 @@ export default function TuitionFamiliesPanel({
                       <span style={{ color: C.textPrimary }}>
                         {assignment.studentName ?? "Student"}
                       </span>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => onEditAssignment(assignment.assignmentId)}
-                          className="text-xs font-medium"
-                          style={{ color: C.accent }}
+                          className="text-xs font-medium px-2 py-1 rounded"
+                          style={{
+                            backgroundColor: C.bg,
+                            color: C.textPrimary,
+                            border: `1px solid ${C.border}`,
+                          }}
                         >
                           Edit
                         </button>
                         <button
                           type="button"
+                          onClick={() =>
+                            onAdjust(selectedFamily.familyId, assignment.assignmentId)
+                          }
+                          className="text-xs font-medium px-2 py-1 rounded"
+                          style={{ backgroundColor: C.accentLight, color: C.accent }}
+                        >
+                          Adjust
+                        </button>
+                        <button
+                          type="button"
                           disabled={actionLoading === assignment.assignmentId}
                           onClick={() => void handleUnassign(assignment.assignmentId)}
-                          className="text-xs font-medium"
-                          style={{ color: C.textSecondary }}
+                          className="text-xs font-medium px-2 py-1 rounded"
+                          style={{
+                            backgroundColor: C.bg,
+                            color: C.textSecondary,
+                            border: `1px solid ${C.border}`,
+                          }}
                         >
                           Unassign
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs" style={{ color: C.textSecondary }}>
-                      {assignment.ratePlanName}
-                      {assignment.tierLabel ? ` · ${assignment.tierLabel}` : ""}
-                      {" · "}
-                      {assignment.paymentPlanLabel}
-                      {assignment.pendingPaymentPlanSelection
-                        ? " · Awaiting family schedule choice"
-                        : ""}
-                    </p>
+                    <AssignmentMetaBadges assignment={assignment} C={C} />
                   </li>
                 ))}
               </ul>
@@ -481,7 +496,7 @@ export default function TuitionFamiliesPanel({
                             disabled={actionLoading === charge.id}
                             onClick={() => void handleSendInvoice(charge.id)}
                             className="text-xs font-medium px-2 py-1 rounded"
-                            style={{ backgroundColor: C.bg, color: C.textPrimary, border: `1px solid ${C.border}` }}
+                            style={{ backgroundColor: C.accent, color: "#fff" }}
                           >
                             Send invoice
                           </button>

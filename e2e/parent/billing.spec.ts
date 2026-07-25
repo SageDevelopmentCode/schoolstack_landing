@@ -453,3 +453,240 @@ test("parent billing page uses child tabs for multiple pending schedules", async
   ).toBeVisible();
   await expect(page.getByText("Annual tuition $7,200")).toBeVisible();
 });
+
+test("parent billing page shows per-charge adjustment breakdown", async ({ page }) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: family } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("primary_email", E2E_PARENT_EMAIL)
+    .maybeSingle();
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: student } = await admin
+    .from("students")
+    .insert({
+      organization_id: organizationId,
+      family_id: family!.id,
+      first_name: "Adjusted",
+      last_name: "Billing",
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  const { data: enrollment } = await admin
+    .from("enrollments")
+    .insert({
+      organization_id: organizationId,
+      student_id: student!.id,
+      program_id: program!.id,
+      status: "enrolled",
+    })
+    .select("id")
+    .single();
+
+  const { data: ratePlan } = await admin
+    .from("tuition_rate_plans")
+    .insert({
+      organization_id: organizationId,
+      program_id: program!.id,
+      name: "Adjustment E2E",
+      billing_basis: "annual",
+      amount_cents: 720000,
+      status: "active",
+      effective_start: "2026-08-01",
+      effective_end: "2027-05-31",
+    })
+    .select("id")
+    .single();
+
+  const { data: tier } = await admin
+    .from("tuition_rate_tiers")
+    .insert({
+      organization_id: organizationId,
+      rate_plan_id: ratePlan!.id,
+      code: "standard",
+      label: "Standard",
+      amount_cents: 720000,
+      sort_order: 0,
+      is_default: true,
+    })
+    .select("id")
+    .single();
+
+  const { data: paymentPlan } = await admin
+    .from("tuition_payment_plans")
+    .insert({
+      organization_id: organizationId,
+      rate_plan_id: ratePlan!.id,
+      name: "10 payments",
+      installment_count: 10,
+      installment_amount_cents: 72000,
+      billing_day_of_month: 1,
+      is_default: true,
+    })
+    .select("id")
+    .single();
+
+  const { data: assignment } = await admin
+    .from("tuition_enrollment_assignments")
+    .insert({
+      organization_id: organizationId,
+      enrollment_id: enrollment!.id,
+      family_id: family!.id,
+      rate_plan_id: ratePlan!.id,
+      rate_tier_id: tier!.id,
+      payment_plan_id: paymentPlan!.id,
+      assignment_source: "default",
+      status: "active",
+      metadata: { pendingPaymentPlanSelection: false },
+      effective_start: "2026-08-01",
+    })
+    .select("id")
+    .single();
+
+  await admin.from("tuition_adjustments").insert({
+    organization_id: organizationId,
+    assignment_id: assignment!.id,
+    adjustment_type: "percent_discount",
+    value_percent: 10,
+    reason: "Sibling discount",
+    scope: "installment",
+    source: "manual",
+    status: "active",
+    priority: 0,
+  });
+
+  await regenerateFutureCharges(admin, String(assignment!.id));
+
+  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await expect(page.getByTestId("parent-billing-charge-breakdown").first()).toBeVisible();
+  await expect(page.getByText(/sibling discount/i).first()).toBeVisible();
+  await expect(page.getByText("Base amount")).toBeVisible();
+  await expect(page.getByText("You pay")).toBeVisible();
+  await expect(page.getByText("$648").first()).toBeVisible();
+});
+
+test("parent billing deep link highlights the target charge", async ({ page }) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: family } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("primary_email", E2E_PARENT_EMAIL)
+    .maybeSingle();
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: student } = await admin
+    .from("students")
+    .insert({
+      organization_id: organizationId,
+      family_id: family!.id,
+      first_name: "DeepLink",
+      last_name: "Billing",
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  const { data: enrollment } = await admin
+    .from("enrollments")
+    .insert({
+      organization_id: organizationId,
+      student_id: student!.id,
+      program_id: program!.id,
+      status: "enrolled",
+    })
+    .select("id")
+    .single();
+
+  const { data: ratePlan } = await admin
+    .from("tuition_rate_plans")
+    .insert({
+      organization_id: organizationId,
+      program_id: program!.id,
+      name: "Deep Link E2E",
+      billing_basis: "annual",
+      amount_cents: 720000,
+      status: "active",
+      effective_start: "2026-08-01",
+      effective_end: "2027-05-31",
+    })
+    .select("id")
+    .single();
+
+  const { data: tier } = await admin
+    .from("tuition_rate_tiers")
+    .insert({
+      organization_id: organizationId,
+      rate_plan_id: ratePlan!.id,
+      code: "standard",
+      label: "Standard",
+      amount_cents: 720000,
+      sort_order: 0,
+      is_default: true,
+    })
+    .select("id")
+    .single();
+
+  const { data: paymentPlan } = await admin
+    .from("tuition_payment_plans")
+    .insert({
+      organization_id: organizationId,
+      rate_plan_id: ratePlan!.id,
+      name: "10 payments",
+      installment_count: 10,
+      installment_amount_cents: 72000,
+      billing_day_of_month: 1,
+      is_default: true,
+    })
+    .select("id")
+    .single();
+
+  const { data: assignment } = await admin
+    .from("tuition_enrollment_assignments")
+    .insert({
+      organization_id: organizationId,
+      enrollment_id: enrollment!.id,
+      family_id: family!.id,
+      rate_plan_id: ratePlan!.id,
+      rate_tier_id: tier!.id,
+      payment_plan_id: paymentPlan!.id,
+      assignment_source: "default",
+      status: "active",
+      metadata: { pendingPaymentPlanSelection: false },
+      effective_start: "2026-08-01",
+    })
+    .select("id")
+    .single();
+
+  const generated = await regenerateFutureCharges(admin, String(assignment!.id));
+  const chargeId = generated[0]?.id;
+  expect(chargeId).toBeTruthy();
+
+  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing?charge=${chargeId}`);
+  await expect(page.getByTestId("parent-billing-charge-row").first()).toBeVisible();
+  await expect(
+    page.locator(`[data-charge-id="${chargeId}"]`).first(),
+  ).toBeVisible();
+});

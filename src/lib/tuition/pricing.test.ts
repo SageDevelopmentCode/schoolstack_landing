@@ -4,6 +4,7 @@ import {
   annualCentsFromTiers,
   annualCentsToTuitionInput,
   applySingleAdjustment,
+  buildChargeAdjustmentBreakdown,
   computeAdjustedAmountCents,
   formatCents,
   formatTierAmountRange,
@@ -139,6 +140,84 @@ describe("tuition pricing", () => {
       formatTierAmountRange([{ amountCents: 720000 }], "annual"),
       "$7,200/yr",
     );
+  });
+});
+
+describe("buildChargeAdjustmentBreakdown", () => {
+  it("returns a single total line when there are no adjustments", () => {
+    const lines = buildChargeAdjustmentBreakdown({
+      baseAmountCents: 72000,
+      amountCents: 72000,
+      adjustments: [],
+    });
+
+    assert.equal(lines.length, 1);
+    assert.equal(lines[0]?.kind, "total");
+    assert.equal(lines[0]?.amountCents, 72000);
+  });
+
+  it("shows percent discount lines for adjusted charges", () => {
+    const lines = buildChargeAdjustmentBreakdown({
+      baseAmountCents: 72000,
+      amountCents: 64800,
+      adjustments: [
+        {
+          adjustmentType: "percent_discount",
+          valuePercent: 10,
+          valueCents: null,
+          priority: 0,
+          scope: "installment",
+          reason: "Sibling discount",
+          status: "active",
+        },
+      ],
+    });
+
+    assert.equal(lines[0]?.kind, "base");
+    assert.equal(lines[1]?.kind, "adjustment");
+    assert.equal(lines[1]?.amountCents, -7200);
+    assert.match(lines[1]?.label ?? "", /sibling discount/i);
+    assert.equal(lines[2]?.kind, "total");
+    assert.equal(lines[2]?.amountCents, 64800);
+  });
+
+  it("shows fixed discount and waiver lines", () => {
+    const fixedLines = buildChargeAdjustmentBreakdown({
+      baseAmountCents: 72000,
+      amountCents: 67000,
+      adjustments: [
+        {
+          adjustmentType: "fixed_discount",
+          valuePercent: null,
+          valueCents: 5000,
+          priority: 0,
+          scope: "installment",
+          reason: "Financial aid",
+          status: "active",
+        },
+      ],
+    });
+
+    assert.equal(fixedLines[1]?.amountCents, -5000);
+
+    const waiverLines = buildChargeAdjustmentBreakdown({
+      baseAmountCents: 72000,
+      amountCents: 0,
+      adjustments: [
+        {
+          adjustmentType: "waiver",
+          valuePercent: null,
+          valueCents: null,
+          priority: 0,
+          scope: "installment",
+          reason: "Staff child",
+          status: "active",
+        },
+      ],
+    });
+
+    assert.equal(waiverLines[1]?.amountCents, -72000);
+    assert.equal(waiverLines[2]?.amountCents, 0);
   });
 });
 

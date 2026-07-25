@@ -4,6 +4,7 @@ import { CreditCard, Loader2 } from "lucide-react";
 import { formatCents } from "@/lib/tuition/pricing";
 import type { ParentBillingFamilySummary } from "@/lib/tuition/parent-billing-summary";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 
 type ParentBillingSummaryCardProps = {
   C: AdminThemeTokens;
@@ -110,16 +111,19 @@ export default function ParentBillingSummaryCard({
                       : ""}
                   </p>
                 </div>
-                <span
-                  className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                  style={{
-                    backgroundColor:
-                      child.status === "needs_schedule" ? C.accentLight : C.elevated,
-                    color: child.status === "needs_schedule" ? C.accent : C.textSecondary,
-                  }}
-                >
-                  {statusLabel(child.status)}
-                </span>
+                {child.status === "needs_schedule" ? (
+                  <ParentNeedsScheduleBadge C={C} label="Schedule needed" />
+                ) : (
+                  <span
+                    className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                    style={{
+                      backgroundColor: C.elevated,
+                      color: C.textSecondary,
+                    }}
+                  >
+                    {statusLabel(child.status)}
+                  </span>
+                )}
               </div>
             ))}
           </div>

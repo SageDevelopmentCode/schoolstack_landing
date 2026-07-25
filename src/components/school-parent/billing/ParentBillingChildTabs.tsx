@@ -2,6 +2,7 @@
 
 import type { ParentBillingChildView } from "@/lib/tuition/parent-billing-summary";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 
 type ParentBillingChildTabsProps = {
   C: AdminThemeTokens;
@@ -40,12 +41,7 @@ export default function ParentBillingChildTabs({
             >
               {childFirstName(child.studentName)}
               {child.status === "needs_schedule" ? (
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                  style={{ backgroundColor: C.accentLight, color: C.accent }}
-                >
-                  Setup
-                </span>
+                <ParentNeedsScheduleBadge C={C} label="Setup" size="sm" />
               ) : null}
             </button>
           );

@@ -611,8 +611,12 @@ test("admin can mark a charge sent as invoice", async ({ playwright, baseURL }) 
   const response = await adminContext.post(`/api/tuition/charges/${chargeId}/send`);
   expect(response.status()).toBe(200);
 
-  const payload = (await response.json()) as { charge?: { status?: string } };
+  const payload = (await response.json()) as {
+    charge?: { status?: string };
+    emailed?: boolean;
+  };
   expect(payload.charge?.status).toBe("sent");
+  expect(typeof payload.emailed).toBe("boolean");
 
   await adminContext.dispose();
 });

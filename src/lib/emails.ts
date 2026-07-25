@@ -576,3 +576,53 @@ export async function sendTuitionDueReminderEmail(payload: {
 
   return { ok: true };
 }
+
+export function buildTuitionInvoiceHtml(payload: {
+  familyName: string;
+  schoolName: string;
+  chargeLabel: string;
+  amountDue: string;
+  dueDate: string;
+  billingUrl: string;
+}): string {
+  return composeEmail({
+    preheader: `${payload.chargeLabel} — ${payload.amountDue} due ${payload.dueDate}.`,
+    contentHtml: `
+      ${emailBadge("Tuition Invoice")}
+      ${emailHeading(`Invoice for ${escapeHtml(payload.familyName)}`)}
+      ${emailParagraph(
+        `${escapeHtml(payload.schoolName)} sent you a tuition invoice. Sign in to your parent portal to review and pay online.`,
+      )}
+      ${emailDetailCard([
+        { label: "Charge", value: payload.chargeLabel },
+        { label: "Amount due", value: payload.amountDue },
+        { label: "Due date", value: payload.dueDate },
+      ])}
+      ${emailCta({ label: "View and pay", href: payload.billingUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTuitionInvoiceEmail(payload: {
+  to: string;
+  schoolName: string;
+  html: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Invoice from ${payload.schoolName}`,
+    content: payload.html,
+  });
+
+  if (!result.success) {
+    console.error("Tuition invoice email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
