@@ -1,5 +1,5 @@
 -- Tuition rate tiers: multiple amounts per rate plan (age group, schedule type, etc.)
--- Run after: 20260722_add_tuition_rls.sql
+-- Run after: 20260722_add_tuition_schema.sql
 
 create table if not exists public.tuition_rate_tiers (
   id               uuid primary key default gen_random_uuid(),

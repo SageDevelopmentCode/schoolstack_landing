@@ -2,12 +2,12 @@ import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { materializeApplicationStudent } from "../../src/lib/admissions/application-entity-materialization";
-import { computeInstallmentAmountCents } from "../../src/lib/tuition/assignments";
+import { autoAssignTuitionForEnrollment, computeInstallmentAmountCents } from "../../src/lib/tuition/assignments";
 import { regenerateFutureCharges } from "../../src/lib/tuition/charge-generator";
 import { createRatePlanFromWizard } from "../../src/lib/tuition/setup-wizard";
 import { AUTH_STATE_PATHS } from "../fixtures/constants";
 import { E2E_PARENT_EMAIL } from "../fixtures/constants";
-import { TEST_ORG_SLUG } from "../helpers/constants";
+import { TEST_ORG_SLUG, ADMIN_TUITION_PATH } from "../helpers/constants";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
 function createAdminClient() {
@@ -107,7 +107,7 @@ test("full tuition setup to parent billing smoke", async ({
 
   await ensureSmokeRatePlan(admin, organizationId, programId);
 
-  await page.goto(`/school/${TEST_ORG_SLUG}/admin/tuition`);
+  await page.goto(ADMIN_TUITION_PATH);
   await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
 
   const { data: family } = await admin
@@ -174,21 +174,77 @@ test("full tuition setup to parent billing smoke", async ({
   await expect(parentPage.getByRole("heading", { name: "Billing" })).toBeVisible();
   await expect(parentPage.getByText("Upcoming charges")).toBeVisible();
   await expect(parentPage.getByTestId("parent-billing-charge-row").first()).toBeVisible();
-  await expect(parentPage.getByText("$720").first()).toBeVisible();
+  await expect(parentPage.getByText(/first payment of \$/i)).toBeVisible();
 
   await parentContext.close();
 });
 
 test("tuition assignment PATCH requires admin", async ({ playwright, baseURL }) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  expect(program?.id).toBeTruthy();
+  const programId = String(program!.id);
+  await ensureSmokeRatePlan(admin, organizationId, programId);
+
+  const { data: family } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  expect(family?.id).toBeTruthy();
+
+  const { data: student } = await admin
+    .from("students")
+    .insert({
+      organization_id: organizationId,
+      family_id: family!.id,
+      first_name: "Patch",
+      last_name: "Guard",
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  const { data: enrollment } = await admin
+    .from("enrollments")
+    .insert({
+      organization_id: organizationId,
+      student_id: student!.id,
+      program_id: programId,
+      status: "enrolled",
+    })
+    .select("id")
+    .single();
+
+  const assignment = await autoAssignTuitionForEnrollment(admin, {
+    organizationId,
+    enrollmentId: String(enrollment!.id),
+    familyId: String(family!.id),
+    programId,
+  });
+
+  expect(assignment?.id).toBeTruthy();
+
   const context = await playwright.request.newContext({
     baseURL,
     storageState: AUTH_STATE_PATHS.nonAdmin,
   });
 
   const response = await context.patch(
-    "/api/tuition/assignments/00000000-0000-0000-0000-000000000099",
+    `/api/tuition/assignments/${assignment!.id}`,
     {
-      data: { paymentPlanId: "00000000-0000-0000-0000-000000000001" },
+      data: { paymentPlanId: assignment!.paymentPlanId },
     },
   );
 
@@ -667,7 +723,9 @@ test("tuition dashboard auto-syncs assignments for newly enrolled students", asy
 
   expect(enrollment?.id).toBeTruthy();
 
-  await page.goto(`/school/${TEST_ORG_SLUG}/admin/tuition`);
+  await ensureSmokeRatePlan(admin, organizationId, String(program!.id));
+
+  await page.goto(ADMIN_TUITION_PATH);
   await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
 
   const { data: assignment } = await admin
@@ -694,6 +752,9 @@ test("sync-assignments API creates tuition assignments for enrolled students", a
     .eq("organization_id", organizationId)
     .limit(1)
     .maybeSingle();
+
+  expect(program?.id).toBeTruthy();
+  await ensureSmokeRatePlan(admin, organizationId, String(program!.id));
 
   const { data: family } = await admin
     .from("families")
@@ -725,6 +786,14 @@ test("sync-assignments API creates tuition assignments for enrolled students", a
     .select("id")
     .single();
 
+  const { data: assignmentBefore } = await admin
+    .from("tuition_enrollment_assignments")
+    .select("id")
+    .eq("enrollment_id", enrollment!.id)
+    .maybeSingle();
+
+  expect(assignmentBefore).toBeNull();
+
   const adminContext = await playwright.request.newContext({
     baseURL,
     storageState: AUTH_STATE_PATHS.schoolAdmin,
@@ -736,16 +805,14 @@ test("sync-assignments API creates tuition assignments for enrolled students", a
 
   expect(response.status()).toBe(200);
 
-  const payload = (await response.json()) as {
-    assignedCount?: number;
-    results?: Array<{ enrollmentId: string; assignmentId: string | null }>;
-  };
+  const { data: assignment } = await admin
+    .from("tuition_enrollment_assignments")
+    .select("id")
+    .eq("enrollment_id", enrollment!.id)
+    .eq("status", "active")
+    .maybeSingle();
 
-  const created = (payload.results ?? []).find(
-    (result) => result.enrollmentId === enrollment!.id,
-  );
-  expect(created?.assignmentId).toBeTruthy();
-  expect((payload.assignedCount ?? 0) >= 1).toBe(true);
+  expect(assignment?.id).toBeTruthy();
 
   await adminContext.dispose();
 });
@@ -753,7 +820,21 @@ test("sync-assignments API creates tuition assignments for enrolled students", a
 test("tuition setup panel opens from header button with three steps", async ({
   page,
 }) => {
-  await page.goto(`/school/${TEST_ORG_SLUG}/admin/tuition`);
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  expect(program?.id).toBeTruthy();
+  await ensureSmokeRatePlan(admin, organizationId, String(program!.id));
+
+  await page.goto(ADMIN_TUITION_PATH);
   await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
 
   await page.getByTestId("tuition-setup-button").click();

@@ -13,15 +13,28 @@ type DueChargeRow = {
   family_id: string;
 };
 
+export function getTuitionReminderTargetDate(
+  reminderDaysBefore = 3,
+  today: Date = new Date(),
+): string {
+  const reminderDate = new Date(today);
+  reminderDate.setUTCDate(reminderDate.getUTCDate() + reminderDaysBefore);
+  return reminderDate.toISOString().slice(0, 10);
+}
+
+type ReminderDeps = {
+  sendEmail?: typeof sendTuitionDueReminderEmail;
+  today?: Date;
+};
+
 export async function sendTuitionDueReminders(
   supabase: SupabaseClient,
   organizationId: string,
   reminderDaysBefore = 3,
+  deps: ReminderDeps = {},
 ): Promise<number> {
-  const today = new Date();
-  const reminderDate = new Date(today);
-  reminderDate.setUTCDate(reminderDate.getUTCDate() + reminderDaysBefore);
-  const targetDate = reminderDate.toISOString().slice(0, 10);
+  const sendEmail = deps.sendEmail ?? sendTuitionDueReminderEmail;
+  const targetDate = getTuitionReminderTargetDate(reminderDaysBefore, deps.today);
 
   const { data: charges, error: chargesError } = await supabase
     .from("tuition_charges")
@@ -86,7 +99,7 @@ export async function sendTuitionDueReminders(
       billingUrl,
     });
 
-    const result = await sendTuitionDueReminderEmail({
+    const result = await sendEmail({
       to: email,
       schoolName,
       html,

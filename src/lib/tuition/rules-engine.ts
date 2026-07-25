@@ -271,3 +271,89 @@ export async function evaluateRulesForOrganization(
 
   return assignments?.length ?? 0;
 }
+
+export type RulePreviewMatch = {
+  assignmentId: string;
+  familyId: string;
+  familyName: string;
+  studentName: string;
+  alreadyApplied: boolean;
+};
+
+export async function previewRuleMatches(
+  supabase: SupabaseClient,
+  ruleId: string,
+): Promise<RulePreviewMatch[]> {
+  const { data: ruleRow, error: ruleError } = await supabase
+    .from("tuition_adjustment_rules")
+    .select("*")
+    .eq("id", ruleId)
+    .maybeSingle();
+
+  if (ruleError) throw ruleError;
+  if (!ruleRow) return [];
+
+  const rule = rowToAdjustmentRule(ruleRow);
+
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from("tuition_enrollment_assignments")
+    .select("id, family_id, enrollment_id")
+    .eq("organization_id", rule.organizationId)
+    .eq("status", "active");
+
+  if (assignmentsError) throw assignmentsError;
+
+  const matches: RulePreviewMatch[] = [];
+
+  for (const assignment of assignments ?? []) {
+    const assignmentId = String(assignment.id);
+    const context = await buildRuleContext(supabase, assignmentId);
+    if (!context || !evaluateRuleConditions(rule.conditions, context)) {
+      continue;
+    }
+
+    const [{ data: family }, { data: enrollment }] = await Promise.all([
+      supabase
+        .from("families")
+        .select("name")
+        .eq("id", assignment.family_id)
+        .maybeSingle(),
+      supabase
+        .from("enrollments")
+        .select("student_id")
+        .eq("id", assignment.enrollment_id)
+        .maybeSingle(),
+    ]);
+
+    let studentName = "Student";
+    if (enrollment?.student_id) {
+      const { data: student } = await supabase
+        .from("students")
+        .select("first_name, last_name")
+        .eq("id", enrollment.student_id)
+        .maybeSingle();
+
+      if (student) {
+        studentName = `${student.first_name} ${student.last_name}`.trim();
+      }
+    }
+
+    const { data: existingAdjustment } = await supabase
+      .from("tuition_adjustments")
+      .select("id")
+      .eq("assignment_id", assignmentId)
+      .eq("rule_id", ruleId)
+      .eq("status", "active")
+      .maybeSingle();
+
+    matches.push({
+      assignmentId,
+      familyId: String(assignment.family_id),
+      familyName: String(family?.name ?? "Family"),
+      studentName,
+      alreadyApplied: Boolean(existingAdjustment),
+    });
+  }
+
+  return matches;
+}
