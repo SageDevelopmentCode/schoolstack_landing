@@ -764,6 +764,9 @@ export async function createRatePlanFromWizard(
   const { backfillTuitionAssignmentsForRatePlan } = await import("./assignments");
   await backfillTuitionAssignmentsForRatePlan(supabase, ratePlan.id);
 
+  const { regenerateFutureChargesForRatePlan } = await import("./charge-generator");
+  await regenerateFutureChargesForRatePlan(supabase, ratePlan.id);
+
   return ratePlan;
 }
 

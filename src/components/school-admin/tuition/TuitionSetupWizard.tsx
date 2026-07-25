@@ -669,6 +669,7 @@ export default function TuitionSetupWizard({
               {stepIndex < STEPS.length - 1 ? (
                 <button
                   type="button"
+                  data-testid="tuition-wizard-next"
                   onClick={() => void goNext()}
                   disabled={isBusy}
                   style={getAdminButtonStyle(C, "primary")}
@@ -680,6 +681,7 @@ export default function TuitionSetupWizard({
               ) : (
                 <button
                   type="button"
+                  data-testid="tuition-wizard-activate"
                   onClick={() => void handleActivate()}
                   disabled={isBusy}
                   style={getAdminButtonStyle(C, "primary")}

@@ -455,10 +455,15 @@ export async function syncRatePlanPaymentOptions(
     isDefault: count === input.defaultPaymentCount,
   }));
 
-  return upsertPaymentPlansForRatePlan(supabase, {
+  const plans = await upsertPaymentPlansForRatePlan(supabase, {
     organizationId: input.organizationId,
     ratePlanId: input.ratePlanId,
     annualAmountCents: input.annualAmountCents,
     options,
   });
+
+  const { regenerateFutureChargesForRatePlan } = await import("./charge-generator");
+  await regenerateFutureChargesForRatePlan(supabase, input.ratePlanId);
+
+  return plans;
 }

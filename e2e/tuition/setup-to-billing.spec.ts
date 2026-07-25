@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
+import { materializeApplicationStudent } from "../../src/lib/admissions/application-entity-materialization";
 import { computeInstallmentAmountCents } from "../../src/lib/tuition/assignments";
 import { regenerateFutureCharges } from "../../src/lib/tuition/charge-generator";
+import { createRatePlanFromWizard } from "../../src/lib/tuition/setup-wizard";
 import { AUTH_STATE_PATHS } from "../fixtures/constants";
 import { E2E_PARENT_EMAIL } from "../fixtures/constants";
 import { TEST_ORG_SLUG } from "../helpers/constants";
@@ -21,6 +23,161 @@ function createAdminClient() {
     realtime: { transport: ws as never },
   });
 }
+
+async function ensureSmokeRatePlan(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  programId: string,
+) {
+  const planName = `E2E Smoke ${Date.now()}`;
+  const ratePlan = await createRatePlanFromWizard(admin, {
+    organizationId,
+    programId,
+    name: planName,
+    billingBasis: "annual",
+    tiers: [{ label: "Standard", amount: "7200", isDefault: true }],
+    effectiveStart: "2026-08-01",
+    effectiveEnd: "2027-06-01",
+    paymentCounts: [10],
+    defaultPaymentCount: 10,
+    fees: [],
+  });
+
+  return ratePlan;
+}
+
+async function seedParentApplicationForSmoke(
+  admin: ReturnType<typeof createAdminClient>,
+  input: {
+    organizationId: string;
+    programId: string;
+    formVersionId: string;
+    familyId: string;
+    guardianId: string;
+    userId: string;
+    studentName: string;
+  },
+) {
+  const [studentFirstName, ...studentLastParts] = input.studentName.split(" ");
+  const studentLastName = studentLastParts.join(" ") || "Student";
+
+  const { data: application, error } = await admin
+    .from("applications")
+    .insert({
+      organization_id: input.organizationId,
+      program_id: input.programId,
+      form_version_id: input.formVersionId,
+      family_id: input.familyId,
+      primary_guardian_id: input.guardianId,
+      created_by_user_id: input.userId,
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+      responses: {
+        student_first_name: studentFirstName,
+        student_last_name: studentLastName,
+        student_date_of_birth: "2018-05-15",
+        student_grade: "1",
+      },
+    })
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return String(application!.id);
+}
+
+test("full tuition setup to parent billing smoke", async ({
+  page,
+  browser,
+  request,
+}) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  expect(program?.id).toBeTruthy();
+  const programId = String(program!.id);
+
+  await ensureSmokeRatePlan(admin, organizationId, programId);
+
+  await page.goto(`/school/${TEST_ORG_SLUG}/admin/tuition`);
+  await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
+
+  const { data: family } = await admin
+    .from("families")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("primary_email", E2E_PARENT_EMAIL)
+    .maybeSingle();
+
+  expect(family?.id).toBeTruthy();
+
+  const { data: guardian } = await admin
+    .from("guardians")
+    .select("id, user_id")
+    .eq("organization_id", organizationId)
+    .eq("family_id", family!.id)
+    .limit(1)
+    .maybeSingle();
+
+  expect(guardian?.id).toBeTruthy();
+
+  const applicationId = await seedParentApplicationForSmoke(admin, {
+    organizationId,
+    programId,
+    formVersionId: manifest.forms.default,
+    familyId: String(family!.id),
+    guardianId: String(guardian!.id),
+    userId: String(guardian!.user_id),
+    studentName: `Smoke Child ${Date.now()}`,
+  });
+
+  await materializeApplicationStudent(admin, applicationId);
+
+  const acceptResponse = await request.patch(
+    `/api/admissions/applications/${applicationId}/status`,
+    { data: { status: "accepted" } },
+  );
+  expect(acceptResponse.status()).toBe(200);
+
+  const enrollResponse = await request.post(
+    `/api/admissions/applications/${applicationId}/mark-enrolled`,
+    { data: { note: "E2E tuition smoke" } },
+  );
+  expect(enrollResponse.status()).toBe(200);
+
+  const enrollBody = (await enrollResponse.json()) as { enrollmentId?: string };
+  expect(enrollBody.enrollmentId).toBeTruthy();
+
+  const { data: assignment } = await admin
+    .from("tuition_enrollment_assignments")
+    .select("id")
+    .eq("enrollment_id", enrollBody.enrollmentId!)
+    .eq("status", "active")
+    .maybeSingle();
+
+  expect(assignment?.id).toBeTruthy();
+
+  const parentContext = await browser.newContext({
+    storageState: AUTH_STATE_PATHS.parent,
+  });
+  const parentPage = await parentContext.newPage();
+
+  await parentPage.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await expect(parentPage.getByRole("heading", { name: "Billing" })).toBeVisible();
+  await expect(parentPage.getByText("Upcoming charges")).toBeVisible();
+  await expect(parentPage.getByTestId("parent-billing-charge-row").first()).toBeVisible();
+  await expect(parentPage.getByText("$720").first()).toBeVisible();
+
+  await parentContext.close();
+});
 
 test("tuition assignment PATCH requires admin", async ({ playwright, baseURL }) => {
   const context = await playwright.request.newContext({

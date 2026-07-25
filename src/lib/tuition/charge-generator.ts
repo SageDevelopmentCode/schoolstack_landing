@@ -275,6 +275,40 @@ export async function regenerateFutureCharges(
   return (allCharges ?? []).map(rowToCharge);
 }
 
+export type RatePlanChargeRegenerationResult = {
+  processed: number;
+  skipped: number;
+};
+
+export async function regenerateFutureChargesForRatePlan(
+  supabase: SupabaseClient,
+  ratePlanId: string,
+): Promise<RatePlanChargeRegenerationResult> {
+  const { data: assignments, error } = await supabase
+    .from("tuition_enrollment_assignments")
+    .select("id, metadata, status")
+    .eq("rate_plan_id", ratePlanId)
+    .eq("status", "active");
+
+  if (error) throw error;
+
+  let processed = 0;
+  let skipped = 0;
+
+  for (const row of assignments ?? []) {
+    const assignment = rowToAssignment(row);
+    if (assignmentNeedsPaymentPlanSelection(assignment)) {
+      skipped += 1;
+      continue;
+    }
+
+    await regenerateFutureCharges(supabase, String(row.id));
+    processed += 1;
+  }
+
+  return { processed, skipped };
+}
+
 export async function markOverdueCharges(
   supabase: SupabaseClient,
   organizationId: string,

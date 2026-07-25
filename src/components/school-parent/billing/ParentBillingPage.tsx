@@ -224,6 +224,7 @@ export default function ParentBillingPage({
               childCharges.map((charge) => (
                 <div
                   key={charge.id}
+                  data-testid="parent-billing-charge-row"
                   className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm"
                   style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
                 >
