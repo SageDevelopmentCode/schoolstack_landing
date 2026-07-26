@@ -179,7 +179,7 @@ function ParentBillingPageContent({
             charge.dueDate === familySummary.nextCharge?.dueDate &&
             ["scheduled", "sent", "overdue"].includes(charge.status),
         )
-        .sort((a, b) => a.installmentNumber - b.installmentNumber)[0]
+        .sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0))[0]
     : null;
 
   const readinessMessage = (() => {
