@@ -544,10 +544,11 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
   await regenerateFutureCharges(admin, String(assignment!.id));
 
   await gotoBillingPage(page);
-  await expect(page.getByTestId("parent-billing-charge-breakdown").first()).toBeVisible();
+  const breakdown = page.getByTestId("parent-billing-charge-breakdown").first();
+  await expect(breakdown).toBeVisible();
   await expect(page.getByText(/sibling discount/i).first()).toBeVisible();
-  await expect(page.getByText("Base amount")).toBeVisible();
-  await expect(page.getByText("You pay")).toBeVisible();
+  await expect(breakdown.getByText("Base amount")).toBeVisible();
+  await expect(breakdown.getByText("You pay")).toBeVisible();
   await expect(page.getByText("$648").first()).toBeVisible();
 });
 

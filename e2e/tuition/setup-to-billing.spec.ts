@@ -182,7 +182,8 @@ test("full tuition setup to parent billing smoke", async ({
   await gotoBillingPage(parentPage);
   await expect(parentPage.getByText("Upcoming charges")).toBeVisible();
   await expect(parentPage.getByTestId("parent-billing-charge-row").first()).toBeVisible();
-  await expect(parentPage.getByText(/first payment of \$/i)).toBeVisible();
+  await expect(parentPage.getByTestId("parent-billing-summary")).toBeVisible();
+  await expect(parentPage.getByRole("button", { name: "Pay now" })).toBeVisible();
 
   await parentContext.close();
 });

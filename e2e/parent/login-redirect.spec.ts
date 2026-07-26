@@ -3,11 +3,14 @@ import { TEST_ORG_SLUG } from "../helpers/constants";
 
 async function expectParentLoginRedirect(page: Page) {
   await expect(page).not.toHaveURL(/\/login$/);
-  await expect(page).toHaveURL(new RegExp(`/school/${TEST_ORG_SLUG}/`));
+  await expect(page).toHaveURL(
+    new RegExp(`/school/${TEST_ORG_SLUG}/(apply|parent)`),
+  );
   await expect(
     page
       .getByRole("heading", { name: "Your applications" })
-      .or(page.getByRole("heading", { name: "Billing" })),
+      .or(page.getByRole("heading", { name: "Billing" }))
+      .or(page.getByRole("heading", { name: "My Children" })),
   ).toBeVisible();
 }
 
