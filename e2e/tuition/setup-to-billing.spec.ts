@@ -7,7 +7,13 @@ import { regenerateFutureCharges } from "../../src/lib/tuition/charge-generator"
 import { createRatePlanFromWizard } from "../../src/lib/tuition/setup-wizard";
 import { AUTH_STATE_PATHS } from "../fixtures/constants";
 import { E2E_PARENT_EMAIL } from "../fixtures/constants";
-import { TEST_ORG_SLUG, ADMIN_TUITION_PATH } from "../helpers/constants";
+import { ADMIN_TUITION_PATH } from "../helpers/constants";
+import {
+  finalizeEnrollmentBilling,
+  getE2eParentFamily,
+  gotoBillingPage,
+  resetFamilyBillingState,
+} from "../helpers/billing-fixtures";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
 function createAdminClient() {
@@ -118,6 +124,7 @@ test("full tuition setup to parent billing smoke", async ({
     .maybeSingle();
 
   expect(family?.id).toBeTruthy();
+  await resetFamilyBillingState(admin, String(family!.id));
 
   const { data: guardian } = await admin
     .from("guardians")
@@ -156,6 +163,8 @@ test("full tuition setup to parent billing smoke", async ({
   const enrollBody = (await enrollResponse.json()) as { enrollmentId?: string };
   expect(enrollBody.enrollmentId).toBeTruthy();
 
+  await finalizeEnrollmentBilling(admin, enrollBody.enrollmentId!);
+
   const { data: assignment } = await admin
     .from("tuition_enrollment_assignments")
     .select("id")
@@ -170,8 +179,7 @@ test("full tuition setup to parent billing smoke", async ({
   });
   const parentPage = await parentContext.newPage();
 
-  await parentPage.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
-  await expect(parentPage.getByRole("heading", { name: "Billing" })).toBeVisible();
+  await gotoBillingPage(parentPage);
   await expect(parentPage.getByText("Upcoming charges")).toBeVisible();
   await expect(parentPage.getByTestId("parent-billing-charge-row").first()).toBeVisible();
   await expect(parentPage.getByText(/first payment of \$/i)).toBeVisible();

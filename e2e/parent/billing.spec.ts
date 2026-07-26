@@ -2,9 +2,16 @@ import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { regenerateFutureCharges } from "../../src/lib/tuition/charge-generator";
-import { E2E_PARENT_EMAIL } from "../fixtures/constants";
 import { TEST_ORG_SLUG } from "../helpers/constants";
+import {
+  getE2eParentFamily,
+  gotoBillingPage,
+  resetFamilyBillingState,
+  waitForBillingPage,
+} from "../helpers/billing-fixtures";
 import { getSeedManifest } from "../helpers/seed-manifest";
+
+test.describe.configure({ mode: "serial" });
 
 function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,15 +31,8 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
-
-  const { data: family } = await admin
-    .from("families")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("primary_email", E2E_PARENT_EMAIL)
-    .maybeSingle();
-
-  expect(family?.id).toBeTruthy();
+  const family = await getE2eParentFamily(admin, organizationId);
+  await resetFamilyBillingState(admin, family.id);
 
   const { data: program } = await admin
     .from("programs")
@@ -45,7 +45,7 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
     .from("students")
     .insert({
       organization_id: organizationId,
-      family_id: family!.id,
+      family_id: family.id,
       first_name: "Billing",
       last_name: "Portal",
       status: "active",
@@ -112,7 +112,7 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
     .insert({
       organization_id: organizationId,
       enrollment_id: enrollment!.id,
-      family_id: family!.id,
+      family_id: family.id,
       rate_plan_id: ratePlan!.id,
       rate_tier_id: tier!.id,
       payment_plan_id: paymentPlan!.id,
@@ -126,8 +126,7 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
 
   await regenerateFutureCharges(admin, String(assignment!.id));
 
-  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
-  await expect(page.getByRole("heading", { name: "Billing" })).toBeVisible();
+  await gotoBillingPage(page);
   await expect(page.getByText("Upcoming charges")).toBeVisible();
   await expect(page.getByText(/Tuition/)).toHaveCount(5);
 });
@@ -138,15 +137,8 @@ test("parent billing page shows readiness guidance when charges are missing", as
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
-
-  const { data: family } = await admin
-    .from("families")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("primary_email", E2E_PARENT_EMAIL)
-    .maybeSingle();
-
-  expect(family?.id).toBeTruthy();
+  const family = await getE2eParentFamily(admin, organizationId);
+  await resetFamilyBillingState(admin, family.id);
 
   const { data: program } = await admin
     .from("programs")
@@ -159,7 +151,7 @@ test("parent billing page shows readiness guidance when charges are missing", as
     .from("students")
     .insert({
       organization_id: organizationId,
-      family_id: family!.id,
+      family_id: family.id,
       first_name: "Readiness",
       last_name: "Parent",
       status: "active",
@@ -174,7 +166,7 @@ test("parent billing page shows readiness guidance when charges are missing", as
     status: "enrolled",
   });
 
-  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await gotoBillingPage(page);
   await expect(page.getByTestId("parent-billing-readiness")).toBeVisible();
   await expect(
     page.getByText(/Tuition has not been assigned yet|Choose your payment schedule/i),
@@ -187,15 +179,8 @@ test("parent billing page lets family choose payment schedule inline", async ({
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
-
-  const { data: family } = await admin
-    .from("families")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("primary_email", E2E_PARENT_EMAIL)
-    .maybeSingle();
-
-  expect(family?.id).toBeTruthy();
+  const family = await getE2eParentFamily(admin, organizationId);
+  await resetFamilyBillingState(admin, family.id);
 
   const { data: program } = await admin
     .from("programs")
@@ -208,7 +193,7 @@ test("parent billing page lets family choose payment schedule inline", async ({
     .from("students")
     .insert({
       organization_id: organizationId,
-      family_id: family!.id,
+      family_id: family.id,
       first_name: "Schedule",
       last_name: "Picker",
       status: "active",
@@ -287,7 +272,7 @@ test("parent billing page lets family choose payment schedule inline", async ({
   await admin.from("tuition_enrollment_assignments").insert({
     organization_id: organizationId,
     enrollment_id: enrollment!.id,
-    family_id: family!.id,
+    family_id: family.id,
     rate_plan_id: ratePlan!.id,
     rate_tier_id: tier!.id,
     payment_plan_id: defaultPlanId,
@@ -297,7 +282,7 @@ test("parent billing page lets family choose payment schedule inline", async ({
     effective_start: "2026-08-01",
   });
 
-  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await gotoBillingPage(page);
   await expect(page.getByTestId("parent-tuition-plan-selector")).toBeVisible();
   await expect(page.getByText("Pay in full")).toBeVisible();
   await page.getByText("Pay in full").click();
@@ -313,15 +298,8 @@ test("parent billing page uses child tabs for multiple pending schedules", async
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
-
-  const { data: family } = await admin
-    .from("families")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("primary_email", E2E_PARENT_EMAIL)
-    .maybeSingle();
-
-  expect(family?.id).toBeTruthy();
+  const family = await getE2eParentFamily(admin, organizationId);
+  await resetFamilyBillingState(admin, family.id);
 
   const { data: program } = await admin
     .from("programs")
@@ -395,7 +373,7 @@ test("parent billing page uses child tabs for multiple pending schedules", async
       .from("students")
       .insert({
         organization_id: organizationId,
-        family_id: family!.id,
+        family_id: family.id,
         first_name: firstName,
         last_name: lastName,
         status: "active",
@@ -417,7 +395,7 @@ test("parent billing page uses child tabs for multiple pending schedules", async
     await admin.from("tuition_enrollment_assignments").insert({
       organization_id: organizationId,
       enrollment_id: enrollment!.id,
-      family_id: family!.id,
+      family_id: family.id,
       rate_plan_id: ratePlan!.id,
       rate_tier_id: tier!.id,
       payment_plan_id: defaultPlanId,
@@ -428,7 +406,7 @@ test("parent billing page uses child tabs for multiple pending schedules", async
     });
   }
 
-  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await gotoBillingPage(page);
   await expect(page.getByTestId("parent-billing-summary")).toBeVisible();
   await expect(page.getByText("Estimated annual tuition")).toBeVisible();
   await expect(page.getByTestId("parent-billing-child-tabs")).toBeVisible();
@@ -458,13 +436,8 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
-
-  const { data: family } = await admin
-    .from("families")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("primary_email", E2E_PARENT_EMAIL)
-    .maybeSingle();
+  const family = await getE2eParentFamily(admin, organizationId);
+  await resetFamilyBillingState(admin, family.id);
 
   const { data: program } = await admin
     .from("programs")
@@ -477,7 +450,7 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
     .from("students")
     .insert({
       organization_id: organizationId,
-      family_id: family!.id,
+      family_id: family.id,
       first_name: "Adjusted",
       last_name: "Billing",
       status: "active",
@@ -544,7 +517,7 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
     .insert({
       organization_id: organizationId,
       enrollment_id: enrollment!.id,
-      family_id: family!.id,
+      family_id: family.id,
       rate_plan_id: ratePlan!.id,
       rate_tier_id: tier!.id,
       payment_plan_id: paymentPlan!.id,
@@ -570,7 +543,7 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
 
   await regenerateFutureCharges(admin, String(assignment!.id));
 
-  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await gotoBillingPage(page);
   await expect(page.getByTestId("parent-billing-charge-breakdown").first()).toBeVisible();
   await expect(page.getByText(/sibling discount/i).first()).toBeVisible();
   await expect(page.getByText("Base amount")).toBeVisible();
@@ -582,13 +555,8 @@ test("parent billing deep link highlights the target charge", async ({ page }) =
   const admin = createAdminClient();
   const manifest = getSeedManifest();
   const organizationId = manifest.organizationId;
-
-  const { data: family } = await admin
-    .from("families")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("primary_email", E2E_PARENT_EMAIL)
-    .maybeSingle();
+  const family = await getE2eParentFamily(admin, organizationId);
+  await resetFamilyBillingState(admin, family.id);
 
   const { data: program } = await admin
     .from("programs")
@@ -601,7 +569,7 @@ test("parent billing deep link highlights the target charge", async ({ page }) =
     .from("students")
     .insert({
       organization_id: organizationId,
-      family_id: family!.id,
+      family_id: family.id,
       first_name: "DeepLink",
       last_name: "Billing",
       status: "active",
@@ -668,7 +636,7 @@ test("parent billing deep link highlights the target charge", async ({ page }) =
     .insert({
       organization_id: organizationId,
       enrollment_id: enrollment!.id,
-      family_id: family!.id,
+      family_id: family.id,
       rate_plan_id: ratePlan!.id,
       rate_tier_id: tier!.id,
       payment_plan_id: paymentPlan!.id,
@@ -685,6 +653,7 @@ test("parent billing deep link highlights the target charge", async ({ page }) =
   expect(chargeId).toBeTruthy();
 
   await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing?charge=${chargeId}`);
+  await waitForBillingPage(page);
   await expect(page.getByTestId("parent-billing-charge-row").first()).toBeVisible();
   await expect(
     page.locator(`[data-charge-id="${chargeId}"]`).first(),
