@@ -6,7 +6,7 @@ import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentN
 
 type ParentBillingChildTabsProps = {
   C: AdminThemeTokens;
-  children: ParentBillingChildView[];
+  childViews: ParentBillingChildView[];
   activeChildKey: string;
   onChange: (childKey: string) => void;
 };
@@ -17,14 +17,14 @@ function childFirstName(name: string): string {
 
 export default function ParentBillingChildTabs({
   C,
-  children,
+  childViews,
   activeChildKey,
   onChange,
 }: ParentBillingChildTabsProps) {
   return (
     <div className="flex flex-col gap-4" data-testid="parent-billing-child-tabs">
       <div className="-mb-px flex gap-6 border-b" style={{ borderColor: C.border }}>
-        {children.map((child) => {
+        {childViews.map((child) => {
           const active = child.childKey === activeChildKey;
           return (
             <button

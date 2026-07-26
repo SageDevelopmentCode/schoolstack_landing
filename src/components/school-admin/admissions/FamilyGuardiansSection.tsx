@@ -60,10 +60,12 @@ function AddGuardianModal({
 
   useEffect(() => {
     if (!open) return;
-    setFirstName(initialFirstName);
-    setLastName(initialLastName);
-    setEmail(initialEmail);
-    setError(null);
+    queueMicrotask(() => {
+      setFirstName(initialFirstName);
+      setLastName(initialLastName);
+      setEmail(initialEmail);
+      setError(null);
+    });
   }, [open, initialFirstName, initialLastName, initialEmail]);
 
   const inputStyle: React.CSSProperties = {

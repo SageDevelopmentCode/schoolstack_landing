@@ -540,9 +540,11 @@ function FormItemPanel({
   );
   const draftSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  valuesRef.current = values;
-  entriesRef.current = entries;
-  isCompletedRef.current = isCompleted;
+  useEffect(() => {
+    valuesRef.current = values;
+    entriesRef.current = entries;
+    isCompletedRef.current = isCompleted;
+  }, [values, entries, isCompleted]);
 
   const persistDraft = async (
     payload: ChecklistFormResponses,

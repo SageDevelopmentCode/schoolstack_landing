@@ -10,7 +10,6 @@ type ParentBillingChargeRowProps = {
   adjustmentsForAssignment: TuitionAdjustment[];
   payingChargeId: string | null;
   highlighted?: boolean;
-  onAssignRef?: (node: HTMLDivElement | null) => void;
   onPay: (chargeId: string) => void;
 };
 
@@ -27,7 +26,6 @@ export default function ParentBillingChargeRow({
   adjustmentsForAssignment,
   payingChargeId,
   highlighted = false,
-  onAssignRef,
   onPay,
 }: ParentBillingChargeRowProps) {
   const breakdown = buildChargeAdjustmentBreakdown({
@@ -41,7 +39,6 @@ export default function ParentBillingChargeRow({
 
   return (
     <div
-      ref={onAssignRef}
       data-testid="parent-billing-charge-row"
       data-charge-id={charge.id}
       className="flex items-start justify-between gap-3 px-4 py-3 rounded-lg text-sm transition-shadow"

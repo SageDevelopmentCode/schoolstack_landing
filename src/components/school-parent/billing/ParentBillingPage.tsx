@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -76,7 +76,6 @@ function ParentBillingPageContent({
     null,
   );
   const [activeChildKey, setActiveChildKey] = useState<string | null>(null);
-  const chargeRowRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
   const adjustmentsByAssignment = useMemo(() => {
     const map = new Map<string, TuitionAdjustment[]>();
@@ -146,29 +145,36 @@ function ParentBillingPageContent({
     const targetCharge = charges.find((charge) => charge.id === deepLinkChargeId);
     if (!targetCharge) return;
 
-    const childWithCharge = familySummary?.children.find(
-      (child) => child.assignmentId === targetCharge.assignmentId,
-    );
-    if (childWithCharge) {
-      setActiveChildKey(childWithCharge.childKey);
-    }
+    document
+      .querySelector(`[data-charge-id="${deepLinkChargeId}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    const row = chargeRowRefs.current.get(deepLinkChargeId);
-    if (row) {
-      row.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-
-    setHighlightedChargeId(deepLinkChargeId);
+    queueMicrotask(() => {
+      setHighlightedChargeId(deepLinkChargeId);
+    });
     const timeout = window.setTimeout(() => {
       setHighlightedChargeId(null);
     }, 3000);
 
     return () => window.clearTimeout(timeout);
-  }, [charges, deepLinkChargeId, familySummary?.children, loading]);
+  }, [charges, deepLinkChargeId, loading]);
 
   const childViews = familySummary?.children ?? [];
+  const deepLinkChildKey = useMemo(() => {
+    if (!deepLinkChargeId || loading) return null;
+    const targetCharge = charges.find((charge) => charge.id === deepLinkChargeId);
+    if (!targetCharge) return null;
+    return (
+      familySummary?.children.find(
+        (child) => child.assignmentId === targetCharge.assignmentId,
+      )?.childKey ?? null
+    );
+  }, [deepLinkChargeId, charges, familySummary?.children, loading]);
+  const resolvedActiveChildKey = deepLinkChildKey ?? activeChildKey;
   const activeChild =
-    childViews.find((child) => child.childKey === activeChildKey) ?? childViews[0] ?? null;
+    childViews.find((child) => child.childKey === resolvedActiveChildKey) ??
+    childViews[0] ??
+    null;
   const hasMultipleChildren = childViews.length > 1;
   const hasPendingSelections = childViews.some((child) => child.selectionItem);
 
@@ -274,9 +280,6 @@ function ParentBillingPageContent({
                 }
                 payingChargeId={payingChargeId}
                 highlighted={highlightedChargeId === charge.id}
-                onAssignRef={(node) => {
-                  chargeRowRefs.current.set(charge.id, node);
-                }}
                 onPay={(chargeId) => void handlePay(chargeId)}
               />
             ))
@@ -362,11 +365,11 @@ function ParentBillingPageContent({
 
       {childViews.length > 0 ? (
         <div className="flex flex-col gap-4" data-testid="parent-billing-child-panel">
-          {hasMultipleChildren && activeChildKey ? (
+          {hasMultipleChildren && resolvedActiveChildKey ? (
             <ParentBillingChildTabs
               C={C}
-              children={childViews}
-              activeChildKey={activeChildKey}
+              childViews={childViews}
+              activeChildKey={resolvedActiveChildKey}
               onChange={setActiveChildKey}
             />
           ) : null}

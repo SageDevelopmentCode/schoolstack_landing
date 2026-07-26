@@ -207,10 +207,7 @@ export default function TuitionSetupWizard({
   }, [organizationId, supabase, initialPlanId]);
 
   useEffect(() => {
-    if (!initialPlanId) {
-      setLoadingPlan(false);
-      return;
-    }
+    if (!initialPlanId) return;
     void (async () => {
       setLoadingPlan(true);
       try {
@@ -226,23 +223,27 @@ export default function TuitionSetupWizard({
   useEffect(() => {
     if (loadingPrograms || loadingPlan) return;
     if (savedFormSnapshot != null) return;
-    setSavedFormSnapshot(currentFormSnapshot);
+    queueMicrotask(() => {
+      setSavedFormSnapshot(currentFormSnapshot);
+    });
   }, [loadingPrograms, loadingPlan, savedFormSnapshot, currentFormSnapshot]);
 
   useEffect(() => {
-    setPaymentCounts((prev) => {
-      const filtered = filterAllowedPaymentCounts(
-        prev,
-        effectiveStart,
-        effectiveEnd,
-      );
-      if (filtered.length === prev.length) return prev;
+    queueMicrotask(() => {
+      setPaymentCounts((prev) => {
+        const filtered = filterAllowedPaymentCounts(
+          prev,
+          effectiveStart,
+          effectiveEnd,
+        );
+        if (filtered.length === prev.length) return prev;
 
-      setDefaultPaymentCount((current) => {
-        if (current != null && filtered.includes(current)) return current;
-        return filtered[0] ?? null;
+        setDefaultPaymentCount((current) => {
+          if (current != null && filtered.includes(current)) return current;
+          return filtered[0] ?? null;
+        });
+        return filtered;
       });
-      return filtered;
     });
   }, [effectiveStart, effectiveEnd]);
 

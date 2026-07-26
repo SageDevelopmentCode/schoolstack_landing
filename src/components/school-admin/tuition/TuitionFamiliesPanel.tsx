@@ -256,11 +256,7 @@ export default function TuitionFamiliesPanel({
   const [familyPayments, setFamilyPayments] = useState<PaymentRecord[]>([]);
 
   useEffect(() => {
-    if (!selectedFamilyId) {
-      setFamilyCharges([]);
-      setFamilyPayments([]);
-      return;
-    }
+    if (!selectedFamilyId) return;
     void Promise.all([
       listChargesForFamily(supabase, selectedFamilyId),
       listTuitionPaymentsForFamily(supabase, selectedFamilyId),
@@ -269,6 +265,9 @@ export default function TuitionFamiliesPanel({
       setFamilyPayments(payments);
     });
   }, [selectedFamilyId, supabase, families]);
+
+  const displayedFamilyCharges = selectedFamilyId ? familyCharges : [];
+  const displayedFamilyPayments = selectedFamilyId ? familyPayments : [];
 
   if (loading) {
     return (
@@ -502,8 +501,8 @@ export default function TuitionFamiliesPanel({
               Schedule
             </p>
             <div className="flex flex-col gap-2">
-              {familyCharges.length > 0 ? (
-                familyCharges.map((charge) => (
+              {displayedFamilyCharges.length > 0 ? (
+                displayedFamilyCharges.map((charge) => (
                 <div
                   key={charge.id}
                   className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
@@ -554,13 +553,13 @@ export default function TuitionFamiliesPanel({
             </div>
           </div>
 
-          {familyPayments.some((payment) => payment.status === "succeeded") ? (
+          {displayedFamilyPayments.some((payment) => payment.status === "succeeded") ? (
             <div>
               <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
                 Recent payments
               </p>
               <div className="flex flex-col gap-2">
-                {familyPayments
+                {displayedFamilyPayments
                   .filter((payment) => payment.status === "succeeded")
                   .map((payment) => (
                     <div

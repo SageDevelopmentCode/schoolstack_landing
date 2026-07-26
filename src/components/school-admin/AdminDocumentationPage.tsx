@@ -79,7 +79,14 @@ export default function AdminDocumentationPage({
 
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [debouncedQuery, setDebouncedQuery] = useState(query);
-  const [activeGuide, setActiveGuide] = useState<AdminDocGuide | null>(null);
+  const guideIdFromUrl = searchParams.get("guide");
+  const activeGuide = useMemo(
+    () =>
+      guideIdFromUrl
+        ? (allGuides.find((guide) => guide.id === guideIdFromUrl) ?? null)
+        : null,
+    [allGuides, guideIdFromUrl],
+  );
 
   const updateUrlParams = useCallback(
     (patch: { q?: string; guide?: string | null }) => {
@@ -115,14 +122,12 @@ export default function AdminDocumentationPage({
 
   const openGuide = useCallback(
     (guide: AdminDocGuide) => {
-      setActiveGuide(guide);
       updateUrlParams({ guide: guide.id });
     },
     [updateUrlParams],
   );
 
   const closeGuide = useCallback(() => {
-    setActiveGuide(null);
     updateUrlParams({ guide: null });
   }, [updateUrlParams]);
 
@@ -132,19 +137,6 @@ export default function AdminDocumentationPage({
     }, 150);
     return () => window.clearTimeout(timer);
   }, [query]);
-
-  useEffect(() => {
-    const guideId = searchParams.get("guide");
-    if (!guideId) {
-      setActiveGuide(null);
-      return;
-    }
-
-    const match = allGuides.find((guide) => guide.id === guideId);
-    if (match) {
-      setActiveGuide(match);
-    }
-  }, [allGuides, searchParams]);
 
   useEffect(() => {
     if (!activeGuide) return;

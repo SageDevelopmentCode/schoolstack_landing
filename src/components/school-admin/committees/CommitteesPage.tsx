@@ -81,10 +81,7 @@ export default function CommitteesPage({
   }, [loadList]);
 
   useEffect(() => {
-    if (!committeeId) {
-      setActiveCommittee(null);
-      return;
-    }
+    if (!committeeId) return;
 
     let cancelled = false;
     (async () => {
@@ -106,6 +103,9 @@ export default function CommitteesPage({
       cancelled = true;
     };
   }, [committeeId, supabase, organizationId]);
+
+  const displayedCommittee =
+    committeeId && activeCommittee?.id === committeeId ? activeCommittee : null;
 
   const setUrl = useCallback(
     (nextCommitteeId: string | null, section?: string) => {
@@ -197,7 +197,7 @@ export default function CommitteesPage({
   }
 
   if (committeeId) {
-    if (loadingCommittee || !activeCommittee) {
+    if (loadingCommittee || !displayedCommittee) {
       return (
         <div className="p-6">
           <SchoolAdminSummaryCardsSkeleton C={C} count={2} />
@@ -208,7 +208,7 @@ export default function CommitteesPage({
     return (
       <>
         <CommitteeWorkspaceShell
-          committee={activeCommittee}
+          committee={displayedCommittee}
           C={C}
           supabase={supabase}
           organizationId={organizationId}
@@ -222,7 +222,7 @@ export default function CommitteesPage({
           {showArchive && (
             <ArchiveCommitteeModal
               C={C}
-              committee={activeCommittee}
+              committee={displayedCommittee}
               onClose={() => setShowArchive(false)}
               onConfirm={handleArchive}
             />

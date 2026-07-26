@@ -237,22 +237,26 @@ export default function TuitionRateCatalogPanel({
 
   useEffect(() => {
     if (!activePlan) return;
-    setPaymentCounts((prev) => {
-      const filtered = filterAllowedPaymentCounts(
-        prev,
-        activePlan.effectiveStart,
-        activePlan.effectiveEnd,
-      );
-      if (filtered.length === prev.length) return prev;
-      setDefaultPaymentCount((current) =>
-        filtered.includes(current) ? current : (filtered[0] ?? DEFAULT_PAYMENT_COUNT),
-      );
-      return filtered;
+    queueMicrotask(() => {
+      setPaymentCounts((prev) => {
+        const filtered = filterAllowedPaymentCounts(
+          prev,
+          activePlan.effectiveStart,
+          activePlan.effectiveEnd,
+        );
+        if (filtered.length === prev.length) return prev;
+        setDefaultPaymentCount((current) =>
+          filtered.includes(current) ? current : (filtered[0] ?? DEFAULT_PAYMENT_COUNT),
+        );
+        return filtered;
+      });
     });
   }, [activePlan?.effectiveStart, activePlan?.effectiveEnd, activePlan?.id]);
 
   useEffect(() => {
-    syncLocalFromSelected(selectedPlan);
+    queueMicrotask(() => {
+      syncLocalFromSelected(selectedPlan);
+    });
   }, [selectedPlan?.id, selectedPlan?.updatedAt]);
 
   const toggleCount = (count: number) => {

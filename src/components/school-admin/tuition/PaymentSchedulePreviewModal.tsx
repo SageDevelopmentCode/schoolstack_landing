@@ -41,7 +41,9 @@ export default function PaymentSchedulePreviewModal({
 
   useEffect(() => {
     if (open) {
-      setActiveCount(defaultCount);
+      queueMicrotask(() => {
+        setActiveCount(defaultCount);
+      });
     }
   }, [open, defaultCount]);
 

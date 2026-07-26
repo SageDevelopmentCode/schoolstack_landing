@@ -60,18 +60,6 @@ function resolveLabel(status: ParentPortalLoginDisplayStatus): string {
   return "Signed in";
 }
 
-function resolveIcon(status: ParentPortalLoginDisplayStatus) {
-  if (!status.accountLinked) {
-    return UserX;
-  }
-
-  if (!status.hasEverSignedIn) {
-    return LogIn;
-  }
-
-  return UserCheck;
-}
-
 export function getParentPortalLoginStatusLabel(
   status: ParentPortalLoginDisplayStatus | null | undefined,
 ): string {
@@ -112,7 +100,6 @@ export default function ParentPortalLoginBadge({
   }
 
   const badgeStyle = resolveBadgeStyle(status, C);
-  const Icon = resolveIcon(status);
   const label = resolveLabel(status);
   const subtitle =
     status.hasEverSignedIn && status.lastSignInAt
@@ -128,7 +115,13 @@ export default function ParentPortalLoginBadge({
   return (
     <div className={className}>
       <span className={badgeClassName} style={badgeStyleProps} title={getParentPortalLoginStatusLabel(status)}>
-        <Icon className="h-3 w-3 shrink-0" />
+        {!status.accountLinked ? (
+          <UserX className="h-3 w-3 shrink-0" />
+        ) : !status.hasEverSignedIn ? (
+          <LogIn className="h-3 w-3 shrink-0" />
+        ) : (
+          <UserCheck className="h-3 w-3 shrink-0" />
+        )}
         <span className="truncate">{label}</span>
       </span>
       {!compact && subtitle ? (
