@@ -2,14 +2,9 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { AuthError } from "@/lib/admissions/application-auth";
 import {
-  addFamilyGuardianAccess,
   FamilyGuardianError,
-  listFamilyGuardians,
+  removeFamilyGuardianAccess,
 } from "@/lib/admissions/family-guardians";
-import {
-  enrichGuardiansWithLoginStatus,
-  fetchAuthLoginStatusByUserIds,
-} from "@/lib/admissions/parent-portal-login-status";
 import { apiError } from "@/lib/api/route-errors";
 import {
   requireSchoolAdminUser,
@@ -18,18 +13,14 @@ import {
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
-const ROUTE = "/api/admissions/families/[familyId]/guardians";
+const ROUTE = "/api/admissions/families/[familyId]/guardians/[guardianId]";
 
 type RouteContext = {
-  params: Promise<{ familyId: string }>;
+  params: Promise<{ familyId: string; guardianId: string }>;
 };
 
-type CreateGuardianBody = {
+type RemoveGuardianBody = {
   organizationId?: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  relationship?: string;
 };
 
 async function resolveFamilyOrganizationId(
@@ -46,61 +37,15 @@ async function resolveFamilyOrganizationId(
   return data?.organization_id ? String(data.organization_id) : null;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const { familyId } = await context.params;
+  const { familyId, guardianId } = await context.params;
 
   try {
-    const admin = createAdminClient();
-    const organizationId = await resolveFamilyOrganizationId(admin, familyId);
-
-    if (!organizationId) {
-      return apiError(ROUTE, {
-        status: 404,
-        error: "Family not found.",
-        code: "not_found",
-      });
-    }
-
-    await requireSchoolAdminUser(supabase, organizationId);
-
-    const guardians = await listFamilyGuardians(admin, familyId);
-    const userIds = guardians
-      .map((guardian) => guardian.userId)
-      .filter((userId): userId is string => userId != null);
-    const loginByUserId = await fetchAuthLoginStatusByUserIds(admin, userIds);
-
-    return NextResponse.json({
-      guardians: enrichGuardiansWithLoginStatus(guardians, loginByUserId),
-    });
-  } catch (error) {
-    if (error instanceof SchoolAdminAuthError) {
-      return apiError(ROUTE, {
-        status: error.status,
-        error: error.message,
-        code: error.code,
-      });
-    }
-
-    return apiError(ROUTE, {
-      status: 500,
-      error: "Failed to load family guardians.",
-      code: "internal_error",
-      cause: error,
-    });
-  }
-}
-
-export async function POST(request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { familyId } = await context.params;
-
-  try {
-    let body: CreateGuardianBody;
+    let body: RemoveGuardianBody;
     try {
-      body = (await request.json()) as CreateGuardianBody;
+      body = (await request.json()) as RemoveGuardianBody;
     } catch {
       return apiError(ROUTE, {
         request,
@@ -135,29 +80,13 @@ export async function POST(request: Request, context: RouteContext) {
 
     await requireSchoolAdminUser(supabase, organizationId);
 
-    const email = body.email?.trim();
-    const firstName = body.firstName?.trim();
-    const lastName = body.lastName?.trim();
-
-    if (!email || !firstName || !lastName) {
-      return apiError(ROUTE, {
-        request,
-        status: 400,
-        error: "email, firstName, and lastName are required.",
-        code: "missing_fields",
-      });
-    }
-
-    const guardian = await addFamilyGuardianAccess(admin, {
+    await removeFamilyGuardianAccess(admin, {
       organizationId,
       familyId,
-      email,
-      firstName,
-      lastName,
-      relationship: body.relationship,
+      guardianId,
     });
 
-    return NextResponse.json({ guardian });
+    return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof SchoolAdminAuthError || error instanceof AuthError) {
       return apiError(ROUTE, {
@@ -185,7 +114,7 @@ export async function POST(request: Request, context: RouteContext) {
       error:
         error instanceof Error
           ? error.message
-          : "Failed to add parent access.",
+          : "Failed to remove parent access.",
       code: "internal_error",
       cause: error,
     });

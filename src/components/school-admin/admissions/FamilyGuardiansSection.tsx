@@ -2,13 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, UserCheck, X } from "lucide-react";
+import { Loader2, Plus, Trash2, X } from "lucide-react";
+import GuardianRoleBadge from "@/components/admissions/GuardianRoleBadge";
+import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
+import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import DetailPanelSection from "./DetailPanelSection";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { ApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import { extractParent2FromApplication } from "@/lib/admissions/parent2-fields";
 import type { FamilyGuardianRecord } from "@/lib/admissions/family-guardians";
+import {
+  getGuardianRoleLabel,
+} from "@/lib/admissions/guardian-role-label";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { SITE_URL } from "@/lib/site";
 
@@ -18,6 +24,7 @@ type FamilyGuardiansSectionProps = {
   familyId: string | null;
   schoolSlug: string;
   detail: ApplicationDetail | null;
+  primaryGuardianId?: string | null;
 };
 
 type AddGuardianModalProps = {
@@ -234,11 +241,14 @@ export default function FamilyGuardiansSection({
   familyId,
   schoolSlug,
   detail,
+  primaryGuardianId = null,
 }: FamilyGuardiansSectionProps) {
   const [guardians, setGuardians] = useState<FamilyGuardianRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<FamilyGuardianRecord | null>(null);
+  const [removingGuardianId, setRemovingGuardianId] = useState<string | null>(null);
 
   const parent2Defaults = detail
     ? extractParent2FromApplication(detail.schema, detail.responses)
@@ -275,6 +285,37 @@ export default function FamilyGuardiansSection({
       void loadGuardians();
     });
   }, [loadGuardians]);
+
+  const handleRemoveAccess = async () => {
+    if (!familyId || !removeTarget) return;
+
+    setRemovingGuardianId(removeTarget.id);
+
+    try {
+      const response = await fetch(
+        `/api/admissions/families/${familyId}/guardians/${removeTarget.id}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ organizationId }),
+        },
+      );
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body.error ?? "Failed to remove parent access.");
+      }
+
+      adminToast.success("Parent access removed.");
+      setRemoveTarget(null);
+      await loadGuardians();
+    } catch (err) {
+      const message = formatActionError(err, "Failed to remove parent access.");
+      adminToast.error(message);
+    } finally {
+      setRemovingGuardianId(null);
+    }
+  };
 
   if (!familyId) {
     return (
@@ -318,11 +359,17 @@ export default function FamilyGuardiansSection({
           </p>
         ) : (
           <ul className="space-y-2">
-            {guardians.map((guardian) => {
+            {guardians.map((guardian, guardianIndex) => {
               const displayName =
                 [guardian.firstName, guardian.lastName].filter(Boolean).join(" ") ||
                 guardian.email ||
                 "Guardian";
+              const roleLabel = getGuardianRoleLabel({
+                guardianId: guardian.id,
+                primaryGuardianId,
+                guardianIndex,
+                totalGuardians: guardians.length,
+              });
 
               return (
                 <li
@@ -331,37 +378,44 @@ export default function FamilyGuardiansSection({
                   style={{ borderColor: C.border, backgroundColor: C.elevated }}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>
-                      {displayName}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>
+                        {displayName}
+                      </p>
+                      {roleLabel ? <GuardianRoleBadge C={C} role={roleLabel} /> : null}
+                    </div>
                     {guardian.email ? (
                       <p className="truncate text-xs" style={{ color: C.textTertiary }}>
                         {guardian.email}
                       </p>
                     ) : null}
                   </div>
-                  {guardian.isLinked ? (
-                    <span
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                      style={{
-                        backgroundColor: C.successBg,
-                        color: C.success,
+                  <div className="flex shrink-0 items-center gap-2">
+                    <ParentPortalLoginBadge
+                      C={C}
+                      status={{
+                        accountLinked: guardian.isLinked,
+                        hasEverSignedIn: guardian.hasEverSignedIn ?? false,
+                        lastSignInAt: guardian.lastSignInAt ?? null,
                       }}
-                    >
-                      <UserCheck className="h-3 w-3" />
-                      Active
-                    </span>
-                  ) : (
-                    <span
-                      className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                      style={{
-                        backgroundColor: C.warningBg,
-                        color: C.warning,
-                      }}
-                    >
-                      Pending
-                    </span>
-                  )}
+                    />
+                    {roleLabel === "added" ? (
+                      <button
+                        type="button"
+                        onClick={() => setRemoveTarget(guardian)}
+                        disabled={removingGuardianId === guardian.id}
+                        aria-label="Remove access"
+                        className="rounded p-1 opacity-80 transition-opacity hover:opacity-100 disabled:opacity-60"
+                        style={{ color: C.error }}
+                      >
+                        {removingGuardianId === guardian.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    ) : null}
+                  </div>
                 </li>
               );
             })}
@@ -380,6 +434,26 @@ export default function FamilyGuardiansSection({
         initialEmail={parent2Defaults?.email ?? ""}
         onClose={() => setAddOpen(false)}
         onAdded={() => void loadGuardians()}
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={removeTarget != null}
+        title="Remove parent access?"
+        description={
+          removeTarget
+            ? `${[removeTarget.firstName, removeTarget.lastName].filter(Boolean).join(" ") || removeTarget.email || "This parent"} will no longer be able to sign in to this family's portal.`
+            : ""
+        }
+        confirmLabel="Remove access"
+        variant="destructive"
+        loading={removingGuardianId != null}
+        onConfirm={() => void handleRemoveAccess()}
+        onClose={() => {
+          if (!removingGuardianId) {
+            setRemoveTarget(null);
+          }
+        }}
       />
     </>
   );

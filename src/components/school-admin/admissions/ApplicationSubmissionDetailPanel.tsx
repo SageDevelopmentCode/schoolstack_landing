@@ -261,6 +261,7 @@ export default function ApplicationSubmissionDetailPanel({
             familyId={familyId}
             schoolSlug={schoolSlug}
             detail={detail}
+            primaryGuardianId={submission.primaryGuardianId}
           />
         </DetailPanelSectionGroup>
       );

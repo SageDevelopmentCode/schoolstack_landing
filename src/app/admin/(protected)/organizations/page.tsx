@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
+import OrganizationParentPortalPanel from "@/components/admin/OrganizationParentPortalPanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 import type { OrganizationSettingsRow } from "@/lib/organization-settings/types";
@@ -354,6 +355,8 @@ export default function AdminOrganizationsPage() {
               organizationId={selected.id}
               organizationSlug={selected.slug}
             />
+
+            <OrganizationParentPortalPanel organizationId={selected.id} />
 
             <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
               <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide ">

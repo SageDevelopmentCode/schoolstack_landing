@@ -9,6 +9,8 @@ export type FamilyGuardianRecord = {
   userId: string | null;
   relationship: string | null;
   isLinked: boolean;
+  hasEverSignedIn?: boolean;
+  lastSignInAt?: string | null;
 };
 
 export class FamilyGuardianError extends Error {
@@ -65,6 +67,166 @@ export type AddFamilyGuardianInput = {
   lastName: string;
   relationship?: string;
 };
+
+export type RemoveFamilyGuardianInput = {
+  organizationId: string;
+  familyId: string;
+  guardianId: string;
+};
+
+export async function removeFamilyGuardianAccess(
+  admin: SupabaseClient,
+  input: RemoveFamilyGuardianInput,
+): Promise<void> {
+  const { organizationId, familyId, guardianId } = input;
+
+  const { data: guardian, error: guardianError } = await admin
+    .from("guardians")
+    .select("id, family_id, organization_id, user_id")
+    .eq("id", guardianId)
+    .maybeSingle();
+
+  if (guardianError) {
+    throw new FamilyGuardianError(
+      guardianError.message,
+      "guardian_lookup_failed",
+      500,
+    );
+  }
+
+  if (
+    !guardian ||
+    String(guardian.family_id) !== familyId ||
+    String(guardian.organization_id) !== organizationId
+  ) {
+    throw new FamilyGuardianError(
+      "Guardian not found.",
+      "guardian_not_found",
+      404,
+    );
+  }
+
+  const { data: familyGuardians, error: familyGuardiansError } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("family_id", familyId);
+
+  if (familyGuardiansError) {
+    throw new FamilyGuardianError(
+      familyGuardiansError.message,
+      "guardian_lookup_failed",
+      500,
+    );
+  }
+
+  if ((familyGuardians ?? []).length <= 1) {
+    throw new FamilyGuardianError(
+      "Cannot remove the only guardian on this family.",
+      "sole_guardian",
+      409,
+    );
+  }
+
+  const { data: primaryApplications, error: primaryApplicationsError } = await admin
+    .from("applications")
+    .select("id")
+    .eq("family_id", familyId)
+    .eq("primary_guardian_id", guardianId)
+    .limit(1);
+
+  if (primaryApplicationsError) {
+    throw new FamilyGuardianError(
+      primaryApplicationsError.message,
+      "application_lookup_failed",
+      500,
+    );
+  }
+
+  if ((primaryApplications ?? []).length > 0) {
+    throw new FamilyGuardianError(
+      "Cannot remove the primary contact for this family.",
+      "primary_guardian",
+      409,
+    );
+  }
+
+  const userId =
+    guardian.user_id != null && String(guardian.user_id).trim() !== ""
+      ? String(guardian.user_id)
+      : null;
+
+  const { error: deleteError } = await admin
+    .from("guardians")
+    .delete()
+    .eq("id", guardianId);
+
+  if (deleteError) {
+    throw new FamilyGuardianError(
+      deleteError.message,
+      "guardian_delete_failed",
+      500,
+    );
+  }
+
+  if (!userId) {
+    return;
+  }
+
+  const { data: remainingGuardians, error: remainingGuardiansError } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (remainingGuardiansError) {
+    throw new FamilyGuardianError(
+      remainingGuardiansError.message,
+      "guardian_lookup_failed",
+      500,
+    );
+  }
+
+  if ((remainingGuardians ?? []).length > 0) {
+    return;
+  }
+
+  const { data: membership, error: membershipLookupError } = await admin
+    .from("organization_memberships")
+    .select("id, role, status")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (membershipLookupError) {
+    throw new FamilyGuardianError(
+      membershipLookupError.message,
+      "membership_lookup_failed",
+      500,
+    );
+  }
+
+  if (!membership || membership.role !== "parent") {
+    return;
+  }
+
+  if (membership.status === "disabled") {
+    return;
+  }
+
+  const { error: membershipUpdateError } = await admin
+    .from("organization_memberships")
+    .update({ status: "disabled" })
+    .eq("id", membership.id);
+
+  if (membershipUpdateError) {
+    throw new FamilyGuardianError(
+      membershipUpdateError.message,
+      "membership_update_failed",
+      500,
+    );
+  }
+}
 
 export async function addFamilyGuardianAccess(
   admin: SupabaseClient,

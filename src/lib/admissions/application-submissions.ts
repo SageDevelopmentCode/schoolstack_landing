@@ -34,6 +34,7 @@ export type AdminApplicationSubmission = {
   formSlug: string | null;
   programName: string | null;
   guardianName: string | null;
+  primaryGuardianId: string | null;
   contactEmail: string | null;
   studentLabel: string | null;
   stepIndex: number;
@@ -173,6 +174,7 @@ const APPLICATION_SUBMISSION_SELECT = `
   status,
   fee_status,
   responses,
+  primary_guardian_id,
   created_at,
   submitted_at,
   updated_at,
@@ -184,6 +186,7 @@ const APPLICATION_SUBMISSION_SELECT = `
     post_submit_config
   ),
   guardians:primary_guardian_id (
+    id,
     first_name,
     last_name,
     email
@@ -229,8 +232,8 @@ function mapApplicationRowToAdminSubmission(
     const { stepIndex, totalSteps } = parseDraftProgress(row.responses, schema);
 
     const guardian = row.guardians as
-      | { first_name?: string; last_name?: string; email?: string | null }
-      | { first_name?: string; last_name?: string; email?: string | null }[]
+      | { id?: string; first_name?: string; last_name?: string; email?: string | null }
+      | { id?: string; first_name?: string; last_name?: string; email?: string | null }[]
       | null;
     const guardianRow = Array.isArray(guardian) ? guardian[0] : guardian;
 
@@ -271,6 +274,13 @@ function mapApplicationRowToAdminSubmission(
       ? summarizePostSubmitSteps(postSubmitSteps)
       : null;
 
+    const primaryGuardianId =
+      row.primary_guardian_id != null && String(row.primary_guardian_id).trim() !== ""
+        ? String(row.primary_guardian_id)
+        : guardianRow?.id != null && String(guardianRow.id).trim() !== ""
+          ? String(guardianRow.id)
+          : null;
+
     return {
       id: applicationId,
       status: applicationStatus,
@@ -280,6 +290,7 @@ function mapApplicationRowToAdminSubmission(
       formSlug: typeof form?.public_slug === "string" ? form.public_slug : null,
       programName: programRow?.name ? String(programRow.name) : null,
       guardianName,
+      primaryGuardianId,
       contactEmail:
         guardianRow?.email?.trim() ||
         familyRow?.primary_email?.trim() ||
