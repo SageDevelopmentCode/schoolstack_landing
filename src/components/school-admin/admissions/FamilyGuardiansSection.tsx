@@ -295,7 +295,7 @@ export default function FamilyGuardiansSection({
       <DetailPanelSection
         C={C}
         title="Family portal access"
-        description="Parents and guardians who can sign in to view applications, enrollment, and the parent portal."
+        description="Who can sign in to this family's portal."
         actions={
           <button
             type="button"
