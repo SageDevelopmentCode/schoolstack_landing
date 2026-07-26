@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import AdmissionsAvailabilityModal from "./AdmissionsAvailabilityModal";
 import AdmissionsObservationDayAvailabilityModal from "./AdmissionsObservationDayAvailabilityModal";
 import PostSubmitTemplatePickerModal from "./PostSubmitTemplatePickerModal";
@@ -203,20 +204,19 @@ function PostSubmitActionRow({
                 </label>
                 {isWholeDayPostSubmitAction(action.type) ? (
                   <>
-                    <select
-                      value={resolvedPostSubmitMaxVisitDays(action)}
+                    <SchoolAdminSelect
+                      C={C}
+                      value={String(resolvedPostSubmitMaxVisitDays(action))}
                       disabled={readOnly}
-                      onChange={(e) =>
-                        onUpdate({ maxVisitDays: Number(e.target.value) })
+                      onChange={(value) =>
+                        onUpdate({ maxVisitDays: Number(value) })
                       }
-                      style={inputStyle}
-                    >
-                      {postSubmitMaxVisitDayOptions().map((dayCount) => (
-                        <option key={dayCount} value={dayCount}>
-                          {postSubmitMaxVisitDayOptionLabel(dayCount)}
-                        </option>
-                      ))}
-                    </select>
+                      options={postSubmitMaxVisitDayOptions().map((dayCount) => ({
+                        value: String(dayCount),
+                        label: postSubmitMaxVisitDayOptionLabel(dayCount),
+                      }))}
+                      ariaLabel="Max visit days"
+                    />
                     <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
                       Families can select 1 to {resolvedPostSubmitMaxVisitDays(action)} open
                       school days. Days do not need to be consecutive.
@@ -224,20 +224,19 @@ function PostSubmitActionRow({
                   </>
                 ) : (
                   <>
-                    <select
-                      value={resolvedPostSubmitDurationMinutes(action)}
+                    <SchoolAdminSelect
+                      C={C}
+                      value={String(resolvedPostSubmitDurationMinutes(action))}
                       disabled={readOnly}
-                      onChange={(e) =>
-                        onUpdate({ durationMinutes: Number(e.target.value) })
+                      onChange={(value) =>
+                        onUpdate({ durationMinutes: Number(value) })
                       }
-                      style={inputStyle}
-                    >
-                      {postSubmitDurationOptions(action.type).map((minutes) => (
-                        <option key={minutes} value={minutes}>
-                          {postSubmitDurationOptionLabel(minutes)}
-                        </option>
-                      ))}
-                    </select>
+                      options={postSubmitDurationOptions(action.type).map((minutes) => ({
+                        value: String(minutes),
+                        label: postSubmitDurationOptionLabel(minutes),
+                      }))}
+                      ariaLabel="Visit duration"
+                    />
                     <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
                       Families will book a consecutive block of this length from your open
                       availability.

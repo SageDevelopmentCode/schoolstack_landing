@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { CalendarGrid } from "@/components/scheduler/CalendarGrid";
+import { useHydrated } from "@/hooks/useHydrated";
 import {
   formatSelectedDate,
   MONTH_NAMES,
@@ -23,6 +25,16 @@ type ApplicationDatePickerProps = {
   placeholder?: string;
   error?: string | null;
 };
+
+type PopupPosition = {
+  left: number;
+  width: number;
+  top?: number;
+  bottom?: number;
+};
+
+const CALENDAR_HEIGHT = 340;
+const POPUP_GAP = 4;
 
 function parseIsoDate(iso: string): { year: number; month: number; day: number } | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
@@ -52,6 +64,27 @@ function isDateInRange(iso: string, minDate?: string, maxDate?: string): boolean
   return true;
 }
 
+function computeOpensUpward(rect: DOMRect): boolean {
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  return spaceBelow < CALENDAR_HEIGHT && spaceAbove > spaceBelow;
+}
+
+function computePopupPosition(rect: DOMRect, opensUpward: boolean): PopupPosition {
+  if (opensUpward) {
+    return {
+      left: rect.left,
+      width: rect.width,
+      bottom: window.innerHeight - rect.top + POPUP_GAP,
+    };
+  }
+  return {
+    left: rect.left,
+    width: rect.width,
+    top: rect.bottom + POPUP_GAP,
+  };
+}
+
 export default function ApplicationDatePicker({
   id,
   value,
@@ -64,8 +97,10 @@ export default function ApplicationDatePicker({
   error = null,
 }: ApplicationDatePickerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
-  const [opensUpward, setOpensUpward] = useState(false);
+  const [popupPosition, setPopupPosition] = useState<PopupPosition | null>(null);
 
   const parsed = parseIsoDate(value);
   const initialView = parsed ?? todayMonthYear();
@@ -98,13 +133,24 @@ export default function ApplicationDatePicker({
 
   const focusRing = { "--tw-ring-color": `${C.accent}40` } as CSSProperties;
 
+  const updatePopupPosition = useCallback(() => {
+    if (!rootRef.current) return;
+    const rect = rootRef.current.getBoundingClientRect();
+    const nextOpensUpward = computeOpensUpward(rect);
+    setPopupPosition(computePopupPosition(rect, nextOpensUpward));
+  }, []);
+
   useEffect(() => {
     if (!open) return;
 
+    updatePopupPosition();
+
     const onDocMouseDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || popupRef.current?.contains(target)) {
+        return;
       }
+      setOpen(false);
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -113,13 +159,21 @@ export default function ApplicationDatePicker({
       }
     };
 
+    const onReposition = () => {
+      updatePopupPosition();
+    };
+
     document.addEventListener("mousedown", onDocMouseDown);
     document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
     return () => {
       document.removeEventListener("mousedown", onDocMouseDown);
       document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
     };
-  }, [open]);
+  }, [open, updatePopupPosition]);
 
   const openPicker = () => {
     if (disabled) return;
@@ -128,10 +182,8 @@ export default function ApplicationDatePicker({
     setViewMonth(nextView.month);
     if (rootRef.current) {
       const rect = rootRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      const calendarHeight = 340;
-      setOpensUpward(spaceBelow < calendarHeight && spaceAbove > spaceBelow);
+      const nextOpensUpward = computeOpensUpward(rect);
+      setPopupPosition(computePopupPosition(rect, nextOpensUpward));
     }
     setOpen(true);
   };
@@ -165,6 +217,116 @@ export default function ApplicationDatePicker({
     backgroundColor: "#FFFFFF",
   } as const;
 
+  const calendarPopup =
+    open && popupPosition ? (
+      <div
+        ref={popupRef}
+        role="dialog"
+        aria-label="Choose a date"
+        className="fixed z-[200] rounded-md border p-3 shadow-lg"
+        style={{
+          left: popupPosition.left,
+          width: popupPosition.width,
+          top: popupPosition.top,
+          bottom: popupPosition.bottom,
+          borderColor: C.border,
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <div className="mb-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={prevMonth}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors"
+            style={{ color: C.textSecondary }}
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          <div className="flex min-w-0 flex-1 gap-2">
+            <select
+              aria-label="Month"
+              value={viewMonth}
+              onChange={(event) => setViewMonth(Number(event.target.value))}
+              className="min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm outline-none focus:ring-2"
+              style={{ ...selectStyle, ...focusRing }}
+            >
+              {MONTH_NAMES.map((name, index) => (
+                <option key={name} value={index}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Year"
+              value={viewYear}
+              onChange={(event) => setViewYear(Number(event.target.value))}
+              className="w-24 shrink-0 rounded-md border px-2 py-1.5 text-sm outline-none focus:ring-2"
+              style={{ ...selectStyle, ...focusRing }}
+            >
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={nextMonth}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors"
+            style={{ color: C.textSecondary }}
+            aria-label="Next month"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <CalendarGrid
+          year={viewYear}
+          month={viewMonth}
+          selected={value || null}
+          onSelect={handleSelect}
+          availableDates={new Set()}
+          minDate={minDate}
+          maxDate={maxDate}
+          editable
+          colors={calendarColors}
+          largeCells
+        />
+
+        <div
+          className="mt-3 flex items-center justify-between border-t pt-3"
+          style={{ borderColor: C.border }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+            }}
+            className="text-sm font-medium transition-colors"
+            style={{ color: C.textSecondary }}
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            disabled={!todaySelectable}
+            onClick={() => handleSelect(today)}
+            className="text-sm font-medium transition-colors disabled:cursor-not-allowed"
+            style={{
+              color: todaySelectable ? C.accent : C.textTertiary,
+            }}
+          >
+            Today
+          </button>
+        </div>
+      </div>
+    ) : null;
+
   return (
     <div ref={rootRef} className="relative">
       <button
@@ -187,108 +349,9 @@ export default function ApplicationDatePicker({
         />
       </button>
 
-      {open ? (
-        <div
-          role="dialog"
-          aria-label="Choose a date"
-          className={`absolute left-0 right-0 z-50 rounded-md border p-3 shadow-lg ${
-            opensUpward ? "bottom-full mb-1" : "top-full mt-1"
-          }`}
-          style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-        >
-          <div className="mb-3 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={prevMonth}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors"
-              style={{ color: C.textSecondary }}
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-
-            <div className="flex min-w-0 flex-1 gap-2">
-              <select
-                aria-label="Month"
-                value={viewMonth}
-                onChange={(event) => setViewMonth(Number(event.target.value))}
-                className="min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm outline-none focus:ring-2"
-                style={{ ...selectStyle, ...focusRing }}
-              >
-                {MONTH_NAMES.map((name, index) => (
-                  <option key={name} value={index}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Year"
-                value={viewYear}
-                onChange={(event) => setViewYear(Number(event.target.value))}
-                className="w-24 shrink-0 rounded-md border px-2 py-1.5 text-sm outline-none focus:ring-2"
-                style={{ ...selectStyle, ...focusRing }}
-              >
-                {yearOptions.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              type="button"
-              onClick={nextMonth}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors"
-              style={{ color: C.textSecondary }}
-              aria-label="Next month"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <CalendarGrid
-            year={viewYear}
-            month={viewMonth}
-            selected={value || null}
-            onSelect={handleSelect}
-            availableDates={new Set()}
-            minDate={minDate}
-            maxDate={maxDate}
-            editable
-            colors={calendarColors}
-            largeCells
-          />
-
-          <div
-            className="mt-3 flex items-center justify-between border-t pt-3"
-            style={{ borderColor: C.border }}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                onChange("");
-                setOpen(false);
-              }}
-              className="text-sm font-medium transition-colors"
-              style={{ color: C.textSecondary }}
-            >
-              Clear
-            </button>
-            <button
-              type="button"
-              disabled={!todaySelectable}
-              onClick={() => handleSelect(today)}
-              className="text-sm font-medium transition-colors disabled:cursor-not-allowed"
-              style={{
-                color: todaySelectable ? C.accent : C.textTertiary,
-              }}
-            >
-              Today
-            </button>
-          </div>
-        </div>
-      ) : null}
+      {hydrated && calendarPopup
+        ? createPortal(calendarPopup, document.body)
+        : null}
       {error ? (
         <p className="mt-1.5 text-xs" style={{ color: C.error }}>
           {error}

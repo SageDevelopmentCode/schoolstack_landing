@@ -66,3 +66,20 @@ Roll out branch protection gradually: run informational checks first, then requi
 **Auth tests fail:** Delete `e2e/.auth/` and re-run — `globalSetup` recreates sessions.
 
 **Playwright browser missing:** `npm run test:e2e:install`
+
+## Tuition billing cron (staging smoke)
+
+After deploying tuition automation to staging:
+
+1. Set `CRON_SECRET` and mail env vars (`ZOHO_*` or your SMTP provider).
+2. Insert or identify a test charge due exactly **3 days** from today for a family with `primary_email`.
+3. Call the cron route manually:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  "$NEXT_PUBLIC_SITE_URL/api/cron/tuition-billing"
+```
+
+4. Confirm the family receives a due reminder email and, if configured, the Discord tuition billing summary webhook fires.
+
+Local unit coverage for reminder date windows and cron orchestration lives in `src/lib/tuition/reminders.test.ts` and `src/lib/tuition/billing-cron.test.ts`.

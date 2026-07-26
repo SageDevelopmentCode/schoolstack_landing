@@ -7,6 +7,7 @@ import DetailPanelSection from "@/components/school-admin/admissions/DetailPanel
 import { getApplicationDecisionActions } from "@/lib/admissions/application-status-transitions";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 type AcceptedEnrollmentSectionProps = {
   C: AdminThemeTokens;
@@ -67,8 +68,11 @@ export default function AcceptedEnrollmentSection({
       }
 
       onStatusChanged(String(body.status));
+      adminToast.success("Application status updated");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status.");
+      const message = formatActionError(err, "Failed to update status.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setPendingStatus(null);
     }
@@ -95,10 +99,11 @@ export default function AcceptedEnrollmentSection({
 
       setConfirmMarkEnrolledOpen(false);
       onStatusChanged("enrolled");
+      adminToast.success("Application marked as enrolled");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to mark application as enrolled.",
-      );
+      const message = formatActionError(err, "Failed to mark application as enrolled.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setMarkingEnrolled(false);
     }

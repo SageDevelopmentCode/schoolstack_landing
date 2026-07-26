@@ -11,7 +11,9 @@ import {
   X,
 } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast } from "@/lib/school-admin/admin-toast";
 
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -232,12 +234,16 @@ export default function AdminSupportRequestModal({
           // ignore JSON parse errors
         }
         setSubmitError(message);
+        adminToast.error(message);
         return;
       }
 
       setSubmitted(true);
+      adminToast.success("Support request submitted");
     } catch {
-      setSubmitError("Failed to submit your request. Please try again.");
+      const message = "Failed to submit your request. Please try again.";
+      setSubmitError(message);
+      adminToast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -373,21 +379,18 @@ export default function AdminSupportRequestModal({
                     <label htmlFor="support-topic" style={labelStyle(C)}>
                       Topic
                     </label>
-                    <select
+                    <SchoolAdminSelect
                       id="support-topic"
+                      C={C}
                       value={topic}
                       disabled={submitting}
-                      onChange={(event) =>
-                        setTopic(event.target.value as TopicValue)
-                      }
-                      style={style}
-                    >
-                      {TOPIC_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => setTopic(value as TopicValue)}
+                      options={TOPIC_OPTIONS.map((option) => ({
+                        value: option.value,
+                        label: option.label,
+                      }))}
+                      ariaLabel="Support topic"
+                    />
                   </div>
 
                   <div>

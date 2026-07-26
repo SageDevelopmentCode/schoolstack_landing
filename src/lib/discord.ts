@@ -106,6 +106,71 @@ async function sendAdmissionsDiscordEmbed(
   await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
 }
 
+async function sendTuitionBillingDiscordEmbed(
+  embed: DiscordEmbed,
+  options?: { content?: string },
+) {
+  const webhookUrl = process.env.DISCORD_TUITION_BILLING_WEBHOOKS_URL?.trim();
+  if (!webhookUrl) {
+    console.warn(
+      "DISCORD_TUITION_BILLING_WEBHOOKS_URL is not set; skipping Discord notification.",
+    );
+    return;
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
+}
+
+export async function notifyTuitionBillingCronSummary(payload: {
+  organizations: number;
+  overdueCount: number;
+  remindersSent: number;
+  rulesEvaluated: number;
+  autopayProcessed: number;
+  autopayFailed: number;
+}) {
+  const fields: DiscordEmbedField[] = [
+    {
+      name: "Organizations",
+      value: String(payload.organizations),
+      inline: true,
+    },
+    {
+      name: "Overdue marked",
+      value: String(payload.overdueCount),
+      inline: true,
+    },
+    {
+      name: "Reminders sent",
+      value: String(payload.remindersSent),
+      inline: true,
+    },
+    {
+      name: "Rules evaluated",
+      value: String(payload.rulesEvaluated),
+      inline: true,
+    },
+    {
+      name: "Autopay charged",
+      value: String(payload.autopayProcessed),
+      inline: true,
+    },
+    {
+      name: "Autopay failed",
+      value: String(payload.autopayFailed),
+      inline: true,
+    },
+  ];
+
+  await sendTuitionBillingDiscordEmbed(
+    {
+      title: "Tuition billing cron · daily summary",
+      fields,
+    },
+    payload.autopayFailed > 0 ? { content: "@everyone" } : undefined,
+  );
+}
+
 export async function notifyWebsiteApiError(payload: {
   route: string;
   method: string;

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Check,
   ChevronDown,
   CircleHelp,
   Copy,
@@ -25,10 +24,8 @@ type ApplicationFormEditorToolbarProps = {
   isPublished: boolean;
   publishedPublicUrl: string | null;
   saving: boolean;
-  savedPulse: boolean;
   isApplyDirty: boolean;
   isApplyFormSelected: boolean;
-  copiedLink: boolean;
   publishing: boolean;
   creating: boolean;
   onSave: () => void;
@@ -65,10 +62,8 @@ export default function ApplicationFormEditorToolbar({
   isPublished,
   publishedPublicUrl,
   saving,
-  savedPulse,
   isApplyDirty,
   isApplyFormSelected,
-  copiedLink,
   publishing,
   creating,
   onSave,
@@ -134,12 +129,8 @@ export default function ApplicationFormEditorToolbar({
             style={{ color: C.textPrimary }}
           >
             <span className="flex items-center gap-2 font-semibold">
-              {copiedLink ? (
-                <Check className="h-3.5 w-3.5 shrink-0" style={{ color: C.success }} />
-              ) : (
-                <Link2 className="h-3.5 w-3.5 shrink-0" />
-              )}
-              {copiedLink ? "Copied" : "Copy apply link"}
+              <Link2 className="h-3.5 w-3.5 shrink-0" />
+              Copy apply link
             </span>
             {!canCopyLink ? (
               <span className="text-[10px]" style={{ color: C.textTertiary }}>
@@ -231,18 +222,14 @@ export default function ApplicationFormEditorToolbar({
               onClick={onSave}
               disabled={saving || !isApplyDirty}
               className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-              style={
-                savedPulse
-                  ? getAdminButtonStyle(C, "success")
-                  : getAdminButtonStyle(C, "primary")
-              }
+              style={getAdminButtonStyle(C, "primary")}
             >
               {saving ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              {savedPulse ? "Saved" : isPublished ? "Save" : "Save draft"}
+              {isPublished ? "Save" : "Save draft"}
             </button>
 
             {isPublished ? (

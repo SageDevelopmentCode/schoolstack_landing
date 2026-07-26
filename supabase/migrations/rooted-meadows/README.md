@@ -45,14 +45,20 @@ Run after `add_product_organization_progress_log.sql`. Independent of the form s
 | `add_organization_progress_log_2026_07_12.sql` | July 12 — Phase 1 complete; admissions polish, payments, and parent security |
 | `add_organization_progress_log_2026_07_14.sql` | July 14 — Phase 2 started; imported real applications and answer review |
 | `add_organization_progress_log_2026_07_15.sql` | July 15 — shadow day scheduling and application submission alerts |
+| `add_organization_progress_log_2026_07_22.sql` | July 22 — Phase 3 started; tuition setup wizard, family billing, and parent payments |
 
 ## Enrollment checklist seeds
 
 Run after `add_product_enrollment_checklist_templates.sql` and `add_product_document_templates.sql`. The demo org (`rooted-meadows-demo`) must have the `School Year 2026–27` program (see `seed_rooted_meadows_program_and_link_form.sql`).
 
+| File | Purpose |
+|------|---------|
+| `seed_rooted_meadows_tuition_rates.sql` | Tuition rate plan ($7,200/yr, 10×$720), supply/activities fees, sibling discount rule; target org `rooted-meadows-demo` |
+
 | File | Step | Notes |
 |------|------|-------|
 | `seed_rooted_meadows_enrollment_agreement_variants.sql` | Enrollment Agreement (variant group) | Standard + Conditional Support agreements; idempotent |
+| `seed_rooted_meadows_idaho_parent_choice_tax_credit_step.sql` | Idaho Parent Choice Tax Credit | Form step for upfront tax-credit intent; target org `rooted-meadows`; idempotent |
 
 To sync into the demo sandbox, run this seed against `rooted-meadows-school` first, then re-run `migrations_manual/clone_rooted_meadows_demo.sql`.
 

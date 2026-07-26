@@ -13,6 +13,7 @@ import { AdminDetailEmpty } from "@/components/admin/ui/AdminDetailEmpty";
 import { AdminStatusBadge } from "@/components/admin/ui/AdminStatusBadge";
 import { AdminEmptyState } from "@/components/admin/ui/AdminEmptyState";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
+import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import {
   DEMO_REQUEST_STATUS,
   type DemoRequestStatus,
@@ -165,7 +166,7 @@ export default function DemoRequestsPage() {
               title={selected.name}
               subtitle={selected.school_name}
               actions={
-                <select
+                <AdminSelect
                   value={selected.status}
                   onChange={(e) =>
                     handleStatusChange(
@@ -174,11 +175,12 @@ export default function DemoRequestsPage() {
                     )
                   }
                   className="text-sm border border-admin-border rounded-admin-md px-2.5 py-1.5 bg-admin-surface text-admin-text focus:outline-none focus:ring-2 focus:ring-admin-accent/30"
+                  aria-label="Demo request status"
                 >
                   <option value="scheduled">Scheduled</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
-                </select>
+                </AdminSelect>
               }
             />
 

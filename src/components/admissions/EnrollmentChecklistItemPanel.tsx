@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FileText, Loader2 } from "lucide-react";
 import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
@@ -105,6 +105,16 @@ const sectionVariants = {
 };
 
 const sectionTransition = { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] as const };
+
+const FORM_DRAFT_SAVE_DEBOUNCE_MS = 800;
+
+function serializeChecklistFormPayload(
+  formSchema: NonNullable<EnrollmentChecklistItem["formSchema"]>,
+  values: Record<string, string>,
+  entries: ChecklistFormEntry[],
+): string {
+  return JSON.stringify(buildChecklistFormPayload(formSchema, values, entries));
+}
 
 function DocumentSignInlinePanel({
   C,
@@ -488,6 +498,7 @@ function FormItemPanel({
   instanceStatus,
   existingResponses,
   onComplete,
+  onPartialProgress,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
@@ -496,6 +507,7 @@ function FormItemPanel({
   instanceStatus?: string;
   existingResponses?: Record<string, unknown>;
   onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
+  onPartialProgress?: (responses: Record<string, unknown>) => Promise<void> | void;
 }) {
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
@@ -514,6 +526,98 @@ function FormItemPanel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fieldsDisabled = isCompleted && !isEditing;
+  const valuesRef = useRef(values);
+  const entriesRef = useRef(entries);
+  const isCompletedRef = useRef(isCompleted);
+  const lastSavedPayloadRef = useRef(
+    formSchema
+      ? serializeChecklistFormPayload(
+          formSchema,
+          initFormStateFromResponses(existingResponses, allowMultiple).values,
+          initFormStateFromResponses(existingResponses, allowMultiple).entries,
+        )
+      : "",
+  );
+  const draftSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    valuesRef.current = values;
+    entriesRef.current = entries;
+    isCompletedRef.current = isCompleted;
+  }, [values, entries, isCompleted]);
+
+  const persistDraft = async (
+    payload: ChecklistFormResponses,
+    options?: { keepalive?: boolean; syncParent?: boolean },
+  ) => {
+    if (!isLive || !instanceId || isCompletedRef.current) return;
+
+    const serialized = JSON.stringify(payload);
+    if (serialized === lastSavedPayloadRef.current) return;
+
+    const response = await fetch(`/api/admissions/enrollment-checklist-items/${instanceId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ draft: true, responses: payload }),
+      keepalive: options?.keepalive,
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error ?? "Failed to save draft.");
+    }
+
+    const data = (await response.json()) as {
+      responses?: Record<string, unknown>;
+    };
+    const nextResponses = data.responses ?? (payload as Record<string, unknown>);
+    lastSavedPayloadRef.current = serialized;
+    if (options?.syncParent !== false) {
+      await onPartialProgress?.(nextResponses);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLive || isCompleted || !formSchema) return;
+
+    const payload = buildChecklistFormPayload(formSchema, values, entries);
+    const serialized = JSON.stringify(payload);
+    if (serialized === lastSavedPayloadRef.current) return;
+
+    if (draftSaveTimeoutRef.current) {
+      clearTimeout(draftSaveTimeoutRef.current);
+    }
+
+    draftSaveTimeoutRef.current = setTimeout(() => {
+      void persistDraft(payload).catch(() => {
+        // Draft saves are best-effort; submit still validates and surfaces errors.
+      });
+    }, FORM_DRAFT_SAVE_DEBOUNCE_MS);
+
+    return () => {
+      if (draftSaveTimeoutRef.current) {
+        clearTimeout(draftSaveTimeoutRef.current);
+      }
+    };
+  }, [entries, formSchema, isCompleted, isLive, values]);
+
+  useEffect(() => {
+    return () => {
+      if (!isLive || !formSchema || !instanceId || isCompletedRef.current) return;
+
+      const payload = buildChecklistFormPayload(
+        formSchema,
+        valuesRef.current,
+        entriesRef.current,
+      );
+      const serialized = JSON.stringify(payload);
+      if (serialized === lastSavedPayloadRef.current) return;
+
+      void persistDraft(payload, { keepalive: true, syncParent: false }).catch(
+        () => undefined,
+      );
+    };
+  }, [formSchema, instanceId, isLive]);
 
   if (!formSchema || fields.length === 0) {
     return (
@@ -563,6 +667,7 @@ function FormItemPanel({
         throw new Error(body.error ?? "Failed to submit form.");
       }
       await onComplete(payload);
+      lastSavedPayloadRef.current = JSON.stringify(payload);
       setIsEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit form.");
@@ -1105,6 +1210,7 @@ export default function EnrollmentChecklistItemPanel({
             instanceStatus={instanceStatus}
             existingResponses={existingResponses}
             onComplete={onComplete}
+            onPartialProgress={onPartialProgress}
           />
         );
       case "file_upload":

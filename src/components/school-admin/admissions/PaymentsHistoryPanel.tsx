@@ -56,6 +56,7 @@ const TYPE_FILTERS: Array<{ value: "" | PaymentType; label: string }> = [
   { value: "", label: "All" },
   { value: "application_fee", label: "Application fee" },
   { value: "enrollment_checklist", label: "Enrollment" },
+  { value: "tuition", label: "Tuition" },
 ];
 
 function formatDateTime(iso: string | null) {

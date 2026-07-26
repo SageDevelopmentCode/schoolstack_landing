@@ -1,7 +1,8 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { ChevronDown, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import {
   APPLICATION_FIELD_TYPES,
   MAX_APPLICATION_FIELD_LABEL_LENGTH,
@@ -107,34 +108,27 @@ export default function ApplicationFormFieldEditor({
         question="How should they answer?"
         helper="Choose the input type that best fits this question."
       >
-        <div className="relative">
-          <select
-            value={field.type}
-            disabled={readOnly}
-            onChange={(e) => {
-              const type = e.target.value as ApplicationFieldType;
-              const patch: Partial<ApplicationField> = { type };
-              if (
-                (type === "select" || type === "radio") &&
-                (!field.options || field.options.length === 0)
-              ) {
-                patch.options = createDefaultFieldOptions();
-              }
-              onChange(patch);
-            }}
-            style={{ ...style, appearance: "none", paddingRight: 36 }}
-          >
-            {APPLICATION_FIELD_TYPES.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2"
-            style={{ color: C.textQuaternary }}
-          />
-        </div>
+        <SchoolAdminSelect
+          C={C}
+          value={field.type}
+          disabled={readOnly}
+          onChange={(value) => {
+            const type = value as ApplicationFieldType;
+            const patch: Partial<ApplicationField> = { type };
+            if (
+              (type === "select" || type === "radio") &&
+              (!field.options || field.options.length === 0)
+            ) {
+              patch.options = createDefaultFieldOptions();
+            }
+            onChange(patch);
+          }}
+          options={APPLICATION_FIELD_TYPES.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+          }))}
+          ariaLabel="Field input type"
+        />
       </BuilderQuestionCard>
 
       <BuilderQuestionCard

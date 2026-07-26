@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
+import SchoolAdminDatePicker, {
+  schoolAdminDateRangeBounds,
+} from "@/components/school-admin/ui/SchoolAdminDatePicker";
 import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
 import {
   createProgram,
@@ -21,6 +25,7 @@ import {
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -145,6 +150,21 @@ export default function ProgramsPage({
     queueMicrotask(() => setEditable(toEditableState(selectedProgram)));
   }, [isNew, selectedProgram?.id, selectedProgram?.updated_at]);
 
+  const isProgramDirty = useMemo(() => {
+    if (!editable) return false;
+    if (isNew) return editable.name.trim().length > 0;
+    if (!selectedProgram) return false;
+    const saved = toEditableState(selectedProgram);
+    return (
+      editable.name !== saved.name ||
+      editable.type !== saved.type ||
+      editable.status !== saved.status ||
+      editable.startDate !== saved.startDate ||
+      editable.endDate !== saved.endDate ||
+      editable.capacity !== saved.capacity
+    );
+  }, [editable, isNew, selectedProgram]);
+
   const handleCreate = () => {
     setSelectedId(NEW_PROGRAM_ID);
     setEditable(emptyEditableState());
@@ -152,7 +172,7 @@ export default function ProgramsPage({
   };
 
   const handleSave = async () => {
-    if (!editable) return;
+    if (!editable || !isProgramDirty) return;
 
     setSaving(true);
     setError(null);
@@ -196,8 +216,11 @@ export default function ProgramsPage({
             .sort((a, b) => a.name.localeCompare(b.name)),
         );
       }
+      adminToast.success(isNew ? "Program created" : "Program saved");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save program.");
+      const message = formatActionError(err, "Failed to save program.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setSaving(false);
     }
@@ -218,8 +241,11 @@ export default function ProgramsPage({
         return remaining[0]?.id ?? null;
       });
       setDeleteOpen(false);
+      adminToast.success("Program deleted");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete program.");
+      const message = formatActionError(err, "Failed to delete program.");
+      setError(message);
+      adminToast.error(message);
       setDeleteOpen(false);
     } finally {
       setDeleting(false);
@@ -354,8 +380,8 @@ export default function ProgramsPage({
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                disabled={saving || !isProgramDirty}
+                className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ backgroundColor: C.accent }}
               >
                 {saving ? (
@@ -427,44 +453,42 @@ export default function ProgramsPage({
                   <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
                     Type
                   </label>
-                  <select
+                  <SchoolAdminSelect
+                    C={C}
                     value={editable.type}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setEditable((prev) =>
-                        prev ? { ...prev, type: e.target.value } : prev,
+                        prev ? { ...prev, type: value as ProgramType } : prev,
                       )
                     }
-                    style={inputStyle(C)}
-                  >
-                    {PROGRAM_TYPE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={PROGRAM_TYPE_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    ariaLabel="Program type"
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
                     Status
                   </label>
-                  <select
+                  <SchoolAdminSelect
+                    C={C}
                     value={editable.status}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setEditable((prev) =>
                         prev
-                          ? { ...prev, status: e.target.value as ProgramStatus }
+                          ? { ...prev, status: value as ProgramStatus }
                           : prev,
                       )
                     }
-                    style={inputStyle(C)}
-                  >
-                    {PROGRAM_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={PROGRAM_STATUS_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    ariaLabel="Program status"
+                  />
                 </div>
               </div>
 
@@ -473,15 +497,17 @@ export default function ProgramsPage({
                   <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
                     Start date
                   </label>
-                  <input
-                    type="date"
+                  <SchoolAdminDatePicker
+                    id="program-start-date"
+                    C={C}
                     value={editable.startDate}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setEditable((prev) =>
-                        prev ? { ...prev, startDate: e.target.value } : prev,
+                        prev ? { ...prev, startDate: value } : prev,
                       )
                     }
-                    style={inputStyle(C)}
+                    maxDate={editable.endDate || schoolAdminDateRangeBounds().maxDate}
+                    placeholder="Select start date"
                   />
                 </div>
 
@@ -489,15 +515,17 @@ export default function ProgramsPage({
                   <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
                     End date
                   </label>
-                  <input
-                    type="date"
+                  <SchoolAdminDatePicker
+                    id="program-end-date"
+                    C={C}
                     value={editable.endDate}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setEditable((prev) =>
-                        prev ? { ...prev, endDate: e.target.value } : prev,
+                        prev ? { ...prev, endDate: value } : prev,
                       )
                     }
-                    style={inputStyle(C)}
+                    minDate={editable.startDate || schoolAdminDateRangeBounds().minDate}
+                    placeholder="Select end date"
                   />
                 </div>
               </div>

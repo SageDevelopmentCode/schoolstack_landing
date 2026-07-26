@@ -95,6 +95,8 @@ export type ChecklistVariantResolution = {
 
 export type EnrollmentChecklistMetadata = {
   variantResolutions?: Record<string, ChecklistVariantResolution>;
+  /** Template item id the parent last had open in the enrollment checklist UI. */
+  lastActiveTemplateItemId?: string;
 };
 
 export const CHECKLIST_VARIANT_METADATA_KEY = "variant";

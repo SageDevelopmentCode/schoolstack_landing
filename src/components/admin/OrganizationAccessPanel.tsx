@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, UserMinus, UserPlus } from "lucide-react";
 import type { OrganizationMembershipRecord } from "@/lib/admin/organization-memberships";
+import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 
 type OrganizationAccessPanelProps = {
   organizationId: string;
@@ -167,7 +168,7 @@ export default function OrganizationAccessPanel({
         </label>
         <label className="block space-y-1">
           <span className="text-xs text-admin-muted font-secondary">Role</span>
-          <select
+          <AdminSelect
             value={role}
             onChange={(event) =>
               setRole(event.target.value as "admin" | "owner")
@@ -176,7 +177,7 @@ export default function OrganizationAccessPanel({
           >
             <option value="admin">Admin</option>
             <option value="owner">Owner</option>
-          </select>
+          </AdminSelect>
         </label>
         <div className="flex items-end">
           <button

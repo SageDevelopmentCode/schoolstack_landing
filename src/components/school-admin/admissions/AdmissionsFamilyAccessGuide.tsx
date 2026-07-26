@@ -18,6 +18,7 @@ import {
   LogIn,
   Mail,
   Send,
+  UserPlus,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import {
   getAdminButtonStyle,
   type AdminButtonVariant,
 } from "@/lib/organization-settings/admin-button-styles";
+import { adminToast } from "@/lib/school-admin/admin-toast";
 import { SITE_URL } from "@/lib/site";
 
 function toPublicDisplayUrl(path: string): string {
@@ -43,13 +45,15 @@ type ApplyStepId =
   | "open-form"
   | "complete-steps"
   | "fee-acknowledgments"
-  | "after-submit";
+  | "after-submit"
+  | "second-parent";
 
 type ChecklistStepId =
   | "start-enrollment"
   | "family-sign-in"
   | "complete-checklist"
-  | "enrollment-complete";
+  | "enrollment-complete"
+  | "second-parent";
 
 type GuideStepId = ApplyStepId | ChecklistStepId;
 
@@ -140,6 +144,14 @@ function buildApplySteps(
       description:
         "Families sign in to their apply dashboard to complete post-application steps like tours or interviews while you review in Submissions.",
     },
+    {
+      id: "second-parent",
+      icon: UserPlus,
+      title: "Add another parent (optional)",
+      description:
+        "In Submissions, open an application and use Family portal access to add a spouse or second guardian. They sign in at the apply dashboard with the email you add.",
+      pathChip: applyDashboardPath,
+    },
   ];
 }
 
@@ -161,6 +173,14 @@ function buildChecklistSteps(schoolSlug: string): GuideStep[] {
       pathChip: applyDashboardPath,
       description:
         "Families log in to their parent apply dashboard. They receive access after you start enrollment.",
+    },
+    {
+      id: "second-parent",
+      icon: UserPlus,
+      title: "Add another parent (optional)",
+      description:
+        "From Submissions, add a second guardian under Family portal access so both parents can sign in and complete enrollment.",
+      pathChip: applyDashboardPath,
     },
     {
       id: "complete-checklist",
@@ -801,8 +821,9 @@ export function AdmissionsFamilyAccessGuideModal({
       await navigator.clipboard.writeText(absoluteUrl);
       setCopiedPath(path);
       window.setTimeout(() => setCopiedPath(null), 1500);
+      adminToast.success("Link copied");
     } catch {
-      // Clipboard unavailable — no-op
+      adminToast.error("Could not copy link to clipboard.");
     }
   }, []);
 

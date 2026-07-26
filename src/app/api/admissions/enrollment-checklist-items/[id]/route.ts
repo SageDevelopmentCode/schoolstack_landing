@@ -10,6 +10,7 @@ import {
   completeChecklistItem,
   EnrollmentMaterializationError,
   saveAgreementSectionSignature,
+  saveChecklistItemDraft,
 } from "@/lib/admissions/enrollment-checklist-materialization";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -28,6 +29,7 @@ type RouteContext = {
 type CompleteBody = {
   responses?: Record<string, unknown>;
   signerName?: string;
+  draft?: boolean;
   agreementSection?: {
     sectionId: string;
     signerName: string;
@@ -113,6 +115,29 @@ export async function PATCH(request: Request, context: RouteContext) {
         sectionId: body.agreementSection.sectionId,
         signerName: body.agreementSection.signerName,
         actorUserId: user.id,
+        organizationId,
+      });
+
+      return NextResponse.json({
+        success: true,
+        status: result.status,
+        responses: result.responses,
+      });
+    }
+
+    if (body.draft) {
+      if (!body.responses) {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: "Draft saves require responses.",
+          code: "invalid_body",
+        });
+      }
+
+      const result = await saveChecklistItemDraft(admin, {
+        instanceId,
+        responses: body.responses,
         organizationId,
       });
 

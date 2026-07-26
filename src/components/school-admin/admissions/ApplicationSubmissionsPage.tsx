@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { ExternalLink } from "lucide-react";
+import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import ApplicationSubmissionDetailPanel from "./ApplicationSubmissionDetailPanel";
 import {
@@ -22,6 +23,7 @@ import {
   type AdminApplicationSubmission,
 } from "@/lib/admissions/application-submissions";
 import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
+import type { ParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   buildAdminThemeTokens,
@@ -58,6 +60,8 @@ function submissionColumnHeaderBadgeStyle(
       return { backgroundColor: C.successBg, color: C.success };
     case "Fee":
       return { backgroundColor: C.warningBg, color: C.warning };
+    case "Parent sign-in":
+      return { backgroundColor: C.infoBg, color: C.info };
     default:
       return {
         backgroundColor: C.bg,
@@ -117,6 +121,9 @@ export default function ApplicationSubmissionsPage({
   const deepLinkApplicationId = searchParams.get("application");
 
   const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>([]);
+  const [loginStatusByGuardianId, setLoginStatusByGuardianId] = useState<
+    Record<string, ParentPortalLoginStatus>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -130,10 +137,27 @@ export default function ApplicationSubmissionsPage({
     setLoading(true);
     setError(null);
     try {
-      const rows = await listOrgApplicationSubmissions(supabase, organizationId);
+      const [rows, loginResponse] = await Promise.all([
+        listOrgApplicationSubmissions(supabase, organizationId),
+        fetch(`/api/admissions/organizations/${organizationId}/parent-login-status`),
+      ]);
+
       setSubmissions(rows);
+
+      if (loginResponse.ok) {
+        const loginBody = (await loginResponse.json()) as {
+          statuses?: ParentPortalLoginStatus[];
+        };
+        const statusMap = Object.fromEntries(
+          (loginBody.statuses ?? []).map((status) => [status.guardianId, status]),
+        );
+        setLoginStatusByGuardianId(statusMap);
+      } else {
+        setLoginStatusByGuardianId({});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load submissions.");
+      setLoginStatusByGuardianId({});
     } finally {
       setLoading(false);
     }
@@ -286,7 +310,7 @@ export default function ApplicationSubmissionsPage({
           <SchoolAdminTableSkeleton
             C={C}
             rows={8}
-            columns={7}
+            columns={8}
             showFilters={false}
             label="Loading submissions"
           />
@@ -332,6 +356,7 @@ export default function ApplicationSubmissionsPage({
                     ...(showPostSubmitColumn ? ["Post-submit"] : []),
                     "Progress",
                     ...(showFeeColumn ? ["Fee"] : []),
+                    "Parent sign-in",
                     "Updated",
                   ].map((heading, index, headings) => {
                     const isLast = index === headings.length - 1;
@@ -470,6 +495,20 @@ export default function ApplicationSubmissionsPage({
                             : "—"}
                         </td>
                       ) : null}
+                      <td
+                        className="px-3 py-3 sm:px-4"
+                        style={columnDividerStyle(C, false)}
+                      >
+                        <ParentPortalLoginBadge
+                          C={C}
+                          compact
+                          status={
+                            submission.primaryGuardianId
+                              ? loginStatusByGuardianId[submission.primaryGuardianId]
+                              : null
+                          }
+                        />
+                      </td>
                       <td
                         className="px-3 py-3 sm:px-4"
                         style={{ color: C.textSecondary, ...columnDividerStyle(C, true) }}

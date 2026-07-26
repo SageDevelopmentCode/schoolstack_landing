@@ -14,6 +14,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   globalSetup: require.resolve("./e2e/global-setup"),
   use: {
@@ -67,7 +68,7 @@ export default defineConfig({
     },
     {
       name: "api-admin",
-      testMatch: /api\/(status|mark-enrolled)\.spec\.ts/,
+      testMatch: /api\/(status|mark-enrolled)\.spec\.ts|tuition\/.*\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         storageState: AUTH_STATE_PATHS.schoolAdmin,

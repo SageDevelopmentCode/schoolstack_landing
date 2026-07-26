@@ -1,0 +1,81 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import {
+  authorizeTuitionBillingCronRequest,
+  runTuitionBillingCron,
+} from "./billing-cron";
+
+describe("authorizeTuitionBillingCronRequest", () => {
+  it("rejects requests without a bearer token", () => {
+    const previous = process.env.CRON_SECRET;
+    process.env.CRON_SECRET = "test-secret";
+
+    try {
+      assert.equal(
+        authorizeTuitionBillingCronRequest(
+          new Request("http://localhost/api/cron/tuition-billing"),
+        ),
+        false,
+      );
+    } finally {
+      process.env.CRON_SECRET = previous;
+    }
+  });
+
+  it("accepts requests with the configured bearer token", () => {
+    const previous = process.env.CRON_SECRET;
+    process.env.CRON_SECRET = "test-secret";
+
+    try {
+      assert.equal(
+        authorizeTuitionBillingCronRequest(
+          new Request("http://localhost/api/cron/tuition-billing", {
+            headers: { authorization: "Bearer test-secret" },
+          }),
+        ),
+        true,
+      );
+    } finally {
+      process.env.CRON_SECRET = previous;
+    }
+  });
+});
+
+describe("runTuitionBillingCron", () => {
+  it("aggregates per-organization billing cron work", async () => {
+    const calls: string[] = [];
+
+    const summary = await runTuitionBillingCron({} as never, {
+      listLiveOrganizationIds: async () => ["org-1", "org-2"],
+      markOverdueCharges: async (_admin, organizationId) => {
+        calls.push(`overdue:${organizationId}`);
+        return organizationId === "org-1" ? 2 : 0;
+      },
+      sendTuitionDueReminders: async (_admin, organizationId) => {
+        calls.push(`reminders:${organizationId}`);
+        return organizationId === "org-2" ? 3 : 0;
+      },
+      evaluateRulesForOrganization: async (_admin, organizationId) => {
+        calls.push(`rules:${organizationId}`);
+        return 1;
+      },
+      processAutopayForOrganization: async () => ({ processed: 1, failed: 0 }),
+      notifySummary: async () => undefined,
+    });
+
+    assert.deepEqual(calls, [
+      "overdue:org-1",
+      "reminders:org-1",
+      "rules:org-1",
+      "overdue:org-2",
+      "reminders:org-2",
+      "rules:org-2",
+    ]);
+    assert.equal(summary.organizations, 2);
+    assert.equal(summary.overdueCount, 2);
+    assert.equal(summary.remindersSent, 3);
+    assert.equal(summary.rulesEvaluated, 2);
+    assert.equal(summary.autopayProcessed, 2);
+    assert.equal(summary.autopayFailed, 0);
+  });
+});

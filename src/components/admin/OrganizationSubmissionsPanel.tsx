@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Eye, Loader2 } from "lucide-react";
+import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
 import {
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
@@ -11,6 +12,7 @@ import {
   type AdminApplicationSubmission,
 } from "@/lib/admissions/application-submissions";
 import { familyPreviewBasePath } from "@/lib/admissions/family-preview-access";
+import type { ParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
 import { createClient } from "@/utils/supabase/client";
 
 type OrganizationSubmissionsPanelProps = {
@@ -36,14 +38,33 @@ export default function OrganizationSubmissionsPanel({
   const [familyIdByApplicationId, setFamilyIdByApplicationId] = useState<
     Record<string, string | null>
   >({});
+  const [loginStatusByGuardianId, setLoginStatusByGuardianId] = useState<
+    Record<string, ParentPortalLoginStatus>
+  >({});
 
   const loadSubmissions = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const rows = await listOrgApplicationSubmissions(supabase, organizationId);
+      const [rows, loginResponse] = await Promise.all([
+        listOrgApplicationSubmissions(supabase, organizationId),
+        fetch(`/api/admin/organizations/${organizationId}/parent-login-status`),
+      ]);
       setSubmissions(rows);
+
+      if (loginResponse.ok) {
+        const loginBody = (await loginResponse.json()) as {
+          statuses?: ParentPortalLoginStatus[];
+        };
+        setLoginStatusByGuardianId(
+          Object.fromEntries(
+            (loginBody.statuses ?? []).map((status) => [status.guardianId, status]),
+          ),
+        );
+      } else {
+        setLoginStatusByGuardianId({});
+      }
 
       const familyEntries = await Promise.all(
         rows.map(async (submission) => {
@@ -63,6 +84,7 @@ export default function OrganizationSubmissionsPanel({
       );
       setSubmissions([]);
       setFamilyIdByApplicationId({});
+      setLoginStatusByGuardianId({});
     } finally {
       setLoading(false);
     }
@@ -106,6 +128,7 @@ export default function OrganizationSubmissionsPanel({
                 <th className="px-2 py-2 font-semibold">Student</th>
                 <th className="px-2 py-2 font-semibold">Contact</th>
                 <th className="px-2 py-2 font-semibold">Status</th>
+                <th className="px-2 py-2 font-semibold">Parent sign-in</th>
                 <th className="px-2 py-2 font-semibold">Updated</th>
                 <th className="px-2 py-2 font-semibold text-right">Preview</th>
               </tr>
@@ -142,6 +165,16 @@ export default function OrganizationSubmissionsPanel({
                       <span className="text-xs text-admin-muted">
                         {applicationStatusLabel(submission.status)}
                       </span>
+                    </td>
+                    <td className="px-2 py-2.5 align-top">
+                      <ParentPortalLoginBadge
+                        compact
+                        status={
+                          submission.primaryGuardianId
+                            ? loginStatusByGuardianId[submission.primaryGuardianId]
+                            : null
+                        }
+                      />
                     </td>
                     <td className="px-2 py-2.5 align-top text-xs text-admin-muted whitespace-nowrap">
                       {formatUpdatedAt(submission.updatedAt)}

@@ -17,6 +17,7 @@ import { ChevronDown, ChevronRight, GripVertical, Loader2, Plus, Trash2, Upload 
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
+import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { createClient } from "@/utils/supabase/client";
 import {
   addCustomPortalFeature,
@@ -1455,7 +1456,7 @@ function FeatureSettingsRow({
       <div
         className={`flex gap-2 sm:contents ${controlsDimmed ? "opacity-50" : ""}`}
       >
-        <select
+        <AdminSelect
           value={subsection}
           onChange={(e) => onSubsectionChange?.(e.target.value)}
           className={`w-full sm:w-auto ${compactSelectClass}`}
@@ -1466,7 +1467,7 @@ function FeatureSettingsRow({
               {group}
             </option>
           ))}
-        </select>
+        </AdminSelect>
         {icon !== undefined && onIconChange ? (
           <FeatureIconPicker
             value={icon}
@@ -1585,17 +1586,18 @@ function AddCustomFeatureForm({
           <span className="text-xs text-admin-muted font-secondary">
             Subsection
           </span>
-          <select
+          <AdminSelect
             value={form.group}
             onChange={(e) => onGroupChange(e.target.value)}
             className={`w-full ${compactSelectClass}`}
+            aria-label="Subsection"
           >
             {groups.map((group) => (
               <option key={group} value={group}>
                 {group}
               </option>
             ))}
-          </select>
+          </AdminSelect>
         </label>
         <FeatureIconPicker
           value={form.icon}
@@ -1637,7 +1639,7 @@ function FeatureIconPicker({
         <span className="w-7 h-7 rounded-admin-sm border border-admin-border bg-admin-bg flex items-center justify-center shrink-0">
           {createElement(icon, { className: "w-3.5 h-3.5 text-admin-muted" })}
         </span>
-        <select
+        <AdminSelect
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={`flex-1 min-w-0 ${compactSelectClass}`}
@@ -1648,7 +1650,7 @@ function FeatureIconPicker({
               {option.label}
             </option>
           ))}
-        </select>
+        </AdminSelect>
       </div>
     );
   }
@@ -1662,17 +1664,18 @@ function FeatureIconPicker({
         <span className="w-7 h-7 rounded-admin-sm border border-admin-border bg-admin-bg flex items-center justify-center shrink-0">
           {createElement(icon, { className: "w-3.5 h-3.5 text-admin-muted" })}
         </span>
-        <select
+        <AdminSelect
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={`flex-1 ${compactSelectClass}`}
+          aria-label="Icon"
         >
           {FEATURE_ICON_OPTIONS.map((option) => (
             <option key={option.slug} value={option.slug}>
               {option.label}
             </option>
           ))}
-        </select>
+        </AdminSelect>
       </div>
     </label>
   );

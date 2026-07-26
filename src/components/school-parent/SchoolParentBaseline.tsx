@@ -24,10 +24,7 @@ type SchoolParentBaselineProps = {
 };
 
 function isParentHelpPage(pathname: string, slug: string): boolean {
-  return (
-    pathname === `/school/${slug}/parent/portal` ||
-    pathname === `/school/${slug}/parent/children`
-  );
+  return pathname.startsWith(`/school/${slug}/parent/`);
 }
 
 export default function SchoolParentBaseline({

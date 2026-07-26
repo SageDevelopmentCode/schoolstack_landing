@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  BookOpen,
   ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
@@ -29,6 +30,7 @@ import type {
 } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import AdminSupportRequestModal from "@/components/school-admin/AdminSupportRequestModal";
+import AdminToaster from "@/components/school-admin/AdminToaster";
 import AdminPageContentShell from "@/components/school-admin/AdminPageContentShell";
 import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
 
@@ -226,6 +228,9 @@ function Sidebar({
 }) {
   const { logo } = branding;
   const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
+  const documentationPath = `/school/${slug}/admin/documentation`;
+  const documentationActive =
+    pathname === documentationPath || pathname.startsWith(`${documentationPath}/`);
 
   useEffect(() => {
     const next: Record<string, boolean> = {};
@@ -317,6 +322,28 @@ function Sidebar({
             <span className="text-sm font-medium">Need help?</span>
           )}
         </button>
+        <Link
+          href={documentationPath}
+          title="How-to guides"
+          className="mt-1.5 w-full flex items-center transition-colors duration-150"
+          style={{
+            justifyContent: isExpanded ? "flex-start" : "center",
+            gap: isExpanded ? "8px" : 0,
+            padding: "6px 8px",
+            borderRadius: C.r.sm,
+            backgroundColor: documentationActive ? C.accentLight : "transparent",
+            border: documentationActive
+              ? `1px solid ${C.secondaryBtnBorder}`
+              : "1px solid transparent",
+            color: documentationActive ? C.accent : C.textSecondary,
+            textDecoration: "none",
+          }}
+        >
+          <BookOpen className="w-4 h-4 flex-shrink-0" />
+          {isExpanded && (
+            <span className="text-sm font-medium">How-to guides</span>
+          )}
+        </Link>
       </div>
 
       <nav
@@ -472,6 +499,8 @@ export default function SchoolAdminBaseline({
         userEmail={userProfile?.email ?? null}
         currentPath={pathname}
       />
+
+      <AdminToaster C={C} />
 
       <main className="flex-1 overflow-hidden">
         <div className="relative h-full overflow-y-auto">

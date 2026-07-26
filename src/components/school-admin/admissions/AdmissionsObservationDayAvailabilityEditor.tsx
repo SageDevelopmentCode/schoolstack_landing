@@ -13,6 +13,7 @@ import {
 import { formatDateOnlyLabel } from "@/lib/admissions/admissions-availability";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
 
 type AdmissionsObservationDayAvailabilityEditorProps = {
@@ -146,8 +147,11 @@ export default function AdmissionsObservationDayAvailabilityEditor({
         viewMonth,
       );
       onMonthDayCountChangeRef.current?.(count);
+      adminToast.success(isOpen ? "Observation day closed" : "Observation day opened");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update day.");
+      const message = formatActionError(err, "Failed to update day.");
+      setError(message);
+      adminToast.error(message);
     } finally {
       setTogglingDate(null);
     }

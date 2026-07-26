@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { listSchoolDemoOptions } from "@/data/school-demos";
+import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -433,11 +434,12 @@ function CrmPanel({
             Opens the branded product demo for this prospect.
           </p>
           <div className="flex items-center gap-2">
-            <select
+            <AdminSelect
               value={demoSlug}
               onChange={(e) => handleDemoSlugChange(e.target.value)}
               disabled={demoSlugSaving}
               className="flex-1 min-w-0 h-9 px-3 rounded-admin-md border border-admin-border text-sm text-admin-text focus:outline-none focus:border-admin-accent/40 focus:ring-2 focus:ring-admin-accent/10 bg-admin-surface disabled:opacity-60"
+              aria-label="Demo slug"
             >
               <option value="">None</option>
               {SCHOOL_DEMO_OPTIONS.map((opt) => (
@@ -445,7 +447,7 @@ function CrmPanel({
                   {opt.label}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
             <a
               href={demoSlug ? `/demo/${demoSlug}` : undefined}
               target="_blank"
@@ -873,15 +875,16 @@ function AddSchoolSidebar({
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-semibold text-admin-faint uppercase tracking-wider">Priority</label>
-                    <select
-                      value={form.priorityScore}
+                    <AdminSelect
+                      value={String(form.priorityScore)}
                       onChange={(e) => setField("priorityScore", parseInt(e.target.value, 10))}
                       className="h-9 px-3 rounded-admin-md border border-admin-border text-sm text-admin-text focus:outline-none focus:border-admin-accent/40 focus:ring-2 focus:ring-admin-accent/10 bg-admin-surface"
+                      aria-label="Priority"
                     >
                       {[5, 4, 3, 2, 1].map((p) => (
                         <option key={p} value={p}>P{p} · {P_LABEL[p]}</option>
                       ))}
-                    </select>
+                    </AdminSelect>
                   </div>
                   <Field label="Confidence" value={form.confidence} onChange={(v) => setField("confidence", v)} placeholder="High" />
                 </div>

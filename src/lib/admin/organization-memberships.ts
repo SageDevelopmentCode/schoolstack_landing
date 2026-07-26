@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { findUserByEmail } from "@/lib/admin/auth-users";
 
 export type OrganizationMembershipRole =
   | "owner"
@@ -76,42 +77,6 @@ export async function listOrganizationMemberships(
   }
 
   return memberships;
-}
-
-async function findUserByEmail(
-  admin: SupabaseClient,
-  email: string,
-): Promise<{ id: string; email: string | undefined } | null> {
-  const normalizedEmail = email.trim().toLowerCase();
-  let page = 1;
-  const perPage = 1000;
-
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({
-      page,
-      perPage,
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    const user = data.users.find(
-      (candidate) => candidate.email?.toLowerCase() === normalizedEmail,
-    );
-
-    if (user) {
-      return { id: user.id, email: user.email };
-    }
-
-    if (data.users.length < perPage) {
-      break;
-    }
-
-    page += 1;
-  }
-
-  return null;
 }
 
 export async function addOrganizationAdminMembership(
