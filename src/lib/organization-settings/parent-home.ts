@@ -7,8 +7,6 @@ import { getParentPageLabel } from "./parent-nav";
 import { schoolParentPath } from "./parent-routes";
 import type { OrganizationFeatures } from "./types";
 
-export const PARENT_QUICK_ACTION_ENABLED_KEYS = new Set(["children"]);
-
 export type ParentQuickAction = {
   key: string;
   label: string;
@@ -44,7 +42,7 @@ export function buildParentQuickActions(
       label: getParentPageLabel(key, portalNav),
       href: schoolParentPath(slug, key),
       iconSlug,
-      enabled: PARENT_QUICK_ACTION_ENABLED_KEYS.has(key),
+      enabled: true,
     };
   });
 }

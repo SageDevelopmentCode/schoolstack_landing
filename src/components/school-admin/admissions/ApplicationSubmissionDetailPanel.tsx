@@ -16,6 +16,7 @@ import ApplicationDecisionSection from "./ApplicationDecisionSection";
 import AcceptedEnrollmentSection from "./AcceptedEnrollmentSection";
 import EnrollmentStatusCard from "./EnrollmentStatusCard";
 import StartEnrollmentModal from "./StartEnrollmentModal";
+import FamilyGuardiansSection from "./FamilyGuardiansSection";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
@@ -72,6 +73,7 @@ export default function ApplicationSubmissionDetailPanel({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyUnlinked, setHistoryUnlinked] = useState(false);
   const [historyEvents, setHistoryEvents] = useState<FamilyAdmissionTimelineEvent[]>([]);
+  const [familyId, setFamilyId] = useState<string | null>(null);
 
   const navigateToTab = useCallback((tabId: string) => {
     setActiveTab(tabId);
@@ -95,6 +97,12 @@ export default function ApplicationSubmissionDetailPanel({
       }
       setDetail(row);
       setCurrentStatus(row.status);
+      const resolvedFamilyId = await resolveApplicationFamilyId(
+        supabase,
+        organizationId,
+        submission.id,
+      );
+      setFamilyId(resolvedFamilyId);
       await loadChecklistState();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load application.");
@@ -245,6 +253,14 @@ export default function ApplicationSubmissionDetailPanel({
           <ApplicationSubmissionPostSubmitSection
             C={C}
             steps={detail.postSubmitSteps}
+          />
+
+          <FamilyGuardiansSection
+            C={C}
+            organizationId={organizationId}
+            familyId={familyId}
+            schoolSlug={schoolSlug}
+            detail={detail}
           />
         </DetailPanelSectionGroup>
       );
