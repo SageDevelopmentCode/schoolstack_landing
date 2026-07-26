@@ -9,6 +9,7 @@ type TuitionSetupWizardModalProps = {
   organizationId: string;
   branding: OrganizationBranding;
   editRatePlanId: string;
+  initialStepIndex?: number;
   onClose: () => void;
   onComplete: () => void;
 };
@@ -18,6 +19,7 @@ export default function TuitionSetupWizardModal({
   organizationId,
   branding,
   editRatePlanId,
+  initialStepIndex,
   onClose,
   onComplete,
 }: TuitionSetupWizardModalProps) {
@@ -48,6 +50,7 @@ export default function TuitionSetupWizardModal({
               organizationId={organizationId}
               branding={branding}
               editRatePlanId={editRatePlanId}
+              initialStepIndex={initialStepIndex}
               onCancelEdit={onClose}
               onComplete={onComplete}
             />

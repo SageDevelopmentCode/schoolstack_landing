@@ -5,6 +5,7 @@ import {
   pickInitialChildKey,
   pickNextPendingChildKey,
   resolveAnnualTuitionCents,
+  resolveUpcomingDue,
 } from "@/lib/tuition/parent-billing-summary";
 import type { FamilyTuitionSelectionItem } from "@/lib/tuition/enrollment-selection";
 import type { TuitionCharge, TuitionEnrollmentAssignment } from "@/lib/tuition/types";
@@ -129,8 +130,33 @@ describe("resolveAnnualTuitionCents", () => {
   });
 });
 
+describe("resolveUpcomingDue", () => {
+  it("sums charges on the earliest due date and tracks total remaining", () => {
+    const result = resolveUpcomingDue([
+      charge({ amountCents: 360000, dueDate: "2026-08-01" }),
+      charge({
+        id: "charge-2",
+        assignmentId: "assignment-2",
+        amountCents: 72000,
+        dueDate: "2026-08-01",
+      }),
+      charge({
+        id: "charge-3",
+        amountCents: 72000,
+        dueDate: "2026-09-01",
+        installmentNumber: 2,
+      }),
+    ]);
+
+    assert.equal(result.upcomingDueCents, 432000);
+    assert.equal(result.totalRemainingCents, 504000);
+    assert.equal(result.nextCharge?.dueDate, "2026-08-01");
+    assert.equal(result.nextCharge?.amountCents, 432000);
+  });
+});
+
 describe("buildParentBillingFamilySummary", () => {
-  it("rolls up per-child balances and annual tuition", () => {
+  it("rolls up upcoming due on earliest date and total remaining", () => {
     const summary = buildParentBillingFamilySummary({
       assignments: [
         {
@@ -164,11 +190,79 @@ describe("buildParentBillingFamilySummary", () => {
       selectionItems: [],
     });
 
-    assert.equal(summary.balanceDueCents, 80000);
+    assert.equal(summary.balanceDueCents, 50000);
+    assert.equal(summary.totalRemainingCents, 80000);
     assert.equal(summary.children.length, 2);
     assert.equal(summary.children[0]?.balanceDueCents, 50000);
+    assert.equal(summary.children[0]?.totalRemainingCents, 50000);
     assert.equal(summary.children[1]?.balanceDueCents, 30000);
+    assert.equal(summary.children[1]?.totalRemainingCents, 30000);
     assert.equal(summary.nextCharge?.amountCents, 50000);
+  });
+
+  it("sums children on the same due date for family upcoming balance", () => {
+    const summary = buildParentBillingFamilySummary({
+      assignments: [
+        {
+          assignment: assignment({
+            id: "assignment-1",
+            enrollmentId: "enrollment-1",
+            metadata: {},
+          }),
+          enrollmentId: "enrollment-1",
+          studentName: "Julia Cecilia",
+        },
+        {
+          assignment: assignment({
+            id: "assignment-2",
+            enrollmentId: "enrollment-2",
+            metadata: {},
+          }),
+          enrollmentId: "enrollment-2",
+          studentName: "Caleb Cecilia",
+        },
+      ],
+      charges: [
+        charge({
+          assignmentId: "assignment-1",
+          amountCents: 360000,
+          dueDate: "2026-08-01",
+        }),
+        charge({
+          id: "charge-2",
+          assignmentId: "assignment-1",
+          amountCents: 360000,
+          dueDate: "2027-02-01",
+          installmentNumber: 2,
+        }),
+        charge({
+          id: "charge-3",
+          assignmentId: "assignment-2",
+          amountCents: 72000,
+          dueDate: "2026-08-01",
+        }),
+        ...["2026-09-01", "2026-10-01", "2026-11-01", "2026-12-01", "2027-01-01", "2027-02-01", "2027-03-01", "2027-04-01", "2027-05-01"].map(
+          (dueDate, index) =>
+            charge({
+              id: `charge-caleb-${index + 2}`,
+              assignmentId: "assignment-2",
+              amountCents: 72000,
+              dueDate,
+              installmentNumber: index + 2,
+            }),
+        ),
+      ],
+      selectionItems: [],
+    });
+
+    assert.equal(summary.balanceDueCents, 432000);
+    assert.equal(summary.totalRemainingCents, 1440000);
+    assert.equal(summary.children[0]?.balanceDueCents, 360000);
+    assert.equal(summary.children[0]?.totalRemainingCents, 720000);
+    assert.equal(summary.children[1]?.balanceDueCents, 72000);
+    assert.equal(summary.children[1]?.totalRemainingCents, 720000);
+    assert.equal(summary.nextCharge?.dueDate, "2026-08-01");
+    assert.equal(summary.nextCharge?.amountCents, 432000);
   });
 
   it("marks children awaiting schedule and totals estimated annual tuition", () => {

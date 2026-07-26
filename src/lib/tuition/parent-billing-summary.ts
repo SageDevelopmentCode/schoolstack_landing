@@ -8,23 +8,37 @@ import type { TuitionCharge, TuitionEnrollmentAssignment } from "./types";
 
 export type ParentBillingChildStatus = "needs_schedule" | "ready" | "no_assignment";
 
+export type ParentBillingNextCharge = {
+  label: string;
+  dueDate: string;
+  amountCents: number;
+};
+
 export type ParentBillingChildView = {
   childKey: string;
   studentName: string;
   assignmentId: string | null;
   annualTuitionCents: number;
   balanceDueCents: number;
-  nextCharge: { label: string; dueDate: string; amountCents: number } | null;
+  totalRemainingCents: number;
+  nextCharge: ParentBillingNextCharge | null;
   status: ParentBillingChildStatus;
   selectionItem: FamilyTuitionSelectionItem | null;
 };
 
 export type ParentBillingFamilySummary = {
   balanceDueCents: number;
+  totalRemainingCents: number;
   annualTuitionCents: number;
   hasPendingSchedule: boolean;
-  nextCharge: { label: string; dueDate: string; amountCents: number } | null;
+  nextCharge: ParentBillingNextCharge | null;
   children: ParentBillingChildView[];
+};
+
+export type UpcomingDueSummary = {
+  upcomingDueCents: number;
+  totalRemainingCents: number;
+  nextCharge: ParentBillingNextCharge | null;
 };
 
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
@@ -57,6 +71,41 @@ export function resolveAnnualTuitionCents(input: {
   return input.fallbackCents ?? 0;
 }
 
+export function resolveUpcomingDue(charges: TuitionCharge[]): UpcomingDueSummary {
+  const openCharges = charges.filter((charge) =>
+    OPEN_CHARGE_STATUSES.has(charge.status),
+  );
+  const totalRemainingCents = openCharges.reduce(
+    (sum, charge) => sum + charge.amountCents,
+    0,
+  );
+
+  if (openCharges.length === 0) {
+    return { upcomingDueCents: 0, totalRemainingCents: 0, nextCharge: null };
+  }
+
+  const earliestDueDate = [...openCharges].sort((a, b) =>
+    a.dueDate.localeCompare(b.dueDate),
+  )[0]!.dueDate;
+  const chargesOnDate = openCharges.filter(
+    (charge) => charge.dueDate === earliestDueDate,
+  );
+  const upcomingDueCents = chargesOnDate.reduce(
+    (sum, charge) => sum + charge.amountCents,
+    0,
+  );
+
+  return {
+    upcomingDueCents,
+    totalRemainingCents,
+    nextCharge: {
+      label: chargesOnDate[0]!.label,
+      dueDate: earliestDueDate,
+      amountCents: upcomingDueCents,
+    },
+  };
+}
+
 export function buildParentBillingFamilySummary(input: {
   assignments: AssignmentRow[];
   charges: TuitionCharge[];
@@ -81,15 +130,11 @@ export function buildParentBillingFamilySummary(input: {
 
   const children: ParentBillingChildView[] = input.assignments.map((row) => {
     const assignmentCharges = chargesByAssignmentId.get(row.assignment.id) ?? [];
-    const openCharges = assignmentCharges.filter((charge) =>
-      OPEN_CHARGE_STATUSES.has(charge.status),
-    );
+    const upcomingDue = resolveUpcomingDue(assignmentCharges);
     const selectionItem =
       selectionByEnrollmentId.get(row.enrollmentId) ??
       selectionByAssignmentId.get(row.assignment.id) ??
       null;
-    const nextCharge = [...openCharges]
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
 
     const status: ParentBillingChildStatus = selectionItem
       ? "needs_schedule"
@@ -105,40 +150,25 @@ export function buildParentBillingFamilySummary(input: {
         selectionItem,
         tuitionCharges: assignmentCharges,
       }),
-      balanceDueCents: openCharges.reduce((sum, charge) => sum + charge.amountCents, 0),
-      nextCharge: nextCharge
-        ? {
-            label: nextCharge.label,
-            dueDate: nextCharge.dueDate,
-            amountCents: nextCharge.amountCents,
-          }
-        : null,
+      balanceDueCents: upcomingDue.upcomingDueCents,
+      totalRemainingCents: upcomingDue.totalRemainingCents,
+      nextCharge: upcomingDue.nextCharge,
       status,
       selectionItem,
     };
   });
 
-  const openCharges = input.charges.filter((charge) =>
-    OPEN_CHARGE_STATUSES.has(charge.status),
-  );
-  const nextCharge = [...openCharges].sort((a, b) =>
-    a.dueDate.localeCompare(b.dueDate),
-  )[0];
+  const familyUpcomingDue = resolveUpcomingDue(input.charges);
 
   return {
-    balanceDueCents: children.reduce((sum, child) => sum + child.balanceDueCents, 0),
+    balanceDueCents: familyUpcomingDue.upcomingDueCents,
+    totalRemainingCents: familyUpcomingDue.totalRemainingCents,
     annualTuitionCents: children.reduce(
       (sum, child) => sum + child.annualTuitionCents,
       0,
     ),
     hasPendingSchedule: children.some((child) => child.status === "needs_schedule"),
-    nextCharge: nextCharge
-      ? {
-          label: nextCharge.label,
-          dueDate: nextCharge.dueDate,
-          amountCents: nextCharge.amountCents,
-        }
-      : null,
+    nextCharge: familyUpcomingDue.nextCharge,
     children,
   };
 }
@@ -168,13 +198,13 @@ export async function fetchParentBillingFamilySummary(
 
   const rows = assignmentRows.data ?? [];
   if (rows.length === 0) {
+    const upcomingDue = resolveUpcomingDue(input.charges);
     return {
-      balanceDueCents: input.charges
-        .filter((charge) => OPEN_CHARGE_STATUSES.has(charge.status))
-        .reduce((sum, charge) => sum + charge.amountCents, 0),
+      balanceDueCents: upcomingDue.upcomingDueCents,
+      totalRemainingCents: upcomingDue.totalRemainingCents,
       annualTuitionCents: 0,
       hasPendingSchedule: selectionItems.length > 0,
-      nextCharge: null,
+      nextCharge: upcomingDue.nextCharge,
       children: selectionItems.map((item) => ({
         childKey: item.context.assignment.enrollmentId,
         studentName: item.studentName,
@@ -184,6 +214,7 @@ export async function fetchParentBillingFamilySummary(
           tuitionCharges: [],
         }),
         balanceDueCents: 0,
+        totalRemainingCents: 0,
         nextCharge: null,
         status: "needs_schedule" as const,
         selectionItem: item,

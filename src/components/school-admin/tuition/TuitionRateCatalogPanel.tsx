@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Pencil, Save, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
 import {
   AddScheduleCard,
@@ -9,6 +9,11 @@ import {
   ScheduleCardShell,
 } from "@/components/school-admin/tuition/TuitionPaymentScheduleCards";
 import TuitionSetupWizardModal from "@/components/school-admin/tuition/TuitionSetupWizardModal";
+import {
+  TUITION_WIZARD_STEP_FEES,
+  TUITION_WIZARD_STEP_PROGRAM,
+  TUITION_WIZARD_STEP_TIERS,
+} from "@/components/school-admin/tuition/TuitionSetupWizard";
 import {
   annualCentsFromTiers,
   formatCents,
@@ -48,6 +53,11 @@ type TuitionRateCatalogPanelProps = {
   onRefresh: () => void;
   onStartSetup: () => void;
   saving?: boolean;
+};
+
+type WizardLaunch = {
+  planId: string;
+  initialStepIndex: number;
 };
 
 function inputStyle(C: ReturnType<typeof buildAdminThemeTokens>): React.CSSProperties {
@@ -133,11 +143,17 @@ export default function TuitionRateCatalogPanel({
   const [addCardExpanded, setAddCardExpanded] = useState(false);
   const [customPaymentError, setCustomPaymentError] = useState<string | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
-  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+  const [wizardLaunch, setWizardLaunch] = useState<WizardLaunch | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const activePlan = localPlan ?? selectedPlan;
+
+  function openSetupWizard(stepIndex: number) {
+    if (!activePlan) return;
+    setWizardLaunch({ planId: activePlan.id, initialStepIndex: stepIndex });
+  }
+
   const annualAmountCents = activePlan
     ? annualCentsFromTiers(
         activePlan.tiers.length
@@ -387,7 +403,7 @@ export default function TuitionRateCatalogPanel({
             </div>
             <button
               type="button"
-              onClick={() => setEditingPlanId(activePlan.id)}
+              onClick={() => openSetupWizard(TUITION_WIZARD_STEP_PROGRAM)}
               className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-md"
               style={{ backgroundColor: C.accentLight, color: C.accent }}
             >
@@ -418,9 +434,9 @@ export default function TuitionRateCatalogPanel({
             <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
               Tuition rates
             </p>
-            {(activePlan.tiers.length ? activePlan.tiers : []).length ? (
-              <div className="space-y-2">
-                {activePlan.tiers.map((tier) => (
+            <div className="space-y-2">
+              {activePlan.tiers.length ? (
+                activePlan.tiers.map((tier) => (
                   <div
                     key={tier.id}
                     className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
@@ -437,20 +453,58 @@ export default function TuitionRateCatalogPanel({
                         </span>
                       ) : null}
                     </span>
-                    <span style={{ color: C.textSecondary }}>
-                      {formatTierDisplayAmount(tier.amountCents, activePlan.billingBasis)}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span style={{ color: C.textSecondary }}>
+                        {formatTierDisplayAmount(tier.amountCents, activePlan.billingBasis)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => openSetupWizard(TUITION_WIZARD_STEP_TIERS)}
+                        className="p-1.5 rounded-md"
+                        style={{ color: C.textTertiary }}
+                        aria-label={`Edit ${tier.label} tuition rate`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm" style={{ color: C.textTertiary }}>
-                {formatTierDisplayAmount(activePlan.amountCents, activePlan.billingBasis)}
-              </p>
-            )}
-            <p className="text-xs" style={{ color: C.textTertiary }}>
-              Use Edit setup to change tuition rates and tiers.
-            </p>
+                ))
+              ) : (
+                <div
+                  className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
+                  style={{ border: `1px solid ${C.border}`, backgroundColor: C.bg }}
+                >
+                  <span style={{ color: C.textPrimary }}>Standard</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span style={{ color: C.textSecondary }}>
+                      {formatTierDisplayAmount(activePlan.amountCents, activePlan.billingBasis)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openSetupWizard(TUITION_WIZARD_STEP_TIERS)}
+                      className="p-1.5 rounded-md"
+                      style={{ color: C.textTertiary }}
+                      aria-label="Edit Standard tuition rate"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => openSetupWizard(TUITION_WIZARD_STEP_TIERS)}
+                className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm"
+                style={{
+                  border: `1px dashed ${C.borderStrong}`,
+                  color: C.textTertiary,
+                  backgroundColor: C.surface,
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Add tuition rate
+              </button>
+            </div>
           </section>
 
           <section
@@ -591,19 +645,41 @@ export default function TuitionRateCatalogPanel({
             <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
               Fee components
             </p>
-            {activePlan.feeComponents.length ? (
-              <div className="space-y-2">
-                {activePlan.feeComponents.map((fee) => (
-                  <p key={fee.id} className="text-sm" style={{ color: C.textSecondary }}>
+            <div className="space-y-2">
+              {activePlan.feeComponents.map((fee) => (
+                <div
+                  key={fee.id}
+                  className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
+                  style={{ border: `1px solid ${C.border}`, backgroundColor: C.bg }}
+                >
+                  <span style={{ color: C.textSecondary }}>
                     {fee.label}: {formatCents(fee.amountCents)} ({fee.timing})
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm" style={{ color: C.textTertiary }}>
-                No additional fees. Use Edit setup to add fees.
-              </p>
-            )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => openSetupWizard(TUITION_WIZARD_STEP_FEES)}
+                    className="p-1.5 rounded-md shrink-0"
+                    style={{ color: C.textTertiary }}
+                    aria-label={`Edit ${fee.label} fee`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => openSetupWizard(TUITION_WIZARD_STEP_FEES)}
+                className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm"
+                style={{
+                  border: `1px dashed ${C.borderStrong}`,
+                  color: C.textTertiary,
+                  backgroundColor: C.surface,
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Add fee
+              </button>
+            </div>
           </section>
 
           {error ? (
@@ -643,15 +719,16 @@ export default function TuitionRateCatalogPanel({
         />
       ) : null}
 
-      {editingPlanId ? (
+      {wizardLaunch ? (
         <TuitionSetupWizardModal
           open
           organizationId={organizationId}
           branding={branding}
-          editRatePlanId={editingPlanId}
-          onClose={() => setEditingPlanId(null)}
+          editRatePlanId={wizardLaunch.planId}
+          initialStepIndex={wizardLaunch.initialStepIndex}
+          onClose={() => setWizardLaunch(null)}
           onComplete={() => {
-            setEditingPlanId(null);
+            setWizardLaunch(null);
             onRefresh();
           }}
         />

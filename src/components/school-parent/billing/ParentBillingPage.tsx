@@ -172,34 +172,19 @@ function ParentBillingPageContent({
   const hasMultipleChildren = childViews.length > 1;
   const hasPendingSelections = childViews.some((child) => child.selectionItem);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const allChargesAreFuture =
-    charges.length > 0 && charges.every((charge) => charge.dueDate > today);
-
   const nextChargeRecord = familySummary?.nextCharge
-    ? charges.find(
-        (charge) =>
-          charge.label === familySummary.nextCharge?.label &&
-          charge.dueDate === familySummary.nextCharge?.dueDate &&
-          charge.amountCents === familySummary.nextCharge?.amountCents,
-      )
+    ? [...charges]
+        .filter(
+          (charge) =>
+            charge.dueDate === familySummary.nextCharge?.dueDate &&
+            ["scheduled", "sent", "overdue"].includes(charge.status),
+        )
+        .sort((a, b) => a.installmentNumber - b.installmentNumber)[0]
     : null;
 
   const readinessMessage = (() => {
     if (hasPendingSelections) return null;
     if (!readiness) return null;
-    if (charges.length > 0 && readiness.state === "ready" && allChargesAreFuture) {
-      const firstCharge = readiness.firstChargeDue ?? familySummary?.nextCharge;
-      if (!firstCharge) return null;
-      const dueDate = "dueDate" in firstCharge ? firstCharge.dueDate : firstCharge.date;
-      const amountCents = firstCharge.amountCents;
-      return {
-        title: "Your tuition schedule is ready",
-        body: `Your first payment of ${formatCents(amountCents)} is due ${dueDate}.`,
-        href: null as string | null,
-        cta: null as string | null,
-      };
-    }
     if (charges.length > 0) return null;
 
     const childrenLabel =

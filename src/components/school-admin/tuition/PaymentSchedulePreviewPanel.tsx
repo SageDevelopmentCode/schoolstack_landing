@@ -9,16 +9,10 @@ import {
   type PaymentOptionPreview,
 } from "@/lib/tuition/setup-wizard";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { formatBillingDueDate } from "@/lib/tuition/due-date-display";
 
 export function formatDueDateLabel(iso: string): string {
-  const [year, month, day] = iso.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+  return formatBillingDueDate(iso);
 }
 
 export type PaymentSchedulePreviewContentProps = {

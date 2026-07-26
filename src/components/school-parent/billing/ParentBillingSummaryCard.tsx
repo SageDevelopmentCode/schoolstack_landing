@@ -3,6 +3,11 @@
 import { CreditCard, Loader2 } from "lucide-react";
 import { formatCents } from "@/lib/tuition/pricing";
 import type { ParentBillingFamilySummary } from "@/lib/tuition/parent-billing-summary";
+import {
+  formatBillingDueDate,
+  formatDueCountdown,
+  type DueCountdownUrgency,
+} from "@/lib/tuition/due-date-display";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 
@@ -26,6 +31,13 @@ function statusLabel(status: ParentBillingFamilySummary["children"][number]["sta
   return "Not assigned";
 }
 
+function countdownColor(C: AdminThemeTokens, urgency: DueCountdownUrgency): string {
+  if (urgency === "overdue") return C.error;
+  if (urgency === "urgent") return C.warning;
+  if (urgency === "soon") return C.textSecondary;
+  return C.textTertiary;
+}
+
 export default function ParentBillingSummaryCard({
   C,
   summary,
@@ -38,6 +50,9 @@ export default function ParentBillingSummaryCard({
   const showBreakdown = summary.children.length > 1;
   const showEstimatedAnnual =
     summary.hasPendingSchedule && summary.balanceDueCents === 0;
+  const dueCountdown = summary.nextCharge
+    ? formatDueCountdown(summary.nextCharge.dueDate)
+    : null;
 
   return (
     <div
@@ -47,25 +62,36 @@ export default function ParentBillingSummaryCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
-            Balance due
-          </p>
+          {summary.nextCharge ? (
+            <div className="flex flex-col gap-0.5">
+              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                Due {formatBillingDueDate(summary.nextCharge.dueDate)}
+              </p>
+              {dueCountdown ? (
+                <p
+                  className="text-xs"
+                  style={{ color: countdownColor(C, dueCountdown.urgency) }}
+                >
+                  {dueCountdown.label}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
+              Balance due
+            </p>
+          )}
           <p className="text-3xl font-semibold mt-1" style={{ color: C.textPrimary }}>
             {formatCents(summary.balanceDueCents)}
           </p>
-          {summary.nextCharge ? (
+          {summary.totalRemainingCents > summary.balanceDueCents ? (
             <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
-              Next: {summary.nextCharge.label} due {summary.nextCharge.dueDate} (
-              {formatCents(summary.nextCharge.amountCents)})
+              Total remaining: {formatCents(summary.totalRemainingCents)}
             </p>
           ) : null}
           {showEstimatedAnnual ? (
             <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
               Estimated annual tuition: {formatCents(summary.annualTuitionCents)}
-            </p>
-          ) : summary.annualTuitionCents > 0 ? (
-            <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
-              Annual tuition: {formatCents(summary.annualTuitionCents)}
             </p>
           ) : null}
         </div>
@@ -104,12 +130,22 @@ export default function ParentBillingSummaryCard({
                   <p className="font-medium" style={{ color: C.textPrimary }}>
                     {childFirstName(child.studentName)}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-                    Annual {formatCents(child.annualTuitionCents)}
-                    {child.balanceDueCents > 0
-                      ? ` · Due ${formatCents(child.balanceDueCents)}`
-                      : ""}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {child.balanceDueCents > 0 ? (
+                      <span
+                        className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                        style={{
+                          backgroundColor: C.accentLight,
+                          color: C.accent,
+                        }}
+                      >
+                        Due {formatCents(child.balanceDueCents)}
+                      </span>
+                    ) : null}
+                    <span className="text-xs" style={{ color: C.textTertiary }}>
+                      Annual {formatCents(child.annualTuitionCents)}
+                    </span>
+                  </div>
                 </div>
                 {child.status === "needs_schedule" ? (
                   <ParentNeedsScheduleBadge C={C} label="Schedule needed" />

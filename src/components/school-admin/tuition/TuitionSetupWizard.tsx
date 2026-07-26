@@ -48,6 +48,7 @@ type TuitionSetupWizardProps = {
   draftRatePlanId?: string | null;
   onCancelEdit?: () => void;
   layout?: "page" | "modal";
+  initialStepIndex?: number;
 };
 
 const STEPS = [
@@ -57,6 +58,10 @@ const STEPS = [
   { id: "fees", title: "Additional fees", shortLabel: "Fees" },
   { id: "review", title: "Review & activate", shortLabel: "Review" },
 ] as const;
+
+export const TUITION_WIZARD_STEP_PROGRAM = 0;
+export const TUITION_WIZARD_STEP_TIERS = 1;
+export const TUITION_WIZARD_STEP_FEES = 3;
 
 const DEFAULT_TIERS: WizardTierInput[] = [
   { label: "Standard", amount: "", isDefault: true },
@@ -84,6 +89,7 @@ export default function TuitionSetupWizard({
   draftRatePlanId,
   onCancelEdit,
   layout = "page",
+  initialStepIndex,
 }: TuitionSetupWizardProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -92,7 +98,11 @@ export default function TuitionSetupWizard({
   const shouldSaveDraft = !isEditMode;
   const initialPlanId = editRatePlanId ?? draftRatePlanId ?? null;
 
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(() =>
+    initialStepIndex != null
+      ? Math.min(Math.max(initialStepIndex, 0), STEPS.length - 1)
+      : 0,
+  );
   const [maxReachedStep, setMaxReachedStep] = useState(() =>
     isEditMode ? STEPS.length - 1 : 0,
   );
