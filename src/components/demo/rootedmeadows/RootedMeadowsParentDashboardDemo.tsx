@@ -64,8 +64,6 @@ import {
 } from "lucide-react";
 import { ROOTED_MEADOWS_PARENT_LOGO } from "@/data/school-demos/rootedmeadows-parent-demo";
 import {
-  ROOTED_MEADOWS_C1_SECTIONS,
-  ROOTED_MEADOWS_C2_SECTIONS,
   ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS,
 } from "@/data/school-demos/rooted-meadows-enrollment-contracts";
 import {
@@ -1045,8 +1043,8 @@ const DEMO_CONTACTS: Record<ChildId, DemoContact[]> = {
   ],
 };
 
-const C1_SECTIONS = ROOTED_MEADOWS_C1_SECTIONS;
-const C2_SECTIONS = ROOTED_MEADOWS_C2_SECTIONS;
+const C1_SECTIONS = ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS.slice(0, 3);
+const C2_SECTIONS = ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS.slice(3);
 
 const C5_SECTIONS = [
   {
@@ -5335,17 +5333,14 @@ export default function RootedMeadowsParentDashboardDemo({
   const [openModal, setOpenModal] = useState<ModalId>(null);
 
   // Per-child signatures — Emma pre-seeded with contracts 1 & 2 + assumption of risk
+  const standardAgreementDemoSigs = Object.fromEntries(
+    ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS.map((section) => [
+      section.id,
+      "Sarah Whitmore",
+    ]),
+  );
   const [signaturesEmma, setSignaturesEmma] = useState<Record<string, string>>({
-    "1-1": "Sarah Whitmore",
-    "1-2": "Sarah Whitmore",
-    "1-3": "Sarah Whitmore",
-    "1-4": "Sarah Whitmore",
-    "2-1": "Sarah Whitmore",
-    "2-2": "Sarah Whitmore",
-    "2-3": "Sarah Whitmore",
-    "std-2-1": "Sarah Whitmore",
-    "std-2-2": "Sarah Whitmore",
-    "std-2-3": "Sarah Whitmore",
+    ...standardAgreementDemoSigs,
     "3-1": "Sarah Whitmore",
     "3-2": "Sarah Whitmore",
     "5-3": "Sarah Whitmore",
@@ -5356,16 +5351,7 @@ export default function RootedMeadowsParentDashboardDemo({
     {},
   );
   const [signaturesLiam, setSignaturesLiam] = useState<Record<string, string>>({
-    "1-1": "Sarah Whitmore",
-    "1-2": "Sarah Whitmore",
-    "1-3": "Sarah Whitmore",
-    "1-4": "Sarah Whitmore",
-    "2-1": "Sarah Whitmore",
-    "2-2": "Sarah Whitmore",
-    "2-3": "Sarah Whitmore",
-    "std-2-1": "Sarah Whitmore",
-    "std-2-2": "Sarah Whitmore",
-    "std-2-3": "Sarah Whitmore",
+    ...standardAgreementDemoSigs,
     "3-1": "Sarah Whitmore",
     "3-2": "Sarah Whitmore",
     "5-3": "Sarah Whitmore",

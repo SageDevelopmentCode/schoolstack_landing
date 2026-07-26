@@ -25,6 +25,7 @@ import type {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import { hasPaymentBreakdown } from "@/lib/admissions/enrollment-checklist-schema";
 import { parseStoredSignerName } from "@/components/admissions/TypedSignatureField";
+import FormattedDocumentText from "@/components/admissions/FormattedDocumentText";
 import {
   parseAgreementSectionSignatures,
   signaturesBySectionId,
@@ -161,12 +162,7 @@ function DocumentSignInlineReadOnly({
             <h3 className="text-base font-semibold" style={{ color: C.textPrimary }}>
               {section.title}
             </h3>
-            <p
-              className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
-              style={{ color: C.textPrimary }}
-            >
-              {section.body}
-            </p>
+            <FormattedDocumentText C={C} content={section.body} className="mt-3" />
           </section>
         ))}
         <ReadOnlySignature C={C} signerName={legacySignerName} />
@@ -209,12 +205,7 @@ function DocumentSignInlineReadOnly({
                 {isSigned ? "Signed" : "Not signed"}
               </span>
             </div>
-            <p
-              className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
-              style={{ color: C.textPrimary }}
-            >
-              {section.body}
-            </p>
+            <FormattedDocumentText C={C} content={section.body} className="mt-3" />
             {sectionSignature ? (
               <div className="mt-4">
                 <ReadOnlySignature C={C} signerName={sectionSignature.signerName} />
@@ -509,12 +500,10 @@ function AcknowledgmentReadOnly({
 
   return (
     <div className="space-y-4">
-      <p
-        className="whitespace-pre-wrap text-sm leading-relaxed"
-        style={{ color: C.textPrimary }}
-      >
-        {config?.body || "Acknowledgment text will appear here."}
-      </p>
+      <FormattedDocumentText
+        C={C}
+        content={config?.body || "Acknowledgment text will appear here."}
+      />
       {signerName ? (
         <ReadOnlySignature C={C} signerName={signerName} />
       ) : (

@@ -18,6 +18,8 @@ import type {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import FormattedDocumentText from "@/components/admissions/FormattedDocumentText";
+import MarkdownTextareaField from "@/components/school-admin/admissions/MarkdownTextareaField";
 import { createClient } from "@/utils/supabase/client";
 
 type EditorBaseProps = {
@@ -118,17 +120,28 @@ function SectionEditorCard({
           disabled={readOnly}
           style={style}
         />
-        <textarea
-          rows={12}
+        <MarkdownTextareaField
+          C={C}
           value={section.body}
-          onChange={(e) => onUpdate({ body: e.target.value })}
+          onChange={(body) => onUpdate({ body })}
+          rows={12}
           placeholder="Agreement text families will read and sign..."
           disabled={readOnly}
-          style={{ ...style, resize: "vertical" }}
         />
         <p className="text-[10px]" style={{ color: C.textTertiary }}>
-          Families sign this section before moving on.
+          Use the toolbar or type markdown directly (headings, bold, lists, --- dividers). Families sign this section before moving on.
         </p>
+        {section.body.trim() ? (
+          <div
+            className="rounded-md border p-4"
+            style={{ borderColor: C.border, backgroundColor: C.surface }}
+          >
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
+              Preview
+            </p>
+            <FormattedDocumentText C={C} content={section.body} />
+          </div>
+        ) : null}
       </div>
     </Reorder.Item>
   );

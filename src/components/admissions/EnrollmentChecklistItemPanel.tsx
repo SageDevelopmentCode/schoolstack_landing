@@ -11,6 +11,7 @@ import TypedSignatureField, {
   parseStoredSignerName,
 } from "@/components/admissions/TypedSignatureField";
 import RepeatableFormEntries from "@/components/admissions/RepeatableFormEntries";
+import FormattedDocumentText from "@/components/admissions/FormattedDocumentText";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
@@ -38,9 +39,11 @@ import {
 } from "@/lib/admissions/enrollment-checklist-document-storage";
 import {
   getAgreementResumeSectionIndex,
+  mergeAgreementSectionSignature,
   parseAgreementSectionSignatures,
   signaturesBySectionId,
 } from "@/lib/admissions/enrollment-agreement-progress";
+import type { AgreementSectionSignature } from "@/lib/admissions/enrollment-checklist-schema";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import { hasPaymentBreakdown, isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -51,6 +54,7 @@ import { createClient } from "@/utils/supabase/client";
 type EnrollmentChecklistItemPanelProps = {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
+  isPreviewAlternate?: boolean;
   mode: "preview" | "live";
   organizationId?: string;
   checklistId?: string;
@@ -116,6 +120,29 @@ function serializeChecklistFormPayload(
   return JSON.stringify(buildChecklistFormPayload(formSchema, values, entries));
 }
 
+function AlternateAgreementExplainer({
+  C,
+  item,
+}: {
+  C: AdminThemeTokens;
+  item: EnrollmentChecklistItem;
+}) {
+  return (
+    <div
+      className="shrink-0 rounded-lg border border-dashed p-4"
+      style={{ borderColor: C.border }}
+    >
+      <p className="text-sm" style={{ color: C.textSecondary }}>
+        If a student is admissible with a collaborative support plan, staff may select this
+        agreement option instead:
+      </p>
+      <h2 className="mt-3 text-lg font-semibold" style={{ color: C.textPrimary }}>
+        {item.label}
+      </h2>
+    </div>
+  );
+}
+
 function DocumentSignInlinePanel({
   C,
   item,
@@ -140,36 +167,63 @@ function DocumentSignInlinePanel({
     () => parseAgreementSectionSignatures(existingResponses),
     [existingResponses],
   );
+  const [previewSignatures, setPreviewSignatures] = useState<AgreementSectionSignature[]>([]);
+  const [previewCompleted, setPreviewCompleted] = useState(false);
+  const isLive = mode === "live";
+  const isCompleted = instanceStatus === "completed" || (!isLive && previewCompleted);
+  const activeSignatures = isLive ? storedSignatures : previewSignatures;
   const signatureBySectionId = useMemo(
-    () => signaturesBySectionId(storedSignatures),
-    [storedSignatures],
+    () => signaturesBySectionId(activeSignatures),
+    [activeSignatures],
   );
   const [sectionIndex, setSectionIndex] = useState(() =>
     instanceStatus === "completed"
       ? Math.max(sections.length - 1, 0)
-      : getAgreementResumeSectionIndex(sections, storedSignatures),
+      : getAgreementResumeSectionIndex(sections, activeSignatures),
   );
   const [direction, setDirection] = useState(1);
-  const isLive = mode === "live";
-  const isCompleted = instanceStatus === "completed";
   const section = sections[sectionIndex];
   const isLastSection = sectionIndex >= sections.length - 1;
 
   const expectedSignature = isCompleted
-    ? parseStoredSignerName(existingResponses)
-    : (section ? signatureBySectionId.get(section.id)?.signerName ?? "" : "");
+    ? parseStoredSignerName(existingResponses) ||
+        (section ? signatureBySectionId.get(section.id)?.signerName ?? "" : "")
+    : section
+      ? signatureBySectionId.get(section.id)?.signerName ?? ""
+      : "";
   const signatureSourceKey = isCompleted
     ? `completed:${section?.id ?? ""}`
     : `${section?.id ?? ""}:${expectedSignature}`;
-  const [trackedSignatureKey, setTrackedSignatureKey] = useState(signatureSourceKey);
   const [signature, setSignature] = useState(expectedSignature);
 
-  if (signatureSourceKey !== trackedSignatureKey) {
-    setTrackedSignatureKey(signatureSourceKey);
-    setSignature(expectedSignature);
-  }
+  useEffect(() => {
+    queueMicrotask(() => setSignature(expectedSignature));
+  }, [signatureSourceKey, expectedSignature]);
 
   const [submitting, setSubmitting] = useState(false);
+  const signatureRequired = isLive;
+  const canContinue = !signatureRequired || Boolean(signature.trim()) || isCompleted;
+
+  const saveCurrentSectionPreview = () => {
+    if (!section) return;
+
+    const signerName = signature.trim() || "Preview Signer";
+    const nextSignatures = mergeAgreementSectionSignature(
+      previewSignatures,
+      section.id,
+      signerName,
+    );
+    setPreviewSignatures(nextSignatures);
+
+    if (isLastSection) {
+      setPreviewCompleted(true);
+      return;
+    }
+
+    setDirection(1);
+    setSectionIndex((idx) => idx + 1);
+    setSignature("");
+  };
 
   const saveCurrentSection = async () => {
     if (!isLive || !instanceId || !section) return;
@@ -242,12 +296,11 @@ function DocumentSignInlinePanel({
             <h2 className="mt-2 text-lg font-semibold" style={{ color: C.textPrimary }}>
               {section.title}
             </h2>
-            <p
-              className="mt-4 whitespace-pre-wrap text-sm leading-relaxed"
-              style={{ color: C.textPrimary }}
-            >
-              {section.body}
-            </p>
+            <FormattedDocumentText
+              C={C}
+              content={section.body}
+              className="mt-4"
+            />
 
             <div className="mt-6">
               <TypedSignatureField
@@ -255,7 +308,7 @@ function DocumentSignInlinePanel({
                 id={`signature-inline-${item.id}`}
                 value={signature}
                 onChange={setSignature}
-                disabled={!isLive || isCompleted}
+                disabled={isCompleted}
               />
             </div>
 
@@ -299,9 +352,14 @@ function DocumentSignInlinePanel({
         ) : null}
         <button
           type="button"
-          disabled={(isLive && !signature.trim()) || submitting || isCompleted}
+          disabled={!canContinue || submitting}
           onClick={async () => {
-            if (!isLive) return;
+            if (!isLive) {
+              if (!isCompleted) {
+                saveCurrentSectionPreview();
+              }
+              return;
+            }
             if (!isLastSection) {
               await saveCurrentSection();
               return;
@@ -311,7 +369,7 @@ function DocumentSignInlinePanel({
             }
           }}
           className={`ml-auto rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-          style={panelButtonStyle(C, (isLive && !signature.trim()) || submitting || isCompleted)}
+          style={panelButtonStyle(C, !canContinue || submitting)}
         >
           {isCompleted ? (
             "Completed"
@@ -322,7 +380,6 @@ function DocumentSignInlinePanel({
           ) : (
             "Sign & continue"
           )}
-          {!isLive ? " (preview)" : ""}
         </button>
       </div>
     </div>
@@ -1078,12 +1135,10 @@ function AcknowledgmentPanel({
       <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
         {item.label}
       </h2>
-      <p
-        className="whitespace-pre-wrap text-sm leading-relaxed"
-        style={{ color: C.textPrimary }}
-      >
-        {config?.body || "Acknowledgment text will appear here."}
-      </p>
+      <FormattedDocumentText
+        C={C}
+        content={config?.body || "Acknowledgment text will appear here."}
+      />
       {config?.options?.length ? (
         <div className="space-y-2">
           {config.options.map((option) => (
@@ -1147,6 +1202,7 @@ function AcknowledgmentPanel({
 export default function EnrollmentChecklistItemPanel({
   C,
   item,
+  isPreviewAlternate = false,
   mode,
   organizationId,
   checklistId,
@@ -1158,6 +1214,34 @@ export default function EnrollmentChecklistItemPanel({
   onPartialProgress,
 }: EnrollmentChecklistItemPanelProps) {
   const content = useMemo(() => {
+    if (isPreviewAlternate) {
+      if (!item.document || item.document.kind !== "inline_sections") {
+        return (
+          <p className="text-sm" style={{ color: C.textSecondary }}>
+            Agreement content not configured.
+          </p>
+        );
+      }
+
+      return (
+        <div className="flex h-full min-h-0 flex-col gap-4">
+          <AlternateAgreementExplainer C={C} item={item} />
+          <div className="min-h-0 flex-1">
+            <DocumentSignInlinePanel
+              C={C}
+              item={item}
+              mode={mode}
+              instanceId={instanceId}
+              instanceStatus={instanceStatus}
+              existingResponses={existingResponses}
+              onComplete={onComplete}
+              onPartialProgress={onPartialProgress}
+            />
+          </div>
+        </div>
+      );
+    }
+
     if (isPdfAgreementItem(item)) {
       if (!item.document || item.document.kind !== "pdf") {
         return (
@@ -1260,6 +1344,7 @@ export default function EnrollmentChecklistItemPanel({
     instanceId,
     instancePaymentStatus,
     instanceStatus,
+    isPreviewAlternate,
     item,
     mode,
     onComplete,

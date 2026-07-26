@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import EnrollmentChecklistExperience from "@/components/admissions/EnrollmentChecklistExperience";
@@ -19,6 +20,7 @@ type EnrollmentChecklistPreviewProps = {
   enrollmentPath: string;
   title: string;
   items: EnrollmentChecklistItem[];
+  allItems?: EnrollmentChecklistItem[];
   initialItemId?: string;
 };
 
@@ -31,12 +33,17 @@ export default function EnrollmentChecklistPreview({
   enrollmentPath,
   title,
   items,
+  allItems,
   initialItemId,
 }: EnrollmentChecklistPreviewProps) {
   const C = buildAdminThemeTokens(branding);
   const previewPath = publicEnrollmentChecklistPath(slug, enrollmentPath);
 
-  return (
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -87,6 +94,7 @@ export default function EnrollmentChecklistPreview({
                 schoolName={schoolName}
                 title={title}
                 items={items}
+                allItems={allItems}
                 mode="preview"
                 initialItemId={initialItemId}
               />
@@ -94,6 +102,7 @@ export default function EnrollmentChecklistPreview({
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

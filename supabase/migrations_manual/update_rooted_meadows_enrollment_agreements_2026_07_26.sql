@@ -1,87 +1,15 @@
--- Seed step 1 of the Rooted Meadows enrollment checklist: a variant agreement group
--- with Standard Enrollment Agreement (default) and Conditional Support Agreement.
--- Safe to re-run: skips when the variant group already exists.
--- Target org: rooted-meadows-demo
+-- Update Rooted Meadows enrollment agreement sections for production org.
+-- Date: 2026-07-26
+-- Purpose: Align Standard and Conditional Support agreement variants with the 2026/27 Enrollment Contract PDF.
+-- Safe to re-run: updates document_templates.content in place.
+-- Target org: rooted-meadows
+--
+-- Run this in the Supabase SQL Editor. Review the verification SELECT at the bottom before closing.
 
 do $$
 declare
   v_org_id uuid;
-  v_program_id uuid;
-  v_template_id uuid;
-  v_group_id text;
-  v_std_doc_id uuid;
-  v_cond_doc_id uuid;
-  v_std_item_id uuid;
-  v_cond_item_id uuid;
-  v_standard_sections jsonb;
-  v_conditional_sections jsonb;
-begin
-  select o.id into v_org_id
-  from public.organizations o
-  where o.slug = 'rooted-meadows-demo';
-
-  if v_org_id is null then
-    raise notice 'rooted-meadows-demo organization not found — skipping enrollment agreement seed.';
-    return;
-  end if;
-
-  select p.id into v_program_id
-  from public.programs p
-  where p.organization_id = v_org_id
-    and p.name = 'School Year 2026–27'
-  limit 1;
-
-  if v_program_id is null then
-    raise notice 'School Year 2026–27 program not found for rooted-meadows-demo — skipping enrollment agreement seed.';
-    return;
-  end if;
-
-  select t.id into v_template_id
-  from public.enrollment_checklist_templates t
-  where t.organization_id = v_org_id
-    and t.enrollment_path = 'enrollment'
-    and t.status = 'draft'
-  order by t.updated_at desc
-  limit 1;
-
-  if v_template_id is null then
-    insert into public.enrollment_checklist_templates (
-      organization_id,
-      program_id,
-      name,
-      enrollment_path,
-      status
-    )
-    values (
-      v_org_id,
-      v_program_id,
-      'Enrollment checklist',
-      'enrollment',
-      'draft'
-    )
-    returning id into v_template_id;
-
-    raise notice 'Created draft enrollment checklist for rooted-meadows-demo.';
-  end if;
-
-  if exists (
-    select 1
-    from public.enrollment_checklist_template_items i
-    where i.template_id = v_template_id
-      and i.metadata->'variant'->>'variantKey' = 'standard'
-  ) and exists (
-    select 1
-    from public.enrollment_checklist_template_items i
-    where i.template_id = v_template_id
-      and i.metadata->'variant'->>'variantKey' = 'conditional_support'
-  ) then
-    raise notice 'Enrollment agreement variant group already exists — skipping.';
-    return;
-  end if;
-
-  v_group_id := 'vg_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 12);
-
-  v_standard_sections := $sections$[
+  v_standard_sections jsonb := $sections$[
   {
     "id": "std-1",
     "title": "Enrollment Agreement, Definitions, and Tuition",
@@ -108,115 +36,72 @@ begin
     "body": "## General Provisions\n\n1. **Calendar:** RMS does not follow the Jefferson County School Districts calendar.\n\n2. **Data Privacy:** RMS handles student and family information with respect and privacy in compliance with applicable laws to nonprofit private educational organizations.\n\n3. **Incorporated Documents:** The Parent and Student Handbook is incorporated into the terms of this Agreement by reference and all terms and conditions in the Parent and Student Handbook apply to this Agreement. You agree to accept the policies, rules, and regulations of RMS as stated in the Parent and Student Handbook, and elsewhere, and as modified from time to time. RMS will attempt to make changes applicable only to the next Contracted School Year, however, when deemed necessary, changes may be made effective immediately and notice of changes to the Handbook will be communicated in writing electronically.\n\n4. **Non-Discrimination:** RMS admits students without regard to race, color, national origin, sex, or religion. Acceptance is subject to RMS's ability to meet the student's educational needs.\n\n5. **Force Majeure:** RMS will do its best to remain open as long as we are not mandated by a governing body to close, and we have sufficient staffing and funding to effectively operate. In the case of forced or necessitated closure, RMS's duties and obligations under this Agreement shall be suspended immediately without notice during all periods that RMS is closed because of force majeure events including, but not limited to, any fire, act of God, war, governmental action, act of terrorism, epidemic, pandemic or any other event beyond RMS's control. If such an event occurs, RMS's duties and obligations under this Agreement may be immediately postponed/suspended without notice until such time as RMS, in its sole discretion, may safely reopen and resume performance. RMS may also alter its calendar and scheduled vacations, and/or extend the Contracted School Year, in its sole discretion as needed in response to the above stated incident. Sole financial remedy for a force majeure event is future service as determined by the school and not a tuition refund.\n\n6. **Governing Law:** This Agreement is governed by the laws of the State of Idaho.\n\n7. **Severability:** If any provision of this Agreement is held to be invalid or unenforceable, the remaining provisions continue in full force and effect.\n\n8. **Dispute Resolution:** Any disputes arising under this Agreement are first addressed through good-faith mediation before pursuing arbitration or litigation.\n\n9. **Entire Agreement and Amendments:** This contract constitutes the entire agreement between the parties; any amendments must be made in writing and signed by both parties.\n\n10. **Binding Agreement:** This agreement is binding and effective upon You, and Your agents, successors, and assignees. You confirm that You have read this document in full before signing it and understand that it is a binding legal obligation.\n\n---\n\n## Payment Plan\n\n\n### 1 Pay Plan\n\n- August 1 — 100% of tuition\n\n\n### 2 Pay Plan\n\n- August 1 — 50% of tuition\n- February 1 — 50% of tuition\n\n\n### 10 Pay Plan\n\n- August 1 — 10% of tuition\n- September 1 — 10% of tuition\n- October 1 — 10% of tuition\n- November 1 — 10% of tuition\n- December 1 — 10% of tuition\n- January 1 — 10% of tuition\n- February 1 — 10% of tuition\n- March 1 — 10% of tuition\n- April 1 — 10% of tuition\n- May 1 — 10% of tuition\n\n\n### Monthly Payment Plan\n\n- August 1 — 8.33% of tuition\n- September 1 — 8.33% of tuition\n- October 1 — 8.33% of tuition\n- November 1 — 8.33% of tuition\n- December 1 — 8.33% of tuition\n- January 1 — 8.33% of tuition\n- February 1 — 8.33% of tuition\n- March 1 — 8.33% of tuition\n- April 1 — 8.33% of tuition\n- May 1 — 8.33% of tuition\n- June 1 — 8.33% of tuition\n- July 1 — 8.37% of tuition\n\n---\n\n## Sign and Complete Your Contract\n\nThis agreement shall be binding and effective upon the undersigned, their agents, successors, and assignees. The undersigned, (each) being parent(s) or guardian(s) of the child(ren) named above, states that he and/or she has read this document in full before signing it and understands that it is a binding legal obligation.\n\nBy signing below, I/we confirm that I/we have read this Enrollment Agreement in full and understand that it is a binding legal obligation."
   }
 ]$sections$::jsonb;
-
-  v_conditional_sections := $sections$[
+  v_conditional_sections jsonb := $sections$[
   {
     "id": "cond-addendum-1",
     "title": "Addendum: Conditional Enrollment & Support Requirements",
     "body": "Due to possible concerns from the observation or parents noting previous learning needs, this Enrollment Contract is contingent upon the completion of the following requirements. Failure to meet these conditions by 6th week of classes may result in the rescission of admission or a revision of the student's placement.\n\n- **Submission of Professional Evaluations:** The Parent/Guardian agrees to have their child closely observed by their classroom teacher and if determined needed, have a comprehensive neurodevelopmental or psychoeducational evaluation, or a speech-language/literacy assessment, or any other needed evaluation to be able to provide learning and classroom accommodations. The Parent/Guardian will provide Rooted Meadows School with official copies of any of the observations completed.\n\n- **Development of a Personalized Education Plan (PEP):** Continued enrollment is subject to the successful development and implementation of a PEP if determined needed. The Parent/Guardian agrees to participate in a pedagogical consultation with the classroom teacher and school leadership to determine necessary and realistic classroom accommodations.\n\n- **Acknowledgment of Service Limits:** Rooted Meadows School at this time can provide basic specialized support through the Idaho Public School system if desired or the Parent/Guardian acknowledges that if the student's needs need external support they can seek private professional care at the family's expense as a condition of continued attendance.\n\n- **Progress Review:** Our goal is to always ensure that a child is in a setting where they can access their education. If we determine that a child is not making adequate progress after 3 months using the PEP in place then we will work with the teacher and parent to create an amended PEP or terminate the child's enrollment and support the parents as they transition to an academic setting that is better equipped to support the child.\n\nBy signing below, I/we acknowledge that I/we have read and understood the conditions of this admission and agree to provide the required documentation and participation within the specified timeframe."
   }
 ]$sections$::jsonb;
+  v_std_updated int;
+  v_cond_updated int;
+begin
+  select o.id into v_org_id
+  from public.organizations o
+  where o.slug = 'rooted-meadows';
 
-  insert into public.document_templates (
-    organization_id,
-    name,
-    kind,
-    content,
-    status
-  )
-  values (
-    v_org_id,
-    'Standard Enrollment Agreement',
-    'inline_sections',
-    jsonb_build_object('sections', v_standard_sections),
-    'published'
-  )
-  returning id into v_std_doc_id;
+  if v_org_id is null then
+    raise exception 'Organization rooted-meadows not found.';
+  end if;
 
-  insert into public.document_templates (
-    organization_id,
-    name,
-    kind,
-    content,
-    status
-  )
-  values (
-    v_org_id,
-    'Conditional Support Agreement',
-    'inline_sections',
-    jsonb_build_object('sections', v_conditional_sections),
-    'published'
-  )
-  returning id into v_cond_doc_id;
+  update public.document_templates dt
+  set
+    content = jsonb_build_object('sections', v_standard_sections),
+    updated_at = now()
+  from public.enrollment_checklist_template_items i
+  where i.document_template_id = dt.id
+    and i.organization_id = v_org_id
+    and i.metadata->'variant'->>'variantKey' = 'standard'
+    and dt.organization_id = v_org_id;
 
-  v_std_item_id := gen_random_uuid();
-  v_cond_item_id := gen_random_uuid();
+  get diagnostics v_std_updated = row_count;
 
-  insert into public.enrollment_checklist_template_items (
-    id,
-    template_id,
-    organization_id,
-    item_key,
-    sort_order,
-    label,
-    type,
-    required,
-    document_template_id,
-    metadata
-  )
-  values (
-    v_std_item_id,
-    v_template_id,
-    v_org_id,
-    'standard_enrollment_agreement',
-    0,
-    'Standard Enrollment Agreement',
-    'document_sign',
-    true,
-    v_std_doc_id,
-    jsonb_build_object(
-      'variant',
-      jsonb_build_object(
-        'groupId', v_group_id,
-        'groupLabel', 'Enrollment Agreement',
-        'variantKey', 'standard',
-        'isDefault', true
-      )
-    )
-  );
+  update public.document_templates dt
+  set
+    content = jsonb_build_object('sections', v_conditional_sections),
+    updated_at = now()
+  from public.enrollment_checklist_template_items i
+  where i.document_template_id = dt.id
+    and i.organization_id = v_org_id
+    and i.metadata->'variant'->>'variantKey' = 'conditional_support'
+    and dt.organization_id = v_org_id;
 
-  insert into public.enrollment_checklist_template_items (
-    id,
-    template_id,
-    organization_id,
-    item_key,
-    sort_order,
-    label,
-    type,
-    required,
-    document_template_id,
-    metadata
-  )
-  values (
-    v_cond_item_id,
-    v_template_id,
-    v_org_id,
-    'conditional_support_agreement',
-    1,
-    'Conditional Support Agreement',
-    'document_sign',
-    true,
-    v_cond_doc_id,
-    jsonb_build_object(
-      'variant',
-      jsonb_build_object(
-        'groupId', v_group_id,
-        'groupLabel', 'Enrollment Agreement',
-        'variantKey', 'conditional_support',
-        'isDefault', false
-      )
-    )
-  );
+  get diagnostics v_cond_updated = row_count;
 
-  raise notice 'Seeded enrollment agreement variant group (standard + conditional support) for rooted-meadows-demo.';
+  if v_std_updated = 0 then
+    raise warning 'No Standard Enrollment Agreement document_templates row updated for rooted-meadows.';
+  end if;
+
+  if v_cond_updated = 0 then
+    raise warning 'No Conditional Support Agreement document_templates row updated for rooted-meadows.';
+  end if;
+
+  raise notice 'Updated % standard and % conditional agreement template(s) for rooted-meadows.', v_std_updated, v_cond_updated;
 end $$;
+
+-- Verification
+select
+  o.slug as organization_slug,
+  i.metadata->'variant'->>'variantKey' as variant_key,
+  dt.name as document_name,
+  jsonb_array_length(dt.content->'sections') as section_count,
+  (
+    select jsonb_agg(s->>'title' order by ordinality)
+    from jsonb_array_elements(dt.content->'sections') with ordinality as t(s, ordinality)
+  ) as section_titles
+from public.document_templates dt
+join public.enrollment_checklist_template_items i on i.document_template_id = dt.id
+join public.organizations o on o.id = dt.organization_id
+where o.slug = 'rooted-meadows'
+  and i.metadata->'variant'->>'variantKey' in ('standard', 'conditional_support')
+order by variant_key;
