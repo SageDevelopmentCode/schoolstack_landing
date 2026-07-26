@@ -46,6 +46,45 @@ const IMPORTS = {
     storagePath:
       "8adbfe08-b25b-4626-b3ac-23424a1a0a3b/applications/d4e5f6a7-b8c9-4012-e345-6789abcdef01/f3e7b469d1a5/f6a7b8c9-d0e1-4234-a567-89abcdef0123_26-27_Calvert_Arrow_Application.pdf",
   },
+  "edwards-eben": {
+    sqlFile: "supabase/migrations_manual/import_rooted_meadows_submission_edwards_eben.sql",
+    pdfPath: "/Users/juliuscecilia/Downloads/26-27 Edwards, Eben Application.pdf",
+    storagePath:
+      "8adbfe08-b25b-4626-b3ac-23424a1a0a3b/applications/c4d5e6f7-a8b9-4012-c345-6789abcdef01/f3e7b469d1a5/e6f7a8b9-c0d1-4234-e567-89abcdef0123_26-27_Edwards_Eben_Application.pdf",
+  },
+  "caballero-helene-clara": {
+    sqlFile: "supabase/migrations_manual/import_rooted_meadows_submission_caballero_helene_clara.sql",
+    pdfPath: "/Users/juliuscecilia/Downloads/26-27 Caballero, Helene & Clara Application.pdf",
+    storagePath:
+      "8adbfe08-b25b-4626-b3ac-23424a1a0a3b/applications/d4e5f6a7-b8c9-4012-d345-6789abcdef01/f3e7b469d1a5/29c0d1e2-f3a4-4456-c789-abcdef012345_26-27_Caballero_Helene_Clara_Application.pdf",
+  },
+  "patterson-eli": {
+    sqlFile: "supabase/migrations_manual/import_rooted_meadows_submission_patterson_eli.sql",
+    pdfPath: "/Users/juliuscecilia/Downloads/26-27 Patterson, Eli Application.pdf",
+    storagePath:
+      "8adbfe08-b25b-4626-b3ac-23424a1a0a3b/applications/f4a5b6c7-d8e9-4012-f345-6789abcdef02/f3e7b469d1a5/b6c7d8e9-f0a1-4234-b567-89abcdef0124_26-27_Patterson_Eli_Application.pdf",
+  },
+  "sekyere-claire-olivia-georgie": {
+    sqlFile:
+      "supabase/migrations_manual/import_rooted_meadows_submission_sekyere_claire_olivia_georgie.sql",
+    pdfPath: "/Users/juliuscecilia/Downloads/26-27 Sekyere Application.pdf",
+    storagePath:
+      "8adbfe08-b25b-4626-b3ac-23424a1a0a3b/applications/d5e6f7a8-b9c0-4123-d456-789abcdef012/f3e7b469d1a5/5da6e7f8-a9b0-4234-c567-89abcdef0123_26-27_Sekyere_Application.pdf",
+  },
+  "sparhawk-olivia-daniella": {
+    sqlFile:
+      "supabase/migrations_manual/import_rooted_meadows_submission_sparhawk_olivia_daniella.sql",
+    pdfPath: "/Users/juliuscecilia/Downloads/26-27 Sparhawk, Olivia & Daniella Application.pdf",
+    storagePath:
+      "8adbfe08-b25b-4626-b3ac-23424a1a0a3b/applications/e4f5a6b7-c8d9-4012-e345-6789abcdef01/f3e7b469d1a5/39e0f1a2-b3c4-4567-d890-abcdef012347_26-27_Sparhawk_Olivia_Daniella_Application.pdf",
+  },
+  "thompson-nina-maggie": {
+    sqlFile:
+      "supabase/migrations_manual/import_rooted_meadows_submission_thompson_nina_maggie.sql",
+    pdfPath: "/Users/juliuscecilia/Downloads/26-27 Thompson, Nina & Maggie application.pdf",
+    storagePath:
+      "8adbfe08-b25b-4626-b3ac-23424a1a0a3b/applications/f4a5b6c7-d8e9-4012-f456-789abcdef013/f3e7b469d1a5/49f0a1b2-c3d4-4567-e901-bcdef0123489_26-27_Thompson_Nina_Maggie_Application.pdf",
+  },
 };
 
 async function main() {
