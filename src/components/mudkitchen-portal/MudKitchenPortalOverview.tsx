@@ -4,11 +4,16 @@ import PortalSectionLink from "@/components/mudkitchen-portal/ui/PortalSectionLi
 import PortalSectionHeader from "@/components/mudkitchen-portal/ui/PortalSectionHeader";
 import ProgressLogEntryCard from "@/components/mudkitchen-portal/ProgressLogEntryCard";
 import type { OrganizationProgressEntry } from "@/lib/organization-progress";
+import {
+  getDueInvoiceActionLabel,
+  type OrganizationCustomerInvoice,
+} from "@/lib/mudkitchen-portal/customer-invoices";
 
 type MudKitchenPortalOverviewProps = {
   slug: string;
   schoolName: string;
   latestProgressEntry: OrganizationProgressEntry | null;
+  dueInvoices: OrganizationCustomerInvoice[];
 };
 
 const SECTION_LINKS = [
@@ -38,7 +43,15 @@ export default function MudKitchenPortalOverview({
   slug,
   schoolName,
   latestProgressEntry,
+  dueInvoices,
 }: MudKitchenPortalOverviewProps) {
+  const billingDescription =
+    dueInvoices.length === 1
+      ? `Invoice due for ${dueInvoices[0].billing_period_label}. Pay via Stripe and mark as paid.`
+      : dueInvoices.length > 1
+        ? `${dueInvoices.length} invoices due. Review and mark as paid.`
+        : "Subscription and invoicing for your MudKitchen account.";
+
   return (
     <>
       <PortalPageHero
@@ -69,7 +82,15 @@ export default function MudKitchenPortalOverview({
               key={link.key}
               href={link.href(slug)}
               title={link.title}
-              description={link.description}
+              description={
+                link.key === "billing" ? billingDescription : link.description
+              }
+              badgeLabel={
+                link.key === "billing" && dueInvoices.length > 0
+                  ? getDueInvoiceActionLabel(dueInvoices.length)
+                  : undefined
+              }
+              highlighted={link.key === "billing" && dueInvoices.length > 0}
               delay={0.08 + index * 0.06}
             />
           ))}

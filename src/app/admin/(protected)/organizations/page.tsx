@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import OrganizationCustomerBillingPanel from "@/components/admin/OrganizationCustomerBillingPanel";
 import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
@@ -329,6 +330,11 @@ export default function AdminOrganizationsPage() {
                 </label>
               </div>
             </section>
+
+            <OrganizationCustomerBillingPanel
+              organizationId={selected.id}
+              organizationName={selected.name}
+            />
 
             <OrganizationSettingsEditor
               organizationId={selected.id}

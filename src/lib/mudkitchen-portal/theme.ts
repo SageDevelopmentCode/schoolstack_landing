@@ -48,6 +48,7 @@ export function buildPortalTheme(branding: OrganizationBranding): PortalTheme {
 export const MUDKITCHEN_PORTAL_THEME = {
   ...PORTAL_BASE_THEME,
   accent: "#827096",
+  accentBright: "#6E5D7F",
   accentDark: "#5A4D68",
   accentLight: "rgba(130, 112, 150, 0.10)",
   accentSoft: "rgba(130, 112, 150, 0.10)",
@@ -57,5 +58,14 @@ export const MUDKITCHEN_PORTAL_THEME = {
   clayBorder: "rgba(179, 180, 98, 0.30)",
   stepBg: "rgba(130, 112, 150, 0.10)",
 } satisfies PortalTheme;
+
+export const MUDKITCHEN_LOGO_BRAND = {
+  terracotta: "#C2694F",
+  terracottaBright: "#D37D60",
+  terracottaDark: "#A3533D",
+  cream: "#F8F4EA",
+  sage: "#627E47",
+  wood: "#A65D3E",
+} as const;
 
 export { phaseAccentByNumber };

@@ -10,6 +10,8 @@ type PortalSectionLinkProps = {
   title: string;
   description: string;
   delay?: number;
+  badgeLabel?: string;
+  highlighted?: boolean;
 };
 
 export default function PortalSectionLink({
@@ -17,6 +19,8 @@ export default function PortalSectionLink({
   title,
   description,
   delay = 0,
+  badgeLabel,
+  highlighted = false,
 }: PortalSectionLinkProps) {
   const T = usePortalTheme();
 
@@ -27,18 +31,32 @@ export default function PortalSectionLink({
         className="group flex items-center justify-between gap-6 rounded-2xl border px-6 py-5 transition-colors sm:px-7 sm:py-6"
         style={{
           backgroundColor: T.surface,
-          borderColor: T.border,
+          borderColor: highlighted ? T.clayBorder : T.border,
           textDecoration: "none",
           color: "inherit",
         }}
       >
         <div className="min-w-0">
-          <p
-            className="font-heading text-[1.15rem] font-medium leading-snug sm:text-[1.25rem]"
-            style={{ color: T.textPrimary }}
-          >
-            {title}
-          </p>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <p
+              className="font-heading text-[1.15rem] font-medium leading-snug sm:text-[1.25rem]"
+              style={{ color: T.textPrimary }}
+            >
+              {title}
+            </p>
+            {badgeLabel ? (
+              <span
+                className="font-secondary inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                style={{
+                  color: T.clay,
+                  backgroundColor: T.clayBg,
+                  border: `1px solid ${T.clayBorder}`,
+                }}
+              >
+                {badgeLabel}
+              </span>
+            ) : null}
+          </div>
           <p
             className="font-secondary mt-1.5 text-[14px] leading-relaxed sm:text-[15px]"
             style={{ color: T.textSecondary }}

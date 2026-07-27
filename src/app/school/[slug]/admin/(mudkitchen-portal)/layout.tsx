@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import SchoolAdminAccessDenied from "@/components/school-admin/SchoolAdminAccessDenied";
 import MudKitchenPortalShell from "@/components/mudkitchen-portal/MudKitchenPortalShell";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { countDueCustomerInvoices } from "@/lib/mudkitchen-portal/customer-invoices";
 import {
   SchoolAdminAuthError,
   requireSchoolAdminUser,
@@ -69,6 +70,7 @@ export default async function MudKitchenPortalLayout({
       slug={slug}
       schoolName={org.name}
       branding={org.branding}
+      dueInvoiceCount={await countDueCustomerInvoices(supabase, org.id)}
     >
       {children}
     </MudKitchenPortalShell>

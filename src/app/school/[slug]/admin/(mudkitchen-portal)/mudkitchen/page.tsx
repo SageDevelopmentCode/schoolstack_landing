@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import MudKitchenPortalOverview from "@/components/mudkitchen-portal/MudKitchenPortalOverview";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { fetchOrganizationProgressLog } from "@/lib/organization-progress";
+import { fetchDueCustomerInvoices } from "@/lib/mudkitchen-portal/customer-invoices";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -38,12 +39,14 @@ export default async function MudKitchenPortalOverviewPage({ params }: PageProps
   }
 
   const progressEntries = await fetchOrganizationProgressLog(supabase, slug);
+  const dueInvoices = await fetchDueCustomerInvoices(supabase, org.id);
 
   return (
     <MudKitchenPortalOverview
       slug={slug}
       schoolName={org.name}
       latestProgressEntry={progressEntries[0] ?? null}
+      dueInvoices={dueInvoices}
     />
   );
 }

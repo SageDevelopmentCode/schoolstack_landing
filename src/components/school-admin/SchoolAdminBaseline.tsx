@@ -17,6 +17,7 @@ import {
   type AdminNavItem,
 } from "@/lib/organization-settings/admin-nav";
 import { schoolAdminPath, schoolMudKitchenPortalPath } from "@/lib/organization-settings/admin-routes";
+import { MUDKITCHEN_LOGO_BRAND as MK } from "@/lib/mudkitchen-portal/theme";
 import {
   schoolAdminLoginPath,
   type SchoolAdminUserProfile,
@@ -323,38 +324,6 @@ function Sidebar({
             <span className="text-sm font-medium">Need help?</span>
           )}
         </button>
-        <a
-          href={schoolMudKitchenPortalPath(slug)}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="MudKitchen"
-          className="mt-1.5 w-full flex items-center transition-colors duration-150"
-          style={{
-            justifyContent: isExpanded ? "flex-start" : "center",
-            gap: isExpanded ? "8px" : 0,
-            padding: "6px 8px",
-            borderRadius: C.r.sm,
-            border: `1px solid ${C.secondaryBtnBorder}`,
-            backgroundColor: C.accentLight,
-            color: C.accent,
-            textDecoration: "none",
-          }}
-        >
-          <Image
-            src="/images/Logo.png"
-            alt=""
-            width={20}
-            height={20}
-            className="w-5 h-5 flex-shrink-0 object-contain"
-            aria-hidden
-          />
-          {isExpanded && (
-            <>
-              <span className="text-sm font-medium truncate">MudKitchen</span>
-              <ExternalLink className="ml-auto h-3.5 w-3.5 flex-shrink-0 opacity-70" />
-            </>
-          )}
-        </a>
         <Link
           href={documentationPath}
           title="How-to guides"
@@ -431,6 +400,54 @@ function Sidebar({
           padding: isExpanded ? "10px 12px" : "10px 6px",
         }}
       >
+        <a
+          href={schoolMudKitchenPortalPath(slug)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="MudKitchen Account"
+          className="relative mb-2 w-full flex flex-col transition-[filter,transform] duration-150 hover:brightness-110 active:scale-[0.98]"
+          style={{
+            alignItems: isExpanded ? "flex-start" : "center",
+            padding: isExpanded ? "8px" : "8px 6px",
+            borderRadius: C.r.sm,
+            background: `linear-gradient(135deg, ${MK.terracottaDark} 0%, ${MK.terracotta} 45%, ${MK.terracottaBright} 75%, ${MK.wood} 100%)`,
+            border: "none",
+            boxShadow: `0 2px 10px rgba(194, 105, 79, 0.32)`,
+            color: MK.cream,
+            textDecoration: "none",
+          }}
+        >
+          {isExpanded && (
+            <ExternalLink
+              className="absolute right-2 top-2 h-3 w-3 shrink-0 opacity-80"
+              aria-hidden
+            />
+          )}
+          <span
+            className={`flex shrink-0 items-center justify-center rounded-full bg-white p-0 ${
+              isExpanded ? "mb-1 h-8 w-8" : "h-7 w-7"
+            }`}
+          >
+            <Image
+              src="/images/Logo.png"
+              alt=""
+              width={isExpanded ? 24 : 20}
+              height={isExpanded ? 24 : 20}
+              className={`object-contain ${isExpanded ? "h-6 w-6" : "h-5 w-5"}`}
+              aria-hidden
+            />
+          </span>
+          {isExpanded && (
+            <div className="w-full">
+              <span className="block text-xs font-semibold leading-tight">
+                MudKitchen Account
+              </span>
+              <span className="mt-0.5 block text-[10px] leading-snug opacity-85">
+                View your requests, logs, and more
+              </span>
+            </div>
+          )}
+        </a>
         {userProfile ? (
           <SchoolAdminProfileMenu
             C={C}

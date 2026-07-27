@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import MudKitchenBillingPlaceholder from "@/components/mudkitchen-portal/MudKitchenBillingPlaceholder";
+import MudKitchenBillingPage from "@/components/mudkitchen-portal/MudKitchenBillingPage";
+import { fetchOrganizationCustomerInvoices } from "@/lib/mudkitchen-portal/customer-invoices";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -36,5 +37,12 @@ export default async function MudKitchenPortalBillingPage({ params }: PageProps)
     notFound();
   }
 
-  return <MudKitchenBillingPlaceholder />;
+  const invoices = await fetchOrganizationCustomerInvoices(supabase, org.id);
+
+  return (
+    <MudKitchenBillingPage
+      organizationId={org.id}
+      initialInvoices={invoices}
+    />
+  );
 }

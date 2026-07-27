@@ -27,26 +27,18 @@ export default function PortalBrandingLogos({
         align === "center" ? "justify-center" : "justify-start"
       }`}
     >
-      <div className="flex shrink-0 flex-col items-center gap-0.5">
+      <div className="flex shrink-0 items-center">
         <Image
           src="/images/Logo.webp"
           alt="MudKitchen"
-          width={28}
-          height={28}
+          width={40}
+          height={40}
           priority
-          className={`${compact ? "h-6" : "h-7"} w-auto shrink-0 object-contain`}
+          className={`${compact ? "h-8" : "h-9 sm:h-10"} w-auto shrink-0 object-contain`}
         />
-        <span
-          className={`font-secondary text-center font-semibold leading-tight ${
-            compact ? "hidden sm:block text-[10px]" : "text-[10px] sm:text-xs"
-          }`}
-          style={{ color: T.accent }}
-        >
-          MudKitchen
-        </span>
       </div>
       <div
-        className={`w-px shrink-0 self-stretch ${compact ? "h-8" : "h-9 sm:h-10"}`}
+        className={`w-px shrink-0 ${compact ? "h-8" : "h-9 sm:h-10"}`}
         style={{ backgroundColor: T.border }}
         aria-hidden
       />
