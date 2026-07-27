@@ -9,6 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CopyableApplication } from "@/lib/admissions/application-copy";
 import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
+import ApplicationCheckboxInput from "@/components/admissions/ApplicationCheckboxInput";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
@@ -1061,22 +1062,14 @@ function AcknowledgmentsStep({
       </p>
       <div className="mt-5 space-y-4">
         {schema.acknowledgments.map((item) => (
-          <label
+          <ApplicationCheckboxInput
             key={item.id}
-            className="flex items-start gap-3 rounded-md border px-4 py-3"
-            style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
-          >
-            <input
-              type="checkbox"
-              checked={Boolean(acknowledgments[item.id])}
-              onChange={(e) => onAckChange(item.id, e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0"
-              style={{ accentColor: C.accent }}
-            />
-            <span className="text-sm leading-relaxed" style={{ color: C.textPrimary }}>
-              {item.label}
-            </span>
-          </label>
+            id={item.id}
+            checked={Boolean(acknowledgments[item.id])}
+            onChange={(checked) => onAckChange(item.id, checked)}
+            label={item.label}
+            C={C}
+          />
         ))}
       </div>
     </div>

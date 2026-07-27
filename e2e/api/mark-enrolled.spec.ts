@@ -19,6 +19,74 @@ function createAdminClient() {
   });
 }
 
+async function ensurePublishedEnrollmentChecklistWithPayment(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  programId: string,
+) {
+  const { data: existingTemplate } = await admin
+    .from("enrollment_checklist_templates")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("program_id", programId)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (existingTemplate) {
+    return String(existingTemplate.id);
+  }
+
+  const { data: template, error: templateError } = await admin
+    .from("enrollment_checklist_templates")
+    .insert({
+      organization_id: organizationId,
+      program_id: programId,
+      name: "E2E Mark Enrolled Checklist",
+      enrollment_path: "enrollment",
+      status: "published",
+    })
+    .select("id")
+    .single();
+
+  if (templateError) throw templateError;
+
+  const templateId = String(template.id);
+
+  const { error: itemError } = await admin
+    .from("enrollment_checklist_template_items")
+    .insert([
+      {
+        template_id: templateId,
+        organization_id: organizationId,
+        item_key: "e2e_acknowledgment",
+        sort_order: 0,
+        label: "E2E acknowledgment",
+        type: "acknowledgment",
+        required: true,
+        metadata: {},
+      },
+      {
+        template_id: templateId,
+        organization_id: organizationId,
+        item_key: "e2e_supply_fee",
+        sort_order: 1,
+        label: "Supply Fee",
+        type: "payment",
+        required: true,
+        metadata: {
+          payment: {
+            label: "Supply Fee",
+            amountCents: 50000,
+          },
+        },
+      },
+    ]);
+
+  if (itemError) throw itemError;
+
+  return templateId;
+}
+
 test("mark-enrolled POST returns 403 for non-admin user", async ({
   playwright,
   baseURL,
@@ -59,6 +127,21 @@ test("mark-enrolled POST marks an accepted application as enrolled", async ({
   const admin = createAdminClient();
   const applicationId = manifest.applications.enrollTarget;
 
+  const { data: application, error: applicationLookupError } = await admin
+    .from("applications")
+    .select("program_id")
+    .eq("id", applicationId)
+    .single();
+
+  expect(applicationLookupError).toBeNull();
+  expect(application?.program_id).toBeTruthy();
+
+  await ensurePublishedEnrollmentChecklistWithPayment(
+    admin,
+    manifest.organizationId,
+    String(application?.program_id),
+  );
+
   await materializeApplicationStudent(admin, applicationId);
 
   const acceptResponse = await request.patch(
@@ -69,7 +152,7 @@ test("mark-enrolled POST marks an accepted application as enrolled", async ({
 
   const response = await request.post(
     `/api/admissions/applications/${applicationId}/mark-enrolled`,
-    { data: { note: "E2E bypass" } },
+    { data: { note: "E2E bypass", completeChecklist: true } },
   );
 
   expect(response.status()).toBe(200);
@@ -77,14 +160,14 @@ test("mark-enrolled POST marks an accepted application as enrolled", async ({
   expect(body.applicationId).toBe(applicationId);
   expect(body.enrollmentId).toBeTruthy();
 
-  const { data: application, error: applicationError } = await admin
+  const { data: updatedApplication, error: applicationError } = await admin
     .from("applications")
     .select("status, student_id, program_id")
     .eq("id", applicationId)
     .single();
 
   expect(applicationError).toBeNull();
-  expect(application?.status).toBe("enrolled");
+  expect(updatedApplication?.status).toBe("enrolled");
 
   const { data: enrollment, error: enrollmentError } = await admin
     .from("enrollments")
@@ -98,9 +181,170 @@ test("mark-enrolled POST marks an accepted application as enrolled", async ({
   const { data: student, error: studentError } = await admin
     .from("students")
     .select("status")
-    .eq("id", application?.student_id)
+    .eq("id", updatedApplication?.student_id)
     .single();
 
   expect(studentError).toBeNull();
   expect(student?.status).toBe("active");
+
+  const { data: checklist, error: checklistError } = await admin
+    .from("enrollment_checklists")
+    .select("id, status")
+    .eq("application_id", applicationId)
+    .maybeSingle();
+
+  expect(checklistError).toBeNull();
+  expect(checklist?.status).toBe("completed");
+
+  const { data: checklistItems, error: checklistItemsError } = await admin
+    .from("enrollment_checklist_items")
+    .select("status, payment_status, item_key")
+    .eq("checklist_id", checklist?.id);
+
+  expect(checklistItemsError).toBeNull();
+  expect(checklistItems?.length).toBeGreaterThan(0);
+  expect(
+    checklistItems?.every((item) => item.status === "completed" || item.status === "waived"),
+  ).toBe(true);
+
+  const paymentItem = checklistItems?.find((item) => item.item_key === "e2e_supply_fee");
+  expect(paymentItem?.payment_status).toBe("paid");
+
+  const { data: ledgerPayments, error: ledgerError } = await admin
+    .from("application_payments")
+    .select("payment_type, status, amount_cents, label")
+    .eq("application_id", applicationId)
+    .eq("payment_type", "enrollment_checklist");
+
+  expect(ledgerError).toBeNull();
+  expect(ledgerPayments?.some((row) => row.status === "succeeded")).toBe(true);
+  expect(
+    ledgerPayments?.some(
+      (row) => row.label === "Supply Fee" && row.amount_cents === 50000,
+    ),
+  ).toBe(true);
+});
+
+test("mark-enrolled POST enroll-only leaves checklist in progress", async ({
+  request,
+}) => {
+  const manifest = getSeedManifest();
+  const admin = createAdminClient();
+  const applicationId = manifest.applications.noFeeDraft;
+
+  const { data: application, error: applicationLookupError } = await admin
+    .from("applications")
+    .select("program_id")
+    .eq("id", applicationId)
+    .single();
+
+  expect(applicationLookupError).toBeNull();
+
+  await ensurePublishedEnrollmentChecklistWithPayment(
+    admin,
+    manifest.organizationId,
+    String(application?.program_id),
+  );
+
+  await materializeApplicationStudent(admin, applicationId);
+
+  await admin
+    .from("applications")
+    .update({ status: "accepted" })
+    .eq("id", applicationId);
+
+  const startResponse = await request.post(
+    `/api/admissions/applications/${applicationId}/start-enrollment`,
+    { data: { variantResolutions: {} } },
+  );
+  expect(startResponse.status()).toBe(200);
+
+  const response = await request.post(
+    `/api/admissions/applications/${applicationId}/mark-enrolled`,
+    { data: { completeChecklist: false } },
+  );
+
+  expect(response.status()).toBe(200);
+
+  const { data: updatedApplication } = await admin
+    .from("applications")
+    .select("status")
+    .eq("id", applicationId)
+    .single();
+
+  expect(updatedApplication?.status).toBe("enrolled");
+
+  const { data: checklist } = await admin
+    .from("enrollment_checklists")
+    .select("status")
+    .eq("application_id", applicationId)
+    .maybeSingle();
+
+  expect(checklist?.status).toBe("in_progress");
+
+  const { data: ledgerPayments } = await admin
+    .from("application_payments")
+    .select("id")
+    .eq("application_id", applicationId)
+    .eq("payment_type", "enrollment_checklist");
+
+  expect(ledgerPayments ?? []).toHaveLength(0);
+});
+
+test("mark-enrolled POST completes an in-progress enrollment checklist", async ({
+  request,
+}) => {
+  const manifest = getSeedManifest();
+  const admin = createAdminClient();
+  const applicationId = manifest.applications.betaChild;
+
+  const { data: application, error: applicationLookupError } = await admin
+    .from("applications")
+    .select("program_id")
+    .eq("id", applicationId)
+    .single();
+
+  expect(applicationLookupError).toBeNull();
+
+  await ensurePublishedEnrollmentChecklistWithPayment(
+    admin,
+    manifest.organizationId,
+    String(application?.program_id),
+  );
+
+  await materializeApplicationStudent(admin, applicationId);
+
+  await admin
+    .from("applications")
+    .update({ status: "accepted" })
+    .eq("id", applicationId);
+
+  const startResponse = await request.post(
+    `/api/admissions/applications/${applicationId}/start-enrollment`,
+    { data: { variantResolutions: {} } },
+  );
+  expect(startResponse.status()).toBe(200);
+
+  const response = await request.post(
+    `/api/admissions/applications/${applicationId}/mark-enrolled`,
+    { data: { note: "E2E in-progress completion", completeChecklist: true } },
+  );
+
+  expect(response.status()).toBe(200);
+
+  const { data: updatedApplication } = await admin
+    .from("applications")
+    .select("status")
+    .eq("id", applicationId)
+    .single();
+
+  expect(updatedApplication?.status).toBe("enrolled");
+
+  const { data: checklist } = await admin
+    .from("enrollment_checklists")
+    .select("status")
+    .eq("application_id", applicationId)
+    .maybeSingle();
+
+  expect(checklist?.status).toBe("completed");
 });

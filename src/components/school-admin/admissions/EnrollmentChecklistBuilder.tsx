@@ -14,12 +14,6 @@ import {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { ChecklistItemTemplateId } from "@/lib/admissions/enrollment-checklist-item-templates";
 import { createItemFromTemplate } from "@/lib/admissions/enrollment-checklist-item-templates";
-import {
-  buildDefaultResolutions,
-  buildVariantResolutions,
-  getVariantGroups,
-  resolveVisibleTemplateItems,
-} from "@/lib/admissions/enrollment-checklist-variants";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
@@ -28,7 +22,6 @@ import {
   type ChecklistBuilderFocus,
 } from "./checklist-builder-focus";
 import EnrollmentChecklistFocusCanvas from "./EnrollmentChecklistFocusCanvas";
-import EnrollmentChecklistPreview from "./EnrollmentChecklistPreview";
 import EnrollmentChecklistTemplatePicker from "./EnrollmentChecklistTemplatePicker";
 
 type EnrollmentChecklistBuilderProps = {
@@ -39,7 +32,9 @@ type EnrollmentChecklistBuilderProps = {
   orgSlug: string;
   stripePaymentsReady?: boolean;
   items: EnrollmentChecklistItem[];
+  isDirty?: boolean;
   onItemsChange: (items: EnrollmentChecklistItem[]) => void;
+  onPreviewItem: (itemId?: string) => void;
   readOnly?: boolean;
 };
 
@@ -83,7 +78,9 @@ export default function EnrollmentChecklistBuilder({
   orgSlug,
   stripePaymentsReady = true,
   items,
+  isDirty = false,
   onItemsChange,
+  onPreviewItem,
   readOnly = false,
 }: EnrollmentChecklistBuilderProps) {
   const C = buildAdminThemeTokens(branding);
@@ -92,9 +89,6 @@ export default function EnrollmentChecklistBuilder({
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewInitialItemId, setPreviewInitialItemId] = useState<string | undefined>();
-
   const addFromTemplate = (templateId: ChecklistItemTemplateId) => {
     if (readOnly) return;
     const item = createItemFromTemplate(templateId);
@@ -219,27 +213,6 @@ export default function EnrollmentChecklistBuilder({
     setDeleteTargetId(null);
   };
 
-  const openPreview = (initialItemId?: string) => {
-    setPreviewInitialItemId(initialItemId);
-    setPreviewOpen(true);
-  };
-
-  const groups = getVariantGroups(items);
-  const resolutionMap = buildDefaultResolutions(groups);
-  if (previewInitialItemId) {
-    const clickedItem = items.find((item) => item.id === previewInitialItemId);
-    const clickedDraft = clickedItem ? readItemVariantDraft(clickedItem) : null;
-    if (clickedDraft) {
-      resolutionMap[clickedDraft.groupId] = previewInitialItemId;
-    }
-  }
-  const defaultResolutions = buildVariantResolutions(
-    items,
-    resolutionMap,
-    new Date().toISOString(),
-  );
-  const previewItems = resolveVisibleTemplateItems(items, defaultResolutions);
-
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <EnrollmentChecklistFocusCanvas
@@ -249,27 +222,16 @@ export default function EnrollmentChecklistBuilder({
         organizationId={organizationId}
         templateId={template.id}
         orgSlug={orgSlug}
+        isDirty={isDirty}
         stripePaymentsReady={stripePaymentsReady}
         readOnly={readOnly}
         onFocusChange={setFocus}
         onUpdateItem={updateItem}
         onDeleteItem={requestDeleteItem}
-        onPreviewItem={(itemId) => openPreview(itemId)}
+        onPreviewItem={(itemId) => onPreviewItem(itemId)}
         onOpenPicker={() => setPickerOpen(true)}
         onAddVariant={addVariantSibling}
         onSetDefaultVariant={setDefaultVariantOption}
-      />
-
-      <EnrollmentChecklistPreview
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        branding={branding}
-        schoolName={schoolName}
-        slug={orgSlug}
-        enrollmentPath={template.enrollmentPath}
-        title={template.name}
-        items={previewItems}
-        initialItemId={previewInitialItemId}
       />
 
       <EnrollmentChecklistTemplatePicker

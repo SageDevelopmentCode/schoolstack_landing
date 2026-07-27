@@ -8,12 +8,13 @@ import { ExternalLink } from "lucide-react";
 import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import ApplicationSubmissionDetailPanel from "./ApplicationSubmissionDetailPanel";
+import SubmissionFeeBadges from "./SubmissionFeeBadges";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
   APPLICATION_STATUS_FILTER_ORDER,
-  FEE_STATUS_LABELS,
 } from "@/lib/admissions/application-status-ui";
+import { submissionHasFeeBadges } from "@/lib/admissions/admin-submission-fee-badges";
 import { enrollmentProgressBadgeStyle } from "@/lib/admissions/admin-enrollment-progress";
 import { postSubmitSummaryBadgeStyle } from "@/lib/admissions/admin-post-submit-steps";
 import {
@@ -59,6 +60,7 @@ function submissionColumnHeaderBadgeStyle(
     case "Post-submit":
       return { backgroundColor: C.successBg, color: C.success };
     case "Fee":
+    case "Fees":
       return { backgroundColor: C.warningBg, color: C.warning };
     case "Parent sign-in":
       return { backgroundColor: C.infoBg, color: C.info };
@@ -214,13 +216,23 @@ export default function ApplicationSubmissionsPage({
     submissions.find((row) => row.id === selectedId) ??
     null;
 
-  const showFeeColumn = submissions.some(
-    (row) => row.feeEnabled && row.feeStatus !== "not_required",
-  );
+  const showFormColumn = formOptions.length > 1;
+
+  const showFeesColumn = submissions.some((row) => submissionHasFeeBadges(row));
 
   const showPostSubmitColumn = submissions.some((row) => row.hasPostSubmitActions);
 
   const showEnrollmentColumn = submissions.some((row) => row.enrollmentSummary !== null);
+
+  const tableColumnCount =
+    (showFormColumn ? 1 : 0) +
+    4 +
+    (showEnrollmentColumn ? 1 : 0) +
+    (showPostSubmitColumn ? 1 : 0) +
+    (showFeesColumn ? 1 : 0) +
+    2;
+
+  const tableMinWidth = showFormColumn ? "min-w-[1020px]" : "min-w-[940px]";
 
   const applyFormSlug = submissions.find((row) => row.formSlug)?.formSlug ?? null;
   const applyPublicPath = applyFormSlug
@@ -310,7 +322,7 @@ export default function ApplicationSubmissionsPage({
           <SchoolAdminTableSkeleton
             C={C}
             rows={8}
-            columns={8}
+            columns={tableColumnCount}
             showFilters={false}
             label="Loading submissions"
           />
@@ -338,7 +350,7 @@ export default function ApplicationSubmissionsPage({
           </p>
         ) : (
           <div className="h-full overflow-auto" style={{ backgroundColor: C.surface }}>
-            <table className="w-full min-w-[1020px] border-collapse text-left text-sm">
+            <table className={`w-full ${tableMinWidth} border-collapse text-left text-sm`}>
               <thead
                 className="sticky top-0 z-[1]"
                 style={{
@@ -348,14 +360,14 @@ export default function ApplicationSubmissionsPage({
               >
                 <tr>
                   {[
-                    "Form",
+                    ...(showFormColumn ? ["Form"] : []),
                     "Contact",
                     "Student",
                     "Status",
                     ...(showEnrollmentColumn ? ["Enrollment"] : []),
                     ...(showPostSubmitColumn ? ["Post-submit"] : []),
                     "Progress",
-                    ...(showFeeColumn ? ["Fee"] : []),
+                    ...(showFeesColumn ? ["Fees"] : []),
                     "Parent sign-in",
                     "Updated",
                   ].map((heading, index, headings) => {
@@ -403,22 +415,34 @@ export default function ApplicationSubmissionsPage({
                         borderLeft: `3px solid ${isSelected ? C.accent : "transparent"}`,
                       }}
                     >
-                      <td
-                        className="px-3 py-3 sm:px-4"
-                        style={{ color: C.textPrimary, ...columnDividerStyle(C, false) }}
-                      >
-                        <div className="font-medium">{submission.formTitle}</div>
-                        {submission.programName ? (
-                          <div className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-                            {submission.programName}
-                          </div>
-                        ) : null}
-                      </td>
+                      {showFormColumn ? (
+                        <td
+                          className="px-3 py-3 sm:px-4"
+                          style={{ color: C.textPrimary, ...columnDividerStyle(C, false) }}
+                        >
+                          <div className="font-medium">{submission.formTitle}</div>
+                          {submission.programName ? (
+                            <div className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+                              {submission.programName}
+                            </div>
+                          ) : null}
+                        </td>
+                      ) : null}
                       <td
                         className="px-3 py-3 sm:px-4"
                         style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
                       >
-                        {submission.contactEmail ?? "—"}
+                        <div className="font-medium" style={{ color: C.textPrimary }}>
+                          {submission.guardianName ?? "—"}
+                        </div>
+                        {submission.contactEmail ? (
+                          <div
+                            className="mt-0.5 max-w-[14rem] truncate text-xs"
+                            style={{ color: C.textTertiary }}
+                          >
+                            {submission.contactEmail}
+                          </div>
+                        ) : null}
                       </td>
                       <td
                         className="px-3 py-3 sm:px-4"
@@ -485,14 +509,12 @@ export default function ApplicationSubmissionsPage({
                       >
                         {formatSubmissionProgress(submission)}
                       </td>
-                      {showFeeColumn ? (
+                      {showFeesColumn ? (
                         <td
                           className="px-3 py-3 sm:px-4"
-                          style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
+                          style={columnDividerStyle(C, false)}
                         >
-                          {submission.feeEnabled && submission.feeStatus !== "not_required"
-                            ? FEE_STATUS_LABELS[submission.feeStatus] ?? submission.feeStatus
-                            : "—"}
+                          <SubmissionFeeBadges submission={submission} C={C} />
                         </td>
                       ) : null}
                       <td

@@ -7,6 +7,7 @@ import ApplicationDatePicker from "@/components/admissions/ApplicationDatePicker
 import ApplicationAddressInput from "@/components/admissions/ApplicationAddressInput";
 import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
 import ApplicationRadioInput from "@/components/admissions/ApplicationRadioInput";
+import ApplicationCheckboxInput from "@/components/admissions/ApplicationCheckboxInput";
 import ApplicationSelectInput from "@/components/admissions/ApplicationSelectInput";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import { resolveDateRange } from "@/lib/admissions/application-form-schema";
@@ -263,28 +264,16 @@ export default function ApplicationFieldInput({
 
   if (field.type === "checkbox") {
     return (
-      <div>
-        <label
-          className="inline-flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm"
-          style={{
-            color: C.textPrimary,
-            borderColor: error ? C.errorBorder : "transparent",
-          }}
-        >
-          <input
-            id={field.id}
-            type="checkbox"
-            checked={value === "true"}
-            onChange={(e) => onChange(e.target.checked ? "true" : "")}
-            disabled={disabled}
-            aria-invalid={Boolean(error)}
-            className="h-4 w-4 rounded"
-            style={{ accentColor: C.accent }}
-          />
-          <span>{field.helpText ?? field.label}</span>
-        </label>
-        {error ? <FieldError error={error} C={C} /> : null}
-      </div>
+      <ApplicationCheckboxInput
+        id={field.id}
+        checked={value === "true"}
+        onChange={(checked) => onChange(checked ? "true" : "")}
+        label={field.label}
+        description={field.helpText}
+        disabled={disabled}
+        error={error}
+        C={C}
+      />
     );
   }
 

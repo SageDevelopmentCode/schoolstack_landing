@@ -23,15 +23,19 @@ import type {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import { computeChecklistProgress } from "@/lib/admissions/enrollment-checklist-materialization";
 import { resolveEnrollmentChecklistInitialItemId } from "@/lib/admissions/enrollment-checklist-progress";
+import { buildChecklistPreviewSidebarItems } from "@/lib/admissions/enrollment-checklist-variants";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+
+const EMPTY_CHECKLIST_INSTANCES: EnrollmentChecklistItemInstance[] = [];
 
 export type EnrollmentChecklistExperienceProps = {
   branding: OrganizationBranding;
   schoolName: string;
   title: string;
   items: EnrollmentChecklistItem[];
+  allItems?: EnrollmentChecklistItem[];
   mode?: "preview" | "live";
   organizationId?: string;
   checklistId?: string;
@@ -137,12 +141,14 @@ function ChecklistItemList({
   items,
   activeItemId,
   instanceByTemplateId,
+  alternateItemIds,
   onSelect,
 }: {
   C: AdminThemeTokens;
   items: EnrollmentChecklistItem[];
   activeItemId: string | null;
   instanceByTemplateId: Map<string, EnrollmentChecklistItemInstance>;
+  alternateItemIds?: Set<string>;
   onSelect: (itemId: string) => void;
 }) {
   return (
@@ -150,9 +156,38 @@ function ChecklistItemList({
       {items.map((item) => {
         const Icon = itemIcon(item.type);
         const isActive = item.id === activeItemId;
+        const isAlternate = alternateItemIds?.has(item.id) ?? false;
         const instance = instanceByTemplateId.get(item.id);
         const isComplete = instance?.status === "completed";
         const isInProgress = instance?.status === "in_progress";
+
+        if (isAlternate) {
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSelect(item.id)}
+              className="mx-2 my-1 flex w-[calc(100%-1rem)] items-center gap-3 rounded-md border border-dashed px-3 py-3 text-left transition-colors"
+              style={{
+                borderColor: isActive ? C.accent : C.border,
+                backgroundColor: isActive ? C.accentLight : "transparent",
+                color: isActive ? C.accent : C.textPrimary,
+              }}
+            >
+              <div
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed"
+                style={{ borderColor: isActive ? C.accent : C.textTertiary }}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium leading-tight">{item.label}</p>
+                <p className="mt-0.5 text-[10px]" style={{ color: C.textTertiary }}>
+                  Staff may select instead
+                </p>
+              </div>
+            </button>
+          );
+        }
+
         return (
           <button
             key={item.id}
@@ -215,19 +250,34 @@ export default function EnrollmentChecklistExperience({
   schoolName: _schoolName,
   title,
   items,
+  allItems,
   mode = "preview",
   organizationId,
   checklistId,
   initialItemId,
-  instances = [],
+  instances = EMPTY_CHECKLIST_INSTANCES,
   onInstancesChange,
   onActiveItemChange,
   onAllRequiredComplete,
   backLink,
 }: EnrollmentChecklistExperienceProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const previewLayout = useMemo(() => {
+    if (mode === "preview" && allItems && allItems.length > 0) {
+      return buildChecklistPreviewSidebarItems(allItems, initialItemId);
+    }
+    return null;
+  }, [allItems, initialItemId, mode]);
+
+  const sidebarItems = previewLayout?.sidebarItems ?? items;
+  const progressItems = previewLayout?.primaryItems ?? items;
+  const alternateItemIds = useMemo(
+    () => new Set(previewLayout?.alternateItems.map((item) => item.id) ?? []),
+    [previewLayout],
+  );
+
   const [activeItemId, setActiveItemId] = useState<string | null>(() =>
-    resolveInitialItemId(items, instances, initialItemId),
+    resolveInitialItemId(sidebarItems, instances, initialItemId),
   );
   const [localInstances, setLocalInstances] = useState(instances);
   const [taskPickerOpen, setTaskPickerOpen] = useState(false);
@@ -238,9 +288,9 @@ export default function EnrollmentChecklistExperience({
 
   useEffect(() => {
     queueMicrotask(() =>
-      setActiveItemId(resolveInitialItemId(items, instances, initialItemId)),
+      setActiveItemId(resolveInitialItemId(sidebarItems, instances, initialItemId)),
     );
-  }, [items, initialItemId]);
+  }, [sidebarItems, initialItemId, instances]);
 
   const persistActiveItem = (itemId: string) => {
     setActiveItemId(itemId);
@@ -252,8 +302,9 @@ export default function EnrollmentChecklistExperience({
     [localInstances],
   );
 
-  const progress = computeChecklistProgress(items, localInstances);
-  const activeItem = items.find((item) => item.id === activeItemId) ?? null;
+  const progress = computeChecklistProgress(progressItems, localInstances);
+  const activeItem = sidebarItems.find((item) => item.id === activeItemId) ?? null;
+  const activeIsPreviewAlternate = activeItem ? alternateItemIds.has(activeItem.id) : false;
   const activeInstance = activeItem ? instanceByTemplateId.get(activeItem.id) : undefined;
 
   const handleSelectItem = (itemId: string) => {
@@ -290,12 +341,12 @@ export default function EnrollmentChecklistExperience({
     setLocalInstances(nextInstances);
     onInstancesChange?.(nextInstances);
 
-    const nextItemId = findNextIncompleteItemId(items, nextInstances, activeItem.id);
+    const nextItemId = findNextIncompleteItemId(progressItems, nextInstances, activeItem.id);
     if (nextItemId) {
       persistActiveItem(nextItemId);
     }
 
-    const nextProgress = computeChecklistProgress(items, nextInstances);
+    const nextProgress = computeChecklistProgress(progressItems, nextInstances);
     if (
       nextProgress.total > 0 &&
       nextProgress.completed === nextProgress.total
@@ -333,6 +384,7 @@ export default function EnrollmentChecklistExperience({
         <EnrollmentChecklistItemPanel
           C={C}
           item={activeItem}
+          isPreviewAlternate={activeIsPreviewAlternate}
           mode={mode}
           organizationId={organizationId}
           checklistId={checklistId}
@@ -420,9 +472,10 @@ export default function EnrollmentChecklistExperience({
           <div className="min-h-0 flex-1 divide-y divide-gray-100 overflow-y-auto">
             <ChecklistItemList
               C={C}
-              items={items}
+              items={sidebarItems}
               activeItemId={activeItemId}
               instanceByTemplateId={instanceByTemplateId}
+              alternateItemIds={alternateItemIds}
               onSelect={handleSelectItem}
             />
           </div>

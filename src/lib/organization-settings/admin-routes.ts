@@ -18,6 +18,14 @@ export function schoolAdminPath(
   return subtab ? `${base}/${subtab}` : base;
 }
 
+export function schoolMudKitchenPortalPath(
+  slug: string,
+  section?: string,
+): string {
+  const base = `/school/${slug}/admin/mudkitchen`;
+  return section ? `${base}/${section}` : base;
+}
+
 export function parseSchoolAdminPath(pathname: string): AdminNavPath | null {
   const match = pathname.match(/\/school\/[^/]+\/admin\/([^/]+)(?:\/([^/]+))?$/);
   if (!match) return null;

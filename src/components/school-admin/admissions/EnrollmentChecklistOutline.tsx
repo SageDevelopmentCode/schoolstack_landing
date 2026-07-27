@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronRight, Eye, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import {
   CHECKLIST_ITEM_TYPE_LABELS,
@@ -10,6 +10,7 @@ import {
 import { buildChecklistOutlineEntries } from "@/lib/admissions/enrollment-checklist-variants";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ChecklistBuilderFocus } from "./checklist-builder-focus";
+import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
 import { outlineItemCardStyle } from "./outline-item-styles";
 
 type EnrollmentChecklistOutlineProps = {
@@ -17,6 +18,9 @@ type EnrollmentChecklistOutlineProps = {
   items: EnrollmentChecklistItem[];
   focus: ChecklistBuilderFocus | null;
   readOnly?: boolean;
+  orgSlug: string;
+  checklistId: string;
+  isDirty?: boolean;
   editingItemId: string | null;
   editingDraftLabel: string;
   onEditingItemIdChange: (itemId: string | null) => void;
@@ -69,7 +73,10 @@ function ChecklistOutlineRow({
   onDraftChange,
   onCommitEdit,
   onCancelEdit,
-  onPreview,
+  orgSlug,
+  checklistId,
+  isDirty = false,
+  onPreviewHere,
   onRemove,
 }: {
   C: AdminThemeTokens;
@@ -87,7 +94,10 @@ function ChecklistOutlineRow({
   onDraftChange: (label: string) => void;
   onCommitEdit: () => void;
   onCancelEdit: () => void;
-  onPreview: () => void;
+  orgSlug: string;
+  checklistId: string;
+  isDirty?: boolean;
+  onPreviewHere: (itemId: string) => void;
   onRemove: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -228,18 +238,15 @@ function ChecklistOutlineRow({
         </span>
       </button>
       <div className="flex shrink-0 items-center gap-0.5 pr-3">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPreview();
-          }}
-          aria-label="Preview item"
-          className="rounded p-1 opacity-70 group-hover:opacity-100"
-          style={{ color: C.textSecondary }}
-        >
-          <Eye className="h-3 w-3" />
-        </button>
+        <ChecklistPreviewMenuButton
+          C={C}
+          orgSlug={orgSlug}
+          checklistId={checklistId}
+          itemId={item.id}
+          isDirty={isDirty}
+          variant="icon"
+          onPreviewHere={() => onPreviewHere(item.id)}
+        />
         {!readOnly ? (
           <>
             <button
@@ -278,6 +285,9 @@ export default function EnrollmentChecklistOutline({
   items,
   focus,
   readOnly = false,
+  orgSlug,
+  checklistId,
+  isDirty = false,
   editingItemId,
   editingDraftLabel,
   onEditingItemIdChange,
@@ -345,7 +355,10 @@ export default function EnrollmentChecklistOutline({
                   onDraftChange={onEditingDraftLabelChange}
                   onCommitEdit={() => commitEdit(item)}
                   onCancelEdit={() => cancelEdit(item)}
-                  onPreview={() => onPreviewItem(item.id)}
+                  orgSlug={orgSlug}
+                  checklistId={checklistId}
+                  isDirty={isDirty}
+                  onPreviewHere={(previewItemId) => onPreviewItem(previewItemId ?? item.id)}
                   onRemove={() => onRequestDeleteItem(item.id)}
                 />
               );
@@ -448,7 +461,10 @@ export default function EnrollmentChecklistOutline({
                           onDraftChange={onEditingDraftLabelChange}
                           onCommitEdit={() => commitEdit(item)}
                           onCancelEdit={() => cancelEdit(item)}
-                          onPreview={() => onPreviewItem(item.id)}
+                          orgSlug={orgSlug}
+                          checklistId={checklistId}
+                          isDirty={isDirty}
+                          onPreviewHere={(previewItemId) => onPreviewItem(previewItemId ?? item.id)}
                           onRemove={() => onRequestDeleteItem(item.id)}
                         />
                       );

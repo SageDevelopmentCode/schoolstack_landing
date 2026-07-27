@@ -207,6 +207,83 @@ export function resolveVisibleTemplateItems(
   return items.filter((item) => isVariantItemSelected(item, resolutions));
 }
 
+/** Resolve variant groups for admin preview (optionally focusing a specific variant item). */
+export function buildChecklistPreviewItems(
+  items: EnrollmentChecklistItem[],
+  initialItemId?: string,
+): EnrollmentChecklistItem[] {
+  const groups = getVariantGroups(items);
+  const resolutionMap = buildDefaultResolutions(groups);
+
+  if (initialItemId) {
+    const clickedItem = items.find((item) => item.id === initialItemId);
+    const clickedDraft = clickedItem ? readItemVariantDraft(clickedItem) : null;
+    if (clickedDraft) {
+      resolutionMap[clickedDraft.groupId] = initialItemId;
+    }
+  }
+
+  const resolutions = buildVariantResolutions(
+    items,
+    resolutionMap,
+    new Date().toISOString(),
+  );
+  return resolveVisibleTemplateItems(items, resolutions);
+}
+
+export type ChecklistPreviewSidebarBuild = {
+  primaryItems: EnrollmentChecklistItem[];
+  alternateItems: EnrollmentChecklistItem[];
+  sidebarItems: EnrollmentChecklistItem[];
+};
+
+/** Admin preview sidebar: primary variant + dotted alternate siblings in group order. */
+export function buildChecklistPreviewSidebarItems(
+  allItems: EnrollmentChecklistItem[],
+  initialItemId?: string,
+): ChecklistPreviewSidebarBuild {
+  const primaryItems = buildChecklistPreviewItems(allItems, initialItemId);
+  const groups = getVariantGroups(allItems);
+  const resolutionMap = buildDefaultResolutions(groups);
+
+  if (initialItemId) {
+    const clickedItem = allItems.find((item) => item.id === initialItemId);
+    const clickedDraft = clickedItem ? readItemVariantDraft(clickedItem) : null;
+    if (clickedDraft) {
+      resolutionMap[clickedDraft.groupId] = initialItemId;
+    }
+  }
+
+  const alternateItems: EnrollmentChecklistItem[] = [];
+  const sidebarItems: EnrollmentChecklistItem[] = [];
+  const seenGroups = new Set<string>();
+
+  for (const item of allItems) {
+    const draft = readItemVariantDraft(item);
+    if (draft) {
+      if (seenGroups.has(draft.groupId)) continue;
+      seenGroups.add(draft.groupId);
+
+      const group = groups.find((g) => g.groupId === draft.groupId);
+      if (!group) continue;
+
+      const selectedId = resolutionMap[draft.groupId];
+      const selected =
+        group.variants.find((variant) => variant.id === selectedId) ?? group.variants[0];
+      const alternates = group.variants.filter((variant) => variant.id !== selected?.id);
+
+      if (selected) sidebarItems.push(selected);
+      sidebarItems.push(...alternates);
+      alternateItems.push(...alternates);
+      continue;
+    }
+
+    sidebarItems.push(item);
+  }
+
+  return { primaryItems, alternateItems, sidebarItems };
+}
+
 export function getSharedChecklistItems(
   items: EnrollmentChecklistItem[],
 ): EnrollmentChecklistItem[] {
@@ -271,4 +348,13 @@ export function findVariantGroupForItem(
   const draft = readItemVariantDraft(item);
   if (!draft) return null;
   return getVariantGroups(items).find((g) => g.groupId === draft.groupId) ?? null;
+}
+
+export function getAlternateVariantItems(
+  allItems: EnrollmentChecklistItem[],
+  selectedItem: EnrollmentChecklistItem,
+): EnrollmentChecklistItem[] {
+  const group = findVariantGroupForItem(allItems, selectedItem.id);
+  if (!group) return [];
+  return group.variants.filter((variant) => variant.id !== selectedItem.id);
 }

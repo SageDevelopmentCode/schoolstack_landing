@@ -304,3 +304,52 @@ export async function attachCheckoutSessionToPayment(
 
   if (error) throw error;
 }
+
+export async function recordAdminBypassEnrollmentPayment(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    applicationId: string;
+    enrollmentChecklistItemId: string;
+    amountCents: number;
+    label: string;
+    actorUserId?: string;
+    paidAt?: string;
+    currency?: string;
+  },
+): Promise<PaymentRecord | null> {
+  const existing = await getPaymentByChecklistItem(
+    supabase,
+    input.enrollmentChecklistItemId,
+    { status: "succeeded" },
+  );
+  if (existing) return existing;
+
+  if (input.amountCents <= 0) return null;
+
+  const paidAt = input.paidAt ?? new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("application_payments")
+    .insert({
+      organization_id: input.organizationId,
+      application_id: input.applicationId,
+      amount_cents: input.amountCents,
+      charged_amount_cents: input.amountCents,
+      processing_fee_cents: 0,
+      payment_method_type: null,
+      currency: input.currency ?? "USD",
+      status: "succeeded",
+      payment_type: "enrollment_checklist",
+      label: input.label,
+      enrollment_checklist_item_id: input.enrollmentChecklistItemId,
+      payer_user_id: input.actorUserId ?? null,
+      paid_at: paidAt,
+      created_at: paidAt,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return rowToPayment(data as Record<string, unknown>);
+}

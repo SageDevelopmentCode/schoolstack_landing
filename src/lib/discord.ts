@@ -106,6 +106,21 @@ async function sendAdmissionsDiscordEmbed(
   await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
 }
 
+async function sendCustomerBillingDiscordEmbed(
+  embed: DiscordEmbed,
+  options?: { content?: string },
+) {
+  const webhookUrl = process.env.DISCORD_CUSTOMER_BILLING_WEBHOOKS_URL?.trim();
+  if (!webhookUrl) {
+    console.warn(
+      "DISCORD_CUSTOMER_BILLING_WEBHOOKS_URL is not set; skipping Discord notification.",
+    );
+    return;
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
+}
+
 async function sendTuitionBillingDiscordEmbed(
   embed: DiscordEmbed,
   options?: { content?: string },
@@ -872,4 +887,74 @@ export async function notifyAdminSupportRequest(payload: {
     title: "Admin support request",
     fields,
   });
+}
+
+export async function notifyCustomerBillingInvoicePaid(payload: {
+  invoiceId: string;
+  organizationId: string;
+  organizationSlug: string;
+  organizationName: string;
+  billingPeriodLabel: string;
+  amountCents: number;
+  currency: string;
+  stripeInvoiceUrl: string;
+  paidByEmail: string;
+  paidAt: string;
+}) {
+  const amount = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: payload.currency.toUpperCase(),
+  }).format(payload.amountCents / 100);
+
+  const preview = `${payload.organizationName} paid ${amount} (${payload.billingPeriodLabel})`;
+
+  await sendCustomerBillingDiscordEmbed(
+    {
+      title: "Invoice marked paid",
+      fields: [
+        {
+          name: "School",
+          value: truncate(
+            `${payload.organizationName}\n(${payload.organizationSlug})\n${payload.organizationId}`,
+          ),
+          inline: true,
+        },
+        {
+          name: "Billing period",
+          value: truncate(payload.billingPeriodLabel),
+          inline: true,
+        },
+        {
+          name: "Amount",
+          value: amount,
+          inline: true,
+        },
+        {
+          name: "Marked paid by",
+          value: truncate(payload.paidByEmail),
+          inline: true,
+        },
+        {
+          name: "Paid at",
+          value: truncate(
+            new Date(payload.paidAt).toLocaleString("en-US", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            }),
+          ),
+          inline: true,
+        },
+        {
+          name: "Invoice ID",
+          value: payload.invoiceId,
+          inline: true,
+        },
+        {
+          name: "Stripe invoice",
+          value: truncate(payload.stripeInvoiceUrl),
+        },
+      ],
+    },
+    { content: preview },
+  );
 }

@@ -12,6 +12,7 @@ type ApplicationRadioInputProps = {
   disabled?: boolean;
   ariaLabel: string;
   error?: string | null;
+  layout?: "inline" | "stacked";
   C: AdminThemeTokens;
 };
 
@@ -23,9 +24,11 @@ export default function ApplicationRadioInput({
   disabled = false,
   ariaLabel,
   error = null,
+  layout = "inline",
   C,
 }: ApplicationRadioInputProps) {
   const focusRing = { "--tw-ring-color": `${C.accent}40` } as CSSProperties;
+  const isStacked = layout === "stacked";
 
   return (
     <div>
@@ -33,8 +36,12 @@ export default function ApplicationRadioInput({
         role="radiogroup"
         aria-label={ariaLabel}
         aria-invalid={Boolean(error)}
-        className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:flex-wrap"
-        style={{ borderColor: error ? C.errorBorder : "transparent" }}
+        className={
+          isStacked
+            ? "flex flex-col gap-2"
+            : "flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:flex-wrap"
+        }
+        style={{ borderColor: error && !isStacked ? C.errorBorder : "transparent" }}
       >
       {options.map((option) => {
         const isSelected = value === option.value;
@@ -49,7 +56,11 @@ export default function ApplicationRadioInput({
             aria-checked={isSelected}
             disabled={disabled}
             onClick={() => onChange(option.value)}
-            className="flex min-h-[44px] w-full min-w-[5rem] items-center gap-3 rounded-md border px-4 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:flex-1"
+            className={
+              isStacked
+                ? "flex min-h-[44px] w-full items-center gap-3 rounded-md border px-4 py-3 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                : "flex min-h-[44px] w-full min-w-[5rem] items-center gap-3 rounded-md border px-4 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:flex-1"
+            }
             style={
               isSelected
                 ? {

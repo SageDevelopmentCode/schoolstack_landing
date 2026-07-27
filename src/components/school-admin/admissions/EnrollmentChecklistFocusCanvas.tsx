@@ -10,6 +10,7 @@ import {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
 import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
 import BuilderFieldEditorPanel from "./BuilderFieldEditorPanel";
 import { BuilderSectionIntro } from "./builder-question-card";
@@ -51,7 +52,8 @@ type EnrollmentChecklistFocusCanvasProps = {
   items: EnrollmentChecklistItem[];
   organizationId: string;
   templateId: string;
-  orgSlug?: string;
+  orgSlug: string;
+  isDirty?: boolean;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
@@ -70,6 +72,7 @@ function ItemView({
   organizationId,
   templateId,
   orgSlug,
+  isDirty = false,
   stripePaymentsReady,
   readOnly,
   selectedFieldId,
@@ -77,6 +80,7 @@ function ItemView({
   onFocusChange,
   onAddVariant,
   onSetDefaultVariant,
+  onPreviewItem,
   allItems,
 }: {
   C: AdminThemeTokens;
@@ -84,7 +88,8 @@ function ItemView({
   itemIdx: number;
   organizationId: string;
   templateId: string;
-  orgSlug?: string;
+  orgSlug: string;
+  isDirty?: boolean;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
   selectedFieldId?: string | null;
@@ -92,16 +97,27 @@ function ItemView({
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
   onAddVariant?: (itemId: string) => void;
   onSetDefaultVariant?: (itemId: string) => void;
+  onPreviewItem: (itemId: string) => void;
   allItems: EnrollmentChecklistItem[];
 }) {
   return (
-    <div className="w-full max-w-3xl space-y-5">
-      <BuilderSectionIntro
-        C={C}
-        eyebrow={`Item ${itemIdx + 1} · ${CHECKLIST_ITEM_TYPE_LABELS[item.type]}`}
-        title={item.label || "Untitled item"}
-        subtitle={itemTypeSubtitle(item.type)}
-      />
+    <div className="w-full space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <BuilderSectionIntro
+          C={C}
+          eyebrow={`Item ${itemIdx + 1} · ${CHECKLIST_ITEM_TYPE_LABELS[item.type]}`}
+          title={item.label || "Untitled item"}
+          subtitle={itemTypeSubtitle(item.type)}
+        />
+        <ChecklistPreviewMenuButton
+          C={C}
+          orgSlug={orgSlug}
+          checklistId={templateId}
+          itemId={item.id}
+          isDirty={isDirty}
+          onPreviewHere={(previewItemId) => onPreviewItem(previewItemId ?? item.id)}
+        />
+      </div>
       <EnrollmentChecklistItemEditor
         C={C}
         item={item}
@@ -140,6 +156,7 @@ export default function EnrollmentChecklistFocusCanvas({
   organizationId,
   templateId,
   orgSlug,
+  isDirty = false,
   stripePaymentsReady = true,
   readOnly = false,
   onFocusChange,
@@ -230,6 +247,9 @@ export default function EnrollmentChecklistFocusCanvas({
           items={items}
           focus={focus}
           readOnly={readOnly}
+          orgSlug={orgSlug}
+          checklistId={templateId}
+          isDirty={isDirty}
           editingItemId={editingItemId}
           editingDraftLabel={editingDraftLabel}
           onEditingItemIdChange={setEditingItemId}
@@ -242,9 +262,9 @@ export default function EnrollmentChecklistFocusCanvas({
         />
 
         <div className="relative min-w-0 flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto px-5 pb-4 pt-6">
+          <div className="h-full overflow-y-auto px-5 py-8">
             <AnimatePresence mode="wait">
-              <motion.div key={key} {...canvasTransition}>
+              <motion.div key={key} className="mx-auto w-full max-w-3xl" {...canvasTransition}>
                 {(focus?.kind === "item" || focus?.kind === "field") &&
                   item &&
                   itemIdx >= 0 && (
@@ -256,6 +276,7 @@ export default function EnrollmentChecklistFocusCanvas({
                       organizationId={organizationId}
                       templateId={templateId}
                       orgSlug={orgSlug}
+                      isDirty={isDirty}
                       stripePaymentsReady={stripePaymentsReady}
                       readOnly={readOnly}
                       selectedFieldId={
@@ -265,6 +286,7 @@ export default function EnrollmentChecklistFocusCanvas({
                       onFocusChange={onFocusChange}
                       onAddVariant={onAddVariant}
                       onSetDefaultVariant={onSetDefaultVariant}
+                      onPreviewItem={onPreviewItem}
                       allItems={items}
                     />
                   )}

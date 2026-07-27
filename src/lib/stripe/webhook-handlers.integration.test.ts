@@ -14,6 +14,7 @@ import {
   seedPaymentAccountForOrg,
   seedPendingPayment,
 } from "@/test/integration/seed-admissions";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   handleAccountUpdated,
   handleCheckoutSessionCompleted,
@@ -245,14 +246,17 @@ describeIntegration("handleAccountUpdated", () => {
     assert.equal(account?.payouts_enabled, true);
     assert.equal(account?.onboarding_status, "complete");
 
-    const { data: activity } = await admin
+    const { data: activity, error: activityError } = await admin
       .from("activity_events")
       .select("action, summary")
       .eq("organization_id", organizationId)
-      .eq("action", "payments.stripe_connected")
-      .maybeSingle();
+      .eq("action", ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
 
-    assert.equal(activity?.action, "payments.stripe_connected");
-    assert.match(String(activity?.summary), /ready to accept payments/i);
+    assert.equal(activityError, null);
+    assert.equal(activity.action, ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED);
+    assert.match(activity.summary, /ready to accept payments/i);
   });
 });

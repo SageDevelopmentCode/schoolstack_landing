@@ -699,6 +699,8 @@ async function seedParentApplication(
   const responses = {
     student_first_name: studentFirstName,
     student_last_name: studentLastName,
+    student_date_of_birth: "2020-07-20",
+    student_grade: "k",
   };
 
   await admin

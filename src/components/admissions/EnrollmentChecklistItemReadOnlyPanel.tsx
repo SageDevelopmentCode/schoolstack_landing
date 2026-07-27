@@ -25,7 +25,9 @@ import type {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import { hasPaymentBreakdown } from "@/lib/admissions/enrollment-checklist-schema";
 import { parseStoredSignerName } from "@/components/admissions/TypedSignatureField";
+import FormattedDocumentText from "@/components/admissions/FormattedDocumentText";
 import {
+  parseAgreementConsentValue,
   parseAgreementSectionSignatures,
   signaturesBySectionId,
 } from "@/lib/admissions/enrollment-agreement-progress";
@@ -144,10 +146,14 @@ function DocumentSignInlineReadOnly({
   instanceStatus?: string;
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
+  const consentOptions =
+    item.document?.kind === "inline_sections" ? item.document.consentOptions ?? [] : [];
   const sectionSignatures = parseAgreementSectionSignatures(responses);
   const signatureBySectionId = signaturesBySectionId(sectionSignatures);
   const legacySignerName = parseStoredSignerName(responses);
   const hasSectionSignatures = sectionSignatures.length > 0;
+  const consentValue = parseAgreementConsentValue(responses);
+  const consentLabel = consentOptions.find((option) => option.value === consentValue)?.label;
 
   if (sections.length === 0) {
     return <EmptySubmissionNote C={C} message="No agreement sections configured." />;
@@ -161,14 +167,19 @@ function DocumentSignInlineReadOnly({
             <h3 className="text-base font-semibold" style={{ color: C.textPrimary }}>
               {section.title}
             </h3>
-            <p
-              className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
-              style={{ color: C.textPrimary }}
-            >
-              {section.body}
-            </p>
+            <FormattedDocumentText C={C} content={section.body} className="mt-3" />
           </section>
         ))}
+        {consentLabel ? (
+          <ReadOnlyAnswerBacking C={C}>
+            <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
+              Permission selected
+            </p>
+            <p className="mt-1 text-sm" style={{ color: C.textPrimary }}>
+              {consentLabel}
+            </p>
+          </ReadOnlyAnswerBacking>
+        ) : null}
         <ReadOnlySignature C={C} signerName={legacySignerName} />
       </div>
     );
@@ -209,12 +220,7 @@ function DocumentSignInlineReadOnly({
                 {isSigned ? "Signed" : "Not signed"}
               </span>
             </div>
-            <p
-              className="mt-3 whitespace-pre-wrap text-sm leading-relaxed"
-              style={{ color: C.textPrimary }}
-            >
-              {section.body}
-            </p>
+            <FormattedDocumentText C={C} content={section.body} className="mt-3" />
             {sectionSignature ? (
               <div className="mt-4">
                 <ReadOnlySignature C={C} signerName={sectionSignature.signerName} />
@@ -227,6 +233,16 @@ function DocumentSignInlineReadOnly({
           </section>
         );
       })}
+      {consentLabel ? (
+        <ReadOnlyAnswerBacking C={C}>
+          <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
+            Permission selected
+          </p>
+          <p className="mt-1 text-sm" style={{ color: C.textPrimary }}>
+            {consentLabel}
+          </p>
+        </ReadOnlyAnswerBacking>
+      ) : null}
     </div>
   );
 }
@@ -509,12 +525,10 @@ function AcknowledgmentReadOnly({
 
   return (
     <div className="space-y-4">
-      <p
-        className="whitespace-pre-wrap text-sm leading-relaxed"
-        style={{ color: C.textPrimary }}
-      >
-        {config?.body || "Acknowledgment text will appear here."}
-      </p>
+      <FormattedDocumentText
+        C={C}
+        content={config?.body || "Acknowledgment text will appear here."}
+      />
       {signerName ? (
         <ReadOnlySignature C={C} signerName={signerName} />
       ) : (

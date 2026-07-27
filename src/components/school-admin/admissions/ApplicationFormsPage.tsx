@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { EyeOff, Loader2, Save, Send } from "lucide-react";
+import { Eye, EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
   createApplyForm,
   duplicateForm,
@@ -37,6 +37,7 @@ import {
   type EnrollmentChecklistTemplate,
 } from "@/lib/admissions/enrollment-checklist-templates";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
+import { buildChecklistPreviewItems } from "@/lib/admissions/enrollment-checklist-variants";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
 import {
@@ -64,7 +65,9 @@ import type { FlowListSelection } from "./enrollment-flow-selection";
 import { StatusIcon } from "./ApplicationFormListBadges";
 import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
+import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
 import EnrollmentChecklistBuilder from "./EnrollmentChecklistBuilder";
+import EnrollmentChecklistPreview from "./EnrollmentChecklistPreview";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import {
@@ -355,6 +358,10 @@ export default function ApplicationFormsPage({
   const [editable, setEditable] = useState<EditableFormState | null>(null);
   const [focus, setFocus] = useState<BuilderFocus>(DEFAULT_BUILDER_FOCUS);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [checklistPreviewOpen, setChecklistPreviewOpen] = useState(false);
+  const [checklistPreviewInitialItemId, setChecklistPreviewInitialItemId] = useState<
+    string | undefined
+  >();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -403,6 +410,19 @@ export default function ApplicationFormsPage({
   const checklistIsDraft = selectedChecklist?.status === "draft";
   const checklistIsPublished = selectedChecklist?.status === "published";
   const checklistReadOnly = checklistIsArchived;
+
+  const checklistPreviewItems = useMemo(() => {
+    if (!checklistEditable) return [];
+    return buildChecklistPreviewItems(
+      checklistEditable.items,
+      checklistPreviewInitialItemId,
+    );
+  }, [checklistEditable, checklistPreviewInitialItemId]);
+
+  const openChecklistPreview = useCallback((initialItemId?: string) => {
+    setChecklistPreviewInitialItemId(initialItemId);
+    setChecklistPreviewOpen(true);
+  }, []);
 
   const isApplyDirty = useMemo(() => {
     if (!editable || !applySavedSnapshot) return false;
@@ -1208,6 +1228,14 @@ export default function ApplicationFormsPage({
                 C={C}
                 schoolSlug={slug}
               />
+              <ChecklistPreviewMenuButton
+                C={C}
+                orgSlug={slug}
+                checklistId={selectedChecklist.id}
+                disabled={!checklistEditable.items.length}
+                isDirty={isChecklistDirty}
+                onPreviewHere={() => openChecklistPreview()}
+              />
               <ChecklistProgramDropdown
                 C={C}
                 programs={programs}
@@ -1286,7 +1314,9 @@ export default function ApplicationFormsPage({
               orgSlug={slug}
               stripePaymentsReady={stripePaymentsReady}
               items={checklistEditable.items}
+              isDirty={isChecklistDirty}
               onItemsChange={handleChecklistItemsChange}
+              onPreviewItem={openChecklistPreview}
               readOnly={checklistReadOnly}
             />
           ) : (
@@ -1395,6 +1425,19 @@ export default function ApplicationFormsPage({
       ) : (
         <SchoolAdminCanvasSkeleton C={C} label="Loading form editor" />
       )}
+
+      <EnrollmentChecklistPreview
+        open={checklistPreviewOpen}
+        onClose={() => setChecklistPreviewOpen(false)}
+        branding={branding}
+        schoolName={schoolName}
+        slug={slug}
+        enrollmentPath={selectedChecklist?.enrollmentPath ?? "enrollment"}
+        title={checklistEditable?.name ?? selectedChecklist?.name ?? "Enrollment checklist"}
+        items={checklistPreviewItems}
+        allItems={checklistEditable?.items}
+        initialItemId={checklistPreviewInitialItemId}
+      />
 
       <ApplicationFormPreview
         open={previewOpen}

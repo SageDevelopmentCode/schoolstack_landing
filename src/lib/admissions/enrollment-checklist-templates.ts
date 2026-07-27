@@ -33,6 +33,16 @@ export function enrollmentChecklistRelativePath(
   return `/forms/${path}`;
 }
 
+export function schoolAdminEnrollmentChecklistPreviewPath(
+  orgSlug: string,
+  checklistId: string,
+  options?: { itemId?: string },
+): string {
+  const base = `/school/${orgSlug}/admin/enrollment-checklist-preview/${checklistId}`;
+  if (!options?.itemId) return base;
+  return `${base}?item=${encodeURIComponent(options.itemId)}`;
+}
+
 export type EnrollmentChecklistTemplate = {
   id: string;
   organizationId: string;
