@@ -144,6 +144,7 @@ export async function selectGradeLevel(
 ): Promise<void> {
   const gradeTrigger = page.locator("#student_grade");
   await expect(gradeTrigger).toBeVisible();
+  await expect(gradeTrigger).toBeEnabled();
   await gradeTrigger.click();
 
   const isMobile = (page.viewportSize()?.width ?? 1280) < 640;
@@ -153,7 +154,8 @@ export async function selectGradeLevel(
     await expect(dialog).toBeVisible({ timeout: 10_000 });
     const option = dialog.getByRole("option", { name: optionLabel });
     await expect(option).toBeVisible();
-    await option.click();
+    await option.scrollIntoViewIfNeeded();
+    await option.click({ timeout: 10_000 });
     await expect(dialog).toBeHidden({ timeout: 5_000 });
     return;
   }

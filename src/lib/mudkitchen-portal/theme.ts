@@ -48,7 +48,6 @@ export function buildPortalTheme(branding: OrganizationBranding): PortalTheme {
 export const MUDKITCHEN_PORTAL_THEME = {
   ...PORTAL_BASE_THEME,
   accent: "#827096",
-  accentBright: "#6E5D7F",
   accentDark: "#5A4D68",
   accentLight: "rgba(130, 112, 150, 0.10)",
   accentSoft: "rgba(130, 112, 150, 0.10)",
