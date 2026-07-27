@@ -81,14 +81,23 @@ export function getAgreementSectionProgressLabel(
   return `${signedCount} of ${total} ${sectionWord} signed`;
 }
 
+export function parseAgreementConsentValue(
+  responses: Record<string, unknown> | null | undefined,
+): string | null {
+  const value = responses?.consentValue;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 export function buildAgreementResponsesPatch(
   existingResponses: Record<string, unknown>,
   sectionSignatures: AgreementSectionSignature[],
   signerName?: string,
+  consentValue?: string,
 ): Record<string, unknown> {
   return {
     ...existingResponses,
     sectionSignatures,
     ...(signerName ? { signerName } : {}),
+    ...(consentValue ? { consentValue } : {}),
   };
 }

@@ -27,6 +27,7 @@ import { hasPaymentBreakdown } from "@/lib/admissions/enrollment-checklist-schem
 import { parseStoredSignerName } from "@/components/admissions/TypedSignatureField";
 import FormattedDocumentText from "@/components/admissions/FormattedDocumentText";
 import {
+  parseAgreementConsentValue,
   parseAgreementSectionSignatures,
   signaturesBySectionId,
 } from "@/lib/admissions/enrollment-agreement-progress";
@@ -145,10 +146,14 @@ function DocumentSignInlineReadOnly({
   instanceStatus?: string;
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
+  const consentOptions =
+    item.document?.kind === "inline_sections" ? item.document.consentOptions ?? [] : [];
   const sectionSignatures = parseAgreementSectionSignatures(responses);
   const signatureBySectionId = signaturesBySectionId(sectionSignatures);
   const legacySignerName = parseStoredSignerName(responses);
   const hasSectionSignatures = sectionSignatures.length > 0;
+  const consentValue = parseAgreementConsentValue(responses);
+  const consentLabel = consentOptions.find((option) => option.value === consentValue)?.label;
 
   if (sections.length === 0) {
     return <EmptySubmissionNote C={C} message="No agreement sections configured." />;
@@ -165,6 +170,16 @@ function DocumentSignInlineReadOnly({
             <FormattedDocumentText C={C} content={section.body} className="mt-3" />
           </section>
         ))}
+        {consentLabel ? (
+          <ReadOnlyAnswerBacking C={C}>
+            <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
+              Permission selected
+            </p>
+            <p className="mt-1 text-sm" style={{ color: C.textPrimary }}>
+              {consentLabel}
+            </p>
+          </ReadOnlyAnswerBacking>
+        ) : null}
         <ReadOnlySignature C={C} signerName={legacySignerName} />
       </div>
     );
@@ -218,6 +233,16 @@ function DocumentSignInlineReadOnly({
           </section>
         );
       })}
+      {consentLabel ? (
+        <ReadOnlyAnswerBacking C={C}>
+          <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
+            Permission selected
+          </p>
+          <p className="mt-1 text-sm" style={{ color: C.textPrimary }}>
+            {consentLabel}
+          </p>
+        </ReadOnlyAnswerBacking>
+      ) : null}
     </div>
   );
 }

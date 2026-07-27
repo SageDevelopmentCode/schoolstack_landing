@@ -4,6 +4,11 @@ import {
   ROOTED_MEADOWS_CONDITIONAL_SUPPORT_SECTIONS,
   ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS,
 } from "../src/data/school-demos/rooted-meadows-enrollment-contracts";
+import { ROOTED_MEADOWS_MEDIA_TECHNOLOGY_SECTIONS } from "../src/data/school-demos/rooted-meadows-media-technology-policy";
+import {
+  ROOTED_MEADOWS_PHOTOGRAPHY_MEDIA_RELEASE_CONSENT_OPTIONS,
+  ROOTED_MEADOWS_PHOTOGRAPHY_MEDIA_RELEASE_SECTIONS,
+} from "../src/data/school-demos/rooted-meadows-photography-media-release";
 
 function replaceSectionsBlock(
   sql: string,
@@ -30,7 +35,28 @@ function replaceSectionsBlock(
   return `${sql.slice(0, jsonStart)}${json}${sql.slice(end)}`;
 }
 
-const files = [
+function replaceConsentOptionsBlock(
+  sql: string,
+  variableName: string,
+  consentOptions: typeof ROOTED_MEADOWS_PHOTOGRAPHY_MEDIA_RELEASE_CONSENT_OPTIONS,
+): string {
+  const marker = `${variableName} jsonb := $consent$`;
+  const start = sql.indexOf(marker);
+  if (start === -1) {
+    throw new Error(`Could not find consent marker for ${variableName}`);
+  }
+
+  const jsonStart = start + marker.length;
+  const end = sql.indexOf("$consent$::jsonb;", jsonStart);
+  if (end === -1) {
+    throw new Error(`Could not find closing $consent$::jsonb for ${variableName}`);
+  }
+
+  const json = JSON.stringify(consentOptions, null, 2);
+  return `${sql.slice(0, jsonStart)}${json}${sql.slice(end)}`;
+}
+
+const agreementFiles = [
   resolve(
     "supabase/migrations/rooted-meadows/seed_rooted_meadows_enrollment_agreement_variants.sql",
   ),
@@ -39,10 +65,39 @@ const files = [
   ),
 ];
 
-for (const file of files) {
+for (const file of agreementFiles) {
   let sql = readFileSync(file, "utf8");
   sql = replaceSectionsBlock(sql, "v_standard_sections", ROOTED_MEADOWS_STANDARD_ENROLLMENT_SECTIONS);
   sql = replaceSectionsBlock(sql, "v_conditional_sections", ROOTED_MEADOWS_CONDITIONAL_SUPPORT_SECTIONS);
   writeFileSync(file, sql, "utf8");
   console.log(`Updated ${file}`);
 }
+
+const mediaTechnologyFile = resolve(
+  "supabase/migrations/rooted-meadows/seed_rooted_meadows_media_technology_step.sql",
+);
+let mediaTechnologySql = readFileSync(mediaTechnologyFile, "utf8");
+mediaTechnologySql = replaceSectionsBlock(
+  mediaTechnologySql,
+  "v_sections",
+  ROOTED_MEADOWS_MEDIA_TECHNOLOGY_SECTIONS,
+);
+writeFileSync(mediaTechnologyFile, mediaTechnologySql, "utf8");
+console.log(`Updated ${mediaTechnologyFile}`);
+
+const photographyMediaReleaseFile = resolve(
+  "supabase/migrations/rooted-meadows/seed_rooted_meadows_photography_media_release_step.sql",
+);
+let photographyMediaReleaseSql = readFileSync(photographyMediaReleaseFile, "utf8");
+photographyMediaReleaseSql = replaceSectionsBlock(
+  photographyMediaReleaseSql,
+  "v_sections",
+  ROOTED_MEADOWS_PHOTOGRAPHY_MEDIA_RELEASE_SECTIONS,
+);
+photographyMediaReleaseSql = replaceConsentOptionsBlock(
+  photographyMediaReleaseSql,
+  "v_consent_options",
+  ROOTED_MEADOWS_PHOTOGRAPHY_MEDIA_RELEASE_CONSENT_OPTIONS,
+);
+writeFileSync(photographyMediaReleaseFile, photographyMediaReleaseSql, "utf8");
+console.log(`Updated ${photographyMediaReleaseFile}`);

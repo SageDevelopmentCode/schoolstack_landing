@@ -919,17 +919,40 @@ function parseInlineAgreementSections(content: unknown): EnrollmentContractSecti
     .filter((section) => section.id.length > 0);
 }
 
+function parseInlineDocumentConsentOptions(
+  content: unknown,
+): { value: string; label: string }[] {
+  if (!content || typeof content !== "object" || Array.isArray(content)) {
+    return [];
+  }
+  const record = content as Record<string, unknown>;
+  if (!Array.isArray(record.consentOptions)) return [];
+
+  return record.consentOptions
+    .filter(
+      (option): option is Record<string, unknown> =>
+        typeof option === "object" && option !== null && !Array.isArray(option),
+    )
+    .map((option) => ({
+      value: String(option.value ?? ""),
+      label: String(option.label ?? ""),
+    }))
+    .filter((option) => option.value && option.label);
+}
+
 export async function saveAgreementSectionSignature(
   supabase: SupabaseClient,
   input: {
     instanceId: string;
     sectionId: string;
     signerName: string;
+    consentValue?: string;
     actorUserId?: string;
     organizationId: string;
   },
 ): Promise<{ status: ChecklistItemInstanceStatus; responses: Record<string, unknown> }> {
-  const { instanceId, sectionId, signerName, actorUserId, organizationId } = input;
+  const { instanceId, sectionId, signerName, consentValue, actorUserId, organizationId } =
+    input;
   const trimmedSignerName = signerName.trim();
   if (!trimmedSignerName) {
     throw new EnrollmentMaterializationError(
@@ -1041,6 +1064,9 @@ export async function saveAgreementSectionSignature(
     );
   }
 
+  const consentOptions = parseInlineDocumentConsentOptions(documentRow.content);
+  const trimmedConsentValue = consentValue?.trim() ?? "";
+
   const checklist = instance.enrollment_checklists as
     | {
         application_id?: string;
@@ -1071,12 +1097,26 @@ export async function saveAgreementSectionSignature(
   );
   const isComplete = allAgreementSectionsSigned(sections, sectionSignatures);
 
+  if (isComplete && consentOptions.length > 0) {
+    if (
+      !trimmedConsentValue ||
+      !consentOptions.some((option) => option.value === trimmedConsentValue)
+    ) {
+      throw new EnrollmentMaterializationError(
+        "Please select a permission option before completing this agreement.",
+        "consent_required",
+        400,
+      );
+    }
+  }
+
   const patch: Record<string, unknown> = {
     status: isComplete ? "completed" : "in_progress",
     responses: buildAgreementResponsesPatch(
       existingResponses,
       sectionSignatures,
       isComplete ? trimmedSignerName : undefined,
+      isComplete && trimmedConsentValue ? trimmedConsentValue : undefined,
     ),
   };
 

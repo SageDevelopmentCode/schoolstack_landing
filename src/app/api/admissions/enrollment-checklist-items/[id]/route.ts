@@ -33,6 +33,7 @@ type CompleteBody = {
   agreementSection?: {
     sectionId: string;
     signerName: string;
+    consentValue?: string;
   };
 };
 
@@ -114,6 +115,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         instanceId,
         sectionId: body.agreementSection.sectionId,
         signerName: body.agreementSection.signerName,
+        consentValue: body.agreementSection.consentValue,
         actorUserId: user.id,
         organizationId,
       });

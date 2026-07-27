@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
   ChevronDown,
+  ExternalLink,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -15,7 +16,7 @@ import {
   buildAdminNavGroups,
   type AdminNavItem,
 } from "@/lib/organization-settings/admin-nav";
-import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
+import { schoolAdminPath, schoolMudKitchenPortalPath } from "@/lib/organization-settings/admin-routes";
 import {
   schoolAdminLoginPath,
   type SchoolAdminUserProfile,
@@ -322,6 +323,38 @@ function Sidebar({
             <span className="text-sm font-medium">Need help?</span>
           )}
         </button>
+        <a
+          href={schoolMudKitchenPortalPath(slug)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="MudKitchen"
+          className="mt-1.5 w-full flex items-center transition-colors duration-150"
+          style={{
+            justifyContent: isExpanded ? "flex-start" : "center",
+            gap: isExpanded ? "8px" : 0,
+            padding: "6px 8px",
+            borderRadius: C.r.sm,
+            border: `1px solid ${C.secondaryBtnBorder}`,
+            backgroundColor: C.accentLight,
+            color: C.accent,
+            textDecoration: "none",
+          }}
+        >
+          <Image
+            src="/images/Logo.png"
+            alt=""
+            width={20}
+            height={20}
+            className="w-5 h-5 flex-shrink-0 object-contain"
+            aria-hidden
+          />
+          {isExpanded && (
+            <>
+              <span className="text-sm font-medium truncate">MudKitchen</span>
+              <ExternalLink className="ml-auto h-3.5 w-3.5 flex-shrink-0 opacity-70" />
+            </>
+          )}
+        </a>
         <Link
           href={documentationPath}
           title="How-to guides"

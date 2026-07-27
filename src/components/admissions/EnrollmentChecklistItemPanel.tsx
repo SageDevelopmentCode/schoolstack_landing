@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { FileText, Loader2 } from "lucide-react";
 import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
+import ApplicationRadioInput from "@/components/admissions/ApplicationRadioInput";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
 import PaymentFeeBreakdownList from "@/components/admissions/PaymentFeeBreakdownList";
 import TypedSignatureField, {
@@ -40,6 +41,7 @@ import {
 import {
   getAgreementResumeSectionIndex,
   mergeAgreementSectionSignature,
+  parseAgreementConsentValue,
   parseAgreementSectionSignatures,
   signaturesBySectionId,
 } from "@/lib/admissions/enrollment-agreement-progress";
@@ -163,6 +165,8 @@ function DocumentSignInlinePanel({
   onPartialProgress?: (responses: Record<string, unknown>) => Promise<void> | void;
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
+  const consentOptions =
+    item.document?.kind === "inline_sections" ? item.document.consentOptions ?? [] : [];
   const storedSignatures = useMemo(
     () => parseAgreementSectionSignatures(existingResponses),
     [existingResponses],
@@ -196,24 +200,48 @@ function DocumentSignInlinePanel({
     : `${section?.id ?? ""}:${expectedSignature}`;
   const [signature, setSignature] = useState(expectedSignature);
 
+  const expectedConsent = isCompleted
+    ? parseAgreementConsentValue(existingResponses) ?? ""
+    : parseAgreementConsentValue(existingResponses) ?? "";
+  const consentSourceKey = isCompleted
+    ? `completed-consent:${expectedConsent}`
+    : `consent:${expectedConsent}`;
+  const [selectedConsent, setSelectedConsent] = useState(expectedConsent);
+  const [previewConsent, setPreviewConsent] = useState("");
+
   useEffect(() => {
     queueMicrotask(() => setSignature(expectedSignature));
   }, [signatureSourceKey, expectedSignature]);
 
+  useEffect(() => {
+    queueMicrotask(() => setSelectedConsent(expectedConsent));
+  }, [consentSourceKey, expectedConsent]);
+
   const [submitting, setSubmitting] = useState(false);
-  const signatureRequired = isLive;
-  const canContinue = !signatureRequired || Boolean(signature.trim()) || isCompleted;
+  const activeConsent = isLive ? selectedConsent : previewConsent;
+  const needsSignature = !isCompleted;
+  const needsConsent =
+    consentOptions.length > 0 && isLastSection && !isCompleted;
+  const canContinue =
+    isCompleted ||
+    ((!needsSignature || Boolean(signature.trim())) &&
+      (!needsConsent || Boolean(activeConsent.trim())));
 
   const saveCurrentSectionPreview = () => {
     if (!section) return;
 
-    const signerName = signature.trim() || "Preview Signer";
+    const signerName = signature.trim();
+    if (!signerName) return;
     const nextSignatures = mergeAgreementSectionSignature(
       previewSignatures,
       section.id,
       signerName,
     );
     setPreviewSignatures(nextSignatures);
+
+    if (isLastSection && consentOptions.length > 0) {
+      setPreviewConsent(activeConsent.trim());
+    }
 
     if (isLastSection) {
       setPreviewCompleted(true);
@@ -237,6 +265,9 @@ function DocumentSignInlinePanel({
           agreementSection: {
             sectionId: section.id,
             signerName: signature.trim(),
+            ...(isLastSection && activeConsent.trim()
+              ? { consentValue: activeConsent.trim() }
+              : {}),
           },
         }),
       });
@@ -302,6 +333,30 @@ function DocumentSignInlinePanel({
               className="mt-4"
             />
 
+            {consentOptions.length > 0 && isLastSection ? (
+              <div className="mt-6 space-y-2">
+                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  Select one permission option
+                </p>
+                <ApplicationRadioInput
+                  name={`consent-${item.id}`}
+                  value={activeConsent}
+                  onChange={(value) => {
+                    if (isLive) {
+                      setSelectedConsent(value);
+                    } else {
+                      setPreviewConsent(value);
+                    }
+                  }}
+                  options={consentOptions}
+                  disabled={isCompleted}
+                  ariaLabel="Select one permission option"
+                  layout="stacked"
+                  C={C}
+                />
+              </div>
+            ) : null}
+
             <div className="mt-6">
               <TypedSignatureField
                 C={C}
@@ -311,27 +366,6 @@ function DocumentSignInlinePanel({
                 disabled={isCompleted}
               />
             </div>
-
-            {item.document?.kind === "inline_sections" && item.document.consentOptions?.length ? (
-              <div className="mt-4 space-y-2">
-                {item.document.consentOptions.map((option) => (
-                  <label
-                    key={option.value}
-                    className="flex items-start gap-2 text-sm"
-                    style={{ color: C.textPrimary }}
-                  >
-                    <input
-                      type="radio"
-                      name={`consent-${item.id}`}
-                      disabled={!isLive}
-                      className="mt-0.5"
-                      style={{ accentColor: C.accent }}
-                    />
-                    {option.label}
-                  </label>
-                ))}
-              </div>
-            ) : null}
           </motion.div>
         </AnimatePresence>
       </div>

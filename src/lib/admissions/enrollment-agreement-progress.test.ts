@@ -3,9 +3,11 @@ import { describe, it } from "node:test";
 import type { EnrollmentContractSection } from "./enrollment-checklist-schema";
 import {
   allAgreementSectionsSigned,
+  buildAgreementResponsesPatch,
   getAgreementResumeSectionIndex,
   getAgreementSectionProgressLabel,
   mergeAgreementSectionSignature,
+  parseAgreementConsentValue,
   parseAgreementSectionSignatures,
 } from "./enrollment-agreement-progress";
 
@@ -128,5 +130,25 @@ describe("allAgreementSectionsSigned", () => {
       ],
     });
     assert.equal(allAgreementSectionsSigned(sections, complete), true);
+  });
+});
+
+describe("parseAgreementConsentValue", () => {
+  it("returns null for missing or invalid consent", () => {
+    assert.equal(parseAgreementConsentValue(null), null);
+    assert.equal(parseAgreementConsentValue({}), null);
+    assert.equal(parseAgreementConsentValue({ consentValue: "   " }), null);
+  });
+
+  it("returns trimmed consent value", () => {
+    assert.equal(parseAgreementConsentValue({ consentValue: " full_use " }), "full_use");
+  });
+});
+
+describe("buildAgreementResponsesPatch", () => {
+  it("stores consentValue when provided", () => {
+    const patch = buildAgreementResponsesPatch({}, [], "Jane Doe", "full_use");
+    assert.equal(patch.signerName, "Jane Doe");
+    assert.equal(patch.consentValue, "full_use");
   });
 });
