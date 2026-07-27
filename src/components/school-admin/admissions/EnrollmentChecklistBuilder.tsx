@@ -32,6 +32,7 @@ type EnrollmentChecklistBuilderProps = {
   orgSlug: string;
   stripePaymentsReady?: boolean;
   items: EnrollmentChecklistItem[];
+  isDirty?: boolean;
   onItemsChange: (items: EnrollmentChecklistItem[]) => void;
   onPreviewItem: (itemId?: string) => void;
   readOnly?: boolean;
@@ -77,6 +78,7 @@ export default function EnrollmentChecklistBuilder({
   orgSlug,
   stripePaymentsReady = true,
   items,
+  isDirty = false,
   onItemsChange,
   onPreviewItem,
   readOnly = false,
@@ -220,6 +222,7 @@ export default function EnrollmentChecklistBuilder({
         organizationId={organizationId}
         templateId={template.id}
         orgSlug={orgSlug}
+        isDirty={isDirty}
         stripePaymentsReady={stripePaymentsReady}
         readOnly={readOnly}
         onFocusChange={setFocus}

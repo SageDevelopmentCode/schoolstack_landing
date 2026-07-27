@@ -65,6 +65,7 @@ import type { FlowListSelection } from "./enrollment-flow-selection";
 import { StatusIcon } from "./ApplicationFormListBadges";
 import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
+import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
 import EnrollmentChecklistBuilder from "./EnrollmentChecklistBuilder";
 import EnrollmentChecklistPreview from "./EnrollmentChecklistPreview";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
@@ -1227,16 +1228,14 @@ export default function ApplicationFormsPage({
                 C={C}
                 schoolSlug={slug}
               />
-              <button
-                type="button"
-                onClick={() => openChecklistPreview()}
+              <ChecklistPreviewMenuButton
+                C={C}
+                orgSlug={slug}
+                checklistId={selectedChecklist.id}
                 disabled={!checklistEditable.items.length}
-                className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                style={getAdminButtonStyle(C, "warning")}
-              >
-                <Eye className="h-3.5 w-3.5" />
-                Preview
-              </button>
+                isDirty={isChecklistDirty}
+                onPreviewHere={() => openChecklistPreview()}
+              />
               <ChecklistProgramDropdown
                 C={C}
                 programs={programs}
@@ -1315,6 +1314,7 @@ export default function ApplicationFormsPage({
               orgSlug={slug}
               stripePaymentsReady={stripePaymentsReady}
               items={checklistEditable.items}
+              isDirty={isChecklistDirty}
               onItemsChange={handleChecklistItemsChange}
               onPreviewItem={openChecklistPreview}
               readOnly={checklistReadOnly}

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Eye } from "lucide-react";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import {
@@ -10,8 +9,8 @@ import {
   type ChecklistItemType,
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
 import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
 import BuilderFieldEditorPanel from "./BuilderFieldEditorPanel";
 import { BuilderSectionIntro } from "./builder-question-card";
@@ -53,7 +52,8 @@ type EnrollmentChecklistFocusCanvasProps = {
   items: EnrollmentChecklistItem[];
   organizationId: string;
   templateId: string;
-  orgSlug?: string;
+  orgSlug: string;
+  isDirty?: boolean;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
   onFocusChange: (focus: ChecklistBuilderFocus) => void;
@@ -72,6 +72,7 @@ function ItemView({
   organizationId,
   templateId,
   orgSlug,
+  isDirty = false,
   stripePaymentsReady,
   readOnly,
   selectedFieldId,
@@ -87,7 +88,8 @@ function ItemView({
   itemIdx: number;
   organizationId: string;
   templateId: string;
-  orgSlug?: string;
+  orgSlug: string;
+  isDirty?: boolean;
   stripePaymentsReady?: boolean;
   readOnly?: boolean;
   selectedFieldId?: string | null;
@@ -107,15 +109,14 @@ function ItemView({
           title={item.label || "Untitled item"}
           subtitle={itemTypeSubtitle(item.type)}
         />
-        <button
-          type="button"
-          onClick={() => onPreviewItem(item.id)}
-          className="flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-          style={getAdminButtonStyle(C, "warning")}
-        >
-          <Eye className="h-3.5 w-3.5" />
-          Preview
-        </button>
+        <ChecklistPreviewMenuButton
+          C={C}
+          orgSlug={orgSlug}
+          checklistId={templateId}
+          itemId={item.id}
+          isDirty={isDirty}
+          onPreviewHere={(previewItemId) => onPreviewItem(previewItemId ?? item.id)}
+        />
       </div>
       <EnrollmentChecklistItemEditor
         C={C}
@@ -155,6 +156,7 @@ export default function EnrollmentChecklistFocusCanvas({
   organizationId,
   templateId,
   orgSlug,
+  isDirty = false,
   stripePaymentsReady = true,
   readOnly = false,
   onFocusChange,
@@ -245,6 +247,9 @@ export default function EnrollmentChecklistFocusCanvas({
           items={items}
           focus={focus}
           readOnly={readOnly}
+          orgSlug={orgSlug}
+          checklistId={templateId}
+          isDirty={isDirty}
           editingItemId={editingItemId}
           editingDraftLabel={editingDraftLabel}
           onEditingItemIdChange={setEditingItemId}
@@ -271,6 +276,7 @@ export default function EnrollmentChecklistFocusCanvas({
                       organizationId={organizationId}
                       templateId={templateId}
                       orgSlug={orgSlug}
+                      isDirty={isDirty}
                       stripePaymentsReady={stripePaymentsReady}
                       readOnly={readOnly}
                       selectedFieldId={
