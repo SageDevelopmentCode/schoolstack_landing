@@ -327,7 +327,7 @@ function buildGuideTemplates(slug: string): AdminDocGuideTemplate[] {
         {
           title: "Mark as enrolled",
           description:
-            "Use Mark as enrolled when the checklist is done — or to skip remaining items. This unlocks the full parent portal.",
+            "Use Mark as enrolled when paperwork and fees were handled offline. Choose whether to complete every checklist step (including supply and activity fees in Payments and Finances) or enroll only without changing the checklist.",
         },
       ],
     },

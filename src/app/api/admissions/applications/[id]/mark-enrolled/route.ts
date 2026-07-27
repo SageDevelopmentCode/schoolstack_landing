@@ -20,6 +20,7 @@ type RouteContext = {
 
 type MarkEnrolledBody = {
   note?: string;
+  completeChecklist?: boolean;
 };
 
 export async function POST(request: Request, context: RouteContext) {
@@ -69,6 +70,7 @@ export async function POST(request: Request, context: RouteContext) {
       applicationId,
       actorUserId: user.id,
       note: body.note?.trim() || undefined,
+      completeChecklist: body.completeChecklist,
     });
 
     return NextResponse.json(result);

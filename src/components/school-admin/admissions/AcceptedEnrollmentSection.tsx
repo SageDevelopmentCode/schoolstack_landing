@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MoreHorizontal } from "lucide-react";
-import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import MarkEnrolledDialog from "@/components/school-admin/admissions/MarkEnrolledDialog";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import { getApplicationDecisionActions } from "@/lib/admissions/application-status-transitions";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -12,13 +12,19 @@ import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 type AcceptedEnrollmentSectionProps = {
   C: AdminThemeTokens;
   applicationId: string;
-  onStartEnrollment: () => void;
+  applicationStatus?: "accepted" | "enrolling";
+  showStartEnrollment?: boolean;
+  hasPublishedChecklist?: boolean;
+  onStartEnrollment?: () => void;
   onStatusChanged: (status: string) => void;
 };
 
 export default function AcceptedEnrollmentSection({
   C,
   applicationId,
+  applicationStatus = "accepted",
+  showStartEnrollment = true,
+  hasPublishedChecklist = false,
   onStartEnrollment,
   onStatusChanged,
 }: AcceptedEnrollmentSectionProps) {
@@ -30,8 +36,8 @@ export default function AcceptedEnrollmentSection({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const secondaryActions = useMemo(
-    () => getApplicationDecisionActions("accepted"),
-    [],
+    () => getApplicationDecisionActions(applicationStatus),
+    [applicationStatus],
   );
 
   useEffect(() => {
@@ -78,7 +84,7 @@ export default function AcceptedEnrollmentSection({
     }
   }
 
-  async function handleMarkEnrolled() {
+  async function handleMarkEnrolled(completeChecklist: boolean) {
     setMarkingEnrolled(true);
     setError(null);
 
@@ -88,7 +94,7 @@ export default function AcceptedEnrollmentSection({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ completeChecklist }),
         },
       );
 
@@ -99,7 +105,11 @@ export default function AcceptedEnrollmentSection({
 
       setConfirmMarkEnrolledOpen(false);
       onStatusChanged("enrolled");
-      adminToast.success("Application marked as enrolled");
+      adminToast.success(
+        completeChecklist
+          ? "Application marked as enrolled with checklist completed"
+          : "Application marked as enrolled",
+      );
     } catch (err) {
       const message = formatActionError(err, "Failed to mark application as enrolled.");
       setError(message);
@@ -116,18 +126,34 @@ export default function AcceptedEnrollmentSection({
       <DetailPanelSection
         C={C}
         title="Enrollment"
-        description="Choose the enrollment agreement and send the checklist to the family."
+        description={
+          showStartEnrollment
+            ? "Choose the enrollment agreement and send the checklist to the family."
+            : "Complete enrollment on the family's behalf when paperwork and fees were handled offline."
+        }
       >
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onStartEnrollment}
-            disabled={isDisabled}
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-md px-4 text-sm font-semibold transition-opacity disabled:opacity-60"
-            style={getAdminButtonStyle(C, "primary")}
-          >
-            Start enrollment
-          </button>
+          {showStartEnrollment && onStartEnrollment ? (
+            <button
+              type="button"
+              onClick={onStartEnrollment}
+              disabled={isDisabled}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-md px-4 text-sm font-semibold transition-opacity disabled:opacity-60"
+              style={getAdminButtonStyle(C, "primary")}
+            >
+              Start enrollment
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={isDisabled}
+              onClick={() => setConfirmMarkEnrolledOpen(true)}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-md px-4 text-sm font-semibold transition-opacity disabled:opacity-60"
+              style={getAdminButtonStyle(C, "primary")}
+            >
+              Mark as enrolled
+            </button>
+          )}
 
           <div className="relative shrink-0" ref={menuRef}>
             <button
@@ -197,14 +223,13 @@ export default function AcceptedEnrollmentSection({
         ) : null}
       </DetailPanelSection>
 
-      <ConfirmDialog
+      <MarkEnrolledDialog
         C={C}
         open={confirmMarkEnrolledOpen}
-        title="Mark as enrolled?"
-        description="This skips the enrollment checklist and marks the student as enrolled immediately. The family will be able to access the parent portal once their account is linked."
-        confirmLabel="Mark as enrolled"
         loading={markingEnrolled}
-        onConfirm={() => void handleMarkEnrolled()}
+        hasPublishedChecklist={hasPublishedChecklist}
+        onCompleteChecklist={() => void handleMarkEnrolled(true)}
+        onEnrollOnly={() => void handleMarkEnrolled(false)}
         onClose={() => {
           if (!markingEnrolled) {
             setConfirmMarkEnrolledOpen(false);

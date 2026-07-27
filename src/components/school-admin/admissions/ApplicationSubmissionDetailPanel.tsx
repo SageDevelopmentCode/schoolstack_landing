@@ -67,6 +67,8 @@ export default function ApplicationSubmissionDetailPanel({
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadApplicationDetail>>>(null);
   const [hasChecklist, setHasChecklist] = useState(false);
+  const [hasPublishedEnrollmentChecklist, setHasPublishedEnrollmentChecklist] =
+    useState(false);
   const [startEnrollmentOpen, setStartEnrollmentOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(submission.status);
   const [activeTab, setActiveTab] = useState("overview");
@@ -84,6 +86,17 @@ export default function ApplicationSubmissionDetailPanel({
     const checklist = await getChecklistForApplication(supabase, submission.id);
     setHasChecklist(Boolean(checklist));
   }, [submission.id, supabase, setHasChecklist]);
+
+  const loadPublishedEnrollmentChecklistState = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/admissions/applications/${submission.id}/start-enrollment`,
+      );
+      setHasPublishedEnrollmentChecklist(response.ok);
+    } catch {
+      setHasPublishedEnrollmentChecklist(false);
+    }
+  }, [submission.id]);
 
   const loadDetail = useCallback(async () => {
     setLoading(true);
@@ -103,7 +116,7 @@ export default function ApplicationSubmissionDetailPanel({
         submission.id,
       );
       setFamilyId(resolvedFamilyId);
-      await loadChecklistState();
+      await Promise.all([loadChecklistState(), loadPublishedEnrollmentChecklistState()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load application.");
       setDetail(null);
@@ -112,6 +125,7 @@ export default function ApplicationSubmissionDetailPanel({
     }
   }, [
     loadChecklistState,
+    loadPublishedEnrollmentChecklistState,
     organizationId,
     submission.id,
     supabase,
@@ -170,6 +184,8 @@ export default function ApplicationSubmissionDetailPanel({
   );
 
   const canStartEnrollment = currentStatus === "accepted" && !hasChecklist;
+  const canMarkEnrolled =
+    currentStatus === "accepted" || currentStatus === "enrolling";
   const showEnrollmentStatus =
     currentStatus === "enrolling" || hasChecklist;
 
@@ -216,11 +232,20 @@ export default function ApplicationSubmissionDetailPanel({
     if (tabId === "overview") {
       return (
         <DetailPanelSectionGroup C={C}>
-          {canStartEnrollment ? (
+          {canMarkEnrolled ? (
             <AcceptedEnrollmentSection
               C={C}
               applicationId={submission.id}
-              onStartEnrollment={() => setStartEnrollmentOpen(true)}
+              applicationStatus={
+                currentStatus === "enrolling" ? "enrolling" : "accepted"
+              }
+              showStartEnrollment={canStartEnrollment}
+              hasPublishedChecklist={
+                hasPublishedEnrollmentChecklist || hasChecklist
+              }
+              onStartEnrollment={
+                canStartEnrollment ? () => setStartEnrollmentOpen(true) : undefined
+              }
               onStatusChanged={(status) => {
                 setCurrentStatus(status);
                 onSubmissionUpdated?.();

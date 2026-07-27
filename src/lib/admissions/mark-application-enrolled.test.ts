@@ -46,6 +46,7 @@ function createMockSupabase(options: {
 
   function createFilterBuilder(table: string, filters: Record<string, unknown> = {}) {
     const nextFilters = { ...filters };
+    const inFilters: Record<string, unknown[]> = {};
 
     const filterBuilder = {
       select(_columns?: string) {
@@ -53,6 +54,10 @@ function createMockSupabase(options: {
       },
       eq(column: string, value: unknown) {
         nextFilters[column] = value;
+        return filterBuilder;
+      },
+      in(column: string, values: unknown[]) {
+        inFilters[column] = values;
         return filterBuilder;
       },
       maybeSingle: async () => {
@@ -74,6 +79,14 @@ function createMockSupabase(options: {
           nextFilters.program_id === existingEnrollment?.program_id
         ) {
           return { data: existingEnrollment, error: null };
+        }
+
+        if (
+          table === "applications" &&
+          nextFilters.id === application?.id &&
+          inFilters.status?.includes(application?.status)
+        ) {
+          return { data: { id: application.id }, error: null };
         }
 
         if (
@@ -288,9 +301,9 @@ describe("markApplicationAsEnrolled", () => {
     );
   });
 
-  it("rejects applications with an existing checklist", async () => {
+  it("rejects applications with an existing checklist when status is not enrolling", async () => {
     const { supabase } = createMockSupabase({
-      application: baseApplication,
+      application: { ...baseApplication, status: "submitted" },
       checklist: {
         id: "checklist-1",
         enrollment_id: "enrollment-1",
@@ -308,7 +321,7 @@ describe("markApplicationAsEnrolled", () => {
         }),
       (error: unknown) => {
         assert.ok(error instanceof EnrollmentMaterializationError);
-        assert.equal(error.code, "already_started");
+        assert.equal(error.code, "invalid_status");
         return true;
       },
     );
@@ -334,6 +347,50 @@ describe("markApplicationAsEnrolled", () => {
         assert.equal(error.code, "duplicate_enrollment");
         return true;
       },
+    );
+  });
+
+  it("enrolls without completing checklist when completeChecklist is false", async () => {
+    const { supabase, updates } = createMockSupabase({
+      application: { ...baseApplication, status: "enrolling" },
+      checklist: {
+        id: "checklist-1",
+        enrollment_id: "enrollment-existing",
+        template_id: "template-1",
+        status: "in_progress",
+        metadata: {},
+      },
+      existingEnrollment: {
+        id: "enrollment-existing",
+        student_id: "student-1",
+        program_id: "program-1",
+        status: "in_progress",
+      },
+    });
+
+    const result = await markApplicationAsEnrolled(supabase, {
+      applicationId: "app-1",
+      actorUserId: "admin-1",
+      completeChecklist: false,
+    });
+
+    assert.equal(result.applicationId, "app-1");
+    assert.equal(result.enrollmentId, "enrollment-existing");
+    assert.ok(
+      updates.some(
+        (entry) =>
+          entry.table === "applications" &&
+          entry.values.status === "enrolled",
+      ),
+    );
+    assert.ok(
+      !updates.some((entry) => entry.table === "enrollment_checklists"),
+    );
+    assert.ok(
+      !updates.some((entry) => entry.table === "enrollment_checklist_items"),
+    );
+    assert.ok(
+      !updates.some((entry) => entry.table === "application_payments"),
     );
   });
 });
