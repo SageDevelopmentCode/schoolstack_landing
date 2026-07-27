@@ -14,6 +14,18 @@ import { ROOTED_MEADOWS_HEALTH_EMERGENCY_FORM_SCHEMA } from "../src/data/school-
 import { ROOTED_MEADOWS_IMMUNIZATION_RECORDS_CONFIG } from "../src/data/school-demos/rooted-meadows-immunization-records";
 import { ROOTED_MEADOWS_SCHOOL_TRANSCRIPT_CONFIG } from "../src/data/school-demos/rooted-meadows-school-transcript";
 
+type FileUploadStepMetadata = {
+  fileUpload: {
+    accept: string;
+    maxFiles: number;
+    helpText: string;
+    directions?: {
+      intro: string;
+      options: readonly string[];
+    };
+  };
+};
+
 function replaceSectionsBlock(
   sql: string,
   variableName: string,
@@ -63,7 +75,7 @@ function replaceFormSchemaBlock(
 function replaceMetadataBlock(
   sql: string,
   variableName: string,
-  metadata: typeof ROOTED_MEADOWS_IMMUNIZATION_RECORDS_CONFIG,
+  metadata: FileUploadStepMetadata,
 ): string {
   const marker = `${variableName} jsonb := $metadata$`;
   const start = sql.indexOf(marker);

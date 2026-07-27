@@ -848,18 +848,65 @@ export type EnrollmentProgressSummaryTone =
   | "in_progress"
   | "not_started";
 
+export type EnrollmentPaymentSummary = {
+  hasPaymentItems: boolean;
+  allPaid: boolean;
+  allWaived: boolean;
+};
+
 export type EnrollmentProgressSummary = {
   label: string;
   tone: EnrollmentProgressSummaryTone;
   completed: number;
   total: number;
   checklistStatus: string;
+  paymentSummary: EnrollmentPaymentSummary | null;
 };
+
+export function summarizeEnrollmentPaymentStatus(
+  items: EnrollmentChecklistItem[],
+  instances: EnrollmentChecklistItemInstance[],
+): EnrollmentPaymentSummary {
+  const paymentItems = items.filter((item) => item.required && item.type === "payment");
+  if (paymentItems.length === 0) {
+    return { hasPaymentItems: false, allPaid: false, allWaived: false };
+  }
+
+  const instanceByTemplate = new Map(
+    instances.map((instance) => [instance.templateItemId, instance]),
+  );
+
+  let waivedCount = 0;
+  let paidCount = 0;
+
+  for (const item of paymentItems) {
+    const instance = instanceByTemplate.get(item.id);
+    if (!instance) continue;
+
+    if (instance.status === "waived" || instance.paymentStatus === "waived") {
+      waivedCount += 1;
+    } else if (
+      instance.paymentStatus === "paid" ||
+      instance.status === "completed"
+    ) {
+      paidCount += 1;
+    }
+  }
+
+  const total = paymentItems.length;
+
+  return {
+    hasPaymentItems: true,
+    allWaived: waivedCount === total,
+    allPaid: paidCount === total,
+  };
+}
 
 export function summarizeEnrollmentProgress(
   completed: number,
   total: number,
   checklistStatus: string,
+  paymentSummary: EnrollmentPaymentSummary | null = null,
 ): EnrollmentProgressSummary {
   const label = `${completed}/${total} complete`;
 
@@ -872,7 +919,7 @@ export function summarizeEnrollmentProgress(
     tone = "not_started";
   }
 
-  return { label, tone, completed, total, checklistStatus };
+  return { label, tone, completed, total, checklistStatus, paymentSummary };
 }
 
 function filterVisibleChecklistItemsAndInstances(
@@ -975,12 +1022,17 @@ export async function listEnrollmentProgressForApplications(
       );
 
     const progress = computeChecklistProgress(visibleItems, visibleInstances);
+    const paymentSummary = summarizeEnrollmentPaymentStatus(
+      visibleItems,
+      visibleInstances,
+    );
     result.set(
       checklist.applicationId,
       summarizeEnrollmentProgress(
         progress.completed,
         progress.total,
         checklist.status,
+        paymentSummary.hasPaymentItems ? paymentSummary : null,
       ),
     );
   }
