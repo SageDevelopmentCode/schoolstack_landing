@@ -34,6 +34,7 @@ type ParentBillingPageProps = {
   familyId: string;
   branding: OrganizationBranding;
   slug: string;
+  previewMode?: boolean;
 };
 
 function ParentBillingPageFallback({
@@ -58,6 +59,7 @@ function ParentBillingPageContent({
   familyId,
   branding,
   slug,
+  previewMode = false,
 }: ParentBillingPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -226,6 +228,7 @@ function ParentBillingPageContent({
   })();
 
   const handlePay = async (chargeId: string) => {
+    if (previewMode) return;
     setPayingChargeId(chargeId);
     try {
       const response = await fetch(`/api/tuition/charges/${chargeId}/checkout`, {
@@ -243,6 +246,7 @@ function ParentBillingPageContent({
   };
 
   const handleAutopayToggle = async () => {
+    if (previewMode) return;
     const next = !autopayEnabled;
     await setAutopayEnabled(supabase, organizationId, familyId, next);
     setAutopayEnabledState(next);
@@ -281,6 +285,7 @@ function ParentBillingPageContent({
                 payingChargeId={payingChargeId}
                 highlighted={highlightedChargeId === charge.id}
                 onPay={(chargeId) => void handlePay(chargeId)}
+                readOnly={previewMode}
               />
             ))
           ) : (
@@ -303,6 +308,7 @@ function ParentBillingPageContent({
           context={activeChild.selectionItem.context}
           studentName={activeChild.studentName}
           onComplete={() => void handleScheduleComplete()}
+          readOnly={previewMode}
         />
       );
     }
@@ -360,6 +366,7 @@ function ParentBillingPageContent({
           onPay={(chargeId) => void handlePay(chargeId)}
           onAutopayToggle={() => void handleAutopayToggle()}
           nextChargeId={nextChargeRecord?.id ?? null}
+          readOnly={previewMode}
         />
       ) : null}
 

@@ -13,6 +13,7 @@ type FamilyPreviewShellProps = {
   userProfile: FamilyUserProfile;
   hasEnrolledAccess: boolean;
   parentPortalEnabled: boolean;
+  parentPortalHref?: string | null;
   children: React.ReactNode;
 };
 
@@ -29,18 +30,20 @@ export default function FamilyPreviewShell({
   userProfile,
   hasEnrolledAccess,
   parentPortalEnabled,
+  parentPortalHref,
   children,
 }: FamilyPreviewShellProps) {
   const pathname = usePathname();
   const basePath = familyPreviewBasePath(schoolSlug, familyId);
   const showParentTab = hasEnrolledAccess && parentPortalEnabled;
   const isParentRoute = pathname.startsWith(`${basePath}/parent`);
+  const parentHref = parentPortalHref ?? `${basePath}/parent`;
 
   const tabs: PreviewTab[] = [
     { id: "apply", label: "Applications", href: basePath },
   ];
   if (showParentTab) {
-    tabs.push({ id: "parent", label: "Parent portal", href: `${basePath}/parent` });
+    tabs.push({ id: "parent", label: "Parent portal", href: parentHref });
   }
 
   return (

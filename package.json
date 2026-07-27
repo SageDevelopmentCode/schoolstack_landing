@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",
+    "@next/bundle-analyzer": "^16.2.12",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

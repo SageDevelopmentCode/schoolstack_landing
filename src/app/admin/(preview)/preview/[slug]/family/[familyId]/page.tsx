@@ -5,10 +5,12 @@ import ApplyDashboard from "@/components/admissions/ApplyDashboard";
 import {
   familyHasEnrolledAccess,
   familyPreviewBasePath,
+  familyPreviewParentBasePath,
   getFamilyPreviewProfile,
   listFamilyApplicationsForFamilyId,
 } from "@/lib/admissions/family-preview-access";
 import { listEnrollmentProgressForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
+import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
@@ -50,6 +52,7 @@ export default async function FamilyPreviewApplyPage({
   }
 
   const previewBasePath = familyPreviewBasePath(slug, familyId);
+  const previewParentBasePath = familyPreviewParentBasePath(slug, familyId);
 
   const [applications, hasEnrolledAccess, timezoneResult, userProfile] =
     await Promise.all([
@@ -96,7 +99,12 @@ export default async function FamilyPreviewApplyPage({
       parentPortalEnabled={isParentPortalEnabled(org.features)}
       parentPortalHref={
         hasEnrolledAccess && isParentPortalEnabled(org.features)
-          ? `${previewBasePath}/parent`
+          ? getParentPortalHomeHref(
+              slug,
+              org.features.parent,
+              org.features.feature_nav?.parent,
+              previewParentBasePath,
+            ) ?? `${previewBasePath}/parent`
           : undefined
       }
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}

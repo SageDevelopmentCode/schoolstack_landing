@@ -207,7 +207,7 @@ export default function ParentHomePage({
   const name = firstName(userProfile.displayName);
   const applyDashboardHref =
     previewBasePath ?? `/school/${schoolSlug}/apply`;
-  const visibleQuickActions = previewMode ? [] : quickActions;
+  const visibleQuickActions = quickActions;
 
   return (
     <div

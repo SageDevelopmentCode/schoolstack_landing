@@ -32,6 +32,9 @@ type SchoolParentHeaderProps = {
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
+  previewMode?: boolean;
+  previewBasePath?: string;
+  previewParentBasePath?: string;
 };
 
 function profileInitials(displayName: string): string {
@@ -79,6 +82,9 @@ export default function SchoolParentHeader({
   branding,
   features,
   userProfile,
+  previewMode = false,
+  previewBasePath,
+  previewParentBasePath,
 }: SchoolParentHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -91,14 +97,25 @@ export default function SchoolParentHeader({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const navItems = useMemo(
-    () => buildParentNavItems(slug, features.parent, features.feature_nav?.parent),
-    [slug, features.parent, features.feature_nav?.parent],
+    () =>
+      buildParentNavItems(
+        slug,
+        features.parent,
+        features.feature_nav?.parent,
+        previewParentBasePath,
+      ),
+    [slug, features.parent, features.feature_nav?.parent, previewParentBasePath],
   );
   const { primary, more } = useMemo(
     () => splitParentNavForHeader(navItems),
     [navItems],
   );
-  const homeHref = navItems[0]?.href ?? `/school/${slug}/parent/portal`;
+  const homeHref =
+    navItems[0]?.href ??
+    (previewParentBasePath
+      ? `${previewParentBasePath}/portal`
+      : `/school/${slug}/parent/portal`);
+  const applicationsHref = previewBasePath ?? `/school/${slug}/apply`;
   const moreActive = more.some((item) => isParentNavItemActive(pathname, item));
   const initials = profileInitials(userProfile.displayName);
 
@@ -229,26 +246,28 @@ export default function SchoolParentHeader({
                   ) : null}
                 </div>
                 <Link
-                  href={`/school/${slug}/apply`}
+                  href={applicationsHref}
                   className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => setMenuOpen(false)}
                 >
                   Your applications
                 </Link>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => void handleSignOut()}
-                  disabled={signingOut}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  {!signingOut ? (
-                    <LogOut className="h-4 w-4 text-gray-500" />
-                  ) : null}
-                  <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
-                    Log out
-                  </ButtonLoadingLabel>
-                </button>
+                {!previewMode ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void handleSignOut()}
+                    disabled={signingOut}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    {!signingOut ? (
+                      <LogOut className="h-4 w-4 text-gray-500" />
+                    ) : null}
+                    <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
+                      Log out
+                    </ButtonLoadingLabel>
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>

@@ -21,6 +21,9 @@ type SchoolParentBaselineProps = {
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
   children: ReactNode;
+  previewMode?: boolean;
+  previewBasePath?: string;
+  previewParentBasePath?: string;
 };
 
 function isParentHelpPage(pathname: string, slug: string): boolean {
@@ -35,17 +38,24 @@ export default function SchoolParentBaseline({
   features,
   userProfile,
   children,
+  previewMode = false,
+  previewBasePath,
+  previewParentBasePath,
 }: SchoolParentBaselineProps) {
   const pathname = usePathname();
   const [supportOpen, setSupportOpen] = useState(false);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const bodyFont =
     branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
-  const showHelpButton = isParentHelpPage(pathname, slug);
+  const showHelpButton = !previewMode && isParentHelpPage(pathname, slug);
 
   return (
     <div
-      className="flex h-dvh w-full flex-col overflow-hidden bg-white"
+      className={
+        previewMode
+          ? "flex min-h-0 flex-1 w-full flex-col overflow-hidden bg-white"
+          : "flex h-dvh w-full flex-col overflow-hidden bg-white"
+      }
       style={{ fontFamily: bodyFont, color: C.textPrimary }}
     >
       <SchoolParentHeader
@@ -54,6 +64,9 @@ export default function SchoolParentBaseline({
         branding={branding}
         features={features}
         userProfile={userProfile}
+        previewMode={previewMode}
+        previewBasePath={previewBasePath}
+        previewParentBasePath={previewParentBasePath}
       />
 
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-white">
