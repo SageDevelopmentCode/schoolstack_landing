@@ -38,10 +38,16 @@ export type PdfDocumentConfig = {
 
 export type DocumentConfig = InlineDocumentConfig | PdfDocumentConfig;
 
+export type ChecklistFileUploadDirections = {
+  intro: string;
+  options: string[];
+};
+
 export type ChecklistFileUploadConfig = {
   accept: string;
   maxFiles: number;
   helpText: string;
+  directions?: ChecklistFileUploadDirections;
 };
 
 export type ChecklistPaymentLineItem = {

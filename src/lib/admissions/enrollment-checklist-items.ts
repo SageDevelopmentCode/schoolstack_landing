@@ -107,11 +107,30 @@ function fileUploadFromMetadata(
 ): ChecklistFileUploadConfig | undefined {
   const raw = metadata.fileUpload;
   if (!isRecord(raw)) return undefined;
+
+  let directions: ChecklistFileUploadConfig["directions"];
+  const rawDirections = raw.directions;
+  if (isRecord(rawDirections) && typeof rawDirections.intro === "string") {
+    const options = Array.isArray(rawDirections.options)
+      ? rawDirections.options
+          .filter((option): option is string => typeof option === "string")
+          .map((option) => option.trim())
+          .filter(Boolean)
+      : [];
+    if (options.length > 0) {
+      directions = {
+        intro: rawDirections.intro.trim(),
+        options,
+      };
+    }
+  }
+
   return {
     accept: typeof raw.accept === "string" ? raw.accept : ".pdf,.jpg,.jpeg,.png",
     maxFiles: typeof raw.maxFiles === "number" ? raw.maxFiles : 3,
     helpText:
       typeof raw.helpText === "string" ? raw.helpText : "Upload required documents.",
+    ...(directions ? { directions } : {}),
   };
 }
 

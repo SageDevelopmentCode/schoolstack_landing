@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Info, Loader2 } from "lucide-react";
 import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationRadioInput from "@/components/admissions/ApplicationRadioInput";
+import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
 import PaymentFeeBreakdownList from "@/components/admissions/PaymentFeeBreakdownList";
 import TypedSignatureField, {
@@ -767,6 +768,17 @@ function FormItemPanel({
     }
   }
 
+  const topNotice =
+    formSchema.stepNotice?.body.trim() &&
+    formSchema.stepNotice.placement === "top"
+      ? formSchema.stepNotice.body.trim()
+      : null;
+  const bottomNotice =
+    formSchema.stepNotice?.body.trim() &&
+    formSchema.stepNotice.placement === "bottom"
+      ? formSchema.stepNotice.body.trim()
+      : null;
+
   return (
     <div className="space-y-5">
       {formSchema.title ? (
@@ -774,6 +786,14 @@ function FormItemPanel({
           {formSchema.title}
         </h2>
       ) : null}
+
+      {formSchema.description ? (
+        <p className="text-sm" style={{ color: C.textSecondary }}>
+          {formSchema.description}
+        </p>
+      ) : null}
+
+      {topNotice ? <ApplicationStepNotice body={topNotice} C={C} /> : null}
 
       {allowMultiple ? (
         <RepeatableFormEntries
@@ -788,12 +808,14 @@ function FormItemPanel({
       ) : (
         fields.map((field) => (
           <div key={field.id}>
-            <label className="mb-1.5 block text-sm font-medium" style={{ color: C.textPrimary }}>
-              {field.label}
-              {field.required ? (
-                <span style={{ color: C.error }}> *</span>
-              ) : null}
-            </label>
+            {field.type !== "checkbox" ? (
+              <label className="mb-1.5 block text-sm font-medium" style={{ color: C.textPrimary }}>
+                {field.label}
+                {field.required ? (
+                  <span style={{ color: C.error }}> *</span>
+                ) : null}
+              </label>
+            ) : null}
             <ApplicationFieldInput
               field={field}
               value={values[field.id] ?? ""}
@@ -806,6 +828,8 @@ function FormItemPanel({
           </div>
         ))
       )}
+
+      {bottomNotice ? <ApplicationStepNotice body={bottomNotice} C={C} /> : null}
 
       {error ? (
         <p className="text-sm" style={{ color: C.error }}>
@@ -989,6 +1013,30 @@ function FileUploadPanel({
       <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
         {item.label}
       </h2>
+
+      {config?.directions ? (
+        <div
+          className="flex gap-3 rounded-md border px-4 py-3"
+          style={{
+            borderColor: C.border,
+            backgroundColor: C.accentLight,
+          }}
+        >
+          <Info
+            className="mt-0.5 h-4 w-4 shrink-0"
+            style={{ color: C.accent }}
+            aria-hidden
+          />
+          <div className="min-w-0 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+            <p>{config.directions.intro}</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {config.directions.options.map((option) => (
+                <li key={option}>{option}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : null}
 
       <ApplicationFileUploadField
         id={`checklist-file-upload-${item.id}`}

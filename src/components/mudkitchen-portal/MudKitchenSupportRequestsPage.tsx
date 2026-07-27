@@ -2,15 +2,18 @@
 
 import { useCallback, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { FadeInView } from "@/components/ui/FadeInView";
 import { createClient } from "@/utils/supabase/client";
-import { MUDKITCHEN_PORTAL_THEME } from "@/lib/mudkitchen-portal/theme";
+import PortalPageHero from "@/components/mudkitchen-portal/ui/PortalPageHero";
+import PortalSectionHeader from "@/components/mudkitchen-portal/ui/PortalSectionHeader";
+import { usePortalTheme } from "@/components/mudkitchen-portal/PortalThemeProvider";
+import MudKitchenSupportRequestForm from "@/components/mudkitchen-portal/MudKitchenSupportRequestForm";
 import {
   parseSupportRequestStatus,
   SUPPORT_REQUEST_STATUS_META,
   formatSupportRequestTopic,
   type AdminSupportRequestRow,
 } from "@/lib/school-admin/support-request-types";
-import MudKitchenSupportRequestForm from "@/components/mudkitchen-portal/MudKitchenSupportRequestForm";
 
 type MudKitchenSupportRequestsPageProps = {
   organizationId: string;
@@ -20,7 +23,7 @@ type MudKitchenSupportRequestsPageProps = {
 
 function formatTimestamp(value: string) {
   return new Date(value).toLocaleString("en-US", {
-    month: "short",
+    month: "long",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
@@ -33,7 +36,7 @@ export default function MudKitchenSupportRequestsPage({
   initialRequests,
   userEmail,
 }: MudKitchenSupportRequestsPageProps) {
-  const T = MUDKITCHEN_PORTAL_THEME;
+  const T = usePortalTheme();
   const pathname = usePathname();
   const router = useRouter();
   const [requests, setRequests] = useState(initialRequests);
@@ -70,120 +73,142 @@ export default function MudKitchenSupportRequestsPage({
   }, [organizationId, router]);
 
   return (
-    <div className="space-y-10">
-      <div>
-        <p
-          className="font-secondary text-[11px] font-semibold uppercase tracking-widest"
-          style={{ color: T.textSecondary }}
-        >
-          Support
-        </p>
-        <h1
-          className="font-heading mt-2 text-[clamp(1.75rem,3vw,2.25rem)] font-medium leading-tight"
-          style={{ color: T.textPrimary }}
-        >
-          Requests
-        </h1>
-        <p
-          className="font-secondary mt-3 max-w-[640px] text-[15px] leading-relaxed"
-          style={{ color: T.textSecondary }}
-        >
-          Your history with the MudKitchen team — and a place to send new requests.
-        </p>
-      </div>
-
-      <MudKitchenSupportRequestForm
-        organizationId={organizationId}
-        userEmail={userEmail}
-        currentPath={pathname}
-        onSubmitted={() => void refreshRequests()}
+    <>
+      <PortalPageHero
+        eyebrow="Support"
+        title="Reach the MudKitchen team."
+        subtitle="Send a message when something comes up — we'll follow up by email."
       />
 
-      <div>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2
-            className="font-heading text-xl font-medium"
-            style={{ color: T.textPrimary }}
-          >
-            Your requests
-          </h2>
-          {loading ? (
-            <span className="text-sm" style={{ color: T.textSecondary }}>
-              Refreshing…
-            </span>
-          ) : null}
+      <section className="px-6 pb-10 lg:px-16">
+        <div className="mx-auto max-w-[1100px]">
+          <MudKitchenSupportRequestForm
+            organizationId={organizationId}
+            userEmail={userEmail}
+            currentPath={pathname}
+            onSubmitted={() => void refreshRequests()}
+            defaultExpanded={requests.length === 0}
+          />
         </div>
+      </section>
 
-        {loadError ? (
-          <p className="text-sm" style={{ color: T.clay }} role="alert">
-            {loadError}
-          </p>
-        ) : null}
+      <section className="px-6 pb-20 lg:px-16 lg:pb-24">
+        <div className="mx-auto max-w-[1100px]">
+          <PortalSectionHeader
+            eyebrow="History"
+            title="Your requests"
+            subtitle={
+              loading
+                ? "Refreshing…"
+                : "A record of every message you've sent to our team."
+            }
+          />
 
-        {requests.length === 0 ? (
-          <div
-            className="rounded-2xl border px-6 py-10 text-center"
-            style={{ backgroundColor: T.surface, borderColor: T.border }}
-          >
-            <p className="font-secondary text-[15px]" style={{ color: T.textSecondary }}>
-              No requests yet. Use the form above to reach the MudKitchen team.
+          {loadError ? (
+            <p className="font-secondary text-sm" style={{ color: T.clay }} role="alert">
+              {loadError}
             </p>
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {requests.map((request) => {
-              const statusMeta = SUPPORT_REQUEST_STATUS_META[request.status];
+          ) : null}
 
-              return (
-                <li
-                  key={request.id}
-                  className="rounded-2xl border p-5 sm:p-6"
-                  style={{ backgroundColor: T.surface, borderColor: T.border }}
+          {requests.length === 0 ? (
+            <FadeInView>
+              <div
+                className="rounded-2xl border px-6 py-10 text-center"
+                style={{ backgroundColor: T.surface, borderColor: T.border }}
+              >
+                <p
+                  className="font-secondary text-[15px] leading-relaxed"
+                  style={{ color: T.textSecondary }}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p
-                        className="font-secondary text-xs font-semibold uppercase tracking-widest"
-                        style={{ color: T.textSecondary }}
-                      >
-                        {formatSupportRequestTopic(request.topic)}
-                      </p>
-                      <p
-                        className="font-heading mt-1 text-lg font-medium"
+                  No requests yet. Use the form above to reach the MudKitchen team.
+                </p>
+              </div>
+            </FadeInView>
+          ) : (
+            <div className="relative space-y-5">
+              <div
+                className="pointer-events-none absolute top-3 bottom-3 hidden sm:block"
+                style={{
+                  left: "11px",
+                  borderLeft: `1px dashed ${T.borderStrong}`,
+                }}
+                aria-hidden
+              />
+
+              {requests.map((request, index) => {
+                const statusMeta = SUPPORT_REQUEST_STATUS_META[request.status];
+
+                return (
+                  <FadeInView key={request.id} delay={index * 0.05}>
+                    <article
+                      className="relative rounded-2xl border p-6 sm:ml-8 sm:p-7"
+                      style={{
+                        backgroundColor: T.surface,
+                        borderColor: T.border,
+                      }}
+                    >
+                      <span
+                        className="absolute top-7 hidden h-3 w-3 -translate-x-[calc(2rem+5px)] rounded-full sm:block"
+                        style={{
+                          left: 0,
+                          backgroundColor: T.accent,
+                          boxShadow: `0 0 0 4px ${T.stepBg}`,
+                        }}
+                        aria-hidden
+                      />
+
+                      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+                        <time
+                          className="font-secondary text-[13px] font-semibold"
+                          style={{ color: T.textPrimary }}
+                          dateTime={request.created_at}
+                        >
+                          {formatTimestamp(request.created_at)}
+                        </time>
+                        <span
+                          className="font-secondary rounded-full px-3 py-1 text-[11px] font-medium"
+                          style={{
+                            color: T.accentDark,
+                            backgroundColor: T.stepBg,
+                            border: `1px solid ${T.secondaryBtnBorder}`,
+                          }}
+                        >
+                          {formatSupportRequestTopic(request.topic)}
+                        </span>
+                        <span
+                          className="font-secondary inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-widest"
+                          style={{
+                            color: T.textSecondary,
+                            backgroundColor: T.pageBg,
+                            border: `1px solid ${T.border}`,
+                          }}
+                        >
+                          {statusMeta.label}
+                        </span>
+                      </div>
+
+                      <h3
+                        className="font-heading text-[1.25rem] font-medium leading-snug sm:text-[1.35rem]"
                         style={{ color: T.textPrimary }}
                       >
                         {request.subject?.trim() ||
                           formatSupportRequestTopic(request.topic)}
-                      </p>
+                      </h3>
+
                       <p
-                        className="font-secondary mt-1 text-sm"
-                        style={{ color: T.textFaint }}
+                        className="font-secondary mt-3 whitespace-pre-wrap text-[15px] leading-relaxed"
+                        style={{ color: T.textSecondary }}
                       >
-                        {formatTimestamp(request.created_at)}
+                        {request.description}
                       </p>
-                    </div>
-                    <span
-                      className="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
-                      style={{
-                        backgroundColor: T.accentSoft,
-                        color: T.accent,
-                      }}
-                    >
-                      {statusMeta.label}
-                    </span>
-                  </div>
-                  <p
-                    className="font-secondary mt-4 whitespace-pre-wrap text-[15px] leading-relaxed"
-                    style={{ color: T.textSecondary }}
-                  >
-                    {request.description}
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
+                    </article>
+                  </FadeInView>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+    </>
   );
 }

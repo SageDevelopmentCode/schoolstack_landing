@@ -10,8 +10,8 @@ insert into public.organization_progress_log (
   summary,
   highlights
 )
-values (
-  'c14e04d2-d39a-4704-af0a-847edae8220a'::uuid,
+select
+  o.id,
   '2026-07-02'::date,
   '01',
   'Admissions',
@@ -24,5 +24,7 @@ values (
     "Prepared enrollment checklists for agreements, health forms, and supply fees",
     "Set up per-school customization so your form and checklist match Rooted Meadows"
   ]'::jsonb
-)
+
+from public.organizations o
+where o.slug in ('rooted-meadows-school', 'rooted-meadows')
 on conflict (organization_id, entry_date) do nothing;

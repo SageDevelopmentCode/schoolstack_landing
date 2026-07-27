@@ -9,6 +9,10 @@ import {
   ROOTED_MEADOWS_PHOTOGRAPHY_MEDIA_RELEASE_CONSENT_OPTIONS,
   ROOTED_MEADOWS_PHOTOGRAPHY_MEDIA_RELEASE_SECTIONS,
 } from "../src/data/school-demos/rooted-meadows-photography-media-release";
+import { ROOTED_MEADOWS_RELEASE_OF_LIABILITY_SECTIONS } from "../src/data/school-demos/rooted-meadows-release-of-liability";
+import { ROOTED_MEADOWS_HEALTH_EMERGENCY_FORM_SCHEMA } from "../src/data/school-demos/rooted-meadows-health-emergency-form";
+import { ROOTED_MEADOWS_IMMUNIZATION_RECORDS_CONFIG } from "../src/data/school-demos/rooted-meadows-immunization-records";
+import { ROOTED_MEADOWS_SCHOOL_TRANSCRIPT_CONFIG } from "../src/data/school-demos/rooted-meadows-school-transcript";
 
 function replaceSectionsBlock(
   sql: string,
@@ -32,6 +36,48 @@ function replaceSectionsBlock(
   }
 
   const json = JSON.stringify(sections, null, 2);
+  return `${sql.slice(0, jsonStart)}${json}${sql.slice(end)}`;
+}
+
+function replaceFormSchemaBlock(
+  sql: string,
+  variableName: string,
+  formSchema: typeof ROOTED_MEADOWS_HEALTH_EMERGENCY_FORM_SCHEMA,
+): string {
+  const marker = `${variableName} jsonb := $form$`;
+  const start = sql.indexOf(marker);
+  if (start === -1) {
+    throw new Error(`Could not find form schema marker for ${variableName}`);
+  }
+
+  const jsonStart = start + marker.length;
+  const end = sql.indexOf("$form$::jsonb;", jsonStart);
+  if (end === -1) {
+    throw new Error(`Could not find closing $form$::jsonb for ${variableName}`);
+  }
+
+  const json = JSON.stringify(formSchema, null, 2);
+  return `${sql.slice(0, jsonStart)}${json}${sql.slice(end)}`;
+}
+
+function replaceMetadataBlock(
+  sql: string,
+  variableName: string,
+  metadata: typeof ROOTED_MEADOWS_IMMUNIZATION_RECORDS_CONFIG,
+): string {
+  const marker = `${variableName} jsonb := $metadata$`;
+  const start = sql.indexOf(marker);
+  if (start === -1) {
+    throw new Error(`Could not find metadata marker for ${variableName}`);
+  }
+
+  const jsonStart = start + marker.length;
+  const end = sql.indexOf("$metadata$::jsonb;", jsonStart);
+  if (end === -1) {
+    throw new Error(`Could not find closing $metadata$::jsonb for ${variableName}`);
+  }
+
+  const json = JSON.stringify(metadata, null, 2);
   return `${sql.slice(0, jsonStart)}${json}${sql.slice(end)}`;
 }
 
@@ -101,3 +147,51 @@ photographyMediaReleaseSql = replaceConsentOptionsBlock(
 );
 writeFileSync(photographyMediaReleaseFile, photographyMediaReleaseSql, "utf8");
 console.log(`Updated ${photographyMediaReleaseFile}`);
+
+const releaseOfLiabilityFile = resolve(
+  "supabase/migrations/rooted-meadows/seed_rooted_meadows_release_of_liability_step.sql",
+);
+let releaseOfLiabilitySql = readFileSync(releaseOfLiabilityFile, "utf8");
+releaseOfLiabilitySql = replaceSectionsBlock(
+  releaseOfLiabilitySql,
+  "v_sections",
+  ROOTED_MEADOWS_RELEASE_OF_LIABILITY_SECTIONS,
+);
+writeFileSync(releaseOfLiabilityFile, releaseOfLiabilitySql, "utf8");
+console.log(`Updated ${releaseOfLiabilityFile}`);
+
+const healthEmergencyFile = resolve(
+  "supabase/migrations/rooted-meadows/seed_rooted_meadows_health_emergency_step.sql",
+);
+let healthEmergencySql = readFileSync(healthEmergencyFile, "utf8");
+healthEmergencySql = replaceFormSchemaBlock(
+  healthEmergencySql,
+  "v_form_schema",
+  ROOTED_MEADOWS_HEALTH_EMERGENCY_FORM_SCHEMA,
+);
+writeFileSync(healthEmergencyFile, healthEmergencySql, "utf8");
+console.log(`Updated ${healthEmergencyFile}`);
+
+const immunizationRecordsFile = resolve(
+  "supabase/migrations/rooted-meadows/seed_rooted_meadows_immunization_records_step.sql",
+);
+let immunizationRecordsSql = readFileSync(immunizationRecordsFile, "utf8");
+immunizationRecordsSql = replaceMetadataBlock(
+  immunizationRecordsSql,
+  "v_metadata",
+  ROOTED_MEADOWS_IMMUNIZATION_RECORDS_CONFIG,
+);
+writeFileSync(immunizationRecordsFile, immunizationRecordsSql, "utf8");
+console.log(`Updated ${immunizationRecordsFile}`);
+
+const schoolTranscriptFile = resolve(
+  "supabase/migrations/rooted-meadows/seed_rooted_meadows_school_transcript_step.sql",
+);
+let schoolTranscriptSql = readFileSync(schoolTranscriptFile, "utf8");
+schoolTranscriptSql = replaceMetadataBlock(
+  schoolTranscriptSql,
+  "v_metadata",
+  ROOTED_MEADOWS_SCHOOL_TRANSCRIPT_CONFIG,
+);
+writeFileSync(schoolTranscriptFile, schoolTranscriptSql, "utf8");
+console.log(`Updated ${schoolTranscriptFile}`);

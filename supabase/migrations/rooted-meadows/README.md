@@ -31,6 +31,17 @@ Each script is idempotent — it only runs when `jsonb_array_length(schema->'sec
 
 Run after `add_product_organization_progress_log.sql`. Independent of the form seeds.
 
+### Dual org (important)
+
+Rooted Meadows exists as two organization rows:
+
+| Slug | Used by |
+|------|---------|
+| `rooted-meadows-school` | Public timeline (`/timeline/rooted-meadows-school`) |
+| `rooted-meadows` | Production school admin (`/school/rooted-meadows/admin`) and MudKitchen portal |
+
+Daily `add_organization_progress_log_*.sql` seeds insert into **both** slugs. If production falls behind the timeline, run [`migrations_manual/sync_rooted_meadows_progress_log_to_production.sql`](../migrations_manual/sync_rooted_meadows_progress_log_to_production.sql) in the SQL Editor.
+
 | File | Date |
 |------|------|
 | `add_organization_progress_log_2026_07_02.sql` | July 2 — admissions kickoff |
@@ -45,7 +56,12 @@ Run after `add_product_organization_progress_log.sql`. Independent of the form s
 | `add_organization_progress_log_2026_07_12.sql` | July 12 — Phase 1 complete; admissions polish, payments, and parent security |
 | `add_organization_progress_log_2026_07_14.sql` | July 14 — Phase 2 started; imported real applications and answer review |
 | `add_organization_progress_log_2026_07_15.sql` | July 15 — shadow day scheduling and application submission alerts |
+| `add_organization_progress_log_2026_07_17.sql` | July 17 — enrollment checklist improvements |
+| `add_organization_progress_log_2026_07_18.sql` | July 18 — enrollment and submissions polish |
+| `add_organization_progress_log_2026_07_19.sql` | July 19 — admissions and admin workflow updates |
 | `add_organization_progress_log_2026_07_22.sql` | July 22 — Phase 3 started; tuition setup wizard, family billing, and parent payments |
+| `add_organization_progress_log_2026_07_24.sql` | July 24 — tuition and billing progress |
+| `add_organization_progress_log_2026_07_25.sql` | July 25 — parent billing portal, invoices, and committees |
 
 ## Enrollment checklist seeds
 
@@ -60,6 +76,10 @@ Run after `add_product_enrollment_checklist_templates.sql` and `add_product_docu
 | `seed_rooted_meadows_enrollment_agreement_variants.sql` | Enrollment Agreement (variant group) | Standard + Conditional Support agreements; idempotent |
 | `seed_rooted_meadows_media_technology_step.sql` | Media & Technology | Policy agreement with parent signature; after enrollment agreement; target org `rooted-meadows`; idempotent |
 | `seed_rooted_meadows_photography_media_release_step.sql` | Photography and Media Release | Policy agreement with permission choice and parent signature; after Media & Technology; target org `rooted-meadows`; idempotent |
+| `seed_rooted_meadows_release_of_liability_step.sql` | Release of Liability & Indemnity | Waiver agreement with parent signature; after Photography and Media Release; target org `rooted-meadows`; idempotent |
+| `seed_rooted_meadows_health_emergency_step.sql` | Health & Emergency | Form step for allergies, conditions, medication, emergency contacts, and parent signature; after Release of Liability; target org `rooted-meadows`; idempotent |
+| `seed_rooted_meadows_immunization_records_step.sql` | Immunization Records | File upload for vaccine records or Idaho immunization exemption form; after Health & Emergency; target org `rooted-meadows`; idempotent |
+| `seed_rooted_meadows_school_transcript_step.sql` | School Transcript | File upload for transcript, homeschool curriculum summary, or teacher letter; after Immunization Records; target org `rooted-meadows`; idempotent |
 | `seed_rooted_meadows_idaho_parent_choice_tax_credit_step.sql` | Idaho Parent Choice Tax Credit | Form step for upfront tax-credit intent; target org `rooted-meadows`; idempotent |
 
 To sync into the demo sandbox, run this seed against `rooted-meadows-school` first, then re-run `migrations_manual/clone_rooted_meadows_demo.sql`.
