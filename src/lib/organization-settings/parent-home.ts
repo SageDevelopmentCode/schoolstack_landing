@@ -18,6 +18,7 @@ export type ParentQuickAction = {
 export function buildParentQuickActions(
   slug: string,
   features: OrganizationFeatures,
+  parentBasePath?: string,
 ): ParentQuickAction[] {
   const parentFeatures = features.parent;
   if (!parentFeatures || typeof parentFeatures !== "object") {
@@ -40,7 +41,9 @@ export function buildParentQuickActions(
     return {
       key,
       label: getParentPageLabel(key, portalNav),
-      href: schoolParentPath(slug, key),
+      href: parentBasePath
+        ? `${parentBasePath}/${key}`
+        : schoolParentPath(slug, key),
       iconSlug,
       enabled: true,
     };

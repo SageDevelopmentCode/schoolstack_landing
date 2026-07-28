@@ -2,8 +2,138 @@ import { SITE_URL } from "@/lib/site";
 
 const BRAND_COLOR = 0x2e4a3c;
 
+const DISCORD_EMBED_COLORS = {
+  brand: BRAND_COLOR,
+  error: 0xed4245,
+  success: 0x22c55e,
+  payment: 0xf59e0b,
+  admissions: 0x3b82f6,
+  schedule: 0x8b5cf6,
+  sales: 0x5865f2,
+  feedback: 0xf97316,
+  support: 0x06b6d4,
+  ops: 0x64748b,
+} as const;
+
+const FIELD_LABELS: Record<string, string> = {
+  School: "🏫 School",
+  Contact: "👤 Contact",
+  Email: "✉️ Email",
+  Name: "👤 Name",
+  Flow: "🔀 Flow",
+  "Application ID": "🆔 Application ID",
+  Form: "📄 Form",
+  Submitted: "📅 Submitted",
+  Type: "🏷️ Type",
+  "School amount": "💵 School amount",
+  "Charged total": "💵 Charged total",
+  Method: "💳 Method",
+  "Payment ID": "🆔 Payment ID",
+  Paid: "📅 Paid",
+  Step: "📌 Step",
+  When: "📅 When",
+  Student: "🎒 Student",
+  Route: "🛣️ Route",
+  "HTTP method": "🔧 Method",
+  Status: "📊 Status",
+  Error: "❌ Error",
+  Code: "🔢 Code",
+  Digest: "🔑 Digest",
+  Stack: "📜 Stack",
+  Operation: "⚙️ Operation",
+  Actor: "👤 Actor",
+  Details: "📋 Details",
+  Entity: "📎 Entity",
+  Organizations: "🏫 Organizations",
+  "Overdue marked": "⚠️ Overdue marked",
+  "Reminders sent": "📨 Reminders sent",
+  "Rules evaluated": "📏 Rules evaluated",
+  "Autopay charged": "✅ Autopay charged",
+  "Autopay failed": "❌ Autopay failed",
+  "Prospect school": "🏫 Prospect school",
+  "Concept demo": "🎯 Concept demo",
+  Role: "👔 Role",
+  Priorities: "🎯 Priorities",
+  "Launch timeline": "🚀 Launch timeline",
+  "Student count": "👥 Student count",
+  "Current systems": "🖥️ Current systems",
+  Website: "🌐 Website",
+  "Current tools": "🧰 Current tools",
+  "Prep notes": "📝 Prep notes",
+  Source: "📍 Source",
+  Message: "💬 Message",
+  Feature: "✨ Feature",
+  Page: "📄 Page",
+  Submitter: "👤 Submitter",
+  "Request ID": "🆔 Request ID",
+  Topic: "🏷️ Topic",
+  Description: "💬 Description",
+  Attachments: "📎 Attachments",
+  "Billing period": "📆 Billing period",
+  Amount: "💵 Amount",
+  "Marked paid by": "👤 Marked paid by",
+  "Paid at": "📅 Paid at",
+  "Invoice ID": "🆔 Invoice ID",
+  "Stripe invoice": "🔗 Stripe invoice",
+};
+
 export function truncate(value: string, max = 1024) {
   return value.length > max ? `${value.slice(0, max - 3)}...` : value;
+}
+
+function fieldLabel(name: string): string {
+  return FIELD_LABELS[name] ?? name;
+}
+
+function formatId(id: string): string {
+  return `\`${id}\``;
+}
+
+function formatMoneyCents(cents: number): string {
+  return `**$${(cents / 100).toFixed(2)}**`;
+}
+
+function formatMoney(amount: string): string {
+  return `**${amount}**`;
+}
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function embedField(
+  name: string,
+  value: string,
+  inline?: boolean,
+): DiscordEmbedField {
+  return { name: fieldLabel(name), value, inline };
+}
+
+function schoolField(
+  name: string,
+  slug?: string,
+  id?: string,
+  inline = true,
+): DiscordEmbedField {
+  const parts = [name];
+  if (slug) parts.push(`(${slug})`);
+  if (id) parts.push(formatId(id));
+  return embedField("School", truncate(parts.join("\n")), inline);
+}
+
+function contactField(
+  email: string,
+  name?: string | null,
+  inline = true,
+): DiscordEmbedField {
+  const value =
+    name?.trim()
+      ? truncate(`${name.trim()}\n${email}`)
+      : truncate(email);
+  return embedField("Contact", value, inline);
 }
 
 interface DiscordEmbedField {
@@ -14,6 +144,7 @@ interface DiscordEmbedField {
 
 interface DiscordEmbed {
   title: string;
+  description?: string;
   color?: number;
   fields: DiscordEmbedField[];
   timestamp?: string;
@@ -33,9 +164,9 @@ async function sendDiscordEmbedToWebhook(
       ...(options?.content ? { content: options.content } : {}),
       embeds: [
         {
-          color: BRAND_COLOR,
-          timestamp: new Date().toISOString(),
           ...embed,
+          color: embed.color ?? BRAND_COLOR,
+          timestamp: new Date().toISOString(),
         },
       ],
     }),
@@ -145,41 +276,21 @@ export async function notifyTuitionBillingCronSummary(payload: {
   autopayFailed: number;
 }) {
   const fields: DiscordEmbedField[] = [
-    {
-      name: "Organizations",
-      value: String(payload.organizations),
-      inline: true,
-    },
-    {
-      name: "Overdue marked",
-      value: String(payload.overdueCount),
-      inline: true,
-    },
-    {
-      name: "Reminders sent",
-      value: String(payload.remindersSent),
-      inline: true,
-    },
-    {
-      name: "Rules evaluated",
-      value: String(payload.rulesEvaluated),
-      inline: true,
-    },
-    {
-      name: "Autopay charged",
-      value: String(payload.autopayProcessed),
-      inline: true,
-    },
-    {
-      name: "Autopay failed",
-      value: String(payload.autopayFailed),
-      inline: true,
-    },
+    embedField("Organizations", String(payload.organizations), true),
+    embedField("Overdue marked", String(payload.overdueCount), true),
+    embedField("Reminders sent", String(payload.remindersSent), true),
+    embedField("Rules evaluated", String(payload.rulesEvaluated), true),
+    embedField("Autopay charged", String(payload.autopayProcessed), true),
+    embedField("Autopay failed", String(payload.autopayFailed), true),
   ];
 
   await sendTuitionBillingDiscordEmbed(
     {
-      title: "Tuition billing cron · daily summary",
+      title: "📊 Tuition billing cron · daily summary",
+      color:
+        payload.autopayFailed > 0
+          ? DISCORD_EMBED_COLORS.error
+          : DISCORD_EMBED_COLORS.ops,
       fields,
     },
     payload.autopayFailed > 0 ? { content: "@everyone" } : undefined,
@@ -196,27 +307,29 @@ export async function notifyWebsiteApiError(payload: {
   digest?: string;
 }) {
   const fields: DiscordEmbedField[] = [
-    { name: "Route", value: truncate(payload.route), inline: true },
-    { name: "Method", value: payload.method, inline: true },
-    { name: "Status", value: String(payload.status), inline: true },
-    { name: "Error", value: truncate(payload.error) },
+    embedField("Route", truncate(`\`${payload.route}\``), true),
+    embedField("HTTP method", payload.method, true),
+    embedField("Status", String(payload.status), true),
+    embedField("Error", truncate(payload.error)),
   ];
 
   if (payload.code) {
-    fields.push({ name: "Code", value: truncate(payload.code), inline: true });
+    fields.push(embedField("Code", truncate(payload.code), true));
   }
 
   if (payload.digest) {
-    fields.push({ name: "Digest", value: truncate(payload.digest), inline: true });
+    fields.push(embedField("Digest", truncate(formatId(payload.digest)), true));
   }
 
   if (payload.stack) {
-    fields.push({ name: "Stack", value: truncate(payload.stack, 900) });
+    fields.push(embedField("Stack", truncate(payload.stack, 900)));
   }
 
   await sendWebsiteNotificationDiscordEmbed(
     {
-      title: `API error · ${payload.status}`,
+      title: `🚨 API error · ${payload.status}`,
+      description: `**${payload.method}** \`${payload.route}\` — ${truncate(payload.error, 200)}`,
+      color: DISCORD_EMBED_COLORS.error,
       fields,
     },
     { content: "@everyone" },
@@ -236,51 +349,44 @@ export async function notifySchoolAdminOperationError(payload: {
   entityId?: string;
 }) {
   const fields: DiscordEmbedField[] = [
-    { name: "Operation", value: truncate(payload.operation), inline: true },
-    { name: "Error", value: truncate(payload.error) },
+    embedField("Operation", truncate(payload.operation), true),
+    embedField("Error", truncate(payload.error)),
   ];
 
   if (payload.organizationId) {
-    const schoolParts = [
-      payload.organizationName,
-      payload.organizationSlug ? `(${payload.organizationSlug})` : null,
-      payload.organizationId,
-    ].filter(Boolean);
-    fields.push({
-      name: "School",
-      value: truncate(schoolParts.join("\n")),
-      inline: true,
-    });
+    fields.push(
+      schoolField(
+        payload.organizationName ?? "Unknown",
+        payload.organizationSlug,
+        payload.organizationId,
+      ),
+    );
   }
 
   if (payload.actorEmail) {
-    fields.push({
-      name: "Actor",
-      value: truncate(payload.actorEmail),
-      inline: true,
-    });
+    fields.push(embedField("Actor", truncate(payload.actorEmail), true));
   }
 
   if (payload.code) {
-    fields.push({ name: "Code", value: truncate(payload.code), inline: true });
+    fields.push(embedField("Code", truncate(payload.code), true));
   }
 
   if (payload.details) {
-    fields.push({ name: "Details", value: truncate(payload.details) });
+    fields.push(embedField("Details", truncate(payload.details)));
   }
 
   if (payload.entityType || payload.entityId) {
     const entityParts = [payload.entityType, payload.entityId].filter(Boolean);
-    fields.push({
-      name: "Entity",
-      value: truncate(entityParts.join(" · ")),
-      inline: true,
-    });
+    fields.push(
+      embedField("Entity", truncate(entityParts.join(" · ")), true),
+    );
   }
 
   await sendWebsiteNotificationDiscordEmbed(
     {
-      title: `School admin error · ${payload.operation}`,
+      title: `🔧 School admin error · ${payload.operation}`,
+      description: truncate(payload.error, 200),
+      color: DISCORD_EMBED_COLORS.error,
       fields,
     },
     { content: "@everyone" },
@@ -296,25 +402,33 @@ export async function notifyRootedMeadowsVerificationCodeSent(payload: {
   resent?: boolean;
 }) {
   const flowLabel = payload.mode === "create" ? "Create account" : "Log in";
-  const title = payload.resent ? "Verification code sent · resent" : "Verification code sent";
+  const title = payload.resent
+    ? "🔐 Verification code sent · resent"
+    : "🔐 Verification code sent";
 
   const fields: DiscordEmbedField[] = [
-    { name: "School", value: truncate(payload.schoolName), inline: true },
-    { name: "Email", value: truncate(payload.email), inline: true },
-    { name: "Flow", value: flowLabel, inline: true },
+    embedField("School", truncate(payload.schoolName), true),
+    embedField("Email", truncate(payload.email), true),
+    embedField("Flow", flowLabel, true),
   ];
 
   const firstName = payload.firstName?.trim();
   const lastName = payload.lastName?.trim();
   if (firstName || lastName) {
-    fields.push({
-      name: "Name",
-      value: truncate([firstName, lastName].filter(Boolean).join(" ")),
-      inline: true,
-    });
+    fields.push(
+      embedField(
+        "Name",
+        truncate([firstName, lastName].filter(Boolean).join(" ")),
+        true,
+      ),
+    );
   }
 
-  await sendRootedMeadowsDiscordEmbed({ title, fields });
+  await sendRootedMeadowsDiscordEmbed({
+    title,
+    color: DISCORD_EMBED_COLORS.admissions,
+    fields,
+  });
 }
 
 export async function notifyRootedMeadowsParentApplicationStarted(payload: {
@@ -327,28 +441,30 @@ export async function notifyRootedMeadowsParentApplicationStarted(payload: {
   lastName?: string;
 }) {
   const title =
-    payload.mode === "create" ? "Parent account created" : "Parent signed in";
+    payload.mode === "create"
+      ? "👤 Parent account created"
+      : "👤 Parent signed in";
 
   const firstName = payload.firstName?.trim();
   const lastName = payload.lastName?.trim();
   const nameLine =
     firstName || lastName ? [firstName, lastName].filter(Boolean).join(" ") : null;
 
-  const contactValue = nameLine
-    ? truncate(`${nameLine}\n${payload.email}`)
-    : truncate(payload.email);
-
   const fields: DiscordEmbedField[] = [
-    { name: "School", value: truncate(payload.schoolName), inline: true },
-    { name: "Contact", value: contactValue, inline: true },
-    { name: "Application ID", value: payload.applicationId, inline: true },
+    embedField("School", truncate(payload.schoolName), true),
+    contactField(payload.email, nameLine),
+    embedField("Application ID", formatId(payload.applicationId), true),
   ];
 
   if (payload.formTitle?.trim()) {
-    fields.push({ name: "Form", value: truncate(payload.formTitle.trim()) });
+    fields.push(embedField("Form", truncate(payload.formTitle.trim())));
   }
 
-  await sendRootedMeadowsDiscordEmbed({ title, fields });
+  await sendRootedMeadowsDiscordEmbed({
+    title,
+    color: DISCORD_EMBED_COLORS.admissions,
+    fields,
+  });
 }
 
 export async function notifyApplicationSubmitted(payload: {
@@ -360,39 +476,35 @@ export async function notifyApplicationSubmitted(payload: {
   lastName?: string;
   submittedAt?: string;
 }) {
-  const title = "Application submitted";
-
   const firstName = payload.firstName?.trim();
   const lastName = payload.lastName?.trim();
   const nameLine =
     firstName || lastName ? [firstName, lastName].filter(Boolean).join(" ") : null;
 
-  const contactValue = nameLine
-    ? truncate(`${nameLine}\n${payload.email}`)
-    : truncate(payload.email);
+  const contactLabel = nameLine ?? payload.email;
 
   const fields: DiscordEmbedField[] = [
-    { name: "School", value: truncate(payload.schoolName), inline: true },
-    { name: "Contact", value: contactValue, inline: true },
-    { name: "Application ID", value: payload.applicationId, inline: true },
+    embedField("School", truncate(payload.schoolName), true),
+    contactField(payload.email, nameLine),
+    embedField("Application ID", formatId(payload.applicationId), true),
   ];
 
   if (payload.formTitle?.trim()) {
-    fields.push({ name: "Form", value: truncate(payload.formTitle.trim()) });
+    fields.push(embedField("Form", truncate(payload.formTitle.trim())));
   }
 
   if (payload.submittedAt) {
-    fields.push({
-      name: "Submitted",
-      value: new Date(payload.submittedAt).toLocaleString("en-US", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }),
-      inline: true,
-    });
+    fields.push(
+      embedField("Submitted", formatDateTime(payload.submittedAt), true),
+    );
   }
 
-  await sendAdmissionsDiscordEmbed({ title, fields });
+  await sendAdmissionsDiscordEmbed({
+    title: "✅ Application submitted",
+    description: `**${payload.schoolName}** · ${contactLabel}`,
+    color: DISCORD_EMBED_COLORS.success,
+    fields,
+  });
 }
 
 export async function notifyPaymentCompleted(payload: {
@@ -409,19 +521,10 @@ export async function notifyPaymentCompleted(payload: {
   lastName?: string;
   paidAt?: string;
 }) {
-  const title = `Payment received · ${payload.label}`;
-
   const firstName = payload.firstName?.trim();
   const lastName = payload.lastName?.trim();
   const nameLine =
     firstName || lastName ? [firstName, lastName].filter(Boolean).join(" ") : null;
-
-  const contactValue = nameLine
-    ? truncate(`${nameLine}\n${payload.email}`)
-    : truncate(payload.email);
-
-  const formatCents = (cents: number) =>
-    `$${(cents / 100).toFixed(2)}`;
 
   const typeLabel =
     payload.paymentType === "enrollment_checklist"
@@ -436,27 +539,29 @@ export async function notifyPaymentCompleted(payload: {
         : "—";
 
   const fields: DiscordEmbedField[] = [
-    { name: "School", value: truncate(payload.schoolName), inline: true },
-    { name: "Contact", value: contactValue, inline: true },
-    { name: "Type", value: typeLabel, inline: true },
-    { name: "School amount", value: formatCents(payload.amountCents), inline: true },
-    { name: "Charged total", value: formatCents(payload.chargedAmountCents), inline: true },
-    { name: "Method", value: methodLabel, inline: true },
-    { name: "Payment ID", value: payload.paymentId, inline: true },
+    embedField("School", truncate(payload.schoolName), true),
+    contactField(payload.email, nameLine),
+    embedField("Type", typeLabel, true),
+    embedField("School amount", formatMoneyCents(payload.amountCents), true),
+    embedField(
+      "Charged total",
+      formatMoneyCents(payload.chargedAmountCents),
+      true,
+    ),
+    embedField("Method", methodLabel, true),
+    embedField("Payment ID", formatId(payload.paymentId), true),
   ];
 
   if (payload.paidAt) {
-    fields.push({
-      name: "Paid",
-      value: new Date(payload.paidAt).toLocaleString("en-US", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }),
-      inline: true,
-    });
+    fields.push(embedField("Paid", formatDateTime(payload.paidAt), true));
   }
 
-  await sendAdmissionsDiscordEmbed({ title, fields });
+  await sendAdmissionsDiscordEmbed({
+    title: `💳 Payment received · ${payload.label}`,
+    description: `**${payload.schoolName}** · ${typeLabel} · ${formatMoneyCents(payload.amountCents)}`,
+    color: DISCORD_EMBED_COLORS.payment,
+    fields,
+  });
 }
 
 const POST_SUBMIT_VISIT_DISCORD_TITLES: Record<string, string> = {
@@ -482,17 +587,14 @@ export async function notifyPostSubmitVisitScheduled(payload: {
   lastName?: string;
   studentName?: string;
 }) {
-  const title =
-    POST_SUBMIT_VISIT_DISCORD_TITLES[payload.actionType] ?? "Post-submit visit scheduled";
+  const visitTitle =
+    POST_SUBMIT_VISIT_DISCORD_TITLES[payload.actionType] ??
+    "Post-submit visit scheduled";
 
   const firstName = payload.firstName?.trim();
   const lastName = payload.lastName?.trim();
   const nameLine =
     firstName || lastName ? [firstName, lastName].filter(Boolean).join(" ") : null;
-
-  const contactValue = nameLine
-    ? truncate(`${nameLine}\n${payload.email}`)
-    : truncate(payload.email);
 
   const when =
     payload.schedulingMode === "whole_day"
@@ -506,22 +608,25 @@ export async function notifyPostSubmitVisitScheduled(payload: {
       : `${formatSelectedDate(payload.scheduledDate)} at ${payload.startTimeSlot} (${payload.timezoneLabel})`;
 
   const fields: DiscordEmbedField[] = [
-    { name: "School", value: truncate(payload.schoolName), inline: true },
-    { name: "Contact", value: contactValue, inline: true },
-    { name: "Application ID", value: payload.applicationId, inline: true },
-    { name: "Step", value: truncate(payload.stepTitle) },
-    { name: "When", value: when },
+    embedField("School", truncate(payload.schoolName), true),
+    contactField(payload.email, nameLine),
+    embedField("Application ID", formatId(payload.applicationId), true),
+    embedField("Step", truncate(payload.stepTitle)),
+    embedField("When", when),
   ];
 
   if (payload.studentName?.trim()) {
-    fields.push({
-      name: "Student",
-      value: truncate(payload.studentName.trim()),
-      inline: true,
-    });
+    fields.push(
+      embedField("Student", truncate(payload.studentName.trim()), true),
+    );
   }
 
-  await sendAdmissionsDiscordEmbed({ title, fields });
+  await sendAdmissionsDiscordEmbed({
+    title: `📅 ${visitTitle}`,
+    description: `**${payload.schoolName}** · ${when}`,
+    color: DISCORD_EMBED_COLORS.schedule,
+    fields,
+  });
 }
 
 const ROLES: Record<string, string> = {
@@ -612,68 +717,79 @@ export async function notifyDemoBooking(payload: {
 
   const branchFields: DiscordEmbedField[] = [];
   if (payload.launchTimeline) {
-    branchFields.push({
-      name: "Launch timeline",
-      value: LAUNCH_TIMELINES[payload.launchTimeline] ?? payload.launchTimeline,
-      inline: true,
-    });
+    branchFields.push(
+      embedField(
+        "Launch timeline",
+        LAUNCH_TIMELINES[payload.launchTimeline] ?? payload.launchTimeline,
+        true,
+      ),
+    );
   }
   if (payload.studentCount) {
-    branchFields.push({
-      name: "Student count",
-      value: STUDENT_COUNTS[payload.studentCount] ?? payload.studentCount,
-      inline: true,
-    });
+    branchFields.push(
+      embedField(
+        "Student count",
+        STUDENT_COUNTS[payload.studentCount] ?? payload.studentCount,
+        true,
+      ),
+    );
   }
   if (payload.currentSystems.trim()) {
-    branchFields.push({
-      name: "Current systems",
-      value: truncate(payload.currentSystems.trim()),
-    });
+    branchFields.push(
+      embedField("Current systems", truncate(payload.currentSystems.trim())),
+    );
   }
 
   const optionalFields: DiscordEmbedField[] = [];
   if (payload.websiteUrl.trim()) {
-    optionalFields.push({ name: "Website", value: truncate(payload.websiteUrl.trim()) });
+    optionalFields.push(
+      embedField("Website", truncate(payload.websiteUrl.trim())),
+    );
   }
   if (payload.currentTools.trim()) {
-    optionalFields.push({ name: "Current tools", value: truncate(payload.currentTools.trim()) });
+    optionalFields.push(
+      embedField("Current tools", truncate(payload.currentTools.trim())),
+    );
   }
   if (payload.prepNotes.trim()) {
-    optionalFields.push({ name: "Prep notes", value: truncate(payload.prepNotes.trim()) });
+    optionalFields.push(
+      embedField("Prep notes", truncate(payload.prepNotes.trim())),
+    );
   }
 
   const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.scheduledTime} CT`;
 
   const conceptDemoField: DiscordEmbedField[] = isWalkthrough
     ? [
-        {
-          name: "Concept demo",
-          value: truncate(
+        embedField(
+          "Concept demo",
+          truncate(
             `${payload.schoolName}\n(${payload.conceptDemoSlug})\n${SITE_URL}/demo/${payload.conceptDemoSlug}`,
           ),
-          inline: true,
-        },
+          true,
+        ),
       ]
     : [];
 
+  const title = isWalkthrough
+    ? "🗓️ New demo booking · walkthrough"
+    : "🗓️ New demo booking";
+
   await sendDiscordEmbed({
-    title: isWalkthrough ? "New demo booking · walkthrough" : "New demo booking",
+    title,
+    description: `**${payload.name}** · ${when}`,
+    color: DISCORD_EMBED_COLORS.sales,
     fields: [
-      {
-        name: "Contact",
-        value: truncate(`${payload.name}\n${payload.email}`),
-        inline: true,
-      },
-      {
-        name: "Prospect school",
-        value: truncate(isWalkthrough ? "—" : payload.schoolName),
-        inline: true,
-      },
+      contactField(payload.email, payload.name),
+      embedField(
+        "Prospect school",
+        truncate(isWalkthrough ? "—" : payload.schoolName),
+        true,
+      ),
       ...conceptDemoField,
-      { name: "When", value: when, inline: true },
-      { name: "Role", value: roleLabel, inline: true },
-      { name: "Priorities", value: truncate(priorityLabels || "—") },
+      embedField("When", when, true),
+      embedField("Role", roleLabel, true),
+      embedField("Priorities", truncate(priorityLabels || "—")),
       ...branchFields,
       ...optionalFields,
     ],
@@ -694,31 +810,20 @@ export async function notifyDemoFeedback(payload: {
       : "Anonymous";
 
   await sendDiscordEmbed({
-    title: "New demo feedback",
+    title: "💬 New demo feedback",
+    description: `**${payload.schoolName}**`,
+    color: DISCORD_EMBED_COLORS.feedback,
     fields: [
-      {
-        name: "School",
-        value: truncate(`${payload.schoolName}\n(${payload.schoolSlug})`),
-        inline: true,
-      },
-      {
-        name: "Contact",
-        value: contactValue,
-        inline: true,
-      },
+      embedField(
+        "School",
+        truncate(`${payload.schoolName}\n(${payload.schoolSlug})`),
+        true,
+      ),
+      embedField("Contact", contactValue, true),
       ...(payload.source
-        ? [
-            {
-              name: "Source",
-              value: payload.source,
-              inline: true,
-            },
-          ]
+        ? [embedField("Source", payload.source, true)]
         : []),
-      {
-        name: "Message",
-        value: truncate(payload.message.trim()),
-      },
+      embedField("Message", truncate(payload.message.trim())),
     ],
   });
 }
@@ -729,17 +834,12 @@ export async function notifyHomepageQuestion(payload: {
   message: string;
 }) {
   await sendDiscordEmbed({
-    title: "New homepage question",
+    title: "❓ New homepage question",
+    description: `**${payload.name}** · ${payload.email}`,
+    color: DISCORD_EMBED_COLORS.feedback,
     fields: [
-      {
-        name: "Contact",
-        value: truncate(`${payload.name}\n${payload.email}`),
-        inline: true,
-      },
-      {
-        name: "Message",
-        value: truncate(payload.message.trim()),
-      },
+      contactField(payload.email, payload.name),
+      embedField("Message", truncate(payload.message.trim())),
     ],
   });
 }
@@ -748,6 +848,12 @@ const PARENT_PORTAL_FEEDBACK_TYPE_LABELS: Record<string, string> = {
   feature_request: "Feature request",
   feedback: "General feedback",
   bug: "Something isn't working",
+};
+
+const PARENT_PORTAL_FEEDBACK_TITLE_EMOJI: Record<string, string> = {
+  feature_request: "💡",
+  bug: "🐛",
+  feedback: "📝",
 };
 
 export async function notifyParentPortalFeedback(payload: {
@@ -769,48 +875,34 @@ export async function notifyParentPortalFeedback(payload: {
         ? truncate(payload.submitterEmail)
         : "Unknown";
 
+  const typeLabel =
+    PARENT_PORTAL_FEEDBACK_TYPE_LABELS[payload.feedbackType] ??
+    payload.feedbackType;
+
+  const titleEmoji =
+    PARENT_PORTAL_FEEDBACK_TITLE_EMOJI[payload.feedbackType] ?? "📝";
+
   const fields: DiscordEmbedField[] = [
-    {
-      name: "School",
-      value: truncate(
-        `${payload.schoolName}\n(${payload.schoolSlug})\n${payload.organizationId}`,
-      ),
-      inline: true,
-    },
-    {
-      name: "Feature",
-      value: truncate(`${payload.featureLabel}\n(${payload.featureKey})`),
-      inline: true,
-    },
-    {
-      name: "Type",
-      value: truncate(
-        PARENT_PORTAL_FEEDBACK_TYPE_LABELS[payload.feedbackType] ??
-          payload.feedbackType,
-      ),
-      inline: true,
-    },
-    {
-      name: "Contact",
-      value: contactValue,
-      inline: true,
-    },
+    schoolField(payload.schoolName, payload.schoolSlug, payload.organizationId),
+    embedField(
+      "Feature",
+      truncate(`${payload.featureLabel}\n(${payload.featureKey})`),
+      true,
+    ),
+    embedField("Type", truncate(typeLabel), true),
+    embedField("Contact", contactValue, true),
   ];
 
   if (payload.pagePath?.trim()) {
-    fields.push({
-      name: "Page",
-      value: truncate(payload.pagePath.trim()),
-    });
+    fields.push(embedField("Page", truncate(payload.pagePath.trim())));
   }
 
-  fields.push({
-    name: "Message",
-    value: truncate(payload.message.trim()),
-  });
+  fields.push(embedField("Message", truncate(payload.message.trim())));
 
   await sendWebsiteNotificationDiscordEmbed({
-    title: "Parent portal feedback",
+    title: `${titleEmoji} Parent portal feedback`,
+    description: `**${payload.schoolName}** · ${typeLabel}`,
+    color: DISCORD_EMBED_COLORS.feedback,
     fields,
   });
 }
@@ -840,51 +932,41 @@ export async function notifyAdminSupportRequest(payload: {
     SUPPORT_REQUEST_TOPIC_LABELS[payload.topic] ?? payload.topic;
 
   const fields: DiscordEmbedField[] = [
-    {
-      name: "School",
-      value: truncate(
-        `${payload.organizationName}\n(${payload.organizationSlug})\n${payload.organizationId}`,
-      ),
-      inline: true,
-    },
-    {
-      name: "Submitter",
-      value: truncate(payload.submitterEmail),
-      inline: true,
-    },
-    {
-      name: "Request ID",
-      value: payload.requestId,
-      inline: true,
-    },
-    { name: "Topic", value: truncate(topicLabel), inline: true },
+    schoolField(
+      payload.organizationName,
+      payload.organizationSlug,
+      payload.organizationId,
+    ),
+    embedField("Submitter", truncate(payload.submitterEmail), true),
+    embedField("Request ID", formatId(payload.requestId), true),
+    embedField("Topic", truncate(topicLabel), true),
   ];
 
   if (payload.sourcePagePath?.trim()) {
-    fields.push({
-      name: "Page",
-      value: truncate(payload.sourcePagePath.trim()),
-    });
+    fields.push(embedField("Page", truncate(payload.sourcePagePath.trim())));
   }
 
-  fields.push({
-    name: "Description",
-    value: truncate(payload.description.trim()),
-  });
+  fields.push(embedField("Description", truncate(payload.description.trim())));
 
   const attachmentCount = payload.attachments?.length ?? 0;
   if (attachmentCount > 0) {
     const fileNames = payload.attachments!
       .map((file) => file.fileName)
       .join(", ");
-    fields.push({
-      name: "Attachments",
-      value: truncate(`${attachmentCount} file${attachmentCount === 1 ? "" : "s"}: ${fileNames}`),
-    });
+    fields.push(
+      embedField(
+        "Attachments",
+        truncate(
+          `${attachmentCount} file${attachmentCount === 1 ? "" : "s"}: ${fileNames}`,
+        ),
+      ),
+    );
   }
 
   await sendWebsiteNotificationDiscordEmbed({
-    title: "Admin support request",
+    title: "🆘 Admin support request",
+    description: `**${payload.organizationName}** · ${topicLabel}`,
+    color: DISCORD_EMBED_COLORS.support,
     fields,
   });
 }
@@ -910,49 +992,21 @@ export async function notifyCustomerBillingInvoicePaid(payload: {
 
   await sendCustomerBillingDiscordEmbed(
     {
-      title: "Invoice marked paid",
+      title: "✅ Invoice marked paid",
+      description: `**${payload.organizationName}** · ${formatMoney(amount)} · ${payload.billingPeriodLabel}`,
+      color: DISCORD_EMBED_COLORS.success,
       fields: [
-        {
-          name: "School",
-          value: truncate(
-            `${payload.organizationName}\n(${payload.organizationSlug})\n${payload.organizationId}`,
-          ),
-          inline: true,
-        },
-        {
-          name: "Billing period",
-          value: truncate(payload.billingPeriodLabel),
-          inline: true,
-        },
-        {
-          name: "Amount",
-          value: amount,
-          inline: true,
-        },
-        {
-          name: "Marked paid by",
-          value: truncate(payload.paidByEmail),
-          inline: true,
-        },
-        {
-          name: "Paid at",
-          value: truncate(
-            new Date(payload.paidAt).toLocaleString("en-US", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            }),
-          ),
-          inline: true,
-        },
-        {
-          name: "Invoice ID",
-          value: payload.invoiceId,
-          inline: true,
-        },
-        {
-          name: "Stripe invoice",
-          value: truncate(payload.stripeInvoiceUrl),
-        },
+        schoolField(
+          payload.organizationName,
+          payload.organizationSlug,
+          payload.organizationId,
+        ),
+        embedField("Billing period", truncate(payload.billingPeriodLabel), true),
+        embedField("Amount", formatMoney(amount), true),
+        embedField("Marked paid by", truncate(payload.paidByEmail), true),
+        embedField("Paid at", formatDateTime(payload.paidAt), true),
+        embedField("Invoice ID", formatId(payload.invoiceId), true),
+        embedField("Stripe invoice", truncate(payload.stripeInvoiceUrl)),
       ],
     },
     { content: preview },

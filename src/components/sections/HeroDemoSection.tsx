@@ -6,10 +6,13 @@ import {
   LazyAdminDashboardDemo,
   LazyTeacherDashboardDemo,
   LazyParentDashboardDemo,
+  prefetchAdminDemo,
   prefetchParentDemo,
+  prefetchTeacherDemo,
 } from './lazyDemos'
 import { DemoSkeleton } from '@/components/ui/DemoSkeleton'
 import { useMobileDemoScale } from '@/hooks/useMobileDemoScale'
+import { scheduleOnIdle } from '@/lib/schedule-on-idle'
 
 type HeroDemoTab = 'parent' | 'teacher' | 'admin'
 
@@ -22,6 +25,7 @@ const DEMO_TABS = [
 const DEMO_WIDTH = 1100
 const DEMO_HEIGHT = 680
 const VISIBLE_FRACTION = 0.75
+const DEFAULT_MOBILE_SCALE = 0.47
 
 function HeroDemoPanels({
   demoTab,
@@ -138,6 +142,7 @@ function HeroScaledDemoFrame({
 }) {
   const clipRef = useRef<HTMLDivElement>(null)
   const { scale, isMobileLayout } = useMobileDemoScale(clipRef, DEMO_WIDTH, VISIBLE_FRACTION)
+  const mobileScale = scale > 0 ? scale : DEFAULT_MOBILE_SCALE
 
   const boxShadow = t
     ? '0 0 0 1px rgba(30,59,42,0.15), 0 32px 80px rgba(30,59,42,0.12)'
@@ -149,7 +154,7 @@ function HeroScaledDemoFrame({
         ref={clipRef}
         className={`relative -mx-6 overflow-hidden lg:mx-0 lg:overflow-visible${isMobileLayout ? ' flex justify-center' : ''}`}
         style={{
-          height: isMobileLayout && scale > 0 ? DEMO_HEIGHT * scale : DEMO_HEIGHT,
+          height: isMobileLayout ? DEMO_HEIGHT * mobileScale : DEMO_HEIGHT,
         }}
       >
         <div
@@ -159,7 +164,7 @@ function HeroScaledDemoFrame({
               ? {
                   width: DEMO_WIDTH,
                   height: DEMO_HEIGHT,
-                  transform: `scale(${scale})`,
+                  transform: `scale(${mobileScale})`,
                   transformOrigin: 'top center',
                 }
               : { height: DEMO_HEIGHT }
@@ -182,10 +187,11 @@ function HeroScaledDemoFrame({
 
 export default function HeroDemoSection() {
   const [demoTab, setDemoTab] = useState<HeroDemoTab>('parent')
-  const [loadedTabs, setLoadedTabs] = useState<Set<HeroDemoTab>>(() => new Set(['parent']))
+  const [loadedTabs, setLoadedTabs] = useState<Set<HeroDemoTab>>(() => new Set())
   const [readyTabs, setReadyTabs] = useState<Set<HeroDemoTab>>(() => new Set())
   const [demosEnabled, setDemosEnabled] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
+  const idleScheduledRef = useRef(false)
   const t = demoTab === 'parent'
 
   useEffect(() => {
@@ -194,13 +200,21 @@ export default function HeroDemoSection() {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setDemosEnabled(true)
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.25) return
+
+        setDemosEnabled(true)
+
+        if (idleScheduledRef.current) return
+        idleScheduledRef.current = true
+
+        scheduleOnIdle(() => {
+          setLoadedTabs((prev) => new Set(prev).add('parent'))
           prefetchParentDemo()
-          observer.disconnect()
-        }
+        })
+
+        observer.disconnect()
       },
-      { rootMargin: '200px' },
+      { rootMargin: '50px', threshold: 0.25 },
     )
 
     observer.observe(el)
@@ -214,6 +228,9 @@ export default function HeroDemoSection() {
   const handleDemoTabChange = useCallback((id: HeroDemoTab) => {
     setDemoTab(id)
     setLoadedTabs((prev) => new Set(prev).add(id))
+    if (id === 'parent') prefetchParentDemo()
+    if (id === 'teacher') prefetchTeacherDemo()
+    if (id === 'admin') prefetchAdminDemo()
   }, [])
 
   const demoBackground =

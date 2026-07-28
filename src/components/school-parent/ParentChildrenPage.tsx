@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle, Clock } from "lucide-react";
-import ChildProfileSidePanel from "@/components/school-parent/ChildProfileSidePanel";
 import type {
   ChildProfileData,
   FamilyChildOverview,
@@ -15,6 +15,11 @@ import {
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+
+const ChildProfileSidePanel = dynamic(
+  () => import("@/components/school-parent/ChildProfileSidePanel"),
+  { ssr: false },
+);
 
 type ParentChildrenPageProps = {
   branding: OrganizationBranding;
@@ -208,15 +213,17 @@ export default function ParentChildrenPage({
         ))}
       </div>
 
-      <ChildProfileSidePanel
-        open={selectedApplicationId !== null}
-        onClose={() => setSelectedApplicationId(null)}
-        branding={branding}
-        schoolName={schoolName}
-        schoolSlug={schoolSlug}
-        application={selectedProfile?.application ?? null}
-        checklist={selectedProfile?.checklist ?? null}
-      />
+      {selectedApplicationId !== null ? (
+        <ChildProfileSidePanel
+          open={selectedApplicationId !== null}
+          onClose={() => setSelectedApplicationId(null)}
+          branding={branding}
+          schoolName={schoolName}
+          schoolSlug={schoolSlug}
+          application={selectedProfile?.application ?? null}
+          checklist={selectedProfile?.checklist ?? null}
+        />
+      ) : null}
     </div>
   );
 }

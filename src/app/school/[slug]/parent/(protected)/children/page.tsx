@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
-import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
+import { loadEnrollmentChecklistsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
 import {
   listFamilyChildrenForHome,
   loadApplicationDetail,
@@ -57,13 +57,22 @@ export default async function SchoolParentChildrenPage({ params }: PageProps) {
 
   const familyChildren = await listFamilyChildrenForHome(supabase, org.id, user.id);
 
+  const applicationIds = familyChildren.map((child) => child.applicationId);
+  const checklistsByApplicationId = await loadEnrollmentChecklistsForApplications(
+    supabase,
+    applicationIds,
+  );
+
   const childProfileEntries = await Promise.all(
     familyChildren.map(async (child) => {
-      const [application, checklist] = await Promise.all([
-        loadApplicationDetail(supabase, child.applicationId, org.id, user.id),
-        loadEnrollmentChecklistForApplication(supabase, child.applicationId, org.id),
-      ]);
+      const application = await loadApplicationDetail(
+        supabase,
+        child.applicationId,
+        org.id,
+        user.id,
+      );
       if (!application) return null;
+      const checklist = checklistsByApplicationId[child.applicationId] ?? null;
       return [child.applicationId, { application, checklist }] as const;
     }),
   );

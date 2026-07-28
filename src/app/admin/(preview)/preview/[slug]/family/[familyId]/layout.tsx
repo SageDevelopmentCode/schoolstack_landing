@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import FamilyPreviewShell from "@/components/admin/FamilyPreviewShell";
 import {
   familyHasEnrolledAccess,
+  familyPreviewParentBasePath,
   getFamilyPreviewProfile,
 } from "@/lib/admissions/family-preview-access";
+import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
@@ -34,6 +36,17 @@ export default async function FamilyPreviewLayout({
     familyHasEnrolledAccess(supabase, org.id, familyId),
   ]);
 
+  const parentPortalEnabled = isParentPortalEnabled(org.features);
+  const parentPortalHref =
+    hasEnrolledAccess && parentPortalEnabled
+      ? getParentPortalHomeHref(
+          slug,
+          org.features.parent,
+          org.features.feature_nav?.parent,
+          familyPreviewParentBasePath(slug, familyId),
+        )
+      : null;
+
   return (
     <FamilyPreviewShell
       schoolSlug={slug}
@@ -41,7 +54,8 @@ export default async function FamilyPreviewLayout({
       schoolName={org.name}
       userProfile={userProfile}
       hasEnrolledAccess={hasEnrolledAccess}
-      parentPortalEnabled={isParentPortalEnabled(org.features)}
+      parentPortalEnabled={parentPortalEnabled}
+      parentPortalHref={parentPortalHref}
     >
       {children}
     </FamilyPreviewShell>

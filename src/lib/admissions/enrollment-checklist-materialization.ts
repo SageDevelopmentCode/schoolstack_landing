@@ -823,6 +823,102 @@ export async function loadEnrollmentChecklistForApplication(
   };
 }
 
+export async function loadEnrollmentChecklistsForApplications(
+  supabase: SupabaseClient,
+  applicationIds: string[],
+): Promise<Record<string, LoadedEnrollmentChecklist | null>> {
+  const uniqueIds = [...new Set(applicationIds.filter(Boolean))];
+  const result: Record<string, LoadedEnrollmentChecklist | null> = {};
+  if (uniqueIds.length === 0) return result;
+
+  for (const applicationId of uniqueIds) {
+    result[applicationId] = null;
+  }
+
+  const { data: checklistRows, error } = await supabase
+    .from("enrollment_checklists")
+    .select("id, enrollment_id, application_id, template_id, status, metadata")
+    .in("application_id", uniqueIds);
+
+  if (error) throw error;
+  if (!checklistRows?.length) return result;
+
+  const checklistIds = checklistRows.map((row) => String(row.id));
+  const templateIds = [...new Set(checklistRows.map((row) => String(row.template_id)))];
+
+  const templateCache = new Map<
+    string,
+    Awaited<ReturnType<typeof getEnrollmentChecklistWithItems>>
+  >();
+  for (const templateId of templateIds) {
+    const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
+    if (loaded) {
+      templateCache.set(templateId, loaded);
+    }
+  }
+
+  const { data: instanceRows, error: instanceError } = await supabase
+    .from("enrollment_checklist_items")
+    .select("*")
+    .in("checklist_id", checklistIds)
+    .order("created_at", { ascending: true });
+
+  if (instanceError) throw instanceError;
+
+  const instancesByChecklist = new Map<string, EnrollmentChecklistItemInstance[]>();
+  for (const row of instanceRows ?? []) {
+    const checklistId = String(row.checklist_id);
+    const existing = instancesByChecklist.get(checklistId) ?? [];
+    existing.push(instanceFromRow(row as Record<string, unknown>));
+    instancesByChecklist.set(checklistId, existing);
+  }
+
+  for (const row of checklistRows) {
+    const applicationId = String(row.application_id);
+    const templateId = String(row.template_id);
+    const loaded = templateCache.get(templateId);
+    if (!loaded) continue;
+
+    const checklistRow = {
+      checklistId: String(row.id),
+      enrollmentId: String(row.enrollment_id),
+      templateId,
+      status: String(row.status),
+      metadata: parseChecklistMetadata(row.metadata),
+    };
+
+    const instances = instancesByChecklist.get(checklistRow.checklistId) ?? [];
+    const resolutions = checklistRow.metadata.variantResolutions ?? {};
+    const visibleItems = loaded.items.filter((item) =>
+      isVariantItemSelected(item, resolutions),
+    );
+    const visibleInstances = instances.filter((instance) => {
+      const templateItem = loaded.items.find(
+        (item) => item.id === instance.templateItemId,
+      );
+      if (!templateItem) return false;
+      return (
+        isVariantItemSelected(templateItem, resolutions) &&
+        instance.status !== "waived"
+      );
+    });
+
+    result[applicationId] = {
+      checklistId: checklistRow.checklistId,
+      enrollmentId: checklistRow.enrollmentId,
+      applicationId,
+      templateId,
+      status: checklistRow.status,
+      title: loaded.template.name,
+      items: visibleItems,
+      instances: visibleInstances,
+      metadata: checklistRow.metadata,
+    };
+  }
+
+  return result;
+}
+
 export function computeChecklistProgress(
   items: EnrollmentChecklistItem[],
   instances: EnrollmentChecklistItemInstance[],

@@ -112,14 +112,16 @@ export default function CreateCommitteeModal({
           </button>
         </div>
         <div className="p-6 space-y-5">
-          <div>
-            <label
-              className="text-xs font-semibold uppercase tracking-wide"
-              style={{ color: C.textSecondary }}
-            >
-              Template
-            </label>
-            <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                What kind of committee are you creating?
+              </span>
+              <span className="text-xs" style={{ color: C.textTertiary }}>
+                Choose a starting template. You can customize tasks and pages after setup.
+              </span>
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
               {options.map((option) => (
                 <button
                   key={option.slug}
@@ -142,34 +144,36 @@ export default function CreateCommitteeModal({
               ))}
             </div>
           </div>
-          <div>
-            <label
-              className="text-xs font-semibold uppercase tracking-wide"
-              style={{ color: C.textSecondary }}
-            >
-              Committee name
-            </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium" style={{ color: C.textPrimary }}>
+              What should this committee be called?
+            </span>
+            <span className="text-xs" style={{ color: C.textTertiary }}>
+              This is the name parents and volunteers will see in the workspace.
+            </span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-2 w-full px-3 py-2 text-sm rounded-lg border"
+              placeholder="Annual Volunteer Committee"
+              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border"
               style={{ borderColor: C.border, color: C.textPrimary }}
             />
-          </div>
-          <div>
-            <label
-              className="text-xs font-semibold uppercase tracking-wide"
-              style={{ color: C.textSecondary }}
-            >
-              Term label
-            </label>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium" style={{ color: C.textPrimary }}>
+              What school year or term is this for?
+            </span>
+            <span className="text-xs" style={{ color: C.textTertiary }}>
+              e.g. 2025–2026 School Year
+            </span>
             <input
               value={termLabel}
               onChange={(e) => setTermLabel(e.target.value)}
-              className="mt-2 w-full px-3 py-2 text-sm rounded-lg border"
+              placeholder="2025–2026 School Year"
+              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border"
               style={{ borderColor: C.border, color: C.textPrimary }}
             />
-          </div>
+          </label>
         </div>
         <div
           className="flex justify-end gap-2 px-6 py-4 border-t"

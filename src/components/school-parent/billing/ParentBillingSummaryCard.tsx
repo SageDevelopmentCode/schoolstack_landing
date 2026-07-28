@@ -19,6 +19,7 @@ type ParentBillingSummaryCardProps = {
   onPay: (chargeId: string) => void;
   onAutopayToggle: () => void;
   nextChargeId: string | null;
+  readOnly?: boolean;
 };
 
 function childFirstName(name: string): string {
@@ -46,6 +47,7 @@ export default function ParentBillingSummaryCard({
   onPay,
   onAutopayToggle,
   nextChargeId,
+  readOnly = false,
 }: ParentBillingSummaryCardProps) {
   const showBreakdown = summary.children.length > 1;
   const showEstimatedAnnual =
@@ -95,7 +97,7 @@ export default function ParentBillingSummaryCard({
             </p>
           ) : null}
         </div>
-        {summary.nextCharge && nextChargeId ? (
+        {summary.nextCharge && nextChargeId && !readOnly ? (
           <button
             type="button"
             disabled={payingChargeId === nextChargeId}
@@ -166,10 +168,12 @@ export default function ParentBillingSummaryCard({
         </div>
       ) : null}
 
-      <label className="flex items-center gap-2 text-sm" style={{ color: C.textSecondary }}>
-        <input type="checkbox" checked={autopayEnabled} onChange={onAutopayToggle} />
-        Enable autopay for due charges
-      </label>
+      {!readOnly ? (
+        <label className="flex items-center gap-2 text-sm" style={{ color: C.textSecondary }}>
+          <input type="checkbox" checked={autopayEnabled} onChange={onAutopayToggle} />
+          Enable autopay for due charges
+        </label>
+      ) : null}
     </div>
   );
 }

@@ -1,13 +1,15 @@
 /** @type {import('@lhci/cli').Config} */
+const { register } = require("tsx/cjs/api");
+register();
+
+const { resolveCiLighthouseUrls } = require("./src/lib/performance/page-manifest.ts");
+
 module.exports = {
   ci: {
     collect: {
       chromePath: process.env.CHROME_PATH,
-      url: [
-        "http://localhost:3000/",
-        "http://localhost:3000/get-started",
-        "http://localhost:3000/customers",
-      ],
+      puppeteerScript: "./scripts/lhci-puppeteer-auth.cjs",
+      url: resolveCiLighthouseUrls("ci"),
       startServerCommand: "npm run start",
       startServerReadyPattern: "Ready",
       numberOfRuns: 1,
@@ -28,6 +30,9 @@ module.exports = {
         "largest-contentful-paint": ["warn", { maxNumericValue: 5000 }],
         "total-blocking-time": ["warn", { maxNumericValue: 600 }],
         "cumulative-layout-shift": ["warn", { maxNumericValue: 0.15 }],
+        "bootup-time": ["warn", { maxNumericValue: 3000 }],
+        "dom-size": ["warn", { maxNumericValue: 1500 }],
+        "mainthread-work-breakdown": ["warn", { maxNumericValue: 6000 }],
       },
     },
     upload: {

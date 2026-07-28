@@ -39,6 +39,7 @@ export type EnrollmentChecklistExperienceProps = {
   mode?: "preview" | "live";
   organizationId?: string;
   checklistId?: string;
+  applicationId?: string;
   initialItemId?: string;
   instances?: EnrollmentChecklistItemInstance[];
   onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
@@ -254,6 +255,7 @@ export default function EnrollmentChecklistExperience({
   mode = "preview",
   organizationId,
   checklistId,
+  applicationId,
   initialItemId,
   instances = EMPTY_CHECKLIST_INSTANCES,
   onInstancesChange,
@@ -290,7 +292,7 @@ export default function EnrollmentChecklistExperience({
     queueMicrotask(() =>
       setActiveItemId(resolveInitialItemId(sidebarItems, instances, initialItemId)),
     );
-  }, [sidebarItems, initialItemId, instances]);
+  }, [sidebarItems, initialItemId]);
 
   const persistActiveItem = (itemId: string) => {
     setActiveItemId(itemId);
@@ -306,6 +308,9 @@ export default function EnrollmentChecklistExperience({
   const activeItem = sidebarItems.find((item) => item.id === activeItemId) ?? null;
   const activeIsPreviewAlternate = activeItem ? alternateItemIds.has(activeItem.id) : false;
   const activeInstance = activeItem ? instanceByTemplateId.get(activeItem.id) : undefined;
+  const nextIncompleteItemId = activeItem
+    ? findNextIncompleteItemId(progressItems, localInstances, activeItem.id)
+    : null;
 
   const handleSelectItem = (itemId: string) => {
     persistActiveItem(itemId);
@@ -340,11 +345,6 @@ export default function EnrollmentChecklistExperience({
     );
     setLocalInstances(nextInstances);
     onInstancesChange?.(nextInstances);
-
-    const nextItemId = findNextIncompleteItemId(progressItems, nextInstances, activeItem.id);
-    if (nextItemId) {
-      persistActiveItem(nextItemId);
-    }
 
     const nextProgress = computeChecklistProgress(progressItems, nextInstances);
     if (
@@ -388,10 +388,17 @@ export default function EnrollmentChecklistExperience({
           mode={mode}
           organizationId={organizationId}
           checklistId={checklistId}
+          applicationId={applicationId}
           instanceId={activeInstance?.id}
           instanceStatus={activeInstance?.status}
           instancePaymentStatus={activeInstance?.paymentStatus}
           existingResponses={activeInstance?.responses}
+          hasNextIncompleteItem={Boolean(nextIncompleteItemId)}
+          onGoToNextItem={
+            nextIncompleteItemId
+              ? () => handleSelectItem(nextIncompleteItemId)
+              : undefined
+          }
           onComplete={mode === "live" ? handleComplete : undefined}
           onPartialProgress={mode === "live" ? handlePartialProgress : undefined}
         />

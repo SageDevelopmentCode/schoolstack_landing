@@ -189,6 +189,7 @@ export default function PublicEnrollmentChecklistClient({
         instances={liveChecklist.instances}
         organizationId={organizationId}
         checklistId={liveChecklist.checklistId}
+        applicationId={liveChecklist.applicationId}
         initialItemId={resolvedInitialItemId ?? undefined}
         onInstancesChange={previewMode ? undefined : setInstances}
         onActiveItemChange={previewMode ? undefined : persistActiveItem}

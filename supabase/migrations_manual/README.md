@@ -22,5 +22,6 @@ Files here are **not** applied by `supabase db reset`. Run them manually in the 
 | `import_rooted_meadows_submission_thompson_nina_maggie.sql` | Imports Nina + Maggie Thompson (two applications, one family) into `rooted-meadows` production; optional PDF via `node scripts/import-rooted-meadows-submission.mjs thompson-nina-maggie`; link `ameliasisco@gmail.com` after import |
 | `reset_rooted_meadows_demo_tuition.sql` | Clears tuition rate catalog + billing for `rooted-meadows-demo` so the Tuition setup wizard shows; or run `node scripts/reset-rooted-meadows-demo-tuition.mjs` |
 | `remove_ritchie_olson_from_rooted_meadows_demo_2026_07_23.sql` | Removes Ritchie + Olson demo duplicates and links parents to `rooted-meadows` production |
+| `remove_zach_fredrickson_arrow_calvert_2026_07_27.sql` | Removes Zach Fredrickson Parent 2 fields from Arrow Calvert application; updates Hayley marital status to divorced; keeps Zach portal membership disabled |
 
 Client-specific seeds live in [`migrations/rooted-meadows/`](../migrations/rooted-meadows/).

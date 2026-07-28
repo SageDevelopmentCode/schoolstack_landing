@@ -11,6 +11,7 @@ type ParentBillingChargeRowProps = {
   payingChargeId: string | null;
   highlighted?: boolean;
   onPay: (chargeId: string) => void;
+  readOnly?: boolean;
 };
 
 function formatBreakdownAmount(amountCents: number): string {
@@ -27,6 +28,7 @@ export default function ParentBillingChargeRow({
   payingChargeId,
   highlighted = false,
   onPay,
+  readOnly = false,
 }: ParentBillingChargeRowProps) {
   const breakdown = buildChargeAdjustmentBreakdown({
     baseAmountCents: charge.baseAmountCents,
@@ -94,7 +96,7 @@ export default function ParentBillingChargeRow({
             {formatCents(charge.amountCents)}
           </span>
         ) : null}
-        {charge.status !== "paid" && charge.status !== "void" ? (
+        {charge.status !== "paid" && charge.status !== "void" && !readOnly ? (
           <button
             type="button"
             onClick={() => onPay(charge.id)}

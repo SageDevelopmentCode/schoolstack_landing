@@ -67,9 +67,13 @@ function resolveParentNavHref(
   slug: string,
   key: string,
   children: ParentNavChildItem[] | undefined,
+  parentBasePath?: string,
 ): string {
   if (children?.length) {
     return children[0].href;
+  }
+  if (parentBasePath) {
+    return `${parentBasePath}/${key}`;
   }
   return `/school/${slug}/parent/${key}`;
 }
@@ -78,6 +82,7 @@ export function buildParentNavItems(
   slug: string,
   parentFeatures: ParentFeatures,
   portalNav?: PortalFeatureNav,
+  parentBasePath?: string,
 ): ParentNavItem[] {
   const record = toParentFeatureRecord(parentFeatures);
   const mergedNav = mergePortalFeatureNav("parent", portalNav);
@@ -95,7 +100,9 @@ export function buildParentNavItems(
             key: child.key,
             name: getFeatureNavChildLabel(key, child.key, child),
             icon: getFeatureIcon(child.icon),
-            href: `/school/${slug}/parent/${key}/${child.key}`,
+            href: parentBasePath
+              ? `${parentBasePath}/${key}/${child.key}`
+              : `/school/${slug}/parent/${key}/${child.key}`,
           }))
         : undefined;
 
@@ -103,7 +110,7 @@ export function buildParentNavItems(
       key,
       name: resolved.label ?? getParentPageLabel(key, mergedNav),
       icon: getFeatureIcon(resolved.icon),
-      href: resolveParentNavHref(slug, key, childItems),
+      href: resolveParentNavHref(slug, key, childItems, parentBasePath),
       ...(childItems ? { children: childItems } : {}),
     });
   }
@@ -129,8 +136,14 @@ export function getParentPortalHomeHref(
   slug: string,
   parentFeatures: ParentFeatures,
   portalNav?: PortalFeatureNav,
+  parentBasePath?: string,
 ): string | null {
-  const items = buildParentNavItems(slug, parentFeatures, portalNav);
+  const items = buildParentNavItems(
+    slug,
+    parentFeatures,
+    portalNav,
+    parentBasePath,
+  );
   return items[0]?.href ?? null;
 }
 

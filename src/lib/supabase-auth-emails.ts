@@ -25,7 +25,7 @@ export function buildSupabaseMagicLinkOtpHtml(
     preheader: "{{ .Token }} is your sign-in code — enter it to continue your application.",
     contentHtml: `
       ${emailBadge("Sign In")}
-      ${emailHeading("Your sign-in code", "to continue")}
+      ${emailHeading("Your sign-in code to continue")}
       ${emailParagraph(
         "Enter this code on the application page to sign in and pick up where you left off.",
       )}

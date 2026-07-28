@@ -39,7 +39,11 @@ type ApplicationSubmissionsPageProps = {
   branding: OrganizationBranding;
   schoolName: string;
   slug: string;
+  initialSubmissions?: AdminApplicationSubmission[];
+  initialLoginStatusByGuardianId?: Record<string, ParentPortalLoginStatus>;
 };
+
+const SUBMISSIONS_PAGE_SIZE = 50;
 
 type StatusFilter = "all" | string;
 type FormFilter = "all" | string;
@@ -116,22 +120,38 @@ export default function ApplicationSubmissionsPage({
   branding,
   schoolName,
   slug,
+  initialSubmissions,
+  initialLoginStatusByGuardianId,
 }: ApplicationSubmissionsPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const deepLinkApplicationId = searchParams.get("application");
+  const hasInitialData = initialSubmissions !== undefined;
 
-  const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>([]);
+  const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>(
+    initialSubmissions ?? [],
+  );
   const [loginStatusByGuardianId, setLoginStatusByGuardianId] = useState<
     Record<string, ParentPortalLoginStatus>
-  >({});
-  const [loading, setLoading] = useState(true);
+  >(initialLoginStatusByGuardianId ?? {});
+  const [loading, setLoading] = useState(!hasInitialData);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [formFilter, setFormFilter] = useState<FormFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(SUBMISSIONS_PAGE_SIZE);
+
+  function changeStatusFilter(next: StatusFilter) {
+    setStatusFilter(next);
+    setVisibleCount(SUBMISSIONS_PAGE_SIZE);
+  }
+
+  function changeFormFilter(next: FormFilter) {
+    setFormFilter(next);
+    setVisibleCount(SUBMISSIONS_PAGE_SIZE);
+  }
 
   const flowsPath = schoolAdminPath(slug, "admissions", "flows");
 
@@ -166,10 +186,11 @@ export default function ApplicationSubmissionsPage({
   }, [organizationId, supabase]);
 
   useEffect(() => {
+    if (hasInitialData) return;
     queueMicrotask(() => {
       void loadSubmissions();
     });
-  }, [loadSubmissions]);
+  }, [hasInitialData, loadSubmissions]);
 
   useEffect(() => {
     if (!deepLinkApplicationId || loading) return;
@@ -210,6 +231,13 @@ export default function ApplicationSubmissionsPage({
       return true;
     });
   }, [formFilter, statusFilter, submissions]);
+
+  const visibleSubmissions = useMemo(
+    () => filteredSubmissions.slice(0, visibleCount),
+    [filteredSubmissions, visibleCount],
+  );
+
+  const hasMoreSubmissions = visibleSubmissions.length < filteredSubmissions.length;
 
   const selectedSubmission =
     filteredSubmissions.find((row) => row.id === selectedId) ??
@@ -257,7 +285,7 @@ export default function ApplicationSubmissionsPage({
               active={statusFilter === "all"}
               label="All"
               count={submissions.length}
-              onClick={() => setStatusFilter("all")}
+              onClick={() => changeStatusFilter("all")}
               C={C}
             />
             {APPLICATION_STATUS_FILTER_ORDER.filter((status) => statusCounts[status]).map(
@@ -267,7 +295,7 @@ export default function ApplicationSubmissionsPage({
                   active={statusFilter === status}
                   label={applicationStatusLabel(status)}
                   count={statusCounts[status]}
-                  onClick={() => setStatusFilter(status)}
+                  onClick={() => changeStatusFilter(status)}
                   C={C}
                 />
               ),
@@ -301,7 +329,7 @@ export default function ApplicationSubmissionsPage({
             <FilterChip
               active={formFilter === "all"}
               label="All forms"
-              onClick={() => setFormFilter("all")}
+              onClick={() => changeFormFilter("all")}
               C={C}
             />
             {formOptions.map(([key, title]) => (
@@ -309,7 +337,7 @@ export default function ApplicationSubmissionsPage({
                 key={key}
                 active={formFilter === key}
                 label={title}
-                onClick={() => setFormFilter(key)}
+                onClick={() => changeFormFilter(key)}
                 C={C}
               />
             ))}
@@ -390,7 +418,7 @@ export default function ApplicationSubmissionsPage({
                 </tr>
               </thead>
               <tbody>
-                {filteredSubmissions.map((submission) => {
+                {visibleSubmissions.map((submission) => {
                   const isSelected = submission.id === selectedId;
                   const statusStyle = applicationStatusBadgeStyle(submission.status, C);
 
@@ -542,6 +570,20 @@ export default function ApplicationSubmissionsPage({
                 })}
               </tbody>
             </table>
+            {hasMoreSubmissions ? (
+              <div className="flex justify-center border-t px-4 py-3 sm:px-5" style={{ borderColor: C.border }}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVisibleCount((count) => count + SUBMISSIONS_PAGE_SIZE)
+                  }
+                  className="text-xs font-medium underline-offset-2 hover:underline"
+                  style={{ color: C.accent }}
+                >
+                  Show more ({filteredSubmissions.length - visibleSubmissions.length} remaining)
+                </button>
+              </div>
+            ) : null}
           </div>
         )}
 

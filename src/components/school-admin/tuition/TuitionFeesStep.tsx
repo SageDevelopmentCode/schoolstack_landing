@@ -53,14 +53,12 @@ export default function TuitionFeesStep({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Optional one-time fees charged when a family enrolls.
+        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+          Do you charge any one-time fees at enrollment?
         </p>
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          These are separate from application fees or enrollment checklist items in
-          Admissions — those are collected during apply or onboarding. Fees you add
-          here appear on the parent&apos;s tuition page alongside their tuition
-          balance.
+        <p className="text-xs" style={{ color: C.textTertiary }}>
+          Optional. Separate from application fees in Admissions — these show on the
+          family&apos;s tuition page.
         </p>
       </div>
 
@@ -77,7 +75,12 @@ export default function TuitionFeesStep({
               style={{ border: `1px solid ${C.border}`, backgroundColor: C.bg }}
             >
               <label className="flex flex-col gap-1 text-sm flex-1">
-                <span style={{ color: C.textSecondary }}>Fee label</span>
+                <span className="font-medium" style={{ color: C.textPrimary }}>
+                  What is this fee called?
+                </span>
+                <span className="text-xs" style={{ color: C.textTertiary }}>
+                  e.g. Technology fee, Materials fee
+                </span>
                 <input
                   style={inputStyle(C)}
                   value={fee.label}
@@ -86,7 +89,12 @@ export default function TuitionFeesStep({
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm sm:max-w-[160px] sm:w-full">
-                <span style={{ color: C.textSecondary }}>Amount</span>
+                <span className="font-medium" style={{ color: C.textPrimary }}>
+                  How much is this fee?
+                </span>
+                <span className="text-xs" style={{ color: C.textTertiary }}>
+                  Charged once when a family enrolls
+                </span>
                 <input
                   style={inputStyle(C)}
                   type="number"
@@ -122,7 +130,7 @@ export default function TuitionFeesStep({
         style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
       >
         <Plus className="w-3.5 h-3.5" />
-        Add fee
+        Add another fee
       </button>
     </div>
   );

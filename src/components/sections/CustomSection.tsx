@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { FadeInView } from '@/components/ui/FadeInView'
+import { HeroEnter } from '@/components/ui/HeroEnter'
 
 const TAGS = [
   'Custom enrollment flows',
@@ -56,7 +56,6 @@ export default function CustomSection() {
     <section id="custom" className="py-24 max-lg:overflow-x-visible overflow-hidden" style={{ backgroundColor: '#F4F7F2' }}>
       <div className="relative max-w-[1280px] mx-auto px-6">
 
-        {/* Decorative illustration — left */}
         <div className="absolute top-1/2 -translate-y-1/2 left-[-60px] xl:left-[-30px] z-0 pointer-events-none select-none hidden lg:block">
           <Image
             src="/images/illustrations/Plant.webp"
@@ -68,7 +67,6 @@ export default function CustomSection() {
           />
         </div>
 
-        {/* Decorative illustration — right */}
         <div className="absolute top-1/2 -translate-y-1/2 right-[-60px] xl:right-[-30px] z-0 pointer-events-none select-none hidden lg:block">
           <Image
             src="/images/illustrations/Drawing2.webp"
@@ -82,23 +80,23 @@ export default function CustomSection() {
 
       <div className="max-w-[860px] mx-auto px-6 text-center relative z-10">
 
-        <FadeInView>
+        <HeroEnter>
           <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.5rem)] leading-[1.05] text-text">
             Need something specific?
             <br /><em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>We build custom, too.</em>
           </h2>
-        </FadeInView>
+        </HeroEnter>
 
-        <FadeInView delay={0.1}>
+        <HeroEnter delayMs={100}>
           <p className="text-[16px] text-text-muted max-w-[56ch] mx-auto mt-5 leading-relaxed">
             Microschools don&apos;t all run the same way. Some need a simple launch setup.
             Others need tour booking, custom tuition logic, complex forms, parent
             workflows, or internal operations tailored to their model. Start with a
             proven stack, then extend from there.
           </p>
-        </FadeInView>
+        </HeroEnter>
 
-        <FadeInView delay={0.18}>
+        <HeroEnter delayMs={180}>
           <style>{`
             @keyframes custom-tag-marquee-left {
               0% { transform: translateX(0); }
@@ -120,9 +118,9 @@ export default function CustomSection() {
               </span>
             ))}
           </div>
-        </FadeInView>
+        </HeroEnter>
 
-        <FadeInView delay={0.26}>
+        <HeroEnter delayMs={260}>
           <div className="mt-10">
             <a
               href="/get-started"
@@ -134,7 +132,7 @@ export default function CustomSection() {
               </svg>
             </a>
           </div>
-        </FadeInView>
+        </HeroEnter>
 
       </div>
 

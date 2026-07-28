@@ -73,7 +73,7 @@ export function AddScheduleCard({
         }}
       >
         <Plus className="h-5 w-5" />
-        <span className="text-sm font-medium">Add schedule</span>
+        <span className="text-sm font-medium">Add a custom payment schedule</span>
       </button>
     );
   }
@@ -87,7 +87,12 @@ export function AddScheduleCard({
       }}
     >
       <label className="flex flex-col gap-1 text-sm">
-        <span style={{ color: C.textSecondary }}>Installment count</span>
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          How many payments should this schedule have?
+        </span>
+        <span className="text-xs" style={{ color: C.textTertiary }}>
+          e.g. 6 for six equal installments across the school year
+        </span>
         <input
           style={inputStyle(C)}
           type="number"

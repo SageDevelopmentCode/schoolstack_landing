@@ -25,6 +25,7 @@ type ParentTuitionPlanSelectorProps = {
   context: EnrollmentTuitionSelectionContext;
   studentName?: string;
   onComplete: () => void;
+  readOnly?: boolean;
 };
 
 export default function ParentTuitionPlanSelector({
@@ -32,6 +33,7 @@ export default function ParentTuitionPlanSelector({
   context,
   studentName,
   onComplete,
+  readOnly = false,
 }: ParentTuitionPlanSelectorProps) {
   const { assignment, ratePlan } = context;
   const tier =
@@ -78,6 +80,7 @@ export default function ParentTuitionPlanSelector({
     : "Your payment schedule";
 
   const handleConfirm = async () => {
+    if (readOnly) return;
     if (!selectedPlanId) {
       setError("Select a payment schedule.");
       return;
@@ -137,7 +140,9 @@ export default function ParentTuitionPlanSelector({
               cadence={paymentScheduleCadence(plan.installmentCount, schoolYearMonths)}
               perPayment={formatCents(amountCents)}
               annualTotal={formatCents(amountCents * plan.installmentCount)}
-              onSelect={() => setSelectedPlanId(plan.id)}
+              onSelect={() => {
+                if (!readOnly) setSelectedPlanId(plan.id);
+              }}
             />
           );
         })}
@@ -170,29 +175,31 @@ export default function ParentTuitionPlanSelector({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setShowPreview(true)}
-          disabled={!selectedPreview}
-          data-testid="parent-schedule-preview-button"
-          style={getAdminButtonStyle(C, "secondary")}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
-        >
-          See schedule preview
-        </button>
+      {!readOnly ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowPreview(true)}
+            disabled={!selectedPreview}
+            data-testid="parent-schedule-preview-button"
+            style={getAdminButtonStyle(C, "secondary")}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
+          >
+            See schedule preview
+          </button>
 
-        <button
-          type="button"
-          onClick={() => void handleConfirm()}
-          disabled={saving}
-          style={getAdminButtonStyle(C, "primary")}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Confirm payment schedule
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => void handleConfirm()}
+            disabled={saving}
+            style={getAdminButtonStyle(C, "primary")}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Confirm payment schedule
+          </button>
+        </div>
+      ) : null}
 
       <PaymentSchedulePreviewModal
         C={C}

@@ -1,3 +1,4 @@
+import nextDynamic from "next/dynamic";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -11,13 +12,24 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { Suspense } from "react";
-import SchedulePage from "@/components/school-admin/SchedulePage";
-import CommitteesPage from "@/components/school-admin/committees/CommitteesPage";
-import AdminDashboardPage from "@/components/school-admin/AdminDashboardPage";
+import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { fetchAdmissionsSetupStatus } from "@/lib/school-admin/admissions-setup-status";
 import { createClient } from "@/utils/supabase/server";
+
+const SchedulePage = nextDynamic(
+  () => import("@/components/school-admin/SchedulePage"),
+  { loading: () => <AdminPageSkeleton label="Loading schedule" /> },
+);
+const CommitteesPage = nextDynamic(
+  () => import("@/components/school-admin/committees/CommitteesPage"),
+  { loading: () => <AdminPageSkeleton label="Loading committees" /> },
+);
+const AdminDashboardPage = nextDynamic(
+  () => import("@/components/school-admin/AdminDashboardPage"),
+  { loading: () => <AdminPageSkeleton label="Loading dashboard" /> },
+);
 
 export const dynamic = "force-dynamic";
 

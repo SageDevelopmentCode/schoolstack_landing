@@ -21,6 +21,7 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { loadParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -131,6 +132,12 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
       );
     }
 
+    const initialData = await loadParentBillingInitialData({
+      organizationId: org.id,
+      familyId,
+      slug,
+    });
+
     return (
       <SchoolParentPageShell title={pageName}>
         <ParentBillingPage
@@ -138,6 +145,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           familyId={familyId}
           branding={org.branding}
           slug={slug}
+          initialData={initialData}
         />
       </SchoolParentPageShell>
     );

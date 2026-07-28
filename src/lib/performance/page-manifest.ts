@@ -4,7 +4,7 @@ import { buildAdminNavGroups } from "@/lib/organization-settings/admin-nav";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { buildParentNavItems } from "@/lib/organization-settings/parent-nav";
 import { SITE_URL } from "@/lib/site";
-import type { AuditEnvironment, PageTarget } from "./types";
+import type { AuditEnvironment, PageAuth, PageTarget } from "./types";
 
 export const CANONICAL_SCHOOL_SLUG = "rooted-meadows-school";
 
@@ -39,7 +39,15 @@ function buildDemoPages(): PageTarget[] {
 
 function buildSchoolAdminPages(): PageTarget[] {
   const groups = buildAdminNavGroups(DEFAULT_FEATURES.admin);
-  const pages: PageTarget[] = [];
+  const pages: PageTarget[] = [
+    {
+      id: "school-admin-login",
+      category: "school_admin",
+      label: "Admin login",
+      path: `/school/${CANONICAL_SCHOOL_SLUG}/admin/login`,
+      requiresAuth: "none",
+    },
+  ];
 
   for (const group of groups) {
     for (const item of group.items) {
@@ -68,7 +76,15 @@ function buildSchoolAdminPages(): PageTarget[] {
 
 function buildSchoolParentPages(): PageTarget[] {
   const items = buildParentNavItems(CANONICAL_SCHOOL_SLUG, DEFAULT_FEATURES.parent);
-  const pages: PageTarget[] = [];
+  const pages: PageTarget[] = [
+    {
+      id: "school-parent-index",
+      category: "school_parent",
+      label: "Parent portal index",
+      path: `/school/${CANONICAL_SCHOOL_SLUG}/parent`,
+      requiresAuth: "parent",
+    },
+  ];
 
   for (const item of items) {
     pages.push({
@@ -166,4 +182,56 @@ export function filterPagesForRun(
 
 export function shouldSkipOnProduction(page: PageTarget): boolean {
   return page.requiresAuth !== "none";
+}
+
+/** Paths audited on every GitHub Actions Lighthouse CI run (mobile). */
+export const CI_LHCI_PAGE_PATHS = [
+  "/",
+  "/get-started",
+  "/customers",
+  `/school/${CANONICAL_SCHOOL_SLUG}/apply`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/forms/apply`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/admin/login`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/admin/dashboard`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/admin/admissions/submissions`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/parent`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/parent/portal`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/parent/billing`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/parent/children`,
+] as const;
+
+export function getCiLighthousePages(): PageTarget[] {
+  const manifest = getPerformancePageManifest();
+  const byPath = new Map(manifest.map((page) => [page.path, page]));
+
+  return CI_LHCI_PAGE_PATHS.map((path) => {
+    const page = byPath.get(path);
+    if (!page) {
+      throw new Error(`CI Lighthouse path missing from manifest: ${path}`);
+    }
+    return page;
+  });
+}
+
+export function resolveCiLighthouseUrls(
+  environment: AuditEnvironment = "ci",
+): string[] {
+  return getCiLighthousePages().map((page) =>
+    resolvePageUrl(page.path, environment),
+  );
+}
+
+export function getCiLighthouseAuthByPath(path: string): PageAuth {
+  const normalized =
+    path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+  const page = getCiLighthousePages().find(
+    (entry) => entry.path === normalized || entry.path === path,
+  );
+  return page?.requiresAuth ?? "none";
+}
+
+export function buildCiLighthouseAuthRoutes(): Record<string, PageAuth> {
+  return Object.fromEntries(
+    getCiLighthousePages().map((page) => [page.path, page.requiresAuth]),
+  );
 }

@@ -1,0 +1,14 @@
+{
+  "/": "none",
+  "/get-started": "none",
+  "/customers": "none",
+  "/school/rooted-meadows-school/apply": "none",
+  "/school/rooted-meadows-school/forms/apply": "none",
+  "/school/rooted-meadows-school/admin/login": "none",
+  "/school/rooted-meadows-school/admin/dashboard": "school_admin",
+  "/school/rooted-meadows-school/admin/admissions/submissions": "school_admin",
+  "/school/rooted-meadows-school/parent": "parent",
+  "/school/rooted-meadows-school/parent/portal": "parent",
+  "/school/rooted-meadows-school/parent/billing": "parent",
+  "/school/rooted-meadows-school/parent/children": "parent"
+}

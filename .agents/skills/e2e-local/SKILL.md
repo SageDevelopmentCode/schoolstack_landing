@@ -100,4 +100,21 @@ Password: `E2eTestPassword123!` (override via `E2E_TEST_PASSWORD` in `.env.e2e.l
 ## More detail
 
 - Human docs: `e2e/README.md`
-- CI workflows: `.github/workflows/e2e.yml`, `.github/workflows/integration.yml`
+- CI workflows: `.github/workflows/e2e.yml`, `.github/workflows/integration.yml`, `.github/workflows/performance.yml`
+
+## Lighthouse performance CI (local)
+
+Same seed/auth as E2E — used by GitHub Actions Performance workflow:
+
+```bash
+supabase start && supabase db reset
+npm run performance:ci:prepare
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<from supabase status> \
+SUPABASE_SERVICE_ROLE_KEY=<from supabase status> \
+NEXT_PUBLIC_SITE_URL=http://localhost:3000 \
+npm run build
+npm run performance:ci
+```
+
+Requires Playwright Chromium (`npm run test:e2e:install`). Cookie injection: `scripts/lhci-puppeteer-auth.cjs`.
