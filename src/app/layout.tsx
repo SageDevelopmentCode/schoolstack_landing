@@ -3,8 +3,6 @@ import NavigationRestoreInit from "@/components/NavigationRestoreInit";
 import {
   fragmentMono,
   geist,
-  lora,
-  poppins,
 } from "@/lib/fonts";
 import { rootMetadata } from "@/lib/metadata";
 import "./globals.css";
@@ -17,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-      <html lang="en" className={`${geist.variable} ${lora.variable} ${fragmentMono.variable} ${poppins.variable}`}>
+      <html lang="en" className={`${geist.variable} ${fragmentMono.variable}`}>
       <body className="antialiased">
         <NavigationRestoreInit />
         {children}

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
+import MarketingFontVariables from "@/components/MarketingFontVariables";
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
 import SectionFallback from "@/components/ui/SectionFallback";
+import { InViewSectionGate } from "@/components/ui/InViewSectionGate";
 import JsonLd from "@/components/seo/JsonLd";
 import FaqJsonLd from "@/components/seo/FaqJsonLd";
 import HomeFaqSection from "@/components/seo/HomeFaqSection";
@@ -73,11 +75,11 @@ const FloatingQuestionButton = dynamic(
 
 export default function Home() {
   return (
-    <>
+    <MarketingFontVariables>
       <link
         rel="preload"
         as="image"
-        href="/images/stock/ImageOne.webp"
+        href="/images/Logo.webp"
         fetchPriority="high"
       />
       <JsonLd />
@@ -86,19 +88,39 @@ export default function Home() {
       <main>
         <HeroSection />
         <ProductPreviewSection />
-        <PainSection />
-        <FamilyClaritySection />
-        <AdminGrowthSection />
-        <TeacherSupportSection />
-        <WorkflowSection />
-        <StacksSection />
-        <FounderStorySection />
-        <CustomSection />
+        <InViewSectionGate minHeight="28rem">
+          <PainSection />
+        </InViewSectionGate>
+        <InViewSectionGate minHeight="24rem">
+          <FamilyClaritySection />
+        </InViewSectionGate>
+        <InViewSectionGate minHeight="24rem">
+          <AdminGrowthSection />
+        </InViewSectionGate>
+        <InViewSectionGate minHeight="24rem">
+          <TeacherSupportSection />
+        </InViewSectionGate>
+        <InViewSectionGate minHeight="32rem">
+          <WorkflowSection />
+        </InViewSectionGate>
+        <InViewSectionGate minHeight="20rem">
+          <StacksSection />
+        </InViewSectionGate>
+        <InViewSectionGate minHeight="28rem">
+          <FounderStorySection />
+        </InViewSectionGate>
+        <InViewSectionGate minHeight="20rem">
+          <CustomSection />
+        </InViewSectionGate>
         <HomeFaqSection />
-        <FinalCTASection />
+        <InViewSectionGate minHeight="16rem">
+          <FinalCTASection />
+        </InViewSectionGate>
       </main>
-      <Footer />
+      <InViewSectionGate minHeight="12rem">
+        <Footer />
+      </InViewSectionGate>
       <FloatingQuestionButton />
-    </>
+    </MarketingFontVariables>
   );
 }

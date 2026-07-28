@@ -1,11 +1,11 @@
-import { FadeInView } from '@/components/ui/FadeInView'
+import { HeroEnter } from '@/components/ui/HeroEnter'
 
 export default function FinalCTASection() {
   return (
     <section id="demo" className="bg-accent py-32">
       <div className="max-w-[720px] mx-auto px-6 text-center">
 
-        <FadeInView>
+        <HeroEnter>
           <h2
             className="font-display text-[clamp(2.2rem,4.5vw,3.5rem)] leading-[1.02]"
             style={{ color: '#F7F1E7' }}
@@ -13,9 +13,9 @@ export default function FinalCTASection() {
             Software built by someone
             <br /><em style={{ color: '#E8D5C8', fontStyle: 'italic' }}>who gets it.</em>
           </h2>
-        </FadeInView>
+        </HeroEnter>
 
-        <FadeInView delay={0.1}>
+        <HeroEnter delayMs={100}>
           <p
             className="text-[17px] leading-relaxed mt-6 max-w-[50ch] mx-auto"
             style={{ color: 'rgba(247,241,231,0.72)' }}
@@ -23,9 +23,9 @@ export default function FinalCTASection() {
             Book a free 30-minute demo and walk through your school with the
             founder who built MudKitchen to run a real microschool first.
           </p>
-        </FadeInView>
+        </HeroEnter>
 
-        <FadeInView delay={0.18}>
+        <HeroEnter delayMs={180}>
           <div className="mt-10">
             <a
               href="/get-started"
@@ -48,7 +48,7 @@ export default function FinalCTASection() {
           >
             No commitment. No sales pressure. Just a conversation.
           </p>
-        </FadeInView>
+        </HeroEnter>
 
       </div>
     </section>

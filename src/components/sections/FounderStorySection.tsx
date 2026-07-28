@@ -1,6 +1,5 @@
 import Image from "next/image";
-import { FadeInView } from "@/components/ui/FadeInView";
-
+import { HeroEnter } from "@/components/ui/HeroEnter";
 
 const STATS = [
   { number: "35", label: "Students enrolled" },
@@ -21,38 +20,37 @@ export default function FounderStorySection() {
     <section id="about" className="py-24" style={{ backgroundColor: '#1a3327' }}>
       <div className="max-w-[1200px] mx-auto px-6 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-16 items-center">
-          {/* Left — story + quote */}
           <div>
-            <FadeInView>
+            <HeroEnter>
               <span className="inline-flex items-center gap-1.5 rounded-pill text-[11px] font-bold uppercase tracking-widest px-3.5 py-1.5 bg-white/10 text-white/75">
                 Customer story
               </span>
-            </FadeInView>
+            </HeroEnter>
 
-            <FadeInView delay={0.06}>
+            <HeroEnter delayMs={60}>
               <p className="font-display text-[clamp(1rem,1.8vw,1.15rem)] leading-snug mt-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 Sage Field · Round Rock, TX
               </p>
-            </FadeInView>
+            </HeroEnter>
 
-            <FadeInView delay={0.12}>
+            <HeroEnter delayMs={120}>
               <h2 className="font-display text-[clamp(1.9rem,3.5vw,2.5rem)] leading-[1.05] text-white mt-3">
                 From 0 to 35 students
                 <br />
                 <em style={{ color: 'var(--color-clay)', fontStyle: 'italic' }}>in under 3 months.</em>
               </h2>
-            </FadeInView>
+            </HeroEnter>
 
-            <FadeInView delay={0.18}>
+            <HeroEnter delayMs={180}>
               <p className="text-[16px] leading-relaxed mt-5" style={{ color: 'rgba(255,255,255,0.65)' }}>
                 Sage Field is an outdoor-focused private microschool in Round
                 Rock, Texas. MudKitchen powered their entire launch — website,
                 enrollment, tuition, staff workflows, family communication, and
                 back-office operations — all from one platform, from day one.
               </p>
-            </FadeInView>
+            </HeroEnter>
 
-            <FadeInView delay={0.24}>
+            <HeroEnter delayMs={240}>
               <blockquote className="rounded-lg p-6 mt-7" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
                 <div
                   className="w-2 h-2 rounded-full mb-4"
@@ -83,9 +81,9 @@ export default function FounderStorySection() {
                   </div>
                 </footer>
               </blockquote>
-            </FadeInView>
+            </HeroEnter>
 
-            <FadeInView delay={0.30}>
+            <HeroEnter delayMs={300}>
               <a
                 href="/customers/sagefield"
                 className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200 mt-6"
@@ -107,13 +105,11 @@ export default function FounderStorySection() {
                   />
                 </svg>
               </a>
-            </FadeInView>
+            </HeroEnter>
           </div>
 
-          {/* Right — case study preview card */}
-          <FadeInView delay={0.12}>
+          <HeroEnter delayMs={120}>
             <div className="rounded-2xl overflow-hidden shadow-xl" style={{ backgroundColor: '#243d30', border: '1px solid rgba(255,255,255,0.10)' }}>
-              {/* Browser chrome */}
               <div className="flex items-center gap-2 px-4 py-3" style={{ backgroundColor: '#1e3a2b', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
@@ -123,7 +119,6 @@ export default function FounderStorySection() {
                 </span>
               </div>
 
-              {/* School identity strip */}
               <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                 <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0">
                   <Image
@@ -144,7 +139,6 @@ export default function FounderStorySection() {
                 </div>
               </div>
 
-              {/* Stat strip */}
               <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                 {STATS.map(({ number, label }, i) => (
                   <div
@@ -162,7 +156,6 @@ export default function FounderStorySection() {
                 ))}
               </div>
 
-              {/* Section index */}
               <div className="px-5 py-4">
                 <p className="text-[10px] font-secondary font-semibold uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   Inside the case study
@@ -198,7 +191,7 @@ export default function FounderStorySection() {
                 </div>
               </div>
             </div>
-          </FadeInView>
+          </HeroEnter>
         </div>
       </div>
     </section>

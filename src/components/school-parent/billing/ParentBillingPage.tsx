@@ -27,6 +27,7 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
+import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { createClient } from "@/utils/supabase/client";
 
 type ParentBillingPageProps = {
@@ -35,6 +36,7 @@ type ParentBillingPageProps = {
   branding: OrganizationBranding;
   slug: string;
   previewMode?: boolean;
+  initialData?: ParentBillingInitialData;
 };
 
 function ParentBillingPageFallback({
@@ -60,24 +62,34 @@ function ParentBillingPageContent({
   branding,
   slug,
   previewMode = false,
+  initialData,
 }: ParentBillingPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const deepLinkChargeId = searchParams.get("charge");
+  const hasInitialData = initialData !== undefined;
 
-  const [charges, setCharges] = useState<TuitionCharge[]>([]);
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [adjustments, setAdjustments] = useState<TuitionAdjustment[]>([]);
-  const [autopayEnabled, setAutopayEnabledState] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [charges, setCharges] = useState<TuitionCharge[]>(initialData?.charges ?? []);
+  const [payments, setPayments] = useState<PaymentRecord[]>(initialData?.payments ?? []);
+  const [adjustments, setAdjustments] = useState<TuitionAdjustment[]>(
+    initialData?.adjustments ?? [],
+  );
+  const [autopayEnabled, setAutopayEnabledState] = useState(
+    initialData?.autopayEnabled ?? false,
+  );
+  const [loading, setLoading] = useState(!hasInitialData);
   const [payingChargeId, setPayingChargeId] = useState<string | null>(null);
   const [highlightedChargeId, setHighlightedChargeId] = useState<string | null>(null);
-  const [readiness, setReadiness] = useState<FamilyBillingReadiness | null>(null);
-  const [familySummary, setFamilySummary] = useState<ParentBillingFamilySummary | null>(
-    null,
+  const [readiness, setReadiness] = useState<FamilyBillingReadiness | null>(
+    initialData?.readiness ?? null,
   );
-  const [activeChildKey, setActiveChildKey] = useState<string | null>(null);
+  const [familySummary, setFamilySummary] = useState<ParentBillingFamilySummary | null>(
+    initialData?.familySummary ?? null,
+  );
+  const [activeChildKey, setActiveChildKey] = useState<string | null>(
+    initialData?.initialChildKey ?? null,
+  );
 
   const adjustmentsByAssignment = useMemo(() => {
     const map = new Map<string, TuitionAdjustment[]>();
@@ -136,10 +148,11 @@ function ParentBillingPageContent({
   }, [familyId, organizationId, slug, supabase]);
 
   useEffect(() => {
+    if (hasInitialData) return;
     queueMicrotask(() => {
       void loadBilling();
     });
-  }, [loadBilling]);
+  }, [hasInitialData, loadBilling]);
 
   useEffect(() => {
     if (!deepLinkChargeId || loading) return;

@@ -6,6 +6,7 @@
     "dev": "tsx scripts/dev-with-stripe.ts",
     "dev:next": "next dev",
     "build": "next build",
+    "analyze": "ANALYZE=true npm run build",
     "start": "next start",
     "lint": "eslint",
     "lint:errors": "eslint --quiet",
@@ -23,6 +24,7 @@
     "performance:audit": "tsx scripts/run-performance-audits.ts",
     "performance:audit:watch": "tsx scripts/run-performance-audits.ts --watch",
     "performance:ci": "lhci autorun",
+    "performance:ci:prepare": "tsx scripts/prepare-performance-ci.ts",
     "performance:ci:upload": "tsx scripts/upload-lhci-results.ts"
   },
   "dependencies": {

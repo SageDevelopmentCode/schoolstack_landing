@@ -21,6 +21,7 @@ import {
   type AuditFormFactor,
   type PageCategory,
 } from "@/lib/performance/types";
+import { CANONICAL_SCHOOL_SLUG } from "@/lib/performance/page-manifest";
 
 type LatestResultSummary = {
   id: string;
@@ -608,7 +609,9 @@ export default function AdminPerformancePage() {
         {environment === "ci" ? (
           <p className="w-full text-xs text-admin-faint">
             CI results are uploaded automatically from pull request Lighthouse runs.
-            Only marketing pages in the PR gate are audited here.
+            Marketing and admissions pages are public; school admin and parent portal
+            pages are audited with E2E session cookies (not login redirects) for{" "}
+            {CANONICAL_SCHOOL_SLUG}.
           </p>
         ) : environment === "local" ? (
           <p className="w-full text-xs text-admin-faint">

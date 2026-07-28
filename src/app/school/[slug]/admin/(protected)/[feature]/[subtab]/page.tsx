@@ -1,22 +1,47 @@
+import nextDynamic from "next/dynamic";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
+import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import {
   getAdminPageLabel,
   getAdminSubtabLabel,
 } from "@/lib/organization-settings/admin-nav";
 import { isAdminNavPathEnabled } from "@/lib/organization-settings/admin-routes";
-import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
-import ApplicationFormsPage from "@/components/school-admin/admissions/ApplicationFormsPage";
-import ApplicationSubmissionsPage from "@/components/school-admin/admissions/ApplicationSubmissionsPage";
-import PaymentsSetupPage from "@/components/school-admin/admissions/PaymentsSetupPage";
-import ProgramsPage from "@/components/school-admin/admissions/ProgramsPage";
-import FinancesRevenuePage from "@/components/school-admin/finances/FinancesRevenuePage";
-import FinancesTransactionsPage from "@/components/school-admin/finances/FinancesTransactionsPage";
-import TuitionPage from "@/components/school-admin/tuition/TuitionPage";
+import { loadApplicationSubmissionsPageData } from "@/lib/school-admin/load-submissions-page-data";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
+
+const ProgramsPage = nextDynamic(
+  () => import("@/components/school-admin/admissions/ProgramsPage"),
+  { loading: () => <AdminPageSkeleton label="Loading programs" /> },
+);
+const ApplicationFormsPage = nextDynamic(
+  () => import("@/components/school-admin/admissions/ApplicationFormsPage"),
+  { loading: () => <AdminPageSkeleton label="Loading enrollment flows" /> },
+);
+const ApplicationSubmissionsPage = nextDynamic(
+  () => import("@/components/school-admin/admissions/ApplicationSubmissionsPage"),
+  { loading: () => <AdminPageSkeleton label="Loading submissions" /> },
+);
+const PaymentsSetupPage = nextDynamic(
+  () => import("@/components/school-admin/admissions/PaymentsSetupPage"),
+  { loading: () => <AdminPageSkeleton label="Loading payments setup" /> },
+);
+const FinancesRevenuePage = nextDynamic(
+  () => import("@/components/school-admin/finances/FinancesRevenuePage"),
+  { loading: () => <AdminPageSkeleton label="Loading revenue" /> },
+);
+const FinancesTransactionsPage = nextDynamic(
+  () => import("@/components/school-admin/finances/FinancesTransactionsPage"),
+  { loading: () => <AdminPageSkeleton label="Loading transactions" /> },
+);
+const TuitionPage = nextDynamic(
+  () => import("@/components/school-admin/tuition/TuitionPage"),
+  { loading: () => <AdminPageSkeleton label="Loading tuition" /> },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +136,8 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
   }
 
   if (feature === "admissions" && subtab === "submissions") {
+    const initialData = await loadApplicationSubmissionsPageData(org.id);
+
     return (
       <Suspense>
         <ApplicationSubmissionsPage
@@ -118,6 +145,8 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
           branding={org.branding}
           schoolName={org.name}
           slug={slug}
+          initialSubmissions={initialData.submissions}
+          initialLoginStatusByGuardianId={initialData.loginStatusByGuardianId}
         />
       </Suspense>
     );

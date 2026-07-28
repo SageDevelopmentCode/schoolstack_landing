@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
+import { createClient } from "@/utils/supabase/server";
 import { mergeBranding, mergeFeatures } from "./merge";
 import type { OrganizationBranding, OrganizationFeatures } from "./types";
 
@@ -10,7 +13,7 @@ export type OrganizationWithSettings = {
   features: OrganizationFeatures;
 };
 
-export async function fetchOrganizationWithSettings(
+async function fetchOrganizationWithSettingsUncached(
   supabase: SupabaseClient,
   slug: string,
 ): Promise<OrganizationWithSettings | null> {
@@ -39,4 +42,17 @@ export async function fetchOrganizationWithSettings(
       settings?.features as Record<string, unknown> | null | undefined,
     ),
   };
+}
+
+const fetchOrganizationWithSettingsBySlug = cache(async (slug: string) => {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  return fetchOrganizationWithSettingsUncached(supabase, slug);
+});
+
+export async function fetchOrganizationWithSettings(
+  supabase: SupabaseClient,
+  slug: string,
+): Promise<OrganizationWithSettings | null> {
+  return fetchOrganizationWithSettingsBySlug(slug);
 }

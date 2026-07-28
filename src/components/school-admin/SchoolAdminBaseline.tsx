@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
   ChevronDown,
@@ -31,10 +31,17 @@ import type {
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
-import AdminSupportRequestModal from "@/components/school-admin/AdminSupportRequestModal";
-import AdminToaster from "@/components/school-admin/AdminToaster";
 import AdminPageContentShell from "@/components/school-admin/AdminPageContentShell";
 import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
+
+const AdminSupportRequestModal = dynamic(
+  () => import("@/components/school-admin/AdminSupportRequestModal"),
+  { ssr: false },
+);
+const AdminToaster = dynamic(
+  () => import("@/components/school-admin/AdminToaster"),
+  { ssr: false },
+);
 
 type SchoolAdminBaselineProps = {
   slug: string;
@@ -154,15 +161,13 @@ function SidebarNavItem({
           </button>
         ) : null}
       </div>
-      <AnimatePresence initial={false}>
-        {isExpanded && isOpen ? (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="overflow-hidden"
-          >
+      {isExpanded ? (
+        <div
+          className={`grid transition-[grid-template-rows,opacity] duration-150 ease-out ${
+            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          }`}
+        >
+          <div className="overflow-hidden">
             <div className="flex gap-1 pt-0.5 pb-1">
               <div
                 className="w-px ml-4 shrink-0"
@@ -196,9 +201,9 @@ function SidebarNavItem({
                 })}
               </div>
             </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -252,11 +257,10 @@ function Sidebar({
   }, [pathname, slug, navGroups]);
 
   return (
-    <motion.aside
-      animate={{ width: isExpanded ? 185 : 52 }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
-      className="flex flex-col h-full flex-shrink-0 overflow-hidden"
+    <aside
+      className="flex flex-col h-full flex-shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out"
       style={{
+        width: isExpanded ? 185 : 52,
         backgroundColor: C.surface,
         borderRight: `1px solid ${C.border}`,
         zIndex: 1,
@@ -482,7 +486,7 @@ function Sidebar({
           )}
         </button>
       </div>
-    </motion.aside>
+    </aside>
   );
 }
 
@@ -541,14 +545,16 @@ export default function SchoolAdminBaseline({
         onOpenSupport={() => setSupportOpen(true)}
       />
 
-      <AdminSupportRequestModal
-        C={C}
-        open={supportOpen}
-        onClose={() => setSupportOpen(false)}
-        organizationId={organizationId}
-        userEmail={userProfile?.email ?? null}
-        currentPath={pathname}
-      />
+      {supportOpen ? (
+        <AdminSupportRequestModal
+          C={C}
+          open={supportOpen}
+          onClose={() => setSupportOpen(false)}
+          organizationId={organizationId}
+          userEmail={userProfile?.email ?? null}
+          currentPath={pathname}
+        />
+      ) : null}
 
       <AdminToaster C={C} />
 

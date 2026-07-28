@@ -6,23 +6,40 @@
 |----------|---------|--------------|
 | [lint.yml](./lint.yml) | PR / push to `main` | `npm run lint:errors` |
 | [e2e.yml](./e2e.yml) | PR / push to `main` | Playwright E2E with local Supabase |
-| [performance.yml](./performance.yml) | PR / push to `main` | Lighthouse CI on production build (`/`, `/get-started`, `/customers`, mobile) |
+| [performance.yml](./performance.yml) | PR / push to `main` | Lighthouse CI on production build with local Supabase + authenticated admin/parent audits (mobile) |
 
 ## Performance CI
 
 The [performance.yml](./performance.yml) workflow:
 
-1. Builds the production Next.js app (`npm run build`)
-2. Starts the server and runs `npm run performance:ci` (`lhci autorun` via [`lighthouserc.js`](../../lighthouserc.js))
-3. Uploads `.lighthouseci/` reports as a workflow artifact (7-day retention)
-4. Optionally uploads results to Supabase (`environment: ci`) when repository secrets are set
+1. Starts local Supabase (`supabase start` + `supabase db reset`) and exports E2E env vars
+2. Seeds the database and creates Playwright auth storage states (`npm run performance:ci:prepare`)
+3. Builds the production Next.js app with local `NEXT_PUBLIC_SUPABASE_*` baked in (`npm run build`)
+4. Runs `npm run performance:ci` (`lhci autorun` via [`lighthouserc.js`](../../lighthouserc.js)) — a Puppeteer script injects E2E cookies per URL so admin dashboard/submissions and parent portal pages audit real authenticated shells
+5. Uploads `.lighthouseci/` reports as a workflow artifact (7-day retention)
+6. Optionally uploads results to Supabase (`environment: ci`) when repository secrets are set
+
+**Auth mapping** (from [`page-manifest.ts`](../../src/lib/performance/page-manifest.ts)):
+
+| URL group | Session |
+|-----------|---------|
+| Marketing + admissions + school admin login | None (public) |
+| School admin dashboard + admissions submissions | `e2e-admin@schoolstack.test` |
+| Parent portal routes | `e2e-parent@schoolstack.test` |
 
 **Local reproduction:**
 
 ```bash
+supabase start && supabase db reset
+# Fill .env.e2e.local from supabase status (or export vars inline)
+npm run performance:ci:prepare
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<from supabase status> \
+SUPABASE_SERVICE_ROLE_KEY=<from supabase status> \
+NEXT_PUBLIC_SITE_URL=http://localhost:3000 \
 npm run build
 npm run performance:ci
-npm run performance:ci:upload   # requires Supabase env vars
+npm run performance:ci:upload   # requires production Supabase env vars
 ```
 
 Assertions start at **warn** level (performance score ≥ 60, LCP ≤ 5s, etc.) so baselines can be established before tightening to hard failures.

@@ -2,13 +2,14 @@
 
 import { useState, useEffect, type RefObject } from 'react'
 
+const DEFAULT_MOBILE_SCALE = 0.47
+
 export function useMobileDemoScale(
   ref: RefObject<HTMLDivElement | null>,
   designWidth: number,
   visibleFraction = 0.75,
 ) {
-  // Start false so SSR and the first client render match; updated in useEffect after mount.
-  const [scale, setScale] = useState(0.47)
+  const [scale, setScale] = useState(DEFAULT_MOBILE_SCALE)
   const [isMobileLayout, setIsMobileLayout] = useState(false)
 
   useEffect(() => {
@@ -29,7 +30,6 @@ export function useMobileDemoScale(
       setScale(width / (designWidth * visibleFraction))
     }
 
-    update()
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()

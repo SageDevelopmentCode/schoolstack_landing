@@ -1,10 +1,9 @@
 "use client";
 
 import { type ReactNode, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
-import AdminSupportRequestModal from "@/components/school-admin/AdminSupportRequestModal";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -12,6 +11,11 @@ import type {
   OrganizationBranding,
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
+
+const AdminSupportRequestModal = dynamic(
+  () => import("@/components/school-admin/AdminSupportRequestModal"),
+  { ssr: false },
+);
 
 type SchoolParentBaselineProps = {
   slug: string;
@@ -70,18 +74,7 @@ export default function SchoolParentBaseline({
       />
 
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-white">
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={pathname}
-            className="flex min-h-0 flex-1 flex-col"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </main>
 
       {showHelpButton ? (
@@ -108,15 +101,17 @@ export default function SchoolParentBaseline({
         </button>
       ) : null}
 
-      <AdminSupportRequestModal
-        C={C}
-        open={supportOpen}
-        onClose={() => setSupportOpen(false)}
-        organizationId={organizationId}
-        userEmail={userProfile.email}
-        currentPath={pathname}
-        submitEndpoint="/api/parent-portal/support-requests"
-      />
+      {supportOpen ? (
+        <AdminSupportRequestModal
+          C={C}
+          open={supportOpen}
+          onClose={() => setSupportOpen(false)}
+          organizationId={organizationId}
+          userEmail={userProfile.email}
+          currentPath={pathname}
+          submitEndpoint="/api/parent-portal/support-requests"
+        />
+      ) : null}
     </div>
   );
 }

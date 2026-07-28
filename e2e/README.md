@@ -59,6 +59,23 @@ GitHub Actions runs the same suite on PRs to `main` (see [`.github/workflows/e2e
 
 Roll out branch protection gradually: run informational checks first, then require `e2e` after several green runs.
 
+## Lighthouse performance CI (authenticated)
+
+Performance CI reuses the same E2E seed and auth storage states. See [`.github/workflows/performance.yml`](../.github/workflows/performance.yml).
+
+```bash
+supabase start && supabase db reset
+npm run performance:ci:prepare   # seed + e2e/.auth/*.json + scripts/lhci-auth-routes.json
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<from supabase status> \
+SUPABASE_SERVICE_ROLE_KEY=<from supabase status> \
+NEXT_PUBLIC_SITE_URL=http://localhost:3000 \
+npm run build
+npm run performance:ci
+```
+
+`scripts/lhci-puppeteer-auth.cjs` injects cookies from `e2e/.auth/school-admin.json` or `parent.json` before each Lighthouse audit.
+
 ## Troubleshooting
 
 **`supabase db reset` fails:** See [`supabase/migrations/README.md`](../supabase/migrations/README.md).
