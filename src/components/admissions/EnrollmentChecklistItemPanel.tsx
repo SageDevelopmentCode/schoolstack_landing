@@ -413,7 +413,9 @@ function DocumentSignInlinePanel({
               Complete agreement
             </ButtonLoadingLabel>
           ) : (
-            "Sign & continue"
+            <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
+              Sign & continue
+            </ButtonLoadingLabel>
           )}
         </button>
       </div>
