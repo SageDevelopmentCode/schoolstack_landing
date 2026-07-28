@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import MarketingFontVariables from "@/components/MarketingFontVariables";
 import Navbar from "@/components/sections/Navbar";
 import Footer from "@/components/sections/Footer";
 import { Badge } from "@/components/ui/Badge";
@@ -38,7 +37,7 @@ const STORIES = [
 
 export default function CustomersPage() {
   return (
-    <MarketingFontVariables>
+    <>
       <BreadcrumbJsonLd items={BREADCRUMBS} />
       <Navbar />
       <main className="bg-bg min-h-screen">
@@ -223,6 +222,6 @@ export default function CustomersPage() {
         </section>
       </main>
       <Footer />
-    </MarketingFontVariables>
+    </>
   )
 }

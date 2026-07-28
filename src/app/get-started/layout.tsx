@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import MarketingFontVariables from "@/components/MarketingFontVariables";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
@@ -19,9 +18,9 @@ export default function GetStartedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <MarketingFontVariables>
+    <>
       <BreadcrumbJsonLd items={BREADCRUMBS} />
       {children}
-    </MarketingFontVariables>
+    </>
   );
 }

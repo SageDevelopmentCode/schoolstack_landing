@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-import MarketingFontVariables from "@/components/MarketingFontVariables";
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
 import SectionFallback from "@/components/ui/SectionFallback";
@@ -75,7 +74,7 @@ const FloatingQuestionButton = dynamic(
 
 export default function Home() {
   return (
-    <MarketingFontVariables>
+    <>
       <link
         rel="preload"
         as="image"
@@ -121,6 +120,6 @@ export default function Home() {
         <Footer />
       </InViewSectionGate>
       <FloatingQuestionButton />
-    </MarketingFontVariables>
+    </>
   );
 }

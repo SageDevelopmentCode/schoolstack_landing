@@ -4,7 +4,7 @@ import { buildAdminNavGroups } from "@/lib/organization-settings/admin-nav";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { buildParentNavItems } from "@/lib/organization-settings/parent-nav";
 import { SITE_URL } from "@/lib/site";
-import type { AuditEnvironment, PageTarget } from "./types";
+import type { AuditEnvironment, PageAuth, PageTarget } from "./types";
 
 export const CANONICAL_SCHOOL_SLUG = "rooted-meadows-school";
 
