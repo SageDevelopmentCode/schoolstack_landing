@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import bundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs";
 
 function supabaseStorageRemotePatterns(): NonNullable<
@@ -28,11 +29,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-const configWithBundleAnalyzer = process.env.ANALYZE === "true"
-  ? require("@next/bundle-analyzer")({ enabled: true })(nextConfig)
-  : nextConfig;
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
-export default withSentryConfig(configWithBundleAnalyzer, {
+export default withSentryConfig(withBundleAnalyzer(nextConfig), {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,

@@ -1104,31 +1104,28 @@ function FileUploadPanel({
   const maxFiles = config?.maxFiles ?? 3;
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
-  const [files, setFiles] = useState(() => parseChecklistFileResponses(existingResponses));
+  const savedFiles = useMemo(
+    () => parseChecklistFileResponses(existingResponses),
+    [existingResponses],
+  );
+  const [draftFiles, setDraftFiles] = useState(() =>
+    parseChecklistFileResponses(existingResponses),
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorContext = buildErrorContext(organizationId, applicationId, instanceId);
   const fileInputDisabled = !isLive || uploading || (isCompleted && !isEditing);
-
-  useEffect(() => {
-    if (!isEditing) {
-      setFiles(parseChecklistFileResponses(existingResponses));
-    }
-  }, [existingResponses, isEditing]);
-
-  function resetFiles() {
-    setFiles(parseChecklistFileResponses(existingResponses));
-  }
+  const files = isCompleted && !isEditing ? savedFiles : draftFiles;
 
   function startEditing() {
+    setDraftFiles(savedFiles);
     setError(null);
     setIsEditing(true);
   }
 
   function cancelEditing() {
-    resetFiles();
     setError(null);
     setIsEditing(false);
   }
@@ -1163,7 +1160,7 @@ function FileUploadPanel({
         );
         uploaded.push(meta);
       }
-      setFiles(uploaded);
+      setDraftFiles(uploaded);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload file.");
     } finally {
@@ -1175,7 +1172,7 @@ function FileUploadPanel({
     if (!isLive || (isCompleted && !isEditing)) return;
 
     await removeChecklistFile(supabase, file);
-    setFiles((current) => current.filter((entry) => entry.id !== file.id));
+    setDraftFiles((current) => current.filter((entry) => entry.id !== file.id));
     setError(null);
   }
 

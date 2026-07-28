@@ -143,6 +143,16 @@ export default function ApplicationSubmissionsPage({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(SUBMISSIONS_PAGE_SIZE);
 
+  function changeStatusFilter(next: StatusFilter) {
+    setStatusFilter(next);
+    setVisibleCount(SUBMISSIONS_PAGE_SIZE);
+  }
+
+  function changeFormFilter(next: FormFilter) {
+    setFormFilter(next);
+    setVisibleCount(SUBMISSIONS_PAGE_SIZE);
+  }
+
   const flowsPath = schoolAdminPath(slug, "admissions", "flows");
 
   const loadSubmissions = useCallback(async () => {
@@ -181,10 +191,6 @@ export default function ApplicationSubmissionsPage({
       void loadSubmissions();
     });
   }, [hasInitialData, loadSubmissions]);
-
-  useEffect(() => {
-    setVisibleCount(SUBMISSIONS_PAGE_SIZE);
-  }, [statusFilter, formFilter]);
 
   useEffect(() => {
     if (!deepLinkApplicationId || loading) return;
@@ -279,7 +285,7 @@ export default function ApplicationSubmissionsPage({
               active={statusFilter === "all"}
               label="All"
               count={submissions.length}
-              onClick={() => setStatusFilter("all")}
+              onClick={() => changeStatusFilter("all")}
               C={C}
             />
             {APPLICATION_STATUS_FILTER_ORDER.filter((status) => statusCounts[status]).map(
@@ -289,7 +295,7 @@ export default function ApplicationSubmissionsPage({
                   active={statusFilter === status}
                   label={applicationStatusLabel(status)}
                   count={statusCounts[status]}
-                  onClick={() => setStatusFilter(status)}
+                  onClick={() => changeStatusFilter(status)}
                   C={C}
                 />
               ),
@@ -323,7 +329,7 @@ export default function ApplicationSubmissionsPage({
             <FilterChip
               active={formFilter === "all"}
               label="All forms"
-              onClick={() => setFormFilter("all")}
+              onClick={() => changeFormFilter("all")}
               C={C}
             />
             {formOptions.map(([key, title]) => (
@@ -331,7 +337,7 @@ export default function ApplicationSubmissionsPage({
                 key={key}
                 active={formFilter === key}
                 label={title}
-                onClick={() => setFormFilter(key)}
+                onClick={() => changeFormFilter(key)}
                 C={C}
               />
             ))}

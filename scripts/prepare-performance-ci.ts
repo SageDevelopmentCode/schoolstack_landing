@@ -8,11 +8,10 @@
  * SUPABASE_SERVICE_ROLE_KEY, and PLAYWRIGHT_BASE_URL (optional).
  */
 
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
-import { createAuthStorageStates } from "../e2e/fixtures/auth";
-import { seedE2eDatabase } from "../e2e/fixtures/seed";
 import { buildCiLighthouseAuthRoutes } from "../src/lib/performance/page-manifest";
 
 const BLOCKED_SUPABASE_HOSTS = ["rxrmlfyoqzdpjxztluyd"];
@@ -71,11 +70,11 @@ async function main(): Promise<void> {
   loadEnv();
   assertEnvironment();
 
-  log("Seeding E2E database…");
-  await seedE2eDatabase();
-
-  log("Creating Playwright auth storage states…");
-  await createAuthStorageStates();
+  log("Seeding database and creating Playwright auth storage states…");
+  execSync("npx playwright test e2e/auth.setup.ts --project=setup", {
+    stdio: "inherit",
+    env: process.env,
+  });
 
   const routes = buildCiLighthouseAuthRoutes();
   fs.writeFileSync(AUTH_ROUTES_PATH, `${JSON.stringify(routes, null, 2)}\n`, "utf8");
