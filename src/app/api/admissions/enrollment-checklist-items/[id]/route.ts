@@ -12,6 +12,7 @@ import {
   saveAgreementSectionSignature,
   saveChecklistItemDraft,
 } from "@/lib/admissions/enrollment-checklist-materialization";
+import { reportEnrollmentChecklistItemApiFailure } from "@/lib/admissions/enrollment-checklist-operational-errors";
 import { apiError } from "@/lib/api/route-errors";
 import {
   requireSchoolAdminUser,
@@ -54,8 +55,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
   }
 
+  let organizationId: string | undefined;
+  let applicationId: string | null = null;
+  let actorUserId: string | undefined;
+  let actorEmail: string | null = null;
+
   try {
     const user = await requireAuthenticatedUser(supabase);
+    actorUserId = user.id;
+    actorEmail = user.email ?? null;
     const admin = createAdminClient();
 
     const { data: instance, error: instanceError } = await admin
@@ -82,13 +90,13 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    const organizationId = String(instance.organization_id);
+    organizationId = String(instance.organization_id);
     const checklist = instance.enrollment_checklists as
       | { application_id?: string }
       | { application_id?: string }[]
       | null;
     const checklistRow = Array.isArray(checklist) ? checklist[0] : checklist;
-    const applicationId = checklistRow?.application_id
+    applicationId = checklistRow?.application_id
       ? String(checklistRow.application_id)
       : null;
 
@@ -160,10 +168,31 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof EnrollmentMaterializationError && organizationId) {
+      await reportEnrollmentChecklistItemApiFailure(createAdminClient(), {
+        organizationId,
+        applicationId,
+        instanceId,
+        operation: "enrollment_checklist.update_item",
+        error: error.message,
+        code: error.code,
+        actorUserId,
+        actorEmail,
+        cause: error,
+      });
+
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
     if (
       error instanceof SchoolAdminAuthError ||
-      error instanceof AuthError ||
-      error instanceof EnrollmentMaterializationError
+      error instanceof AuthError
     ) {
       return apiError(ROUTE, {
         request,

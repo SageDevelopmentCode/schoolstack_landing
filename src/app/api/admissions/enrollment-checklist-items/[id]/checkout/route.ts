@@ -6,6 +6,7 @@ import {
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
 import { EnrollmentMaterializationError } from "@/lib/admissions/enrollment-checklist-materialization";
+import { reportEnrollmentChecklistItemApiFailure } from "@/lib/admissions/enrollment-checklist-operational-errors";
 import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
@@ -37,8 +38,15 @@ export async function POST(request: Request, context: RouteContext) {
   const supabase = createClient(cookieStore);
   const { id: instanceId } = await context.params;
 
+  let organizationId: string | undefined;
+  let applicationId: string | null = null;
+  let actorUserId: string | undefined;
+  let actorEmail: string | null = null;
+
   try {
     const user = await requireAuthenticatedUser(supabase);
+    actorUserId = user.id;
+    actorEmail = user.email ?? null;
     const admin = createAdminClient();
 
     const body = (await request.json().catch(() => ({}))) as {
@@ -80,13 +88,13 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const organizationId = String(instance.organization_id);
+    organizationId = String(instance.organization_id);
     const checklist = instance.enrollment_checklists as
       | { application_id?: string }
       | { application_id?: string }[]
       | null;
     const checklistRow = Array.isArray(checklist) ? checklist[0] : checklist;
-    const applicationId = checklistRow?.application_id
+    applicationId = checklistRow?.application_id
       ? String(checklistRow.application_id)
       : null;
 
@@ -261,7 +269,29 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    if (error instanceof AuthError || error instanceof EnrollmentMaterializationError) {
+    if (error instanceof EnrollmentMaterializationError && organizationId) {
+      await reportEnrollmentChecklistItemApiFailure(createAdminClient(), {
+        organizationId,
+        applicationId,
+        instanceId,
+        operation: "enrollment_checklist.checkout",
+        error: error.message,
+        code: error.code,
+        actorUserId,
+        actorEmail,
+        cause: error,
+      });
+
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
+    if (error instanceof AuthError) {
       return apiError(ROUTE, {
         request,
         status: error.status,
