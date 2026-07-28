@@ -1,6 +1,7 @@
 import {
   composeEmail,
   emailBadge,
+  emailBulletList,
   emailCta,
   emailDetailCard,
   emailHeading,
@@ -530,10 +531,6 @@ export function buildTuitionDueReminderHtml(payload: {
   chargeLines: string[];
   billingUrl?: string;
 }): string {
-  const chargeList = payload.chargeLines
-    .map((line) => `<li>${escapeHtml(line)}</li>`)
-    .join("");
-
   return composeEmail({
     preheader: `Tuition payment of ${payload.totalDue} is due ${payload.dueDate}.`,
     contentHtml: `
@@ -547,7 +544,7 @@ export function buildTuitionDueReminderHtml(payload: {
         { label: "Due date", value: payload.dueDate },
       ])}
       ${emailParagraph("Charges:")}
-      <ul style="margin:0 0 16px 20px;padding:0;color:#374151;font-size:15px;line-height:1.6;">${chargeList}</ul>
+      ${emailBulletList(payload.chargeLines)}
       ${payload.billingUrl ? emailCta({ label: "View billing", href: payload.billingUrl }) : ""}
       ${emailSignOff()}
     `,

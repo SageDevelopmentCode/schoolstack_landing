@@ -1,9 +1,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  buildApplicationSubmittedConfirmationHtml,
   buildDemoBookingConfirmationHtml,
   buildDemoFeedbackConfirmationHtml,
   buildHomepageQuestionConfirmationHtml,
+  buildPaymentReceiptConfirmationHtml,
+  buildTuitionDueReminderHtml,
 } from "../src/lib/emails";
 import {
   buildSupabaseConfirmSignupOtpHtml,
@@ -74,9 +77,56 @@ const previews = [
     checks: ["Feedback Received", "We appreciate your input", "Book a Demo", "/get-started"],
   },
   {
+    filename: "application-submitted.html",
+    html: buildApplicationSubmittedConfirmationHtml({
+      name: "Maria Lopez",
+      schoolName: "Rooted Meadows",
+      formTitle: "2026–27 Enrollment Application",
+      applyDashboardUrl: "https://trymudkitchen.com/apply/rooted-meadows",
+    }),
+    checks: [
+      "Application Received",
+      "Thank you",
+      "View apply dashboard",
+      "Rooted Meadows",
+    ],
+  },
+  {
+    filename: "payment-receipt.html",
+    html: buildPaymentReceiptConfirmationHtml({
+      name: "David Kim",
+      schoolName: "Rooted Meadows",
+      label: "Application fee",
+      amountCents: 7500,
+      chargedAmountCents: 7725,
+      processingFeeCents: 225,
+      paymentMethodLabel: "Visa",
+      paidAtLabel: "July 27, 2026 at 2:30 PM",
+      applyDashboardUrl: "https://trymudkitchen.com/apply/rooted-meadows",
+    }),
+    checks: ["Payment Receipt", "Thank you", "$77.25", "View apply dashboard"],
+  },
+  {
+    filename: "tuition-reminder.html",
+    html: buildTuitionDueReminderHtml({
+      familyName: "Nguyen",
+      schoolName: "Rooted Meadows",
+      dueDate: "August 1, 2026",
+      totalDue: "$450.00",
+      chargeLines: ["Tuition — August ($400.00)", "Materials fee ($50.00)"],
+      billingUrl: "https://trymudkitchen.com/parent/billing",
+    }),
+    checks: ["Tuition Reminder", "Total due", "View billing", "Materials fee"],
+  },
+  {
     filename: "supabase-magic-link-otp.html",
     html: buildSupabaseMagicLinkOtpHtml(sampleToken),
-    checks: ["Sign In", "Your sign-in code", sampleToken, "trymudkitchen.com/images/Logo.png"],
+    checks: [
+      "Sign In",
+      "Your sign-in code to continue",
+      sampleToken,
+      "trymudkitchen.com/images/Logo.png",
+    ],
   },
   {
     filename: "supabase-confirm-signup-otp.html",

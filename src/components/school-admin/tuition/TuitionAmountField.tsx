@@ -64,14 +64,14 @@ export default function TuitionAmountField({
   return (
     <div className="flex flex-col gap-2 text-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <span style={{ color: C.textSecondary }}>
-          {inputMode === "monthly" ? "Monthly tuition (USD)" : "Annual tuition (USD)"}
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {inputMode === "monthly" ? "How much is monthly tuition?" : "How much is annual tuition?"}
         </span>
         <SchoolAdminSegmentedControl
           C={C}
           value={inputMode}
           onChange={handleBillingBasisChange}
-          ariaLabel="Billing basis"
+          ariaLabel="Enter tuition as annual or monthly"
           options={[
             { value: "annual", label: "Annual" },
             { value: "monthly", label: "Monthly" },

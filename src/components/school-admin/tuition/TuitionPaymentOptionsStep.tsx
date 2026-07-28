@@ -127,9 +127,11 @@ export default function TuitionPaymentOptionsStep({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Choose which payment schedules families can select at enrollment. Amounts are
-          based on your default tuition rate
+        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+          Which payment schedules should families be able to choose at enrollment?
+        </p>
+        <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+          Amounts are based on your default tuition rate
           {tiers.length > 1 && tierRangeLabel
             ? ` (${tierRangeLabel} across all rates)`
             : annualAmountCents > 0
@@ -141,9 +143,14 @@ export default function TuitionPaymentOptionsStep({
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-            Payment schedules
-          </p>
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+              Which schedules do you want to offer?
+            </p>
+            <p className="text-xs" style={{ color: C.textTertiary }}>
+              Families pick one when they enroll. Amounts are based on your default tuition rate.
+            </p>
+          </div>
           <button
             type="button"
             disabled={selectedCounts.length === 0}

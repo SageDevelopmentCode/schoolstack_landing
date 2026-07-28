@@ -109,20 +109,23 @@ export default function TuitionTiersStep({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm" style={{ color: C.textSecondary }}>
-        Define one or more tuition rates for this plan. All tiers share the same
-        payment schedule and fees. Staff assign the tier per enrollment; families
-        choose their payment schedule when multiple options are enabled.
+        Set what families pay. All rates share the same payment schedules and fees.
       </p>
 
       <div className="flex flex-col gap-3">
-        <span className="text-sm" style={{ color: C.textSecondary }}>
-          Pricing mode
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-medium" style={{ color: C.textPrimary }}>
+            Do all families pay the same tuition, or different rates?
+          </span>
+          <span className="text-xs" style={{ color: C.textTertiary }}>
+            Choose &ldquo;Multiple rates&rdquo; if tuition varies by grade, schedule, or program level.
+          </span>
+        </div>
         <SchoolAdminSegmentedControl
           C={C}
           value={pricingMode}
           onChange={(mode) => switchPricingMode(mode as "single" | "multiple")}
-          ariaLabel="Pricing mode"
+          ariaLabel="Tuition pricing structure"
           className="self-start"
           options={[
             { value: "single", label: "Single rate", icon: CircleDollarSign },
@@ -142,14 +145,14 @@ export default function TuitionTiersStep({
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-sm" style={{ color: C.textSecondary }}>
-              {inputMode === "monthly" ? "Monthly amounts" : "Annual amounts"}
+            <span className="text-sm font-medium" style={{ color: C.textPrimary }}>
+              What are the tuition amounts?
             </span>
             <SchoolAdminSegmentedControl
               C={C}
               value={inputMode}
               onChange={(mode) => handleInputModeChange(mode as TuitionInputMode)}
-              ariaLabel="Billing basis"
+              ariaLabel="Enter tuition as annual or monthly"
               options={[
                 { value: "annual", label: "Annual" },
                 { value: "monthly", label: "Monthly" },
@@ -171,7 +174,12 @@ export default function TuitionTiersStep({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <label className="flex flex-col gap-1 text-sm flex-1">
-                      <span style={{ color: C.textSecondary }}>Rate name</span>
+                      <span className="font-medium" style={{ color: C.textPrimary }}>
+                        What do you call this rate?
+                      </span>
+                      <span className="text-xs" style={{ color: C.textTertiary }}>
+                        e.g. &ldquo;K–2 Full Time&rdquo; or &ldquo;Preschool Half Day&rdquo;
+                      </span>
                       <input
                         style={inputStyle(C)}
                         value={tier.label}
@@ -193,8 +201,10 @@ export default function TuitionTiersStep({
                   </div>
 
                   <label className="flex flex-col gap-1 text-sm">
-                    <span style={{ color: C.textSecondary }}>
-                      {inputMode === "monthly" ? "Monthly amount (USD)" : "Annual amount (USD)"}
+                    <span className="font-medium" style={{ color: C.textPrimary }}>
+                      {inputMode === "monthly"
+                        ? "How much is the monthly tuition?"
+                        : "How much is the annual tuition?"}
                     </span>
                     <input
                       style={inputStyle(C)}
@@ -224,7 +234,7 @@ export default function TuitionTiersStep({
             style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
           >
             <Plus className="w-3.5 h-3.5" />
-            Add tier
+            Add another rate
           </button>
         </div>
       )}

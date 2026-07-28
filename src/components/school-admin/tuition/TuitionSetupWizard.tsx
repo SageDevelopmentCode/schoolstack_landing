@@ -302,6 +302,8 @@ export default function TuitionSetupWizard({
     if (stepIndex === 0) {
       if (!programId) return "Select a program.";
       if (!planName.trim()) return "Enter a plan name.";
+      if (!effectiveStart) return "Select a school year start date.";
+      if (!effectiveEnd) return "Select a school year end date.";
     }
     if (stepIndex === 1) {
       return validateWizardTiers(tiers);
@@ -557,7 +559,9 @@ export default function TuitionSetupWizard({
                 </div>
               ) : null}
               <label className="flex flex-col gap-1 text-sm">
-                <span style={{ color: C.textSecondary }}>Program</span>
+                <span className="font-medium" style={{ color: C.textPrimary }}>
+                  Which program is this rate plan for?
+                </span>
                 <SchoolAdminSelect
                   C={C}
                   value={programId}
@@ -567,11 +571,13 @@ export default function TuitionSetupWizard({
                     label: program.name,
                   }))}
                   placeholder="Select a program"
-                  ariaLabel="Program"
+                  ariaLabel="Which program is this rate plan for?"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span style={{ color: C.textSecondary }}>Rate plan name</span>
+                <span className="font-medium" style={{ color: C.textPrimary }}>
+                  What should you call this rate plan?
+                </span>
                 <input
                   style={inputStyle(C)}
                   value={planName}
@@ -581,7 +587,9 @@ export default function TuitionSetupWizard({
               </label>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="flex flex-col gap-1 text-sm">
-                  <span style={{ color: C.textSecondary }}>School year starts</span>
+                  <span className="font-medium" style={{ color: C.textPrimary }}>
+                    When does the school year start?
+                  </span>
                   <SchoolAdminDatePicker
                     id="tuition-effective-start"
                     C={C}
@@ -595,7 +603,9 @@ export default function TuitionSetupWizard({
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span style={{ color: C.textSecondary }}>School year ends</span>
+                  <span className="font-medium" style={{ color: C.textPrimary }}>
+                    When does the school year end?
+                  </span>
                   <SchoolAdminDatePicker
                     id="tuition-effective-end"
                     C={C}
