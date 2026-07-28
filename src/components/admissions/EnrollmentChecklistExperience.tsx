@@ -292,7 +292,7 @@ export default function EnrollmentChecklistExperience({
     queueMicrotask(() =>
       setActiveItemId(resolveInitialItemId(sidebarItems, instances, initialItemId)),
     );
-  }, [sidebarItems, initialItemId, instances]);
+  }, [sidebarItems, initialItemId]);
 
   const persistActiveItem = (itemId: string) => {
     setActiveItemId(itemId);
@@ -345,11 +345,6 @@ export default function EnrollmentChecklistExperience({
     );
     setLocalInstances(nextInstances);
     onInstancesChange?.(nextInstances);
-
-    const nextItemId = findNextIncompleteItemId(progressItems, nextInstances, activeItem.id);
-    if (nextItemId) {
-      persistActiveItem(nextItemId);
-    }
 
     const nextProgress = computeChecklistProgress(progressItems, nextInstances);
     if (

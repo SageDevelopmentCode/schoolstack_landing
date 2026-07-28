@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FileText, Info, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle, FileText, Info, Loader2 } from "lucide-react";
 import ApplicationFileUploadField from "@/components/admissions/ApplicationFileUploadField";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationRadioInput from "@/components/admissions/ApplicationRadioInput";
@@ -111,6 +111,41 @@ function panelButtonStyle(C: AdminThemeTokens, disabled: boolean) {
     opacity: disabled ? 0.5 : 1,
     cursor: disabled ? "not-allowed" : "pointer",
   } as const;
+}
+
+function SubmittedSuccessLabel({ C }: { C: AdminThemeTokens }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-sm font-medium"
+      style={{ color: C.success }}
+    >
+      <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
+      Submitted
+    </span>
+  );
+}
+
+function GoToNextItemButton({
+  C,
+  onClick,
+  className = "",
+}: {
+  C: AdminThemeTokens;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center justify-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS} ${className}`.trim()}
+      style={getAdminButtonStyle(C, "success")}
+    >
+      <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
+      Go to next item
+      <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+    </button>
+  );
 }
 
 const PDF_VIEWER_HEIGHT_CLASS =
@@ -437,46 +472,50 @@ function DocumentSignInlinePanel({
             Back
           </button>
         ) : null}
-        <button
-          type="button"
-          disabled={isActionDisabled}
-          onClick={async () => {
-            if (isCompleted) {
-              onGoToNextItem?.();
-              return;
-            }
+        {isCompleted && hasNextIncompleteItem ? (
+          <GoToNextItemButton
+            C={C}
+            className="ml-auto"
+            onClick={() => onGoToNextItem?.()}
+          />
+        ) : (
+          <button
+            type="button"
+            disabled={isActionDisabled}
+            onClick={async () => {
+              if (isCompleted) {
+                onGoToNextItem?.();
+                return;
+              }
 
-            if (!isLive) {
-              saveCurrentSectionPreview();
-              return;
-            }
-            if (!isLastSection) {
-              await saveCurrentSection();
-              return;
-            }
-            if (instanceId && onComplete) {
-              await saveCurrentSection();
-            }
-          }}
-          className={`ml-auto rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-          style={panelButtonStyle(C, isActionDisabled)}
-        >
-          {isCompleted ? (
-            hasNextIncompleteItem ? (
-              "Go to next item"
-            ) : (
+              if (!isLive) {
+                saveCurrentSectionPreview();
+                return;
+              }
+              if (!isLastSection) {
+                await saveCurrentSection();
+                return;
+              }
+              if (instanceId && onComplete) {
+                await saveCurrentSection();
+              }
+            }}
+            className={`ml-auto rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
+            style={panelButtonStyle(C, isActionDisabled)}
+          >
+            {isCompleted ? (
               "Completed"
-            )
-          ) : isLastSection ? (
-            <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
-              Complete agreement
-            </ButtonLoadingLabel>
-          ) : (
-            <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
-              Sign & continue
-            </ButtonLoadingLabel>
-          )}
-        </button>
+            ) : isLastSection ? (
+              <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
+                Complete agreement
+              </ButtonLoadingLabel>
+            ) : (
+              <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
+                Sign & continue
+              </ButtonLoadingLabel>
+            )}
+          </button>
+        )}
       </div>
       {error ? (
         <p className="mt-2 text-sm" style={{ color: C.error }}>
@@ -690,6 +729,8 @@ function FormItemPanel({
   instanceId,
   instanceStatus,
   existingResponses,
+  hasNextIncompleteItem = false,
+  onGoToNextItem,
   onComplete,
   onPartialProgress,
 }: {
@@ -701,6 +742,8 @@ function FormItemPanel({
   instanceId?: string;
   instanceStatus?: string;
   existingResponses?: Record<string, unknown>;
+  hasNextIncompleteItem?: boolean;
+  onGoToNextItem?: () => void;
   onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
   onPartialProgress?: (responses: Record<string, unknown>) => Promise<void> | void;
 }) {
@@ -958,19 +1001,28 @@ function FormItemPanel({
         <div className="flex flex-wrap items-center gap-3">
           {!isEditing ? (
             <>
-              <p className="text-sm" style={{ color: C.textSecondary }}>
-                Submitted
-              </p>
+              <SubmittedSuccessLabel C={C} />
               <button
                 type="button"
                 disabled={!isLive}
                 onClick={startEditing}
-                className="rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-                style={panelButtonStyle(C, !isLive)}
+                className="rounded-md px-5 py-2.5 text-sm font-semibold"
+                style={{
+                  ...getAdminButtonStyle(C, "secondary"),
+                  opacity: !isLive ? 0.5 : 1,
+                  cursor: !isLive ? "not-allowed" : "pointer",
+                }}
               >
                 Edit
                 {!isLive ? " (preview)" : ""}
               </button>
+              {hasNextIncompleteItem ? (
+                <GoToNextItemButton
+                  C={C}
+                  className="ml-auto"
+                  onClick={() => onGoToNextItem?.()}
+                />
+              ) : null}
             </>
           ) : (
             <>
@@ -1030,6 +1082,8 @@ function FileUploadPanel({
   instanceId,
   instanceStatus,
   existingResponses,
+  hasNextIncompleteItem = false,
+  onGoToNextItem,
   onComplete,
 }: {
   C: AdminThemeTokens;
@@ -1041,7 +1095,9 @@ function FileUploadPanel({
   instanceId?: string;
   instanceStatus?: string;
   existingResponses?: Record<string, unknown>;
-  onComplete?: () => Promise<void> | void;
+  hasNextIncompleteItem?: boolean;
+  onGoToNextItem?: () => void;
+  onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const config = item.fileUpload;
@@ -1049,11 +1105,33 @@ function FileUploadPanel({
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed";
   const [files, setFiles] = useState(() => parseChecklistFileResponses(existingResponses));
+  const [isEditing, setIsEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorContext = buildErrorContext(organizationId, applicationId, instanceId);
-  const fileInputDisabled = !isLive || uploading || isCompleted;
+  const fileInputDisabled = !isLive || uploading || (isCompleted && !isEditing);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setFiles(parseChecklistFileResponses(existingResponses));
+    }
+  }, [existingResponses, isEditing]);
+
+  function resetFiles() {
+    setFiles(parseChecklistFileResponses(existingResponses));
+  }
+
+  function startEditing() {
+    setError(null);
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    resetFiles();
+    setError(null);
+    setIsEditing(false);
+  }
 
   async function handleFileSelect(selected: FileList | null) {
     if (!selected?.length || !isLive || !organizationId || !instanceId || !checklistId) {
@@ -1094,14 +1172,14 @@ function FileUploadPanel({
   }
 
   async function handleRemoveFile(file: ApplicationFileUploadMeta) {
-    if (!isLive || isCompleted) return;
+    if (!isLive || (isCompleted && !isEditing)) return;
 
     await removeChecklistFile(supabase, file);
     setFiles((current) => current.filter((entry) => entry.id !== file.id));
     setError(null);
   }
 
-  async function handleComplete() {
+  async function handleSave() {
     if (!isLive || !instanceId || !onComplete) return;
     if (item.required && files.length === 0) {
       setError("Upload at least one file to continue.");
@@ -1116,8 +1194,19 @@ function FileUploadPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ responses: { files } }),
       });
-      const body = await response.json();
+      const body = (await response.json()) as {
+        error?: string;
+        code?: string;
+        responses?: Record<string, unknown>;
+      };
       if (!response.ok) {
+        if (isBenignEnrollmentChecklistErrorCode(body.code)) {
+          const savedResponses = body.responses ?? { files };
+          await onComplete(savedResponses);
+          setIsEditing(false);
+          return;
+        }
+
         const message = typeof body.error === "string" ? body.error : "Failed to save upload.";
         reportEnrollmentChecklistError(
           errorContext,
@@ -1128,7 +1217,9 @@ function FileUploadPanel({
         );
         throw new Error(message);
       }
-      await onComplete();
+      const savedResponses = body.responses ?? { files };
+      await onComplete(savedResponses);
+      setIsEditing(false);
     } catch (err) {
       reportEnrollmentChecklistError(
         errorContext,
@@ -1183,30 +1274,88 @@ function FileUploadPanel({
         previewSuffix={!isLive ? " (preview)" : ""}
         C={C}
         supabase={supabase}
-        removable={isLive && !isCompleted}
+        removable={isLive && (!isCompleted || isEditing)}
         onSelectFiles={handleFileSelect}
         onRemoveFile={handleRemoveFile}
       />
 
-      <button
-        type="button"
-        disabled={!isLive || uploading || submitting || isCompleted}
-        onClick={() => void handleComplete()}
-        className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
-        style={panelButtonStyle(C, !isLive || uploading || submitting || isCompleted)}
-      >
-        {isCompleted ? (
-          "Completed"
-        ) : (
+      {isCompleted ? (
+        <div className="flex flex-wrap items-center gap-3">
+          {!isEditing ? (
+            <>
+              <SubmittedSuccessLabel C={C} />
+              <button
+                type="button"
+                disabled={!isLive}
+                onClick={startEditing}
+                className="rounded-md px-5 py-2.5 text-sm font-semibold"
+                style={{
+                  ...getAdminButtonStyle(C, "secondary"),
+                  opacity: !isLive ? 0.5 : 1,
+                  cursor: !isLive ? "not-allowed" : "pointer",
+                }}
+              >
+                Edit
+                {!isLive ? " (preview)" : ""}
+              </button>
+              {hasNextIncompleteItem ? (
+                <GoToNextItemButton
+                  C={C}
+                  className="ml-auto"
+                  onClick={() => onGoToNextItem?.()}
+                />
+              ) : null}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={!isLive || uploading || submitting}
+                onClick={() => void handleSave()}
+                className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
+                style={panelButtonStyle(C, !isLive || uploading || submitting)}
+              >
+                <ButtonLoadingLabel
+                  loading={submitting || uploading}
+                  loadingLabel={submitting ? "Saving…" : "Uploading…"}
+                >
+                  Save changes
+                </ButtonLoadingLabel>
+                {!isLive ? " (preview)" : ""}
+              </button>
+              <button
+                type="button"
+                disabled={submitting || uploading}
+                onClick={cancelEditing}
+                className="rounded-md px-5 py-2.5 text-sm font-semibold"
+                style={{
+                  ...getAdminButtonStyle(C, "neutral"),
+                  opacity: submitting || uploading ? 0.5 : 1,
+                  cursor: submitting || uploading ? "not-allowed" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={!isLive || uploading || submitting}
+          onClick={() => void handleSave()}
+          className={`rounded-md px-5 py-2.5 text-sm font-semibold text-white ${BUTTON_LOADING_LAYOUT_CLASS}`}
+          style={panelButtonStyle(C, !isLive || uploading || submitting)}
+        >
           <ButtonLoadingLabel
             loading={submitting || uploading}
             loadingLabel={submitting ? "Saving…" : "Uploading…"}
           >
             Save upload
           </ButtonLoadingLabel>
-        )}
-        {!isLive ? " (preview)" : ""}
-      </button>
+          {!isLive ? " (preview)" : ""}
+        </button>
+      )}
     </div>
   );
 }
@@ -1574,6 +1723,8 @@ export default function EnrollmentChecklistItemPanel({
             instanceId={instanceId}
             instanceStatus={instanceStatus}
             existingResponses={existingResponses}
+            hasNextIncompleteItem={hasNextIncompleteItem}
+            onGoToNextItem={onGoToNextItem}
             onComplete={onComplete}
             onPartialProgress={onPartialProgress}
           />
@@ -1590,6 +1741,8 @@ export default function EnrollmentChecklistItemPanel({
             instanceId={instanceId}
             instanceStatus={instanceStatus}
             existingResponses={existingResponses}
+            hasNextIncompleteItem={hasNextIncompleteItem}
+            onGoToNextItem={onGoToNextItem}
             onComplete={onComplete}
           />
         );
