@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import ApplicationAuthGate from "@/components/admissions/ApplicationAuthGate";
 import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
 import { ApplyAuthShellLoader } from "@/components/admissions/ApplyAuthShellLoader";
@@ -22,6 +22,15 @@ import {
   pickResponsesForCopy,
 } from "@/lib/admissions/application-copy";
 import { loadApplicationSummary } from "@/lib/admissions/application-status";
+import {
+  clearPaymentReturnQuery,
+  hasPaymentPollStarted,
+  markPaymentPollStarted,
+  PAYMENT_POLL_INTERVAL_MS,
+  PAYMENT_POLL_MAX_ATTEMPTS,
+  readPaymentReturnPending,
+  sleep,
+} from "@/lib/admissions/payment-return-polling";
 import type {
   ApplicationFormFeeConfig,
   ApplicationFormSchema,
@@ -103,6 +112,7 @@ export default function PublicApplicationFormClient({
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const forceNew = searchParams.get("new") === "1";
 
@@ -112,8 +122,8 @@ export default function PublicApplicationFormClient({
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ApplicationDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [paymentReturnPending, setPaymentReturnPending] = useState(
-    () => searchParams.get("payment") === "success",
+  const [paymentReturnPending, setPaymentReturnPending] = useState(() =>
+    readPaymentReturnPending(searchParams),
   );
   const [submitted, setSubmitted] = useState(false);
   const [copyableApplications, setCopyableApplications] = useState<CopyableApplication[]>(
@@ -262,12 +272,20 @@ export default function PublicApplicationFormClient({
   useEffect(() => {
     if (!paymentReturnPending || !applicationId) return;
 
+    const scope = `application:${applicationId}`;
+    if (hasPaymentPollStarted(scope)) {
+      queueMicrotask(() => setPaymentReturnPending(false));
+      return;
+    }
+
     let cancelled = false;
     let attempts = 0;
-    const maxAttempts = 20;
+
+    markPaymentPollStarted(scope);
+    clearPaymentReturnQuery(router, pathname);
 
     const poll = async () => {
-      while (!cancelled && attempts < maxAttempts) {
+      while (!cancelled && attempts < PAYMENT_POLL_MAX_ATTEMPTS) {
         attempts += 1;
         try {
           const summary = await loadApplicationSummary(supabase, applicationId);
@@ -289,7 +307,7 @@ export default function PublicApplicationFormClient({
           // Keep polling briefly while webhook processes.
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await sleep(PAYMENT_POLL_INTERVAL_MS);
       }
 
       if (!cancelled) {
@@ -302,7 +320,7 @@ export default function PublicApplicationFormClient({
     return () => {
       cancelled = true;
     };
-  }, [applicationId, paymentReturnPending, supabase]);
+  }, [applicationId, paymentReturnPending, pathname, router, supabase]);
 
   const handleBootstrapped = (result: BootstrapApplicantResult) => {
     void handleBootstrapResult(result);
