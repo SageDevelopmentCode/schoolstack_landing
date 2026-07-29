@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  BookOpen,
   CheckCircle2,
   FileText,
   Loader2,
@@ -46,6 +48,7 @@ export type AdminSupportRequestModalProps = {
   userEmail?: string | null;
   currentPath?: string;
   submitEndpoint?: string;
+  documentationHref?: string;
 };
 
 function inputStyle(C: AdminThemeTokens): React.CSSProperties {
@@ -110,6 +113,7 @@ export default function AdminSupportRequestModal({
   userEmail,
   currentPath,
   submitEndpoint = "/api/school-admin/support-requests",
+  documentationHref,
 }: AdminSupportRequestModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [topic, setTopic] = useState<TopicValue>("general");
@@ -375,6 +379,33 @@ export default function AdminSupportRequestModal({
                   className="flex-1 space-y-4 overflow-y-auto"
                   style={{ padding: "16px 20px" }}
                 >
+                  {documentationHref ? (
+                    <div
+                      className="rounded-lg border px-4 py-3"
+                      style={{
+                        borderColor: C.secondaryBtnBorder,
+                        backgroundColor: C.accentLight,
+                      }}
+                    >
+                      <p
+                        className="text-xs leading-relaxed"
+                        style={{ color: C.textSecondary }}
+                      >
+                        Looking for step-by-step help? Browse our how-to guides
+                        first.
+                      </p>
+                      <Link
+                        href={documentationHref}
+                        onClick={handleClose}
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
+                        style={{ color: C.accent, textDecoration: "none" }}
+                      >
+                        <BookOpen className="h-3.5 w-3.5" aria-hidden />
+                        View how-to guides
+                      </Link>
+                    </div>
+                  ) : null}
+
                   <div>
                     <label htmlFor="support-topic" style={labelStyle(C)}>
                       Topic
