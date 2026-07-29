@@ -364,21 +364,7 @@ function Sidebar({
               : "Notifications"
           }
         >
-          <span className="relative flex-shrink-0">
-            <Bell className="w-4 h-4" />
-            {unreadCount > 0 ? (
-              <span
-                className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none"
-                style={{
-                  backgroundColor: C.accent,
-                  color: C.surface,
-                }}
-                aria-hidden
-              >
-                {formatUnreadBadgeCount(unreadCount)}
-              </span>
-            ) : null}
-          </span>
+          <Bell className="w-4 h-4 flex-shrink-0" />
           {isExpanded && (
             <>
               <span className="min-w-0 flex-1 text-left text-sm font-medium">
