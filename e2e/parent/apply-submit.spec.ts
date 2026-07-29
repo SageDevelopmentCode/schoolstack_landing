@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import {
+  advanceFromStudentStep,
+  assertStudentStepReady,
   beginApplyFormTest,
   endApplyFormTest,
   fillStudentDateOfBirth,
@@ -28,15 +30,11 @@ async function fillRequiredStudentFields(
   await fillStudentDateOfBirth(page);
 
   await selectGradeLevel(page);
+  await assertStudentStepReady(page);
 }
 
 async function submitApplication(page: import("@playwright/test").Page) {
-  const continueButton = page.getByRole("button", { name: /Save and continue/i });
-  if (await continueButton.isVisible()) {
-    await continueButton.click();
-    await expect(page.getByText(/Step 2 of/i).first()).toBeVisible();
-  }
-
+  await advanceFromStudentStep(page);
   await page.getByRole("button", { name: "Submit application" }).click();
 }
 

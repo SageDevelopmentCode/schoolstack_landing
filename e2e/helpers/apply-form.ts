@@ -131,11 +131,18 @@ export async function cleanupParentDraftApplications(): Promise<void> {
   if (deleteError) throw deleteError;
 }
 
+const STUDENT_DATE_PLACEHOLDER = "Select date…";
+const STEP_ADVANCE_TIMEOUT_MS = process.env.CI ? 15_000 : 10_000;
+
 export async function fillStudentDateOfBirth(page: Page): Promise<void> {
   await page.locator("#student_date_of_birth").click();
   const dateDialog = page.getByRole("dialog", { name: "Choose a date" });
   await expect(dateDialog).toBeVisible({ timeout: 10_000 });
   await dateDialog.getByRole("button", { name: "Today" }).click();
+  await expect(dateDialog).toBeHidden({ timeout: 5_000 });
+  await expect(page.locator("#student_date_of_birth")).not.toHaveText(
+    STUDENT_DATE_PLACEHOLDER,
+  );
 }
 
 export async function selectGradeLevel(
@@ -157,6 +164,7 @@ export async function selectGradeLevel(
     await option.scrollIntoViewIfNeeded();
     await option.click({ timeout: 10_000 });
     await expect(dialog).toBeHidden({ timeout: 5_000 });
+    await expect(gradeTrigger).toHaveText(new RegExp(optionLabel, "i"));
     return;
   }
 
@@ -164,8 +172,54 @@ export async function selectGradeLevel(
   await expect(listbox).toBeVisible({ timeout: 10_000 });
   const option = listbox.getByRole("option", { name: optionLabel });
   await expect(option).toBeVisible();
-  await option.click();
+  await option.scrollIntoViewIfNeeded();
+  await option.click({ timeout: 10_000 });
   await expect(listbox).toHaveCount(0, { timeout: 5_000 });
+  await expect(gradeTrigger).toHaveText(new RegExp(optionLabel, "i"));
+}
+
+export async function assertStudentStepReady(
+  page: Page,
+  gradeLabel = "Kindergarten",
+): Promise<void> {
+  await expect(page.locator("#student_first_name")).not.toHaveValue("");
+  await expect(page.locator("#student_last_name")).not.toHaveValue("");
+  await expect(page.locator("#student_date_of_birth")).not.toHaveText(
+    STUDENT_DATE_PLACEHOLDER,
+  );
+  await expect(page.locator("#student_grade")).toHaveText(
+    new RegExp(gradeLabel, "i"),
+  );
+}
+
+function isApplicationsDraftSave(response: {
+  url: () => string;
+  request: () => { method: () => string };
+  status: () => number;
+}): boolean {
+  const method = response.request().method();
+  const status = response.status();
+  return (
+    response.url().includes("/rest/v1/applications") &&
+    method === "PATCH" &&
+    (status === 200 || status === 204)
+  );
+}
+
+export async function advanceFromStudentStep(page: Page): Promise<void> {
+  const continueButton = page.getByRole("button", { name: /Save and continue/i });
+  await expect(continueButton).toBeVisible();
+  await expect(continueButton).toBeEnabled();
+
+  const saveResponse = page.waitForResponse(isApplicationsDraftSave, {
+    timeout: STEP_ADVANCE_TIMEOUT_MS,
+  });
+  await continueButton.click();
+  await saveResponse;
+
+  await expect(page.getByText(/Step 1 of/i)).toHaveCount(0, {
+    timeout: STEP_ADVANCE_TIMEOUT_MS,
+  });
 }
 
 export async function openNewApplicationForm(page: Page): Promise<void> {
