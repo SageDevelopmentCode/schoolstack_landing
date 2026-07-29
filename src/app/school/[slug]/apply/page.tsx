@@ -50,7 +50,14 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <ApplyAuthPage branding={org.branding} schoolName={org.name} />;
+    return (
+      <ApplyAuthPage
+        branding={org.branding}
+        schoolName={org.name}
+        organizationId={org.id}
+        organizationSlug={slug}
+      />
+    );
   }
 
   const [applications, hasEnrolledAccess, timezoneResult, userProfile] = await Promise.all([
@@ -92,6 +99,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       branding={org.branding}
       schoolName={org.name}
       schoolSlug={slug}
+      organizationId={org.id}
       timezone={timezone}
       applications={applications}
       applicationsWithTasks={applicationsWithTasks}

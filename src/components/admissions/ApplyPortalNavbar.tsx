@@ -6,6 +6,10 @@ import { ChevronDown, LogOut, User } from "lucide-react";
 import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  CLIENT_AUTH_ACTIVITY_ACTIONS,
+  reportAuthActivityAndWait,
+} from "@/lib/activity-auth-client";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -14,6 +18,7 @@ type ApplyPortalNavbarProps = {
   branding: OrganizationBranding;
   schoolName: string;
   schoolSlug: string;
+  organizationId?: string;
   userEmail: string;
   userDisplayName: string;
   previewMode?: boolean;
@@ -35,6 +40,7 @@ export default function ApplyPortalNavbar({
   branding,
   schoolName,
   schoolSlug,
+  organizationId,
   userEmail,
   userDisplayName,
   previewMode = false,
@@ -73,6 +79,17 @@ export default function ApplyPortalNavbar({
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
+      if (organizationId) {
+        await reportAuthActivityAndWait({
+          action: CLIENT_AUTH_ACTIVITY_ACTIONS.SIGNED_OUT,
+          organizationId,
+          surface: "parent_portal",
+          metadata: {
+            page: "/apply",
+            organizationSlug: schoolSlug,
+          },
+        });
+      }
       await supabase.auth.signOut();
       router.refresh();
     } finally {

@@ -22,9 +22,15 @@ import {
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import { AUTH_GATE_PROMO } from "@/lib/site";
+import {
+  reportAuthOtpFailed,
+  reportAuthOtpRequested,
+} from "@/lib/activity-auth-client";
 import { createClient } from "@/utils/supabase/client";
 
 const RESEND_COOLDOWN_SECONDS = 30;
+
+type LoginAuthMethod = "otp" | "password" | "session_restored";
 
 type LoginPhase = "select_org" | "email" | "verify" | "password";
 
@@ -113,10 +119,13 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
   }, []);
 
   const resolveAuthenticatedSession = useCallback(
-    async (slug?: string) => {
+    async (slug?: string, method?: LoginAuthMethod) => {
       const params = new URLSearchParams();
       if (slug) {
         params.set("slug", slug);
+      }
+      if (method) {
+        params.set("method", method);
       }
 
       const query = params.toString();
@@ -153,23 +162,19 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
     [router],
   );
 
-  const resolveDestination = useCallback(
-    async (slug: string) => {
-      const result = await resolveAuthenticatedSession(slug);
-      if (!result.redirected) {
-        throw new Error("Unable to determine where to send you next.");
-      }
-    },
-    [resolveAuthenticatedSession],
-  );
-
   const completeSignIn = useCallback(
-    async (organization: LiveOrganizationOption) => {
+    async (
+      organization: LiveOrganizationOption,
+      method: LoginAuthMethod,
+    ) => {
       setIsSubmitting(true);
       setError(null);
 
       try {
-        await resolveDestination(organization.slug);
+        const result = await resolveAuthenticatedSession(organization.slug, method);
+        if (!result.redirected) {
+          throw new Error("Unable to determine where to send you next.");
+        }
       } catch (completeError) {
         setError(
           completeError instanceof Error
@@ -180,7 +185,7 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
         setIsSubmitting(false);
       }
     },
-    [resolveDestination],
+    [resolveAuthenticatedSession],
   );
 
   const handleOrganizationSelect = useCallback(
@@ -195,7 +200,7 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
         } = await supabase.auth.getSession();
 
         if (session) {
-          await completeSignIn(organization);
+          await completeSignIn(organization, "session_restored");
           return;
         }
 
@@ -228,7 +233,10 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
 
       try {
         const slug = initialOrganization?.slug;
-        const result = await resolveAuthenticatedSession(slug);
+        const result = await resolveAuthenticatedSession(
+          slug,
+          "session_restored",
+        );
 
         if (!cancelled && !result.redirected) {
           setCheckingSession(false);
@@ -275,6 +283,17 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
 
     try {
       await sendOtp();
+      if (selectedOrganization) {
+        reportAuthOtpRequested({
+          email: email.trim().toLowerCase(),
+          organizationId: selectedOrganization.id,
+          organizationSlug: selectedOrganization.slug,
+          schoolName: selectedOrganization.name,
+          surface: "login",
+          mode: "login",
+          page: "/login",
+        });
+      }
       goToPhase("verify", 1);
       setCode("");
     } catch (submitError) {
@@ -306,8 +325,20 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
         throw new Error(verifyError.message);
       }
 
-      await completeSignIn(selectedOrganization);
+      await completeSignIn(selectedOrganization, "otp");
     } catch (submitError) {
+      reportAuthOtpFailed({
+        email: email.trim().toLowerCase(),
+        organizationId: selectedOrganization.id,
+        organizationSlug: selectedOrganization.slug,
+        surface: "login",
+        mode: "login",
+        page: "/login",
+        errorCode:
+          submitError instanceof Error
+            ? submitError.message.slice(0, 120)
+            : "verify_failed",
+      });
       setError(
         submitError instanceof Error
           ? submitError.message
@@ -335,7 +366,7 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
         throw new Error(signInError.message);
       }
 
-      await completeSignIn(selectedOrganization);
+      await completeSignIn(selectedOrganization, "password");
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -355,6 +386,18 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
 
     try {
       await sendOtp();
+      if (selectedOrganization) {
+        reportAuthOtpRequested({
+          email: email.trim().toLowerCase(),
+          organizationId: selectedOrganization.id,
+          organizationSlug: selectedOrganization.slug,
+          schoolName: selectedOrganization.name,
+          surface: "login",
+          mode: "login",
+          page: "/login",
+          resent: true,
+        });
+      }
     } catch (submitError) {
       setError(
         submitError instanceof Error

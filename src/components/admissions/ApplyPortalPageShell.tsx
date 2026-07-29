@@ -12,6 +12,7 @@ type ApplyPortalPageShellProps = {
   branding: OrganizationBranding;
   schoolName: string;
   schoolSlug: string;
+  organizationId?: string;
   userEmail: string;
   userDisplayName: string;
   previewMode?: boolean;
@@ -25,6 +26,7 @@ export default function ApplyPortalPageShell({
   branding,
   schoolName,
   schoolSlug,
+  organizationId,
   userEmail,
   userDisplayName,
   previewMode = false,
@@ -39,6 +41,7 @@ export default function ApplyPortalPageShell({
         branding={branding}
         schoolName={schoolName}
         schoolSlug={schoolSlug}
+        organizationId={organizationId}
         userEmail={userEmail}
         userDisplayName={userDisplayName}
         previewMode={previewMode}

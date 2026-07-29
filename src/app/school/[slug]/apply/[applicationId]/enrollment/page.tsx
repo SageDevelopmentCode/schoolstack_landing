@@ -46,7 +46,14 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <ApplyAuthPage branding={org.branding} schoolName={org.name} />;
+    return (
+      <ApplyAuthPage
+        branding={org.branding}
+        schoolName={org.name}
+        organizationId={org.id}
+        organizationSlug={slug}
+      />
+    );
   }
 
   const ownsApplication = await userOwnsApplication(supabase, user.id, applicationId);

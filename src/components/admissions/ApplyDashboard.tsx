@@ -25,6 +25,7 @@ type ApplyDashboardProps = {
   branding: OrganizationBranding;
   schoolName: string;
   schoolSlug: string;
+  organizationId?: string;
   timezone: string;
   applications: FamilyApplication[];
   applicationsWithTasks: FamilyApplication[];
@@ -135,6 +136,7 @@ export default function ApplyDashboard({
   branding,
   schoolName,
   schoolSlug,
+  organizationId,
   timezone,
   applications,
   applicationsWithTasks,
@@ -172,6 +174,7 @@ export default function ApplyDashboard({
       branding={branding}
       schoolName={schoolName}
       schoolSlug={schoolSlug}
+      organizationId={organizationId}
       userEmail={userProfile.email}
       userDisplayName={userProfile.displayName}
       previewMode={previewMode}

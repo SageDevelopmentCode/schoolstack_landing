@@ -4,8 +4,10 @@ import {
   bootstrapApplicant,
   BootstrapApplicantError,
 } from "@/lib/admissions/applicant-bootstrap";
+import { recordAuthActivity } from "@/lib/activity-auth-server";
 import {
   ACTIVITY_ACTIONS,
+  isRecentlyCreatedAuthUser,
   logActivityEvent,
 } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
@@ -96,6 +98,39 @@ export async function POST(request: Request) {
       firstName: body.firstName,
       lastName: body.lastName,
       forceNew: body.forceNew === true,
+    });
+
+    const authMode =
+      body.mode && isApplyAuthMode(body.mode) ? body.mode : "login";
+    const authMetadata = {
+      method: "otp" as const,
+      mode: authMode,
+      page: "/forms/apply" as const,
+    };
+
+    void recordAuthActivity(admin, {
+      organizationId,
+      actorUserId: user.id,
+      actorEmail: email,
+      surface: "public_apply",
+      action: ACTIVITY_ACTIONS.AUTH_OTP_VERIFIED,
+      metadata: authMetadata,
+    });
+
+    const { data: authUserData } = await admin.auth.admin.getUserById(user.id);
+    const isNewAccount =
+      authMode === "create" &&
+      isRecentlyCreatedAuthUser(authUserData.user?.created_at);
+
+    void recordAuthActivity(admin, {
+      organizationId,
+      actorUserId: user.id,
+      actorEmail: email,
+      surface: "public_apply",
+      action: isNewAccount
+        ? ACTIVITY_ACTIONS.AUTH_ACCOUNT_CREATED
+        : ACTIVITY_ACTIONS.AUTH_SIGNED_IN,
+      metadata: authMetadata,
     });
 
     if (result.createdNewApplication && result.applicationId) {

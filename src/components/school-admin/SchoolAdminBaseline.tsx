@@ -568,7 +568,9 @@ export default function SchoolAdminBaseline({
   }, [organizationId]);
 
   useEffect(() => {
-    void fetchUnreadCount();
+    queueMicrotask(() => {
+      void fetchUnreadCount();
+    });
   }, [fetchUnreadCount]);
 
   useEffect(() => {

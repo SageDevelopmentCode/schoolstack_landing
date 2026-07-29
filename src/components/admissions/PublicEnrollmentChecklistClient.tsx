@@ -137,7 +137,6 @@ export default function PublicEnrollmentChecklistClient({
     }
 
     let cancelled = false;
-    let previousInstances = instances;
 
     async function pollForPaymentCompletion() {
       markPaymentPollStarted(scope);
@@ -237,6 +236,7 @@ export default function PublicEnrollmentChecklistClient({
       branding={branding}
       schoolName={schoolName}
       schoolSlug={schoolSlug}
+      organizationId={organizationId}
       userEmail={resolvedProfile.email}
       userDisplayName={resolvedProfile.displayName}
       previewMode={previewMode}
