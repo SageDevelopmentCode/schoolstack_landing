@@ -134,15 +134,59 @@ export async function cleanupParentDraftApplications(): Promise<void> {
 const STUDENT_DATE_PLACEHOLDER = "Select date…";
 const STEP_ADVANCE_TIMEOUT_MS = process.env.CI ? 15_000 : 10_000;
 
+function isApplicantBootstrapResponse(response: {
+  url: () => string;
+  request: () => { method: () => string };
+  ok: () => boolean;
+}): boolean {
+  return (
+    response.url().includes("/api/admissions/applicant-bootstrap") &&
+    response.request().method() === "POST" &&
+    response.ok()
+  );
+}
+
+async function fillStudentTextField(
+  page: Page,
+  selector: string,
+  value: string,
+): Promise<void> {
+  const field = page.locator(selector);
+  await field.fill(value);
+  await expect(field).toHaveValue(value);
+}
+
 export async function fillStudentDateOfBirth(page: Page): Promise<void> {
-  await page.locator("#student_date_of_birth").click();
+  const dateTrigger = page.locator("#student_date_of_birth");
   const dateDialog = page.getByRole("dialog", { name: "Choose a date" });
-  await expect(dateDialog).toBeVisible({ timeout: 10_000 });
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await dateTrigger.click();
+    try {
+      await expect(dateDialog).toBeVisible({ timeout: 3_000 });
+      break;
+    } catch (error) {
+      if (attempt === 2) throw error;
+    }
+  }
+
   await dateDialog.getByRole("button", { name: "Today" }).click();
   await expect(dateDialog).toBeHidden({ timeout: 5_000 });
-  await expect(page.locator("#student_date_of_birth")).not.toHaveText(
-    STUDENT_DATE_PLACEHOLDER,
-  );
+  await expect(dateTrigger).not.toHaveText(STUDENT_DATE_PLACEHOLDER);
+}
+
+export async function fillRequiredStudentFields(
+  page: Page,
+  firstName?: string,
+): Promise<void> {
+  const uniqueSuffix = Date.now().toString().slice(-6);
+  const studentFirstName = firstName ?? `E2E${uniqueSuffix}`;
+
+  await fillStudentTextField(page, "#student_first_name", studentFirstName);
+  await fillStudentTextField(page, "#student_last_name", "SubmitTest");
+  await fillStudentDateOfBirth(page);
+  await selectGradeLevel(page);
+  await assertStudentStepReady(page);
 }
 
 export async function selectGradeLevel(
@@ -224,15 +268,21 @@ export async function advanceFromStudentStep(page: Page): Promise<void> {
 
 export async function openNewApplicationForm(page: Page): Promise<void> {
   await cleanupParentDraftApplications();
+
+  const bootstrapResponse = page.waitForResponse(isApplicantBootstrapResponse, {
+    timeout: process.env.CI ? 60_000 : 30_000,
+  });
+
   await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`, {
     waitUntil: process.env.CI ? "domcontentloaded" : "load",
     timeout: process.env.CI ? 60_000 : 30_000,
   });
 
+  await bootstrapResponse;
+
   const firstName = page.locator("#student_first_name");
-  await expect(firstName).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(firstName).toBeVisible({ timeout: 15_000 });
+  await expect(firstName).toBeEnabled();
   await expect(firstName).toHaveValue("");
   await expect(page.getByText(/Step 1 of/i).first()).toBeVisible({
     timeout: 15_000,

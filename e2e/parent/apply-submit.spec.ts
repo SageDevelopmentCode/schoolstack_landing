@@ -1,12 +1,10 @@
 import { test, expect } from "@playwright/test";
 import {
   advanceFromStudentStep,
-  assertStudentStepReady,
   beginApplyFormTest,
   endApplyFormTest,
-  fillStudentDateOfBirth,
+  fillRequiredStudentFields,
   openNewApplicationForm,
-  selectGradeLevel,
 } from "../helpers/apply-form";
 
 test.describe.configure({ mode: "serial" });
@@ -18,20 +16,6 @@ test.beforeEach(async () => {
 test.afterEach(async () => {
   await endApplyFormTest();
 });
-
-async function fillRequiredStudentFields(
-  page: import("@playwright/test").Page,
-  firstName?: string,
-) {
-  const uniqueSuffix = Date.now().toString().slice(-6);
-
-  await page.locator("#student_first_name").fill(firstName ?? `E2E${uniqueSuffix}`);
-  await page.locator("#student_last_name").fill("SubmitTest");
-  await fillStudentDateOfBirth(page);
-
-  await selectGradeLevel(page);
-  await assertStudentStepReady(page);
-}
 
 async function submitApplication(page: import("@playwright/test").Page) {
   await advanceFromStudentStep(page);
