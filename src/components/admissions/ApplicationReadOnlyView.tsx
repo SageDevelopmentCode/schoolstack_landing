@@ -37,6 +37,7 @@ type ApplicationReadOnlyViewProps = {
   branding: OrganizationBranding;
   schoolName: string;
   schoolSlug: string;
+  organizationId?: string;
   application: ApplicationDetail;
   embedded?: boolean;
   layout?: ReadOnlyLayout;
@@ -342,6 +343,7 @@ function ApplicationReadOnlyBody({
   branding,
   schoolName,
   schoolSlug,
+  organizationId,
   application,
   embedded = false,
   layout = "page",
@@ -457,6 +459,7 @@ function ApplicationReadOnlyBody({
         branding={branding}
         schoolName={schoolName}
         schoolSlug={schoolSlug}
+        organizationId={organizationId}
         userEmail={userProfile.email}
         userDisplayName={userProfile.displayName}
         previewMode={previewMode}

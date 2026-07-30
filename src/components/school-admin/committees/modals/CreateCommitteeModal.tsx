@@ -1,23 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { CommitteeTemplate } from "@/lib/committees/types";
 import { PLATFORM_COMMITTEE_TEMPLATES } from "@/lib/committees/templates";
+import CommitteeCreateWizard, {
+  type CommitteeTemplateOption,
+} from "@/components/school-admin/committees/CommitteeCreateWizard";
 
-type TemplateOption = {
-  id: string | null;
-  slug: string;
-  name: string;
-  description: string;
-  defaultTermLabel: string;
-};
-
-function buildTemplateOptions(dbTemplates: CommitteeTemplate[]): TemplateOption[] {
+function buildTemplateOptions(dbTemplates: CommitteeTemplate[]): CommitteeTemplateOption[] {
   const dbSlugs = new Set(dbTemplates.map((t) => t.slug));
-  const platformOptions: TemplateOption[] = PLATFORM_COMMITTEE_TEMPLATES.filter(
+  const platformOptions: CommitteeTemplateOption[] = PLATFORM_COMMITTEE_TEMPLATES.filter(
     (t) => !dbSlugs.has(t.slug),
   ).map((t) => ({
     id: null,
@@ -27,7 +19,7 @@ function buildTemplateOptions(dbTemplates: CommitteeTemplate[]): TemplateOption[
     defaultTermLabel: t.config.defaultTermLabel ?? "",
   }));
 
-  const dbOptions: TemplateOption[] = dbTemplates.map((t) => ({
+  const dbOptions: CommitteeTemplateOption[] = dbTemplates.map((t) => ({
     id: t.id,
     slug: t.slug,
     name: t.name,
@@ -55,149 +47,13 @@ export default function CreateCommitteeModal({
   }) => Promise<void>;
 }) {
   const options = buildTemplateOptions(templates);
-  const [selectedSlug, setSelectedSlug] = useState(options[0]?.slug ?? "annual-volunteer");
-  const [name, setName] = useState(options[0]?.name ?? "");
-  const [termLabel, setTermLabel] = useState(options[0]?.defaultTermLabel ?? "");
-  const [saving, setSaving] = useState(false);
-
-  const selected = options.find((o) => o.slug === selectedSlug);
-
-  const handleSelect = (option: TemplateOption) => {
-    setSelectedSlug(option.slug);
-    setName(option.name);
-    setTermLabel(option.defaultTermLabel);
-  };
-
-  const handleCreate = async () => {
-    if (!selected || !name.trim()) return;
-    setSaving(true);
-    try {
-      await onCreate({
-        templateId: selected.id,
-        platformSlug: selected.slug,
-        name: name.trim(),
-        termLabel: termLabel.trim(),
-      });
-      onClose();
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.96, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.96, opacity: 0 }}
-        className="rounded-2xl shadow-xl w-full max-w-lg"
-        style={{ backgroundColor: C.surface }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: C.border }}
-        >
-          <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-            Create committee
-          </h2>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg cursor-pointer">
-            <X className="w-5 h-5" style={{ color: C.textTertiary }} />
-          </button>
-        </div>
-        <div className="p-6 space-y-5">
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                What kind of committee are you creating?
-              </span>
-              <span className="text-xs" style={{ color: C.textTertiary }}>
-                Choose a starting template. You can customize tasks and pages after setup.
-              </span>
-            </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {options.map((option) => (
-                <button
-                  key={option.slug}
-                  type="button"
-                  onClick={() => handleSelect(option)}
-                  className="w-full text-left p-3 rounded-lg border transition-colors cursor-pointer"
-                  style={{
-                    borderColor: selectedSlug === option.slug ? C.accent : C.border,
-                    backgroundColor:
-                      selectedSlug === option.slug ? C.accentLight : C.surface,
-                  }}
-                >
-                  <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                    {option.name}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>
-                    {option.description}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium" style={{ color: C.textPrimary }}>
-              What should this committee be called?
-            </span>
-            <span className="text-xs" style={{ color: C.textTertiary }}>
-              This is the name parents and volunteers will see in the workspace.
-            </span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Annual Volunteer Committee"
-              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border"
-              style={{ borderColor: C.border, color: C.textPrimary }}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium" style={{ color: C.textPrimary }}>
-              What school year or term is this for?
-            </span>
-            <span className="text-xs" style={{ color: C.textTertiary }}>
-              e.g. 2025–2026 School Year
-            </span>
-            <input
-              value={termLabel}
-              onChange={(e) => setTermLabel(e.target.value)}
-              placeholder="2025–2026 School Year"
-              className="mt-1 w-full px-3 py-2 text-sm rounded-lg border"
-              style={{ borderColor: C.border, color: C.textPrimary }}
-            />
-          </label>
-        </div>
-        <div
-          className="flex justify-end gap-2 px-6 py-4 border-t"
-          style={{ borderColor: C.border }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium rounded-md cursor-pointer"
-            style={{ color: C.textSecondary }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={saving || !name.trim()}
-            className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-            style={{ backgroundColor: C.accent }}
-          >
-            {saving ? "Creating…" : "Create workspace"}
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
+    <CommitteeCreateWizard
+      C={C}
+      options={options}
+      onClose={onClose}
+      onCreate={onCreate}
+    />
   );
 }

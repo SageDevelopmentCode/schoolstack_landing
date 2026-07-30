@@ -176,7 +176,7 @@ export default function ApplicationDatePicker({
   }, [open, updatePopupPosition]);
 
   const openPicker = () => {
-    if (disabled) return;
+    if (disabled || !hydrated) return;
     const nextView = parsed ?? todayMonthYear();
     setViewYear(nextView.year);
     setViewMonth(nextView.month);
@@ -332,7 +332,8 @@ export default function ApplicationDatePicker({
       <button
         id={id}
         type="button"
-        disabled={disabled}
+        disabled={disabled || !hydrated}
+        aria-disabled={disabled || !hydrated}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-invalid={Boolean(error)}

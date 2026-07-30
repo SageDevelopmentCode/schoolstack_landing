@@ -7,8 +7,15 @@ import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
+import {
+  CLIENT_AUTH_ACTIVITY_ACTIONS,
+  reportAuthActivity,
+  reportAuthOtpFailed,
+  reportAuthOtpRequested,
+} from "@/lib/activity-auth-client";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { AuthActivityMetadata } from "@/lib/activity-log";
 import { createClient } from "@/utils/supabase/client";
 
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -16,6 +23,9 @@ const RESEND_COOLDOWN_SECONDS = 30;
 type ParentPortalSignInProps = {
   branding: OrganizationBranding;
   schoolName: string;
+  organizationId?: string;
+  organizationSlug?: string;
+  authPage?: Extract<AuthActivityMetadata["page"], "/apply" | "/parent">;
   title?: string;
   subtitle?: string;
   onComplete: () => void;
@@ -26,6 +36,9 @@ const inputClassName = "w-full rounded-md border px-3 py-2.5 text-sm";
 export default function ParentPortalSignIn({
   branding,
   schoolName,
+  organizationId,
+  organizationSlug,
+  authPage = "/apply",
   title = "Sign in to continue",
   subtitle = "Enter the email you used for your application. We&apos;ll send you a one-time code.",
   onComplete,
@@ -70,6 +83,15 @@ export default function ParentPortalSignIn({
       if (cancelled) return;
 
       if (session) {
+        reportAuthActivity({
+          action: CLIENT_AUTH_ACTIVITY_ACTIONS.SESSION_RESTORED,
+          organizationId,
+          surface: "parent_portal",
+          metadata: {
+            page: authPage,
+            organizationSlug,
+          },
+        });
         onComplete();
         return;
       }
@@ -82,7 +104,23 @@ export default function ParentPortalSignIn({
     return () => {
       cancelled = true;
     };
-  }, [onComplete, supabase.auth]);
+  }, [authPage, onComplete, organizationId, organizationSlug, supabase.auth]);
+
+  const notifyOtpRequested = useCallback(
+    (resent: boolean) => {
+      reportAuthOtpRequested({
+        email: email.trim().toLowerCase(),
+        organizationId,
+        organizationSlug,
+        schoolName,
+        surface: "parent_portal",
+        mode: "login",
+        page: authPage,
+        resent,
+      });
+    },
+    [authPage, email, organizationId, organizationSlug, schoolName],
+  );
 
   const sendOtp = useCallback(async () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -107,6 +145,7 @@ export default function ParentPortalSignIn({
 
     try {
       await sendOtp();
+      notifyOtpRequested(false);
       setPhase("verify");
       setCode("");
     } catch (err) {
@@ -132,8 +171,41 @@ export default function ParentPortalSignIn({
         throw new Error(verifyError.message);
       }
 
+      reportAuthActivity({
+        action: CLIENT_AUTH_ACTIVITY_ACTIONS.OTP_VERIFIED,
+        organizationId,
+        surface: "parent_portal",
+        metadata: {
+          method: "otp",
+          mode: "login",
+          page: authPage,
+          organizationSlug,
+        },
+      });
+      reportAuthActivity({
+        action: CLIENT_AUTH_ACTIVITY_ACTIONS.SIGNED_IN,
+        organizationId,
+        surface: "parent_portal",
+        metadata: {
+          method: "otp",
+          mode: "login",
+          page: authPage,
+          organizationSlug,
+        },
+      });
+
       onComplete();
     } catch (err) {
+      reportAuthOtpFailed({
+        email: email.trim().toLowerCase(),
+        organizationId,
+        organizationSlug,
+        surface: "parent_portal",
+        mode: "login",
+        page: authPage,
+        errorCode:
+          err instanceof Error ? err.message.slice(0, 120) : "verify_failed",
+      });
       setError(err instanceof Error ? err.message : "Verification failed. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -148,6 +220,7 @@ export default function ParentPortalSignIn({
 
     try {
       await sendOtp();
+      notifyOtpRequested(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resend verification code.");
     } finally {

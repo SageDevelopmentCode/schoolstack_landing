@@ -40,7 +40,14 @@ export default async function SchoolParentProtectedLayout({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <ParentAuthPage branding={org.branding} schoolName={org.name} />;
+    return (
+      <ParentAuthPage
+        branding={org.branding}
+        schoolName={org.name}
+        organizationId={org.id}
+        organizationSlug={slug}
+      />
+    );
   }
 
   const hasEnrolledAccess = await userHasEnrolledAccess(

@@ -33,6 +33,13 @@ export const ACTIVITY_ACTIONS = {
   API_ERROR: "api.error",
   ADMIN_OPERATION_FAILED: "admin.operation_failed",
   NOTIFICATION_FAILED: "notification.failed",
+  AUTH_OTP_REQUESTED: "auth.otp_requested",
+  AUTH_OTP_VERIFIED: "auth.otp_verified",
+  AUTH_OTP_FAILED: "auth.otp_failed",
+  AUTH_ACCOUNT_CREATED: "auth.account_created",
+  AUTH_SIGNED_IN: "auth.signed_in",
+  AUTH_SIGNED_OUT: "auth.signed_out",
+  AUTH_SESSION_RESTORED: "auth.session_restored",
 } as const;
 
 export type ActivityAction =
@@ -48,6 +55,7 @@ export type ActivitySurface =
   | "parent_portal"
   | "school_admin"
   | "public_apply"
+  | "login"
   | "api"
   | "system";
 
@@ -131,9 +139,40 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.API_ERROR]: "API error",
   [ACTIVITY_ACTIONS.ADMIN_OPERATION_FAILED]: "Admin operation failed",
   [ACTIVITY_ACTIONS.NOTIFICATION_FAILED]: "Notification failed",
+  [ACTIVITY_ACTIONS.AUTH_OTP_REQUESTED]: "Verification code sent",
+  [ACTIVITY_ACTIONS.AUTH_OTP_VERIFIED]: "Verification code accepted",
+  [ACTIVITY_ACTIONS.AUTH_OTP_FAILED]: "Verification code failed",
+  [ACTIVITY_ACTIONS.AUTH_ACCOUNT_CREATED]: "Account created",
+  [ACTIVITY_ACTIONS.AUTH_SIGNED_IN]: "Signed in",
+  [ACTIVITY_ACTIONS.AUTH_SIGNED_OUT]: "Signed out",
+  [ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED]: "Session restored",
 };
 
-const PARENT_SURFACES: ActivitySurface[] = ["parent_portal", "public_apply"];
+const PARENT_SURFACES: ActivitySurface[] = [
+  "parent_portal",
+  "public_apply",
+  "login",
+];
+
+export type AuthActivityMetadata = {
+  method?: "otp" | "password";
+  mode?: "create" | "login";
+  page?: "/login" | "/forms/apply" | "/apply" | "/parent";
+  resent?: boolean;
+  organizationSlug?: string;
+  errorCode?: string;
+};
+
+export type LogAuthActivityInput = {
+  organizationId?: string | null;
+  actorUserId?: string | null;
+  actorEmail?: string | null;
+  surface: ActivitySurface;
+  action: ActivityAction | string;
+  summary: string;
+  metadata?: AuthActivityMetadata & Record<string, unknown>;
+  severity?: ActivitySeverity;
+};
 
 export function formatActivityActionLabel(action: string): string {
   if (ACTION_LABELS[action]) return ACTION_LABELS[action];
@@ -217,6 +256,30 @@ function rowFromDb(data: Record<string, unknown>): ActivityEventRow {
           }
         : null,
   };
+}
+
+export async function logAuthActivity(
+  supabase: SupabaseClient,
+  event: LogAuthActivityInput,
+): Promise<void> {
+  await logActivityEvent(supabase, {
+    organizationId: event.organizationId,
+    actorType: "parent",
+    actorUserId: event.actorUserId,
+    actorEmail: event.actorEmail,
+    surface: event.surface,
+    action: event.action,
+    summary: event.summary,
+    metadata: event.metadata,
+    severity: event.severity,
+  });
+}
+
+export function isRecentlyCreatedAuthUser(createdAt: string | undefined): boolean {
+  if (!createdAt) return false;
+  const createdMs = Date.parse(createdAt);
+  if (Number.isNaN(createdMs)) return false;
+  return Date.now() - createdMs <= 2 * 60 * 1000;
 }
 
 export async function logActivityEvent(

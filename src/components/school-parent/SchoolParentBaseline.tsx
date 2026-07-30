@@ -64,6 +64,7 @@ export default function SchoolParentBaseline({
     >
       <SchoolParentHeader
         slug={slug}
+        organizationId={organizationId}
         schoolName={schoolName}
         branding={branding}
         features={features}

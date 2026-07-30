@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BookOpen,
+  Bell,
   ChevronDown,
   ExternalLink,
   PanelLeftClose,
@@ -42,6 +42,16 @@ const AdminToaster = dynamic(
   () => import("@/components/school-admin/AdminToaster"),
   { ssr: false },
 );
+const AdminActivityNotificationsPanel = dynamic(
+  () => import("@/components/school-admin/AdminActivityNotificationsPanel"),
+  { ssr: false },
+);
+
+function formatUnreadBadgeCount(count: number): string {
+  if (count <= 0) return "";
+  if (count > 9) return "9+";
+  return String(count);
+}
 
 type SchoolAdminBaselineProps = {
   slug: string;
@@ -220,6 +230,8 @@ function Sidebar({
   userProfile,
   onSignOut,
   onOpenSupport,
+  onOpenNotifications,
+  unreadCount,
 }: {
   C: AdminThemeTokens;
   branding: OrganizationBranding;
@@ -232,12 +244,11 @@ function Sidebar({
   userProfile: SchoolAdminUserProfile | null;
   onSignOut: () => Promise<void>;
   onOpenSupport: () => void;
+  onOpenNotifications: () => void;
+  unreadCount: number;
 }) {
   const { logo } = branding;
   const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
-  const documentationPath = `/school/${slug}/admin/documentation`;
-  const documentationActive =
-    pathname === documentationPath || pathname.startsWith(`${documentationPath}/`);
 
   useEffect(() => {
     const next: Record<string, boolean> = {};
@@ -328,28 +339,52 @@ function Sidebar({
             <span className="text-sm font-medium">Need help?</span>
           )}
         </button>
-        <Link
-          href={documentationPath}
-          title="How-to guides"
+        <button
+          type="button"
+          title={
+            unreadCount > 0
+              ? `Notifications (${unreadCount} unread)`
+              : "Notifications"
+          }
+          onClick={onOpenNotifications}
           className="mt-1.5 w-full flex items-center transition-colors duration-150"
           style={{
             justifyContent: isExpanded ? "flex-start" : "center",
             gap: isExpanded ? "8px" : 0,
             padding: "6px 8px",
             borderRadius: C.r.sm,
-            backgroundColor: documentationActive ? C.accentLight : "transparent",
-            border: documentationActive
-              ? `1px solid ${C.secondaryBtnBorder}`
-              : "1px solid transparent",
-            color: documentationActive ? C.accent : C.textSecondary,
-            textDecoration: "none",
+            border: `1px solid ${C.border}`,
+            backgroundColor: "transparent",
+            color: C.textSecondary,
+            cursor: "pointer",
           }}
+          aria-label={
+            unreadCount > 0
+              ? `Notifications, ${unreadCount} unread`
+              : "Notifications"
+          }
         >
-          <BookOpen className="w-4 h-4 flex-shrink-0" />
+          <Bell className="w-4 h-4 flex-shrink-0" />
           {isExpanded && (
-            <span className="text-sm font-medium">How-to guides</span>
+            <>
+              <span className="min-w-0 flex-1 text-left text-sm font-medium">
+                Notifications
+              </span>
+              {unreadCount > 0 ? (
+                <span
+                  className="flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                  style={{
+                    backgroundColor: C.accentLight,
+                    color: C.accent,
+                  }}
+                  aria-hidden
+                >
+                  {formatUnreadBadgeCount(unreadCount)}
+                </span>
+              ) : null}
+            </>
           )}
-        </Link>
+        </button>
       </div>
 
       <nav
@@ -514,6 +549,38 @@ export default function SchoolAdminBaseline({
 
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ organizationId });
+      const response = await fetch(
+        `/api/school-admin/activity-notifications/unread-count?${params.toString()}`,
+      );
+      if (!response.ok) return;
+
+      const payload = (await response.json()) as { unreadCount?: number };
+      setUnreadCount(payload.unreadCount ?? 0);
+    } catch {
+      // ignore transient fetch errors
+    }
+  }, [organizationId]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void fetchUnreadCount();
+    });
+  }, [fetchUnreadCount]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      void fetchUnreadCount();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [fetchUnreadCount]);
 
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
@@ -543,6 +610,8 @@ export default function SchoolAdminBaseline({
         userProfile={userProfile}
         onSignOut={handleSignOut}
         onOpenSupport={() => setSupportOpen(true)}
+        onOpenNotifications={() => setNotificationsOpen(true)}
+        unreadCount={unreadCount}
       />
 
       {supportOpen ? (
@@ -553,6 +622,17 @@ export default function SchoolAdminBaseline({
           organizationId={organizationId}
           userEmail={userProfile?.email ?? null}
           currentPath={pathname}
+          documentationHref={`/school/${slug}/admin/documentation`}
+        />
+      ) : null}
+
+      {notificationsOpen ? (
+        <AdminActivityNotificationsPanel
+          C={C}
+          open={notificationsOpen}
+          onClose={() => setNotificationsOpen(false)}
+          organizationId={organizationId}
+          onMarkedRead={() => setUnreadCount(0)}
         />
       ) : null}
 

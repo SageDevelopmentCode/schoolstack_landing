@@ -4,6 +4,10 @@ import type { Metadata } from "next";
 import ApplyAuthPage from "@/components/admissions/ApplyAuthPage";
 import PublicEnrollmentChecklistClient from "@/components/admissions/PublicEnrollmentChecklistClient";
 import { userOwnsApplication } from "@/lib/admissions/application-auth";
+import {
+  listCombinedEnrollmentPaymentCandidates,
+  type CombinedEnrollmentPaymentCandidate,
+} from "@/lib/admissions/combined-enrollment-payment";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { getFamilyUserProfile } from "@/lib/admissions/parent-portal-access";
@@ -46,7 +50,14 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <ApplyAuthPage branding={org.branding} schoolName={org.name} />;
+    return (
+      <ApplyAuthPage
+        branding={org.branding}
+        schoolName={org.name}
+        organizationId={org.id}
+        organizationSlug={slug}
+      />
+    );
   }
 
   const ownsApplication = await userOwnsApplication(supabase, user.id, applicationId);
@@ -70,9 +81,13 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
     redirect(`/school/${slug}/apply/${applicationId}`);
   }
 
-  const [checklist, userProfile] = await Promise.all([
+  const [checklist, userProfile, combinedPaymentCandidates] = await Promise.all([
     loadEnrollmentChecklistForApplication(supabase, applicationId, org.id),
     getFamilyUserProfile(supabase, user.id, org.id, user),
+    listCombinedEnrollmentPaymentCandidates(supabase, {
+      organizationId: org.id,
+      userId: user.id,
+    }),
   ]);
 
   if (!checklist) {
@@ -92,6 +107,7 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
       schoolSlug={slug}
       organizationId={org.id}
       checklist={checklist}
+      combinedPaymentCandidates={combinedPaymentCandidates}
       parentPortalHref={parentPortalHref ?? undefined}
       userProfile={userProfile}
     />

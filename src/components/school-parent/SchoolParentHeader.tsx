@@ -14,6 +14,10 @@ import {
   type ParentNavItem,
 } from "@/lib/organization-settings/parent-nav";
 import {
+  CLIENT_AUTH_ACTIVITY_ACTIONS,
+  reportAuthActivityAndWait,
+} from "@/lib/activity-auth-client";
+import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
@@ -28,6 +32,7 @@ import { createClient } from "@/utils/supabase/client";
 
 type SchoolParentHeaderProps = {
   slug: string;
+  organizationId: string;
   schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
@@ -78,6 +83,7 @@ function NavLink({
 
 export default function SchoolParentHeader({
   slug,
+  organizationId,
   schoolName,
   branding,
   features,
@@ -144,6 +150,15 @@ export default function SchoolParentHeader({
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
+      await reportAuthActivityAndWait({
+        action: CLIENT_AUTH_ACTIVITY_ACTIONS.SIGNED_OUT,
+        organizationId,
+        surface: "parent_portal",
+        metadata: {
+          page: "/parent",
+          organizationSlug: slug,
+        },
+      });
       await supabase.auth.signOut();
       router.refresh();
     } finally {

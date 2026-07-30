@@ -18,6 +18,7 @@ import {
   attachCheckoutSessionToPayment,
   getApplicationPaymentByCheckoutSession,
   getPaymentById,
+  listPaymentsByCheckoutSession,
   markPaymentSucceeded,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
@@ -45,6 +46,18 @@ export async function handleCheckoutSessionCompleted(
   const supabaseUserId = resolveCheckoutSessionSupabaseUserId(session);
   if (stripeCustomerId && supabaseUserId) {
     await backfillStripeCustomerId(admin, supabaseUserId, stripeCustomerId);
+  }
+
+  if (
+    metadata.payment_type === "enrollment_checklist_combined" &&
+    metadata.organization_id
+  ) {
+    await handleCombinedEnrollmentChecklistCheckoutCompleted(admin, {
+      checkoutSessionId,
+      paymentIntentId,
+      metadata,
+    });
+    return;
   }
 
   if (
@@ -80,6 +93,84 @@ export async function handleCheckoutSessionCompleted(
     paymentIntentId,
     metadata,
   });
+}
+
+async function handleCombinedEnrollmentChecklistCheckoutCompleted(
+  admin: SupabaseClient,
+  input: {
+    checkoutSessionId: string;
+    paymentIntentId: string | undefined;
+    metadata: Stripe.Metadata;
+  },
+): Promise<void> {
+  const { checkoutSessionId, paymentIntentId, metadata } = input;
+  const organizationId = metadata.organization_id as string;
+  const checklistItemIds = parseCsvMetadata(metadata.checklist_item_ids);
+  const paymentIds = parseCsvMetadata(metadata.payment_ids);
+
+  let payments: PaymentRecord[] = [];
+  if (paymentIds.length > 0) {
+    const resolvedPayments = await Promise.all(
+      paymentIds.map((paymentId) => getPaymentById(admin, paymentId)),
+    );
+    payments = resolvedPayments.filter(
+      (payment): payment is PaymentRecord => payment !== null,
+    );
+  }
+
+  if (payments.length === 0) {
+    payments = await listPaymentsByCheckoutSession(admin, checkoutSessionId);
+  }
+
+  for (const payment of payments) {
+    if (payment.status === "succeeded") continue;
+
+    const updatedPayment = await markPaymentSucceeded(admin, payment.id, {
+      stripePaymentIntentId: paymentIntentId,
+      stripeCheckoutSessionId: checkoutSessionId,
+    });
+    if (updatedPayment) {
+      void sendPaymentCompletedNotifications(admin, updatedPayment.id);
+    }
+  }
+
+  const instanceIds =
+    checklistItemIds.length > 0
+      ? checklistItemIds
+      : payments
+          .map((payment) => payment.enrollmentChecklistItemId)
+          .filter((instanceId): instanceId is string => Boolean(instanceId));
+
+  for (const instanceId of instanceIds) {
+    await completeChecklistPaymentFromWebhook(admin, {
+      instanceId,
+      organizationId,
+      checkoutSessionId,
+      paymentIntentId,
+    });
+
+    void logActivityEvent(admin, {
+      organizationId,
+      actorType: "system",
+      surface: "system",
+      action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+      entityType: "enrollment_checklist_item",
+      entityId: instanceId,
+      summary: "Combined enrollment checklist payment completed",
+      metadata: {
+        checkoutSessionId,
+        paymentIds: payments.map((payment) => payment.id),
+      },
+    });
+  }
+}
+
+function parseCsvMetadata(value: string | undefined | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 async function handleEnrollmentChecklistCheckoutCompleted(

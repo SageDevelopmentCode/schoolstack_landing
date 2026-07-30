@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 import {
+  advanceFromStudentStep,
   beginApplyFormTest,
   endApplyFormTest,
-  fillStudentDateOfBirth,
+  fillRequiredStudentFields,
   openNewApplicationForm,
-  selectGradeLevel,
 } from "../helpers/apply-form";
 
 test.describe.configure({ mode: "serial" });
@@ -17,26 +17,8 @@ test.afterEach(async () => {
   await endApplyFormTest();
 });
 
-async function fillRequiredStudentFields(
-  page: import("@playwright/test").Page,
-  firstName?: string,
-) {
-  const uniqueSuffix = Date.now().toString().slice(-6);
-
-  await page.locator("#student_first_name").fill(firstName ?? `E2E${uniqueSuffix}`);
-  await page.locator("#student_last_name").fill("SubmitTest");
-  await fillStudentDateOfBirth(page);
-
-  await selectGradeLevel(page);
-}
-
 async function submitApplication(page: import("@playwright/test").Page) {
-  const continueButton = page.getByRole("button", { name: /Save and continue/i });
-  if (await continueButton.isVisible()) {
-    await continueButton.click();
-    await expect(page.getByText(/Step 2 of/i).first()).toBeVisible();
-  }
-
+  await advanceFromStudentStep(page);
   await page.getByRole("button", { name: "Submit application" }).click();
 }
 

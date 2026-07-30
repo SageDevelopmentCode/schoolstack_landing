@@ -10,6 +10,7 @@ import ButtonLoadingLabel, {
 } from "@/components/ui/ButtonLoadingLabel";
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
+import { reportAuthOtpFailed } from "@/lib/activity-auth-client";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
@@ -125,6 +126,7 @@ function AuthField({
 export default function ApplicationAuthGate({
   branding,
   schoolName,
+  schoolSlug,
   formTitle,
   organizationId,
   formVersionId,
@@ -236,6 +238,8 @@ export default function ApplicationAuthGate({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          organizationId,
+          organizationSlug: schoolSlug,
           schoolName,
           email: email.trim().toLowerCase(),
           mode,
@@ -247,7 +251,7 @@ export default function ApplicationAuthGate({
         // Discord notification is best-effort; do not block auth flow.
       });
     },
-    [email, firstName, lastName, mode, schoolName],
+    [email, firstName, lastName, mode, organizationId, schoolName, schoolSlug],
   );
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -323,6 +327,16 @@ export default function ApplicationAuthGate({
         onComplete();
       }
     } catch (error) {
+      reportAuthOtpFailed({
+        email: email.trim().toLowerCase(),
+        organizationId,
+        organizationSlug: schoolSlug,
+        surface: "public_apply",
+        mode,
+        page: "/forms/apply",
+        errorCode:
+          error instanceof Error ? error.message.slice(0, 120) : "verify_failed",
+      });
       setAuthError(
         error instanceof Error ? error.message : "Verification failed. Please try again.",
       );

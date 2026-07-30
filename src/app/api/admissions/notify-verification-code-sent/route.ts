@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
+import { recordAuthActivity } from "@/lib/activity-auth-server";
 import { apiError } from "@/lib/api/route-errors";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   notifyRootedMeadowsVerificationCodeSent,
   type ApplyAuthMode,
 } from "@/lib/discord";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/admissions/notify-verification-code-sent";
 
 type NotifyRequestBody = {
+  organizationId?: string;
+  organizationSlug?: string;
   schoolName?: string;
   email?: string;
   mode?: ApplyAuthMode;
@@ -51,6 +56,22 @@ export async function POST(request: Request) {
   }
 
   try {
+    const admin = createAdminClient();
+
+    void recordAuthActivity(admin, {
+      organizationId: body.organizationId?.trim() ?? null,
+      actorEmail: email,
+      surface: "public_apply",
+      action: ACTIVITY_ACTIONS.AUTH_OTP_REQUESTED,
+      metadata: {
+        method: "otp",
+        mode,
+        page: "/forms/apply",
+        resent: body.resent === true,
+        organizationSlug: body.organizationSlug?.trim(),
+      },
+    });
+
     await notifyRootedMeadowsVerificationCodeSent({
       schoolName,
       email,

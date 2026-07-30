@@ -152,7 +152,13 @@ async function enrichPaymentDisplayRows(
 ): Promise<PaymentRecordDisplayRow[]> {
   if (records.length === 0) return [];
 
-  const applicationIds = [...new Set(records.map((row) => row.applicationId))];
+  const applicationIds = [
+    ...new Set(
+      records
+        .map((row) => row.applicationId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
   const payerIds = [
     ...new Set(
       records
@@ -166,10 +172,12 @@ async function enrichPaymentDisplayRows(
 
   const [applicationsResult, guardiansResult, profilesResult, organizationsResult] =
     await Promise.all([
-      supabase
-        .from("applications")
-        .select("id, responses")
-        .in("id", applicationIds),
+      applicationIds.length > 0
+        ? supabase
+            .from("applications")
+            .select("id, responses")
+            .in("id", applicationIds)
+        : Promise.resolve({ data: [], error: null }),
       payerIds.length > 0
         ? supabase
             .from("guardians")

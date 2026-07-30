@@ -5,11 +5,26 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
 import EnrollmentChecklistExperience from "@/components/admissions/EnrollmentChecklistExperience";
 import EnrollmentCompleteModal from "@/components/admissions/EnrollmentCompleteModal";
-import type { LoadedEnrollmentChecklist } from "@/lib/admissions/enrollment-checklist-materialization";
+import {
+  enrollmentPaymentPollSucceeded,
+  loadEnrollmentChecklistInstances,
+  type LoadedEnrollmentChecklist,
+} from "@/lib/admissions/enrollment-checklist-materialization";
+import type { CombinedEnrollmentPaymentCandidate } from "@/lib/admissions/combined-enrollment-payment";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
+import { resolveEnrollmentChecklistInitialItemId } from "@/lib/admissions/enrollment-checklist-progress";
+import {
+  clearPaymentReturnQuery,
+  hasPaymentPollStarted,
+  markPaymentPollStarted,
+  PAYMENT_POLL_INTERVAL_MS,
+  PAYMENT_POLL_MAX_ATTEMPTS,
+  readPaymentReturnPending,
+  sleep,
+} from "@/lib/admissions/payment-return-polling";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { resolveEnrollmentChecklistInitialItemId } from "@/lib/admissions/enrollment-checklist-progress";
+import { createClient } from "@/utils/supabase/client";
 
 type PublicEnrollmentChecklistClientProps = {
   branding: OrganizationBranding;
@@ -17,6 +32,7 @@ type PublicEnrollmentChecklistClientProps = {
   schoolSlug: string;
   organizationId: string;
   checklist: LoadedEnrollmentChecklist;
+  combinedPaymentCandidates?: CombinedEnrollmentPaymentCandidate[];
   parentPortalHref?: string;
   previewMode?: boolean;
   backHref?: string;
@@ -27,8 +43,8 @@ function celebrationStorageKey(checklistId: string) {
   return `enrollment-celebration:${checklistId}`;
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function paymentPollScope(checklistId: string) {
+  return `enrollment:${checklistId}`;
 }
 
 export default function PublicEnrollmentChecklistClient({
@@ -37,18 +53,23 @@ export default function PublicEnrollmentChecklistClient({
   schoolSlug,
   organizationId,
   checklist,
+  combinedPaymentCandidates = [],
   parentPortalHref,
   previewMode = false,
   backHref,
   userProfile,
 }: PublicEnrollmentChecklistClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [instances, setInstances] = useState(checklist.instances);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [pollingPayment, setPollingPayment] = useState(false);
+  const [paymentReturnPending, setPaymentReturnPending] = useState(() =>
+    readPaymentReturnPending(searchParams),
+  );
   const activeItemPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [resolvedInitialItemId] = useState(() =>
@@ -90,7 +111,7 @@ export default function PublicEnrollmentChecklistClient({
   }, [persistActiveItem, previewMode, resolvedInitialItemId]);
 
   const clearPaymentQueryParams = useCallback(() => {
-    router.replace(pathname);
+    clearPaymentReturnQuery(router, pathname);
   }, [pathname, router]);
 
   const maybeShowCelebration = useCallback(
@@ -110,20 +131,57 @@ export default function PublicEnrollmentChecklistClient({
   }, [checklist.instances]);
 
   useEffect(() => {
-    if (previewMode || searchParams.get("payment") !== "success") return;
+    if (previewMode || !paymentReturnPending) return;
+
+    const scope = paymentPollScope(checklist.checklistId);
+    if (hasPaymentPollStarted(scope)) {
+      queueMicrotask(() => setPaymentReturnPending(false));
+      return;
+    }
 
     let cancelled = false;
 
     async function pollForPaymentCompletion() {
+      markPaymentPollStarted(scope);
+      clearPaymentReturnQuery(router, pathname);
       setPollingPayment(true);
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        if (cancelled) return;
-        router.refresh();
-        if (attempt < 4) {
-          await sleep(1000);
+
+      let attempts = 0;
+      let previousInstances = instances;
+
+      while (!cancelled && attempts < PAYMENT_POLL_MAX_ATTEMPTS) {
+        attempts += 1;
+
+        try {
+          const nextInstances = await loadEnrollmentChecklistInstances(
+            supabase,
+            checklist.checklistId,
+          );
+
+          if (cancelled) return;
+
+          if (enrollmentPaymentPollSucceeded(previousInstances, nextInstances)) {
+            setInstances(nextInstances);
+            setPaymentReturnPending(false);
+            setPollingPayment(false);
+            return;
+          }
+
+          previousInstances = nextInstances;
+          setInstances(nextInstances);
+        } catch {
+          // Keep polling briefly while webhook processes.
+        }
+
+        if (attempts < PAYMENT_POLL_MAX_ATTEMPTS) {
+          await sleep(PAYMENT_POLL_INTERVAL_MS);
         }
       }
-      setPollingPayment(false);
+
+      if (!cancelled) {
+        setPaymentReturnPending(false);
+        setPollingPayment(false);
+      }
     }
 
     queueMicrotask(() => {
@@ -133,11 +191,21 @@ export default function PublicEnrollmentChecklistClient({
     return () => {
       cancelled = true;
     };
-  }, [previewMode, router, searchParams]);
+  }, [
+    checklist.checklistId,
+    pathname,
+    paymentReturnPending,
+    previewMode,
+    router,
+    supabase,
+  ]);
 
   useEffect(() => {
     if (checklist.status !== "completed") return;
-    if (searchParams.get("payment") === "success") {
+    if (
+      searchParams.get("payment") === "success" ||
+      searchParams.get("combined_payment") === "success"
+    ) {
       queueMicrotask(() => {
         maybeShowCelebration(checklist.status, checklist.checklistId);
         clearPaymentQueryParams();
@@ -174,6 +242,7 @@ export default function PublicEnrollmentChecklistClient({
       branding={branding}
       schoolName={schoolName}
       schoolSlug={schoolSlug}
+      organizationId={organizationId}
       userEmail={resolvedProfile.email}
       userDisplayName={resolvedProfile.displayName}
       previewMode={previewMode}
@@ -190,6 +259,7 @@ export default function PublicEnrollmentChecklistClient({
         organizationId={organizationId}
         checklistId={liveChecklist.checklistId}
         applicationId={liveChecklist.applicationId}
+        combinedPaymentCandidates={combinedPaymentCandidates}
         initialItemId={resolvedInitialItemId ?? undefined}
         onInstancesChange={previewMode ? undefined : setInstances}
         onActiveItemChange={previewMode ? undefined : persistActiveItem}

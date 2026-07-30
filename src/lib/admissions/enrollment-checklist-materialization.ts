@@ -773,6 +773,47 @@ function instanceFromRow(row: Record<string, unknown>): EnrollmentChecklistItemI
   };
 }
 
+export async function loadEnrollmentChecklistInstances(
+  supabase: SupabaseClient,
+  checklistId: string,
+): Promise<EnrollmentChecklistItemInstance[]> {
+  const { data, error } = await supabase
+    .from("enrollment_checklist_items")
+    .select("id, checklist_id, template_item_id, item_key, status, payment_status, responses")
+    .eq("checklist_id", checklistId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => instanceFromRow(row as Record<string, unknown>));
+}
+
+export function enrollmentPaymentPollSucceeded(
+  previous: EnrollmentChecklistItemInstance[],
+  next: EnrollmentChecklistItemInstance[],
+): boolean {
+  const previousById = new Map(previous.map((instance) => [instance.id, instance]));
+
+  for (const instance of next) {
+    const prior = previousById.get(instance.id);
+    if (!prior) continue;
+
+    if (instance.paymentStatus === "paid" && prior.paymentStatus !== "paid") {
+      return true;
+    }
+
+    if (
+      instance.status === "completed" &&
+      prior.status !== "completed" &&
+      instance.paymentStatus === "paid"
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export async function loadEnrollmentChecklistForApplication(
   supabase: SupabaseClient,
   applicationId: string,
