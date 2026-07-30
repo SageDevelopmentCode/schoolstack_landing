@@ -18,6 +18,7 @@ type PaymentMethodSelectionModalProps = {
   netAmountCents: number;
   label: string;
   lineItems?: ChecklistPaymentLineItem[];
+  variant?: "single" | "combined";
   loading?: boolean;
   onConfirm: (method: CheckoutPaymentMethod) => void | Promise<void>;
 };
@@ -181,20 +182,37 @@ export default function PaymentMethodSelectionModal({
   netAmountCents,
   label,
   lineItems,
+  variant = "single",
   loading = false,
   onConfirm,
 }: PaymentMethodSelectionModalProps) {
   const [selectedMethod, setSelectedMethod] =
     useState<CheckoutPaymentMethod>("card");
 
-  const cardQuote = useMemo(
-    () => quoteProcessingFee(netAmountCents, "card"),
-    [netAmountCents],
-  );
-  const achQuote = useMemo(
-    () => quoteProcessingFee(netAmountCents, "us_bank_account"),
-    [netAmountCents],
-  );
+  const canQuoteFees = open && netAmountCents > 0;
+
+  const cardQuote = useMemo(() => {
+    if (!canQuoteFees) {
+      return {
+        netAmountCents: Math.max(0, netAmountCents),
+        processingFeeCents: 0,
+        grossAmountCents: Math.max(0, netAmountCents),
+        paymentMethod: "card" as const,
+      };
+    }
+    return quoteProcessingFee(netAmountCents, "card");
+  }, [canQuoteFees, netAmountCents]);
+  const achQuote = useMemo(() => {
+    if (!canQuoteFees) {
+      return {
+        netAmountCents: Math.max(0, netAmountCents),
+        processingFeeCents: 0,
+        grossAmountCents: Math.max(0, netAmountCents),
+        paymentMethod: "us_bank_account" as const,
+      };
+    }
+    return quoteProcessingFee(netAmountCents, "us_bank_account");
+  }, [canQuoteFees, netAmountCents]);
 
   useEffect(() => {
     if (open) {
@@ -206,6 +224,7 @@ export default function PaymentMethodSelectionModal({
     selectedMethod === "card" ? cardQuote : achQuote;
   const feeLabel =
     selectedMethod === "card" ? "Card fee" : "Bank fee";
+  const isCombined = variant === "combined";
 
   return (
     <AnimatePresence>
@@ -232,7 +251,11 @@ export default function PaymentMethodSelectionModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="payment-method-title"
-            aria-describedby="payment-method-summary payment-method-disclaimer"
+            aria-describedby={
+              isCombined
+                ? "payment-method-summary payment-method-combined-note payment-method-disclaimer"
+                : "payment-method-summary payment-method-disclaimer"
+            }
           >
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
@@ -295,6 +318,18 @@ export default function PaymentMethodSelectionModal({
                 grossAmountCents={selectedQuote.grossAmountCents}
               />
             </div>
+
+            {isCombined ? (
+              <p
+                id="payment-method-combined-note"
+                className="mt-3 text-sm leading-relaxed"
+                style={{ color: C.textSecondary }}
+              >
+                You&apos;ll be charged once for all children listed above. One processing
+                fee applies for the whole family instead of paying separately for each
+                child.
+              </p>
+            ) : null}
 
             <p
               id="payment-method-disclaimer"

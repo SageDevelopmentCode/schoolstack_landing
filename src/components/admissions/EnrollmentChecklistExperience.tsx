@@ -21,6 +21,7 @@ import type {
   EnrollmentChecklistItem,
   EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
+import type { CombinedEnrollmentPaymentCandidate } from "@/lib/admissions/combined-enrollment-payment";
 import { computeChecklistProgress } from "@/lib/admissions/enrollment-checklist-materialization";
 import { resolveEnrollmentChecklistInitialItemId } from "@/lib/admissions/enrollment-checklist-progress";
 import { buildChecklistPreviewSidebarItems } from "@/lib/admissions/enrollment-checklist-variants";
@@ -40,6 +41,7 @@ export type EnrollmentChecklistExperienceProps = {
   organizationId?: string;
   checklistId?: string;
   applicationId?: string;
+  combinedPaymentCandidates?: CombinedEnrollmentPaymentCandidate[];
   initialItemId?: string;
   instances?: EnrollmentChecklistItemInstance[];
   onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
@@ -256,6 +258,7 @@ export default function EnrollmentChecklistExperience({
   organizationId,
   checklistId,
   applicationId,
+  combinedPaymentCandidates = [],
   initialItemId,
   instances = EMPTY_CHECKLIST_INSTANCES,
   onInstancesChange,
@@ -392,6 +395,7 @@ export default function EnrollmentChecklistExperience({
           instanceId={activeInstance?.id}
           instanceStatus={activeInstance?.status}
           instancePaymentStatus={activeInstance?.paymentStatus}
+          combinedPaymentCandidates={combinedPaymentCandidates}
           existingResponses={activeInstance?.responses}
           hasNextIncompleteItem={Boolean(nextIncompleteItemId)}
           onGoToNextItem={

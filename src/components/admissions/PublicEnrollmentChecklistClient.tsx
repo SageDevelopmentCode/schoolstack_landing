@@ -10,6 +10,7 @@ import {
   loadEnrollmentChecklistInstances,
   type LoadedEnrollmentChecklist,
 } from "@/lib/admissions/enrollment-checklist-materialization";
+import type { CombinedEnrollmentPaymentCandidate } from "@/lib/admissions/combined-enrollment-payment";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import { resolveEnrollmentChecklistInitialItemId } from "@/lib/admissions/enrollment-checklist-progress";
 import {
@@ -31,6 +32,7 @@ type PublicEnrollmentChecklistClientProps = {
   schoolSlug: string;
   organizationId: string;
   checklist: LoadedEnrollmentChecklist;
+  combinedPaymentCandidates?: CombinedEnrollmentPaymentCandidate[];
   parentPortalHref?: string;
   previewMode?: boolean;
   backHref?: string;
@@ -51,6 +53,7 @@ export default function PublicEnrollmentChecklistClient({
   schoolSlug,
   organizationId,
   checklist,
+  combinedPaymentCandidates = [],
   parentPortalHref,
   previewMode = false,
   backHref,
@@ -199,7 +202,10 @@ export default function PublicEnrollmentChecklistClient({
 
   useEffect(() => {
     if (checklist.status !== "completed") return;
-    if (searchParams.get("payment") === "success") {
+    if (
+      searchParams.get("payment") === "success" ||
+      searchParams.get("combined_payment") === "success"
+    ) {
       queueMicrotask(() => {
         maybeShowCelebration(checklist.status, checklist.checklistId);
         clearPaymentQueryParams();
@@ -253,6 +259,7 @@ export default function PublicEnrollmentChecklistClient({
         organizationId={organizationId}
         checklistId={liveChecklist.checklistId}
         applicationId={liveChecklist.applicationId}
+        combinedPaymentCandidates={combinedPaymentCandidates}
         initialItemId={resolvedInitialItemId ?? undefined}
         onInstancesChange={previewMode ? undefined : setInstances}
         onActiveItemChange={previewMode ? undefined : persistActiveItem}

@@ -57,6 +57,7 @@ import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checkl
 import { hasPaymentBreakdown, isPdfAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import type { CombinedEnrollmentPaymentCandidate } from "@/lib/admissions/combined-enrollment-payment";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import { createClient } from "@/utils/supabase/client";
 
@@ -71,6 +72,7 @@ type EnrollmentChecklistItemPanelProps = {
   instanceId?: string;
   instanceStatus?: string;
   instancePaymentStatus?: string;
+  combinedPaymentCandidates?: CombinedEnrollmentPaymentCandidate[];
   existingResponses?: Record<string, unknown>;
   hasNextIncompleteItem?: boolean;
   onGoToNextItem?: () => void;
@@ -1366,6 +1368,7 @@ function PaymentPanel({
   instanceId,
   instanceStatus,
   instancePaymentStatus,
+  combinedPaymentCandidates = [],
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
@@ -1375,6 +1378,7 @@ function PaymentPanel({
   instanceId?: string;
   instanceStatus?: string;
   instancePaymentStatus?: string;
+  combinedPaymentCandidates?: CombinedEnrollmentPaymentCandidate[];
 }) {
   const isLive = mode === "live";
   const isCompleted = instanceStatus === "completed" || instancePaymentStatus === "paid";
@@ -1382,9 +1386,28 @@ function PaymentPanel({
   const amount = formatFeeAmount(payment?.amountCents ?? 0);
   const showBreakdown = hasPaymentBreakdown(payment);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [combinedPaymentModalOpen, setCombinedPaymentModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorContext = buildErrorContext(organizationId, applicationId, instanceId);
+  const showCombinedOption = isLive && combinedPaymentCandidates.length >= 2;
+  const combinedNetAmountCents = useMemo(
+    () =>
+      combinedPaymentCandidates.reduce(
+        (sum, candidate) => sum + candidate.amountCents,
+        0,
+      ),
+    [combinedPaymentCandidates],
+  );
+  const combinedLineItems = useMemo(
+    () =>
+      combinedPaymentCandidates.map((candidate) => ({
+        id: candidate.instanceId,
+        label: `${candidate.studentName} — ${candidate.feeLabel}`,
+        amountCents: candidate.amountCents,
+      })),
+    [combinedPaymentCandidates],
+  );
 
   async function handleConfirmPayment(method: CheckoutPaymentMethod) {
     if (!isLive || !instanceId || isCompleted) return;
@@ -1422,6 +1445,56 @@ function PaymentPanel({
         err,
       );
       setError(err instanceof Error ? err.message : "Failed to start checkout.");
+      setSubmitting(false);
+    }
+  }
+
+  async function handleConfirmCombinedPayment(method: CheckoutPaymentMethod) {
+    if (!isLive || combinedPaymentCandidates.length < 2) return;
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        "/api/admissions/enrollment-checklist-items/combined-checkout",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentMethod: method,
+            checklistItemIds: combinedPaymentCandidates.map(
+              (candidate) => candidate.instanceId,
+            ),
+          }),
+        },
+      );
+      const body = await response.json();
+      if (!response.ok) {
+        const message =
+          typeof body.error === "string"
+            ? body.error
+            : "Failed to start combined checkout.";
+        reportEnrollmentChecklistError(
+          errorContext,
+          "enrollment_checklist.combined_checkout",
+          new Error(message),
+          response.status,
+          typeof body.code === "string" ? body.code : undefined,
+        );
+        throw new Error(message);
+      }
+      if (body.url) {
+        window.location.href = body.url;
+      }
+    } catch (err) {
+      reportEnrollmentChecklistError(
+        errorContext,
+        "enrollment_checklist.combined_checkout",
+        err,
+      );
+      setError(
+        err instanceof Error ? err.message : "Failed to start combined checkout.",
+      );
       setSubmitting(false);
     }
   }
@@ -1480,6 +1553,63 @@ function PaymentPanel({
         loading={submitting}
         onConfirm={handleConfirmPayment}
       />
+
+      {showCombinedOption ? (
+        <div
+          className="rounded-lg border px-4 py-4"
+          style={{ borderColor: C.border, backgroundColor: C.elevated }}
+        >
+          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+            Pay for all children in one checkout
+          </p>
+          <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
+            One processing fee for your whole family — instead of paying separately
+            for each child.
+          </p>
+          <div className="mt-3 space-y-2">
+            {combinedPaymentCandidates.map((candidate) => (
+              <div
+                key={candidate.instanceId}
+                className="flex items-baseline justify-between gap-4 text-sm"
+              >
+                <span style={{ color: C.textSecondary }}>
+                  {candidate.studentName} — {candidate.feeLabel}
+                </span>
+                <span className="tabular-nums" style={{ color: C.textPrimary }}>
+                  {formatFeeAmount(candidate.amountCents)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => setCombinedPaymentModalOpen(true)}
+            className="mt-4 rounded-md px-5 py-2.5 text-sm font-semibold text-white"
+            style={panelButtonStyle(C, submitting)}
+          >
+            {submitting
+              ? "Redirecting…"
+              : `Pay for all children — ${formatFeeAmount(combinedNetAmountCents)}`}
+          </button>
+        </div>
+      ) : null}
+
+      {showCombinedOption ? (
+        <PaymentMethodSelectionModal
+          C={C}
+          open={combinedPaymentModalOpen}
+          onClose={() => {
+            if (!submitting) setCombinedPaymentModalOpen(false);
+          }}
+          netAmountCents={combinedNetAmountCents}
+          label="Combined enrollment payment for all children"
+          lineItems={combinedLineItems}
+          variant="combined"
+          loading={submitting}
+          onConfirm={handleConfirmCombinedPayment}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1622,6 +1752,7 @@ export default function EnrollmentChecklistItemPanel({
   instanceId,
   instanceStatus,
   instancePaymentStatus,
+  combinedPaymentCandidates = [],
   existingResponses,
   hasNextIncompleteItem = false,
   onGoToNextItem,
@@ -1754,6 +1885,7 @@ export default function EnrollmentChecklistItemPanel({
             instanceId={instanceId}
             instanceStatus={instanceStatus}
             instancePaymentStatus={instancePaymentStatus}
+            combinedPaymentCandidates={combinedPaymentCandidates}
           />
         );
       case "acknowledgment":

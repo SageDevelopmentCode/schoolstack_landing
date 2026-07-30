@@ -170,15 +170,22 @@ export async function getApplicationPaymentByCheckoutSession(
   supabase: SupabaseClient,
   checkoutSessionId: string,
 ): Promise<PaymentRecord | null> {
+  const payments = await listPaymentsByCheckoutSession(supabase, checkoutSessionId);
+  return payments[0] ?? null;
+}
+
+export async function listPaymentsByCheckoutSession(
+  supabase: SupabaseClient,
+  checkoutSessionId: string,
+): Promise<PaymentRecord[]> {
   const { data, error } = await supabase
     .from("application_payments")
     .select("*")
     .eq("stripe_checkout_session_id", checkoutSessionId)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
 
   if (error) throw error;
-  if (!data) return null;
-  return rowToPayment(data as Record<string, unknown>);
+  return (data ?? []).map((row) => rowToPayment(row as Record<string, unknown>));
 }
 
 export async function getPaymentByChecklistItem(
@@ -297,10 +304,20 @@ export async function attachCheckoutSessionToPayment(
   paymentId: string,
   checkoutSessionId: string,
 ): Promise<void> {
+  await attachCheckoutSessionToPayments(supabase, [paymentId], checkoutSessionId);
+}
+
+export async function attachCheckoutSessionToPayments(
+  supabase: SupabaseClient,
+  paymentIds: string[],
+  checkoutSessionId: string,
+): Promise<void> {
+  if (paymentIds.length === 0) return;
+
   const { error } = await supabase
     .from("application_payments")
     .update({ stripe_checkout_session_id: checkoutSessionId })
-    .eq("id", paymentId);
+    .in("id", paymentIds);
 
   if (error) throw error;
 }

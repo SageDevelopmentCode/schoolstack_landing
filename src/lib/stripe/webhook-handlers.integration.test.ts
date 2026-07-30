@@ -212,6 +212,68 @@ describeIntegration("handleCheckoutSessionCompleted", () => {
       ),
     );
   });
+
+  it("completes combined enrollment checklist payments", async () => {
+    const admin = createTestAdminClient();
+    const firstFixture = await seedEnrollmentChecklistPayment(admin);
+    const secondFixture = await seedEnrollmentChecklistPayment(admin);
+
+    const checkoutSessionId = `cs_test_combined_${randomUUID().slice(0, 8)}`;
+
+    const { data: secondPayment, error: secondPaymentError } = await admin
+      .from("application_payments")
+      .insert({
+        organization_id: secondFixture.organizationId,
+        application_id: secondFixture.applicationId,
+        amount_cents: 2500,
+        currency: "USD",
+        status: "pending",
+        payment_type: "enrollment_checklist",
+        enrollment_checklist_item_id: secondFixture.checklistItemId,
+        stripe_checkout_session_id: checkoutSessionId,
+        label: "Enrollment fee",
+      })
+      .select("id")
+      .single();
+
+    if (secondPaymentError) throw secondPaymentError;
+
+    await admin
+      .from("application_payments")
+      .update({ stripe_checkout_session_id: checkoutSessionId })
+      .eq("id", firstFixture.paymentId);
+
+    await handleCheckoutSessionCompleted(
+      admin,
+      buildCheckoutSession({
+        id: checkoutSessionId,
+        metadata: {
+          payment_type: "enrollment_checklist_combined",
+          organization_id: firstFixture.organizationId,
+          checklist_item_ids: `${firstFixture.checklistItemId},${secondFixture.checklistItemId}`,
+          payment_ids: `${firstFixture.paymentId},${secondPayment.id}`,
+        },
+      }),
+    );
+
+    const { data: paymentRows } = await admin
+      .from("application_payments")
+      .select("status")
+      .in("id", [firstFixture.paymentId, secondPayment.id]);
+
+    const { data: checklistItems } = await admin
+      .from("enrollment_checklist_items")
+      .select("payment_status, status")
+      .in("id", [firstFixture.checklistItemId, secondFixture.checklistItemId]);
+
+    assert.equal(paymentRows?.every((row) => row.status === "succeeded"), true);
+    assert.equal(
+      checklistItems?.every(
+        (row) => row.payment_status === "paid" && row.status === "completed",
+      ),
+      true,
+    );
+  });
 });
 
 describeIntegration("handleAccountUpdated", () => {

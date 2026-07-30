@@ -8,7 +8,10 @@ const PAYMENT_POLL_STORAGE_PREFIX = "payment-return-poll:";
 export function readPaymentReturnPending(
   searchParams: Pick<URLSearchParams, "get">,
 ): boolean {
-  return searchParams.get("payment") === "success";
+  return (
+    searchParams.get("payment") === "success" ||
+    searchParams.get("combined_payment") === "success"
+  );
 }
 
 export function getPaymentPollStorageKey(scope: string): string {
