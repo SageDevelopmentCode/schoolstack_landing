@@ -66,9 +66,23 @@ export default function ParentBillingSummaryCard({
         <div className="min-w-0">
           {summary.nextCharge ? (
             <div className="flex flex-col gap-0.5">
-              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                Due {formatBillingDueDate(summary.nextCharge.dueDate)}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  Due {formatBillingDueDate(summary.nextCharge.dueDate)}
+                </p>
+                {autopayEnabled && summary.balanceDueCents > 0 ? (
+                  <span
+                    className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                    style={{
+                      backgroundColor: C.accentLight,
+                      color: C.accent,
+                    }}
+                    data-testid="parent-billing-autopay-on-badge"
+                  >
+                    Autopay on
+                  </span>
+                ) : null}
+              </div>
               {dueCountdown ? (
                 <p
                   className="text-xs"
@@ -99,6 +113,16 @@ export default function ParentBillingSummaryCard({
           {showEstimatedAnnual ? (
             <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
               Estimated annual tuition: {formatCents(summary.annualTuitionCents)}
+            </p>
+          ) : null}
+          {autopayEnabled && summary.nextCharge && summary.balanceDueCents > 0 ? (
+            <p
+              className="text-xs mt-2"
+              style={{ color: C.textSecondary }}
+              data-testid="parent-billing-pay-early-hint"
+            >
+              Autopay will charge your saved card on the due date. Pay early anytime if you
+              prefer.
             </p>
           ) : null}
         </div>

@@ -12,6 +12,13 @@ import {
   notifyAutopayFailed,
   notifyAutopaySucceeded,
 } from "./autopay-notifications";
+import {
+  AUTOPAY_LINES_PER_ORG_CAP,
+  buildFamilyLabel,
+  type AutopayLineItem,
+  type AutopayOrgResult,
+  type AutopaySkipReason,
+} from "./autopay-cron-report";
 import { rowToBillingAccount } from "./row-mappers";
 import type { AdjustmentType, TuitionBillingAccount } from "./types";
 
@@ -315,16 +322,98 @@ export async function importFinancialAidCsv(
   return { imported, skipped };
 }
 
+function emptyAutopayOrgResult(): AutopayOrgResult {
+  return {
+    processed: 0,
+    skipped: 0,
+    failed: 0,
+    attempted: 0,
+    dueCandidates: 0,
+    lines: [],
+    truncated: false,
+  };
+}
+
+function pushAutopayLine(
+  lines: AutopayLineItem[],
+  line: AutopayLineItem,
+  state: { truncated: boolean },
+): void {
+  if (lines.length >= AUTOPAY_LINES_PER_ORG_CAP) {
+    state.truncated = true;
+    return;
+  }
+  lines.push(line);
+}
+
+function recordSkippedDueCharges(input: {
+  lines: AutopayLineItem[];
+  lineState: { truncated: boolean };
+  dueCharges: Array<{
+    id: string | number;
+    amount_cents: number;
+    paid_cents?: number | null;
+    label: string;
+  }>;
+  skipReason: AutopaySkipReason;
+  organizationSlug: string;
+  familyId: string;
+  familyLabel: string;
+  counters: { skipped: number; dueCandidates: number };
+}): void {
+  for (const charge of input.dueCharges) {
+    const amountCents = chargeRemainingCents({
+      amountCents: Number(charge.amount_cents),
+      paidCents: Number(charge.paid_cents ?? 0),
+    });
+    if (amountCents <= 0) {
+      input.counters.skipped++;
+      pushAutopayLine(
+        input.lines,
+        {
+          organizationSlug: input.organizationSlug,
+          familyId: input.familyId,
+          familyLabel: input.familyLabel,
+          chargeId: String(charge.id),
+          chargeLabel: String(charge.label),
+          amountCents: 0,
+          outcome: "skipped",
+          skipReason: "zero_balance",
+        },
+        input.lineState,
+      );
+      continue;
+    }
+
+    input.counters.dueCandidates++;
+    input.counters.skipped++;
+    pushAutopayLine(
+      input.lines,
+      {
+        organizationSlug: input.organizationSlug,
+        familyId: input.familyId,
+        familyLabel: input.familyLabel,
+        chargeId: String(charge.id),
+        chargeLabel: String(charge.label),
+        amountCents,
+        outcome: "skipped",
+        skipReason: input.skipReason,
+      },
+      input.lineState,
+    );
+  }
+}
+
 export async function processAutopayForOrganization(
   supabase: SupabaseClient,
   organizationId: string,
-): Promise<{ processed: number; skipped: number; failed: number }> {
+): Promise<AutopayOrgResult> {
   const today = new Date().toISOString().slice(0, 10);
 
   const paymentAccount = await getOrganizationPaymentAccount(supabase, organizationId);
   const stripeConnectAccountId = paymentAccount?.stripeConnectAccountId;
   if (!paymentAccount || !stripeConnectAccountId || !isPaymentReady(paymentAccount)) {
-    return { processed: 0, skipped: 0, failed: 0 };
+    return emptyAutopayOrgResult();
   }
 
   const { data: organization, error: organizationError } = await supabase
@@ -343,9 +432,41 @@ export async function processAutopayForOrganization(
 
   if (accountsError) throw accountsError;
 
-  let processed = 0;
-  let skipped = 0;
-  let failed = 0;
+  const familyIds = [
+    ...new Set(
+      (accounts ?? []).map((accountRow) => String(accountRow.family_id)),
+    ),
+  ];
+
+  const guardiansByFamily = new Map<string, Array<{ last_name?: string | null }>>();
+  if (familyIds.length > 0) {
+    const { data: guardians, error: guardiansError } = await supabase
+      .from("guardians")
+      .select("family_id, last_name")
+      .in("family_id", familyIds)
+      .order("created_at", { ascending: true });
+
+    if (guardiansError) throw guardiansError;
+
+    for (const row of guardians ?? []) {
+      const familyId = String(row.family_id);
+      const existing = guardiansByFamily.get(familyId) ?? [];
+      existing.push({ last_name: row.last_name });
+      guardiansByFamily.set(familyId, existing);
+    }
+  }
+
+  const familyLabel = (familyId: string) =>
+    buildFamilyLabel(familyId, guardiansByFamily.get(familyId) ?? []);
+
+  const stats = {
+    processed: 0,
+    skipped: 0,
+    failed: 0,
+    dueCandidates: 0,
+  };
+  const lines: AutopayLineItem[] = [];
+  const lineState = { truncated: false };
 
   for (const accountRow of accounts ?? []) {
     const account = rowToBillingAccount(accountRow);
@@ -367,9 +488,11 @@ export async function processAutopayForOrganization(
     }
 
     if (autopayTargets.size === 0) {
-      skipped++;
+      stats.skipped++;
       continue;
     }
+
+    const accountFamilyLabel = familyLabel(account.familyId);
 
     for (const guardianId of autopayTargets.keys()) {
       let dueChargesQuery = supabase
@@ -388,7 +511,7 @@ export async function processAutopayForOrganization(
       const { data: dueCharges, error: chargesError } = await dueChargesQuery;
       if (chargesError) throw chargesError;
       if (!dueCharges?.length) {
-        skipped++;
+        stats.skipped++;
         continue;
       }
 
@@ -408,7 +531,16 @@ export async function processAutopayForOrganization(
       }
 
       if (!paymentMethodId) {
-        skipped += dueCharges.length;
+        recordSkippedDueCharges({
+          lines,
+          lineState,
+          dueCharges,
+          skipReason: "no_payment_method",
+          organizationSlug: orgSlug,
+          familyId: account.familyId,
+          familyLabel: accountFamilyLabel,
+          counters: stats,
+        });
         continue;
       }
 
@@ -435,7 +567,16 @@ export async function processAutopayForOrganization(
       }
 
       if (!guardianUserId) {
-        skipped += dueCharges.length;
+        recordSkippedDueCharges({
+          lines,
+          lineState,
+          dueCharges,
+          skipReason: "no_guardian",
+          organizationSlug: orgSlug,
+          familyId: account.familyId,
+          familyLabel: accountFamilyLabel,
+          counters: stats,
+        });
         continue;
       }
 
@@ -447,7 +588,16 @@ export async function processAutopayForOrganization(
 
       if (customerError) throw customerError;
       if (!stripeCustomer?.stripe_customer_id) {
-        skipped += dueCharges.length;
+        recordSkippedDueCharges({
+          lines,
+          lineState,
+          dueCharges,
+          skipReason: "no_stripe_customer",
+          organizationSlug: orgSlug,
+          familyId: account.familyId,
+          familyLabel: accountFamilyLabel,
+          counters: stats,
+        });
         continue;
       }
 
@@ -457,9 +607,25 @@ export async function processAutopayForOrganization(
           paidCents: Number(charge.paid_cents ?? 0),
         });
         if (amountCents <= 0) {
-          skipped++;
+          stats.skipped++;
+          pushAutopayLine(
+            lines,
+            {
+              organizationSlug: orgSlug,
+              familyId: account.familyId,
+              familyLabel: accountFamilyLabel,
+              chargeId: String(charge.id),
+              chargeLabel: String(charge.label),
+              amountCents: 0,
+              outcome: "skipped",
+              skipReason: "zero_balance",
+            },
+            lineState,
+          );
           continue;
         }
+
+        stats.dueCandidates++;
 
         try {
           await executeTuitionAutopayCharge(supabase, {
@@ -482,7 +648,20 @@ export async function processAutopayForOrganization(
             amountCents,
             guardianUserId,
           });
-          processed++;
+          stats.processed++;
+          pushAutopayLine(
+            lines,
+            {
+              organizationSlug: orgSlug,
+              familyId: account.familyId,
+              familyLabel: accountFamilyLabel,
+              chargeId: String(charge.id),
+              chargeLabel: String(charge.label),
+              amountCents,
+              outcome: "charged",
+            },
+            lineState,
+          );
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Payment could not be processed.";
@@ -498,13 +677,35 @@ export async function processAutopayForOrganization(
             errorMessage,
             orgSlug,
           });
-          failed++;
+          stats.failed++;
+          pushAutopayLine(
+            lines,
+            {
+              organizationSlug: orgSlug,
+              familyId: account.familyId,
+              familyLabel: accountFamilyLabel,
+              chargeId: String(charge.id),
+              chargeLabel: String(charge.label),
+              amountCents,
+              outcome: "failed",
+              errorMessage,
+            },
+            lineState,
+          );
         }
       }
     }
   }
 
-  return { processed, skipped, failed };
+  return {
+    processed: stats.processed,
+    skipped: stats.skipped,
+    failed: stats.failed,
+    attempted: stats.processed + stats.failed,
+    dueCandidates: stats.dueCandidates,
+    lines,
+    truncated: lineState.truncated,
+  };
 }
 
 export async function refundTuitionPayment(

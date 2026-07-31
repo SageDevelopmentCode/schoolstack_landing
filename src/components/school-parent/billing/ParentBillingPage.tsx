@@ -401,6 +401,7 @@ function ParentBillingPageContent({
                 }
                 payingChargeId={payingChargeId}
                 highlighted={highlightedChargeId === charge.id}
+                autopayEnabled={autopayEnabled}
                 onPay={(chargeId) => void handlePay(chargeId)}
                 readOnly={previewMode}
               />
