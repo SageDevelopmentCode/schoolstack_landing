@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
 import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
@@ -78,8 +78,11 @@ function ParentBillingPageContent({
 }: ParentBillingPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const deepLinkChargeId = searchParams.get("charge");
+  const cardSaved = searchParams.get("card_saved");
   const hasInitialData = initialData !== undefined;
 
   const [charges, setCharges] = useState<TuitionCharge[]>(initialData?.charges ?? []);
@@ -413,10 +416,12 @@ function ParentBillingPageContent({
   };
 
   useEffect(() => {
-    if (searchParams.get("card_saved") === "1") {
-      void loadBilling();
-    }
-  }, [loadBilling, searchParams]);
+    if (cardSaved !== "1") return;
+
+    void loadBilling().then(() => {
+      router.replace(pathname, { scroll: false });
+    });
+  }, [cardSaved, loadBilling, pathname, router]);
 
   const handleScheduleComplete = async () => {
     const currentKey = activeChildKey;

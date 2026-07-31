@@ -61,7 +61,7 @@ async function storeGuardianCredit(
     surplusCents: number;
   },
 ): Promise<void> {
-  if (surplusCents <= 0) return;
+  if (input.surplusCents <= 0) return;
 
   const { data: account, error } = await supabase
     .from("tuition_billing_accounts")
@@ -82,13 +82,13 @@ async function storeGuardianCredit(
   const parsed = parseBillingMetadata(existingMetadata);
   const creditByGuardian = { ...(parsed.creditByGuardian ?? {}) };
   const creditKey = input.guardianId ?? "family";
-  creditByGuardian[creditKey] = (creditByGuardian[creditKey] ?? 0) + surplusCents;
+  creditByGuardian[creditKey] = (creditByGuardian[creditKey] ?? 0) + input.surplusCents;
 
   const nextMetadata = {
     ...existingMetadata,
     creditByGuardian,
     creditBalanceCents:
-      (parsed.creditBalanceCents ?? 0) + surplusCents,
+      (parsed.creditBalanceCents ?? 0) + input.surplusCents,
   };
 
   if (account) {
