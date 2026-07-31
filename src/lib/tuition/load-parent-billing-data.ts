@@ -11,6 +11,11 @@ import {
   getAutopayEnabledForGuardian,
   resolveGuardianIdForUser,
 } from "@/lib/tuition/payment-settlement";
+import {
+  getDefaultPaymentMethodForGuardian,
+  type SavedPaymentMethodSummary,
+} from "@/lib/tuition/payment-methods";
+import { getRecentAutopayFailureForFamily } from "@/lib/tuition/autopay-notifications";
 import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import { fetchFamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import type { FamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
@@ -27,6 +32,8 @@ export type ParentBillingInitialData = {
   readiness: FamilyBillingReadiness;
   familySummary: ParentBillingFamilySummary;
   autopayEnabled: boolean;
+  savedPaymentMethod: SavedPaymentMethodSummary | null;
+  recentAutopayFailure: { createdAt: string; summary: string } | null;
   guardianId: string | null;
   hasBillingSplit: boolean;
   initialChildKey: string | null;
@@ -82,6 +89,20 @@ export async function loadParentBillingInitialData(input: {
     ? getAutopayEnabledForGuardian(billingAccount, guardianId)
     : false;
 
+  const savedPaymentMethod =
+    billingAccount && guardianId !== undefined
+      ? await getDefaultPaymentMethodForGuardian(supabase, {
+          billingAccountId: billingAccount.id,
+          guardianId,
+          defaultPaymentMethodId: billingAccount.defaultPaymentMethodId,
+        })
+      : null;
+
+  const recentAutopayFailure = await getRecentAutopayFailureForFamily(supabase, {
+    organizationId: input.organizationId,
+    familyId: input.familyId,
+  });
+
   return {
     charges: chargeRows,
     allFamilyCharges,
@@ -90,6 +111,8 @@ export async function loadParentBillingInitialData(input: {
     readiness: readinessState,
     familySummary,
     autopayEnabled,
+    savedPaymentMethod,
+    recentAutopayFailure,
     guardianId,
     hasBillingSplit,
     initialChildKey: pickInitialChildKey(familySummary.children),

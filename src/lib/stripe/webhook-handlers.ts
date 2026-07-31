@@ -13,7 +13,10 @@ import {
 } from "@/lib/admissions/application-submit";
 import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
 import { settleTuitionPayment } from "@/lib/tuition/payment-settlement";
-import { trySaveTuitionPaymentMethod } from "@/lib/tuition/autopay";
+import {
+  savePaymentMethodFromSetupIntent,
+  trySaveTuitionPaymentMethod,
+} from "@/lib/tuition/autopay";
 import {
   attachCheckoutSessionToPayment,
   getApplicationPaymentByCheckoutSession,
@@ -82,6 +85,14 @@ export async function handleCheckoutSessionCompleted(
     await handleTuitionCheckoutCompleted(admin, {
       checkoutSessionId,
       paymentIntentId,
+      metadata,
+    });
+    return;
+  }
+
+  if (metadata.payment_type === "tuition_setup" && metadata.organization_id) {
+    await handleTuitionSetupCheckoutCompleted(admin, {
+      session,
       metadata,
     });
     return;
@@ -224,6 +235,55 @@ async function handleEnrollmentChecklistCheckoutCompleted(
       applicationId: metadata.application_id ?? null,
       paymentId: payment?.id ?? paymentId ?? null,
     },
+  });
+}
+
+async function handleTuitionSetupCheckoutCompleted(
+  admin: SupabaseClient,
+  input: {
+    session: Stripe.Checkout.Session;
+    metadata: Stripe.Metadata;
+  },
+): Promise<void> {
+  const { session, metadata } = input;
+  const organizationId = String(metadata.organization_id);
+  const familyId = String(metadata.family_id);
+  const setupIntentId =
+    typeof session.setup_intent === "string"
+      ? session.setup_intent
+      : session.setup_intent?.id;
+
+  if (!setupIntentId) return;
+
+  const guardianId =
+    typeof metadata.guardian_id === "string" && metadata.guardian_id.trim()
+      ? metadata.guardian_id
+      : null;
+  const payerUserId =
+    typeof metadata.supabase_user_id === "string" ? metadata.supabase_user_id : null;
+
+  await savePaymentMethodFromSetupIntent(admin, {
+    organizationId,
+    familyId,
+    setupIntentId,
+    payerUserId,
+    guardianId,
+  });
+
+  void logActivityEvent(admin, {
+    organizationId,
+    actorType: "parent",
+    actorUserId: payerUserId,
+    surface: "parent_portal",
+    action: ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED,
+    entityType: "family",
+    entityId: familyId,
+    summary: "Payment method saved for tuition autopay",
+    metadata: {
+      familyId,
+      guardianId,
+    },
+    severity: "info",
   });
 }
 

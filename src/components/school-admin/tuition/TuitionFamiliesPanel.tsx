@@ -246,10 +246,26 @@ export default function TuitionFamiliesPanel({
   };
 
   const familyStatusLabel = (family: FamilyBillingSummary) => {
+    const autopayLabel =
+      family.autopayStatus === "on"
+        ? "Autopay on"
+        : family.autopayStatus === "partial"
+          ? "Autopay partial"
+          : "Autopay off";
     if (family.readiness === "ready") {
-      return `Balance ${formatCents(family.balanceDueCents)} · ${family.status}`;
+      return `${formatCents(family.balanceDueCents)} · ${family.status} · ${autopayLabel}`;
     }
     return "Setup needed";
+  };
+
+  const autopayBadgeStyle = (status: FamilyBillingSummary["autopayStatus"]) => {
+    if (status === "on") {
+      return { backgroundColor: C.accentLight, color: C.accent };
+    }
+    if (status === "partial") {
+      return { backgroundColor: C.elevated, color: C.warning };
+    }
+    return { backgroundColor: C.elevated, color: C.textSecondary };
   };
 
   const [familyCharges, setFamilyCharges] = useState<
@@ -516,6 +532,56 @@ export default function TuitionFamiliesPanel({
                   : "—"}
               </p>
             </div>
+          </div>
+
+          <div
+            className="rounded-lg p-4 flex flex-col gap-3"
+            style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+            data-testid="tuition-autopay-status"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                Autopay
+              </p>
+              <span
+                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                style={autopayBadgeStyle(selectedFamily.autopayStatus)}
+              >
+                {selectedFamily.autopayStatus === "on"
+                  ? "On"
+                  : selectedFamily.autopayStatus === "partial"
+                    ? "Partial"
+                    : "Off"}
+              </span>
+            </div>
+
+            {selectedFamily.guardianAutopay.length > 0 ? (
+              <ul className="flex flex-col gap-2">
+                {selectedFamily.guardianAutopay.map((guardian) => (
+                  <li
+                    key={guardian.guardianId}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <span style={{ color: C.textPrimary }}>{guardian.name}</span>
+                    <span className="text-xs" style={{ color: C.textSecondary }}>
+                      Autopay {guardian.autopayEnabled ? "on" : "off"} · Card{" "}
+                      {guardian.hasPaymentMethod ? "on file" : "missing"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm" style={{ color: C.textSecondary }}>
+                Card on file: {selectedFamily.hasPaymentMethod ? "Yes" : "No"}
+              </p>
+            )}
+
+            {selectedFamily.lastAutopayFailedAt ? (
+              <p className="text-xs" style={{ color: C.error }}>
+                Last autopay failed on{" "}
+                {new Date(selectedFamily.lastAutopayFailedAt).toLocaleDateString()}
+              </p>
+            ) : null}
           </div>
 
           <div>

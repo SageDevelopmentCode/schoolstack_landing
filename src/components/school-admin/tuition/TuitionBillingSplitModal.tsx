@@ -5,6 +5,7 @@ import { Loader2, X } from "lucide-react";
 import type { FamilyGuardianRecord } from "@/lib/admissions/family-guardians";
 import { formatCents } from "@/lib/tuition/pricing";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { TuitionChoiceCard } from "@/components/school-admin/tuition/TuitionPaymentScheduleCards";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -168,14 +169,27 @@ export default function TuitionBillingSplitModal({
           </p>
         ) : (
           <>
-            <label className="flex items-center gap-2 text-sm" style={{ color: C.textPrimary }}>
-              <input
-                type="checkbox"
-                checked={enabled}
-                onChange={(event) => setEnabled(event.target.checked)}
+            <div className="flex flex-col gap-2" role="radiogroup" aria-label="Billing mode">
+              <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
+                Billing mode
+              </p>
+              <TuitionChoiceCard
+                C={C}
+                selected={!enabled}
+                label="Combined billing"
+                description="The family receives one combined tuition bill as today."
+                onSelect={() => setEnabled(false)}
+                testId="billing-split-combined"
               />
-              Split tuition between guardians
-            </label>
+              <TuitionChoiceCard
+                C={C}
+                selected={enabled}
+                label="Split between guardians"
+                description="Each guardian gets separate charges for their share."
+                onSelect={() => setEnabled(true)}
+                testId="billing-split-split"
+              />
+            </div>
 
             {enabled ? (
               <div className="flex flex-col gap-3">
@@ -230,11 +244,7 @@ export default function TuitionBillingSplitModal({
                   separate monthly charges for their share.
                 </p>
               </div>
-            ) : (
-              <p className="text-sm" style={{ color: C.textSecondary }}>
-                When disabled, the family receives one combined tuition bill as today.
-              </p>
-            )}
+            ) : null}
           </>
         )}
 

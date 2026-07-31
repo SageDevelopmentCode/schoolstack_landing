@@ -623,3 +623,59 @@ export async function sendTuitionInvoiceEmail(payload: {
 
   return { ok: true };
 }
+
+export function buildTuitionAutopayFailedHtml(payload: {
+  familyName: string;
+  schoolName: string;
+  chargeLabel: string;
+  amountDue: string;
+  billingUrl: string;
+  errorMessage?: string;
+}): string {
+  return composeEmail({
+    preheader: `Autopay could not process ${payload.chargeLabel}.`,
+    contentHtml: `
+      ${emailBadge("Autopay Failed")}
+      ${emailHeading(`We couldn't process autopay for ${escapeHtml(payload.familyName)}`)}
+      ${emailParagraph(
+        `${escapeHtml(payload.schoolName)} tried to charge your saved payment method for tuition, but the payment did not go through.`,
+      )}
+      ${emailDetailCard([
+        { label: "Charge", value: payload.chargeLabel },
+        { label: "Amount", value: payload.amountDue },
+      ])}
+      ${
+        payload.errorMessage
+          ? emailParagraph(
+              `Reason: ${escapeHtml(payload.errorMessage)}. Please update your card or pay manually.`,
+            )
+          : emailParagraph("Please update your card or pay manually before the due date.")
+      }
+      ${emailCta({ label: "Manage billing", href: payload.billingUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTuitionAutopayFailedEmail(payload: {
+  to: string;
+  schoolName: string;
+  html: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Autopay failed — ${payload.schoolName}`,
+    content: payload.html,
+  });
+
+  if (!result.success) {
+    console.error("Tuition autopay failed email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}

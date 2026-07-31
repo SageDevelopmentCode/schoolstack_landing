@@ -253,6 +253,49 @@ export function AdminScheduleCard({
   );
 }
 
+export function TuitionChoiceCard({
+  C,
+  selected,
+  label,
+  description,
+  onSelect,
+  disabled = false,
+  testId,
+}: {
+  C: AdminThemeTokens;
+  selected: boolean;
+  label: string;
+  description?: string;
+  onSelect: () => void;
+  disabled?: boolean;
+  testId?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      disabled={disabled}
+      data-testid={testId}
+      onClick={onSelect}
+      className="w-full text-left rounded-lg p-4 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+      style={{
+        border: `1px solid ${selected ? C.accent : C.border}`,
+        backgroundColor: selected ? C.accentLight : C.surface,
+      }}
+    >
+      <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+        {label}
+      </p>
+      {description ? (
+        <p className="text-xs mt-1" style={{ color: C.textSecondary }}>
+          {description}
+        </p>
+      ) : null}
+    </button>
+  );
+}
+
 export function PaymentScheduleSelectionCard({
   C,
   selected,

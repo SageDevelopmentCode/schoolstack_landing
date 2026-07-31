@@ -7,6 +7,8 @@ import { Loader2 } from "lucide-react";
 import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
 import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
 import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
+import ParentAutopayConfirmModal from "@/components/school-parent/billing/ParentAutopayConfirmModal";
+import ParentPaymentMethodCard from "@/components/school-parent/billing/ParentPaymentMethodCard";
 import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
@@ -15,8 +17,11 @@ import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { formatCents } from "@/lib/tuition/pricing";
 import {
   getAutopayEnabledForGuardian,
-  setAutopayForGuardian,
 } from "@/lib/tuition/payment-settlement";
+import {
+  getDefaultPaymentMethodForGuardian,
+  type SavedPaymentMethodSummary,
+} from "@/lib/tuition/payment-methods";
 import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import {
   fetchParentBillingFamilySummary,
@@ -83,6 +88,17 @@ function ParentBillingPageContent({
   const [autopayEnabled, setAutopayEnabledState] = useState(
     initialData?.autopayEnabled ?? false,
   );
+  const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethodSummary | null>(
+    initialData?.savedPaymentMethod ?? null,
+  );
+  const [recentAutopayFailure, setRecentAutopayFailure] = useState(
+    initialData?.recentAutopayFailure ?? null,
+  );
+  const [dismissedAutopayFailure, setDismissedAutopayFailure] = useState(false);
+  const [autopayModalOpen, setAutopayModalOpen] = useState(false);
+  const [pendingAutopayEnabled, setPendingAutopayEnabled] = useState(false);
+  const [autopaySaving, setAutopaySaving] = useState(false);
+  const [paymentMethodLoading, setPaymentMethodLoading] = useState(false);
   const [guardianId] = useState<string | null>(initialData?.guardianId ?? null);
   const [hasBillingSplit] = useState(initialData?.hasBillingSplit ?? false);
   const [loading, setLoading] = useState(!hasInitialData);
@@ -154,11 +170,24 @@ function ParentBillingPageContent({
         .eq("family_id", familyId)
         .maybeSingle();
 
+      const billingAccount = account ? rowToBillingAccount(account) : null;
       setAutopayEnabledState(
-        account
-          ? getAutopayEnabledForGuardian(rowToBillingAccount(account), guardianId)
+        billingAccount
+          ? getAutopayEnabledForGuardian(billingAccount, guardianId)
           : false,
       );
+
+      if (billingAccount) {
+        const method = await getDefaultPaymentMethodForGuardian(supabase, {
+          billingAccountId: billingAccount.id,
+          guardianId,
+          defaultPaymentMethodId: billingAccount.defaultPaymentMethodId,
+        });
+        setSavedPaymentMethod(method);
+      } else {
+        setSavedPaymentMethod(null);
+      }
+
       return summary;
     } finally {
       setLoading(false);
@@ -276,17 +305,69 @@ function ParentBillingPageContent({
     }
   };
 
-  const handleAutopayToggle = async () => {
-    if (previewMode) return;
-    const next = !autopayEnabled;
-    await setAutopayForGuardian(supabase, {
-      organizationId,
-      familyId,
-      guardianId,
-      enabled: next,
-    });
-    setAutopayEnabledState(next);
+  const handleAutopayToggleRequest = (enabled: boolean) => {
+    if (previewMode || enabled === autopayEnabled) return;
+    setPendingAutopayEnabled(enabled);
+    setAutopayModalOpen(true);
   };
+
+  const handleAutopayConfirm = async () => {
+    if (previewMode) return;
+    setAutopaySaving(true);
+    try {
+      const response = await fetch("/api/tuition/autopay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId,
+          familyId,
+          enabled: pendingAutopayEnabled,
+        }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        autopayEnabled?: boolean;
+        savedPaymentMethod?: SavedPaymentMethodSummary | null;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to update autopay.");
+      }
+      setAutopayEnabledState(Boolean(payload.autopayEnabled));
+      setSavedPaymentMethod(payload.savedPaymentMethod ?? null);
+      setAutopayModalOpen(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setAutopaySaving(false);
+    }
+  };
+
+  const handleManagePaymentMethod = async () => {
+    if (previewMode) return;
+    setPaymentMethodLoading(true);
+    try {
+      const response = await fetch("/api/tuition/payment-method/setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId, familyId, orgSlug: slug }),
+      });
+      const payload = (await response.json()) as { checkoutUrl?: string; error?: string };
+      if (payload.checkoutUrl) {
+        window.location.href = payload.checkoutUrl;
+        return;
+      }
+      throw new Error(payload.error ?? "Could not start card setup.");
+    } catch (error) {
+      console.error(error);
+      setPaymentMethodLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (searchParams.get("card_saved") === "1") {
+      void loadBilling();
+    }
+  }, [loadBilling, searchParams]);
 
   const handleScheduleComplete = async () => {
     const currentKey = activeChildKey;
@@ -394,6 +475,31 @@ function ParentBillingPageContent({
         </div>
       ) : null}
 
+      {recentAutopayFailure && !dismissedAutopayFailure ? (
+        <div
+          className="rounded-xl p-4 flex items-start justify-between gap-3"
+          style={{ backgroundColor: C.accentLight, border: `1px solid ${C.border}` }}
+          data-testid="parent-billing-autopay-failure-banner"
+        >
+          <div>
+            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+              Autopay could not process your last payment
+            </p>
+            <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+              {recentAutopayFailure.summary} Update your card or pay manually to stay current.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="text-xs shrink-0"
+            style={{ color: C.textSecondary }}
+            onClick={() => setDismissedAutopayFailure(true)}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
       {familySummary ? (
         <ParentBillingSummaryCard
           C={C}
@@ -401,11 +507,30 @@ function ParentBillingPageContent({
           autopayEnabled={autopayEnabled}
           payingChargeId={payingChargeId}
           onPay={(chargeId) => void handlePay(chargeId)}
-          onAutopayToggle={() => void handleAutopayToggle()}
+          onAutopayToggleRequest={handleAutopayToggleRequest}
           nextChargeId={nextChargeRecord?.id ?? null}
           readOnly={previewMode}
         />
       ) : null}
+
+      {!previewMode ? (
+        <ParentPaymentMethodCard
+          C={C}
+          savedPaymentMethod={savedPaymentMethod}
+          loading={paymentMethodLoading}
+          onManage={() => void handleManagePaymentMethod()}
+        />
+      ) : null}
+
+      <ParentAutopayConfirmModal
+        C={C}
+        open={autopayModalOpen}
+        enabling={pendingAutopayEnabled}
+        savedPaymentMethod={savedPaymentMethod}
+        saving={autopaySaving}
+        onConfirm={() => void handleAutopayConfirm()}
+        onCancel={() => setAutopayModalOpen(false)}
+      />
 
       {childViews.length > 0 ? (
         <div className="flex flex-col gap-4" data-testid="parent-billing-child-panel">

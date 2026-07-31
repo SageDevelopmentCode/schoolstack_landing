@@ -17,7 +17,7 @@ type ParentBillingSummaryCardProps = {
   autopayEnabled: boolean;
   payingChargeId: string | null;
   onPay: (chargeId: string) => void;
-  onAutopayToggle: () => void;
+  onAutopayToggleRequest: (enabled: boolean) => void;
   nextChargeId: string | null;
   readOnly?: boolean;
 };
@@ -45,7 +45,7 @@ export default function ParentBillingSummaryCard({
   autopayEnabled,
   payingChargeId,
   onPay,
-  onAutopayToggle,
+  onAutopayToggleRequest,
   nextChargeId,
   readOnly = false,
 }: ParentBillingSummaryCardProps) {
@@ -174,10 +174,40 @@ export default function ParentBillingSummaryCard({
       ) : null}
 
       {!readOnly ? (
-        <label className="flex items-center gap-2 text-sm" style={{ color: C.textSecondary }}>
-          <input type="checkbox" checked={autopayEnabled} onChange={onAutopayToggle} />
-          Enable autopay for due charges
-        </label>
+        <div
+          className="flex items-center justify-between gap-4 rounded-lg px-4 py-3"
+          style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+              Autopay
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>
+              {autopayEnabled
+                ? "Due charges are paid automatically with your saved card."
+                : "Pay each charge manually in the parent portal."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={autopayEnabled}
+            aria-label="Autopay"
+            data-testid="parent-billing-autopay-toggle"
+            onClick={() => onAutopayToggleRequest(!autopayEnabled)}
+            className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors"
+            style={{
+              backgroundColor: autopayEnabled ? C.accent : C.border,
+            }}
+          >
+            <span
+              className="inline-block h-5 w-5 rounded-full bg-white transition-transform"
+              style={{
+                transform: autopayEnabled ? "translateX(22px)" : "translateX(2px)",
+              }}
+            />
+          </button>
+        </div>
       ) : null}
     </div>
   );

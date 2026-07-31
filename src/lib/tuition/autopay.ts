@@ -8,6 +8,10 @@ import {
 import { createAdjustment } from "./adjustments";
 import { chargeRemainingCents } from "./billing-splits";
 import { regenerateFutureCharges } from "./charge-generator";
+import {
+  notifyAutopayFailed,
+  notifyAutopaySucceeded,
+} from "./autopay-notifications";
 import { rowToBillingAccount } from "./row-mappers";
 import type { AdjustmentType, TuitionBillingAccount } from "./types";
 
@@ -162,6 +166,63 @@ export async function trySaveTuitionPaymentMethod(
   });
 }
 
+export async function savePaymentMethodFromSetupIntent(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    familyId: string;
+    setupIntentId: string;
+    payerUserId?: string | null;
+    guardianId?: string | null;
+  },
+): Promise<void> {
+  const stripe = getStripeClient();
+  const setupIntent = await stripe.setupIntents.retrieve(input.setupIntentId);
+  const paymentMethodId =
+    typeof setupIntent.payment_method === "string"
+      ? setupIntent.payment_method
+      : setupIntent.payment_method?.id;
+
+  if (!paymentMethodId) return;
+
+  const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+  const card = paymentMethod.card;
+
+  const { data: billingAccount, error: billingError } = await supabase
+    .from("tuition_billing_accounts")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("family_id", input.familyId)
+    .maybeSingle();
+
+  if (billingError) throw billingError;
+  if (!billingAccount) return;
+
+  let guardianId = input.guardianId ?? null;
+  if (!guardianId && input.payerUserId) {
+    const { data: guardian } = await supabase
+      .from("guardians")
+      .select("id")
+      .eq("family_id", input.familyId)
+      .eq("user_id", input.payerUserId)
+      .maybeSingle();
+    guardianId = guardian ? String(guardian.id) : null;
+  }
+
+  await saveFamilyPaymentMethod(supabase, {
+    organizationId: input.organizationId,
+    familyId: input.familyId,
+    billingAccountId: String(billingAccount.id),
+    stripePaymentMethodId: paymentMethodId,
+    guardianId,
+    brand: card?.brand,
+    last4: card?.last4,
+    expMonth: card?.exp_month,
+    expYear: card?.exp_year,
+    isDefault: true,
+  });
+}
+
 export type FinancialAidImportRow = {
   familyEmail: string;
   adjustmentType: AdjustmentType;
@@ -265,6 +326,15 @@ export async function processAutopayForOrganization(
   if (!paymentAccount || !stripeConnectAccountId || !isPaymentReady(paymentAccount)) {
     return { processed: 0, skipped: 0, failed: 0 };
   }
+
+  const { data: organization, error: organizationError } = await supabase
+    .from("organizations")
+    .select("slug")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (organizationError) throw organizationError;
+  const orgSlug = typeof organization?.slug === "string" ? organization.slug : "";
 
   const { data: accounts, error: accountsError } = await supabase
     .from("tuition_billing_accounts")
@@ -404,9 +474,30 @@ export async function processAutopayForOrganization(
             stripePaymentMethodId: paymentMethodId,
             payerUserId: guardianUserId,
           });
+          await notifyAutopaySucceeded(supabase, {
+            organizationId,
+            familyId: account.familyId,
+            chargeId: String(charge.id),
+            chargeLabel: String(charge.label),
+            amountCents,
+            guardianUserId,
+          });
           processed++;
         } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Payment could not be processed.";
           console.error("Autopay charge failed:", charge.id, error);
+          await notifyAutopayFailed(supabase, {
+            organizationId,
+            familyId: account.familyId,
+            chargeId: String(charge.id),
+            chargeLabel: String(charge.label),
+            amountCents,
+            guardianId,
+            guardianUserId,
+            errorMessage,
+            orgSlug,
+          });
           failed++;
         }
       }

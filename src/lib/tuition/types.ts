@@ -238,6 +238,13 @@ export type UnassignedEnrollmentSummary = {
   programName: string;
 };
 
+export type GuardianAutopayStatus = {
+  guardianId: string;
+  name: string;
+  autopayEnabled: boolean;
+  hasPaymentMethod: boolean;
+};
+
 export type FamilyBillingSummary = {
   familyId: string;
   familyName: string;
@@ -248,6 +255,10 @@ export type FamilyBillingSummary = {
   paidYtdCents: number;
   nextDue: { date: string; amountCents: number; label: string } | null;
   autopayEnabled: boolean;
+  autopayStatus: "off" | "on" | "partial";
+  guardianAutopay: GuardianAutopayStatus[];
+  hasPaymentMethod: boolean;
+  lastAutopayFailedAt: string | null;
   status: "current" | "overdue" | "invoice_sent";
   assignmentIds: string[];
   assignments: FamilyAssignmentSummary[];

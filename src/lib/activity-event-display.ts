@@ -71,6 +71,11 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.AUTH_SIGNED_IN]: "signed in",
   [ACTIVITY_ACTIONS.AUTH_SIGNED_OUT]: "signed out",
   [ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED]: "restored a session",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_ENABLED]: "enabled tuition autopay",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED]: "disabled tuition autopay",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "processed a tuition autopay charge",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "had a tuition autopay charge fail",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED]: "saved a tuition payment method",
 };
 
 const ACTOR_TYPE_LABELS: Record<ActorType, string> = {

@@ -40,6 +40,11 @@ export const ACTIVITY_ACTIONS = {
   AUTH_SIGNED_IN: "auth.signed_in",
   AUTH_SIGNED_OUT: "auth.signed_out",
   AUTH_SESSION_RESTORED: "auth.session_restored",
+  TUITION_AUTOPAY_ENABLED: "tuition.autopay_enabled",
+  TUITION_AUTOPAY_DISABLED: "tuition.autopay_disabled",
+  TUITION_AUTOPAY_SUCCEEDED: "tuition.autopay_succeeded",
+  TUITION_AUTOPAY_FAILED: "tuition.autopay_failed",
+  TUITION_PAYMENT_METHOD_SAVED: "tuition.payment_method_saved",
 } as const;
 
 export type ActivityAction =
@@ -148,6 +153,11 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.AUTH_SIGNED_IN]: "Signed in",
   [ACTIVITY_ACTIONS.AUTH_SIGNED_OUT]: "Signed out",
   [ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED]: "Session restored",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_ENABLED]: "Autopay enabled",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED]: "Autopay disabled",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED]: "Payment method saved",
 };
 
 const PARENT_SURFACES: ActivitySurface[] = [

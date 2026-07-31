@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { formatBillingSplitSummary } from "./billing-splits";
+import { computeFamilyAutopayStatus } from "./autopay-status";
 import { computeFamilyBillingReadiness } from "./tuition-readiness";
 import { rowToCharge } from "./row-mappers";
 import type { ChargeStatus, FamilyAssignmentSummary, FamilyBillingSummary, TuitionCharge, UnassignedEnrollmentSummary } from "./types";
@@ -137,6 +139,9 @@ export async function listFamilyBillingSummaries(
     { data: assignments },
     { data: charges },
     { data: billingSplits },
+    { data: paymentMethods },
+    { data: autopayFailures },
+    { data: guardians },
     { data: students },
     { data: enrollments },
     { data: programs },
@@ -167,6 +172,26 @@ export async function listFamilyBillingSummaries(
       .select("family_id, share_bps, guardians(first_name, last_name)")
       .eq("organization_id", organizationId)
       .in("family_id", familyIds),
+    supabase
+      .from("family_payment_methods")
+      .select("billing_account_id, guardian_id")
+      .eq("organization_id", organizationId)
+      .in(
+        "family_id",
+        familyIds,
+      ),
+    supabase
+      .from("activity_events")
+      .select("metadata, created_at")
+      .eq("organization_id", organizationId)
+      .eq("action", ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("guardians")
+      .select("id, family_id, first_name, last_name, email, user_id, relationship")
+      .in("family_id", familyIds)
+      .order("created_at", { ascending: true }),
     supabase
       .from("students")
       .select("id, family_id, first_name, last_name")
@@ -241,6 +266,52 @@ export async function listFamilyBillingSummaries(
       guardianName: guardianName || "Guardian",
     });
     billingSplitsByFamily.set(familyId, existing);
+  }
+
+  const guardiansByFamily = new Map<
+    string,
+    Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string | null;
+      userId: string | null;
+      relationship: string | null;
+      isLinked: boolean;
+    }>
+  >();
+  for (const row of guardians ?? []) {
+    const familyId = String(row.family_id);
+    const userId =
+      row.user_id != null && String(row.user_id).trim() !== ""
+        ? String(row.user_id)
+        : null;
+    const existing = guardiansByFamily.get(familyId) ?? [];
+    existing.push({
+      id: String(row.id),
+      firstName: String(row.first_name ?? ""),
+      lastName: String(row.last_name ?? ""),
+      email: typeof row.email === "string" ? row.email : null,
+      userId,
+      relationship: typeof row.relationship === "string" ? row.relationship : null,
+      isLinked: userId != null,
+    });
+    guardiansByFamily.set(familyId, existing);
+  }
+
+  const lastFailureByFamily = new Map<string, string>();
+  for (const row of autopayFailures ?? []) {
+    const metadata =
+      row.metadata &&
+      typeof row.metadata === "object" &&
+      !Array.isArray(row.metadata)
+        ? (row.metadata as Record<string, unknown>)
+        : {};
+    const failedFamilyId =
+      typeof metadata.familyId === "string" ? metadata.familyId : null;
+    if (failedFamilyId && !lastFailureByFamily.has(failedFamilyId)) {
+      lastFailureByFamily.set(failedFamilyId, String(row.created_at));
+    }
   }
 
   const yearStart = new Date();
@@ -384,6 +455,19 @@ export async function listFamilyBillingSummaries(
         )
       : null;
 
+    const familyAutopay = computeFamilyAutopayStatus({
+      billingAccountRow: billingAccount ?? null,
+      guardians: guardiansByFamily.get(familyId) ?? [],
+      paymentMethods: (paymentMethods ?? []).map((method) => ({
+        billing_account_id: String(method.billing_account_id),
+        guardian_id:
+          method.guardian_id === null || method.guardian_id === undefined
+            ? null
+            : String(method.guardian_id),
+      })),
+      hasBillingSplit,
+    });
+
     return {
       familyId,
       familyName: String(family.name),
@@ -400,7 +484,11 @@ export async function listFamilyBillingSummaries(
             label: String(nextOpen.label),
           }
         : null,
-      autopayEnabled: Boolean(billingAccount?.autopay_enabled),
+      autopayEnabled: familyAutopay.autopayStatus !== "off",
+      autopayStatus: familyAutopay.autopayStatus,
+      guardianAutopay: familyAutopay.guardianAutopay,
+      hasPaymentMethod: familyAutopay.hasPaymentMethod,
+      lastAutopayFailedAt: lastFailureByFamily.get(familyId) ?? null,
       status: hasOverdue
         ? "overdue"
         : hasSent
