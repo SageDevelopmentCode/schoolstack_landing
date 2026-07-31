@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatBillingSplitSummary } from "./billing-splits";
 import { computeFamilyBillingReadiness } from "./tuition-readiness";
 import { rowToCharge } from "./row-mappers";
 import type { ChargeStatus, FamilyAssignmentSummary, FamilyBillingSummary, TuitionCharge, UnassignedEnrollmentSummary } from "./types";
@@ -17,6 +18,27 @@ export async function listChargesForFamily(
 
   if (error) throw error;
   return (data ?? []).map(rowToCharge);
+}
+
+export async function listChargesForFamilyGuardian(
+  supabase: SupabaseClient,
+  familyId: string,
+  guardianId: string | null,
+  options?: { hasBillingSplit?: boolean },
+): Promise<TuitionCharge[]> {
+  const charges = await listChargesForFamily(supabase, familyId);
+
+  if (!options?.hasBillingSplit) {
+    return charges;
+  }
+
+  if (!guardianId) {
+    return charges.filter((charge) => charge.guardianId === null);
+  }
+
+  return charges.filter(
+    (charge) => charge.guardianId === null || charge.guardianId === guardianId,
+  );
 }
 
 export async function listChargesForAssignment(
@@ -114,6 +136,7 @@ export async function listFamilyBillingSummaries(
     { data: billingAccounts },
     { data: assignments },
     { data: charges },
+    { data: billingSplits },
     { data: students },
     { data: enrollments },
     { data: programs },
@@ -139,6 +162,11 @@ export async function listFamilyBillingSummaries(
       .eq("organization_id", organizationId)
       .in("family_id", familyIds)
       .not("status", "eq", "void"),
+    supabase
+      .from("tuition_billing_splits")
+      .select("family_id, share_bps, guardians(first_name, last_name)")
+      .eq("organization_id", organizationId)
+      .in("family_id", familyIds),
     supabase
       .from("students")
       .select("id, family_id, first_name, last_name")
@@ -197,6 +225,24 @@ export async function listFamilyBillingSummaries(
     ]),
   );
 
+  const billingSplitsByFamily = new Map<string, Array<{ shareBps: number; guardianName: string }>>();
+  for (const row of billingSplits ?? []) {
+    const familyId = String(row.family_id);
+    const guardian = row.guardians as
+      | { first_name?: string; last_name?: string }
+      | null
+      | undefined;
+    const guardianName = guardian
+      ? [guardian.first_name, guardian.last_name].filter(Boolean).join(" ").trim()
+      : "Guardian";
+    const existing = billingSplitsByFamily.get(familyId) ?? [];
+    existing.push({
+      shareBps: Number(row.share_bps),
+      guardianName: guardianName || "Guardian",
+    });
+    billingSplitsByFamily.set(familyId, existing);
+  }
+
   const yearStart = new Date();
   yearStart.setUTCMonth(0, 1);
   yearStart.setUTCHours(0, 0, 0, 0);
@@ -217,10 +263,11 @@ export async function listFamilyBillingSummaries(
     const openCharges = familyCharges.filter((c) =>
       openStatuses.has(String(c.status)),
     );
-    const balanceDueCents = openCharges.reduce(
-      (sum, c) => sum + Number(c.amount_cents),
-      0,
-    );
+    const balanceDueCents = openCharges.reduce((sum, c) => {
+      const amountCents = Number(c.amount_cents);
+      const paidCents = Number(c.paid_cents ?? 0);
+      return sum + Math.max(0, amountCents - paidCents);
+    }, 0);
     const paidYtdCents = familyCharges
       .filter((c) => c.status === "paid" && new Date(String(c.paid_at)) >= yearStart)
       .reduce((sum, c) => sum + Number(c.amount_cents), 0);
@@ -320,6 +367,23 @@ export async function listFamilyBillingSummaries(
       familyCharges.length > 0 ||
       children.size > 0;
 
+    const familySplitRows = billingSplitsByFamily.get(familyId) ?? [];
+    const hasBillingSplit = familySplitRows.length > 0;
+    const billingSplitSummary = hasBillingSplit
+      ? formatBillingSplitSummary(
+          familySplitRows.map((row, index) => ({
+            id: `${familyId}-${index}`,
+            organizationId,
+            familyId,
+            guardianId: "",
+            shareBps: row.shareBps,
+            createdAt: "",
+            updatedAt: "",
+            guardianName: row.guardianName,
+          })),
+        )
+      : null;
+
     return {
       familyId,
       familyName: String(family.name),
@@ -346,6 +410,8 @@ export async function listFamilyBillingSummaries(
       assignments: assignmentSummaries,
       unassignedEnrollments,
       readiness,
+      billingSplitSummary,
+      hasBillingSplit,
       hasBillingActivity,
     } satisfies FamilyBillingSummary & { hasBillingActivity: boolean };
   })

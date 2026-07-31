@@ -12,7 +12,7 @@ import {
   submitApplicationAfterFeePaid,
 } from "@/lib/admissions/application-submit";
 import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
-import { markChargePaid } from "@/lib/tuition/charges";
+import { settleTuitionPayment } from "@/lib/tuition/payment-settlement";
 import { trySaveTuitionPaymentMethod } from "@/lib/tuition/autopay";
 import {
   attachCheckoutSessionToPayment,
@@ -256,8 +256,13 @@ async function handleTuitionCheckoutCompleted(
       ? metadata.tuition_charge_id
       : payment?.tuitionChargeId;
 
-  if (chargeId) {
-    await markChargePaid(admin, chargeId);
+  if (chargeId && payment) {
+    await settleTuitionPayment(admin, {
+      chargeId,
+      amountCents: payment.amountCents,
+      payerUserId: payment.payerUserId,
+      paymentId: payment.id,
+    });
   }
 
   if (payment?.familyId && paymentIntentId) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { buildChargeAdjustmentBreakdown, formatCents } from "@/lib/tuition/pricing";
+import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
 
@@ -36,6 +37,7 @@ export default function ParentBillingChargeRow({
     adjustments: adjustmentsForAssignment,
   });
 
+  const remainingCents = chargeRemainingCents(charge);
   const showBreakdown = charge.baseAmountCents !== charge.amountCents;
   const totalLine = breakdown.find((line) => line.kind === "total");
 
@@ -93,7 +95,7 @@ export default function ParentBillingChargeRow({
       <div className="flex shrink-0 items-center gap-2 pt-0.5">
         {!showBreakdown ? (
           <span className="font-medium" style={{ color: C.textPrimary }}>
-            {formatCents(charge.amountCents)}
+            {formatCents(remainingCents)}
           </span>
         ) : null}
         {charge.status !== "paid" && charge.status !== "void" && !readOnly ? (

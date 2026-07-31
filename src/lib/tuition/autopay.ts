@@ -6,6 +6,7 @@ import {
   isPaymentReady,
 } from "@/lib/stripe/organization-payment-account";
 import { createAdjustment } from "./adjustments";
+import { chargeRemainingCents } from "./billing-splits";
 import { regenerateFutureCharges } from "./charge-generator";
 import { rowToBillingAccount } from "./row-mappers";
 import type { AdjustmentType, TuitionBillingAccount } from "./types";
@@ -58,6 +59,7 @@ export async function saveFamilyPaymentMethod(
     familyId: string;
     billingAccountId: string;
     stripePaymentMethodId: string;
+    guardianId?: string | null;
     brand?: string;
     last4?: string;
     expMonth?: number;
@@ -66,10 +68,16 @@ export async function saveFamilyPaymentMethod(
   },
 ): Promise<void> {
   if (input.isDefault) {
-    await supabase
+    let clearQuery = supabase
       .from("family_payment_methods")
       .update({ is_default: false })
       .eq("billing_account_id", input.billingAccountId);
+
+    if (input.guardianId) {
+      clearQuery = clearQuery.eq("guardian_id", input.guardianId);
+    }
+
+    await clearQuery;
   }
 
   const { error } = await supabase.from("family_payment_methods").upsert(
@@ -77,6 +85,7 @@ export async function saveFamilyPaymentMethod(
       organization_id: input.organizationId,
       family_id: input.familyId,
       billing_account_id: input.billingAccountId,
+      guardian_id: input.guardianId ?? null,
       stripe_payment_method_id: input.stripePaymentMethodId,
       brand: input.brand ?? null,
       last4: input.last4 ?? null,
@@ -89,10 +98,12 @@ export async function saveFamilyPaymentMethod(
 
   if (error) throw error;
 
-  await supabase
-    .from("tuition_billing_accounts")
-    .update({ default_payment_method_id: input.stripePaymentMethodId })
-    .eq("id", input.billingAccountId);
+  if (!input.guardianId) {
+    await supabase
+      .from("tuition_billing_accounts")
+      .update({ default_payment_method_id: input.stripePaymentMethodId })
+      .eq("id", input.billingAccountId);
+  }
 }
 
 export async function trySaveTuitionPaymentMethod(
@@ -126,11 +137,23 @@ export async function trySaveTuitionPaymentMethod(
   if (billingError) throw billingError;
   if (!billingAccount) return;
 
+  let guardianId: string | null = null;
+  if (input.payerUserId) {
+    const { data: guardian } = await supabase
+      .from("guardians")
+      .select("id")
+      .eq("family_id", input.familyId)
+      .eq("user_id", input.payerUserId)
+      .maybeSingle();
+    guardianId = guardian ? String(guardian.id) : null;
+  }
+
   await saveFamilyPaymentMethod(supabase, {
     organizationId: input.organizationId,
     familyId: input.familyId,
     billingAccountId: String(billingAccount.id),
     stripePaymentMethodId: paymentMethodId,
+    guardianId,
     brand: card?.brand,
     last4: card?.last4,
     expMonth: card?.exp_month,
@@ -245,10 +268,8 @@ export async function processAutopayForOrganization(
 
   const { data: accounts, error: accountsError } = await supabase
     .from("tuition_billing_accounts")
-    .select("id, family_id, default_payment_method_id")
-    .eq("organization_id", organizationId)
-    .eq("autopay_enabled", true)
-    .not("default_payment_method_id", "is", null);
+    .select("id, family_id, default_payment_method_id, autopay_enabled, metadata")
+    .eq("organization_id", organizationId);
 
   if (accountsError) throw accountsError;
 
@@ -256,65 +277,138 @@ export async function processAutopayForOrganization(
   let skipped = 0;
   let failed = 0;
 
-  for (const account of accounts ?? []) {
-    const { data: dueCharges, error: chargesError } = await supabase
-      .from("tuition_charges")
-      .select("id, amount_cents, label, currency")
-      .eq("family_id", account.family_id)
-      .eq("due_date", today)
-      .in("status", ["scheduled", "sent"]);
+  for (const accountRow of accounts ?? []) {
+    const account = rowToBillingAccount(accountRow);
+    const autopayTargets = new Map<string | null, boolean>();
 
-    if (chargesError) throw chargesError;
-    if (!dueCharges?.length) {
+    const autopayByGuardian =
+      account.metadata.autopayByGuardian &&
+      typeof account.metadata.autopayByGuardian === "object" &&
+      !Array.isArray(account.metadata.autopayByGuardian)
+        ? (account.metadata.autopayByGuardian as Record<string, boolean>)
+        : {};
+
+    for (const [guardianId, enabled] of Object.entries(autopayByGuardian)) {
+      if (enabled) autopayTargets.set(guardianId, true);
+    }
+
+    if (autopayTargets.size === 0 && account.autopayEnabled) {
+      autopayTargets.set(null, true);
+    }
+
+    if (autopayTargets.size === 0) {
       skipped++;
       continue;
     }
 
-    const { data: guardian, error: guardianError } = await supabase
-      .from("guardians")
-      .select("user_id, email")
-      .eq("family_id", account.family_id)
-      .not("user_id", "is", null)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    for (const guardianId of autopayTargets.keys()) {
+      let dueChargesQuery = supabase
+        .from("tuition_charges")
+        .select("id, amount_cents, paid_cents, label, currency, guardian_id")
+        .eq("family_id", account.familyId)
+        .eq("due_date", today)
+        .in("status", ["scheduled", "sent"]);
 
-    if (guardianError) throw guardianError;
-    if (!guardian?.user_id) {
-      skipped += dueCharges.length;
-      continue;
-    }
+      if (guardianId) {
+        dueChargesQuery = dueChargesQuery.eq("guardian_id", guardianId);
+      } else {
+        dueChargesQuery = dueChargesQuery.is("guardian_id", null);
+      }
 
-    const { data: stripeCustomer, error: customerError } = await supabase
-      .from("user_stripe_customers")
-      .select("stripe_customer_id")
-      .eq("user_id", guardian.user_id)
-      .maybeSingle();
+      const { data: dueCharges, error: chargesError } = await dueChargesQuery;
+      if (chargesError) throw chargesError;
+      if (!dueCharges?.length) {
+        skipped++;
+        continue;
+      }
 
-    if (customerError) throw customerError;
-    if (!stripeCustomer?.stripe_customer_id) {
-      skipped += dueCharges.length;
-      continue;
-    }
+      let paymentMethodId = account.defaultPaymentMethodId;
+      if (guardianId) {
+        const { data: guardianMethod } = await supabase
+          .from("family_payment_methods")
+          .select("stripe_payment_method_id")
+          .eq("billing_account_id", account.id)
+          .eq("guardian_id", guardianId)
+          .eq("is_default", true)
+          .maybeSingle();
+        paymentMethodId =
+          typeof guardianMethod?.stripe_payment_method_id === "string"
+            ? guardianMethod.stripe_payment_method_id
+            : paymentMethodId;
+      }
 
-    for (const charge of dueCharges) {
-      try {
-        await executeTuitionAutopayCharge(supabase, {
-          organizationId,
-          familyId: String(account.family_id),
-          chargeId: String(charge.id),
+      if (!paymentMethodId) {
+        skipped += dueCharges.length;
+        continue;
+      }
+
+      let guardianUserId: string | null = null;
+      if (guardianId) {
+        const { data: guardian } = await supabase
+          .from("guardians")
+          .select("user_id")
+          .eq("id", guardianId)
+          .maybeSingle();
+        guardianUserId =
+          typeof guardian?.user_id === "string" ? guardian.user_id : null;
+      } else {
+        const { data: guardian } = await supabase
+          .from("guardians")
+          .select("user_id")
+          .eq("family_id", account.familyId)
+          .not("user_id", "is", null)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        guardianUserId =
+          typeof guardian?.user_id === "string" ? guardian.user_id : null;
+      }
+
+      if (!guardianUserId) {
+        skipped += dueCharges.length;
+        continue;
+      }
+
+      const { data: stripeCustomer, error: customerError } = await supabase
+        .from("user_stripe_customers")
+        .select("stripe_customer_id")
+        .eq("user_id", guardianUserId)
+        .maybeSingle();
+
+      if (customerError) throw customerError;
+      if (!stripeCustomer?.stripe_customer_id) {
+        skipped += dueCharges.length;
+        continue;
+      }
+
+      for (const charge of dueCharges) {
+        const amountCents = chargeRemainingCents({
           amountCents: Number(charge.amount_cents),
-          label: String(charge.label),
-          currency: typeof charge.currency === "string" ? charge.currency : "USD",
-          stripeConnectAccountId,
-          stripeCustomerId: stripeCustomer.stripe_customer_id,
-          stripePaymentMethodId: String(account.default_payment_method_id),
-          payerUserId: String(guardian.user_id),
+          paidCents: Number(charge.paid_cents ?? 0),
         });
-        processed++;
-      } catch (error) {
-        console.error("Autopay charge failed:", charge.id, error);
-        failed++;
+        if (amountCents <= 0) {
+          skipped++;
+          continue;
+        }
+
+        try {
+          await executeTuitionAutopayCharge(supabase, {
+            organizationId,
+            familyId: account.familyId,
+            chargeId: String(charge.id),
+            amountCents,
+            label: String(charge.label),
+            currency: typeof charge.currency === "string" ? charge.currency : "USD",
+            stripeConnectAccountId,
+            stripeCustomerId: stripeCustomer.stripe_customer_id,
+            stripePaymentMethodId: paymentMethodId,
+            payerUserId: guardianUserId,
+          });
+          processed++;
+        } catch (error) {
+          console.error("Autopay charge failed:", charge.id, error);
+          failed++;
+        }
       }
     }
   }
@@ -356,7 +450,7 @@ export async function refundTuitionPayment(
   if (payment.tuition_charge_id) {
     await supabase
       .from("tuition_charges")
-      .update({ status: "scheduled", paid_at: null })
+      .update({ status: "scheduled", paid_at: null, paid_cents: 0 })
       .eq("id", payment.tuition_charge_id);
   }
 }

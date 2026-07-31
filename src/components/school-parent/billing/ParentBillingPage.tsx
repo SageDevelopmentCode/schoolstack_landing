@@ -8,11 +8,16 @@ import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBil
 import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
 import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
 import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
-import { listChargesForFamily } from "@/lib/tuition/charges";
+import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
+import { listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { formatCents } from "@/lib/tuition/pricing";
-import { setAutopayEnabled } from "@/lib/tuition/autopay";
+import {
+  getAutopayEnabledForGuardian,
+  setAutopayForGuardian,
+} from "@/lib/tuition/payment-settlement";
+import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import {
   fetchParentBillingFamilySummary,
   pickInitialChildKey,
@@ -78,6 +83,8 @@ function ParentBillingPageContent({
   const [autopayEnabled, setAutopayEnabledState] = useState(
     initialData?.autopayEnabled ?? false,
   );
+  const [guardianId] = useState<string | null>(initialData?.guardianId ?? null);
+  const [hasBillingSplit] = useState(initialData?.hasBillingSplit ?? false);
   const [loading, setLoading] = useState(!hasInitialData);
   const [payingChargeId, setPayingChargeId] = useState<string | null>(null);
   const [highlightedChargeId, setHighlightedChargeId] = useState<string | null>(null);
@@ -104,21 +111,28 @@ function ParentBillingPageContent({
   const loadBilling = useCallback(async (): Promise<ParentBillingFamilySummary | null> => {
     setLoading(true);
     try {
-      const [chargeRows, paymentRows, adjustmentRows, readinessState] = await Promise.all([
-        listChargesForFamily(supabase, familyId),
-        listTuitionPaymentsForFamily(supabase, familyId),
-        listAdjustmentsForFamily(supabase, familyId),
-        fetchFamilyBillingReadiness(supabase, {
-          organizationId,
-          familyId,
-          slug,
-        }),
-      ]);
+      const billingSplits = await listBillingSplits(supabase, familyId);
+      const splitActive = billingSplits.length > 0;
+      const [allChargeRows, chargeRows, paymentRows, adjustmentRows, readinessState] =
+        await Promise.all([
+          listChargesForFamily(supabase, familyId),
+          listChargesForFamilyGuardian(supabase, familyId, guardianId, {
+            hasBillingSplit: splitActive,
+          }),
+          listTuitionPaymentsForFamily(supabase, familyId),
+          listAdjustmentsForFamily(supabase, familyId),
+          fetchFamilyBillingReadiness(supabase, {
+            organizationId,
+            familyId,
+            slug,
+          }),
+        ]);
 
       const summary = await fetchParentBillingFamilySummary(supabase, {
         organizationId,
         familyId,
         charges: chargeRows,
+        allFamilyCharges: splitActive ? allChargeRows : undefined,
       });
 
       setCharges(chargeRows);
@@ -135,17 +149,21 @@ function ParentBillingPageContent({
 
       const { data: account } = await supabase
         .from("tuition_billing_accounts")
-        .select("autopay_enabled")
+        .select("*")
         .eq("organization_id", organizationId)
         .eq("family_id", familyId)
         .maybeSingle();
 
-      setAutopayEnabledState(Boolean(account?.autopay_enabled));
+      setAutopayEnabledState(
+        account
+          ? getAutopayEnabledForGuardian(rowToBillingAccount(account), guardianId)
+          : false,
+      );
       return summary;
     } finally {
       setLoading(false);
     }
-  }, [familyId, organizationId, slug, supabase]);
+  }, [familyId, guardianId, organizationId, slug, supabase]);
 
   useEffect(() => {
     if (hasInitialData) return;
@@ -261,7 +279,12 @@ function ParentBillingPageContent({
   const handleAutopayToggle = async () => {
     if (previewMode) return;
     const next = !autopayEnabled;
-    await setAutopayEnabled(supabase, organizationId, familyId, next);
+    await setAutopayForGuardian(supabase, {
+      organizationId,
+      familyId,
+      guardianId,
+      enabled: next,
+    });
     setAutopayEnabledState(next);
   };
 
@@ -341,6 +364,7 @@ function ParentBillingPageContent({
         </h1>
         <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
           View your tuition schedule and pay online.
+          {hasBillingSplit ? " Amounts shown are your portion of family tuition." : ""}
         </p>
       </div>
 

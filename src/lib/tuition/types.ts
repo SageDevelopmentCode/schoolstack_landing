@@ -152,9 +152,11 @@ export type TuitionCharge = {
   organizationId: string;
   assignmentId: string;
   familyId: string;
+  guardianId: string | null;
   label: string;
   baseAmountCents: number;
   amountCents: number;
+  paidCents: number;
   currency: string;
   dueDate: string;
   status: ChargeStatus;
@@ -164,6 +166,27 @@ export type TuitionCharge = {
   paidAt: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type TuitionBillingSplit = {
+  id: string;
+  organizationId: string;
+  familyId: string;
+  guardianId: string;
+  shareBps: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BillingSplitInput = {
+  guardianId: string;
+  shareBps: number;
+};
+
+export type TuitionBillingAccountMetadata = {
+  autopayByGuardian?: Record<string, boolean>;
+  creditByGuardian?: Record<string, number>;
+  creditBalanceCents?: number;
 };
 
 export type TuitionAdjustmentRule = {
@@ -230,6 +253,8 @@ export type FamilyBillingSummary = {
   assignments: FamilyAssignmentSummary[];
   unassignedEnrollments: UnassignedEnrollmentSummary[];
   readiness: FamilyBillingReadinessState;
+  billingSplitSummary: string | null;
+  hasBillingSplit: boolean;
 };
 
 export type RatePlanWithDetails = TuitionRatePlan & {

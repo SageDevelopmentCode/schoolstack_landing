@@ -12,6 +12,7 @@ import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
+import TuitionBillingSplitModal from "@/components/school-admin/tuition/TuitionBillingSplitModal";
 
 type TuitionFamiliesPanelProps = {
   organizationId: string;
@@ -83,6 +84,7 @@ export default function TuitionFamiliesPanel({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [invoiceNotice, setInvoiceNotice] = useState<string | null>(null);
+  const [splitModalOpen, setSplitModalOpen] = useState(false);
 
   const loadFamilies = useCallback(async () => {
     setLoading(true);
@@ -343,10 +345,30 @@ export default function TuitionFamiliesPanel({
             </p>
           ) : null}
 
-          <div>
-            <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
-              {selectedFamily.familyName}
-            </h2>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
+                {selectedFamily.familyName}
+              </h2>
+              {selectedFamily.billingSplitSummary ? (
+                <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+                  Split billing: {selectedFamily.billingSplitSummary}
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSplitModalOpen(true)}
+              className="text-xs font-medium px-2 py-1 rounded shrink-0"
+              style={{
+                backgroundColor: C.bg,
+                color: C.textPrimary,
+                border: `1px solid ${C.border}`,
+              }}
+              data-testid="tuition-billing-split-button"
+            >
+              Billing split
+            </button>
           </div>
 
           {panelError ? (
@@ -597,6 +619,16 @@ export default function TuitionFamiliesPanel({
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {splitModalOpen && selectedFamily ? (
+        <TuitionBillingSplitModal
+          familyId={selectedFamily.familyId}
+          familyName={selectedFamily.familyName}
+          branding={branding}
+          onClose={() => setSplitModalOpen(false)}
+          onSaved={() => void loadFamilies()}
+        />
       ) : null}
     </div>
   );

@@ -136,6 +136,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
       organizationId: org.id,
       familyId,
       slug,
+      userId: user.id,
     });
 
     return (

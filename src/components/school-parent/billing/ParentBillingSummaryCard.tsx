@@ -86,6 +86,11 @@ export default function ParentBillingSummaryCard({
           <p className="text-3xl font-semibold mt-1" style={{ color: C.textPrimary }}>
             {formatCents(summary.balanceDueCents)}
           </p>
+          {summary.familyTotalRemainingCents != null ? (
+            <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
+              Family total remaining: {formatCents(summary.familyTotalRemainingCents)}
+            </p>
+          ) : null}
           {summary.totalRemainingCents > summary.balanceDueCents ? (
             <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
               Total remaining: {formatCents(summary.totalRemainingCents)}
