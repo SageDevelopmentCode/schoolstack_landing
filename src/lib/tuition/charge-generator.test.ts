@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildChargeDrafts,
   buildInstallmentDueDates,
+  expandDraftsForBillingSplits,
 } from "./charge-generator";
 import { computeInstallmentAmountCents } from "./assignments";
 import type { TuitionPaymentPlan } from "./types";
@@ -62,5 +63,52 @@ describe("buildInstallmentDueDates", () => {
       new Date("2026-08-01T00:00:00Z"),
     );
     assert.deepEqual(dates.slice(0, 3), ["2026-08-01", "2026-09-01", "2026-10-01"]);
+  });
+});
+
+describe("expandDraftsForBillingSplits", () => {
+  it("creates per-guardian drafts for split families", () => {
+    const drafts = expandDraftsForBillingSplits(
+      [
+        {
+          label: "Aug Tuition",
+          baseAmountCents: 72000,
+          amountCents: 72000,
+          dueDate: "2026-08-01",
+          chargeType: "tuition",
+          installmentNumber: 1,
+        },
+      ],
+      [
+        {
+          id: "split-1",
+          organizationId: "org-1",
+          familyId: "family-1",
+          guardianId: "guardian-1",
+          shareBps: 5000,
+          createdAt: "",
+          updatedAt: "",
+        },
+        {
+          id: "split-2",
+          organizationId: "org-1",
+          familyId: "family-1",
+          guardianId: "guardian-2",
+          shareBps: 5000,
+          createdAt: "",
+          updatedAt: "",
+        },
+      ],
+      new Map([
+        ["guardian-1", "Francesca Ritchie"],
+        ["guardian-2", "Zachary Ritchie"],
+      ]),
+    );
+
+    assert.equal(drafts.length, 2);
+    assert.equal(drafts[0]?.amountCents, 36000);
+    assert.equal(drafts[1]?.amountCents, 36000);
+    assert.equal(drafts[0]?.guardianId, "guardian-1");
+    assert.match(drafts[0]?.label ?? "", /Francesca/);
   });
 });

@@ -8,6 +8,11 @@ import {
   getReminderDaysForSettings,
 } from "@/lib/tuition/late-fees";
 import { getTuitionOrgSettings } from "@/lib/tuition/org-settings";
+import {
+  AUTOPAY_LINES_GLOBAL_CAP,
+  mergeAutopayLines,
+  type AutopayLineItem,
+} from "@/lib/tuition/autopay-cron-report";
 import { sendTuitionDueReminders } from "@/lib/tuition/reminders";
 import { evaluateRulesForOrganization } from "@/lib/tuition/rules-engine";
 
@@ -20,6 +25,10 @@ export type TuitionBillingCronSummary = {
   lateFeesNotified: number;
   autopayProcessed: number;
   autopayFailed: number;
+  autopaySkipped: number;
+  autopayDueCandidates: number;
+  autopayLines: AutopayLineItem[];
+  autopayLinesTruncated: boolean;
 };
 
 export type TuitionBillingCronDeps = {
@@ -76,6 +85,10 @@ export async function runTuitionBillingCron(
   let lateFeesNotified = 0;
   let autopayProcessed = 0;
   let autopayFailed = 0;
+  let autopaySkipped = 0;
+  let autopayDueCandidates = 0;
+  let autopayLines: AutopayLineItem[] = [];
+  let autopayLinesTruncated = false;
 
   for (const organizationId of organizationIds) {
     const settings = await loadSettings(admin, organizationId);
@@ -95,6 +108,12 @@ export async function runTuitionBillingCron(
     const autopayResult = await processAutopay(admin, organizationId);
     autopayProcessed += autopayResult.processed;
     autopayFailed += autopayResult.failed;
+    autopaySkipped += autopayResult.skipped;
+    autopayDueCandidates += autopayResult.dueCandidates;
+    const merged = mergeAutopayLines(autopayLines, autopayResult.lines, AUTOPAY_LINES_GLOBAL_CAP);
+    autopayLines = merged.lines;
+    autopayLinesTruncated =
+      autopayLinesTruncated || autopayResult.truncated || merged.truncated;
   }
 
   const summary: TuitionBillingCronSummary = {
@@ -106,6 +125,10 @@ export async function runTuitionBillingCron(
     lateFeesNotified,
     autopayProcessed,
     autopayFailed,
+    autopaySkipped,
+    autopayDueCandidates,
+    autopayLines,
+    autopayLinesTruncated,
   };
 
   try {

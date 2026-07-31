@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
+import { getRequestUser } from "@/lib/auth/session";
 import { getFamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import {
   getParentPageLabel,
@@ -61,9 +62,7 @@ export default async function SchoolParentSubtabPage({ params }: PageProps) {
     org.features.feature_nav?.parent,
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
 
   if (!user) {
     notFound();

@@ -13,7 +13,7 @@ import {
   buildWithdrawalRestoreAction,
   resolveWithdrawalRestoreStatus,
 } from "@/lib/admissions/application-withdrawal-restore";
-import { logActivityEvent } from "@/lib/activity-log";
+import { getActorIdentityFromUser, logActivityEvent } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
   requireSchoolAdminUser,
@@ -126,11 +126,14 @@ export async function PATCH(request: Request, context: RouteContext) {
     const note = body.note?.trim();
     const isWithdrawalRestore = currentStatus === "withdrawn";
 
+    const actorIdentity = getActorIdentityFromUser(user);
+
     await logActivityEvent(admin, {
       organizationId: String(application.organization_id),
       actorType: "school_admin",
       actorUserId: user.id,
       actorEmail: user.email ?? null,
+      actorName: actorIdentity.name,
       surface: "school_admin",
       action: isWithdrawalRestore
         ? "application.status_changed"

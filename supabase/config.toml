@@ -16,9 +16,6 @@ port = 54322
 shadow_port = 54320
 major_version = 15
 
-[db.migrations]
-enabled = true
-
 [db.seed]
 # CRM seed (supabase/seed.sql) is not needed for E2E; migrations seed product data.
 enabled = false

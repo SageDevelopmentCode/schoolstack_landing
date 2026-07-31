@@ -6,6 +6,7 @@ import {
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
 import { getChargeById, markChargeSent } from "@/lib/tuition/charges";
+import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { createAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
@@ -37,6 +38,7 @@ export async function POST(request: Request, context: RouteContext) {
     const body = (await request.json().catch(() => ({}))) as {
       paymentMethod?: unknown;
       orgSlug?: string;
+      amountCents?: unknown;
     };
 
     if (!isCheckoutPaymentMethod(body.paymentMethod)) {
@@ -58,7 +60,8 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    if (charge.status === "paid") {
+    const remainingCents = chargeRemainingCents(charge);
+    if (remainingCents <= 0) {
       return apiError(ROUTE, {
         request,
         status: 400,
@@ -96,6 +99,43 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
+    if (
+      guardian &&
+      charge.guardianId &&
+      charge.guardianId !== String(guardian.id)
+    ) {
+      return apiError(ROUTE, {
+        request,
+        status: 403,
+        error: "This charge belongs to another payer on the account.",
+        code: "forbidden",
+      });
+    }
+
+    const requestedAmountCents =
+      typeof body.amountCents === "number" && Number.isFinite(body.amountCents)
+        ? Math.round(body.amountCents)
+        : remainingCents;
+
+    if (requestedAmountCents < remainingCents) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Payment must cover at least the remaining balance.",
+        code: "invalid_amount",
+      });
+    }
+
+    const maxOverpayCents = remainingCents * 12;
+    if (requestedAmountCents > maxOverpayCents) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Payment amount is too large.",
+        code: "invalid_amount",
+      });
+    }
+
     const paymentAccount = await getOrganizationPaymentAccount(
       admin,
       charge.organizationId,
@@ -118,7 +158,7 @@ export async function POST(request: Request, context: RouteContext) {
       organizationId: charge.organizationId,
       familyId: charge.familyId,
       tuitionChargeId: charge.id,
-      amountCents: charge.amountCents,
+      amountCents: requestedAmountCents,
       label: charge.label,
       payerUserId: user.id,
       currency: charge.currency,
@@ -130,7 +170,7 @@ export async function POST(request: Request, context: RouteContext) {
     const cancelUrl = `${baseUrl}/school/${orgSlug}/parent/billing?cancelled=1`;
 
     const { session, quote } = await createAdmissionsCheckoutSession({
-      netAmountCents: charge.amountCents,
+      netAmountCents: requestedAmountCents,
       paymentMethod: body.paymentMethod,
       label: charge.label,
       stripeConnectAccountId,

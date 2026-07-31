@@ -158,9 +158,11 @@ export type TuitionCharge = {
   organizationId: string;
   assignmentId: string;
   familyId: string;
+  guardianId: string | null;
   label: string;
   baseAmountCents: number;
   amountCents: number;
+  paidCents: number;
   currency: string;
   dueDate: string;
   status: ChargeStatus;
@@ -181,6 +183,27 @@ export type TuitionLateFeeOverride = {
   lateFeeDayOfMonth: number;
   createdAt: string;
   updatedAt: string;
+};
+
+export type TuitionBillingSplit = {
+  id: string;
+  organizationId: string;
+  familyId: string;
+  guardianId: string;
+  shareBps: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BillingSplitInput = {
+  guardianId: string;
+  shareBps: number;
+};
+
+export type TuitionBillingAccountMetadata = {
+  autopayByGuardian?: Record<string, boolean>;
+  creditByGuardian?: Record<string, number>;
+  creditBalanceCents?: number;
 };
 
 export type TuitionAdjustmentRule = {
@@ -235,6 +258,13 @@ export type UnassignedEnrollmentSummary = {
   programName: string;
 };
 
+export type GuardianAutopayStatus = {
+  guardianId: string;
+  name: string;
+  autopayEnabled: boolean;
+  hasPaymentMethod: boolean;
+};
+
 export type FamilyBillingSummary = {
   familyId: string;
   familyName: string;
@@ -245,11 +275,17 @@ export type FamilyBillingSummary = {
   paidYtdCents: number;
   nextDue: { date: string; amountCents: number; label: string } | null;
   autopayEnabled: boolean;
+  autopayStatus: "off" | "on" | "partial";
+  guardianAutopay: GuardianAutopayStatus[];
+  hasPaymentMethod: boolean;
+  lastAutopayFailedAt: string | null;
   status: "current" | "overdue" | "invoice_sent";
   assignmentIds: string[];
   assignments: FamilyAssignmentSummary[];
   unassignedEnrollments: UnassignedEnrollmentSummary[];
   readiness: FamilyBillingReadinessState;
+  billingSplitSummary: string | null;
+  hasBillingSplit: boolean;
 };
 
 export type RatePlanWithDetails = TuitionRatePlan & {

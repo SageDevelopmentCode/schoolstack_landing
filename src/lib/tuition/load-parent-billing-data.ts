@@ -1,4 +1,5 @@
-import { listChargesForFamily } from "@/lib/tuition/charges";
+import { listBillingSplits } from "@/lib/tuition/billing-splits";
+import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import {
@@ -6,6 +7,16 @@ import {
   pickInitialChildKey,
   type ParentBillingFamilySummary,
 } from "@/lib/tuition/parent-billing-summary";
+import {
+  getAutopayEnabledForGuardian,
+  resolveGuardianIdForUser,
+} from "@/lib/tuition/payment-settlement";
+import {
+  getDefaultPaymentMethodForGuardian,
+  type SavedPaymentMethodSummary,
+} from "@/lib/tuition/payment-methods";
+import { getRecentAutopayFailureForFamily } from "@/lib/tuition/autopay-notifications";
+import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import { fetchFamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import type { FamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
@@ -15,11 +26,16 @@ import { cookies } from "next/headers";
 
 export type ParentBillingInitialData = {
   charges: TuitionCharge[];
+  allFamilyCharges: TuitionCharge[];
   payments: PaymentRecord[];
   adjustments: TuitionAdjustment[];
   readiness: FamilyBillingReadiness;
   familySummary: ParentBillingFamilySummary;
   autopayEnabled: boolean;
+  savedPaymentMethod: SavedPaymentMethodSummary | null;
+  recentAutopayFailure: { createdAt: string; summary: string } | null;
+  guardianId: string | null;
+  hasBillingSplit: boolean;
   initialChildKey: string | null;
 };
 
@@ -27,13 +43,24 @@ export async function loadParentBillingInitialData(input: {
   organizationId: string;
   familyId: string;
   slug: string;
+  userId: string;
 }): Promise<ParentBillingInitialData> {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  const [chargeRows, paymentRows, adjustmentRows, readinessState] =
+  const guardianId = await resolveGuardianIdForUser(supabase, {
+    familyId: input.familyId,
+    userId: input.userId,
+  });
+  const billingSplits = await listBillingSplits(supabase, input.familyId);
+  const hasBillingSplit = billingSplits.length > 0;
+
+  const [allFamilyCharges, chargeRows, paymentRows, adjustmentRows, readinessState] =
     await Promise.all([
       listChargesForFamily(supabase, input.familyId),
+      listChargesForFamilyGuardian(supabase, input.familyId, guardianId, {
+        hasBillingSplit,
+      }),
       listTuitionPaymentsForFamily(supabase, input.familyId),
       listAdjustmentsForFamily(supabase, input.familyId),
       fetchFamilyBillingReadiness(supabase, {
@@ -47,22 +74,47 @@ export async function loadParentBillingInitialData(input: {
     organizationId: input.organizationId,
     familyId: input.familyId,
     charges: chargeRows,
+    allFamilyCharges,
   });
 
   const { data: account } = await supabase
     .from("tuition_billing_accounts")
-    .select("autopay_enabled")
+    .select("*")
     .eq("organization_id", input.organizationId)
     .eq("family_id", input.familyId)
     .maybeSingle();
 
+  const billingAccount = account ? rowToBillingAccount(account) : null;
+  const autopayEnabled = billingAccount
+    ? getAutopayEnabledForGuardian(billingAccount, guardianId)
+    : false;
+
+  const savedPaymentMethod =
+    billingAccount && guardianId !== undefined
+      ? await getDefaultPaymentMethodForGuardian(supabase, {
+          billingAccountId: billingAccount.id,
+          guardianId,
+          defaultPaymentMethodId: billingAccount.defaultPaymentMethodId,
+        })
+      : null;
+
+  const recentAutopayFailure = await getRecentAutopayFailureForFamily(supabase, {
+    organizationId: input.organizationId,
+    familyId: input.familyId,
+  });
+
   return {
     charges: chargeRows,
+    allFamilyCharges,
     payments: paymentRows,
     adjustments: adjustmentRows,
     readiness: readinessState,
     familySummary,
-    autopayEnabled: Boolean(account?.autopay_enabled),
+    autopayEnabled,
+    savedPaymentMethod,
+    recentAutopayFailure,
+    guardianId,
+    hasBillingSplit,
     initialChildKey: pickInitialChildKey(familySummary.children),
   };
 }

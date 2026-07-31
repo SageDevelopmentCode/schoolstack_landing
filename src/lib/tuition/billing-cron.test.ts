@@ -4,6 +4,7 @@ import {
   authorizeTuitionBillingCronRequest,
   runTuitionBillingCron,
 } from "./billing-cron";
+import type { AutopayLineItem } from "./autopay-cron-report";
 
 describe("authorizeTuitionBillingCronRequest", () => {
   it("rejects requests without a bearer token", () => {
@@ -44,6 +45,16 @@ describe("authorizeTuitionBillingCronRequest", () => {
 describe("runTuitionBillingCron", () => {
   it("aggregates per-organization billing cron work", async () => {
     const calls: string[] = [];
+    let notifiedPayload: Record<string, unknown> | null = null;
+    const autopayLine: AutopayLineItem = {
+      organizationSlug: "rooted-meadows",
+      familyId: "family-1",
+      familyLabel: "Cecilia family",
+      chargeId: "charge-1",
+      chargeLabel: "August tuition",
+      amountCents: 72000,
+      outcome: "charged",
+    };
 
     const summary = await runTuitionBillingCron({} as never, {
       listLiveOrganizationIds: async () => ["org-1", "org-2"],
@@ -61,8 +72,18 @@ describe("runTuitionBillingCron", () => {
         calls.push(`rules:${organizationId}`);
         return 1;
       },
-      processAutopayForOrganization: async () => ({ processed: 1, skipped: 0, failed: 0 }),
-      notifySummary: async () => undefined,
+      processAutopayForOrganization: async () => ({
+        processed: 1,
+        failed: 0,
+        skipped: 2,
+        attempted: 1,
+        dueCandidates: 1,
+        lines: [autopayLine],
+        truncated: false,
+      }),
+      notifySummary: async (payload) => {
+        notifiedPayload = payload;
+      },
     });
 
     assert.deepEqual(calls, [
@@ -81,5 +102,11 @@ describe("runTuitionBillingCron", () => {
     assert.equal(summary.lateFeesNotified, 0);
     assert.equal(summary.autopayProcessed, 2);
     assert.equal(summary.autopayFailed, 0);
+    assert.equal(summary.autopaySkipped, 4);
+    assert.equal(summary.autopayDueCandidates, 2);
+    assert.equal(summary.autopayLines.length, 2);
+    assert.equal(summary.autopayLines[0]?.chargeId, "charge-1");
+    assert.equal(notifiedPayload?.autopaySkipped, 4);
+    assert.equal(notifiedPayload?.autopayDueCandidates, 2);
   });
 });

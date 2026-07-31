@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
+import { settleTuitionPayment } from "./payment-settlement";
 
 export async function createTuitionPaymentRecord(
   supabase: SupabaseClient,
@@ -143,7 +144,7 @@ export async function recordManualTuitionPayment(
     payerUserId?: string;
   },
 ): Promise<void> {
-  const { error: paymentError } = await supabase
+  const { data: payment, error: paymentError } = await supabase
     .from("application_payments")
     .insert({
       organization_id: input.organizationId,
@@ -152,20 +153,20 @@ export async function recordManualTuitionPayment(
       payment_type: "tuition",
       label: input.label,
       amount_cents: input.amountCents,
+      amount_applied_cents: input.amountCents,
       payer_user_id: input.payerUserId ?? null,
       status: "succeeded",
       paid_at: new Date().toISOString(),
-    });
+    })
+    .select("id")
+    .single();
 
   if (paymentError) throw paymentError;
 
-  const { error: chargeError } = await supabase
-    .from("tuition_charges")
-    .update({
-      status: "paid",
-      paid_at: new Date().toISOString(),
-    })
-    .eq("id", input.tuitionChargeId);
-
-  if (chargeError) throw chargeError;
+  await settleTuitionPayment(supabase, {
+    chargeId: input.tuitionChargeId,
+    amountCents: input.amountCents,
+    payerUserId: input.payerUserId ?? null,
+    paymentId: String(payment.id),
+  });
 }

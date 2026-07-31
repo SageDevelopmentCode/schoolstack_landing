@@ -19,6 +19,8 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED,
   ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED,
   ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED,
+  ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED,
+  ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED,
 ] as const;
 
 export type ActivityNotificationCategory =
@@ -73,6 +75,8 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED]: "Visit scheduled",
   [ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED]: "Enrollment completed",
   [ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED]: "Payments ready",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
 };
 
 const DEFAULT_NOTIFICATION_DAYS = 30;
@@ -197,6 +201,7 @@ export function getActivityNotificationCategory(
   }
   if (
     action.startsWith("payments.") ||
+    action.startsWith("tuition.") ||
     action === ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED
   ) {
     return "payments";

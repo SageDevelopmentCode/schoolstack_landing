@@ -50,7 +50,7 @@ function runDbQuery(sql: string): void {
   fs.writeFileSync(file, sql, "utf8");
 
   try {
-    execSync(`supabase db query --file ${JSON.stringify(file)}`, {
+    execSync(`supabase db query --local --file ${JSON.stringify(file)}`, {
       stdio: "pipe",
       encoding: "utf8",
     });

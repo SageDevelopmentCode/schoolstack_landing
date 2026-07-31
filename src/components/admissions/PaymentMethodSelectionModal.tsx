@@ -10,6 +10,10 @@ import {
   type CheckoutPaymentMethod,
 } from "@/lib/stripe/processing-fee";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  formatPaymentMethodLabel,
+  type SavedPaymentMethodSummary,
+} from "@/lib/tuition/payment-methods";
 
 type PaymentMethodSelectionModalProps = {
   C: AdminThemeTokens;
@@ -20,8 +24,17 @@ type PaymentMethodSelectionModalProps = {
   lineItems?: ChecklistPaymentLineItem[];
   variant?: "single" | "combined";
   loading?: boolean;
+  error?: string | null;
+  savedPaymentMethod?: SavedPaymentMethodSummary | null;
   onConfirm: (method: CheckoutPaymentMethod) => void | Promise<void>;
 };
+
+function formatSavedCardExpiry(method: SavedPaymentMethodSummary | null): string | null {
+  if (!method?.expMonth || !method?.expYear) return null;
+  const month = String(method.expMonth).padStart(2, "0");
+  const year = String(method.expYear).slice(-2);
+  return `${month}/${year}`;
+}
 
 function MethodOption({
   C,
@@ -184,6 +197,8 @@ export default function PaymentMethodSelectionModal({
   lineItems,
   variant = "single",
   loading = false,
+  error = null,
+  savedPaymentMethod = null,
   onConfirm,
 }: PaymentMethodSelectionModalProps) {
   const [selectedMethod, setSelectedMethod] =
@@ -225,6 +240,10 @@ export default function PaymentMethodSelectionModal({
   const feeLabel =
     selectedMethod === "card" ? "Card fee" : "Bank fee";
   const isCombined = variant === "combined";
+  const savedCardLabel = formatPaymentMethodLabel(savedPaymentMethod);
+  const savedCardExpiry = formatSavedCardExpiry(savedPaymentMethod);
+  const showSavedCardHint =
+    selectedMethod === "card" && savedCardLabel != null;
 
   return (
     <AnimatePresence>
@@ -307,6 +326,25 @@ export default function PaymentMethodSelectionModal({
               />
             </div>
 
+            {showSavedCardHint ? (
+              <div
+                className="mt-4 rounded-lg border px-4 py-3 text-sm"
+                style={{
+                  borderColor: C.border,
+                  backgroundColor: C.elevated,
+                }}
+                data-testid="payment-method-saved-card-hint"
+              >
+                <p style={{ color: C.textPrimary }}>
+                  Card on file: {savedCardLabel}
+                  {savedCardExpiry ? ` · Expires ${savedCardExpiry}` : ""}
+                </p>
+                <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>
+                  You&apos;ll confirm this card (or choose another) on the next screen.
+                </p>
+              </div>
+            ) : null}
+
             <div className="mt-4">
               <PaymentSummary
                 C={C}
@@ -338,6 +376,17 @@ export default function PaymentMethodSelectionModal({
             >
               Fees are estimated for US card and bank payments.
             </p>
+
+            {error ? (
+              <p
+                className="mt-3 text-sm"
+                style={{ color: C.error }}
+                data-testid="payment-method-error"
+                role="alert"
+              >
+                {error}
+              </p>
+            ) : null}
 
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button

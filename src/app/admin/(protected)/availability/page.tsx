@@ -15,6 +15,11 @@ import {
   formatSelectedDate,
 } from "@/lib/demo-scheduler";
 
+type OpenSlot = {
+  date: string;
+  time_slot: string;
+};
+
 type BookedSlot = {
   scheduled_time: string;
   name: string;
@@ -55,7 +60,7 @@ export default function AvailabilityPage() {
     }
 
     const slotSet = new Set(
-      (data ?? []).map((row) => `${row.date}|${row.time_slot}`)
+      ((data as OpenSlot[]) ?? []).map((row) => `${row.date}|${row.time_slot}`)
     );
     setOpenSlots(slotSet);
   }, [supabase, viewYear, viewMonth]);

@@ -5,6 +5,7 @@ import ParentHomePage from "@/components/school-parent/ParentHomePage";
 import ParentBillingPage from "@/components/school-parent/billing/ParentBillingPage";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
+import { getRequestUser } from "@/lib/auth/session";
 import {
   getFamilyUserProfile,
   listFamilyChildrenForHome,
@@ -77,9 +78,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
     org.features.feature_nav?.parent,
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
 
   if (!user) {
     notFound();
@@ -136,6 +135,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
       organizationId: org.id,
       familyId,
       slug,
+      userId: user.id,
     });
 
     return (

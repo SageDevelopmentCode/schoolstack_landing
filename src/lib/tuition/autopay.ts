@@ -6,7 +6,19 @@ import {
   isPaymentReady,
 } from "@/lib/stripe/organization-payment-account";
 import { createAdjustment } from "./adjustments";
+import { chargeRemainingCents } from "./billing-splits";
 import { regenerateFutureCharges } from "./charge-generator";
+import {
+  notifyAutopayFailed,
+  notifyAutopaySucceeded,
+} from "./autopay-notifications";
+import {
+  AUTOPAY_LINES_PER_ORG_CAP,
+  buildFamilyLabel,
+  type AutopayLineItem,
+  type AutopayOrgResult,
+  type AutopaySkipReason,
+} from "./autopay-cron-report";
 import { rowToBillingAccount } from "./row-mappers";
 import type { AdjustmentType, TuitionBillingAccount } from "./types";
 
@@ -58,6 +70,7 @@ export async function saveFamilyPaymentMethod(
     familyId: string;
     billingAccountId: string;
     stripePaymentMethodId: string;
+    guardianId?: string | null;
     brand?: string;
     last4?: string;
     expMonth?: number;
@@ -66,10 +79,16 @@ export async function saveFamilyPaymentMethod(
   },
 ): Promise<void> {
   if (input.isDefault) {
-    await supabase
+    let clearQuery = supabase
       .from("family_payment_methods")
       .update({ is_default: false })
       .eq("billing_account_id", input.billingAccountId);
+
+    if (input.guardianId) {
+      clearQuery = clearQuery.eq("guardian_id", input.guardianId);
+    }
+
+    await clearQuery;
   }
 
   const { error } = await supabase.from("family_payment_methods").upsert(
@@ -77,6 +96,7 @@ export async function saveFamilyPaymentMethod(
       organization_id: input.organizationId,
       family_id: input.familyId,
       billing_account_id: input.billingAccountId,
+      guardian_id: input.guardianId ?? null,
       stripe_payment_method_id: input.stripePaymentMethodId,
       brand: input.brand ?? null,
       last4: input.last4 ?? null,
@@ -89,10 +109,12 @@ export async function saveFamilyPaymentMethod(
 
   if (error) throw error;
 
-  await supabase
-    .from("tuition_billing_accounts")
-    .update({ default_payment_method_id: input.stripePaymentMethodId })
-    .eq("id", input.billingAccountId);
+  if (!input.guardianId) {
+    await supabase
+      .from("tuition_billing_accounts")
+      .update({ default_payment_method_id: input.stripePaymentMethodId })
+      .eq("id", input.billingAccountId);
+  }
 }
 
 export async function trySaveTuitionPaymentMethod(
@@ -126,11 +148,80 @@ export async function trySaveTuitionPaymentMethod(
   if (billingError) throw billingError;
   if (!billingAccount) return;
 
+  let guardianId: string | null = null;
+  if (input.payerUserId) {
+    const { data: guardian } = await supabase
+      .from("guardians")
+      .select("id")
+      .eq("family_id", input.familyId)
+      .eq("user_id", input.payerUserId)
+      .maybeSingle();
+    guardianId = guardian ? String(guardian.id) : null;
+  }
+
   await saveFamilyPaymentMethod(supabase, {
     organizationId: input.organizationId,
     familyId: input.familyId,
     billingAccountId: String(billingAccount.id),
     stripePaymentMethodId: paymentMethodId,
+    guardianId,
+    brand: card?.brand,
+    last4: card?.last4,
+    expMonth: card?.exp_month,
+    expYear: card?.exp_year,
+    isDefault: true,
+  });
+}
+
+export async function savePaymentMethodFromSetupIntent(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    familyId: string;
+    setupIntentId: string;
+    payerUserId?: string | null;
+    guardianId?: string | null;
+  },
+): Promise<void> {
+  const stripe = getStripeClient();
+  const setupIntent = await stripe.setupIntents.retrieve(input.setupIntentId);
+  const paymentMethodId =
+    typeof setupIntent.payment_method === "string"
+      ? setupIntent.payment_method
+      : setupIntent.payment_method?.id;
+
+  if (!paymentMethodId) return;
+
+  const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+  const card = paymentMethod.card;
+
+  const { data: billingAccount, error: billingError } = await supabase
+    .from("tuition_billing_accounts")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("family_id", input.familyId)
+    .maybeSingle();
+
+  if (billingError) throw billingError;
+  if (!billingAccount) return;
+
+  let guardianId = input.guardianId ?? null;
+  if (!guardianId && input.payerUserId) {
+    const { data: guardian } = await supabase
+      .from("guardians")
+      .select("id")
+      .eq("family_id", input.familyId)
+      .eq("user_id", input.payerUserId)
+      .maybeSingle();
+    guardianId = guardian ? String(guardian.id) : null;
+  }
+
+  await saveFamilyPaymentMethod(supabase, {
+    organizationId: input.organizationId,
+    familyId: input.familyId,
+    billingAccountId: String(billingAccount.id),
+    stripePaymentMethodId: paymentMethodId,
+    guardianId,
     brand: card?.brand,
     last4: card?.last4,
     expMonth: card?.exp_month,
@@ -231,95 +322,390 @@ export async function importFinancialAidCsv(
   return { imported, skipped };
 }
 
+function emptyAutopayOrgResult(): AutopayOrgResult {
+  return {
+    processed: 0,
+    skipped: 0,
+    failed: 0,
+    attempted: 0,
+    dueCandidates: 0,
+    lines: [],
+    truncated: false,
+  };
+}
+
+function pushAutopayLine(
+  lines: AutopayLineItem[],
+  line: AutopayLineItem,
+  state: { truncated: boolean },
+): void {
+  if (lines.length >= AUTOPAY_LINES_PER_ORG_CAP) {
+    state.truncated = true;
+    return;
+  }
+  lines.push(line);
+}
+
+function recordSkippedDueCharges(input: {
+  lines: AutopayLineItem[];
+  lineState: { truncated: boolean };
+  dueCharges: Array<{
+    id: string | number;
+    amount_cents: number;
+    paid_cents?: number | null;
+    label: string;
+  }>;
+  skipReason: AutopaySkipReason;
+  organizationSlug: string;
+  familyId: string;
+  familyLabel: string;
+  counters: { skipped: number; dueCandidates: number };
+}): void {
+  for (const charge of input.dueCharges) {
+    const amountCents = chargeRemainingCents({
+      amountCents: Number(charge.amount_cents),
+      paidCents: Number(charge.paid_cents ?? 0),
+    });
+    if (amountCents <= 0) {
+      input.counters.skipped++;
+      pushAutopayLine(
+        input.lines,
+        {
+          organizationSlug: input.organizationSlug,
+          familyId: input.familyId,
+          familyLabel: input.familyLabel,
+          chargeId: String(charge.id),
+          chargeLabel: String(charge.label),
+          amountCents: 0,
+          outcome: "skipped",
+          skipReason: "zero_balance",
+        },
+        input.lineState,
+      );
+      continue;
+    }
+
+    input.counters.dueCandidates++;
+    input.counters.skipped++;
+    pushAutopayLine(
+      input.lines,
+      {
+        organizationSlug: input.organizationSlug,
+        familyId: input.familyId,
+        familyLabel: input.familyLabel,
+        chargeId: String(charge.id),
+        chargeLabel: String(charge.label),
+        amountCents,
+        outcome: "skipped",
+        skipReason: input.skipReason,
+      },
+      input.lineState,
+    );
+  }
+}
+
 export async function processAutopayForOrganization(
   supabase: SupabaseClient,
   organizationId: string,
-): Promise<{ processed: number; skipped: number; failed: number }> {
+): Promise<AutopayOrgResult> {
   const today = new Date().toISOString().slice(0, 10);
 
   const paymentAccount = await getOrganizationPaymentAccount(supabase, organizationId);
   const stripeConnectAccountId = paymentAccount?.stripeConnectAccountId;
   if (!paymentAccount || !stripeConnectAccountId || !isPaymentReady(paymentAccount)) {
-    return { processed: 0, skipped: 0, failed: 0 };
+    return emptyAutopayOrgResult();
   }
+
+  const { data: organization, error: organizationError } = await supabase
+    .from("organizations")
+    .select("slug")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (organizationError) throw organizationError;
+  const orgSlug = typeof organization?.slug === "string" ? organization.slug : "";
 
   const { data: accounts, error: accountsError } = await supabase
     .from("tuition_billing_accounts")
-    .select("id, family_id, default_payment_method_id")
-    .eq("organization_id", organizationId)
-    .eq("autopay_enabled", true)
-    .not("default_payment_method_id", "is", null);
+    .select("id, family_id, default_payment_method_id, autopay_enabled, metadata")
+    .eq("organization_id", organizationId);
 
   if (accountsError) throw accountsError;
 
-  let processed = 0;
-  let skipped = 0;
-  let failed = 0;
+  const familyIds = [
+    ...new Set(
+      (accounts ?? []).map((accountRow) => String(accountRow.family_id)),
+    ),
+  ];
 
-  for (const account of accounts ?? []) {
-    const { data: dueCharges, error: chargesError } = await supabase
-      .from("tuition_charges")
-      .select("id, amount_cents, label, currency")
-      .eq("family_id", account.family_id)
-      .eq("due_date", today)
-      .in("status", ["scheduled", "sent"]);
-
-    if (chargesError) throw chargesError;
-    if (!dueCharges?.length) {
-      skipped++;
-      continue;
-    }
-
-    const { data: guardian, error: guardianError } = await supabase
+  const guardiansByFamily = new Map<string, Array<{ last_name?: string | null }>>();
+  if (familyIds.length > 0) {
+    const { data: guardians, error: guardiansError } = await supabase
       .from("guardians")
-      .select("user_id, email")
-      .eq("family_id", account.family_id)
-      .not("user_id", "is", null)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .select("family_id, last_name")
+      .in("family_id", familyIds)
+      .order("created_at", { ascending: true });
 
-    if (guardianError) throw guardianError;
-    if (!guardian?.user_id) {
-      skipped += dueCharges.length;
+    if (guardiansError) throw guardiansError;
+
+    for (const row of guardians ?? []) {
+      const familyId = String(row.family_id);
+      const existing = guardiansByFamily.get(familyId) ?? [];
+      existing.push({ last_name: row.last_name });
+      guardiansByFamily.set(familyId, existing);
+    }
+  }
+
+  const familyLabel = (familyId: string) =>
+    buildFamilyLabel(familyId, guardiansByFamily.get(familyId) ?? []);
+
+  const stats = {
+    processed: 0,
+    skipped: 0,
+    failed: 0,
+    dueCandidates: 0,
+  };
+  const lines: AutopayLineItem[] = [];
+  const lineState = { truncated: false };
+
+  for (const accountRow of accounts ?? []) {
+    const account = rowToBillingAccount(accountRow);
+    const autopayTargets = new Map<string | null, boolean>();
+
+    const autopayByGuardian =
+      account.metadata.autopayByGuardian &&
+      typeof account.metadata.autopayByGuardian === "object" &&
+      !Array.isArray(account.metadata.autopayByGuardian)
+        ? (account.metadata.autopayByGuardian as Record<string, boolean>)
+        : {};
+
+    for (const [guardianId, enabled] of Object.entries(autopayByGuardian)) {
+      if (enabled) autopayTargets.set(guardianId, true);
+    }
+
+    if (autopayTargets.size === 0 && account.autopayEnabled) {
+      autopayTargets.set(null, true);
+    }
+
+    if (autopayTargets.size === 0) {
+      stats.skipped++;
       continue;
     }
 
-    const { data: stripeCustomer, error: customerError } = await supabase
-      .from("user_stripe_customers")
-      .select("stripe_customer_id")
-      .eq("user_id", guardian.user_id)
-      .maybeSingle();
+    const accountFamilyLabel = familyLabel(account.familyId);
 
-    if (customerError) throw customerError;
-    if (!stripeCustomer?.stripe_customer_id) {
-      skipped += dueCharges.length;
-      continue;
-    }
+    for (const guardianId of autopayTargets.keys()) {
+      let dueChargesQuery = supabase
+        .from("tuition_charges")
+        .select("id, amount_cents, paid_cents, label, currency, guardian_id")
+        .eq("family_id", account.familyId)
+        .eq("due_date", today)
+        .in("status", ["scheduled", "sent"]);
 
-    for (const charge of dueCharges) {
-      try {
-        await executeTuitionAutopayCharge(supabase, {
-          organizationId,
-          familyId: String(account.family_id),
-          chargeId: String(charge.id),
-          amountCents: Number(charge.amount_cents),
-          label: String(charge.label),
-          currency: typeof charge.currency === "string" ? charge.currency : "USD",
-          stripeConnectAccountId,
-          stripeCustomerId: stripeCustomer.stripe_customer_id,
-          stripePaymentMethodId: String(account.default_payment_method_id),
-          payerUserId: String(guardian.user_id),
+      if (guardianId) {
+        dueChargesQuery = dueChargesQuery.eq("guardian_id", guardianId);
+      } else {
+        dueChargesQuery = dueChargesQuery.is("guardian_id", null);
+      }
+
+      const { data: dueCharges, error: chargesError } = await dueChargesQuery;
+      if (chargesError) throw chargesError;
+      if (!dueCharges?.length) {
+        stats.skipped++;
+        continue;
+      }
+
+      let paymentMethodId = account.defaultPaymentMethodId;
+      if (guardianId) {
+        const { data: guardianMethod } = await supabase
+          .from("family_payment_methods")
+          .select("stripe_payment_method_id")
+          .eq("billing_account_id", account.id)
+          .eq("guardian_id", guardianId)
+          .eq("is_default", true)
+          .maybeSingle();
+        paymentMethodId =
+          typeof guardianMethod?.stripe_payment_method_id === "string"
+            ? guardianMethod.stripe_payment_method_id
+            : paymentMethodId;
+      }
+
+      if (!paymentMethodId) {
+        recordSkippedDueCharges({
+          lines,
+          lineState,
+          dueCharges,
+          skipReason: "no_payment_method",
+          organizationSlug: orgSlug,
+          familyId: account.familyId,
+          familyLabel: accountFamilyLabel,
+          counters: stats,
         });
-        processed++;
-      } catch (error) {
-        console.error("Autopay charge failed:", charge.id, error);
-        failed++;
+        continue;
+      }
+
+      let guardianUserId: string | null = null;
+      if (guardianId) {
+        const { data: guardian } = await supabase
+          .from("guardians")
+          .select("user_id")
+          .eq("id", guardianId)
+          .maybeSingle();
+        guardianUserId =
+          typeof guardian?.user_id === "string" ? guardian.user_id : null;
+      } else {
+        const { data: guardian } = await supabase
+          .from("guardians")
+          .select("user_id")
+          .eq("family_id", account.familyId)
+          .not("user_id", "is", null)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        guardianUserId =
+          typeof guardian?.user_id === "string" ? guardian.user_id : null;
+      }
+
+      if (!guardianUserId) {
+        recordSkippedDueCharges({
+          lines,
+          lineState,
+          dueCharges,
+          skipReason: "no_guardian",
+          organizationSlug: orgSlug,
+          familyId: account.familyId,
+          familyLabel: accountFamilyLabel,
+          counters: stats,
+        });
+        continue;
+      }
+
+      const { data: stripeCustomer, error: customerError } = await supabase
+        .from("user_stripe_customers")
+        .select("stripe_customer_id")
+        .eq("user_id", guardianUserId)
+        .maybeSingle();
+
+      if (customerError) throw customerError;
+      if (!stripeCustomer?.stripe_customer_id) {
+        recordSkippedDueCharges({
+          lines,
+          lineState,
+          dueCharges,
+          skipReason: "no_stripe_customer",
+          organizationSlug: orgSlug,
+          familyId: account.familyId,
+          familyLabel: accountFamilyLabel,
+          counters: stats,
+        });
+        continue;
+      }
+
+      for (const charge of dueCharges) {
+        const amountCents = chargeRemainingCents({
+          amountCents: Number(charge.amount_cents),
+          paidCents: Number(charge.paid_cents ?? 0),
+        });
+        if (amountCents <= 0) {
+          stats.skipped++;
+          pushAutopayLine(
+            lines,
+            {
+              organizationSlug: orgSlug,
+              familyId: account.familyId,
+              familyLabel: accountFamilyLabel,
+              chargeId: String(charge.id),
+              chargeLabel: String(charge.label),
+              amountCents: 0,
+              outcome: "skipped",
+              skipReason: "zero_balance",
+            },
+            lineState,
+          );
+          continue;
+        }
+
+        stats.dueCandidates++;
+
+        try {
+          await executeTuitionAutopayCharge(supabase, {
+            organizationId,
+            familyId: account.familyId,
+            chargeId: String(charge.id),
+            amountCents,
+            label: String(charge.label),
+            currency: typeof charge.currency === "string" ? charge.currency : "USD",
+            stripeConnectAccountId,
+            stripeCustomerId: stripeCustomer.stripe_customer_id,
+            stripePaymentMethodId: paymentMethodId,
+            payerUserId: guardianUserId,
+          });
+          await notifyAutopaySucceeded(supabase, {
+            organizationId,
+            familyId: account.familyId,
+            chargeId: String(charge.id),
+            chargeLabel: String(charge.label),
+            amountCents,
+            guardianUserId,
+          });
+          stats.processed++;
+          pushAutopayLine(
+            lines,
+            {
+              organizationSlug: orgSlug,
+              familyId: account.familyId,
+              familyLabel: accountFamilyLabel,
+              chargeId: String(charge.id),
+              chargeLabel: String(charge.label),
+              amountCents,
+              outcome: "charged",
+            },
+            lineState,
+          );
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Payment could not be processed.";
+          console.error("Autopay charge failed:", charge.id, error);
+          await notifyAutopayFailed(supabase, {
+            organizationId,
+            familyId: account.familyId,
+            chargeId: String(charge.id),
+            chargeLabel: String(charge.label),
+            amountCents,
+            guardianId,
+            guardianUserId,
+            errorMessage,
+            orgSlug,
+          });
+          stats.failed++;
+          pushAutopayLine(
+            lines,
+            {
+              organizationSlug: orgSlug,
+              familyId: account.familyId,
+              familyLabel: accountFamilyLabel,
+              chargeId: String(charge.id),
+              chargeLabel: String(charge.label),
+              amountCents,
+              outcome: "failed",
+              errorMessage,
+            },
+            lineState,
+          );
+        }
       }
     }
   }
 
-  return { processed, skipped, failed };
+  return {
+    processed: stats.processed,
+    skipped: stats.skipped,
+    failed: stats.failed,
+    attempted: stats.processed + stats.failed,
+    dueCandidates: stats.dueCandidates,
+    lines,
+    truncated: lineState.truncated,
+  };
 }
 
 export async function refundTuitionPayment(
@@ -356,7 +742,7 @@ export async function refundTuitionPayment(
   if (payment.tuition_charge_id) {
     await supabase
       .from("tuition_charges")
-      .update({ status: "scheduled", paid_at: null })
+      .update({ status: "scheduled", paid_at: null, paid_cents: 0 })
       .eq("id", payment.tuition_charge_id);
   }
 }

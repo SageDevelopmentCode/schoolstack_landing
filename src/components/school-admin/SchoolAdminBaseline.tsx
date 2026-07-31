@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -551,6 +551,8 @@ export default function SchoolAdminBaseline({
   const [supportOpen, setSupportOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const lastUnreadFetchRef = useRef(0);
+  const FOCUS_REFETCH_MS = 60_000;
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -562,6 +564,7 @@ export default function SchoolAdminBaseline({
 
       const payload = (await response.json()) as { unreadCount?: number };
       setUnreadCount(payload.unreadCount ?? 0);
+      lastUnreadFetchRef.current = Date.now();
     } catch {
       // ignore transient fetch errors
     }
@@ -575,6 +578,7 @@ export default function SchoolAdminBaseline({
 
   useEffect(() => {
     const handleFocus = () => {
+      if (Date.now() - lastUnreadFetchRef.current < FOCUS_REFETCH_MS) return;
       void fetchUnreadCount();
     };
 
