@@ -18,6 +18,7 @@ import {
 } from "@/lib/admissions/application-submit";
 import {
   ACTIVITY_ACTIONS,
+  getActorIdentityFromUser,
   logActivityEvent,
 } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
@@ -107,11 +108,14 @@ export async function POST(request: Request, context: RouteContext) {
       .eq("id", application.formVersionId)
       .maybeSingle();
 
+    const actorIdentity = getActorIdentityFromUser(user);
+
     void logActivityEvent(admin, {
       organizationId: application.organizationId,
       actorType: "parent",
       actorUserId: user.id,
       actorEmail: user.email,
+      actorName: actorIdentity.name,
       surface: "public_apply",
       action: ACTIVITY_ACTIONS.APPLICATION_SUBMITTED,
       entityType: "application",

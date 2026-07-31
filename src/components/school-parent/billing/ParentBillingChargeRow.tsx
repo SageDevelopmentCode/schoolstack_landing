@@ -1,6 +1,7 @@
 "use client";
 
 import { buildChargeAdjustmentBreakdown, formatCents } from "@/lib/tuition/pricing";
+import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
 
@@ -10,9 +11,12 @@ type ParentBillingChargeRowProps = {
   adjustmentsForAssignment: TuitionAdjustment[];
   payingChargeId: string | null;
   highlighted?: boolean;
+  autopayEnabled?: boolean;
   onPay: (chargeId: string) => void;
   readOnly?: boolean;
 };
+
+const UNPAID_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
 
 function formatBreakdownAmount(amountCents: number): string {
   if (amountCents < 0) {
@@ -27,6 +31,7 @@ export default function ParentBillingChargeRow({
   adjustmentsForAssignment,
   payingChargeId,
   highlighted = false,
+  autopayEnabled = false,
   onPay,
   readOnly = false,
 }: ParentBillingChargeRowProps) {
@@ -36,8 +41,11 @@ export default function ParentBillingChargeRow({
     adjustments: adjustmentsForAssignment,
   });
 
+  const remainingCents = chargeRemainingCents(charge);
   const showBreakdown = charge.baseAmountCents !== charge.amountCents;
   const totalLine = breakdown.find((line) => line.kind === "total");
+  const showAutopayHint =
+    autopayEnabled && UNPAID_CHARGE_STATUSES.has(charge.status) && remainingCents > 0;
 
   return (
     <div
@@ -55,6 +63,15 @@ export default function ParentBillingChargeRow({
         <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
           Due {charge.dueDate} · {charge.status}
         </p>
+        {showAutopayHint ? (
+          <p
+            className="text-xs mt-1"
+            style={{ color: C.textSecondary }}
+            data-testid="parent-billing-charge-autopay-hint"
+          >
+            Autopay on due date
+          </p>
+        ) : null}
         {showBreakdown ? (
           <div
             className="mt-2 space-y-1 text-xs"
@@ -93,7 +110,7 @@ export default function ParentBillingChargeRow({
       <div className="flex shrink-0 items-center gap-2 pt-0.5">
         {!showBreakdown ? (
           <span className="font-medium" style={{ color: C.textPrimary }}>
-            {formatCents(charge.amountCents)}
+            {formatCents(remainingCents)}
           </span>
         ) : null}
         {charge.status !== "paid" && charge.status !== "void" && !readOnly ? (
@@ -101,6 +118,7 @@ export default function ParentBillingChargeRow({
             type="button"
             onClick={() => onPay(charge.id)}
             disabled={payingChargeId === charge.id}
+            aria-label={showAutopayHint ? "Pay early" : "Pay charge"}
             className="text-xs font-medium px-2 py-1 rounded disabled:opacity-60"
             style={{ backgroundColor: C.accentLight, color: C.accent }}
           >

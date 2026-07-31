@@ -122,6 +122,38 @@ export async function createCombinedAdmissionsCheckoutSession(
   return { session, quote };
 }
 
+export type CreateTuitionSetupCheckoutSessionInput = {
+  stripeCustomerId: string;
+  payerUserId: string;
+  organizationId: string;
+  familyId: string;
+  guardianId: string | null;
+  successUrl: string;
+  cancelUrl: string;
+};
+
+export async function createTuitionSetupCheckoutSession(
+  input: CreateTuitionSetupCheckoutSessionInput,
+  options?: { stripe?: Stripe },
+): Promise<Stripe.Checkout.Session> {
+  const stripe = options?.stripe ?? getStripeClient();
+
+  return stripe.checkout.sessions.create({
+    mode: "setup",
+    customer: input.stripeCustomerId,
+    payment_method_types: ["card"],
+    metadata: {
+      payment_type: "tuition_setup",
+      organization_id: input.organizationId,
+      family_id: input.familyId,
+      guardian_id: input.guardianId ?? "",
+      supabase_user_id: input.payerUserId,
+    },
+    success_url: input.successUrl,
+    cancel_url: input.cancelUrl,
+  });
+}
+
 export async function createAdmissionsCheckoutSession(
   input: CreateAdmissionsCheckoutSessionInput,
   options?: { stripe?: Stripe },

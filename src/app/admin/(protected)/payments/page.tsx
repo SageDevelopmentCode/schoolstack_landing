@@ -60,7 +60,7 @@ export default function AdminPaymentsPage() {
       }
 
       setOrganizations(
-        (data ?? []).map((row) => ({
+        ((data as OrganizationOption[]) ?? []).map((row) => ({
           id: String(row.id),
           name: String(row.name),
           slug: String(row.slug),

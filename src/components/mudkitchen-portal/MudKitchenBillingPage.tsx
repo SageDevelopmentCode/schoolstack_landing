@@ -159,7 +159,9 @@ export default function MudKitchenBillingPage({
       return;
     }
 
-    const normalized = (data ?? []).map((row) => normalizeCustomerInvoiceRow(row));
+    const normalized = ((data as Record<string, unknown>[]) ?? []).map((row) =>
+      normalizeCustomerInvoiceRow(row),
+    );
     normalized.sort((a, b) => {
       if (a.status !== b.status) {
         return a.status === "due" ? -1 : 1;

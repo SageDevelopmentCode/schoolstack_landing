@@ -1,6 +1,7 @@
 import type {
   TuitionAdjustment,
   TuitionBillingAccount,
+  TuitionBillingSplit,
   TuitionCharge,
   TuitionEnrollmentAssignment,
   TuitionFeeComponent,
@@ -187,9 +188,12 @@ export function rowToCharge(row: Record<string, unknown>): TuitionCharge {
     organizationId: String(row.organization_id),
     assignmentId: String(row.assignment_id),
     familyId: String(row.family_id),
+    guardianId:
+      typeof row.guardian_id === "string" ? row.guardian_id : null,
     label: String(row.label),
     baseAmountCents: Number(row.base_amount_cents),
     amountCents: Number(row.amount_cents),
+    paidCents: Number(row.paid_cents ?? 0),
     currency: String(row.currency ?? "USD"),
     dueDate: String(row.due_date),
     status: row.status as TuitionCharge["status"],
@@ -200,6 +204,20 @@ export function rowToCharge(row: Record<string, unknown>): TuitionCharge {
         : null,
     sentAt: typeof row.sent_at === "string" ? row.sent_at : null,
     paidAt: typeof row.paid_at === "string" ? row.paid_at : null,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+export function rowToBillingSplit(
+  row: Record<string, unknown>,
+): TuitionBillingSplit {
+  return {
+    id: String(row.id),
+    organizationId: String(row.organization_id),
+    familyId: String(row.family_id),
+    guardianId: String(row.guardian_id),
+    shareBps: Number(row.share_bps),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };

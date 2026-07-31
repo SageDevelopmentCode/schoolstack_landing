@@ -529,7 +529,12 @@ export default function PaymentsSetupPage({
   const [activeTab, setActiveTab] = useState<"setup" | "history">("setup");
 
   const loadStatus = useCallback(
-    async (options?: { silent?: boolean; handleReturn?: boolean }) => {
+    async (options?: {
+      silent?: boolean;
+      handleReturn?: boolean;
+      connected?: string | null;
+      refresh?: string | null;
+    }) => {
       if (options?.silent) {
         setRefreshing(true);
       } else {
@@ -563,8 +568,8 @@ export default function PaymentsSetupPage({
         setStatus(payload);
 
         if (options?.handleReturn) {
-          const connected = searchParams.get("connected");
-          const refresh = searchParams.get("refresh");
+          const connected = options.connected ?? null;
+          const refresh = options.refresh ?? null;
           if (connected === "1") {
             if (payload.isReady) {
               setNotice(
@@ -603,19 +608,23 @@ export default function PaymentsSetupPage({
         }
       }
     },
-    [organizationId, searchParams],
+    [organizationId],
   );
 
-  useEffect(() => {
-    const connected = searchParams.get("connected");
-    const refresh = searchParams.get("refresh");
+  const connected = searchParams.get("connected");
+  const refresh = searchParams.get("refresh");
 
+  useEffect(() => {
     if (
       (connected === "1" || connected === "0") &&
       !returnHandledRef.current
     ) {
       returnHandledRef.current = true;
-      void loadStatus({ handleReturn: true }).then(() => {
+      void loadStatus({
+        handleReturn: true,
+        connected,
+        refresh,
+      }).then(() => {
         router.replace(`/school/${orgSlug}/admin/admissions/payments`, {
           scroll: false,
         });
@@ -625,7 +634,11 @@ export default function PaymentsSetupPage({
 
     if (refresh === "1" && !refreshHandledRef.current) {
       refreshHandledRef.current = true;
-      void loadStatus({ handleReturn: true }).then(() => {
+      void loadStatus({
+        handleReturn: true,
+        connected,
+        refresh,
+      }).then(() => {
         router.replace(`/school/${orgSlug}/admin/admissions/payments`, {
           scroll: false,
         });
@@ -634,7 +647,7 @@ export default function PaymentsSetupPage({
     }
 
     void loadStatus();
-  }, [loadStatus, orgSlug, router, searchParams]);
+  }, [connected, loadStatus, orgSlug, refresh, router]);
 
   const isReady = Boolean(status?.isReady);
   const hasAccount = Boolean(status?.checklist.accountCreated);
@@ -649,8 +662,11 @@ export default function PaymentsSetupPage({
     if (!isPolling) return;
 
     pollCountRef.current = 0;
+    let intervalId = 0;
 
-    const intervalId = window.setInterval(() => {
+    const poll = () => {
+      if (document.visibilityState !== "visible") return;
+
       pollCountRef.current += 1;
       if (pollCountRef.current > MAX_POLLS) {
         setPollExhausted(true);
@@ -659,10 +675,21 @@ export default function PaymentsSetupPage({
       }
 
       void loadStatus({ silent: true });
-    }, POLL_INTERVAL_MS);
+    };
+
+    intervalId = window.setInterval(poll, POLL_INTERVAL_MS);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible" && isPolling) {
+        void loadStatus({ silent: true });
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       pollCountRef.current = 0;
     };
   }, [isPolling, loadStatus]);

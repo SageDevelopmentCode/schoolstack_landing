@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { notifyTuitionBillingCronSummary } from "@/lib/discord";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
 import { processAutopayForOrganization } from "@/lib/tuition/autopay";
+import {
+  AUTOPAY_LINES_GLOBAL_CAP,
+  mergeAutopayLines,
+  type AutopayLineItem,
+} from "@/lib/tuition/autopay-cron-report";
 import { sendTuitionDueReminders } from "@/lib/tuition/reminders";
 import { evaluateRulesForOrganization } from "@/lib/tuition/rules-engine";
 
@@ -12,6 +17,10 @@ export type TuitionBillingCronSummary = {
   rulesEvaluated: number;
   autopayProcessed: number;
   autopayFailed: number;
+  autopaySkipped: number;
+  autopayDueCandidates: number;
+  autopayLines: AutopayLineItem[];
+  autopayLinesTruncated: boolean;
 };
 
 export type TuitionBillingCronDeps = {
@@ -61,6 +70,10 @@ export async function runTuitionBillingCron(
   let rulesEvaluated = 0;
   let autopayProcessed = 0;
   let autopayFailed = 0;
+  let autopaySkipped = 0;
+  let autopayDueCandidates = 0;
+  let autopayLines: AutopayLineItem[] = [];
+  let autopayLinesTruncated = false;
 
   for (const organizationId of organizationIds) {
     overdueCount += await markOverdue(admin, organizationId, 5);
@@ -70,6 +83,12 @@ export async function runTuitionBillingCron(
     const autopayResult = await processAutopay(admin, organizationId);
     autopayProcessed += autopayResult.processed;
     autopayFailed += autopayResult.failed;
+    autopaySkipped += autopayResult.skipped;
+    autopayDueCandidates += autopayResult.dueCandidates;
+    const merged = mergeAutopayLines(autopayLines, autopayResult.lines, AUTOPAY_LINES_GLOBAL_CAP);
+    autopayLines = merged.lines;
+    autopayLinesTruncated =
+      autopayLinesTruncated || autopayResult.truncated || merged.truncated;
   }
 
   const summary: TuitionBillingCronSummary = {
@@ -79,6 +98,10 @@ export async function runTuitionBillingCron(
     rulesEvaluated,
     autopayProcessed,
     autopayFailed,
+    autopaySkipped,
+    autopayDueCandidates,
+    autopayLines,
+    autopayLinesTruncated,
   };
 
   try {

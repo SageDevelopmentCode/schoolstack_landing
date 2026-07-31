@@ -100,7 +100,11 @@ export default function AdminDashboardPage({
     if (stripeStep?.status !== "in_progress") return;
 
     let cancelled = false;
+    let intervalId = 0;
+
     const pollStripe = async () => {
+      if (document.visibilityState !== "visible") return;
+
       try {
         await fetch("/api/stripe/connect/status");
         if (!cancelled) {
@@ -112,13 +116,22 @@ export default function AdminDashboardPage({
     };
 
     void pollStripe();
-    const intervalId = window.setInterval(() => {
+    intervalId = window.setInterval(() => {
       void pollStripe();
     }, 60_000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible" && !cancelled) {
+        void pollStripe();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [refreshStatus, stripeStep?.status]);
 

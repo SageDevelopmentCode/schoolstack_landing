@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import ParentAuthPage from "@/components/admissions/ParentAuthPage";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
+import { getRequestUser } from "@/lib/auth/session";
 import {
   getFamilyUserProfile,
   userHasEnrolledAccess,
@@ -35,9 +36,7 @@ export default async function SchoolParentProtectedLayout({
     redirect(`/school/${slug}/apply`);
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
 
   if (!user) {
     return (

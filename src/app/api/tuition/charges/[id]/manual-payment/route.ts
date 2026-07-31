@@ -53,11 +53,29 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
+    const body = (await request.json().catch(() => ({}))) as {
+      amountCents?: unknown;
+    };
+
+    const amountCents =
+      typeof body.amountCents === "number" && Number.isFinite(body.amountCents)
+        ? Math.round(body.amountCents)
+        : charge.amountCents - charge.paidCents;
+
+    if (amountCents <= 0) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Payment amount must be greater than zero.",
+        code: "invalid_amount",
+      });
+    }
+
     await recordManualTuitionPayment(admin, {
       organizationId: charge.organizationId,
       familyId: charge.familyId,
       tuitionChargeId: charge.id,
-      amountCents: charge.amountCents,
+      amountCents,
       label: charge.label,
       payerUserId: user.id,
     });

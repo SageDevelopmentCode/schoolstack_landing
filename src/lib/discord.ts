@@ -1,4 +1,8 @@
 import { SITE_URL } from "@/lib/site";
+import {
+  formatAutopayLineItems,
+  type AutopayLineItem,
+} from "@/lib/tuition/autopay-cron-report";
 
 const BRAND_COLOR = 0x2e4a3c;
 
@@ -50,6 +54,11 @@ const FIELD_LABELS: Record<string, string> = {
   "Rules evaluated": "📏 Rules evaluated",
   "Autopay charged": "✅ Autopay charged",
   "Autopay failed": "❌ Autopay failed",
+  "Autopay due today": "📅 Autopay due today",
+  "Autopay skipped": "⏭️ Autopay skipped",
+  "Autopay charged detail": "✅ Charged",
+  "Autopay failed detail": "❌ Failed",
+  "Autopay skipped detail": "⏭️ Skipped",
   "Prospect school": "🏫 Prospect school",
   "Concept demo": "🎯 Concept demo",
   Role: "👔 Role",
@@ -274,15 +283,45 @@ export async function notifyTuitionBillingCronSummary(payload: {
   rulesEvaluated: number;
   autopayProcessed: number;
   autopayFailed: number;
+  autopaySkipped: number;
+  autopayDueCandidates: number;
+  autopayLines: AutopayLineItem[];
+  autopayLinesTruncated?: boolean;
 }) {
   const fields: DiscordEmbedField[] = [
     embedField("Organizations", String(payload.organizations), true),
     embedField("Overdue marked", String(payload.overdueCount), true),
     embedField("Reminders sent", String(payload.remindersSent), true),
     embedField("Rules evaluated", String(payload.rulesEvaluated), true),
+    embedField("Autopay due today", String(payload.autopayDueCandidates), true),
     embedField("Autopay charged", String(payload.autopayProcessed), true),
     embedField("Autopay failed", String(payload.autopayFailed), true),
+    embedField("Autopay skipped", String(payload.autopaySkipped), true),
   ];
+
+  const chargedDetail = formatAutopayLineItems(payload.autopayLines, "charged");
+  if (chargedDetail) {
+    fields.push(embedField("Autopay charged detail", truncate(chargedDetail)));
+  }
+
+  const failedDetail = formatAutopayLineItems(payload.autopayLines, "failed");
+  if (failedDetail) {
+    fields.push(embedField("Autopay failed detail", truncate(failedDetail)));
+  }
+
+  const skippedDetail = formatAutopayLineItems(payload.autopayLines, "skipped");
+  if (skippedDetail) {
+    fields.push(embedField("Autopay skipped detail", truncate(skippedDetail)));
+  }
+
+  if (payload.autopayLinesTruncated) {
+    fields.push(
+      embedField(
+        "Details",
+        "Autopay line items were truncated to fit Discord limits.",
+      ),
+    );
+  }
 
   await sendTuitionBillingDiscordEmbed(
     {

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { chargeRemainingCents } from "./billing-splits";
 import { rowToAssignment } from "./row-mappers";
 import {
   getFamilyTuitionSelectionContexts,
@@ -29,6 +30,7 @@ export type ParentBillingChildView = {
 export type ParentBillingFamilySummary = {
   balanceDueCents: number;
   totalRemainingCents: number;
+  familyTotalRemainingCents: number | null;
   annualTuitionCents: number;
   hasPendingSchedule: boolean;
   nextCharge: ParentBillingNextCharge | null;
@@ -76,7 +78,7 @@ export function resolveUpcomingDue(charges: TuitionCharge[]): UpcomingDueSummary
     OPEN_CHARGE_STATUSES.has(charge.status),
   );
   const totalRemainingCents = openCharges.reduce(
-    (sum, charge) => sum + charge.amountCents,
+    (sum, charge) => sum + chargeRemainingCents(charge),
     0,
   );
 
@@ -91,7 +93,7 @@ export function resolveUpcomingDue(charges: TuitionCharge[]): UpcomingDueSummary
     (charge) => charge.dueDate === earliestDueDate,
   );
   const upcomingDueCents = chargesOnDate.reduce(
-    (sum, charge) => sum + charge.amountCents,
+    (sum, charge) => sum + chargeRemainingCents(charge),
     0,
   );
 
@@ -110,6 +112,7 @@ export function buildParentBillingFamilySummary(input: {
   assignments: AssignmentRow[];
   charges: TuitionCharge[];
   selectionItems: FamilyTuitionSelectionItem[];
+  allFamilyCharges?: TuitionCharge[];
 }): ParentBillingFamilySummary {
   const selectionByEnrollmentId = new Map(
     input.selectionItems.map((item) => [
@@ -159,10 +162,19 @@ export function buildParentBillingFamilySummary(input: {
   });
 
   const familyUpcomingDue = resolveUpcomingDue(input.charges);
+  const familyWideUpcomingDue = input.allFamilyCharges
+    ? resolveUpcomingDue(input.allFamilyCharges)
+    : null;
 
   return {
     balanceDueCents: familyUpcomingDue.upcomingDueCents,
     totalRemainingCents: familyUpcomingDue.totalRemainingCents,
+    familyTotalRemainingCents:
+      familyWideUpcomingDue &&
+      familyWideUpcomingDue.totalRemainingCents !==
+        familyUpcomingDue.totalRemainingCents
+        ? familyWideUpcomingDue.totalRemainingCents
+        : null,
     annualTuitionCents: children.reduce(
       (sum, child) => sum + child.annualTuitionCents,
       0,
@@ -179,6 +191,7 @@ export async function fetchParentBillingFamilySummary(
     organizationId: string;
     familyId: string;
     charges: TuitionCharge[];
+    allFamilyCharges?: TuitionCharge[];
   },
 ): Promise<ParentBillingFamilySummary> {
   const [selectionItems, assignmentRows] = await Promise.all([
@@ -202,6 +215,7 @@ export async function fetchParentBillingFamilySummary(
     return {
       balanceDueCents: upcomingDue.upcomingDueCents,
       totalRemainingCents: upcomingDue.totalRemainingCents,
+      familyTotalRemainingCents: null,
       annualTuitionCents: 0,
       hasPendingSchedule: selectionItems.length > 0,
       nextCharge: upcomingDue.nextCharge,
@@ -278,6 +292,7 @@ export async function fetchParentBillingFamilySummary(
     assignments,
     charges: input.charges,
     selectionItems,
+    allFamilyCharges: input.allFamilyCharges,
   });
 }
 

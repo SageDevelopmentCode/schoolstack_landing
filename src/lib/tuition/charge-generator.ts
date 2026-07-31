@@ -1,4 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  listBillingSplits,
+  payerLabelSuffix,
+  splitAmountCents,
+} from "./billing-splits";
 import { computeAdjustedAmountCents } from "./pricing";
 import {
   assignmentNeedsPaymentPlanSelection,
@@ -8,6 +13,7 @@ import {
 import { rowToAdjustment, rowToAssignment, rowToCharge } from "./row-mappers";
 import type {
   TuitionAdjustment,
+  TuitionBillingSplit,
   TuitionCharge,
   TuitionFeeComponent,
   TuitionPaymentPlan,
@@ -20,7 +26,50 @@ export type ChargeDraft = {
   dueDate: string;
   chargeType: TuitionCharge["chargeType"];
   installmentNumber: number | null;
+  guardianId?: string | null;
 };
+
+export type GuardianNameMap = Map<string, string>;
+
+export function chargeDraftLockKey(draft: {
+  chargeType: TuitionCharge["chargeType"];
+  installmentNumber: number | null;
+  label: string;
+  guardianId?: string | null;
+}): string {
+  const guardianKey = draft.guardianId ?? "family";
+  return `${draft.chargeType}:${draft.installmentNumber ?? draft.label}:${guardianKey}`;
+}
+
+export function expandDraftsForBillingSplits(
+  drafts: ChargeDraft[],
+  splits: TuitionBillingSplit[],
+  guardianNames: GuardianNameMap,
+): ChargeDraft[] {
+  if (splits.length === 0) return drafts;
+
+  const splitInputs = splits.map((split) => ({
+    guardianId: split.guardianId,
+    shareBps: split.shareBps,
+  }));
+
+  return drafts.flatMap((draft) => {
+    const allocations = splitAmountCents(draft.amountCents, splitInputs);
+    const baseAllocations = splitAmountCents(draft.baseAmountCents, splitInputs);
+
+    return allocations.map((allocation, index) => {
+      const firstName =
+        guardianNames.get(allocation.guardianId)?.split(/\s+/)[0] ?? "";
+      return {
+        ...draft,
+        label: `${draft.label}${payerLabelSuffix(firstName)}`,
+        amountCents: allocation.amountCents,
+        baseAmountCents: baseAllocations[index]?.amountCents ?? allocation.amountCents,
+        guardianId: allocation.guardianId,
+      };
+    });
+  });
+}
 
 const MONTH_NAMES = [
   "Jan",
@@ -167,7 +216,7 @@ export async function regenerateFutureCharges(
     ? computeInstallmentAmountCents(tier.amountCents, installmentCount)
     : Number(paymentPlanRow.installment_amount_cents);
 
-  const drafts = buildChargeDrafts({
+  const baseDrafts = buildChargeDrafts({
     paymentPlan: {
       id: String(paymentPlan.id),
       organizationId: String(paymentPlan.organization_id),
@@ -201,9 +250,38 @@ export async function regenerateFutureCharges(
     installmentAmountCents,
   });
 
+  const billingSplits = await listBillingSplits(
+    supabase,
+    String(assignment.family_id),
+  );
+
+  const guardianNames: GuardianNameMap = new Map();
+  if (billingSplits.length > 0) {
+    const guardianIds = billingSplits.map((split) => split.guardianId);
+    const { data: guardians, error: guardiansError } = await supabase
+      .from("guardians")
+      .select("id, first_name, last_name")
+      .in("id", guardianIds);
+
+    if (guardiansError) throw guardiansError;
+    for (const guardian of guardians ?? []) {
+      const name = [guardian.first_name, guardian.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      guardianNames.set(String(guardian.id), name || "Guardian");
+    }
+  }
+
+  const drafts = expandDraftsForBillingSplits(
+    baseDrafts,
+    billingSplits,
+    guardianNames,
+  );
+
   const { data: existingCharges, error: existingError } = await supabase
     .from("tuition_charges")
-    .select("id, status, installment_number, charge_type, label")
+    .select("id, status, installment_number, charge_type, label, guardian_id")
     .eq("assignment_id", assignmentId);
 
   if (existingError) throw existingError;
@@ -213,9 +291,15 @@ export async function regenerateFutureCharges(
     lockedStatuses.has(String(c.status)),
   );
   const lockedKeys = new Set(
-    locked.map(
-      (c) =>
-        `${c.charge_type}:${c.installment_number ?? c.label}`,
+    locked.map((c) =>
+      chargeDraftLockKey({
+        chargeType: String(c.charge_type) as TuitionCharge["chargeType"],
+        installmentNumber:
+          typeof c.installment_number === "number" ? c.installment_number : null,
+        label: String(c.label),
+        guardianId:
+          typeof c.guardian_id === "string" ? c.guardian_id : null,
+      }),
     ),
   );
 
@@ -227,10 +311,7 @@ export async function regenerateFutureCharges(
 
   if (voidError) throw voidError;
 
-  const toInsert = drafts.filter((draft) => {
-    const key = `${draft.chargeType}:${draft.installmentNumber ?? draft.label}`;
-    return !lockedKeys.has(key);
-  });
+  const toInsert = drafts.filter((draft) => !lockedKeys.has(chargeDraftLockKey(draft)));
 
   if (toInsert.length === 0) {
     const { data: remaining, error: remainingError } = await supabase
@@ -251,9 +332,11 @@ export async function regenerateFutureCharges(
         organization_id: assignment.organization_id,
         assignment_id: assignmentId,
         family_id: assignment.family_id,
+        guardian_id: draft.guardianId ?? null,
         label: draft.label,
         base_amount_cents: draft.baseAmountCents,
         amount_cents: draft.amountCents,
+        paid_cents: 0,
         due_date: draft.dueDate,
         status: "scheduled",
         charge_type: draft.chargeType,

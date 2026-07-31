@@ -17,7 +17,7 @@ type ParentBillingSummaryCardProps = {
   autopayEnabled: boolean;
   payingChargeId: string | null;
   onPay: (chargeId: string) => void;
-  onAutopayToggle: () => void;
+  onAutopayToggleRequest: (enabled: boolean) => void;
   nextChargeId: string | null;
   readOnly?: boolean;
 };
@@ -45,7 +45,7 @@ export default function ParentBillingSummaryCard({
   autopayEnabled,
   payingChargeId,
   onPay,
-  onAutopayToggle,
+  onAutopayToggleRequest,
   nextChargeId,
   readOnly = false,
 }: ParentBillingSummaryCardProps) {
@@ -66,9 +66,23 @@ export default function ParentBillingSummaryCard({
         <div className="min-w-0">
           {summary.nextCharge ? (
             <div className="flex flex-col gap-0.5">
-              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                Due {formatBillingDueDate(summary.nextCharge.dueDate)}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  Due {formatBillingDueDate(summary.nextCharge.dueDate)}
+                </p>
+                {autopayEnabled && summary.balanceDueCents > 0 ? (
+                  <span
+                    className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                    style={{
+                      backgroundColor: C.accentLight,
+                      color: C.accent,
+                    }}
+                    data-testid="parent-billing-autopay-on-badge"
+                  >
+                    Autopay on
+                  </span>
+                ) : null}
+              </div>
               {dueCountdown ? (
                 <p
                   className="text-xs"
@@ -86,6 +100,11 @@ export default function ParentBillingSummaryCard({
           <p className="text-3xl font-semibold mt-1" style={{ color: C.textPrimary }}>
             {formatCents(summary.balanceDueCents)}
           </p>
+          {summary.familyTotalRemainingCents != null ? (
+            <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
+              Family total remaining: {formatCents(summary.familyTotalRemainingCents)}
+            </p>
+          ) : null}
           {summary.totalRemainingCents > summary.balanceDueCents ? (
             <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
               Total remaining: {formatCents(summary.totalRemainingCents)}
@@ -94,6 +113,16 @@ export default function ParentBillingSummaryCard({
           {showEstimatedAnnual ? (
             <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
               Estimated annual tuition: {formatCents(summary.annualTuitionCents)}
+            </p>
+          ) : null}
+          {autopayEnabled && summary.nextCharge && summary.balanceDueCents > 0 ? (
+            <p
+              className="text-xs mt-2"
+              style={{ color: C.textSecondary }}
+              data-testid="parent-billing-pay-early-hint"
+            >
+              Autopay will charge your saved card on the due date. Pay early anytime if you
+              prefer.
             </p>
           ) : null}
         </div>
@@ -169,10 +198,40 @@ export default function ParentBillingSummaryCard({
       ) : null}
 
       {!readOnly ? (
-        <label className="flex items-center gap-2 text-sm" style={{ color: C.textSecondary }}>
-          <input type="checkbox" checked={autopayEnabled} onChange={onAutopayToggle} />
-          Enable autopay for due charges
-        </label>
+        <div
+          className="flex items-center justify-between gap-4 rounded-lg px-4 py-3"
+          style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+              Autopay
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>
+              {autopayEnabled
+                ? "Due charges are paid automatically with your saved card."
+                : "Pay each charge manually in the parent portal."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={autopayEnabled}
+            aria-label="Autopay"
+            data-testid="parent-billing-autopay-toggle"
+            onClick={() => onAutopayToggleRequest(!autopayEnabled)}
+            className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors"
+            style={{
+              backgroundColor: autopayEnabled ? C.accent : C.border,
+            }}
+          >
+            <span
+              className="inline-block h-5 w-5 rounded-full bg-white transition-transform"
+              style={{
+                transform: autopayEnabled ? "translateX(22px)" : "translateX(2px)",
+              }}
+            />
+          </button>
+        </div>
       ) : null}
     </div>
   );

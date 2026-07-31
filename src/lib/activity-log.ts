@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 export const ACTIVITY_ACTIONS = {
   APPLICATION_STARTED: "application.started",
@@ -40,6 +40,11 @@ export const ACTIVITY_ACTIONS = {
   AUTH_SIGNED_IN: "auth.signed_in",
   AUTH_SIGNED_OUT: "auth.signed_out",
   AUTH_SESSION_RESTORED: "auth.session_restored",
+  TUITION_AUTOPAY_ENABLED: "tuition.autopay_enabled",
+  TUITION_AUTOPAY_DISABLED: "tuition.autopay_disabled",
+  TUITION_AUTOPAY_SUCCEEDED: "tuition.autopay_succeeded",
+  TUITION_AUTOPAY_FAILED: "tuition.autopay_failed",
+  TUITION_PAYMENT_METHOD_SAVED: "tuition.payment_method_saved",
 } as const;
 
 export type ActivityAction =
@@ -66,6 +71,7 @@ export type ActivityEventInput = {
   actorType: ActorType;
   actorUserId?: string | null;
   actorEmail?: string | null;
+  actorName?: string | null;
   surface: ActivitySurface;
   action: ActivityAction | string;
   entityType?: string | null;
@@ -81,6 +87,7 @@ export type ActivityEventRow = {
   actor_type: ActorType;
   actor_user_id: string | null;
   actor_email: string | null;
+  actor_name: string | null;
   surface: ActivitySurface;
   action: string;
   entity_type: string | null;
@@ -146,6 +153,11 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.AUTH_SIGNED_IN]: "Signed in",
   [ACTIVITY_ACTIONS.AUTH_SIGNED_OUT]: "Signed out",
   [ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED]: "Session restored",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_ENABLED]: "Autopay enabled",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED]: "Autopay disabled",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED]: "Payment method saved",
 };
 
 const PARENT_SURFACES: ActivitySurface[] = [
@@ -167,6 +179,7 @@ export type LogAuthActivityInput = {
   organizationId?: string | null;
   actorUserId?: string | null;
   actorEmail?: string | null;
+  actorName?: string | null;
   surface: ActivitySurface;
   action: ActivityAction | string;
   summary: string;
@@ -230,6 +243,10 @@ function rowFromDb(data: Record<string, unknown>): ActivityEventRow {
       data.actor_email === null || data.actor_email === undefined
         ? null
         : String(data.actor_email),
+    actor_name:
+      data.actor_name === null || data.actor_name === undefined
+        ? null
+        : String(data.actor_name),
     surface: data.surface as ActivitySurface,
     action: String(data.action),
     entity_type:
@@ -267,6 +284,7 @@ export async function logAuthActivity(
     actorType: "parent",
     actorUserId: event.actorUserId,
     actorEmail: event.actorEmail,
+    actorName: event.actorName,
     surface: event.surface,
     action: event.action,
     summary: event.summary,
@@ -282,6 +300,60 @@ export function isRecentlyCreatedAuthUser(createdAt: string | undefined): boolea
   return Date.now() - createdMs <= 2 * 60 * 1000;
 }
 
+export function getActorIdentityFromUser(user: User): {
+  name: string | null;
+  email: string | null;
+} {
+  const metadata = user.user_metadata ?? {};
+  const metadataFullName =
+    typeof metadata.full_name === "string" ? metadata.full_name.trim() : "";
+  const metadataFirstName =
+    typeof metadata.first_name === "string" ? metadata.first_name.trim() : "";
+  const metadataLastName =
+    typeof metadata.last_name === "string" ? metadata.last_name.trim() : "";
+
+  const email = user.email?.trim() ?? null;
+  const name =
+    metadataFullName ||
+    [metadataFirstName, metadataLastName].filter(Boolean).join(" ") ||
+    null;
+
+  return { name, email };
+}
+
+async function resolveActorFieldsFromSession(
+  supabase: SupabaseClient,
+  actorUserId: string | null,
+  actorEmail: string | null,
+  actorName: string | null,
+): Promise<{ actorUserId: string | null; actorEmail: string | null; actorName: string | null }> {
+  const { data: authData } = await supabase.auth.getUser();
+  const sessionUser = authData.user;
+  if (!sessionUser) {
+    return { actorUserId, actorEmail, actorName };
+  }
+
+  const identity = getActorIdentityFromUser(sessionUser);
+
+  if (!actorUserId) {
+    return {
+      actorUserId: sessionUser.id,
+      actorEmail: actorEmail ?? identity.email,
+      actorName: actorName ?? identity.name,
+    };
+  }
+
+  if (sessionUser.id !== actorUserId) {
+    return { actorUserId, actorEmail, actorName };
+  }
+
+  return {
+    actorUserId,
+    actorEmail: actorEmail ?? identity.email,
+    actorName: actorName ?? identity.name,
+  };
+}
+
 export async function logActivityEvent(
   supabase: SupabaseClient,
   event: ActivityEventInput,
@@ -289,11 +361,18 @@ export async function logActivityEvent(
   try {
     let actorUserId = event.actorUserId ?? null;
     let actorEmail = event.actorEmail ?? null;
+    let actorName = event.actorName?.trim() || null;
 
-    if (!actorUserId && event.actorType !== "system") {
-      const { data: authData } = await supabase.auth.getUser();
-      actorUserId = authData.user?.id ?? null;
-      actorEmail = actorEmail ?? authData.user?.email ?? null;
+    if (event.actorType !== "system") {
+      const resolved = await resolveActorFieldsFromSession(
+        supabase,
+        actorUserId,
+        actorEmail,
+        actorName,
+      );
+      actorUserId = resolved.actorUserId;
+      actorEmail = resolved.actorEmail;
+      actorName = resolved.actorName;
     }
 
     const { error } = await supabase.from("activity_events").insert({
@@ -301,6 +380,7 @@ export async function logActivityEvent(
       actor_type: event.actorType,
       actor_user_id: actorUserId,
       actor_email: actorEmail,
+      actor_name: actorName,
       surface: event.surface,
       action: event.action,
       entity_type: event.entityType ?? null,

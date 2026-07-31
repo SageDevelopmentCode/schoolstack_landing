@@ -6,7 +6,7 @@ import {
   quoteProcessingFee,
   type CheckoutPaymentMethod,
 } from "@/lib/stripe/processing-fee";
-import { markChargePaid } from "@/lib/tuition/charges";
+import { settleTuitionPayment } from "@/lib/tuition/payment-settlement";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
 
 export type AutopayChargeInput = {
@@ -72,7 +72,12 @@ export async function executeTuitionAutopayCharge(
     await markPaymentSucceeded(supabase, payment.id, {
       stripePaymentIntentId: paymentIntent.id,
     });
-    await markChargePaid(supabase, input.chargeId);
+    await settleTuitionPayment(supabase, {
+      chargeId: input.chargeId,
+      amountCents: input.amountCents,
+      payerUserId: input.payerUserId,
+      paymentId: payment.id,
+    });
   }
 
   return { paymentIntentId: paymentIntent.id, paymentId: payment.id };
