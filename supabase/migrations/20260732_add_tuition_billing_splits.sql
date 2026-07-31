@@ -1,7 +1,5 @@
 -- Tuition: guardian split billing + overpayment tracking
--- Promoted to supabase/migrations/20260732_add_tuition_billing_splits.sql for local/CI.
--- Run this file in Supabase SQL Editor on remote if that migration has not been applied.
--- Date: 2026-07-31
+-- Run after: 20260731_add_activity_events_actor_name.sql
 
 -- ── tuition_billing_splits ───────────────────────────────────────────────────
 
