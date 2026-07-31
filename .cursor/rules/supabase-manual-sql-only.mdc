@@ -19,9 +19,18 @@ Supabase MCP is for **reading data only** — never for writes.
 
 If a task needs a data change, create a SQL file for the user to copy-paste into the Supabase SQL Editor instead.
 
+## Schema vs data (file locations)
+
+Follow [`.agents/skills/supabase-migrations/SKILL.md`](.agents/skills/supabase-migrations/SKILL.md):
+
+- **Schema** (DDL app/tests depend on): create **`supabase/migrations/<timestamp>_name.sql`** AND mirror in **`supabase/migrations_manual/`** for remote paste.
+- **One-off data / demo / imports**: **`supabase/migrations_manual/`** only (or `supabase/migrations/rooted-meadows/` for client seeds).
+
+`supabase db reset` and CI E2E do **not** run `migrations_manual/`.
+
 ## Deliverable pattern
 
-1. Create or update a SQL file (e.g. under `supabase/migrations/rooted-meadows/` or `supabase/migrations_manual/`).
+1. Create or update SQL in the correct folder(s) per the skill above.
 2. Match existing project conventions: idempotent inserts, `on conflict ... do nothing` where appropriate, clear comments with date/purpose.
 3. Give the user the snippet in the response and tell them to run it themselves so they can verify before it goes live.
 

@@ -2,7 +2,7 @@
 
 End-to-end tests run against **local Supabase only** — never production. Stripe is not used.
 
-For agent workflows, see [`.agents/skills/e2e-local/SKILL.md`](../.agents/skills/e2e-local/SKILL.md).
+For agent workflows, see [`.agents/skills/e2e-local/SKILL.md`](../.agents/skills/e2e-local/SKILL.md). Schema DDL must live in `supabase/migrations/` — see [`.agents/skills/supabase-migrations/SKILL.md`](../.agents/skills/supabase-migrations/SKILL.md).
 
 `globalSetup` seeds the database; the `setup` project signs in test users and writes `e2e/.auth/` before authenticated tests run.
 

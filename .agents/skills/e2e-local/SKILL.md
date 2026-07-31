@@ -44,7 +44,7 @@ Fill `.env.e2e.local` from `supabase status`:
 npm run test:e2e:install
 ```
 
-`supabase db reset` applies 54 timestamped migrations, including `202601010054_grant_postgrest_api_access.sql` (required for local PostgREST). See `supabase/migrations/README.md` if reset fails.
+`supabase db reset` applies timestamped migrations in `supabase/migrations/` (not `migrations_manual/`). See [`.agents/skills/supabase-migrations/SKILL.md`](../supabase-migrations/SKILL.md) when adding schema. Required grant migration: `202601010054_grant_postgrest_api_access.sql`. See `supabase/migrations/README.md` if reset fails.
 
 ## Run tests
 
