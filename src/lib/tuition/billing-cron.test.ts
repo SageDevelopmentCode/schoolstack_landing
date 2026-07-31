@@ -47,6 +47,7 @@ describe("runTuitionBillingCron", () => {
 
     const summary = await runTuitionBillingCron({} as never, {
       listLiveOrganizationIds: async () => ["org-1", "org-2"],
+      getTuitionOrgSettings: async () => ({}),
       markOverdueCharges: async (_admin, organizationId) => {
         calls.push(`overdue:${organizationId}`);
         return organizationId === "org-1" ? 2 : 0;
@@ -55,11 +56,12 @@ describe("runTuitionBillingCron", () => {
         calls.push(`reminders:${organizationId}`);
         return organizationId === "org-2" ? 3 : 0;
       },
+      applyLateFeesForOrganization: async () => ({ applied: 0, notified: 0 }),
       evaluateRulesForOrganization: async (_admin, organizationId) => {
         calls.push(`rules:${organizationId}`);
         return 1;
       },
-      processAutopayForOrganization: async () => ({ processed: 1, failed: 0 }),
+      processAutopayForOrganization: async () => ({ processed: 1, skipped: 0, failed: 0 }),
       notifySummary: async () => undefined,
     });
 
@@ -75,6 +77,8 @@ describe("runTuitionBillingCron", () => {
     assert.equal(summary.overdueCount, 2);
     assert.equal(summary.remindersSent, 3);
     assert.equal(summary.rulesEvaluated, 2);
+    assert.equal(summary.lateFeesApplied, 0);
+    assert.equal(summary.lateFeesNotified, 0);
     assert.equal(summary.autopayProcessed, 2);
     assert.equal(summary.autopayFailed, 0);
   });

@@ -22,6 +22,7 @@ export type PaymentSchedulePreviewContentProps = {
   isDefault?: boolean;
   effectiveStart?: string | null;
   effectiveEnd?: string | null;
+  billingDayOfMonth?: number;
   schoolYearMonths?: number | null;
   embedded?: boolean;
 };
@@ -33,6 +34,7 @@ export function PaymentSchedulePreviewContent({
   isDefault = false,
   effectiveStart,
   effectiveEnd,
+  billingDayOfMonth = 1,
   schoolYearMonths,
   embedded = false,
 }: PaymentSchedulePreviewContentProps) {
@@ -52,7 +54,7 @@ export function PaymentSchedulePreviewContent({
         name: summary.label,
         installmentCount: preview.count,
         installmentAmountCents: preview.amountCents,
-        billingDayOfMonth: 1,
+        billingDayOfMonth,
         isDefault: true,
         createdAt: "",
         updatedAt: "",

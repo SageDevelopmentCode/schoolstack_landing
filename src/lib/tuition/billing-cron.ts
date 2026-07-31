@@ -2,6 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { notifyTuitionBillingCronSummary } from "@/lib/discord";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
 import { processAutopayForOrganization } from "@/lib/tuition/autopay";
+import {
+  applyLateFeesForOrganization,
+  getGraceDaysForSettings,
+  getReminderDaysForSettings,
+} from "@/lib/tuition/late-fees";
+import { getTuitionOrgSettings } from "@/lib/tuition/org-settings";
 import { sendTuitionDueReminders } from "@/lib/tuition/reminders";
 import { evaluateRulesForOrganization } from "@/lib/tuition/rules-engine";
 
@@ -10,14 +16,18 @@ export type TuitionBillingCronSummary = {
   overdueCount: number;
   remindersSent: number;
   rulesEvaluated: number;
+  lateFeesApplied: number;
+  lateFeesNotified: number;
   autopayProcessed: number;
   autopayFailed: number;
 };
 
 export type TuitionBillingCronDeps = {
   listLiveOrganizationIds?: (admin: SupabaseClient) => Promise<string[]>;
+  getTuitionOrgSettings?: typeof getTuitionOrgSettings;
   markOverdueCharges?: typeof markOverdueCharges;
   sendTuitionDueReminders?: typeof sendTuitionDueReminders;
+  applyLateFeesForOrganization?: typeof applyLateFeesForOrganization;
   evaluateRulesForOrganization?: typeof evaluateRulesForOrganization;
   processAutopayForOrganization?: typeof processAutopayForOrganization;
   notifySummary?: typeof notifyTuitionBillingCronSummary;
@@ -48,8 +58,11 @@ export async function runTuitionBillingCron(
 ): Promise<TuitionBillingCronSummary> {
   const listLiveOrganizationIds =
     deps.listLiveOrganizationIds ?? defaultListLiveOrganizationIds;
+  const loadSettings = deps.getTuitionOrgSettings ?? getTuitionOrgSettings;
   const markOverdue = deps.markOverdueCharges ?? markOverdueCharges;
   const sendReminders = deps.sendTuitionDueReminders ?? sendTuitionDueReminders;
+  const applyLateFees =
+    deps.applyLateFeesForOrganization ?? applyLateFeesForOrganization;
   const evaluateRules = deps.evaluateRulesForOrganization ?? evaluateRulesForOrganization;
   const processAutopay = deps.processAutopayForOrganization ?? processAutopayForOrganization;
   const notifySummary = deps.notifySummary ?? notifyTuitionBillingCronSummary;
@@ -59,13 +72,25 @@ export async function runTuitionBillingCron(
   let overdueCount = 0;
   let remindersSent = 0;
   let rulesEvaluated = 0;
+  let lateFeesApplied = 0;
+  let lateFeesNotified = 0;
   let autopayProcessed = 0;
   let autopayFailed = 0;
 
   for (const organizationId of organizationIds) {
-    overdueCount += await markOverdue(admin, organizationId, 5);
-    remindersSent += await sendReminders(admin, organizationId, 3);
+    const settings = await loadSettings(admin, organizationId);
+    const graceDays = getGraceDaysForSettings(settings);
+    const reminderDaysList = getReminderDaysForSettings(settings);
+
+    overdueCount += await markOverdue(admin, organizationId, graceDays);
+    for (const reminderDays of reminderDaysList) {
+      remindersSent += await sendReminders(admin, organizationId, reminderDays);
+    }
     rulesEvaluated += await evaluateRules(admin, organizationId);
+
+    const lateFeeResult = await applyLateFees(admin, organizationId);
+    lateFeesApplied += lateFeeResult.applied;
+    lateFeesNotified += lateFeeResult.notified;
 
     const autopayResult = await processAutopay(admin, organizationId);
     autopayProcessed += autopayResult.processed;
@@ -77,6 +102,8 @@ export async function runTuitionBillingCron(
     overdueCount,
     remindersSent,
     rulesEvaluated,
+    lateFeesApplied,
+    lateFeesNotified,
     autopayProcessed,
     autopayFailed,
   };

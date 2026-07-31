@@ -272,6 +272,8 @@ export async function notifyTuitionBillingCronSummary(payload: {
   overdueCount: number;
   remindersSent: number;
   rulesEvaluated: number;
+  lateFeesApplied: number;
+  lateFeesNotified: number;
   autopayProcessed: number;
   autopayFailed: number;
 }) {
@@ -280,6 +282,8 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField("Overdue marked", String(payload.overdueCount), true),
     embedField("Reminders sent", String(payload.remindersSent), true),
     embedField("Rules evaluated", String(payload.rulesEvaluated), true),
+    embedField("Late fees applied", String(payload.lateFeesApplied), true),
+    embedField("Late fee notices", String(payload.lateFeesNotified), true),
     embedField("Autopay charged", String(payload.autopayProcessed), true),
     embedField("Autopay failed", String(payload.autopayFailed), true),
   ];

@@ -354,6 +354,7 @@ export async function upsertPaymentPlansForRatePlan(
     organizationId: string;
     ratePlanId: string;
     annualAmountCents: number;
+    billingDayOfMonth?: number;
     options: Array<{
       installmentCount: number;
       installmentAmountCents: number;
@@ -398,6 +399,7 @@ export async function upsertPaymentPlansForRatePlan(
         .update({
           installment_amount_cents: option.installmentAmountCents,
           is_default: option.isDefault ?? false,
+          billing_day_of_month: input.billingDayOfMonth ?? 1,
           name: `${option.installmentCount} payment${option.installmentCount === 1 ? "" : "s"}`,
         })
         .eq("id", existingRow.id)
@@ -413,6 +415,7 @@ export async function upsertPaymentPlansForRatePlan(
         name: `${option.installmentCount} payment${option.installmentCount === 1 ? "" : "s"}`,
         installmentCount: option.installmentCount,
         installmentAmountCents: option.installmentAmountCents,
+        billingDayOfMonth: input.billingDayOfMonth ?? 1,
         isDefault: option.isDefault ?? false,
       });
       results.push(created);

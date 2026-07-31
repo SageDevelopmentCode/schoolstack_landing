@@ -22,7 +22,7 @@ export type ChargeStatus =
   | "overdue"
   | "waived"
   | "void";
-export type ChargeType = "tuition" | "fee" | "adjustment_credit";
+export type ChargeType = "tuition" | "fee" | "adjustment_credit" | "late_fee";
 export type BillingAccountStatus = "active" | "hold" | "collections";
 
 export type TuitionRatePlan = {
@@ -147,6 +147,12 @@ export type TuitionAdjustment = {
   updatedAt: string;
 };
 
+export type TuitionChargeMetadata = {
+  sourceChargeId?: string;
+  periodYear?: number;
+  periodMonth?: number;
+};
+
 export type TuitionCharge = {
   id: string;
   organizationId: string;
@@ -160,8 +166,19 @@ export type TuitionCharge = {
   status: ChargeStatus;
   chargeType: ChargeType;
   installmentNumber: number | null;
+  metadata: TuitionChargeMetadata;
   sentAt: string | null;
   paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TuitionLateFeeOverride = {
+  id: string;
+  organizationId: string;
+  year: number;
+  month: number;
+  lateFeeDayOfMonth: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -199,7 +216,10 @@ export type RuleConditions = {
 
 export type TuitionOrgSettings = {
   graceDays?: number;
-  lateFeePercent?: number;
+  lateFeeAmountCents?: number;
+  lateFeeDayOfMonth?: number;
+  lateFeeRecurring?: boolean;
+  lateFeeEnabled?: boolean;
   reminderDaysBefore?: number[];
 };
 

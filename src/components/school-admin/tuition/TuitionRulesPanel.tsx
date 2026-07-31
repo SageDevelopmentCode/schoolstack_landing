@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
+import TuitionLateFeeSettingsPanel from "@/components/school-admin/tuition/TuitionLateFeeSettingsPanel";
 import {
   createAdjustmentRule,
   listAdjustmentRules,
@@ -103,17 +104,19 @@ export default function TuitionRulesPanel({
       const response = await fetch("/api/tuition/process-due", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId, graceDays: 5 }),
+        body: JSON.stringify({ organizationId }),
       });
       const result = (await response.json()) as {
         overdueCount?: number;
         rulesEvaluated?: number;
+        lateFeesApplied?: number;
+        lateFeesNotified?: number;
         error?: string;
       };
       if (!response.ok) {
         throw new Error(result.error ?? "Failed to process due charges.");
       }
-      const message = `Marked ${result.overdueCount ?? 0} overdue, re-evaluated ${result.rulesEvaluated ?? 0} assignments.`;
+      const message = `Marked ${result.overdueCount ?? 0} overdue, re-evaluated ${result.rulesEvaluated ?? 0} assignments, applied ${result.lateFeesApplied ?? 0} late fees.`;
       setImportResult(message);
       adminToast.success("Due charges processed");
     } catch (err) {
@@ -159,6 +162,11 @@ export default function TuitionRulesPanel({
 
   return (
     <div className="flex flex-col gap-6">
+      <TuitionLateFeeSettingsPanel
+        organizationId={organizationId}
+        branding={branding}
+      />
+
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm" style={{ color: C.textSecondary }}>
           Automatic adjustments apply when enrollments are created or when you run

@@ -36,8 +36,11 @@ export default function ParentBillingChargeRow({
     adjustments: adjustmentsForAssignment,
   });
 
-  const showBreakdown = charge.baseAmountCents !== charge.amountCents;
+  const showBreakdown =
+    charge.chargeType !== "late_fee" && charge.baseAmountCents !== charge.amountCents;
   const totalLine = breakdown.find((line) => line.kind === "total");
+  const chargeTypeLabel =
+    charge.chargeType === "late_fee" ? "Late fee" : null;
 
   return (
     <div
@@ -53,7 +56,7 @@ export default function ParentBillingChargeRow({
       <div className="min-w-0 flex-1">
         <p style={{ color: C.textPrimary }}>{charge.label}</p>
         <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-          Due {charge.dueDate} · {charge.status}
+          Due {charge.dueDate} · {chargeTypeLabel ?? charge.status}
         </p>
         {showBreakdown ? (
           <div

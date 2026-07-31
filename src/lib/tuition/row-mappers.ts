@@ -181,6 +181,24 @@ export function rowToAdjustment(row: Record<string, unknown>): TuitionAdjustment
   };
 }
 
+function parseChargeMetadata(value: unknown): TuitionCharge["metadata"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  const record = value as Record<string, unknown>;
+  const metadata: TuitionCharge["metadata"] = {};
+  if (typeof record.sourceChargeId === "string") {
+    metadata.sourceChargeId = record.sourceChargeId;
+  }
+  if (typeof record.periodYear === "number") {
+    metadata.periodYear = record.periodYear;
+  }
+  if (typeof record.periodMonth === "number") {
+    metadata.periodMonth = record.periodMonth;
+  }
+  return metadata;
+}
+
 export function rowToCharge(row: Record<string, unknown>): TuitionCharge {
   return {
     id: String(row.id),
@@ -198,6 +216,7 @@ export function rowToCharge(row: Record<string, unknown>): TuitionCharge {
       typeof row.installment_number === "number"
         ? row.installment_number
         : null,
+    metadata: parseChargeMetadata(row.metadata),
     sentAt: typeof row.sent_at === "string" ? row.sent_at : null,
     paidAt: typeof row.paid_at === "string" ? row.paid_at : null,
     createdAt: String(row.created_at),
