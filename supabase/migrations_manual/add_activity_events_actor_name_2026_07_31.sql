@@ -1,5 +1,7 @@
 -- Add actor_name to activity_events for readable admin activity log previews.
--- Run in Supabase SQL Editor before deploying the activity log UI changes.
+-- Column DDL is in supabase/migrations/20260731_add_activity_events_actor_name.sql
+-- (applied by supabase db reset / CI). Use this file in the SQL Editor only for
+-- the optional backfill below on production data.
 --
 -- New events will populate actor_name at write time; optional backfill below
 -- resolves parent actor names from guardians for historical rows.
