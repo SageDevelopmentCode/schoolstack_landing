@@ -10,8 +10,9 @@ import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentB
 import ParentAutopayConfirmModal from "@/components/school-parent/billing/ParentAutopayConfirmModal";
 import ParentPaymentMethodCard from "@/components/school-parent/billing/ParentPaymentMethodCard";
 import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
+import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
-import { listBillingSplits } from "@/lib/tuition/billing-splits";
+import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { formatCents } from "@/lib/tuition/pricing";
@@ -37,6 +38,7 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
+import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { createClient } from "@/utils/supabase/client";
 
@@ -103,6 +105,10 @@ function ParentBillingPageContent({
   const [hasBillingSplit] = useState(initialData?.hasBillingSplit ?? false);
   const [loading, setLoading] = useState(!hasInitialData);
   const [payingChargeId, setPayingChargeId] = useState<string | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [pendingPayCharge, setPendingPayCharge] = useState<TuitionCharge | null>(null);
+  const [payCheckoutLoading, setPayCheckoutLoading] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const [highlightedChargeId, setHighlightedChargeId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<FamilyBillingReadiness | null>(
     initialData?.readiness ?? null,
@@ -287,21 +293,64 @@ function ParentBillingPageContent({
     }
   })();
 
-  const handlePay = async (chargeId: string) => {
+  const handlePay = (chargeId: string) => {
     if (previewMode) return;
-    setPayingChargeId(chargeId);
+    const charge = charges.find((row) => row.id === chargeId);
+    if (!charge) return;
+    if (chargeRemainingCents(charge) <= 0) return;
+
+    setPayError(null);
+    setPendingPayCharge(charge);
+    setPaymentModalOpen(true);
+  };
+
+  const handleClosePaymentModal = () => {
+    if (payCheckoutLoading) return;
+    setPaymentModalOpen(false);
+    setPendingPayCharge(null);
+    setPayError(null);
+    setPayingChargeId(null);
+  };
+
+  const handleConfirmTuitionPayment = async (method: CheckoutPaymentMethod) => {
+    if (!pendingPayCharge || previewMode) return;
+
+    setPayCheckoutLoading(true);
+    setPayError(null);
+    setPayingChargeId(pendingPayCharge.id);
+
     try {
-      const response = await fetch(`/api/tuition/charges/${chargeId}/checkout`, {
+      const response = await fetch(`/api/tuition/charges/${pendingPayCharge.id}/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentMethod: "card", orgSlug: slug }),
+        body: JSON.stringify({ paymentMethod: method, orgSlug: slug }),
       });
-      const payload = (await response.json()) as { checkoutUrl?: string };
+      const payload = (await response.json()) as {
+        checkoutUrl?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          typeof payload.error === "string"
+            ? payload.error
+            : "Failed to start checkout.",
+        );
+      }
+
       if (payload.checkoutUrl) {
         window.location.href = payload.checkoutUrl;
+        return;
       }
-    } finally {
+
+      throw new Error("Failed to start checkout.");
+    } catch (error) {
+      setPayError(
+        error instanceof Error ? error.message : "Failed to start checkout.",
+      );
       setPayingChargeId(null);
+    } finally {
+      setPayCheckoutLoading(false);
     }
   };
 
@@ -402,7 +451,7 @@ function ParentBillingPageContent({
                 payingChargeId={payingChargeId}
                 highlighted={highlightedChargeId === charge.id}
                 autopayEnabled={autopayEnabled}
-                onPay={(chargeId) => void handlePay(chargeId)}
+                onPay={handlePay}
                 readOnly={previewMode}
               />
             ))
@@ -507,7 +556,7 @@ function ParentBillingPageContent({
           summary={familySummary}
           autopayEnabled={autopayEnabled}
           payingChargeId={payingChargeId}
-          onPay={(chargeId) => void handlePay(chargeId)}
+          onPay={handlePay}
           onAutopayToggleRequest={handleAutopayToggleRequest}
           nextChargeId={nextChargeRecord?.id ?? null}
           readOnly={previewMode}
@@ -531,6 +580,20 @@ function ParentBillingPageContent({
         saving={autopaySaving}
         onConfirm={() => void handleAutopayConfirm()}
         onCancel={() => setAutopayModalOpen(false)}
+      />
+
+      <PaymentMethodSelectionModal
+        C={C}
+        open={paymentModalOpen && pendingPayCharge != null}
+        onClose={handleClosePaymentModal}
+        netAmountCents={
+          pendingPayCharge ? chargeRemainingCents(pendingPayCharge) : 0
+        }
+        label={pendingPayCharge?.label ?? "Tuition payment"}
+        savedPaymentMethod={savedPaymentMethod}
+        loading={payCheckoutLoading}
+        error={payError}
+        onConfirm={handleConfirmTuitionPayment}
       />
 
       {childViews.length > 0 ? (
