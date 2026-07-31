@@ -62,7 +62,7 @@ export default function AdminTicketsPage() {
       if (loadError) {
         setError(loadError.message);
       } else {
-        const rows = (data ?? []).map((row) => ({
+        const rows = ((data as AdminSupportRequestRow[]) ?? []).map((row) => ({
           ...row,
           status: parseSupportRequestStatus(row.status) ?? "open",
           attachments: Array.isArray(row.attachments) ? row.attachments : [],

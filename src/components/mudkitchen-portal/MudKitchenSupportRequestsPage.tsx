@@ -61,7 +61,7 @@ export default function MudKitchenSupportRequestsPage({
     }
 
     setRequests(
-      (data ?? []).map((row) => ({
+      ((data as AdminSupportRequestRow[]) ?? []).map((row) => ({
         ...row,
         status: parseSupportRequestStatus(row.status) ?? "open",
         attachments: Array.isArray(row.attachments) ? row.attachments : [],

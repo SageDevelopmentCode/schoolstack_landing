@@ -418,8 +418,10 @@ function ParentBillingPageContent({
   useEffect(() => {
     if (cardSaved !== "1") return;
 
-    void loadBilling().then(() => {
-      router.replace(pathname, { scroll: false });
+    queueMicrotask(() => {
+      void loadBilling().then(() => {
+        router.replace(pathname, { scroll: false });
+      });
     });
   }, [cardSaved, loadBilling, pathname, router]);
 
