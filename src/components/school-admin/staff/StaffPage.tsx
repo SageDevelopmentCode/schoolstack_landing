@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Plus, Search, X } from "lucide-react";
-import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
+import ParentPortalLoginBadge, {
+  type ParentPortalLoginDisplayStatus,
+} from "@/components/admissions/ParentPortalLoginBadge";
 import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
@@ -48,6 +50,16 @@ function portalRoleLabel(role: StaffPortalRole | null): string {
   if (role === "teacher") return "Teacher";
   if (role === "staff") return "Staff";
   return "—";
+}
+
+function staffPortalLoginBadgeStatus(
+  member: StaffMemberRecord,
+): ParentPortalLoginDisplayStatus {
+  return {
+    accountLinked: member.isLinked,
+    hasEverSignedIn: member.hasEverSignedIn ?? false,
+    lastSignInAt: member.lastSignInAt ?? null,
+  };
 }
 
 type AddStaffModalProps = {
@@ -458,7 +470,7 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
                     </p>
                     <div className="mt-2">
                       <ParentPortalLoginBadge
-                        status={member}
+                        status={staffPortalLoginBadgeStatus(member)}
                         C={C}
                         compact
                       />
@@ -524,7 +536,10 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
                     <div>
                       <dt style={{ color: C.textTertiary }}>Sign-in status</dt>
                       <dd className="mt-1">
-                        <ParentPortalLoginBadge status={selectedMember} C={C} />
+                        <ParentPortalLoginBadge
+                          status={staffPortalLoginBadgeStatus(selectedMember)}
+                          C={C}
+                        />
                       </dd>
                     </div>
                     <div>

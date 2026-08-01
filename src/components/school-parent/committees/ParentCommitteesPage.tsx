@@ -79,41 +79,71 @@ function ParentCommitteesPageContent({
     [pathname, router, searchParams],
   );
 
-  const loadBrowse = useCallback(async () => {
-    setLoadingBrowse(true);
-    setError(null);
+  const reloadLists = useCallback(async () => {
     try {
       const params = new URLSearchParams({ organizationId });
-      const res = await fetch(`/api/parent-portal/committees/browse?${params}`);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Failed to load committees.");
-      setBrowseCommittees(data.committees ?? []);
+      const [browseRes, mineRes] = await Promise.all([
+        fetch(`/api/parent-portal/committees/browse?${params}`),
+        fetch(`/api/parent-portal/committees/mine?${params}`),
+      ]);
+      const [browseData, mineData] = await Promise.all([
+        browseRes.json().catch(() => ({})),
+        mineRes.json().catch(() => ({})),
+      ]);
+      if (!browseRes.ok) {
+        throw new Error(browseData.error ?? "Failed to load committees.");
+      }
+      if (!mineRes.ok) {
+        throw new Error(mineData.error ?? "Failed to load your committees.");
+      }
+      setBrowseCommittees(browseData.committees ?? []);
+      setMyCommittees(mineData.committees ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load committees.");
-    } finally {
-      setLoadingBrowse(false);
-    }
-  }, [organizationId]);
-
-  const loadMine = useCallback(async () => {
-    setLoadingMine(true);
-    try {
-      const params = new URLSearchParams({ organizationId });
-      const res = await fetch(`/api/parent-portal/committees/mine?${params}`);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Failed to load your committees.");
-      setMyCommittees(data.committees ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load your committees.");
-    } finally {
-      setLoadingMine(false);
     }
   }, [organizationId]);
 
   useEffect(() => {
-    void loadBrowse();
-    void loadMine();
-  }, [loadBrowse, loadMine]);
+    let cancelled = false;
+    (async () => {
+      setLoadingBrowse(true);
+      setLoadingMine(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({ organizationId });
+        const [browseRes, mineRes] = await Promise.all([
+          fetch(`/api/parent-portal/committees/browse?${params}`),
+          fetch(`/api/parent-portal/committees/mine?${params}`),
+        ]);
+        const [browseData, mineData] = await Promise.all([
+          browseRes.json().catch(() => ({})),
+          mineRes.json().catch(() => ({})),
+        ]);
+        if (!browseRes.ok) {
+          throw new Error(browseData.error ?? "Failed to load committees.");
+        }
+        if (!mineRes.ok) {
+          throw new Error(mineData.error ?? "Failed to load your committees.");
+        }
+        if (!cancelled) {
+          setBrowseCommittees(browseData.committees ?? []);
+          setMyCommittees(mineData.committees ?? []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load committees.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingBrowse(false);
+          setLoadingMine(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
 
   const selectedBrowseCommittee = exploreCommitteeId
     ? browseCommittees.find((c) => c.id === exploreCommitteeId) ?? null
@@ -145,8 +175,7 @@ function ParentCommitteesPageContent({
         guardianName={guardianName}
         onBack={() => setUrl({ explore: null })}
         onRequestSubmitted={() => {
-          void loadBrowse();
-          void loadMine();
+          void reloadLists();
         }}
       />
     );

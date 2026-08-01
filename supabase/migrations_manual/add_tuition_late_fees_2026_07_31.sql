@@ -1,4 +1,4 @@
--- Promoted to supabase/migrations/20260731_add_tuition_late_fees.sql for local/CI.
+-- Promoted to supabase/migrations/20260733_add_tuition_late_fees.sql for local/CI.
 -- Run this file in Supabase SQL Editor on remote if that migration has not been applied.
 
 -- Late fee charges, charge metadata, and per-month late fee day overrides.

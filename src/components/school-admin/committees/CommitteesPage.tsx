@@ -83,6 +83,27 @@ export default function CommitteesPage({
     };
   }, [loadList]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const params = new URLSearchParams({
+          organizationId,
+          status: "pending",
+        });
+        const res = await fetch(`/api/school-admin/committees/join-requests?${params}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+        if (!cancelled) setPendingRequestCount((data.requests ?? []).length);
+      } catch {
+        if (!cancelled) setPendingRequestCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
+
   const loadPendingRequestCount = useCallback(async () => {
     try {
       const params = new URLSearchParams({
@@ -97,10 +118,6 @@ export default function CommitteesPage({
       setPendingRequestCount(0);
     }
   }, [organizationId]);
-
-  useEffect(() => {
-    void loadPendingRequestCount();
-  }, [loadPendingRequestCount]);
 
   useEffect(() => {
     if (!committeeId) return;

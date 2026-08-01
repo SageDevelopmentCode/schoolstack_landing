@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { Committee } from "@/lib/committees/types";
@@ -30,30 +30,34 @@ export default function ParentCommitteeWorkspace({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadCommittee = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({ organizationId });
-      const res = await fetch(
-        `/api/parent-portal/committees/${committeeId}?${params}`,
-      );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error ?? "Failed to load committee.");
-      }
-      setCommittee(data.committee);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load committee.");
-      setCommittee(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [committeeId, organizationId]);
-
   useEffect(() => {
-    void loadCommittee();
-  }, [loadCommittee]);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({ organizationId });
+        const res = await fetch(
+          `/api/parent-portal/committees/${committeeId}?${params}`,
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error ?? "Failed to load committee.");
+        }
+        if (!cancelled) setCommittee(data.committee);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load committee.");
+          setCommittee(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [committeeId, organizationId]);
 
   if (loading) {
     return (

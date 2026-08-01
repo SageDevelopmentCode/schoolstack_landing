@@ -48,8 +48,7 @@ export default function CommitteeJoinRequestsPanel({
   const [memberRoles, setMemberRoles] = useState<Record<string, CommitteeRole>>({});
   const reducedMotion = useReducedMotion() ?? false;
 
-  const loadRequests = useCallback(async () => {
-    setLoading(true);
+  const reloadRequests = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         organizationId,
@@ -63,14 +62,36 @@ export default function CommitteeJoinRequestsPanel({
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to load join requests."));
       setRequests([]);
-    } finally {
-      setLoading(false);
     }
   }, [committeeId, organizationId]);
 
   useEffect(() => {
-    void loadRequests();
-  }, [loadRequests]);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          organizationId,
+          status: "pending",
+        });
+        if (committeeId) params.set("committeeId", committeeId);
+        const res = await fetch(`/api/school-admin/committees/join-requests?${params}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error ?? "Failed to load join requests.");
+        if (!cancelled) setRequests(data.requests ?? []);
+      } catch (err) {
+        if (!cancelled) {
+          adminToast.error(formatActionError(err, "Failed to load join requests."));
+          setRequests([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [committeeId, organizationId]);
 
   const handleApprove = async (request: CommitteeJoinRequest) => {
     setActingId(request.id);
@@ -91,7 +112,7 @@ export default function CommitteeJoinRequestsPanel({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Failed to approve request.");
       adminToast.success("Join request approved");
-      await loadRequests();
+      await reloadRequests();
       onChanged?.();
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to approve request."));
@@ -114,7 +135,7 @@ export default function CommitteeJoinRequestsPanel({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Failed to decline request.");
       adminToast.success("Join request declined");
-      await loadRequests();
+      await reloadRequests();
       onChanged?.();
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to decline request."));

@@ -1,5 +1,5 @@
 -- Late fee charges, charge metadata, and per-month late fee day overrides.
--- Run after: 20260730_allow_shared_stripe_session_on_application_payments.sql
+-- Run after: 20260732_add_tuition_billing_splits.sql
 
 -- ── tuition_charges: late_fee type + metadata ─────────────────────────────────
 
