@@ -17,6 +17,7 @@ import { createClient } from "@/utils/supabase/client";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import CommitteeListView from "./CommitteeListView";
 import CommitteeWorkspaceShell from "./CommitteeWorkspaceShell";
+import CommitteeJoinRequestsPanel from "./CommitteeJoinRequestsPanel";
 import CreateCommitteeModal from "./modals/CreateCommitteeModal";
 import ArchiveCommitteeModal from "./modals/ArchiveCommitteeModal";
 import { parseCommitteeSection } from "./committee-routing";
@@ -32,6 +33,7 @@ type CommitteesPageProps = {
 export default function CommitteesPage({
   organizationId,
   branding,
+  slug,
 }: CommitteesPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -50,6 +52,7 @@ export default function CommitteesPage({
   const [showCreate, setShowCreate] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
   const loadList = useCallback(async () => {
     const [list, templateList] = await Promise.all([
@@ -79,6 +82,25 @@ export default function CommitteesPage({
       cancelled = true;
     };
   }, [loadList]);
+
+  const loadPendingRequestCount = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({
+        organizationId,
+        status: "pending",
+      });
+      const res = await fetch(`/api/school-admin/committees/join-requests?${params}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      setPendingRequestCount((data.requests ?? []).length);
+    } catch {
+      setPendingRequestCount(0);
+    }
+  }, [organizationId]);
+
+  useEffect(() => {
+    void loadPendingRequestCount();
+  }, [loadPendingRequestCount]);
 
   useEffect(() => {
     if (!committeeId) return;
@@ -212,11 +234,13 @@ export default function CommitteesPage({
           C={C}
           supabase={supabase}
           organizationId={organizationId}
+          schoolSlug={slug}
           activeSection={activeSection}
           onSectionChange={handleSectionChange}
           onBack={handleBack}
           onCommitteeChange={setActiveCommittee}
           onArchive={() => setShowArchive(true)}
+          onJoinRequestsChanged={loadPendingRequestCount}
         />
         <AnimatePresence>
           {showArchive && (
@@ -234,12 +258,21 @@ export default function CommitteesPage({
 
   return (
     <>
-      <CommitteeListView
-        committees={committees}
-        C={C}
-        onOpenCommittee={handleOpenCommittee}
-        onCreate={() => setShowCreate(true)}
-      />
+      <div className="h-full overflow-y-auto p-6 space-y-6">
+        <CommitteeListView
+          committees={committees}
+          C={C}
+          pendingRequestCount={pendingRequestCount}
+          onOpenCommittee={handleOpenCommittee}
+          onCreate={() => setShowCreate(true)}
+        />
+        <CommitteeJoinRequestsPanel
+          organizationId={organizationId}
+          schoolSlug={slug}
+          C={C}
+          onChanged={loadPendingRequestCount}
+        />
+      </div>
       <AnimatePresence>
         {showCreate && (
           <CreateCommitteeModal

@@ -28,6 +28,7 @@ import CommitteeTasksSection from "./sections/CommitteeTasksSection";
 import CommitteeMessagesSection from "./sections/CommitteeMessagesSection";
 import CommitteeMembersSection from "./sections/CommitteeMembersSection";
 import CommitteeSettingsSection from "./sections/CommitteeSettingsSection";
+import CommitteeJoinRequestsPanel from "./CommitteeJoinRequestsPanel";
 
 const SECTION_ICONS: Record<CommitteeWorkspaceSection, LucideIcon> = {
   home: Home,
@@ -50,6 +51,10 @@ export default function CommitteeWorkspaceShell({
   onBack,
   onCommitteeChange,
   onArchive,
+  readOnly = false,
+  backLabel = "All committees",
+  schoolSlug,
+  onJoinRequestsChanged,
 }: {
   committee: Committee;
   C: AdminThemeTokens;
@@ -60,10 +65,15 @@ export default function CommitteeWorkspaceShell({
   onBack?: () => void;
   onCommitteeChange: (committee: Committee) => void;
   onArchive?: () => void;
+  readOnly?: boolean;
+  backLabel?: string;
+  schoolSlug?: string;
+  onJoinRequestsChanged?: () => void;
 }) {
-  const sections = [...committee.config.sections, "settings"].filter(
-    (s, i, arr) => arr.indexOf(s) === i,
-  ) as CommitteeWorkspaceSection[];
+  const sections = (readOnly
+    ? committee.config.sections
+    : [...committee.config.sections, "settings"]
+  ).filter((s, i, arr) => arr.indexOf(s) === i) as CommitteeWorkspaceSection[];
 
   const leaders = committee.members.filter((m) => m.role === "lead");
 
@@ -81,7 +91,7 @@ export default function CommitteeWorkspaceShell({
             style={{ color: C.textTertiary }}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            All committees
+            {backLabel}
           </button>
         )}
         <div>
@@ -169,6 +179,7 @@ export default function CommitteeWorkspaceShell({
                 supabase={supabase}
                 organizationId={organizationId}
                 onCommitteeChange={onCommitteeChange}
+                readOnly={readOnly}
               />
             )}
             {activeSection === "resources" && (
@@ -178,6 +189,7 @@ export default function CommitteeWorkspaceShell({
                 supabase={supabase}
                 organizationId={organizationId}
                 onCommitteeChange={onCommitteeChange}
+                readOnly={readOnly}
               />
             )}
             {activeSection === "calendar" && (
@@ -187,6 +199,7 @@ export default function CommitteeWorkspaceShell({
                 supabase={supabase}
                 organizationId={organizationId}
                 onCommitteeChange={onCommitteeChange}
+                readOnly={readOnly}
               />
             )}
             {activeSection === "tasks" && (
@@ -196,6 +209,7 @@ export default function CommitteeWorkspaceShell({
                 supabase={supabase}
                 organizationId={organizationId}
                 onCommitteeChange={onCommitteeChange}
+                readOnly={readOnly}
               />
             )}
             {activeSection === "messages" && (
@@ -205,18 +219,34 @@ export default function CommitteeWorkspaceShell({
                 supabase={supabase}
                 organizationId={organizationId}
                 onCommitteeChange={onCommitteeChange}
+                readOnly={readOnly}
               />
             )}
             {activeSection === "members" && (
-              <CommitteeMembersSection
-                committee={committee}
-                C={C}
-                supabase={supabase}
-                organizationId={organizationId}
-                onCommitteeChange={onCommitteeChange}
-              />
+              <div className="space-y-6">
+                {!readOnly && schoolSlug && (
+                  <CommitteeJoinRequestsPanel
+                    organizationId={organizationId}
+                    schoolSlug={schoolSlug}
+                    committeeId={committee.id}
+                    C={C}
+                    compact
+                    onChanged={() => {
+                      onJoinRequestsChanged?.();
+                    }}
+                  />
+                )}
+                <CommitteeMembersSection
+                  committee={committee}
+                  C={C}
+                  supabase={supabase}
+                  organizationId={organizationId}
+                  onCommitteeChange={onCommitteeChange}
+                  readOnly={readOnly}
+                />
+              </div>
             )}
-            {activeSection === "settings" && (
+            {!readOnly && activeSection === "settings" && (
               <CommitteeSettingsSection
                 committee={committee}
                 C={C}

@@ -6,6 +6,7 @@ import {
   ClipboardList,
   CreditCard,
   GraduationCap,
+  Heart,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -76,6 +77,10 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "processed a tuition autopay charge",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "had a tuition autopay charge fail",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED]: "saved a tuition payment method",
+  [ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED]: "requested to join a committee",
+  [ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED]: "approved a committee join request",
+  [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "declined a committee join request",
+  [ACTIVITY_ACTIONS.COMMITTEE_JOIN_WITHDRAWN]: "withdrew a committee join request",
 };
 
 const ACTOR_TYPE_LABELS: Record<ActorType, string> = {
@@ -127,6 +132,10 @@ const CATEGORY_VISUALS: Record<
   enrollment: {
     Icon: GraduationCap,
     className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  },
+  committees: {
+    Icon: Heart,
+    className: "bg-rose-50 text-rose-700 border-rose-200",
   },
   other: {
     Icon: Bell,

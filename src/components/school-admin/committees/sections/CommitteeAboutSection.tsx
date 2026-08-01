@@ -15,12 +15,14 @@ export default function CommitteeAboutSection({
   supabase,
   organizationId,
   onCommitteeChange,
+  readOnly = false,
 }: {
   committee: Committee;
   C: AdminThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
+  readOnly?: boolean;
 }) {
   const [aboutHtml, setAboutHtml] = useState(committee.aboutHtml);
   const [saving, setSaving] = useState(false);
@@ -61,23 +63,34 @@ export default function CommitteeAboutSection({
         <h3 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
           Overview
         </h3>
-        <textarea
-          value={aboutHtml}
-          onChange={(e) => setAboutHtml(e.target.value)}
-          rows={6}
-          className="w-full text-sm rounded-lg border p-3"
-          style={{ borderColor: C.border, color: C.textPrimary }}
-          placeholder="Describe the committee's role and responsibilities…"
-        />
-        <button
-          type="button"
-          onClick={handleSaveAbout}
-          disabled={saving || !isAboutDirty}
-          className="mt-3 px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ backgroundColor: C.accent }}
-        >
-          {saving ? "Saving…" : "Save overview"}
-        </button>
+        {readOnly ? (
+          <div
+            className="text-sm whitespace-pre-wrap"
+            style={{ color: C.textSecondary }}
+          >
+            {committee.aboutHtml || "No overview provided yet."}
+          </div>
+        ) : (
+          <>
+            <textarea
+              value={aboutHtml}
+              onChange={(e) => setAboutHtml(e.target.value)}
+              rows={6}
+              className="w-full text-sm rounded-lg border p-3"
+              style={{ borderColor: C.border, color: C.textPrimary }}
+              placeholder="Describe the committee's role and responsibilities…"
+            />
+            <button
+              type="button"
+              onClick={handleSaveAbout}
+              disabled={saving || !isAboutDirty}
+              className="mt-3 px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ backgroundColor: C.accent }}
+            >
+              {saving ? "Saving…" : "Save overview"}
+            </button>
+          </>
+        )}
       </div>
 
       <div>
@@ -99,33 +112,55 @@ export default function CommitteeAboutSection({
                 <p className="text-xs mt-1 mb-3" style={{ color: C.textSecondary }}>
                   {role.description}
                 </p>
-                <select
-                  value={role.assigneeId ?? ""}
-                  onChange={(e) =>
-                    handleAssignRole(role.id, e.target.value || null)
-                  }
-                  className="w-full text-xs rounded-lg border px-2 py-1.5"
-                  style={{ borderColor: C.border, color: C.textPrimary }}
-                >
-                  <option value="">Unassigned</option>
-                  {committee.members.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-                {assignee && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                      style={{ backgroundColor: C.accentLight, color: C.accent }}
+                {readOnly ? (
+                  assignee ? (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                        style={{ backgroundColor: C.accentLight, color: C.accent }}
+                      >
+                        {memberInitials(assignee.name)}
+                      </span>
+                      <span className="text-xs" style={{ color: C.textSecondary }}>
+                        {assignee.name}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
+                      Unassigned
+                    </p>
+                  )
+                ) : (
+                  <>
+                    <select
+                      value={role.assigneeId ?? ""}
+                      onChange={(e) =>
+                        handleAssignRole(role.id, e.target.value || null)
+                      }
+                      className="w-full text-xs rounded-lg border px-2 py-1.5"
+                      style={{ borderColor: C.border, color: C.textPrimary }}
                     >
-                      {memberInitials(assignee.name)}
-                    </span>
-                    <span className="text-xs" style={{ color: C.textSecondary }}>
-                      {assignee.name}
-                    </span>
-                  </div>
+                      <option value="">Unassigned</option>
+                      {committee.members.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                    {assignee && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                          style={{ backgroundColor: C.accentLight, color: C.accent }}
+                        >
+                          {memberInitials(assignee.name)}
+                        </span>
+                        <span className="text-xs" style={{ color: C.textSecondary }}>
+                          {assignee.name}
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             );

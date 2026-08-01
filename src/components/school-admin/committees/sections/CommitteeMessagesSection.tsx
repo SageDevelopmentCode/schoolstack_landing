@@ -15,12 +15,14 @@ export default function CommitteeMessagesSection({
   supabase,
   organizationId,
   onCommitteeChange,
+  readOnly = false,
 }: {
   committee: Committee;
   C: AdminThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
+  readOnly?: boolean;
 }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -70,6 +72,7 @@ export default function CommitteeMessagesSection({
           ))
         )}
       </div>
+      {!readOnly && (
       <div
         className="shrink-0 border-t p-4 flex gap-2"
         style={{ borderColor: C.border, backgroundColor: C.surface }}
@@ -97,6 +100,7 @@ export default function CommitteeMessagesSection({
           <Send className="w-4 h-4" />
         </button>
       </div>
+      )}
     </div>
   );
 }

@@ -21,12 +21,14 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED,
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED,
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED,
+  ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED,
 ] as const;
 
 export type ActivityNotificationCategory =
   | "applications"
   | "payments"
   | "enrollment"
+  | "committees"
   | "other";
 
 export type SchoolAdminActivityNotification = {
@@ -77,6 +79,7 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED]: "Payments ready",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
+  [ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED]: "Committee join request",
 };
 
 const DEFAULT_NOTIFICATION_DAYS = 30;
@@ -206,6 +209,9 @@ export function getActivityNotificationCategory(
   ) {
     return "payments";
   }
+  if (action.startsWith("committee.")) {
+    return "committees";
+  }
   return "other";
 }
 
@@ -247,6 +253,12 @@ function submissionsHref(slug: string, applicationId: string): string {
 
 function paymentsHref(slug: string): string {
   return schoolAdminPath(slug, "admissions", "payments");
+}
+
+function committeesHref(slug: string, committeeId?: string | null): string {
+  const base = schoolAdminPath(slug, "committees");
+  if (!committeeId) return base;
+  return `${base}?committee=${committeeId}&section=members`;
 }
 
 function tuitionHref(slug: string): string {
@@ -529,6 +541,14 @@ export async function resolveActivityNotificationLink(
     return { href: tuitionHref(slug), ctaLabel: "View tuition" };
   }
 
+  if (event.action === ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED) {
+    const committeeId = metadataString(event.metadata, "committeeId");
+    return {
+      href: committeesHref(slug, committeeId),
+      ctaLabel: "Review request",
+    };
+  }
+
   if (applicationId) {
     const category = getActivityNotificationCategory(event.action);
     if (category === "enrollment") {
@@ -572,7 +592,8 @@ export function mapActivityEventToNotification(
   context: ApplicationNotificationContext | null,
   paymentAmountLabel?: string | null,
 ): SchoolAdminActivityNotification {
-  const subjectLabel = context?.subjectLabel ?? null;
+  const metadataSubject = metadataString(event.metadata, "guardianName");
+  const subjectLabel = context?.subjectLabel ?? metadataSubject;
   const programName = context?.programName ?? null;
 
   return {

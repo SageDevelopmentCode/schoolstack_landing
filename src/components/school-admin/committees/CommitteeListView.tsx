@@ -7,24 +7,36 @@ import type { CommitteeListItem } from "@/lib/committees/types";
 export default function CommitteeListView({
   committees,
   C,
+  pendingRequestCount = 0,
   onOpenCommittee,
   onCreate,
 }: {
   committees: CommitteeListItem[];
   C: AdminThemeTokens;
+  pendingRequestCount?: number;
   onOpenCommittee: (id: string) => void;
   onCreate: () => void;
 }) {
   return (
-    <div className="h-full overflow-y-auto p-6">
+    <div>
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <h1
-            className="text-xl font-heading font-semibold"
-            style={{ color: C.textPrimary }}
-          >
-            Committees
-          </h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1
+              className="text-xl font-heading font-semibold"
+              style={{ color: C.textPrimary }}
+            >
+              Committees
+            </h1>
+            {pendingRequestCount > 0 && (
+              <span
+                className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: C.warningBg ?? C.accentLight, color: C.warning ?? C.accent }}
+              >
+                {pendingRequestCount} join request{pendingRequestCount !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
           <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
             Structured parent workspaces for volunteer groups, coordinators, and
             festival teams.

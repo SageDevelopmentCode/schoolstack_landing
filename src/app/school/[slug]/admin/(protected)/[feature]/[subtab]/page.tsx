@@ -42,6 +42,10 @@ const TuitionPage = nextDynamic(
   () => import("@/components/school-admin/tuition/TuitionPage"),
   { loading: () => <AdminPageSkeleton label="Loading tuition" /> },
 );
+const StaffPage = nextDynamic(
+  () => import("@/components/school-admin/staff/StaffPage"),
+  { loading: () => <AdminPageSkeleton label="Loading staff" /> },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -175,6 +179,16 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
   if (feature === "my_school" && subtab === "tuition") {
     return (
       <TuitionPage
+        organizationId={org.id}
+        branding={org.branding}
+        slug={slug}
+      />
+    );
+  }
+
+  if (feature === "my_school" && subtab === "staff") {
+    return (
+      <StaffPage
         organizationId={org.id}
         branding={org.branding}
         slug={slug}

@@ -24,12 +24,14 @@ export default function CommitteeMembersSection({
   supabase,
   organizationId,
   onCommitteeChange,
+  readOnly = false,
 }: {
   committee: Committee;
   C: AdminThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
+  readOnly?: boolean;
 }) {
   const [showInvite, setShowInvite] = useState(false);
   const [name, setName] = useState("");
@@ -81,6 +83,7 @@ export default function CommitteeMembersSection({
         <p className="text-sm" style={{ color: C.textSecondary }}>
           {committee.members.length} members
         </p>
+        {!readOnly && (
         <button
           type="button"
           onClick={() => setShowInvite(true)}
@@ -90,6 +93,7 @@ export default function CommitteeMembersSection({
           <UserPlus className="w-3.5 h-3.5" />
           Invite member
         </button>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -137,6 +141,7 @@ export default function CommitteeMembersSection({
                 )}
               </div>
             </div>
+            {!readOnly && (
             <button
               type="button"
               onClick={() => handleRemove(member.id)}
@@ -145,6 +150,7 @@ export default function CommitteeMembersSection({
             >
               Remove
             </button>
+            )}
           </div>
         ))}
       </div>

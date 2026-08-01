@@ -15,12 +15,14 @@ export default function CommitteeCalendarSection({
   supabase,
   organizationId,
   onCommitteeChange,
+  readOnly = false,
 }: {
   committee: Committee;
   C: AdminThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
+  readOnly?: boolean;
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState("");
@@ -73,6 +75,7 @@ export default function CommitteeCalendarSection({
   return (
     <div className="space-y-4 max-w-3xl">
       <div className="flex justify-end">
+        {!readOnly && (
         <button
           type="button"
           onClick={() => setShowAdd(true)}
@@ -82,6 +85,7 @@ export default function CommitteeCalendarSection({
           <Plus className="w-3.5 h-3.5" />
           Add event
         </button>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -117,6 +121,7 @@ export default function CommitteeCalendarSection({
                   </p>
                 </div>
               </div>
+              {!readOnly && (
               <button
                 type="button"
                 onClick={() => handleDelete(event.id)}
@@ -125,6 +130,7 @@ export default function CommitteeCalendarSection({
               >
                 Delete
               </button>
+              )}
             </div>
           ))
         )}

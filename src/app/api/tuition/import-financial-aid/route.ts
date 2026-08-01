@@ -5,6 +5,7 @@ import {
   AuthError,
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireTuitionOrgAdmin } from "@/lib/tuition/api-auth";
 import { importFinancialAidCsv } from "@/lib/tuition/autopay";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -32,23 +33,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const { data: membership, error: membershipError } = await admin
-      .from("organization_memberships")
-      .select("role")
-      .eq("organization_id", body.organizationId)
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-
-    if (membershipError) throw membershipError;
-    if (membership?.role !== "owner" && membership?.role !== "admin") {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "Admin access required.",
-        code: "forbidden",
-      });
-    }
+    await requireTuitionOrgAdmin(admin, body.organizationId, user.id);
 
     const result = await importFinancialAidCsv(
       admin,

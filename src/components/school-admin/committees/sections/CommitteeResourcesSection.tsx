@@ -16,12 +16,14 @@ export default function CommitteeResourcesSection({
   supabase,
   organizationId,
   onCommitteeChange,
+  readOnly = false,
 }: {
   committee: Committee;
   C: AdminThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
+  readOnly?: boolean;
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState("");
@@ -71,6 +73,7 @@ export default function CommitteeResourcesSection({
   return (
     <div className="space-y-4 max-w-3xl">
       <div className="flex justify-end">
+        {!readOnly && (
         <button
           type="button"
           onClick={() => setShowAdd(true)}
@@ -80,6 +83,7 @@ export default function CommitteeResourcesSection({
           <Plus className="w-3.5 h-3.5" />
           Add resource
         </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -113,9 +117,11 @@ export default function CommitteeResourcesSection({
                     </p>
                   )}
                 </div>
+                {!readOnly && (
                 <button type="button" onClick={() => handleDelete(resource.id)} className="text-xs cursor-pointer" style={{ color: C.error }}>
                   Delete
                 </button>
+                )}
               </div>
               {resource.url && (
                 <a

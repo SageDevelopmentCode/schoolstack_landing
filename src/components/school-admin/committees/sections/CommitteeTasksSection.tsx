@@ -18,12 +18,14 @@ export default function CommitteeTasksSection({
   supabase,
   organizationId,
   onCommitteeChange,
+  readOnly = false,
 }: {
   committee: Committee;
   C: AdminThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
+  readOnly?: boolean;
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState("");
@@ -69,6 +71,7 @@ export default function CommitteeTasksSection({
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
+        {!readOnly && (
         <button
           type="button"
           onClick={() => setShowAdd(true)}
@@ -78,6 +81,7 @@ export default function CommitteeTasksSection({
           <Plus className="w-3.5 h-3.5" />
           Add task
         </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -109,6 +113,7 @@ export default function CommitteeTasksSection({
                         {task.assigneeName}
                       </p>
                     )}
+                    {!readOnly ? (
                     <select
                       value={task.status}
                       onChange={(e) =>
@@ -123,6 +128,11 @@ export default function CommitteeTasksSection({
                         </option>
                       ))}
                     </select>
+                    ) : (
+                      <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
+                        {TASK_STATUS_LABELS[task.status]}
+                      </p>
+                    )}
                   </div>
                 ))}
             </div>

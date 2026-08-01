@@ -5,6 +5,7 @@ import {
   AuthError,
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireTuitionOrgAdmin } from "@/lib/tuition/api-auth";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
 import { applyLateFeesForOrganization, getGraceDaysForSettings } from "@/lib/tuition/late-fees";
 import { getTuitionOrgSettings } from "@/lib/tuition/org-settings";
@@ -35,23 +36,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const { data: membership, error: membershipError } = await admin
-      .from("organization_memberships")
-      .select("role")
-      .eq("organization_id", body.organizationId)
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-
-    if (membershipError) throw membershipError;
-    if (membership?.role !== "owner" && membership?.role !== "admin") {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "Admin access required.",
-        code: "forbidden",
-      });
-    }
+    await requireTuitionOrgAdmin(admin, body.organizationId, user.id);
 
     const settings = await getTuitionOrgSettings(admin, body.organizationId);
     const graceDays = body.graceDays ?? getGraceDaysForSettings(settings);

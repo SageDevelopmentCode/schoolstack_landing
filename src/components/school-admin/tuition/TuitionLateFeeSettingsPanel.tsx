@@ -47,6 +47,57 @@ function inputStyle(C: ReturnType<typeof buildAdminThemeTokens>): React.CSSPrope
   };
 }
 
+type AdminTheme = ReturnType<typeof buildAdminThemeTokens>;
+
+function LateFeeRadioCard({
+  C,
+  name,
+  checked,
+  onChange,
+  title,
+  description,
+  disabled = false,
+}: {
+  C: AdminTheme;
+  name: string;
+  checked: boolean;
+  onChange: () => void;
+  title: string;
+  description: string;
+  disabled?: boolean;
+}) {
+  return (
+    <label
+      className={`flex cursor-pointer items-start gap-3 rounded-md border px-4 py-3 text-sm ${
+        disabled ? "opacity-50 pointer-events-none" : ""
+      }`}
+      style={{
+        borderColor: checked ? C.accent : C.border,
+        backgroundColor: checked ? C.accentLight : C.surface,
+        color: C.textSecondary,
+      }}
+    >
+      <input
+        type="radio"
+        name={name}
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+        className="mt-0.5 shrink-0"
+        style={{ accentColor: C.accent }}
+      />
+      <span>
+        <span className="font-medium" style={{ color: C.textPrimary }}>
+          {title}
+        </span>
+        <span className="mt-0.5 block text-xs" style={{ color: C.textTertiary }}>
+          {description}
+        </span>
+      </span>
+    </label>
+  );
+}
+
 export default function TuitionLateFeeSettingsPanel({
   organizationId,
   branding,
@@ -201,21 +252,38 @@ export default function TuitionLateFeeSettingsPanel({
         </p>
       </div>
 
-      <label className="flex items-center gap-2 text-sm" style={{ color: C.textPrimary }}>
-        <input
-          type="checkbox"
+      <div
+        role="radiogroup"
+        aria-label="Enable automatic late fees"
+        className="flex flex-col gap-2"
+      >
+        <LateFeeRadioCard
+          C={C}
+          name="late-fee-enabled"
           checked={resolved.lateFeeEnabled}
-          onChange={(event) =>
-            setSettings((current) => ({
-              ...current,
-              lateFeeEnabled: event.target.checked,
-            }))
+          onChange={() =>
+            setSettings((current) => ({ ...current, lateFeeEnabled: true }))
           }
+          title="Automatic late fees enabled"
+          description="Late fees are added when tuition is unpaid after the configured day."
         />
-        Enable automatic late fees
-      </label>
+        <LateFeeRadioCard
+          C={C}
+          name="late-fee-enabled"
+          checked={!resolved.lateFeeEnabled}
+          onChange={() =>
+            setSettings((current) => ({ ...current, lateFeeEnabled: false }))
+          }
+          title="Automatic late fees disabled"
+          description="No late fees are applied automatically."
+        />
+      </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div
+        className={`grid gap-3 sm:grid-cols-2 ${
+          resolved.lateFeeEnabled ? "" : "opacity-50 pointer-events-none"
+        }`}
+      >
         <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
           Late fee amount (USD)
           <input
@@ -288,19 +356,34 @@ export default function TuitionLateFeeSettingsPanel({
         </label>
       </div>
 
-      <label className="flex items-center gap-2 text-sm" style={{ color: C.textPrimary }}>
-        <input
-          type="checkbox"
+      <div
+        role="radiogroup"
+        aria-label="Recurring late fees"
+        className={`flex flex-col gap-2 ${
+          resolved.lateFeeEnabled ? "" : "opacity-50 pointer-events-none"
+        }`}
+      >
+        <LateFeeRadioCard
+          C={C}
+          name="late-fee-recurring"
           checked={resolved.lateFeeRecurring}
-          onChange={(event) =>
-            setSettings((current) => ({
-              ...current,
-              lateFeeRecurring: event.target.checked,
-            }))
+          onChange={() =>
+            setSettings((current) => ({ ...current, lateFeeRecurring: true }))
           }
+          title="Apply monthly while unpaid"
+          description="Another late fee is added each month until tuition is paid."
         />
-        Apply another late fee each month while tuition remains unpaid
-      </label>
+        <LateFeeRadioCard
+          C={C}
+          name="late-fee-recurring"
+          checked={!resolved.lateFeeRecurring}
+          onChange={() =>
+            setSettings((current) => ({ ...current, lateFeeRecurring: false }))
+          }
+          title="One-time per period"
+          description="Only one late fee per unpaid billing period."
+        />
+      </div>
 
       <button
         type="button"
@@ -313,7 +396,9 @@ export default function TuitionLateFeeSettingsPanel({
       </button>
 
       <div
-        className="border-t pt-4 flex flex-col gap-3"
+        className={`border-t pt-4 flex flex-col gap-3 ${
+          resolved.lateFeeEnabled ? "" : "opacity-50 pointer-events-none"
+        }`}
         style={{ borderColor: C.border }}
       >
         <div>
