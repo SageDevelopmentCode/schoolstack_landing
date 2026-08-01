@@ -85,3 +85,42 @@ export function formatPaymentMethodLabel(
     : "Card";
   return `${brand} •••• ${method.last4}`;
 }
+
+export async function removeFamilyPaymentMethod(
+  supabase: SupabaseClient,
+  input: {
+    billingAccountId: string;
+    stripePaymentMethodId: string;
+    guardianId?: string | null;
+  },
+): Promise<void> {
+  let deleteQuery = supabase
+    .from("family_payment_methods")
+    .delete()
+    .eq("billing_account_id", input.billingAccountId)
+    .eq("stripe_payment_method_id", input.stripePaymentMethodId);
+
+  if (input.guardianId) {
+    deleteQuery = deleteQuery.eq("guardian_id", input.guardianId);
+  }
+
+  const { error: deleteError } = await deleteQuery;
+  if (deleteError) throw deleteError;
+
+  const { data: billingAccount, error: billingError } = await supabase
+    .from("tuition_billing_accounts")
+    .select("default_payment_method_id")
+    .eq("id", input.billingAccountId)
+    .maybeSingle();
+
+  if (billingError) throw billingError;
+
+  if (billingAccount?.default_payment_method_id === input.stripePaymentMethodId) {
+    const { error: updateError } = await supabase
+      .from("tuition_billing_accounts")
+      .update({ default_payment_method_id: null })
+      .eq("id", input.billingAccountId);
+
+    if (updateError) throw updateError;
+  }
+}

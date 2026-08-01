@@ -8,6 +8,7 @@ import {
 import { requireTuitionOrgAdmin } from "@/lib/tuition/api-auth";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
 import { applyLateFeesForOrganization, getGraceDaysForSettings } from "@/lib/tuition/late-fees";
+import { processAutopayForOrganization } from "@/lib/tuition/autopay";
 import { getTuitionOrgSettings } from "@/lib/tuition/org-settings";
 import { evaluateRulesForOrganization } from "@/lib/tuition/rules-engine";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -54,12 +55,19 @@ export async function POST(request: Request) {
       admin,
       body.organizationId,
     );
+    const autopayResult = await processAutopayForOrganization(
+      admin,
+      body.organizationId,
+    );
 
     return NextResponse.json({
       overdueCount,
       rulesEvaluated,
       lateFeesApplied: lateFeeResult.applied,
       lateFeesNotified: lateFeeResult.notified,
+      autopayProcessed: autopayResult.processed,
+      autopayFailed: autopayResult.failed,
+      autopaySkipped: autopayResult.skipped,
     });
   } catch (error) {
     if (error instanceof AuthError) {

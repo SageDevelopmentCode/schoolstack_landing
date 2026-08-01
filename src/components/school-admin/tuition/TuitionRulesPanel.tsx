@@ -111,12 +111,15 @@ export default function TuitionRulesPanel({
         rulesEvaluated?: number;
         lateFeesApplied?: number;
         lateFeesNotified?: number;
+        autopayProcessed?: number;
+        autopayFailed?: number;
+        autopaySkipped?: number;
         error?: string;
       };
       if (!response.ok) {
         throw new Error(result.error ?? "Failed to process due charges.");
       }
-      const message = `Marked ${result.overdueCount ?? 0} overdue, re-evaluated ${result.rulesEvaluated ?? 0} assignments, applied ${result.lateFeesApplied ?? 0} late fees.`;
+      const message = `Marked ${result.overdueCount ?? 0} overdue, re-evaluated ${result.rulesEvaluated ?? 0} assignments, applied ${result.lateFeesApplied ?? 0} late fees, autopay charged ${result.autopayProcessed ?? 0}, failed ${result.autopayFailed ?? 0}, skipped ${result.autopaySkipped ?? 0}.`;
       setImportResult(message);
       adminToast.success("Due charges processed");
     } catch (err) {

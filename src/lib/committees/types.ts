@@ -89,6 +89,8 @@ export type CommitteeResource = {
   title: string;
   type: CommitteeResourceType;
   url?: string;
+  storagePath?: string;
+  fileName?: string;
   description?: string;
   addedBy?: string;
   allowedDutyRoleIds?: string[];
