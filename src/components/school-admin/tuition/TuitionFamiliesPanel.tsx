@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { listFamilyBillingSummaries } from "@/lib/tuition/charges";
 import { listChargesForFamily } from "@/lib/tuition/charges";
@@ -93,16 +93,27 @@ export default function TuitionFamiliesPanel({
   const [activeFamilyTab, setActiveFamilyTab] = useState<TuitionFamilyTabId>(
     DEFAULT_TUITION_FAMILY_TAB,
   );
+  const selectedFamilyIdRef = useRef<string | null>(null);
+
+  const selectFamily = useCallback((familyId: string) => {
+    selectedFamilyIdRef.current = familyId;
+    setSelectedFamilyId(familyId);
+    setActiveFamilyTab(DEFAULT_TUITION_FAMILY_TAB);
+  }, []);
 
   const loadFamilies = useCallback(async () => {
     setLoading(true);
     try {
       const rows = await listFamilyBillingSummaries(supabase, organizationId);
       setFamilies(rows);
-      setSelectedFamilyId((prev) => {
-        if (prev && rows.some((r) => r.familyId === prev)) return prev;
-        return rows[0]?.familyId ?? null;
-      });
+      const prev = selectedFamilyIdRef.current;
+      const next =
+        prev && rows.some((r) => r.familyId === prev) ? prev : rows[0]?.familyId ?? null;
+      if (next !== prev) {
+        setActiveFamilyTab(DEFAULT_TUITION_FAMILY_TAB);
+      }
+      selectedFamilyIdRef.current = next;
+      setSelectedFamilyId(next);
     } finally {
       setLoading(false);
     }
@@ -292,10 +303,6 @@ export default function TuitionFamiliesPanel({
     });
   }, [selectedFamilyId, supabase, families]);
 
-  useEffect(() => {
-    setActiveFamilyTab(DEFAULT_TUITION_FAMILY_TAB);
-  }, [selectedFamilyId]);
-
   const displayedFamilyCharges = selectedFamilyId ? familyCharges : [];
   const displayedFamilyPayments = selectedFamilyId ? familyPayments : [];
 
@@ -335,7 +342,7 @@ export default function TuitionFamiliesPanel({
           <button
             key={family.familyId}
             type="button"
-            onClick={() => setSelectedFamilyId(family.familyId)}
+            onClick={() => selectFamily(family.familyId)}
             className="w-full text-left px-4 py-3 border-b"
             style={{
               borderColor: C.border,

@@ -29,8 +29,10 @@ export function formatParentChargeStatusBadge(charge: TuitionCharge): ChargeStat
       return { label: "VOID", tone: "neutral" };
     case "waived":
       return { label: "WAIVED", tone: "neutral" };
-    default:
-      return { label: charge.status.toUpperCase(), tone: "neutral" };
+    default: {
+      charge.status satisfies never;
+      return { label: "UNKNOWN", tone: "neutral" };
+    }
   }
 }
 
