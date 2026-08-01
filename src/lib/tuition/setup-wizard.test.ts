@@ -200,6 +200,7 @@ describe("setup wizard helpers", () => {
       effectiveEnd: "2027-05-31",
       paymentCounts: [1, 10],
       defaultPaymentCount: 10,
+      billingDayOfMonth: 1,
       fees: [] as Array<{ label: string; amountCents: number }>,
       stepIndex: 2,
     };
@@ -226,6 +227,7 @@ describe("setup wizard helpers", () => {
       effectiveEnd: "2027-05-31",
       paymentCounts: [1, 10],
       defaultPaymentCount: 10,
+      billingDayOfMonth: 1,
       fees: [] as Array<{ label: string; amountCents: number }>,
     };
 

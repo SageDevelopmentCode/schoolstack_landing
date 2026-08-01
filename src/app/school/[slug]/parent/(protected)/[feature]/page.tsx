@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import ParentHomePage from "@/components/school-parent/ParentHomePage";
 import ParentBillingPage from "@/components/school-parent/billing/ParentBillingPage";
+import ParentCommitteesPage from "@/components/school-parent/committees/ParentCommitteesPage";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
 import { getRequestUser } from "@/lib/auth/session";
@@ -146,6 +147,22 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           branding={org.branding}
           slug={slug}
           initialData={initialData}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "committees") {
+    const guardianName = userProfile.displayName || user.email || "Parent";
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentCommitteesPage
+          organizationId={org.id}
+          schoolSlug={slug}
+          schoolName={org.name}
+          branding={org.branding}
+          guardianName={guardianName}
         />
       </SchoolParentPageShell>
     );

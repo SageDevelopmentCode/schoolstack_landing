@@ -132,6 +132,7 @@ export default function TuitionSetupWizard({
   const [defaultPaymentCount, setDefaultPaymentCount] = useState<number | null>(
     null,
   );
+  const [billingDayOfMonth, setBillingDayOfMonth] = useState(1);
   const [fees, setFees] = useState<WizardFeeInput[]>([]);
 
   const currentFormSnapshot = useMemo(
@@ -146,6 +147,7 @@ export default function TuitionSetupWizard({
         effectiveEnd,
         paymentCounts,
         defaultPaymentCount,
+        billingDayOfMonth,
         fees,
       }),
     [
@@ -158,6 +160,7 @@ export default function TuitionSetupWizard({
       effectiveEnd,
       paymentCounts,
       defaultPaymentCount,
+      billingDayOfMonth,
       fees,
     ],
   );
@@ -180,6 +183,7 @@ export default function TuitionSetupWizard({
     setEffectiveEnd(state.effectiveEnd ?? "");
     setPaymentCounts(state.paymentCounts);
     setDefaultPaymentCount(state.defaultPaymentCount ?? DEFAULT_PAYMENT_COUNT);
+    setBillingDayOfMonth(state.billingDayOfMonth ?? 1);
     setFees(state.fees ?? []);
     if (!isEditMode) {
       setStepIndex(state.wizardStepIndex);
@@ -330,6 +334,7 @@ export default function TuitionSetupWizard({
     effectiveEnd: effectiveEnd || null,
     paymentCounts,
     defaultPaymentCount: defaultPaymentCount ?? undefined,
+    billingDayOfMonth,
     fees,
     ratePlanId: savedRatePlanId ?? undefined,
     stepIndex: nextStepIndex,
@@ -448,6 +453,7 @@ export default function TuitionSetupWizard({
         paymentCounts,
         defaultPaymentCount:
           defaultPaymentCount ?? paymentCounts[0] ?? DEFAULT_PAYMENT_COUNT,
+        billingDayOfMonth,
         fees,
         ratePlanId: savedRatePlanId ?? editRatePlanId ?? undefined,
       });
@@ -642,6 +648,8 @@ export default function TuitionSetupWizard({
               effectiveEnd={effectiveEnd || null}
               selectedCounts={paymentCounts}
               defaultCount={defaultPaymentCount}
+              billingDayOfMonth={billingDayOfMonth}
+              onBillingDayOfMonthChange={setBillingDayOfMonth}
               onToggleCount={togglePaymentCount}
               onSetDefault={setDefaultPaymentCount}
               onAddCustomCount={addCustomPaymentCount}

@@ -79,6 +79,7 @@ export type WizardSetupInput = {
   effectiveEnd?: string | null;
   paymentCounts: number[];
   defaultPaymentCount?: number;
+  billingDayOfMonth?: number;
   fees?: WizardFeeInput[];
   ratePlanId?: string;
 };
@@ -98,6 +99,7 @@ export type WizardPersistedState = {
   effectiveEnd: string;
   paymentCounts: number[];
   defaultPaymentCount: number | null;
+  billingDayOfMonth: number;
   fees: WizardFeeInput[];
   stepIndex: number;
 };
@@ -159,6 +161,7 @@ function normalizeWizardStateForSerialize(state: WizardPersistedState) {
     effectiveEnd: state.effectiveEnd,
     paymentCounts: [...state.paymentCounts].sort((a, b) => a - b),
     defaultPaymentCount: state.defaultPaymentCount,
+    billingDayOfMonth: state.billingDayOfMonth,
     fees: normalizedFees,
   };
 }
@@ -549,6 +552,7 @@ async function persistWizardChildren(
     annualAmountCents: number;
     paymentCounts: number[];
     defaultPaymentCount: number | null;
+    billingDayOfMonth?: number;
     fees: WizardFeeInput[];
     allowEmptyPayments: boolean;
   },
@@ -576,6 +580,7 @@ async function persistWizardChildren(
       organizationId: input.organizationId,
       ratePlanId: input.ratePlanId,
       annualAmountCents: input.annualAmountCents,
+      billingDayOfMonth: input.billingDayOfMonth ?? 1,
       options: previews.map((preview) => ({
         installmentCount: preview.count,
         installmentAmountCents: preview.amountCents,
@@ -684,6 +689,7 @@ export async function saveWizardDraft(
     annualAmountCents,
     paymentCounts: input.paymentCounts,
     defaultPaymentCount: input.defaultPaymentCount ?? null,
+    billingDayOfMonth: input.billingDayOfMonth,
     fees: input.fees ?? [],
     allowEmptyPayments: input.paymentCounts.length === 0,
   });
@@ -757,6 +763,7 @@ export async function createRatePlanFromWizard(
     annualAmountCents,
     paymentCounts: input.paymentCounts,
     defaultPaymentCount: defaultCount,
+    billingDayOfMonth: input.billingDayOfMonth,
     fees: input.fees ?? [],
     allowEmptyPayments: false,
   });
@@ -781,6 +788,7 @@ export function wizardStateFromRatePlan(
   | "effectiveEnd"
   | "paymentCounts"
   | "defaultPaymentCount"
+  | "billingDayOfMonth"
   | "fees"
 > & {
   pricingMode: "single" | "multiple";
@@ -833,6 +841,7 @@ export function wizardStateFromRatePlan(
         ? []
         : [DEFAULT_PAYMENT_COUNT],
     defaultPaymentCount: defaultPlan?.installmentCount ?? (isDraft ? null : DEFAULT_PAYMENT_COUNT),
+    billingDayOfMonth: defaultPlan?.billingDayOfMonth ?? 1,
     fees: wizardFeesFromRatePlan(plan.feeComponents),
     pricingMode: wizardMeta.pricingMode,
     wizardStepIndex: wizardMeta.wizardStepIndex,

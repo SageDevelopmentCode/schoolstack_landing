@@ -16,6 +16,7 @@ type PaymentSchedulePreviewModalProps = {
   annualAmountCents: number;
   effectiveStart?: string | null;
   effectiveEnd?: string | null;
+  billingDayOfMonth?: number;
   schoolYearMonths?: number | null;
   title?: string;
   closeLabel?: string;
@@ -31,6 +32,7 @@ export default function PaymentSchedulePreviewModal({
   annualAmountCents,
   effectiveStart,
   effectiveEnd,
+  billingDayOfMonth = 1,
   schoolYearMonths,
   title = "Payment schedules",
   closeLabel = "Done",
@@ -178,6 +180,7 @@ export default function PaymentSchedulePreviewModal({
                 isDefault={isActiveDefault}
                 effectiveStart={effectiveStart}
                 effectiveEnd={effectiveEnd}
+                billingDayOfMonth={billingDayOfMonth}
                 schoolYearMonths={schoolYearMonths}
                 embedded
               />

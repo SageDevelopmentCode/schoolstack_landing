@@ -132,6 +132,10 @@ function createRegenerationMockSupabase(options: {
             pendingUpdate.filters[`${column}__in`] = values;
             return updateBuilder;
           },
+          neq(column: string, value: unknown) {
+            pendingUpdate.filters[`${column}__neq`] = value;
+            return updateBuilder;
+          },
           select() {
             return updateBuilder;
           },
@@ -142,10 +146,15 @@ function createRegenerationMockSupabase(options: {
               const targetStatus = pendingUpdate.filters.status__in as
                 | string[]
                 | undefined;
+              const excludedChargeType = pendingUpdate.filters.charge_type__neq as
+                | string
+                | undefined;
               for (const charge of charges) {
                 if (
                   charge.assignment_id === pendingUpdate.filters.assignment_id &&
-                  (!targetStatus || targetStatus.includes(charge.status))
+                  (!targetStatus || targetStatus.includes(charge.status)) &&
+                  (excludedChargeType == null ||
+                    charge.charge_type !== excludedChargeType)
                 ) {
                   charge.status = String(pendingUpdate.values.status);
                   voidedChargeIds.push(charge.id);
@@ -379,5 +388,60 @@ describe("regenerateFutureCharges", () => {
     assert.equal(voidedChargeIds.includes("charge-paid"), false);
     assert.equal(getCharges().find((charge) => charge.id === "charge-paid")?.status, "paid");
     assert.ok(voidedChargeIds.includes("charge-scheduled"));
+  });
+
+  it("preserves scheduled late fee charges when regenerating", async () => {
+    const { supabase, voidedChargeIds, getCharges } = createRegenerationMockSupabase({
+      assignments: [
+        {
+          id: "assign-1",
+          organization_id: "org-1",
+          family_id: "family-1",
+          payment_plan_id: "plan-1",
+          rate_plan_id: "rate-1",
+          rate_tier_id: "tier-1",
+          effective_start: "2026-08-01",
+          metadata: {},
+          status: "active",
+        },
+      ],
+      existingCharges: [
+        {
+          id: "charge-tuition",
+          assignment_id: "assign-1",
+          organization_id: "org-1",
+          family_id: "family-1",
+          label: "Aug Tuition",
+          base_amount_cents: 72000,
+          amount_cents: 72000,
+          due_date: "2026-08-01",
+          status: "scheduled",
+          charge_type: "tuition",
+          installment_number: 1,
+        },
+        {
+          id: "charge-late-fee",
+          assignment_id: "assign-1",
+          organization_id: "org-1",
+          family_id: "family-1",
+          label: "Late Fee",
+          base_amount_cents: 2500,
+          amount_cents: 2500,
+          due_date: "2026-08-15",
+          status: "scheduled",
+          charge_type: "late_fee",
+          installment_number: null,
+        },
+      ],
+    });
+
+    await regenerateFutureCharges(supabase, "assign-1");
+
+    assert.equal(voidedChargeIds.includes("charge-late-fee"), false);
+    assert.equal(
+      getCharges().find((charge) => charge.id === "charge-late-fee")?.status,
+      "scheduled",
+    );
+    assert.ok(voidedChargeIds.includes("charge-tuition"));
   });
 });

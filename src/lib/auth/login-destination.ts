@@ -3,6 +3,9 @@ import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
+import { getTeacherPortalHomeHref } from "@/lib/organization-settings/teacher-nav";
+import { isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
+import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 import { isPlatformAdmin, userCanAccessSchoolAdmin } from "@/lib/school-admin/access";
 
 export type LoginDestinationResult =
@@ -122,17 +125,56 @@ async function listParentAccessibleLiveSlugs(
   return [...slugs].sort((left, right) => left.localeCompare(right));
 }
 
+async function listTeacherAccessibleLiveSlugs(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("organization_memberships")
+    .select(
+      `
+      organizations!inner (
+        slug,
+        status,
+        name
+      )
+    `,
+    )
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .in("role", ["teacher", "staff"]);
+
+  if (error) throw error;
+
+  const slugs = new Set<string>();
+
+  for (const row of data ?? []) {
+    const organization = row.organizations as
+      | { slug?: string; status?: string; name?: string }
+      | { slug?: string; status?: string; name?: string }[]
+      | null;
+    const org = Array.isArray(organization) ? organization[0] : organization;
+
+    if (org?.status === "live" && org.slug) {
+      slugs.add(String(org.slug));
+    }
+  }
+
+  return [...slugs].sort((left, right) => left.localeCompare(right));
+}
+
 export async function listAccessibleLiveOrganizations(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<string[]> {
-  const [adminSlugs, parentSlugs] = await Promise.all([
+  const [adminSlugs, teacherSlugs, parentSlugs] = await Promise.all([
     listAdminAccessibleLiveSlugs(supabase, userId),
+    listTeacherAccessibleLiveSlugs(supabase, userId),
     listParentAccessibleLiveSlugs(supabase, userId),
   ]);
 
-  return [...new Set([...adminSlugs, ...parentSlugs])].sort((left, right) =>
-    left.localeCompare(right),
+  return [...new Set([...adminSlugs, ...teacherSlugs, ...parentSlugs])].sort(
+    (left, right) => left.localeCompare(right),
   );
 }
 
@@ -193,6 +235,34 @@ async function resolveParentLoginDestination(
   };
 }
 
+async function resolveTeacherLoginDestination(
+  slug: string,
+  org: NonNullable<Awaited<ReturnType<typeof fetchOrganizationWithSettings>>>,
+): Promise<LoginDestinationResult> {
+  if (!isTeacherPortalEnabled(org.features)) {
+    return {
+      ok: false,
+      error: "forbidden",
+      message: "The teacher portal is not enabled for this school.",
+    };
+  }
+
+  const teacherHref = getTeacherPortalHomeHref(
+    slug,
+    org.features.teacher,
+    org.features.feature_nav?.teacher,
+  );
+
+  if (teacherHref) {
+    return { ok: true, href: teacherHref };
+  }
+
+  return {
+    ok: true,
+    href: `/school/${slug}/teacher`,
+  };
+}
+
 export async function resolveLoginDestination(
   supabase: SupabaseClient,
   userId: string,
@@ -213,6 +283,10 @@ export async function resolveLoginDestination(
       ok: true,
       href: `/school/${slug}/admin`,
     };
+  }
+
+  if (await userHasTeacherPortalAccess(supabase, userId, org.id)) {
+    return resolveTeacherLoginDestination(slug, org);
   }
 
   if (await userHasParentAccess(supabase, userId, org.id)) {

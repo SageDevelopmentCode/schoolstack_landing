@@ -2,6 +2,7 @@ import { formatCents } from "@/lib/tuition/pricing";
 
 export type AutopaySkipReason =
   | "no_payment_method"
+  | "stale_payment_method"
   | "no_guardian"
   | "no_stripe_customer"
   | "zero_balance";
@@ -44,6 +45,7 @@ export function buildFamilyLabel(
 
 const SKIP_REASON_LABELS: Record<AutopaySkipReason, string> = {
   no_payment_method: "no card",
+  stale_payment_method: "stale card — re-save payment method",
   no_guardian: "no guardian",
   no_stripe_customer: "no Stripe customer",
   zero_balance: "already paid",

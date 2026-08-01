@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  formatParentChargeDueLine,
+  formatParentChargeStatusBadge,
+  type ChargeStatusBadgeTone,
+} from "@/lib/tuition/charge-status-display";
 import { buildChargeAdjustmentBreakdown, formatCents } from "@/lib/tuition/pricing";
 import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -25,6 +30,19 @@ function formatBreakdownAmount(amountCents: number): string {
   return formatCents(amountCents);
 }
 
+function badgeStyles(C: AdminThemeTokens, tone: ChargeStatusBadgeTone) {
+  switch (tone) {
+    case "success":
+      return { backgroundColor: C.successBg, color: C.success };
+    case "warning":
+      return { backgroundColor: C.warningBg, color: C.warning };
+    case "danger":
+      return { backgroundColor: C.errorBg, color: C.error };
+    default:
+      return { backgroundColor: C.elevated, color: C.textSecondary };
+  }
+}
+
 export default function ParentBillingChargeRow({
   C,
   charge,
@@ -42,8 +60,11 @@ export default function ParentBillingChargeRow({
   });
 
   const remainingCents = chargeRemainingCents(charge);
-  const showBreakdown = charge.baseAmountCents !== charge.amountCents;
+  const showBreakdown =
+    charge.chargeType !== "late_fee" && charge.baseAmountCents !== charge.amountCents;
   const totalLine = breakdown.find((line) => line.kind === "total");
+  const statusBadge = formatParentChargeStatusBadge(charge);
+  const dueLine = formatParentChargeDueLine(charge);
   const showAutopayHint =
     autopayEnabled && UNPAID_CHARGE_STATUSES.has(charge.status) && remainingCents > 0;
 
@@ -59,9 +80,18 @@ export default function ParentBillingChargeRow({
       }}
     >
       <div className="min-w-0 flex-1">
-        <p style={{ color: C.textPrimary }}>{charge.label}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p style={{ color: C.textPrimary }}>{charge.label}</p>
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide"
+            style={badgeStyles(C, statusBadge.tone)}
+            data-testid="parent-billing-charge-status-badge"
+          >
+            {statusBadge.label}
+          </span>
+        </div>
         <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-          Due {charge.dueDate} · {charge.status}
+          {dueLine}
         </p>
         {showAutopayHint ? (
           <p

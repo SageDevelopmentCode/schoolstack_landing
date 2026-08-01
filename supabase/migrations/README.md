@@ -1,17 +1,25 @@
 # Migrations
 
+Agent workflow for new SQL: [`.agents/skills/supabase-migrations/SKILL.md`](../../.agents/skills/supabase-migrations/SKILL.md)
+
 ## Local development / E2E
 
-Migrations in this folder use timestamp prefixes (`20260101NNNN_name.sql`) so the Supabase CLI applies them in dependency order.
+Migrations in this folder use timestamp prefixes (`20260101NNNN_name.sql` or `YYYYMMDD_name.sql`) so the Supabase CLI applies them in dependency order.
 
 ```bash
 supabase start
 supabase db reset   # applies all migrations below; does not run migrations_manual/ or rooted-meadows/
 ```
 
-**54 migrations** apply in a fixed order. `add_product_timeline_bootstrap.sql` is excluded (see [`migrations_manual/`](../migrations_manual/)).
+Timestamp-prefixed `.sql` files in this directory apply in a fixed order. `add_product_timeline_bootstrap.sql` lives only in [`migrations_manual/`](../migrations_manual/) (excluded).
 
 `202601010054_grant_postgrest_api_access.sql` grants table access to `anon` / `authenticated` / `service_role` — required for local PostgREST (Supabase cloud does this automatically).
+
+## Schema changes checklist
+
+1. Add `supabase/migrations/<next_timestamp>_<name>.sql` (required for local dev, CI, E2E).
+2. Mirror the same SQL in `supabase/migrations_manual/` for Supabase SQL Editor on remote.
+3. Run `supabase db reset` to verify.
 
 ## Remote (production) database
 

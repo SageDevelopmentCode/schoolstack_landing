@@ -39,6 +39,8 @@ type TuitionPaymentOptionsStepProps = {
   effectiveEnd?: string | null;
   selectedCounts: number[];
   defaultCount: number | null;
+  billingDayOfMonth: number;
+  onBillingDayOfMonthChange: (day: number) => void;
   onToggleCount: (count: number) => void;
   onSetDefault: (count: number) => void;
   onAddCustomCount: (count: number) => void;
@@ -54,6 +56,8 @@ export default function TuitionPaymentOptionsStep({
   effectiveEnd,
   selectedCounts,
   defaultCount,
+  billingDayOfMonth,
+  onBillingDayOfMonthChange,
   onToggleCount,
   onSetDefault,
   onAddCustomCount,
@@ -139,6 +143,36 @@ export default function TuitionPaymentOptionsStep({
               : ""}
           .
         </p>
+      </div>
+
+      <div
+        className="rounded-lg p-4 flex flex-col gap-2"
+        style={{ border: `1px solid ${C.border}`, backgroundColor: C.surface }}
+      >
+        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+          Tuition due day of month
+        </p>
+        <p className="text-xs" style={{ color: C.textTertiary }}>
+          Installments are due on this day each month (for example, the 1st).
+          Late fees are configured separately in the Rules tab.
+        </p>
+        <input
+          type="number"
+          min={1}
+          max={28}
+          value={billingDayOfMonth}
+          onChange={(event) =>
+            onBillingDayOfMonthChange(
+              Math.min(28, Math.max(1, Number(event.target.value || 1))),
+            )
+          }
+          className="max-w-[120px] rounded-md px-3 py-2 text-sm"
+          style={{
+            backgroundColor: C.input,
+            border: `1px solid ${C.inputBorder}`,
+            color: C.textPrimary,
+          }}
+        />
       </div>
 
       <div className="flex flex-col gap-3">
@@ -270,6 +304,7 @@ export default function TuitionPaymentOptionsStep({
           annualAmountCents={annualAmountCents}
           effectiveStart={effectiveStart}
           effectiveEnd={effectiveEnd}
+          billingDayOfMonth={billingDayOfMonth}
           schoolYearMonths={schoolYearMonths}
           onClose={() => setPreviewModalOpen(false)}
         />

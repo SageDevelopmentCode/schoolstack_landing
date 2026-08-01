@@ -50,6 +50,7 @@ export async function notifyAutopayFailed(
     guardianUserId: string | null;
     errorMessage: string;
     orgSlug: string;
+    stripeTestMode?: boolean;
   },
 ): Promise<void> {
   await logActivityEvent(supabase, {
@@ -66,6 +67,7 @@ export async function notifyAutopayFailed(
       guardianId: input.guardianId,
       amountCents: input.amountCents,
       errorMessage: input.errorMessage,
+      stripeTestMode: input.stripeTestMode ?? null,
     },
     severity: "error",
   });

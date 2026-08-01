@@ -574,6 +574,55 @@ export async function sendTuitionDueReminderEmail(payload: {
   return { ok: true };
 }
 
+export function buildTuitionLateFeeHtml(payload: {
+  familyName: string;
+  schoolName: string;
+  totalDue: string;
+  chargeLines: string[];
+  billingUrl?: string;
+}): string {
+  return composeEmail({
+    preheader: `A late fee of ${payload.totalDue} has been added to your balance.`,
+    contentHtml: `
+      ${emailBadge("Late Fee")}
+      ${emailHeading(`Late fee added for ${escapeHtml(payload.familyName)}`)}
+      ${emailParagraph(
+        `${escapeHtml(payload.schoolName)} has added a late fee to your tuition balance because payment was not received by the due date.`,
+      )}
+      ${emailDetailCard([
+        { label: "Late fee total", value: payload.totalDue },
+      ])}
+      ${emailParagraph("Charges:")}
+      ${emailBulletList(payload.chargeLines)}
+      ${payload.billingUrl ? emailCta({ label: "View billing", href: payload.billingUrl }) : ""}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTuitionLateFeeEmail(payload: {
+  to: string;
+  schoolName: string;
+  html: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Late fee notice — ${payload.schoolName}`,
+    content: payload.html,
+  });
+
+  if (!result.success) {
+    console.error("Tuition late fee email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export function buildTuitionInvoiceHtml(payload: {
   familyName: string;
   schoolName: string;

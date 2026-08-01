@@ -89,6 +89,8 @@ export type CommitteeResource = {
   title: string;
   type: CommitteeResourceType;
   url?: string;
+  storagePath?: string;
+  fileName?: string;
   description?: string;
   addedBy?: string;
   allowedDutyRoleIds?: string[];
@@ -160,6 +162,54 @@ export type CommitteeListItem = {
   type: CommitteeType;
   memberCount: number;
   templateId: string | null;
+};
+
+export type CommitteeJoinRequestStatus =
+  | "pending"
+  | "approved"
+  | "declined"
+  | "withdrawn";
+
+export type CommitteeJoinRequest = {
+  id: string;
+  organizationId: string;
+  committeeId: string;
+  userId: string;
+  guardianId: string | null;
+  preferredDutyRoleId: string | null;
+  grade: string | null;
+  note: string | null;
+  status: CommitteeJoinRequestStatus;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  committeeName?: string;
+  guardianName?: string;
+  guardianEmail?: string;
+  preferredDutyRoleTitle?: string | null;
+};
+
+export type ParentCommitteeBrowseItem = {
+  id: string;
+  name: string;
+  description: string;
+  termLabel: string;
+  type: CommitteeType;
+  dutyRoles: { id: string; title: string; description: string }[];
+  requestStatus: CommitteeJoinRequestStatus | null;
+  requestId: string | null;
+  isMember: boolean;
+};
+
+export type ParentCommitteeListItem = {
+  id: string;
+  name: string;
+  description: string;
+  termLabel: string;
+  type: CommitteeType;
+  openTaskCount: number;
+  nextEventTitle: string | null;
 };
 
 export const COMMITTEE_SECTION_LABELS: Record<CommitteeWorkspaceSection, string> = {

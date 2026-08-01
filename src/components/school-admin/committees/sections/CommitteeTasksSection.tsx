@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -9,6 +10,8 @@ import { createTask, updateTask } from "@/lib/committees/tasks";
 import { getCommittee } from "@/lib/committees/committees";
 import { TASK_STATUS_LABELS } from "@/lib/committees/task-utils";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
+import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 const COLUMNS: CommitteeTaskStatus[] = ["open", "claimed", "in_progress", "done"];
 
@@ -18,17 +21,20 @@ export default function CommitteeTasksSection({
   supabase,
   organizationId,
   onCommitteeChange,
+  readOnly = false,
 }: {
   committee: Committee;
   C: AdminThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
+  readOnly?: boolean;
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState("");
   const [group, setGroup] = useState("general");
   const [saving, setSaving] = useState(false);
+  const reducedMotion = useReducedMotion() ?? false;
 
   const taskGroups = committee.config.taskGroups ?? [{ id: "general", label: "General" }];
 
@@ -69,6 +75,7 @@ export default function CommitteeTasksSection({
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
+        {!readOnly && (
         <button
           type="button"
           onClick={() => setShowAdd(true)}
@@ -78,11 +85,18 @@ export default function CommitteeTasksSection({
           <Plus className="w-3.5 h-3.5" />
           Add task
         </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <motion.div
+        key={committee.tasks.map((t) => t.id).join("-")}
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
+        variants={staggerContainer(reducedMotion)}
+        initial="initial"
+        animate="animate"
+      >
         {COLUMNS.map((status) => (
-          <div key={status}>
+          <motion.div key={status} variants={staggerItem(reducedMotion)}>
             <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: C.textSecondary }}>
               {TASK_STATUS_LABELS[status]}
             </h4>
@@ -90,8 +104,9 @@ export default function CommitteeTasksSection({
               {committee.tasks
                 .filter((t) => t.status === status)
                 .map((task) => (
-                  <div
+                  <motion.div
                     key={task.id}
+                    variants={staggerItem(reducedMotion)}
                     className="p-3 rounded-lg border"
                     style={{ backgroundColor: C.surface, borderColor: C.border }}
                   >
@@ -109,6 +124,7 @@ export default function CommitteeTasksSection({
                         {task.assigneeName}
                       </p>
                     )}
+                    {!readOnly ? (
                     <select
                       value={task.status}
                       onChange={(e) =>
@@ -123,17 +139,41 @@ export default function CommitteeTasksSection({
                         </option>
                       ))}
                     </select>
-                  </div>
+                    ) : (
+                      <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
+                        {TASK_STATUS_LABELS[task.status]}
+                      </p>
+                    )}
+                  </motion.div>
                 ))}
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
+      <AnimatePresence>
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="rounded-2xl shadow-xl w-full max-w-md p-6" style={{ backgroundColor: C.surface }}>
-            <h3 className="text-lg font-semibold mb-4" style={{ color: C.textPrimary }}>Add task</h3>
+        <CommitteeModalShell
+          C={C}
+          title="Add task"
+          onClose={() => setShowAdd(false)}
+          footer={
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm cursor-pointer">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={saving || !title.trim()}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
+                style={{ backgroundColor: C.accent }}
+              >
+                {saving ? "Adding…" : "Add task"}
+              </button>
+            </div>
+          }
+        >
             <input
               placeholder="Task title"
               value={title}
@@ -151,21 +191,9 @@ export default function CommitteeTasksSection({
                 <option key={g.id} value={g.id}>{g.label}</option>
               ))}
             </select>
-            <div className="flex justify-end gap-2 mt-6">
-              <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm cursor-pointer">Cancel</button>
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={saving || !title.trim()}
-                className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-                style={{ backgroundColor: C.accent }}
-              >
-                {saving ? "Adding…" : "Add task"}
-              </button>
-            </div>
-          </div>
-        </div>
+        </CommitteeModalShell>
       )}
+      </AnimatePresence>
     </div>
   );
 }

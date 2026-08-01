@@ -5,7 +5,11 @@ import {
   AuthError,
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireTuitionOrgAdmin } from "@/lib/tuition/api-auth";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
+import { applyLateFeesForOrganization, getGraceDaysForSettings } from "@/lib/tuition/late-fees";
+import { processAutopayForOrganization } from "@/lib/tuition/autopay";
+import { getTuitionOrgSettings } from "@/lib/tuition/org-settings";
 import { evaluateRulesForOrganization } from "@/lib/tuition/rules-engine";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -33,35 +37,38 @@ export async function POST(request: Request) {
       });
     }
 
-    const { data: membership, error: membershipError } = await admin
-      .from("organization_memberships")
-      .select("role")
-      .eq("organization_id", body.organizationId)
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
+    await requireTuitionOrgAdmin(admin, body.organizationId, user.id);
 
-    if (membershipError) throw membershipError;
-    if (membership?.role !== "owner" && membership?.role !== "admin") {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "Admin access required.",
-        code: "forbidden",
-      });
-    }
+    const settings = await getTuitionOrgSettings(admin, body.organizationId);
+    const graceDays = body.graceDays ?? getGraceDaysForSettings(settings);
 
     const overdueCount = await markOverdueCharges(
       admin,
       body.organizationId,
-      body.graceDays ?? 5,
+      graceDays,
     );
     const rulesEvaluated = await evaluateRulesForOrganization(
       admin,
       body.organizationId,
     );
+    const lateFeeResult = await applyLateFeesForOrganization(
+      admin,
+      body.organizationId,
+    );
+    const autopayResult = await processAutopayForOrganization(
+      admin,
+      body.organizationId,
+    );
 
-    return NextResponse.json({ overdueCount, rulesEvaluated });
+    return NextResponse.json({
+      overdueCount,
+      rulesEvaluated,
+      lateFeesApplied: lateFeeResult.applied,
+      lateFeesNotified: lateFeeResult.notified,
+      autopayProcessed: autopayResult.processed,
+      autopayFailed: autopayResult.failed,
+      autopaySkipped: autopayResult.skipped,
+    });
   } catch (error) {
     if (error instanceof AuthError) {
       return apiError(ROUTE, {

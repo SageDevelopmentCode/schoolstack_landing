@@ -68,9 +68,19 @@ describe("formatAutopayLineItems", () => {
       ],
       "skipped",
     );
+    const stale = formatAutopayLineItems(
+      [
+        sampleLine({
+          outcome: "skipped",
+          skipReason: "stale_payment_method",
+        }),
+      ],
+      "skipped",
+    );
 
     assert.match(failed ?? "", /Card declined/);
     assert.match(skipped ?? "", /no card/);
+    assert.match(stale ?? "", /stale card/);
   });
 
   it("truncates long lists with a remaining count", () => {

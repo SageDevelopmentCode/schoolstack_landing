@@ -45,6 +45,10 @@ export const ACTIVITY_ACTIONS = {
   TUITION_AUTOPAY_SUCCEEDED: "tuition.autopay_succeeded",
   TUITION_AUTOPAY_FAILED: "tuition.autopay_failed",
   TUITION_PAYMENT_METHOD_SAVED: "tuition.payment_method_saved",
+  COMMITTEE_JOIN_REQUESTED: "committee.join_requested",
+  COMMITTEE_JOIN_APPROVED: "committee.join_approved",
+  COMMITTEE_JOIN_DECLINED: "committee.join_declined",
+  COMMITTEE_JOIN_WITHDRAWN: "committee.join_withdrawn",
 } as const;
 
 export type ActivityAction =
@@ -158,6 +162,10 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED]: "Payment method saved",
+  [ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED]: "Committee join requested",
+  [ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED]: "Committee join approved",
+  [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "Committee join declined",
+  [ACTIVITY_ACTIONS.COMMITTEE_JOIN_WITHDRAWN]: "Committee join withdrawn",
 };
 
 const PARENT_SURFACES: ActivitySurface[] = [

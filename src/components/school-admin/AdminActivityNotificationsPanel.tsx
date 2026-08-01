@@ -9,6 +9,7 @@ import {
   ClipboardList,
   CreditCard,
   GraduationCap,
+  Heart,
   Loader2,
   X,
   type LucideIcon,
@@ -57,6 +58,15 @@ function getActivityNotificationVisual(
           backgroundColor: C.infoBg,
           color: C.info,
           border: `1px solid ${C.infoBorder}`,
+        },
+      };
+    case "committees":
+      return {
+        Icon: Heart,
+        badgeStyle: {
+          backgroundColor: C.accentLight,
+          color: C.accent,
+          border: `1px solid ${C.secondaryBtnBorder}`,
         },
       };
     case "other":

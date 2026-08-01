@@ -307,7 +307,8 @@ export async function regenerateFutureCharges(
     .from("tuition_charges")
     .update({ status: "void" })
     .eq("assignment_id", assignmentId)
-    .in("status", ["scheduled", "sent", "overdue"]);
+    .in("status", ["scheduled", "sent", "overdue"])
+    .neq("charge_type", "late_fee");
 
   if (voidError) throw voidError;
 

@@ -10,6 +10,7 @@ import { inviteCommitteeMember, removeCommitteeMember } from "@/lib/committees/m
 import { getCommittee } from "@/lib/committees/committees";
 import { memberInitials } from "@/lib/committees/task-utils";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
 
 const ROLE_LABELS: Record<CommitteeRole, string> = {
   member: "Member",
@@ -24,12 +25,14 @@ export default function CommitteeMembersSection({
   supabase,
   organizationId,
   onCommitteeChange,
+  readOnly = false,
 }: {
   committee: Committee;
   C: AdminThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
+  readOnly?: boolean;
 }) {
   const [showInvite, setShowInvite] = useState(false);
   const [name, setName] = useState("");
@@ -81,6 +84,7 @@ export default function CommitteeMembersSection({
         <p className="text-sm" style={{ color: C.textSecondary }}>
           {committee.members.length} members
         </p>
+        {!readOnly && (
         <button
           type="button"
           onClick={() => setShowInvite(true)}
@@ -90,6 +94,7 @@ export default function CommitteeMembersSection({
           <UserPlus className="w-3.5 h-3.5" />
           Invite member
         </button>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -137,6 +142,7 @@ export default function CommitteeMembersSection({
                 )}
               </div>
             </div>
+            {!readOnly && (
             <button
               type="button"
               onClick={() => handleRemove(member.id)}
@@ -145,20 +151,34 @@ export default function CommitteeMembersSection({
             >
               Remove
             </button>
+            )}
           </div>
         ))}
       </div>
 
       <AnimatePresence>
         {showInvite && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div
-              className="rounded-2xl shadow-xl w-full max-w-md p-6"
-              style={{ backgroundColor: C.surface }}
-            >
-              <h3 className="text-lg font-semibold mb-4" style={{ color: C.textPrimary }}>
-                Invite member
-              </h3>
+          <CommitteeModalShell
+            C={C}
+            title="Invite member"
+            onClose={() => setShowInvite(false)}
+            footer={
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 text-sm cursor-pointer">
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleInvite}
+                  disabled={saving || !name.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
+                  style={{ backgroundColor: C.accent }}
+                >
+                  {saving ? "Inviting…" : "Send invite"}
+                </button>
+              </div>
+            }
+          >
               <div className="space-y-3">
                 <input
                   placeholder="Full name"
@@ -187,22 +207,7 @@ export default function CommitteeMembersSection({
                   ))}
                 </select>
               </div>
-              <div className="flex justify-end gap-2 mt-6">
-                <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 text-sm cursor-pointer">
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleInvite}
-                  disabled={saving || !name.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-                  style={{ backgroundColor: C.accent }}
-                >
-                  {saving ? "Inviting…" : "Send invite"}
-                </button>
-              </div>
-            </div>
-          </div>
+          </CommitteeModalShell>
         )}
       </AnimatePresence>
     </div>

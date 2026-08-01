@@ -1,30 +1,46 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import { Archive, Plus, Users } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { CommitteeListItem } from "@/lib/committees/types";
+import { fadeUp, staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 export default function CommitteeListView({
   committees,
   C,
+  pendingRequestCount = 0,
   onOpenCommittee,
   onCreate,
 }: {
   committees: CommitteeListItem[];
   C: AdminThemeTokens;
+  pendingRequestCount?: number;
   onOpenCommittee: (id: string) => void;
   onCreate: () => void;
 }) {
+  const reducedMotion = useReducedMotion() ?? false;
+
   return (
-    <div className="h-full overflow-y-auto p-6">
+    <div>
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <h1
-            className="text-xl font-heading font-semibold"
-            style={{ color: C.textPrimary }}
-          >
-            Committees
-          </h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1
+              className="text-xl font-heading font-semibold"
+              style={{ color: C.textPrimary }}
+            >
+              Committees
+            </h1>
+            {pendingRequestCount > 0 && (
+              <span
+                className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: C.warningBg ?? C.accentLight, color: C.warning ?? C.accent }}
+              >
+                {pendingRequestCount} join request{pendingRequestCount !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
           <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
             Structured parent workspaces for volunteer groups, coordinators, and
             festival teams.
@@ -42,7 +58,10 @@ export default function CommitteeListView({
       </div>
 
       {committees.length === 0 ? (
-        <div
+        <motion.div
+          variants={fadeUp(reducedMotion)}
+          initial="initial"
+          animate="animate"
           className="flex flex-col items-center justify-center py-16 px-6 rounded-2xl border"
           style={{ borderColor: C.border, backgroundColor: C.surface }}
         >
@@ -52,13 +71,20 @@ export default function CommitteeListView({
           <p className="text-sm text-center max-w-xs" style={{ color: C.textSecondary }}>
             Create a committee workspace from a template to get started.
           </p>
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <motion.div
+          key={committees.map((c) => c.id).join("-")}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          variants={staggerContainer(reducedMotion)}
+          initial="initial"
+          animate="animate"
+        >
           {committees.map((c) => (
-            <button
+            <motion.button
               key={c.id}
               type="button"
+              variants={staggerItem(reducedMotion)}
               onClick={() => onOpenCommittee(c.id)}
               className="text-left p-5 rounded-2xl border transition-all cursor-pointer hover:shadow-sm"
               style={{
@@ -103,9 +129,9 @@ export default function CommitteeListView({
                   History preserved
                 </span>
               )}
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

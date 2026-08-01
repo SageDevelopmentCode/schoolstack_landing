@@ -1,4 +1,5 @@
 import { SITE_URL } from "@/lib/site";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   formatAutopayLineItems,
   type AutopayLineItem,
@@ -281,6 +282,8 @@ export async function notifyTuitionBillingCronSummary(payload: {
   overdueCount: number;
   remindersSent: number;
   rulesEvaluated: number;
+  lateFeesApplied: number;
+  lateFeesNotified: number;
   autopayProcessed: number;
   autopayFailed: number;
   autopaySkipped: number;
@@ -293,6 +296,8 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField("Overdue marked", String(payload.overdueCount), true),
     embedField("Reminders sent", String(payload.remindersSent), true),
     embedField("Rules evaluated", String(payload.rulesEvaluated), true),
+    embedField("Late fees applied", String(payload.lateFeesApplied), true),
+    embedField("Late fee notices", String(payload.lateFeesNotified), true),
     embedField("Autopay due today", String(payload.autopayDueCandidates), true),
     embedField("Autopay charged", String(payload.autopayProcessed), true),
     embedField("Autopay failed", String(payload.autopayFailed), true),
@@ -1006,6 +1011,43 @@ export async function notifyAdminSupportRequest(payload: {
     title: "🆘 Admin support request",
     description: `**${payload.organizationName}** · ${topicLabel}`,
     color: DISCORD_EMBED_COLORS.support,
+    fields,
+  });
+}
+
+export async function notifyCommitteeJoinRequested(payload: {
+  schoolName: string;
+  schoolSlug: string;
+  committeeName: string;
+  guardianName: string;
+  guardianEmail: string;
+  grade?: string | null;
+  note?: string | null;
+  requestId: string;
+}) {
+  const adminUrl = `${SITE_URL}${schoolAdminPath(payload.schoolSlug, "committees")}`;
+
+  const fields: DiscordEmbedField[] = [
+    embedField("School", truncate(payload.schoolName), true),
+    embedField("Committee", truncate(payload.committeeName), true),
+    contactField(payload.guardianEmail, payload.guardianName),
+    embedField("Request ID", formatId(payload.requestId), true),
+  ];
+
+  if (payload.grade?.trim()) {
+    fields.push(embedField("Grade", truncate(payload.grade.trim()), true));
+  }
+
+  if (payload.note?.trim()) {
+    fields.push(embedField("Note", truncate(payload.note.trim(), 500)));
+  }
+
+  fields.push(embedField("Review", adminUrl));
+
+  await sendWebsiteNotificationDiscordEmbed({
+    title: "❤️ Committee join request",
+    description: `**${payload.guardianName}** wants to join **${payload.committeeName}**`,
+    color: DISCORD_EMBED_COLORS.feedback,
     fields,
   });
 }

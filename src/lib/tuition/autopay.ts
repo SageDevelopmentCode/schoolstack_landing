@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getStripeClient } from "@/lib/stripe/client";
+import { isStripeTestMode } from "@/lib/stripe/connect-status";
+import {
+  isPaymentMethodMissingError,
+  paymentMethodExistsOnPlatform,
+} from "@/lib/stripe/payment-method-validation";
 import { executeTuitionAutopayCharge } from "@/lib/stripe/tuition-autopay-charge";
 import {
   getOrganizationPaymentAccount,
@@ -20,7 +25,11 @@ import {
   type AutopaySkipReason,
 } from "./autopay-cron-report";
 import { rowToBillingAccount } from "./row-mappers";
+import { removeFamilyPaymentMethod } from "./payment-methods";
 import type { AdjustmentType, TuitionBillingAccount } from "./types";
+
+const STALE_PAYMENT_METHOD_MESSAGE =
+  "Saved payment method is no longer valid for autopay. Please re-save your card on the billing page.";
 
 export async function setAutopayEnabled(
   supabase: SupabaseClient,
@@ -467,6 +476,8 @@ export async function processAutopayForOrganization(
   };
   const lines: AutopayLineItem[] = [];
   const lineState = { truncated: false };
+  const stripe = getStripeClient();
+  const stripeTestMode = isStripeTestMode();
 
   for (const accountRow of accounts ?? []) {
     const account = rowToBillingAccount(accountRow);
@@ -627,6 +638,46 @@ export async function processAutopayForOrganization(
 
         stats.dueCandidates++;
 
+        const paymentMethodExists = await paymentMethodExistsOnPlatform(
+          stripe,
+          paymentMethodId,
+        );
+        if (!paymentMethodExists) {
+          await removeFamilyPaymentMethod(supabase, {
+            billingAccountId: account.id,
+            stripePaymentMethodId: paymentMethodId,
+            guardianId,
+          });
+          await notifyAutopayFailed(supabase, {
+            organizationId,
+            familyId: account.familyId,
+            chargeId: String(charge.id),
+            chargeLabel: String(charge.label),
+            amountCents,
+            guardianId,
+            guardianUserId,
+            errorMessage: STALE_PAYMENT_METHOD_MESSAGE,
+            orgSlug,
+            stripeTestMode,
+          });
+          stats.skipped++;
+          pushAutopayLine(
+            lines,
+            {
+              organizationSlug: orgSlug,
+              familyId: account.familyId,
+              familyLabel: accountFamilyLabel,
+              chargeId: String(charge.id),
+              chargeLabel: String(charge.label),
+              amountCents,
+              outcome: "skipped",
+              skipReason: "stale_payment_method",
+            },
+            lineState,
+          );
+          continue;
+        }
+
         try {
           await executeTuitionAutopayCharge(supabase, {
             organizationId,
@@ -666,6 +717,13 @@ export async function processAutopayForOrganization(
           const errorMessage =
             error instanceof Error ? error.message : "Payment could not be processed.";
           console.error("Autopay charge failed:", charge.id, error);
+          if (isPaymentMethodMissingError(error)) {
+            await removeFamilyPaymentMethod(supabase, {
+              billingAccountId: account.id,
+              stripePaymentMethodId: paymentMethodId,
+              guardianId,
+            });
+          }
           await notifyAutopayFailed(supabase, {
             organizationId,
             familyId: account.familyId,
@@ -674,9 +732,30 @@ export async function processAutopayForOrganization(
             amountCents,
             guardianId,
             guardianUserId,
-            errorMessage,
+            errorMessage: isPaymentMethodMissingError(error)
+              ? STALE_PAYMENT_METHOD_MESSAGE
+              : errorMessage,
             orgSlug,
+            stripeTestMode,
           });
+          if (isPaymentMethodMissingError(error)) {
+            stats.skipped++;
+            pushAutopayLine(
+              lines,
+              {
+                organizationSlug: orgSlug,
+                familyId: account.familyId,
+                familyLabel: accountFamilyLabel,
+                chargeId: String(charge.id),
+                chargeLabel: String(charge.label),
+                amountCents,
+                outcome: "skipped",
+                skipReason: "stale_payment_method",
+              },
+              lineState,
+            );
+            continue;
+          }
           stats.failed++;
           pushAutopayLine(
             lines,

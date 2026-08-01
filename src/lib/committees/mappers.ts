@@ -93,6 +93,8 @@ export type CommitteeResourceRow = {
   title: string;
   resource_type: CommitteeResource["type"];
   url: string | null;
+  storage_path: string | null;
+  file_name: string | null;
   description: string | null;
   allowed_duty_role_ids: string[];
   sort_order: number;
@@ -184,6 +186,8 @@ export function mapResourceRow(row: CommitteeResourceRow): CommitteeResource {
     title: row.title,
     type: row.resource_type,
     url: row.url ?? undefined,
+    storagePath: row.storage_path ?? undefined,
+    fileName: row.file_name ?? undefined,
     description: row.description ?? undefined,
     allowedDutyRoleIds: row.allowed_duty_role_ids ?? [],
   };
