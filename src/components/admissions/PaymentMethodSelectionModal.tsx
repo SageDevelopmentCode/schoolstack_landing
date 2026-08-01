@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Building2, CreditCard, X } from "lucide-react";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
@@ -26,6 +26,8 @@ type PaymentMethodSelectionModalProps = {
   loading?: boolean;
   error?: string | null;
   savedPaymentMethod?: SavedPaymentMethodSummary | null;
+  beforeSummary?: ReactNode;
+  confirmDisabled?: boolean;
   onConfirm: (method: CheckoutPaymentMethod) => void | Promise<void>;
 };
 
@@ -199,6 +201,8 @@ export default function PaymentMethodSelectionModal({
   loading = false,
   error = null,
   savedPaymentMethod = null,
+  beforeSummary = null,
+  confirmDisabled = false,
   onConfirm,
 }: PaymentMethodSelectionModalProps) {
   const [selectedMethod, setSelectedMethod] =
@@ -301,6 +305,8 @@ export default function PaymentMethodSelectionModal({
               </button>
             </div>
 
+            {beforeSummary}
+
             <div className="space-y-2">
               <MethodOption
                 C={C}
@@ -401,7 +407,7 @@ export default function PaymentMethodSelectionModal({
               <button
                 type="button"
                 onClick={() => void onConfirm(selectedMethod)}
-                disabled={loading}
+                disabled={loading || confirmDisabled}
                 className="rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
                 style={{ backgroundColor: C.accent }}
               >

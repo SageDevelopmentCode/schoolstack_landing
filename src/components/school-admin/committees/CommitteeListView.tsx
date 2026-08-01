@@ -1,8 +1,10 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import { Archive, Plus, Users } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { CommitteeListItem } from "@/lib/committees/types";
+import { fadeUp, staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 export default function CommitteeListView({
   committees,
@@ -17,6 +19,8 @@ export default function CommitteeListView({
   onOpenCommittee: (id: string) => void;
   onCreate: () => void;
 }) {
+  const reducedMotion = useReducedMotion() ?? false;
+
   return (
     <div>
       <div className="flex items-start justify-between gap-4 mb-6">
@@ -54,7 +58,10 @@ export default function CommitteeListView({
       </div>
 
       {committees.length === 0 ? (
-        <div
+        <motion.div
+          variants={fadeUp(reducedMotion)}
+          initial="initial"
+          animate="animate"
           className="flex flex-col items-center justify-center py-16 px-6 rounded-2xl border"
           style={{ borderColor: C.border, backgroundColor: C.surface }}
         >
@@ -64,13 +71,20 @@ export default function CommitteeListView({
           <p className="text-sm text-center max-w-xs" style={{ color: C.textSecondary }}>
             Create a committee workspace from a template to get started.
           </p>
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <motion.div
+          key={committees.map((c) => c.id).join("-")}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          variants={staggerContainer(reducedMotion)}
+          initial="initial"
+          animate="animate"
+        >
           {committees.map((c) => (
-            <button
+            <motion.button
               key={c.id}
               type="button"
+              variants={staggerItem(reducedMotion)}
               onClick={() => onOpenCommittee(c.id)}
               className="text-left p-5 rounded-2xl border transition-all cursor-pointer hover:shadow-sm"
               style={{
@@ -115,9 +129,9 @@ export default function CommitteeListView({
                   History preserved
                 </span>
               )}
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

@@ -66,6 +66,13 @@ type ApplicationNotificationContext = {
   programName: string | null;
 };
 
+export type TuitionNotificationContext = {
+  subjectLabel: string | null;
+  chargeLabel: string | null;
+  familyName: string | null;
+  studentName: string | null;
+};
+
 const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.APPLICATION_SUBMITTED]: "New application submitted",
   [ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED]: "Payment received",
@@ -409,12 +416,190 @@ async function fetchPaymentAmountContexts(
   return amountsByEventId;
 }
 
+function resolveTuitionChargeIdForEvent(
+  event: ActivityEventForNotification,
+): string | null {
+  if (event.entity_type === "tuition_charge" && event.entity_id) {
+    return event.entity_id;
+  }
+
+  const fromMetadata = metadataString(event.metadata, "tuitionChargeId");
+  if (fromMetadata) return fromMetadata;
+
+  const chargeId = metadataString(event.metadata, "chargeId");
+  if (chargeId) return chargeId;
+
+  return null;
+}
+
+export async function fetchTuitionNotificationContexts(
+  supabase: SupabaseClient,
+  events: ActivityEventForNotification[],
+): Promise<Map<string, TuitionNotificationContext>> {
+  const chargeIds = new Set<string>();
+
+  for (const event of events) {
+    const chargeId = resolveTuitionChargeIdForEvent(event);
+    if (chargeId) {
+      chargeIds.add(chargeId);
+    }
+  }
+
+  if (chargeIds.size === 0) {
+    return new Map();
+  }
+
+  const { data: charges, error: chargesError } = await supabase
+    .from("tuition_charges")
+    .select("id, label, family_id, assignment_id, families(name)")
+    .in("id", [...chargeIds]);
+
+  if (chargesError) throw chargesError;
+
+  const assignmentIds = [
+    ...new Set(
+      (charges ?? [])
+        .map((charge) =>
+          charge.assignment_id ? String(charge.assignment_id) : null,
+        )
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  const studentNameByAssignmentId = new Map<string, string>();
+
+  if (assignmentIds.length > 0) {
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from("tuition_enrollment_assignments")
+      .select("id, enrollment_id")
+      .in("id", assignmentIds);
+
+    if (assignmentsError) throw assignmentsError;
+
+    const enrollmentIds = [
+      ...new Set(
+        (assignments ?? [])
+          .map((assignment) =>
+            assignment.enrollment_id ? String(assignment.enrollment_id) : null,
+          )
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    const enrollmentStudentId = new Map<string, string | null>();
+    if (enrollmentIds.length > 0) {
+      const { data: enrollments, error: enrollmentsError } = await supabase
+        .from("enrollments")
+        .select("id, student_id")
+        .in("id", enrollmentIds);
+
+      if (enrollmentsError) throw enrollmentsError;
+
+      for (const enrollment of enrollments ?? []) {
+        enrollmentStudentId.set(
+          String(enrollment.id),
+          enrollment.student_id ? String(enrollment.student_id) : null,
+        );
+      }
+    }
+
+    const studentIds = [
+      ...new Set(
+        [...enrollmentStudentId.values()].filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    const studentNameById = new Map<string, string>();
+    if (studentIds.length > 0) {
+      const { data: students, error: studentsError } = await supabase
+        .from("students")
+        .select("id, first_name, last_name")
+        .in("id", studentIds);
+
+      if (studentsError) throw studentsError;
+
+      for (const student of students ?? []) {
+        studentNameById.set(
+          String(student.id),
+          [student.first_name, student.last_name].filter(Boolean).join(" ").trim() ||
+            "Student",
+        );
+      }
+    }
+
+    const assignmentEnrollmentId = new Map(
+      (assignments ?? []).map((assignment) => [
+        String(assignment.id),
+        assignment.enrollment_id ? String(assignment.enrollment_id) : null,
+      ]),
+    );
+
+    for (const assignmentId of assignmentIds) {
+      const enrollmentId = assignmentEnrollmentId.get(assignmentId) ?? null;
+      if (!enrollmentId) continue;
+      const studentId = enrollmentStudentId.get(enrollmentId) ?? null;
+      if (!studentId) continue;
+      const studentName = studentNameById.get(studentId);
+      if (studentName) {
+        studentNameByAssignmentId.set(assignmentId, studentName);
+      }
+    }
+  }
+
+  const contexts = new Map<string, TuitionNotificationContext>();
+
+  for (const charge of charges ?? []) {
+    const chargeId = String(charge.id);
+    const family = charge.families as { name?: string } | { name?: string }[] | null;
+    const familyRow = Array.isArray(family) ? family[0] : family;
+    const familyName =
+      typeof familyRow?.name === "string" ? familyRow.name.trim() : null;
+    const assignmentId = charge.assignment_id
+      ? String(charge.assignment_id)
+      : null;
+    const studentName = assignmentId
+      ? studentNameByAssignmentId.get(assignmentId) ?? null
+      : null;
+    const subjectLabel = studentName ?? familyName;
+
+    contexts.set(chargeId, {
+      subjectLabel,
+      chargeLabel: String(charge.label ?? ""),
+      familyName,
+      studentName,
+    });
+  }
+
+  return contexts;
+}
+
 export function formatActivityNotificationDetail(
   action: string,
   subjectLabel: string | null,
   fallbackSummary: string,
   paymentAmountLabel?: string | null,
+  tuitionContext?: TuitionNotificationContext | null,
 ): string {
+  const isTuitionPayment =
+    action === ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED &&
+    tuitionContext != null;
+
+  if (isTuitionPayment) {
+    const who = subjectLabel ?? tuitionContext.familyName ?? "A family";
+    const amountPart = paymentAmountLabel ? ` ${paymentAmountLabel}` : "";
+    const chargePart = tuitionContext.chargeLabel
+      ? ` for ${tuitionContext.chargeLabel}`
+      : "";
+    return `${who} paid${amountPart}${chargePart}`;
+  }
+
+  if (action === ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED) {
+    if (paymentAmountLabel && !fallbackSummary.includes(paymentAmountLabel)) {
+      return `${fallbackSummary} — ${paymentAmountLabel}`;
+    }
+    return fallbackSummary;
+  }
+
   if (!subjectLabel) {
     return fallbackSummary;
   }
@@ -591,9 +776,13 @@ export function mapActivityEventToNotification(
   link: { href: string; ctaLabel: string },
   context: ApplicationNotificationContext | null,
   paymentAmountLabel?: string | null,
+  tuitionContext?: TuitionNotificationContext | null,
 ): SchoolAdminActivityNotification {
   const metadataSubject = metadataString(event.metadata, "guardianName");
-  const subjectLabel = context?.subjectLabel ?? metadataSubject;
+  const subjectLabel =
+    tuitionContext?.subjectLabel ??
+    context?.subjectLabel ??
+    metadataSubject;
   const programName = context?.programName ?? null;
 
   return {
@@ -608,6 +797,7 @@ export function mapActivityEventToNotification(
       subjectLabel,
       event.summary,
       paymentAmountLabel,
+      tuitionContext,
     ),
     createdAt: event.created_at,
     href: link.href,
@@ -708,6 +898,10 @@ export async function fetchSchoolAdminActivityNotifications(
     supabase,
     events,
   );
+  const tuitionContexts = await fetchTuitionNotificationContexts(
+    supabase,
+    events,
+  );
 
   const notifications: SchoolAdminActivityNotification[] = [];
 
@@ -722,15 +916,29 @@ export async function fetchSchoolAdminActivityNotifications(
     const context = applicationId
       ? applicationContexts.get(applicationId) ?? null
       : null;
-    const paymentAmountLabel = formatPaymentAmountLabel(
+    const chargeId = resolveTuitionChargeIdForEvent(event);
+    const tuitionContext = chargeId
+      ? tuitionContexts.get(chargeId) ?? null
+      : null;
+    let paymentAmountLabel = formatPaymentAmountLabel(
       paymentAmountsByEventId.get(event.id) ?? null,
     );
+    if (
+      !paymentAmountLabel &&
+      event.action === ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED
+    ) {
+      const amountCents = metadataNumber(event.metadata, "amountCents");
+      if (amountCents != null && amountCents > 0) {
+        paymentAmountLabel = formatCents(amountCents);
+      }
+    }
     notifications.push(
       mapActivityEventToNotification(
         event,
         link,
         context,
         paymentAmountLabel,
+        tuitionContext,
       ),
     );
   }

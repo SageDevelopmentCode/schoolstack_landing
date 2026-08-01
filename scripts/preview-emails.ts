@@ -7,6 +7,7 @@ import {
   buildHomepageQuestionConfirmationHtml,
   buildPaymentReceiptConfirmationHtml,
   buildTuitionDueReminderHtml,
+  buildTuitionLateFeeHtml,
 } from "../src/lib/emails";
 import {
   buildSupabaseConfirmSignupOtpHtml,
@@ -117,6 +118,17 @@ const previews = [
       billingUrl: "https://trymudkitchen.com/parent/billing",
     }),
     checks: ["Tuition Reminder", "Total due", "View billing", "Materials fee"],
+  },
+  {
+    filename: "late-fee.html",
+    html: buildTuitionLateFeeHtml({
+      familyName: "Nguyen",
+      schoolName: "Rooted Meadows",
+      totalDue: "$50.00",
+      chargeLines: ["Late fee — August 2026 — $50.00"],
+      billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
+    }),
+    checks: ["Late Fee", "late fee", "View billing", "$50.00"],
   },
   {
     filename: "supabase-magic-link-otp.html",

@@ -3,6 +3,11 @@ import {
   buildTuitionLateFeeHtml,
   sendTuitionLateFeeEmail,
 } from "@/lib/emails";
+import {
+  listBillingSplits,
+  payerLabelSuffix,
+  splitAmountCents,
+} from "./billing-splits";
 import { getEffectiveLateFeeDay, listLateFeeOverrides } from "./late-fee-overrides";
 import {
   getTuitionOrgSettings,
@@ -11,7 +16,12 @@ import {
 } from "./org-settings";
 import { formatCents } from "./pricing";
 import { rowToCharge } from "./row-mappers";
-import type { TuitionCharge, TuitionLateFeeOverride, TuitionOrgSettings } from "./types";
+import type {
+  TuitionBillingSplit,
+  TuitionCharge,
+  TuitionLateFeeOverride,
+  TuitionOrgSettings,
+} from "./types";
 
 const MONTH_NAMES = [
   "January",
@@ -40,6 +50,20 @@ type UnpaidTuitionRow = {
   family_id: string;
   label: string;
   due_date: string;
+  guardian_id: string | null;
+};
+
+export type LateFeeDraft = {
+  label: string;
+  amountCents: number;
+  baseAmountCents: number;
+  guardianId: string | null;
+  metadata: {
+    sourceChargeId: string;
+    periodYear: number;
+    periodMonth: number;
+    guardianId: string | null;
+  };
 };
 
 export function formatLateFeePeriodLabel(year: number, month: number): string {
@@ -83,12 +107,17 @@ export function listBillingPeriodsForLateFee(
   return periods;
 }
 
+export function lateFeeGuardianKey(guardianId: string | null | undefined): string {
+  return guardianId ?? "family";
+}
+
 export function buildLateFeeKey(
   sourceChargeId: string,
   year: number,
   month: number,
+  guardianId?: string | null,
 ): string {
-  return `${sourceChargeId}:${year}:${month}`;
+  return `${sourceChargeId}:${year}:${month}:${lateFeeGuardianKey(guardianId)}`;
 }
 
 export function parseExistingLateFeeKeys(
@@ -106,13 +135,99 @@ export function parseExistingLateFeeKeys(
       typeof record.periodYear === "number" &&
       typeof record.periodMonth === "number"
     ) {
+      const guardianId =
+        typeof record.guardianId === "string"
+          ? record.guardianId
+          : record.guardianId === null
+            ? null
+            : undefined;
       keys.add(
-        buildLateFeeKey(record.sourceChargeId, record.periodYear, record.periodMonth),
+        buildLateFeeKey(
+          record.sourceChargeId,
+          record.periodYear,
+          record.periodMonth,
+          guardianId,
+        ),
       );
+      if (guardianId === undefined) {
+        keys.add(
+          `${record.sourceChargeId}:${record.periodYear}:${record.periodMonth}`,
+        );
+      }
     }
   }
 
   return keys;
+}
+
+export function buildLateFeeDraftsForSource(input: {
+  sourceChargeId: string;
+  sourceGuardianId: string | null;
+  periodYear: number;
+  periodMonth: number;
+  lateFeeAmountCents: number;
+  billingSplits: TuitionBillingSplit[];
+  guardianNames: Map<string, string>;
+}): LateFeeDraft[] {
+  const periodLabel = formatLateFeePeriodLabel(input.periodYear, input.periodMonth);
+  const baseLabel = `Late fee — ${periodLabel}`;
+  const baseMetadata = {
+    sourceChargeId: input.sourceChargeId,
+    periodYear: input.periodYear,
+    periodMonth: input.periodMonth,
+  };
+
+  if (input.sourceGuardianId) {
+    return [
+      {
+        label: baseLabel,
+        amountCents: input.lateFeeAmountCents,
+        baseAmountCents: input.lateFeeAmountCents,
+        guardianId: input.sourceGuardianId,
+        metadata: {
+          ...baseMetadata,
+          guardianId: input.sourceGuardianId,
+        },
+      },
+    ];
+  }
+
+  if (input.billingSplits.length === 0) {
+    return [
+      {
+        label: baseLabel,
+        amountCents: input.lateFeeAmountCents,
+        baseAmountCents: input.lateFeeAmountCents,
+        guardianId: null,
+        metadata: {
+          ...baseMetadata,
+          guardianId: null,
+        },
+      },
+    ];
+  }
+
+  const splitInputs = input.billingSplits.map((split) => ({
+    guardianId: split.guardianId,
+    shareBps: split.shareBps,
+  }));
+  const allocations = splitAmountCents(input.lateFeeAmountCents, splitInputs);
+  const baseAllocations = splitAmountCents(input.lateFeeAmountCents, splitInputs);
+
+  return allocations.map((allocation, index) => {
+    const firstName =
+      input.guardianNames.get(allocation.guardianId)?.split(/\s+/)[0] ?? "";
+    return {
+      label: `${baseLabel}${payerLabelSuffix(firstName)}`,
+      amountCents: allocation.amountCents,
+      baseAmountCents: baseAllocations[index]?.amountCents ?? allocation.amountCents,
+      guardianId: allocation.guardianId,
+      metadata: {
+        ...baseMetadata,
+        guardianId: allocation.guardianId,
+      },
+    };
+  });
 }
 
 export type ApplyLateFeesResult = {
@@ -126,6 +241,36 @@ type ApplyLateFeesDeps = {
   listOverrides?: typeof listLateFeeOverrides;
   sendEmail?: typeof sendTuitionLateFeeEmail;
 };
+
+async function resolveRecipientEmail(
+  supabase: SupabaseClient,
+  input: {
+    familyId: string;
+    guardianId: string | null;
+    primaryEmail: string | null;
+    guardianUserIds: Map<string, string | null>;
+    guardianEmails: Map<string, string | null>;
+  },
+): Promise<string | null> {
+  if (input.guardianId) {
+    const guardianUserId = input.guardianUserIds.get(input.guardianId) ?? null;
+    if (guardianUserId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", guardianUserId)
+        .maybeSingle();
+      const profileEmail =
+        typeof profile?.email === "string" ? profile.email.trim() : null;
+      if (profileEmail) return profileEmail;
+    }
+
+    const guardianEmail = input.guardianEmails.get(input.guardianId) ?? null;
+    if (guardianEmail) return guardianEmail;
+  }
+
+  return input.primaryEmail;
+}
 
 export async function applyLateFeesForOrganization(
   supabase: SupabaseClient,
@@ -148,7 +293,9 @@ export async function applyLateFeesForOrganization(
 
   const { data: unpaidTuition, error: tuitionError } = await supabase
     .from("tuition_charges")
-    .select("id, organization_id, assignment_id, family_id, label, due_date")
+    .select(
+      "id, organization_id, assignment_id, family_id, label, due_date, guardian_id",
+    )
     .eq("organization_id", organizationId)
     .eq("charge_type", "tuition")
     .in("status", ["scheduled", "sent", "overdue"]);
@@ -169,10 +316,41 @@ export async function applyLateFeesForOrganization(
 
   const existingKeys = parseExistingLateFeeKeys(existingLateFees ?? []);
   const createdByFamily = new Map<string, TuitionCharge[]>();
+  const splitsByFamily = new Map<string, TuitionBillingSplit[]>();
+  const guardianNamesByFamily = new Map<string, Map<string, string>>();
 
   let applied = 0;
 
   for (const row of unpaidTuition as UnpaidTuitionRow[]) {
+    const familyId = String(row.family_id);
+    let billingSplits = splitsByFamily.get(familyId);
+    if (billingSplits === undefined) {
+      billingSplits = await listBillingSplits(supabase, familyId);
+      splitsByFamily.set(familyId, billingSplits);
+    }
+
+    let guardianNames = guardianNamesByFamily.get(familyId);
+    if (!guardianNames && billingSplits.length > 0) {
+      const { data: guardians, error: guardiansError } = await supabase
+        .from("guardians")
+        .select("id, first_name, last_name")
+        .eq("family_id", familyId)
+        .in(
+          "id",
+          billingSplits.map((split) => split.guardianId),
+        );
+
+      if (guardiansError) throw guardiansError;
+
+      guardianNames = new Map(
+        (guardians ?? []).map((guardian) => [
+          String(guardian.id),
+          [guardian.first_name, guardian.last_name].filter(Boolean).join(" ").trim(),
+        ]),
+      );
+      guardianNamesByFamily.set(familyId, guardianNames);
+    }
+
     const periods = listBillingPeriodsForLateFee(
       String(row.due_date),
       today,
@@ -194,44 +372,55 @@ export async function applyLateFeesForOrganization(
 
       if (todayStr <= triggerDate) continue;
 
-      const key = buildLateFeeKey(String(row.id), period.year, period.month);
-      if (existingKeys.has(key)) continue;
-
-      const label = `Late fee — ${formatLateFeePeriodLabel(period.year, period.month)}`;
-      const metadata = {
+      const drafts = buildLateFeeDraftsForSource({
         sourceChargeId: String(row.id),
+        sourceGuardianId: row.guardian_id ? String(row.guardian_id) : null,
         periodYear: period.year,
         periodMonth: period.month,
-      };
+        lateFeeAmountCents: resolved.lateFeeAmountCents,
+        billingSplits,
+        guardianNames: guardianNames ?? new Map(),
+      });
 
-      const { data: inserted, error: insertError } = await supabase
-        .from("tuition_charges")
-        .insert({
-          organization_id: organizationId,
-          assignment_id: row.assignment_id,
-          family_id: row.family_id,
-          label,
-          base_amount_cents: resolved.lateFeeAmountCents,
-          amount_cents: resolved.lateFeeAmountCents,
-          due_date: triggerDate,
-          status: "sent",
-          charge_type: "late_fee",
-          installment_number: null,
-          sent_at: new Date().toISOString(),
-          metadata,
-        })
-        .select("*")
-        .single();
+      for (const draft of drafts) {
+        const key = buildLateFeeKey(
+          draft.metadata.sourceChargeId,
+          draft.metadata.periodYear,
+          draft.metadata.periodMonth,
+          draft.guardianId,
+        );
+        if (existingKeys.has(key)) continue;
 
-      if (insertError) throw insertError;
+        const { data: inserted, error: insertError } = await supabase
+          .from("tuition_charges")
+          .insert({
+            organization_id: organizationId,
+            assignment_id: row.assignment_id,
+            family_id: familyId,
+            guardian_id: draft.guardianId,
+            label: draft.label,
+            base_amount_cents: draft.baseAmountCents,
+            amount_cents: draft.amountCents,
+            due_date: triggerDate,
+            status: "sent",
+            charge_type: "late_fee",
+            installment_number: null,
+            sent_at: new Date().toISOString(),
+            metadata: draft.metadata,
+          })
+          .select("*")
+          .single();
 
-      existingKeys.add(key);
-      applied += 1;
+        if (insertError) throw insertError;
 
-      const charge = rowToCharge(inserted);
-      const familyCharges = createdByFamily.get(charge.familyId) ?? [];
-      familyCharges.push(charge);
-      createdByFamily.set(charge.familyId, familyCharges);
+        existingKeys.add(key);
+        applied += 1;
+
+        const charge = rowToCharge(inserted);
+        const familyCharges = createdByFamily.get(charge.familyId) ?? [];
+        familyCharges.push(charge);
+        createdByFamily.set(charge.familyId, familyCharges);
+      }
     }
   }
 
@@ -263,32 +452,86 @@ export async function applyLateFeesForOrganization(
       .maybeSingle();
 
     if (familyError) throw familyError;
-    const email = family?.primary_email?.trim();
-    if (!email) continue;
 
-    const totalCents = familyCharges.reduce(
-      (sum, charge) => sum + charge.amountCents,
-      0,
-    );
-    const chargeLines = familyCharges.map(
-      (charge) => `${charge.label} — ${formatCents(charge.amountCents)}`,
-    );
+    const primaryEmail =
+      typeof family?.primary_email === "string"
+        ? family.primary_email.trim()
+        : null;
 
-    const html = buildTuitionLateFeeHtml({
-      familyName: String(family?.name ?? "Family"),
-      schoolName,
-      totalDue: formatCents(totalCents),
-      chargeLines,
-      billingUrl,
-    });
+    const guardianIds = [
+      ...new Set(
+        familyCharges
+          .map((charge) => charge.guardianId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
 
-    const result = await sendEmail({
-      to: email,
-      schoolName,
-      html,
-    });
+    const guardianUserIds = new Map<string, string | null>();
+    const guardianEmails = new Map<string, string | null>();
 
-    if (result.ok) notified += 1;
+    if (guardianIds.length > 0) {
+      const { data: guardians, error: guardiansError } = await supabase
+        .from("guardians")
+        .select("id, user_id, email")
+        .in("id", guardianIds);
+
+      if (guardiansError) throw guardiansError;
+
+      for (const guardian of guardians ?? []) {
+        const id = String(guardian.id);
+        guardianUserIds.set(
+          id,
+          guardian.user_id ? String(guardian.user_id) : null,
+        );
+        guardianEmails.set(
+          id,
+          typeof guardian.email === "string" ? guardian.email.trim() : null,
+        );
+      }
+    }
+
+    const chargesByRecipient = new Map<string, TuitionCharge[]>();
+
+    for (const charge of familyCharges) {
+      const recipientEmail = await resolveRecipientEmail(supabase, {
+        familyId,
+        guardianId: charge.guardianId,
+        primaryEmail,
+        guardianUserIds,
+        guardianEmails,
+      });
+      if (!recipientEmail) continue;
+
+      const bucket = chargesByRecipient.get(recipientEmail) ?? [];
+      bucket.push(charge);
+      chargesByRecipient.set(recipientEmail, bucket);
+    }
+
+    for (const [email, recipientCharges] of chargesByRecipient) {
+      const totalCents = recipientCharges.reduce(
+        (sum, charge) => sum + charge.amountCents,
+        0,
+      );
+      const chargeLines = recipientCharges.map(
+        (charge) => `${charge.label} — ${formatCents(charge.amountCents)}`,
+      );
+
+      const html = buildTuitionLateFeeHtml({
+        familyName: String(family?.name ?? "Family"),
+        schoolName,
+        totalDue: formatCents(totalCents),
+        chargeLines,
+        billingUrl,
+      });
+
+      const result = await sendEmail({
+        to: email,
+        schoolName,
+        html,
+      });
+
+      if (result.ok) notified += 1;
+    }
   }
 
   return { applied, notified };

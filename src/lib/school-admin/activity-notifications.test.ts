@@ -75,6 +75,36 @@ describe("formatActivityNotificationDetail", () => {
       "Nina T. finished enrollment",
     );
   });
+
+  it("formats tuition payment completed with family, amount, and charge label", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+        "Test Child",
+        "Tuition payment completed",
+        "$360.00",
+        {
+          subjectLabel: "Test Child",
+          chargeLabel: "Aug Tuition (Julius)",
+          familyName: "Cecilia Family",
+          studentName: "Test Child",
+        },
+      ),
+      "Test Child paid $360.00 for Aug Tuition (Julius)",
+    );
+  });
+
+  it("appends amount to autopay succeeded summary", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED,
+        null,
+        "Autopay succeeded for Aug Tuition (Julius)",
+        "$360.00",
+      ),
+      "Autopay succeeded for Aug Tuition (Julius) — $360.00",
+    );
+  });
 });
 
 describe("isUnreadActivityNotificationEvent", () => {

@@ -10,6 +10,13 @@ export type CreateDutyRoleInput = {
   sortOrder?: number;
 };
 
+export function stripDutyRoleFromAccessList(
+  allowedDutyRoleIds: string[],
+  dutyRoleId: string,
+): string[] {
+  return allowedDutyRoleIds.filter((id) => id !== dutyRoleId);
+}
+
 export async function createDutyRole(
   supabase: SupabaseClient,
   committeeId: string,
@@ -60,10 +67,40 @@ export async function updateDutyRole(
   return mapDutyRoleRow(data as CommitteeDutyRoleRow);
 }
 
+async function cleanupResourceAccessForDeletedRole(
+  supabase: SupabaseClient,
+  committeeId: string,
+  dutyRoleId: string,
+): Promise<void> {
+  const { data: resources, error } = await supabase
+    .from("committee_resources")
+    .select("id, allowed_duty_role_ids")
+    .eq("committee_id", committeeId)
+    .contains("allowed_duty_role_ids", [dutyRoleId]);
+
+  if (error) throw new Error(error.message);
+
+  for (const resource of resources ?? []) {
+    const currentIds = (resource.allowed_duty_role_ids as string[]) ?? [];
+    const nextIds = stripDutyRoleFromAccessList(currentIds, dutyRoleId);
+    if (nextIds.length === currentIds.length) continue;
+
+    const { error: updateError } = await supabase
+      .from("committee_resources")
+      .update({ allowed_duty_role_ids: nextIds })
+      .eq("id", resource.id);
+
+    if (updateError) throw new Error(updateError.message);
+  }
+}
+
 export async function deleteDutyRole(
   supabase: SupabaseClient,
   dutyRoleId: string,
+  committeeId: string,
 ): Promise<void> {
+  await cleanupResourceAccessForDeletedRole(supabase, committeeId, dutyRoleId);
+
   const { error } = await supabase
     .from("committee_duty_roles")
     .delete()

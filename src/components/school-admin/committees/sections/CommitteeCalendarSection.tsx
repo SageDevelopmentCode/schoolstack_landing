@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, LayoutGrid, Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -20,6 +21,8 @@ import {
   initialCalendarAnchor,
 } from "@/lib/committees/calendar-utils";
 import CommitteeEventDetailPanel from "./CommitteeEventDetailPanel";
+import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
+import { committeeTransition, viewSwap } from "@/components/school-admin/committees/committee-motion";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 type CalendarView = "month" | "week";
@@ -119,6 +122,8 @@ export default function CommitteeCalendarSection({
   const [location, setLocation] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const reducedMotion = useReducedMotion() ?? false;
+  const viewDirection = view === "month" ? 1 : -1;
 
   const initial = useMemo(() => initialCalendarAnchor(committee.events), [committee.events]);
   const [year, setYear] = useState(initial.year);
@@ -243,8 +248,17 @@ export default function CommitteeCalendarSection({
         )}
       </div>
 
+      <AnimatePresence mode="wait" initial={false}>
       {view === "month" ? (
-        <div className="space-y-4">
+        <motion.div
+          key="month"
+          className="space-y-4"
+          variants={viewSwap(reducedMotion, viewDirection)}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={committeeTransition}
+        >
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -357,9 +371,17 @@ export default function CommitteeCalendarSection({
               })}
             </div>
           </div>
-        </div>
+        </motion.div>
       ) : (
-        <div className="space-y-4">
+        <motion.div
+          key="week"
+          className="space-y-4"
+          variants={viewSwap(reducedMotion, -viewDirection)}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={committeeTransition}
+        >
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -445,8 +467,9 @@ export default function CommitteeCalendarSection({
               );
             })}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <CommitteeEventDetailPanel
         event={selectedEvent}
@@ -456,15 +479,33 @@ export default function CommitteeCalendarSection({
         onDelete={readOnly ? undefined : handleDelete}
       />
 
+      <AnimatePresence>
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div
-            className="rounded-2xl shadow-xl w-full max-w-md p-6"
-            style={{ backgroundColor: C.surface }}
-          >
-            <h3 className="text-lg font-semibold mb-4" style={{ color: C.textPrimary }}>
-              Add event
-            </h3>
+        <CommitteeModalShell
+          C={C}
+          title="Add event"
+          onClose={() => setShowAdd(false)}
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAdd(false)}
+                className="px-4 py-2 text-sm cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={saving || !title.trim() || !date}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
+                style={{ backgroundColor: C.accent }}
+              >
+                {saving ? "Adding…" : "Add event"}
+              </button>
+            </div>
+          }
+        >
             <div className="space-y-3">
               <input
                 placeholder="Title"
@@ -506,27 +547,9 @@ export default function CommitteeCalendarSection({
                 style={{ borderColor: C.border }}
               />
             </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                type="button"
-                onClick={() => setShowAdd(false)}
-                className="px-4 py-2 text-sm cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={saving || !title.trim() || !date}
-                className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-                style={{ backgroundColor: C.accent }}
-              >
-                {saving ? "Adding…" : "Add event"}
-              </button>
-            </div>
-          </div>
-        </div>
+        </CommitteeModalShell>
       )}
+      </AnimatePresence>
     </div>
   );
 }

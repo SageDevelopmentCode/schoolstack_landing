@@ -13,6 +13,11 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
 import TuitionBillingSplitModal from "@/components/school-admin/tuition/TuitionBillingSplitModal";
+import TuitionFamilyTabBar from "@/components/school-admin/tuition/TuitionFamilyTabBar";
+import {
+  DEFAULT_TUITION_FAMILY_TAB,
+  type TuitionFamilyTabId,
+} from "@/components/school-admin/tuition/tuition-family-tabs";
 
 type TuitionFamiliesPanelProps = {
   organizationId: string;
@@ -85,6 +90,9 @@ export default function TuitionFamiliesPanel({
   const [panelError, setPanelError] = useState<string | null>(null);
   const [invoiceNotice, setInvoiceNotice] = useState<string | null>(null);
   const [splitModalOpen, setSplitModalOpen] = useState(false);
+  const [activeFamilyTab, setActiveFamilyTab] = useState<TuitionFamilyTabId>(
+    DEFAULT_TUITION_FAMILY_TAB,
+  );
 
   const loadFamilies = useCallback(async () => {
     setLoading(true);
@@ -284,6 +292,10 @@ export default function TuitionFamiliesPanel({
     });
   }, [selectedFamilyId, supabase, families]);
 
+  useEffect(() => {
+    setActiveFamilyTab(DEFAULT_TUITION_FAMILY_TAB);
+  }, [selectedFamilyId]);
+
   const displayedFamilyCharges = selectedFamilyId ? familyCharges : [];
   const displayedFamilyPayments = selectedFamilyId ? familyPayments : [];
 
@@ -393,295 +405,359 @@ export default function TuitionFamiliesPanel({
             </p>
           ) : null}
 
-          {selectedFamily.readiness === "needs_assignment" ? (
-            <div
-              className="rounded-lg p-4 flex flex-col gap-3"
-              style={{
-                backgroundColor: C.accentLight,
-                border: `1px solid ${C.border}`,
-              }}
-            >
-              <div>
-                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                  Tuition has not been assigned yet
-                </p>
-                <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-                  Tuition is assigned automatically at enrollment. Sync assignments if this
-                  student enrolled before your rate plan was ready.
-                </p>
-              </div>
+          <TuitionFamilyTabBar
+            C={C}
+            activeTab={activeFamilyTab}
+            onTabChange={setActiveFamilyTab}
+          />
 
-              <div className="flex flex-col gap-2">
-                <ul className="flex flex-col gap-2">
-                  {selectedFamily.unassignedEnrollments.map((enrollment) => (
-                    <li
-                      key={enrollment.enrollmentId}
-                      className="text-sm"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {enrollment.studentName} · {enrollment.programName}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  disabled={actionLoading === "sync"}
-                  onClick={() => void handleSyncAssignments()}
-                  className="self-start text-xs font-medium px-2 py-1 rounded"
-                  style={{ backgroundColor: C.accent, color: "#fff" }}
+          {activeFamilyTab === "assignments" ? (
+            <div
+              className="flex flex-col gap-4"
+              id="tuition-family-panel-assignments"
+              role="tabpanel"
+              aria-labelledby="tuition-family-tab-assignments"
+              data-testid="tuition-family-panel-assignments"
+            >
+              {selectedFamily.readiness === "needs_assignment" ? (
+                <div
+                  className="rounded-lg p-4 flex flex-col gap-3"
+                  style={{
+                    backgroundColor: C.accentLight,
+                    border: `1px solid ${C.border}`,
+                  }}
                 >
-                  Sync assignments
-                </button>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                      Tuition has not been assigned yet
+                    </p>
+                    <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+                      Tuition is assigned automatically at enrollment. Sync assignments if this
+                      student enrolled before your rate plan was ready.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <ul className="flex flex-col gap-2">
+                      {selectedFamily.unassignedEnrollments.map((enrollment) => (
+                        <li
+                          key={enrollment.enrollmentId}
+                          className="text-sm"
+                          style={{ color: C.textPrimary }}
+                        >
+                          {enrollment.studentName} · {enrollment.programName}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      disabled={actionLoading === "sync"}
+                      onClick={() => void handleSyncAssignments()}
+                      className="self-start text-xs font-medium px-2 py-1 rounded"
+                      style={{ backgroundColor: C.accent, color: "#fff" }}
+                    >
+                      Sync assignments
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {selectedFamily.assignments.length > 0 ? (
+                <div
+                  className="rounded-lg p-4 flex flex-col gap-3"
+                  style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                >
+                  <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                    Enrollment assignments
+                  </p>
+                  {selectedFamily.readiness === "no_charges" ? (
+                    <p className="text-sm" style={{ color: C.textSecondary }}>
+                      Charges appear after tuition is assigned and the payment schedule is
+                      confirmed.
+                    </p>
+                  ) : null}
+                  <ul className="flex flex-col gap-3">
+                    {selectedFamily.assignments.map((assignment) => (
+                      <li
+                        key={assignment.assignmentId}
+                        className="flex flex-col gap-1 text-sm"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span style={{ color: C.textPrimary }}>
+                            {assignment.studentName ?? "Student"}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => onEditAssignment(assignment.assignmentId)}
+                              className="text-xs font-medium px-2 py-1 rounded"
+                              style={{
+                                backgroundColor: C.bg,
+                                color: C.textPrimary,
+                                border: `1px solid ${C.border}`,
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onAdjust(selectedFamily.familyId, assignment.assignmentId)
+                              }
+                              className="text-xs font-medium px-2 py-1 rounded"
+                              style={{ backgroundColor: C.accentLight, color: C.accent }}
+                            >
+                              Adjust
+                            </button>
+                            <button
+                              type="button"
+                              disabled={actionLoading === assignment.assignmentId}
+                              onClick={() => void handleUnassign(assignment.assignmentId)}
+                              className="text-xs font-medium px-2 py-1 rounded"
+                              style={{
+                                backgroundColor: C.bg,
+                                color: C.textSecondary,
+                                border: `1px solid ${C.border}`,
+                              }}
+                            >
+                              Unassign
+                            </button>
+                          </div>
+                        </div>
+                        <AssignmentMetaBadges assignment={assignment} C={C} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : selectedFamily.readiness !== "needs_assignment" ? (
+                <p className="text-sm" style={{ color: C.textSecondary }}>
+                  No enrollment assignments yet.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {activeFamilyTab === "balance" ? (
+            <div
+              id="tuition-family-panel-balance"
+              role="tabpanel"
+              aria-labelledby="tuition-family-tab-balance"
+              data-testid="tuition-family-panel-balance"
+            >
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
+                    Balance due
+                  </p>
+                  <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+                    {formatCents(selectedFamily.balanceDueCents)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
+                    Paid YTD
+                  </p>
+                  <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+                    {formatCents(selectedFamily.paidYtdCents)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
+                    Next due
+                  </p>
+                  <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                    {selectedFamily.nextDue
+                      ? `${selectedFamily.nextDue.label} · ${formatCents(selectedFamily.nextDue.amountCents)}`
+                      : "—"}
+                  </p>
+                </div>
               </div>
             </div>
           ) : null}
 
-          {selectedFamily.assignments.length > 0 ? (
+          {activeFamilyTab === "autopay" ? (
             <div
               className="rounded-lg p-4 flex flex-col gap-3"
               style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+              id="tuition-family-panel-autopay"
+              role="tabpanel"
+              aria-labelledby="tuition-family-tab-autopay"
+              data-testid="tuition-family-panel-autopay"
             >
-              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                Enrollment assignments
-              </p>
-              {selectedFamily.readiness === "no_charges" ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  Autopay
+                </p>
+                <span
+                  className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                  style={autopayBadgeStyle(selectedFamily.autopayStatus)}
+                >
+                  {selectedFamily.autopayStatus === "on"
+                    ? "On"
+                    : selectedFamily.autopayStatus === "partial"
+                      ? "Partial"
+                      : "Off"}
+                </span>
+              </div>
+
+              {selectedFamily.guardianAutopay.length > 0 ? (
+                <ul className="flex flex-col gap-2">
+                  {selectedFamily.guardianAutopay.map((guardian) => (
+                    <li
+                      key={guardian.guardianId}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <span style={{ color: C.textPrimary }}>{guardian.name}</span>
+                      <span className="text-xs" style={{ color: C.textSecondary }}>
+                        Autopay {guardian.autopayEnabled ? "on" : "off"} · Card{" "}
+                        {guardian.hasPaymentMethod ? "on file" : "missing"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
                 <p className="text-sm" style={{ color: C.textSecondary }}>
-                  Charges appear after tuition is assigned and the payment schedule is
-                  confirmed.
+                  Card on file: {selectedFamily.hasPaymentMethod ? "Yes" : "No"}
+                </p>
+              )}
+
+              {selectedFamily.lastAutopayFailedAt ? (
+                <p className="text-xs" style={{ color: C.error }}>
+                  Last autopay failed on{" "}
+                  {new Date(selectedFamily.lastAutopayFailedAt).toLocaleDateString()}
                 </p>
               ) : null}
-              <ul className="flex flex-col gap-3">
-                {selectedFamily.assignments.map((assignment) => (
-                  <li
-                    key={assignment.assignmentId}
-                    className="flex flex-col gap-1 text-sm"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span style={{ color: C.textPrimary }}>
-                        {assignment.studentName ?? "Student"}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onEditAssignment(assignment.assignmentId)}
-                          className="text-xs font-medium px-2 py-1 rounded"
-                          style={{
-                            backgroundColor: C.bg,
-                            color: C.textPrimary,
-                            border: `1px solid ${C.border}`,
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onAdjust(selectedFamily.familyId, assignment.assignmentId)
-                          }
-                          className="text-xs font-medium px-2 py-1 rounded"
-                          style={{ backgroundColor: C.accentLight, color: C.accent }}
-                        >
-                          Adjust
-                        </button>
-                        <button
-                          type="button"
-                          disabled={actionLoading === assignment.assignmentId}
-                          onClick={() => void handleUnassign(assignment.assignmentId)}
-                          className="text-xs font-medium px-2 py-1 rounded"
-                          style={{
-                            backgroundColor: C.bg,
-                            color: C.textSecondary,
-                            border: `1px solid ${C.border}`,
-                          }}
-                        >
-                          Unassign
-                        </button>
-                      </div>
-                    </div>
-                    <AssignmentMetaBadges assignment={assignment} C={C} />
-                  </li>
-                ))}
-              </ul>
             </div>
           ) : null}
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
-                Balance due
-              </p>
-              <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-                {formatCents(selectedFamily.balanceDueCents)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
-                Paid YTD
-              </p>
-              <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-                {formatCents(selectedFamily.paidYtdCents)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
-                Next due
-              </p>
-              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                {selectedFamily.nextDue
-                  ? `${selectedFamily.nextDue.label} · ${formatCents(selectedFamily.nextDue.amountCents)}`
-                  : "—"}
-              </p>
-            </div>
-          </div>
-
-          <div
-            className="rounded-lg p-4 flex flex-col gap-3"
-            style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
-            data-testid="tuition-autopay-status"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                Autopay
-              </p>
-              <span
-                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                style={autopayBadgeStyle(selectedFamily.autopayStatus)}
-              >
-                {selectedFamily.autopayStatus === "on"
-                  ? "On"
-                  : selectedFamily.autopayStatus === "partial"
-                    ? "Partial"
-                    : "Off"}
-              </span>
-            </div>
-
-            {selectedFamily.guardianAutopay.length > 0 ? (
-              <ul className="flex flex-col gap-2">
-                {selectedFamily.guardianAutopay.map((guardian) => (
-                  <li
-                    key={guardian.guardianId}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <span style={{ color: C.textPrimary }}>{guardian.name}</span>
-                    <span className="text-xs" style={{ color: C.textSecondary }}>
-                      Autopay {guardian.autopayEnabled ? "on" : "off"} · Card{" "}
-                      {guardian.hasPaymentMethod ? "on file" : "missing"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm" style={{ color: C.textSecondary }}>
-                Card on file: {selectedFamily.hasPaymentMethod ? "Yes" : "No"}
-              </p>
-            )}
-
-            {selectedFamily.lastAutopayFailedAt ? (
-              <p className="text-xs" style={{ color: C.error }}>
-                Last autopay failed on{" "}
-                {new Date(selectedFamily.lastAutopayFailedAt).toLocaleDateString()}
-              </p>
-            ) : null}
-          </div>
-
-          <div>
-            <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
-              Schedule
-            </p>
-            <div className="flex flex-col gap-2">
-              {displayedFamilyCharges.length > 0 ? (
-                displayedFamilyCharges.map((charge) => (
-                <div
-                  key={charge.id}
-                  className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
-                  style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
-                >
-                  <div>
-                    <p style={{ color: C.textPrimary }}>{charge.label}</p>
-                    <p className="text-xs" style={{ color: C.textTertiary }}>
-                      Due {charge.dueDate} · {charge.status}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium" style={{ color: C.textPrimary }}>
-                      {formatCents(charge.amountCents)}
-                    </span>
-                    {charge.status !== "paid" && charge.status !== "void" ? (
-                      <>
-                        {charge.status === "scheduled" ? (
-                          <button
-                            type="button"
-                            disabled={actionLoading === charge.id}
-                            onClick={() => void handleSendInvoice(charge.id)}
-                            className="text-xs font-medium px-2 py-1 rounded"
-                            style={{ backgroundColor: C.accent, color: "#fff" }}
-                          >
-                            Send invoice
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          disabled={actionLoading === charge.id}
-                          onClick={() => void handleManualPayment(charge.id)}
-                          className="text-xs font-medium px-2 py-1 rounded"
-                          style={{ backgroundColor: C.accentLight, color: C.accent }}
-                        >
-                          Mark paid
-                        </button>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-                ))
-              ) : (
-                <p className="text-sm px-3 py-2 rounded-md" style={{ color: C.textSecondary, backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
-                  No charges yet. Assign a rate plan and choose a payment schedule to generate the billing schedule.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {displayedFamilyPayments.some((payment) => payment.status === "succeeded") ? (
-            <div>
+          {activeFamilyTab === "schedule" ? (
+            <div
+              id="tuition-family-panel-schedule"
+              role="tabpanel"
+              aria-labelledby="tuition-family-tab-schedule"
+              data-testid="tuition-family-panel-schedule"
+            >
               <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
-                Recent payments
+                Schedule
               </p>
               <div className="flex flex-col gap-2">
-                {displayedFamilyPayments
-                  .filter((payment) => payment.status === "succeeded")
-                  .map((payment) => (
+                {displayedFamilyCharges.length > 0 ? (
+                  displayedFamilyCharges.map((charge) => (
                     <div
-                      key={payment.id}
+                      key={charge.id}
                       className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
                       style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
                     >
                       <div>
-                        <p style={{ color: C.textPrimary }}>
-                          {payment.label ?? "Tuition payment"}
-                        </p>
+                        <p style={{ color: C.textPrimary }}>{charge.label}</p>
                         <p className="text-xs" style={{ color: C.textTertiary }}>
-                          {payment.paidAt
-                            ? new Date(payment.paidAt).toLocaleDateString()
-                            : payment.status}
+                          Due {charge.dueDate} · {charge.status}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium" style={{ color: C.textPrimary }}>
-                          {formatCents(payment.amountCents)}
+                          {formatCents(charge.amountCents)}
                         </span>
-                        <button
-                          type="button"
-                          disabled={actionLoading === payment.id}
-                          onClick={() => void handleRefund(payment.id)}
-                          className="text-xs font-medium px-2 py-1 rounded"
-                          style={{ backgroundColor: C.bg, color: C.textPrimary, border: `1px solid ${C.border}` }}
-                        >
-                          Refund
-                        </button>
+                        {charge.status !== "paid" && charge.status !== "void" ? (
+                          <>
+                            {charge.status === "scheduled" ? (
+                              <button
+                                type="button"
+                                disabled={actionLoading === charge.id}
+                                onClick={() => void handleSendInvoice(charge.id)}
+                                className="text-xs font-medium px-2 py-1 rounded"
+                                style={{ backgroundColor: C.accent, color: "#fff" }}
+                              >
+                                Send invoice
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              disabled={actionLoading === charge.id}
+                              onClick={() => void handleManualPayment(charge.id)}
+                              className="text-xs font-medium px-2 py-1 rounded"
+                              style={{ backgroundColor: C.accentLight, color: C.accent }}
+                            >
+                              Mark paid
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     </div>
-                  ))}
+                  ))
+                ) : (
+                  <p
+                    className="text-sm px-3 py-2 rounded-md"
+                    style={{
+                      color: C.textSecondary,
+                      backgroundColor: C.bg,
+                      border: `1px solid ${C.border}`,
+                    }}
+                  >
+                    No charges yet. Assign a rate plan and choose a payment schedule to generate
+                    the billing schedule.
+                  </p>
+                )}
               </div>
+            </div>
+          ) : null}
+
+          {activeFamilyTab === "payments" ? (
+            <div
+              id="tuition-family-panel-payments"
+              role="tabpanel"
+              aria-labelledby="tuition-family-tab-payments"
+              data-testid="tuition-family-panel-payments"
+            >
+              <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
+                Recent payments
+              </p>
+              {displayedFamilyPayments.some((payment) => payment.status === "succeeded") ? (
+                <div className="flex flex-col gap-2">
+                  {displayedFamilyPayments
+                    .filter((payment) => payment.status === "succeeded")
+                    .map((payment) => (
+                      <div
+                        key={payment.id}
+                        className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
+                        style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                      >
+                        <div>
+                          <p style={{ color: C.textPrimary }}>
+                            {payment.label ?? "Tuition payment"}
+                          </p>
+                          <p className="text-xs" style={{ color: C.textTertiary }}>
+                            {payment.paidAt
+                              ? new Date(payment.paidAt).toLocaleDateString()
+                              : payment.status}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium" style={{ color: C.textPrimary }}>
+                            {formatCents(payment.amountCents)}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={actionLoading === payment.id}
+                            onClick={() => void handleRefund(payment.id)}
+                            className="text-xs font-medium px-2 py-1 rounded"
+                            style={{
+                              backgroundColor: C.bg,
+                              color: C.textPrimary,
+                              border: `1px solid ${C.border}`,
+                            }}
+                          >
+                            Refund
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-sm" style={{ color: C.textSecondary }}>
+                  No payments recorded yet.
+                </p>
+              )}
             </div>
           ) : null}
         </div>

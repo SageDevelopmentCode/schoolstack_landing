@@ -13,6 +13,7 @@ import {
 } from "@/lib/admissions/application-submit";
 import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
 import { settleTuitionPayment } from "@/lib/tuition/payment-settlement";
+import { getChargeById } from "@/lib/tuition/charges";
 import {
   savePaymentMethodFromSetupIntent,
   trySaveTuitionPaymentMethod,
@@ -334,6 +335,9 @@ async function handleTuitionCheckoutCompleted(
     });
   }
 
+  const charge =
+    chargeId != null ? await getChargeById(admin, chargeId) : null;
+
   void logActivityEvent(admin, {
     organizationId: metadata.organization_id as string,
     actorType: "system",
@@ -346,6 +350,9 @@ async function handleTuitionCheckoutCompleted(
       checkoutSessionId,
       paymentId: payment?.id ?? paymentId ?? null,
       tuitionChargeId: chargeId ?? null,
+      familyId: payment?.familyId ?? charge?.familyId ?? null,
+      amountCents: payment?.amountCents ?? null,
+      chargeLabel: charge?.label ?? payment?.label ?? null,
     },
   });
 }

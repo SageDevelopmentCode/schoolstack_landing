@@ -151,6 +151,7 @@ export type TuitionChargeMetadata = {
   sourceChargeId?: string;
   periodYear?: number;
   periodMonth?: number;
+  guardianId?: string | null;
 };
 
 export type TuitionCharge = {

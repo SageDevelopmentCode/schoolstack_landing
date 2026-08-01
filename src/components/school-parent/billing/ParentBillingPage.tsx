@@ -10,12 +10,19 @@ import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentB
 import ParentAutopayConfirmModal from "@/components/school-parent/billing/ParentAutopayConfirmModal";
 import ParentPaymentMethodCard from "@/components/school-parent/billing/ParentPaymentMethodCard";
 import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
+import TuitionPayAmountField, {
+  resolveTuitionPayAmountCents,
+  type TuitionPayAmountMode,
+} from "@/components/school-parent/billing/TuitionPayAmountField";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
+import { formatBillingDueDate } from "@/lib/tuition/due-date-display";
 import { formatCents } from "@/lib/tuition/pricing";
+import { pickRecentLateFeeNotice } from "@/lib/tuition/late-fee-notice";
+import { formatCentsForInput } from "@/lib/admissions/application-form-schema";
 import {
   getAutopayEnabledForGuardian,
 } from "@/lib/tuition/payment-settlement";
@@ -100,6 +107,9 @@ function ParentBillingPageContent({
     initialData?.recentAutopayFailure ?? null,
   );
   const [dismissedAutopayFailure, setDismissedAutopayFailure] = useState(false);
+  const [dismissedLateFeeNotice, setDismissedLateFeeNotice] = useState(false);
+  const [payAmountMode, setPayAmountMode] = useState<TuitionPayAmountMode>("balance");
+  const [payCustomDraft, setPayCustomDraft] = useState("");
   const [autopayModalOpen, setAutopayModalOpen] = useState(false);
   const [pendingAutopayEnabled, setPendingAutopayEnabled] = useState(false);
   const [autopaySaving, setAutopaySaving] = useState(false);
@@ -132,6 +142,23 @@ function ParentBillingPageContent({
     }
     return map;
   }, [adjustments]);
+
+  const lateFeeNotice = useMemo(
+    () => pickRecentLateFeeNotice(charges),
+    [charges],
+  );
+
+  const pendingPayResolution = useMemo(() => {
+    if (!pendingPayCharge) {
+      return { amountCents: 0, error: null as string | null };
+    }
+
+    return resolveTuitionPayAmountCents({
+      mode: payAmountMode,
+      remainingCents: chargeRemainingCents(pendingPayCharge),
+      customDraft: payCustomDraft,
+    });
+  }, [pendingPayCharge, payAmountMode, payCustomDraft]);
 
   const loadBilling = useCallback(async (): Promise<ParentBillingFamilySummary | null> => {
     setLoading(true);
@@ -303,6 +330,8 @@ function ParentBillingPageContent({
     if (chargeRemainingCents(charge) <= 0) return;
 
     setPayError(null);
+    setPayAmountMode("balance");
+    setPayCustomDraft(formatCentsForInput(chargeRemainingCents(charge)));
     setPendingPayCharge(charge);
     setPaymentModalOpen(true);
   };
@@ -313,20 +342,39 @@ function ParentBillingPageContent({
     setPendingPayCharge(null);
     setPayError(null);
     setPayingChargeId(null);
+    setPayAmountMode("balance");
+    setPayCustomDraft("");
   };
 
   const handleConfirmTuitionPayment = async (method: CheckoutPaymentMethod) => {
     if (!pendingPayCharge || previewMode) return;
+
+    const { amountCents, error: amountError } = pendingPayResolution;
+    if (amountError) {
+      setPayError(amountError);
+      return;
+    }
 
     setPayCheckoutLoading(true);
     setPayError(null);
     setPayingChargeId(pendingPayCharge.id);
 
     try {
+      const body: {
+        paymentMethod: CheckoutPaymentMethod;
+        orgSlug: string;
+        amountCents?: number;
+      } = { paymentMethod: method, orgSlug: slug };
+
+      const remainingCents = chargeRemainingCents(pendingPayCharge);
+      if (amountCents > remainingCents) {
+        body.amountCents = amountCents;
+      }
+
       const response = await fetch(`/api/tuition/charges/${pendingPayCharge.id}/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentMethod: method, orgSlug: slug }),
+        body: JSON.stringify(body),
       });
       const payload = (await response.json()) as {
         checkoutUrl?: string;
@@ -532,6 +580,35 @@ function ParentBillingPageContent({
         </div>
       ) : null}
 
+      {lateFeeNotice && !dismissedLateFeeNotice ? (
+        <div
+          className="rounded-xl p-4 flex items-start justify-between gap-3"
+          style={{ backgroundColor: C.accentLight, border: `1px solid ${C.border}` }}
+          data-testid="parent-billing-late-fee-banner"
+        >
+          <div>
+            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+              A late fee was added to your balance
+            </p>
+            <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+              {formatCents(lateFeeNotice.totalCents)} was added
+              {lateFeeNotice.labels.length === 1
+                ? ` for ${lateFeeNotice.labels[0]}`
+                : ` across ${lateFeeNotice.labels.length} late fees`}
+              . Pay below to stay current.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="text-xs shrink-0"
+            style={{ color: C.textSecondary }}
+            onClick={() => setDismissedLateFeeNotice(true)}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
       {recentAutopayFailure && !dismissedAutopayFailure ? (
         <div
           className="rounded-xl p-4 flex items-start justify-between gap-3"
@@ -593,13 +670,24 @@ function ParentBillingPageContent({
         C={C}
         open={paymentModalOpen && pendingPayCharge != null}
         onClose={handleClosePaymentModal}
-        netAmountCents={
-          pendingPayCharge ? chargeRemainingCents(pendingPayCharge) : 0
-        }
+        netAmountCents={pendingPayResolution.amountCents}
         label={pendingPayCharge?.label ?? "Tuition payment"}
         savedPaymentMethod={savedPaymentMethod}
         loading={payCheckoutLoading}
         error={payError}
+        confirmDisabled={Boolean(pendingPayResolution.error)}
+        beforeSummary={
+          pendingPayCharge ? (
+            <TuitionPayAmountField
+              C={C}
+              remainingCents={chargeRemainingCents(pendingPayCharge)}
+              mode={payAmountMode}
+              customDraft={payCustomDraft}
+              onModeChange={setPayAmountMode}
+              onCustomDraftChange={setPayCustomDraft}
+            />
+          ) : null
+        }
         onConfirm={handleConfirmTuitionPayment}
       />
 
@@ -635,7 +723,7 @@ function ParentBillingPageContent({
                   <p style={{ color: C.textPrimary }}>{payment.label ?? "Tuition payment"}</p>
                   <p className="text-xs" style={{ color: C.textTertiary }}>
                     {payment.paidAt
-                      ? new Date(payment.paidAt).toLocaleDateString()
+                      ? formatBillingDueDate(payment.paidAt.slice(0, 10))
                       : payment.status}
                   </p>
                 </div>

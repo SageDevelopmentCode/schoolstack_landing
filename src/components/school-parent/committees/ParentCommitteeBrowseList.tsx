@@ -1,8 +1,10 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Heart } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentCommitteeBrowseItem } from "@/lib/committees/types";
+import { fadeUp, staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 import ParentCommitteeRequestStatus from "./ParentCommitteeRequestStatus";
 
 export default function ParentCommitteeBrowseList({
@@ -14,9 +16,16 @@ export default function ParentCommitteeBrowseList({
   C: AdminThemeTokens;
   onOpenCommittee: (id: string) => void;
 }) {
+  const reducedMotion = useReducedMotion() ?? false;
+
   if (committees.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-6">
+      <motion.div
+        variants={fadeUp(reducedMotion)}
+        initial="initial"
+        animate="animate"
+        className="flex flex-col items-center justify-center py-16 px-6"
+      >
         <div
           className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
           style={{ backgroundColor: C.accentLight }}
@@ -29,16 +38,23 @@ export default function ParentCommitteeBrowseList({
         <p className="text-sm text-center max-w-xs" style={{ color: C.textSecondary }}>
           When the school opens volunteer committees, they will appear here for you to explore.
         </p>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <motion.div
+      key={committees.map((c) => c.id).join("-")}
+      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      variants={staggerContainer(reducedMotion)}
+      initial="initial"
+      animate="animate"
+    >
       {committees.map((committee) => (
-        <button
+        <motion.button
           key={committee.id}
           type="button"
+          variants={staggerItem(reducedMotion)}
           onClick={() => onOpenCommittee(committee.id)}
           className="text-left p-5 rounded-2xl border transition-all cursor-pointer hover:shadow-sm group"
           style={{ backgroundColor: C.surface, borderColor: C.border }}
@@ -84,8 +100,8 @@ export default function ParentCommitteeBrowseList({
               style={{ color: C.textTertiary }}
             />
           </div>
-        </button>
+        </motion.button>
       ))}
-    </div>
+    </motion.div>
   );
 }

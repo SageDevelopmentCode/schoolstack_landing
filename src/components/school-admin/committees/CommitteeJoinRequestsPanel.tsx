@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Check, Loader2, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { CommitteeJoinRequest, CommitteeRole } from "@/lib/committees/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 type CommitteeJoinRequestsPanelProps = {
   organizationId: string;
@@ -44,6 +46,7 @@ export default function CommitteeJoinRequestsPanel({
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
   const [memberRoles, setMemberRoles] = useState<Record<string, CommitteeRole>>({});
+  const reducedMotion = useReducedMotion() ?? false;
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -165,11 +168,22 @@ export default function CommitteeJoinRequestsPanel({
         </div>
       )}
 
-      <div className="divide-y" style={{ borderColor: C.border }}>
+      <motion.div
+        key={requests.map((r) => r.id).join("-")}
+        className="divide-y"
+        style={{ borderColor: C.border }}
+        variants={staggerContainer(reducedMotion)}
+        initial="initial"
+        animate="animate"
+      >
         {requests.map((request) => {
           const busy = actingId === request.id;
           return (
-            <div key={request.id} className="px-5 py-4 space-y-3">
+            <motion.div
+              key={request.id}
+              variants={staggerItem(reducedMotion)}
+              className="px-5 py-4 space-y-3"
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
@@ -235,10 +249,10 @@ export default function CommitteeJoinRequestsPanel({
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

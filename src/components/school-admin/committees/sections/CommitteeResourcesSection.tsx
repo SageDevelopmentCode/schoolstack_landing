@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ExternalLink, Plus, Upload, X } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -15,6 +16,8 @@ import {
   validateCommitteeResourceFile,
 } from "@/lib/committees/resource-file-storage";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
+import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 function ResourceFileLink({
   resource,
@@ -77,6 +80,7 @@ export default function CommitteeResourcesSection({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const reducedMotion = useReducedMotion() ?? false;
 
   const resetForm = () => {
     setTitle("");
@@ -188,15 +192,22 @@ export default function CommitteeResourcesSection({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <motion.div
+        key={committee.resources.map((r) => r.id).join("-")}
+        className="grid grid-cols-1 md:grid-cols-2 gap-3"
+        variants={staggerContainer(reducedMotion)}
+        initial="initial"
+        animate="animate"
+      >
         {committee.resources.map((resource) => {
           const accessLabel = formatResourceAccessLabel(
             resource.allowedDutyRoleIds,
             committee.dutyRoles,
           );
           return (
-            <div
+            <motion.div
               key={resource.id}
+              variants={staggerItem(reducedMotion)}
               className="p-4 rounded-xl border"
               style={{ backgroundColor: C.surface, borderColor: C.border }}
             >
@@ -249,20 +260,44 @@ export default function CommitteeResourcesSection({
               {resource.storagePath && (
                 <ResourceFileLink resource={resource} supabase={supabase} C={C} />
               )}
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
 
+      <AnimatePresence>
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div
-            className="rounded-2xl shadow-xl w-full max-w-md p-6"
-            style={{ backgroundColor: C.surface }}
-          >
-            <h3 className="text-lg font-semibold mb-4" style={{ color: C.textPrimary }}>
-              Add resource
-            </h3>
+        <CommitteeModalShell
+          C={C}
+          title="Add resource"
+          onClose={() => {
+            resetForm();
+            setShowAdd(false);
+          }}
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  resetForm();
+                  setShowAdd(false);
+                }}
+                className="px-4 py-2 text-sm cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={saving || !canSave}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
+                style={{ backgroundColor: C.accent }}
+              >
+                {saving ? "Adding…" : "Add resource"}
+              </button>
+            </div>
+          }
+        >
             <div className="space-y-3">
               <input
                 placeholder="Title"
@@ -351,30 +386,9 @@ export default function CommitteeResourcesSection({
                 style={{ borderColor: C.border }}
               />
             </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                type="button"
-                onClick={() => {
-                  resetForm();
-                  setShowAdd(false);
-                }}
-                className="px-4 py-2 text-sm cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={saving || !canSave}
-                className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-                style={{ backgroundColor: C.accent }}
-              >
-                {saving ? "Adding…" : "Add resource"}
-              </button>
-            </div>
-          </div>
-        </div>
+        </CommitteeModalShell>
       )}
+      </AnimatePresence>
     </div>
   );
 }
