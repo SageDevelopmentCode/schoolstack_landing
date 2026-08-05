@@ -13,7 +13,7 @@ export type OrganizationWithSettings = {
   features: OrganizationFeatures;
 };
 
-async function fetchOrganizationWithSettingsUncached(
+export async function fetchOrganizationWithSettingsUncached(
   supabase: SupabaseClient,
   slug: string,
 ): Promise<OrganizationWithSettings | null> {

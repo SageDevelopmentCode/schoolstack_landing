@@ -283,6 +283,11 @@ test("parent billing page lets family choose payment schedule inline", async ({
   });
 
   await gotoBillingPage(page);
+  await expect(page.getByTestId("parent-billing-schedule-warning")).toBeVisible();
+  await expect(
+    page.getByText("Action needed: choose a payment schedule"),
+  ).toBeVisible();
+  await expect(page.getByTestId("parent-billing-needs-schedule-badge")).toBeVisible();
   await expect(page.getByTestId("parent-tuition-plan-selector")).toBeVisible();
   await expect(page.getByText("Pay in full")).toBeVisible();
   await page.getByText("Pay in full").click();
@@ -407,9 +412,19 @@ test("parent billing page uses child tabs for multiple pending schedules", async
   }
 
   await gotoBillingPage(page);
+  await expect(page.getByTestId("parent-billing-schedule-warning")).toBeVisible();
+  await expect(
+    page.getByText("Action needed: choose payment schedules (2 children)"),
+  ).toBeVisible();
   await expect(page.getByTestId("parent-billing-summary")).toBeVisible();
   await expect(page.getByText("Estimated annual tuition")).toBeVisible();
   await expect(page.getByTestId("parent-billing-child-tabs")).toBeVisible();
+  await expect(
+    page.getByTestId("parent-billing-summary").getByTestId("parent-billing-needs-schedule-badge"),
+  ).toHaveCount(2);
+  await expect(
+    page.getByTestId("parent-billing-child-tabs").getByTestId("parent-billing-needs-schedule-badge"),
+  ).toHaveCount(2);
   await expect(page.getByTestId("parent-tuition-plan-selector")).toHaveCount(1);
   await expect(page.getByRole("tab", { name: /Julia/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: /Caleb/ })).toBeVisible();

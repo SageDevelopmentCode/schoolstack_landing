@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { CircleAlert, Loader2 } from "lucide-react";
 import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
 import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
 import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
@@ -274,7 +274,29 @@ function ParentBillingPageContent({
     childViews[0] ??
     null;
   const hasMultipleChildren = childViews.length > 1;
-  const hasPendingSelections = childViews.some((child) => child.selectionItem);
+  const hasPendingSchedule = familySummary?.hasPendingSchedule ?? false;
+  const pendingScheduleCount = childViews.filter(
+    (child) => child.status === "needs_schedule",
+  ).length;
+
+  const scheduleWarningMessage = hasPendingSchedule
+    ? {
+        title:
+          pendingScheduleCount === 1 && childViews.length === 1
+            ? "Action needed: choose a payment schedule"
+            : `Action needed: choose payment schedules (${pendingScheduleCount} ${pendingScheduleCount === 1 ? "child" : "children"})`,
+        body:
+          pendingScheduleCount === 1 && childViews.length === 1
+            ? "Select an installment plan below, then confirm to generate tuition charges."
+            : `${pendingScheduleCount} ${pendingScheduleCount === 1 ? "child still needs" : "children still need"} a payment schedule. Select and confirm below for each student.`,
+      }
+    : null;
+
+  const scrollToScheduleSelector = () => {
+    document
+      .getElementById("parent-tuition-plan-selector")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const nextChargeRecord = familySummary?.nextCharge
     ? [...charges]
@@ -287,7 +309,6 @@ function ParentBillingPageContent({
     : null;
 
   const readinessMessage = (() => {
-    if (hasPendingSelections) return null;
     if (!readiness) return null;
     if (charges.length > 0) return null;
 
@@ -305,6 +326,7 @@ function ParentBillingPageContent({
           cta: null,
         };
       case "needs_payment_plan":
+        if (hasPendingSchedule) return null;
         return {
           title: "Choose your payment schedule",
           body: "Select an installment plan below to generate your tuition charges.",
@@ -554,6 +576,41 @@ function ParentBillingPageContent({
         </p>
       </div>
 
+      {scheduleWarningMessage ? (
+        <div
+          className="rounded-xl p-5 flex flex-col gap-3"
+          style={{
+            backgroundColor: C.warningBg,
+            border: `1px solid ${C.warningBorder}`,
+          }}
+          data-testid="parent-billing-schedule-warning"
+        >
+          <div className="flex items-start gap-3">
+            <CircleAlert
+              className="mt-0.5 h-5 w-5 shrink-0"
+              style={{ color: C.warning }}
+              aria-hidden
+            />
+            <div>
+              <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                {scheduleWarningMessage.title}
+              </p>
+              <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+                {scheduleWarningMessage.body}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={scrollToScheduleSelector}
+            className="inline-flex self-start px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ backgroundColor: C.warning, color: "#fff" }}
+          >
+            Review options below
+          </button>
+        </div>
+      ) : null}
+
       {readinessMessage ? (
         <div
           className="rounded-xl p-5 flex flex-col gap-3"
@@ -647,14 +704,13 @@ function ParentBillingPageContent({
         />
       ) : null}
 
-      {!previewMode ? (
-        <ParentPaymentMethodCard
-          C={C}
-          savedPaymentMethod={savedPaymentMethod}
-          loading={paymentMethodLoading}
-          onManage={() => void handleManagePaymentMethod()}
-        />
-      ) : null}
+      <ParentPaymentMethodCard
+        C={C}
+        savedPaymentMethod={savedPaymentMethod}
+        loading={paymentMethodLoading}
+        onManage={() => void handleManagePaymentMethod()}
+        readOnly={previewMode}
+      />
 
       <ParentAutopayConfirmModal
         C={C}

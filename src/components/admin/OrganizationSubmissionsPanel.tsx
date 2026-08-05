@@ -11,7 +11,11 @@ import {
   resolveApplicationFamilyId,
   type AdminApplicationSubmission,
 } from "@/lib/admissions/application-submissions";
-import { familyPreviewBasePath } from "@/lib/admissions/family-preview-access";
+import {
+  familyPreviewBasePath,
+  findOwnerLinkedFamilyId,
+  schoolAdminPreviewBasePath,
+} from "@/lib/admissions/family-preview-access";
 import type { ParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
 import { createClient } from "@/utils/supabase/client";
 
@@ -41,17 +45,22 @@ export default function OrganizationSubmissionsPanel({
   const [loginStatusByGuardianId, setLoginStatusByGuardianId] = useState<
     Record<string, ParentPortalLoginStatus>
   >({});
+  const [ownerLinkedFamilyId, setOwnerLinkedFamilyId] = useState<string | null>(
+    null,
+  );
 
   const loadSubmissions = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const [rows, loginResponse] = await Promise.all([
+      const [rows, loginResponse, ownerFamilyId] = await Promise.all([
         listOrgApplicationSubmissions(supabase, organizationId),
         fetch(`/api/admin/organizations/${organizationId}/parent-login-status`),
+        findOwnerLinkedFamilyId(supabase, organizationId),
       ]);
       setSubmissions(rows);
+      setOwnerLinkedFamilyId(ownerFamilyId);
 
       if (loginResponse.ok) {
         const loginBody = (await loginResponse.json()) as {
@@ -85,6 +94,7 @@ export default function OrganizationSubmissionsPanel({
       setSubmissions([]);
       setFamilyIdByApplicationId({});
       setLoginStatusByGuardianId({});
+      setOwnerLinkedFamilyId(null);
     } finally {
       setLoading(false);
     }
@@ -140,6 +150,9 @@ export default function OrganizationSubmissionsPanel({
                   ? `${familyPreviewBasePath(organizationSlug, familyId)}?focus=${submission.id}`
                   : null;
 
+                const showAdminPreview =
+                  familyId != null && familyId === ownerLinkedFamilyId;
+
                 return (
                   <tr
                     key={submission.id}
@@ -180,17 +193,34 @@ export default function OrganizationSubmissionsPanel({
                       {formatUpdatedAt(submission.updatedAt)}
                     </td>
                     <td className="px-2 py-2.5 align-top text-right">
-                      {previewHref ? (
-                        <a
-                          href={previewHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                          title="Open read-only family preview in a new tab"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          Preview
-                        </a>
+                      {previewHref && familyId ? (
+                        <div className="flex flex-col items-end gap-1.5">
+                          <a
+                            href={previewHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                            title="Open read-only family apply preview in a new tab"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Family
+                          </a>
+                          {showAdminPreview ? (
+                            <a
+                              href={schoolAdminPreviewBasePath(
+                                organizationSlug,
+                                familyId,
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                              title="Open read-only school admin preview with portal switcher"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              Admin
+                            </a>
+                          ) : null}
+                        </div>
                       ) : (
                         <span
                           className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"

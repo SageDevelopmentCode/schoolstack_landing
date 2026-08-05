@@ -13,6 +13,7 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { getFamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { createClient } from "@/utils/supabase/server";
+import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 
 export const dynamic = "force-dynamic";
 
@@ -81,13 +82,15 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
     redirect(`/school/${slug}/apply/${applicationId}`);
   }
 
-  const [checklist, userProfile, combinedPaymentCandidates] = await Promise.all([
+  const [checklist, userProfile, combinedPaymentCandidates, portalOptions] =
+    await Promise.all([
     loadEnrollmentChecklistForApplication(supabase, applicationId, org.id),
     getFamilyUserProfile(supabase, user.id, org.id, user),
     listCombinedEnrollmentPaymentCandidates(supabase, {
       organizationId: org.id,
       userId: user.id,
     }),
+    listSchoolPortalOptionsForUser(supabase, user.id, slug),
   ]);
 
   if (!checklist) {
@@ -110,6 +113,7 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
       combinedPaymentCandidates={combinedPaymentCandidates}
       parentPortalHref={parentPortalHref ?? undefined}
       userProfile={userProfile}
+      portalOptions={portalOptions}
     />
   );
 }

@@ -5,6 +5,7 @@ import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import {
+  familyPreviewBasePath,
   loadApplicationDetailForFamily,
   listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
@@ -89,6 +90,7 @@ export default async function FamilyPreviewParentChildrenPage({ params }: PagePr
         schoolSlug={slug}
         familyChildren={familyChildren}
         childProfiles={childProfiles}
+        previewBasePath={familyPreviewBasePath(slug, familyId)}
       />
     </SchoolParentPageShell>
   );

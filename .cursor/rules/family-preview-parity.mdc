@@ -1,0 +1,30 @@
+---
+description: Keep parent/apply/enrollment features in sync with admin family preview impersonation
+alwaysApply: true
+---
+
+# Family preview parity
+
+When adding or changing a **parent portal**, **apply dashboard**, or **enrollment checklist** feature:
+
+1. **Find the live route** under `src/app/school/[slug]/...`
+2. **Find or add the matching preview route** under `src/app/admin/(preview)/preview/[slug]/family/[familyId]/...`
+3. **Reuse the same client component** — do not fork UI or fall through to Coming Soon when live has a real implementation
+4. **Load the same server data** scoped to the previewed family (`family-preview-access.ts` helpers + admin client where auth differs)
+5. **Visual parity**: show the same sections/forms/buttons as live; use `previewMode` / `readOnly` to **disable interactions**, not to hide UI
+6. **Verify** from `/admin/organizations` → submission Preview → compare with live parent/apply view
+
+## Preview route map
+
+| Live | Family preview |
+|------|----------------|
+| `/school/{slug}/apply` | `/admin/preview/{slug}/family/{familyId}` |
+| `/school/{slug}/apply/{appId}` | `.../apply/{appId}` |
+| `/school/{slug}/apply/{appId}/enrollment` | `.../apply/{appId}/enrollment` |
+| `/school/{slug}/parent/{feature}` | `.../parent/{feature}` |
+
+## Common pitfalls
+
+- Preview route missing a `feature === "..."` branch that live parent route has
+- Client fetches parent-portal APIs authenticated as the logged-in admin — load data server-side for preview instead
+- Gating UI on `isLive` or `previewMode` when only actions should be blocked (e.g. combined payment, join-request forms)

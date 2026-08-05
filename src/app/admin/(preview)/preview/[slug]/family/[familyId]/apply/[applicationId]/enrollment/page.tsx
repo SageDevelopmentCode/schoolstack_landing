@@ -2,9 +2,12 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import PublicEnrollmentChecklistClient from "@/components/admissions/PublicEnrollmentChecklistClient";
+import { listCombinedEnrollmentPaymentCandidates } from "@/lib/admissions/combined-enrollment-payment";
 import {
   applicationBelongsToFamily,
   familyPreviewBasePath,
+  getFamilyPreviewGuardianUserId,
+  getFamilyPreviewProfile,
 } from "@/lib/admissions/family-preview-access";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -67,15 +70,22 @@ export default async function FamilyPreviewEnrollmentPage({ params }: PageProps)
     redirect(`${familyPreviewBasePath(slug, familyId)}/apply/${applicationId}`);
   }
 
-  const checklist = await loadEnrollmentChecklistForApplication(
-    supabase,
-    applicationId,
-    org.id,
-  );
+  const [checklist, userProfile, guardianUserId] = await Promise.all([
+    loadEnrollmentChecklistForApplication(supabase, applicationId, org.id),
+    getFamilyPreviewProfile(supabase, org.id, familyId),
+    getFamilyPreviewGuardianUserId(supabase, org.id, familyId),
+  ]);
 
   if (!checklist) {
     notFound();
   }
+
+  const combinedPaymentCandidates = guardianUserId
+    ? await listCombinedEnrollmentPaymentCandidates(supabase, {
+        organizationId: org.id,
+        userId: guardianUserId,
+      })
+    : [];
 
   return (
     <PublicEnrollmentChecklistClient
@@ -84,6 +94,8 @@ export default async function FamilyPreviewEnrollmentPage({ params }: PageProps)
       schoolSlug={slug}
       organizationId={org.id}
       checklist={checklist}
+      combinedPaymentCandidates={combinedPaymentCandidates}
+      userProfile={userProfile}
       previewMode
       backHref={familyPreviewBasePath(slug, familyId)}
     />

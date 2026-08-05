@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
+import {
+  tabPanelTransition,
+  tabPanelVariants,
+} from "@/lib/school-admin/admin-modal-motion";
+import TuitionSubTabBar from "@/components/school-admin/tuition/TuitionSubTabBar";
+import {
+  DEFAULT_TUITION_RATE_CATALOG_TAB,
+  TUITION_RATE_CATALOG_TABS,
+  type TuitionRateCatalogTabId,
+} from "@/components/school-admin/tuition/tuition-rate-catalog-tabs";
 import {
   AddScheduleCard,
   AdminScheduleCard,
@@ -127,6 +138,8 @@ export default function TuitionRateCatalogPanel({
 }: TuitionRateCatalogPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const reducedMotion = useReducedMotion() ?? false;
+  const selectedPlanIdRef = useRef<string | null>(selectedPlanId);
 
   const catalogRatePlans = useMemo(
     () => ratePlans.filter((plan) => plan.status !== "draft"),
@@ -146,6 +159,9 @@ export default function TuitionRateCatalogPanel({
   const [wizardLaunch, setWizardLaunch] = useState<WizardLaunch | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeCatalogTab, setActiveCatalogTab] = useState<TuitionRateCatalogTabId>(
+    DEFAULT_TUITION_RATE_CATALOG_TAB,
+  );
 
   const activePlan = localPlan ?? selectedPlan;
 
@@ -258,6 +274,12 @@ export default function TuitionRateCatalogPanel({
       syncLocalFromSelected(selectedPlan);
     });
   }, [selectedPlan?.id, selectedPlan?.updatedAt]);
+
+  useEffect(() => {
+    if (selectedPlanIdRef.current === selectedPlanId) return;
+    selectedPlanIdRef.current = selectedPlanId;
+    setActiveCatalogTab(DEFAULT_TUITION_RATE_CATALOG_TAB);
+  }, [selectedPlanId]);
 
   const toggleCount = (count: number) => {
     setPaymentCounts((prev) => {
@@ -393,7 +415,7 @@ export default function TuitionRateCatalogPanel({
 
       {activePlan ? (
         <div
-          className="rounded-lg p-6 flex flex-col gap-8"
+          className="rounded-lg p-6 flex flex-col gap-5"
           style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
         >
           <div className="flex items-start justify-between gap-3">
@@ -431,281 +453,319 @@ export default function TuitionRateCatalogPanel({
             </label>
           </div>
 
-          <section
-            className="flex flex-col gap-4 pt-6 border-t"
-            style={{ borderColor: C.border }}
-          >
-            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-              Tuition rates
-            </p>
-            <div className="space-y-2">
-              {activePlan.tiers.length ? (
-                activePlan.tiers.map((tier) => (
-                  <div
-                    key={tier.id}
-                    className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
-                    style={{ border: `1px solid ${C.border}`, backgroundColor: C.bg }}
-                  >
-                    <span style={{ color: C.textPrimary }}>
-                      {tier.label}
-                      {tier.isDefault ? (
-                        <span
-                          className="ml-2 text-xs px-1.5 py-0.5 rounded"
-                          style={{ backgroundColor: C.accentLight, color: C.accent }}
-                        >
-                          Default
-                        </span>
-                      ) : null}
-                    </span>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span style={{ color: C.textSecondary }}>
-                        {formatTierDisplayAmount(tier.amountCents, activePlan.billingBasis)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => openSetupWizard(TUITION_WIZARD_STEP_TIERS)}
-                        className="p-1.5 rounded-md"
-                        style={{ color: C.textTertiary }}
-                        aria-label={`Edit ${tier.label} tuition rate`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
+          <TuitionSubTabBar
+            C={C}
+            tabs={TUITION_RATE_CATALOG_TABS}
+            activeTab={activeCatalogTab}
+            onTabChange={setActiveCatalogTab}
+            ariaLabel="Rate plan sections"
+            testIdPrefix="tuition-rate-catalog"
+          />
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeCatalogTab}
+              variants={tabPanelVariants(reducedMotion)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={tabPanelTransition(reducedMotion)}
+            >
+              {activeCatalogTab === "tuition_rates" ? (
                 <div
-                  className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
-                  style={{ border: `1px solid ${C.border}`, backgroundColor: C.bg }}
+                  className="flex flex-col gap-4"
+                  id="tuition-rate-catalog-panel-tuition_rates"
+                  role="tabpanel"
+                  aria-labelledby="tuition-rate-catalog-tab-tuition_rates"
+                  data-testid="tuition-rate-catalog-panel-tuition_rates"
                 >
-                  <span style={{ color: C.textPrimary }}>Standard</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span style={{ color: C.textSecondary }}>
-                      {formatTierDisplayAmount(activePlan.amountCents, activePlan.billingBasis)}
-                    </span>
+                  <div className="space-y-2">
+                    {activePlan.tiers.length ? (
+                      activePlan.tiers.map((tier) => (
+                        <div
+                          key={tier.id}
+                          className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
+                          style={{ border: `1px solid ${C.border}`, backgroundColor: C.bg }}
+                        >
+                          <span style={{ color: C.textPrimary }}>
+                            {tier.label}
+                            {tier.isDefault ? (
+                              <span
+                                className="ml-2 text-xs px-1.5 py-0.5 rounded"
+                                style={{ backgroundColor: C.accentLight, color: C.accent }}
+                              >
+                                Default
+                              </span>
+                            ) : null}
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span style={{ color: C.textSecondary }}>
+                              {formatTierDisplayAmount(tier.amountCents, activePlan.billingBasis)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openSetupWizard(TUITION_WIZARD_STEP_TIERS)}
+                              className="p-1.5 rounded-md"
+                              style={{ color: C.textTertiary }}
+                              aria-label={`Edit ${tier.label} tuition rate`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div
+                        className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
+                        style={{ border: `1px solid ${C.border}`, backgroundColor: C.bg }}
+                      >
+                        <span style={{ color: C.textPrimary }}>Standard</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span style={{ color: C.textSecondary }}>
+                            {formatTierDisplayAmount(
+                              activePlan.amountCents,
+                              activePlan.billingBasis,
+                            )}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openSetupWizard(TUITION_WIZARD_STEP_TIERS)}
+                            className="p-1.5 rounded-md"
+                            style={{ color: C.textTertiary }}
+                            aria-label="Edit Standard tuition rate"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={() => openSetupWizard(TUITION_WIZARD_STEP_TIERS)}
-                      className="p-1.5 rounded-md"
-                      style={{ color: C.textTertiary }}
-                      aria-label="Edit Standard tuition rate"
+                      className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm"
+                      style={{
+                        border: `1px dashed ${C.borderStrong}`,
+                        color: C.textTertiary,
+                        backgroundColor: C.surface,
+                      }}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Plus className="h-4 w-4" />
+                      Add tuition rate
                     </button>
                   </div>
                 </div>
-              )}
-              <button
-                type="button"
-                onClick={() => openSetupWizard(TUITION_WIZARD_STEP_TIERS)}
-                className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm"
-                style={{
-                  border: `1px dashed ${C.borderStrong}`,
-                  color: C.textTertiary,
-                  backgroundColor: C.surface,
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Add tuition rate
-              </button>
-            </div>
-          </section>
+              ) : null}
 
-          <section
-            className="flex flex-col gap-4 pt-6 border-t"
-            style={{ borderColor: C.border }}
-          >
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                Payment options
-              </p>
-              <button
-                type="button"
-                disabled={paymentCounts.length === 0}
-                onClick={() => setPreviewModalOpen(true)}
-                className="text-sm px-3 py-1.5 rounded-md font-medium shrink-0 disabled:opacity-50"
-                style={getAdminButtonStyle(C, "secondary")}
-              >
-                Preview schedules
-              </button>
-            </div>
-            {schoolYearMonths != null ? (
-              <p className="text-xs mb-3" style={{ color: C.textTertiary }}>
-                Based on your school year ({schoolYearMonths} months), installment
-                schedules are limited to {schoolYearMonths} payments or fewer.
-              </p>
-            ) : null}
-            <div className="grid gap-3 sm:grid-cols-2">
-              {availableSuggestedSchedules.map((schedule) => {
-                const preview = buildPaymentOptionPreviews(annualAmountCents, [
-                  schedule.count,
-                ])[0];
-                const selected = paymentCounts.includes(schedule.count);
-                const isDefault = defaultPaymentCount === schedule.count;
-                return (
-                  <ScheduleCardShell
-                    key={schedule.count}
-                    C={C}
-                    selected={selected}
-                  >
-                    <AdminScheduleCard
-                      C={C}
-                      selected={selected}
-                      label={schedule.label}
-                      cadence={paymentScheduleCadence(schedule.count, schoolYearMonths)}
-                      perPayment={preview ? formatCents(preview.amountCents) : "—"}
-                      annualTotal={formatCents(annualAmountCents)}
-                      onToggle={() => toggleCount(schedule.count)}
-                      isDefault={selected && isDefault}
-                      showDefaultControl={selected && showDefaultControls && !isDefault}
-                      onSetDefault={() => setDefaultPaymentCount(schedule.count)}
-                    />
-                  </ScheduleCardShell>
-                );
-              })}
-
-              {customOnlyCounts.map((count) => {
-                const preview = buildPaymentOptionPreviews(annualAmountCents, [count])[0];
-                const selected = paymentCounts.includes(count);
-                const isDefault = defaultPaymentCount === count;
-                return (
-                  <ScheduleCardShell key={count} C={C} selected={selected}>
-                    <div className="flex items-center gap-2">
-                      <AdminScheduleCard
-                        C={C}
-                        selected={selected}
-                        label={paymentScheduleLabel(count)}
-                        cadence={paymentScheduleCadence(count, schoolYearMonths)}
-                        perPayment={preview ? formatCents(preview.amountCents) : "—"}
-                        annualTotal={formatCents(annualAmountCents)}
-                        onToggle={() => toggleCount(count)}
-                        compact
-                        isDefault={selected && isDefault}
-                        showDefaultControl={selected && showDefaultControls && !isDefault}
-                        onSetDefault={() => setDefaultPaymentCount(count)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeCustomCount(count)}
-                        className="p-1.5 rounded-md shrink-0"
-                        style={{ color: C.textTertiary }}
-                        aria-label={`Remove ${count} payment schedule`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </ScheduleCardShell>
-                );
-              })}
-
-              <AddScheduleCard
-                C={C}
-                expanded={addCardExpanded}
-                customCount={customCount}
-                customInputMax={customInputMax}
-                maxInstallments={maxInstallments}
-                onExpand={() => setAddCardExpanded(true)}
-                onCollapse={closeAddCard}
-                onCustomCountChange={(value) => {
-                  setCustomCount(value);
-                  setCustomPaymentError(null);
-                }}
-                onAdd={addCustomCount}
-              />
-            </div>
-            {customPaymentError ? (
-              <p className="text-sm" style={{ color: C.error }}>
-                {customPaymentError}
-              </p>
-            ) : null}
-            <div className="mt-4">
-              <p className="text-xs mb-2" style={{ color: C.textTertiary }}>
-                Default payment option
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {paymentCounts.map((count) => (
-                  <button
-                    key={count}
-                    type="button"
-                    onClick={() => setDefaultPaymentCount(count)}
-                    className="text-xs px-2 py-1 rounded"
-                    style={{
-                      backgroundColor:
-                        defaultPaymentCount === count ? C.accent : C.bg,
-                      color: defaultPaymentCount === count ? "#fff" : C.textSecondary,
-                    }}
-                  >
-                    {paymentScheduleLabel(count)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section
-            className="flex flex-col gap-4 pt-6 border-t"
-            style={{ borderColor: C.border }}
-          >
-            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-              Fee components
-            </p>
-            <div className="space-y-2">
-              {activePlan.feeComponents.map((fee) => (
+              {activeCatalogTab === "payment_options" ? (
                 <div
-                  key={fee.id}
-                  className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
-                  style={{ border: `1px solid ${C.border}`, backgroundColor: C.bg }}
+                  className="flex flex-col gap-4"
+                  id="tuition-rate-catalog-panel-payment_options"
+                  role="tabpanel"
+                  aria-labelledby="tuition-rate-catalog-tab-payment_options"
+                  data-testid="tuition-rate-catalog-panel-payment_options"
                 >
-                  <span style={{ color: C.textSecondary }}>
-                    {fee.label}: {formatCents(fee.amountCents)} ({fee.timing})
-                  </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                      Payment options
+                    </p>
+                    <button
+                      type="button"
+                      disabled={paymentCounts.length === 0}
+                      onClick={() => setPreviewModalOpen(true)}
+                      className="text-sm px-3 py-1.5 rounded-md font-medium shrink-0 disabled:opacity-50"
+                      style={getAdminButtonStyle(C, "secondary")}
+                    >
+                      Preview schedules
+                    </button>
+                  </div>
+                  {schoolYearMonths != null ? (
+                    <p className="text-xs" style={{ color: C.textTertiary }}>
+                      Based on your school year ({schoolYearMonths} months), installment
+                      schedules are limited to {schoolYearMonths} payments or fewer.
+                    </p>
+                  ) : null}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {availableSuggestedSchedules.map((schedule) => {
+                      const preview = buildPaymentOptionPreviews(annualAmountCents, [
+                        schedule.count,
+                      ])[0];
+                      const selected = paymentCounts.includes(schedule.count);
+                      const isDefault = defaultPaymentCount === schedule.count;
+                      return (
+                        <ScheduleCardShell
+                          key={schedule.count}
+                          C={C}
+                          selected={selected}
+                        >
+                          <AdminScheduleCard
+                            C={C}
+                            selected={selected}
+                            label={schedule.label}
+                            cadence={paymentScheduleCadence(schedule.count, schoolYearMonths)}
+                            perPayment={preview ? formatCents(preview.amountCents) : "—"}
+                            annualTotal={formatCents(annualAmountCents)}
+                            onToggle={() => toggleCount(schedule.count)}
+                            isDefault={selected && isDefault}
+                            showDefaultControl={
+                              selected && showDefaultControls && !isDefault
+                            }
+                            onSetDefault={() => setDefaultPaymentCount(schedule.count)}
+                          />
+                        </ScheduleCardShell>
+                      );
+                    })}
+
+                    {customOnlyCounts.map((count) => {
+                      const preview = buildPaymentOptionPreviews(annualAmountCents, [
+                        count,
+                      ])[0];
+                      const selected = paymentCounts.includes(count);
+                      const isDefault = defaultPaymentCount === count;
+                      return (
+                        <ScheduleCardShell key={count} C={C} selected={selected}>
+                          <div className="flex items-center gap-2">
+                            <AdminScheduleCard
+                              C={C}
+                              selected={selected}
+                              label={paymentScheduleLabel(count)}
+                              cadence={paymentScheduleCadence(count, schoolYearMonths)}
+                              perPayment={preview ? formatCents(preview.amountCents) : "—"}
+                              annualTotal={formatCents(annualAmountCents)}
+                              onToggle={() => toggleCount(count)}
+                              compact
+                              isDefault={selected && isDefault}
+                              showDefaultControl={
+                                selected && showDefaultControls && !isDefault
+                              }
+                              onSetDefault={() => setDefaultPaymentCount(count)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeCustomCount(count)}
+                              className="p-1.5 rounded-md shrink-0"
+                              style={{ color: C.textTertiary }}
+                              aria-label={`Remove ${count} payment schedule`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </ScheduleCardShell>
+                      );
+                    })}
+
+                    <AddScheduleCard
+                      C={C}
+                      expanded={addCardExpanded}
+                      customCount={customCount}
+                      customInputMax={customInputMax}
+                      maxInstallments={maxInstallments}
+                      onExpand={() => setAddCardExpanded(true)}
+                      onCollapse={closeAddCard}
+                      onCustomCountChange={(value) => {
+                        setCustomCount(value);
+                        setCustomPaymentError(null);
+                      }}
+                      onAdd={addCustomCount}
+                    />
+                  </div>
+                  {customPaymentError ? (
+                    <p className="text-sm" style={{ color: C.error }}>
+                      {customPaymentError}
+                    </p>
+                  ) : null}
+                  <div>
+                    <p className="text-xs mb-2" style={{ color: C.textTertiary }}>
+                      Default payment option
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {paymentCounts.map((count) => (
+                        <button
+                          key={count}
+                          type="button"
+                          onClick={() => setDefaultPaymentCount(count)}
+                          className="text-xs px-2 py-1 rounded"
+                          style={{
+                            backgroundColor:
+                              defaultPaymentCount === count ? C.accent : C.bg,
+                            color: defaultPaymentCount === count ? "#fff" : C.textSecondary,
+                          }}
+                        >
+                          {paymentScheduleLabel(count)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {error ? (
+                    <p className="text-sm" style={{ color: C.error }}>
+                      {error}
+                    </p>
+                  ) : null}
+
                   <button
                     type="button"
-                    onClick={() => openSetupWizard(TUITION_WIZARD_STEP_FEES)}
-                    className="p-1.5 rounded-md shrink-0"
-                    style={{ color: C.textTertiary }}
-                    aria-label={`Edit ${fee.label} fee`}
+                    onClick={() => void handleSavePlan()}
+                    disabled={savingPlan || saving || !isPaymentOptionsDirty}
+                    style={getAdminButtonStyle(C, "primary")}
+                    className="self-start inline-flex items-center gap-2 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <Pencil className="h-4 w-4" />
+                    {savingPlan ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save payment options
                   </button>
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => openSetupWizard(TUITION_WIZARD_STEP_FEES)}
-                className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm"
-                style={{
-                  border: `1px dashed ${C.borderStrong}`,
-                  color: C.textTertiary,
-                  backgroundColor: C.surface,
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Add fee
-              </button>
-            </div>
-          </section>
+              ) : null}
 
-          {error ? (
-            <p className="text-sm" style={{ color: C.error }}>
-              {error}
-            </p>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => void handleSavePlan()}
-            disabled={savingPlan || saving || !isPaymentOptionsDirty}
-            style={getAdminButtonStyle(C, "primary")}
-            className="self-start inline-flex items-center gap-2 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {savingPlan ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            Save payment options
-          </button>
+              {activeCatalogTab === "fees" ? (
+                <div
+                  className="flex flex-col gap-4"
+                  id="tuition-rate-catalog-panel-fees"
+                  role="tabpanel"
+                  aria-labelledby="tuition-rate-catalog-tab-fees"
+                  data-testid="tuition-rate-catalog-panel-fees"
+                >
+                  <div className="space-y-2">
+                    {activePlan.feeComponents.map((fee) => (
+                      <div
+                        key={fee.id}
+                        className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm"
+                        style={{ border: `1px solid ${C.border}`, backgroundColor: C.bg }}
+                      >
+                        <span style={{ color: C.textSecondary }}>
+                          {fee.label}: {formatCents(fee.amountCents)} ({fee.timing})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openSetupWizard(TUITION_WIZARD_STEP_FEES)}
+                          className="p-1.5 rounded-md shrink-0"
+                          style={{ color: C.textTertiary }}
+                          aria-label={`Edit ${fee.label} fee`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => openSetupWizard(TUITION_WIZARD_STEP_FEES)}
+                      className="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm"
+                      style={{
+                        border: `1px dashed ${C.borderStrong}`,
+                        color: C.textTertiary,
+                        backgroundColor: C.surface,
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add fee
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
         </div>
       ) : null}
 

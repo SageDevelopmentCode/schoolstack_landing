@@ -190,6 +190,18 @@ button {
   }
 }
 
+@keyframes portal-switch-pulse {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
 .navbar-enter {
   animation: navbar-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

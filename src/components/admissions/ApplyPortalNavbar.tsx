@@ -1,10 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LogOut, User } from "lucide-react";
 import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
+import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
+import {
+  detectPortalFromPathname,
+  type SchoolPortalOption,
+} from "@/lib/auth/portal-switcher-types";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import {
   CLIENT_AUTH_ACTIVITY_ACTIONS,
@@ -12,6 +17,7 @@ import {
 } from "@/lib/activity-auth-client";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { shouldShowPortalSwitcher } from "@/lib/auth/portal-switcher-types";
 import { createClient } from "@/utils/supabase/client";
 
 type ApplyPortalNavbarProps = {
@@ -21,6 +27,7 @@ type ApplyPortalNavbarProps = {
   organizationId?: string;
   userEmail: string;
   userDisplayName: string;
+  portalOptions?: SchoolPortalOption[];
   previewMode?: boolean;
   previewHomeHref?: string;
 };
@@ -43,9 +50,11 @@ export default function ApplyPortalNavbar({
   organizationId,
   userEmail,
   userDisplayName,
+  portalOptions = [],
   previewMode = false,
   previewHomeHref,
 }: ApplyPortalNavbarProps) {
+  const pathname = usePathname();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
@@ -101,6 +110,9 @@ export default function ApplyPortalNavbar({
   const initials = profileInitials(userDisplayName);
   const homeHref =
     previewHomeHref ?? `/school/${schoolSlug}/apply`;
+  const showPreviewSwitcher =
+    previewMode && shouldShowPortalSwitcher(portalOptions);
+  const showProfileMenu = !previewMode || showPreviewSwitcher;
 
   return (
     <header
@@ -116,14 +128,16 @@ export default function ApplyPortalNavbar({
           />
         </div>
 
-        {previewMode ? (
+        {previewMode && !showPreviewSwitcher ? (
           <span
             className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
             style={{ backgroundColor: C.accentLight, color: C.accent }}
           >
             Preview
           </span>
-        ) : (
+        ) : null}
+
+        {showProfileMenu ? (
         <div className="relative shrink-0" ref={menuRef}>
           <button
             type="button"
@@ -165,6 +179,13 @@ export default function ApplyPortalNavbar({
                   </p>
                 ) : null}
               </div>
+              <SchoolPortalSwitcherMenuItems
+                C={C}
+                options={portalOptions}
+                currentPortal={detectPortalFromPathname(pathname, schoolSlug)}
+                onNavigate={() => setMenuOpen(false)}
+              />
+              {!previewMode ? (
               <button
                 type="button"
                 role="menuitem"
@@ -180,10 +201,11 @@ export default function ApplyPortalNavbar({
                   Log out
                 </ButtonLoadingLabel>
               </button>
+              ) : null}
             </div>
           ) : null}
         </div>
-        )}
+        ) : null}
       </div>
     </header>
   );

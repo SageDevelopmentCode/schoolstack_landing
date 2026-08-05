@@ -1,11 +1,13 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import FamilyPreviewShell from "@/components/admin/FamilyPreviewShell";
+import { PreviewPortalOptionsProvider } from "@/components/admin/PreviewPortalOptionsProvider";
 import {
   familyHasEnrolledAccess,
   familyPreviewParentBasePath,
   getFamilyPreviewProfile,
 } from "@/lib/admissions/family-preview-access";
+import { listPreviewPortalOptions } from "@/lib/admissions/preview-portal-options";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -47,17 +49,26 @@ export default async function FamilyPreviewLayout({
         )
       : null;
 
+  const portalOptions = listPreviewPortalOptions({
+    slug,
+    familyId,
+    hasEnrolledAccess,
+    org,
+  });
+
   return (
-    <FamilyPreviewShell
-      schoolSlug={slug}
-      familyId={familyId}
-      schoolName={org.name}
-      userProfile={userProfile}
-      hasEnrolledAccess={hasEnrolledAccess}
-      parentPortalEnabled={parentPortalEnabled}
-      parentPortalHref={parentPortalHref}
-    >
-      {children}
-    </FamilyPreviewShell>
+    <PreviewPortalOptionsProvider options={portalOptions}>
+      <FamilyPreviewShell
+        schoolSlug={slug}
+        familyId={familyId}
+        schoolName={org.name}
+        userProfile={userProfile}
+        hasEnrolledAccess={hasEnrolledAccess}
+        parentPortalEnabled={parentPortalEnabled}
+        parentPortalHref={parentPortalHref}
+      >
+        {children}
+      </FamilyPreviewShell>
+    </PreviewPortalOptionsProvider>
   );
 }

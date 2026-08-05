@@ -387,6 +387,23 @@ export default function AdminOrganizationsPage() {
               <ul className="space-y-2">
                 <li>
                   <Link
+                    href={`/admin/preview/${selected.slug}/admin`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-2 text-sm text-admin-accent hover:underline group"
+                  >
+                    <span>Preview school admin (read-only)</span>
+                    <ArrowUpRight
+                      className="w-3.5 h-3.5 shrink-0 opacity-60 group-hover:opacity-100"
+                      aria-hidden
+                    />
+                  </Link>
+                  <p className="text-xs text-admin-faint mt-0.5">
+                    /admin/preview/{selected.slug}/admin
+                  </p>
+                </li>
+                <li>
+                  <Link
                     href={`/school/${selected.slug}/admin`}
                     target="_blank"
                     rel="noopener noreferrer"

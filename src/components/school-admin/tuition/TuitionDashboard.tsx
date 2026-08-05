@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
+import {
+  tabPanelTransition,
+  tabPanelVariants,
+} from "@/lib/school-admin/admin-modal-motion";
 import TuitionAdjustModal from "@/components/school-admin/tuition/TuitionAdjustModal";
 import TuitionAssignmentModal from "@/components/school-admin/tuition/TuitionAssignmentModal";
 import TuitionSetupButton from "@/components/school-admin/tuition/TuitionSetupButton";
@@ -41,6 +46,7 @@ export default function TuitionDashboard({
 }: TuitionDashboardProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const reducedMotion = useReducedMotion() ?? false;
 
   const [tab, setTab] = useState<TabKey>(
     setupStatus.familiesWithBillingCount > 0 ? "families" : "catalog",
@@ -201,71 +207,80 @@ export default function TuitionDashboard({
         </p>
       ) : null}
 
-      {tab === "families" ? (
-        <TuitionFamiliesPanel
-          key={familiesRefreshKey}
-          organizationId={organizationId}
-          slug={slug}
-          branding={branding}
-          onAdjust={(familyId, assignmentId) => {
-            setAdjustFamilyId(familyId);
-            setAdjustAssignmentId(assignmentId);
-          }}
-          onEditAssignment={(assignmentId) => setEditAssignmentId(assignmentId)}
-          onRefresh={() => void loadData()}
-        />
-      ) : null}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          variants={tabPanelVariants(reducedMotion)}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={tabPanelTransition(reducedMotion)}
+        >
+          {tab === "families" ? (
+            <TuitionFamiliesPanel
+              key={familiesRefreshKey}
+              organizationId={organizationId}
+              slug={slug}
+              branding={branding}
+              onAdjust={(familyId, assignmentId) => {
+                setAdjustFamilyId(familyId);
+                setAdjustAssignmentId(assignmentId);
+              }}
+              onEditAssignment={(assignmentId) => setEditAssignmentId(assignmentId)}
+              onRefresh={() => void loadData()}
+            />
+          ) : null}
 
-      {tab === "catalog" ? (
-        <TuitionRateCatalogPanel
-          organizationId={organizationId}
-          branding={branding}
-          ratePlans={ratePlans}
-          selectedPlanId={selectedPlanId}
-          onSelectPlan={setSelectedPlanId}
-          onRefresh={() => void loadData()}
-          onStartSetup={() => setShowSetupWizard(true)}
-          saving={loading}
-        />
-      ) : null}
+          {tab === "catalog" ? (
+            <TuitionRateCatalogPanel
+              organizationId={organizationId}
+              branding={branding}
+              ratePlans={ratePlans}
+              selectedPlanId={selectedPlanId}
+              onSelectPlan={setSelectedPlanId}
+              onRefresh={() => void loadData()}
+              onStartSetup={() => setShowSetupWizard(true)}
+              saving={loading}
+            />
+          ) : null}
 
-      {tab === "rules" ? (
-        <TuitionRulesPanel
-          organizationId={organizationId}
-          branding={branding}
-          onRefresh={() => void loadData()}
-        />
-      ) : null}
+          {tab === "rules" ? (
+            <TuitionRulesPanel
+              organizationId={organizationId}
+              branding={branding}
+              onRefresh={() => void loadData()}
+            />
+          ) : null}
+        </motion.div>
+      </AnimatePresence>
 
-      {editAssignmentId ? (
-        <TuitionAssignmentModal
-          assignmentId={editAssignmentId}
-          branding={branding}
-          onClose={() => setEditAssignmentId(null)}
-          onSaved={() => {
-            setEditAssignmentId(null);
-            void loadData();
-          }}
-        />
-      ) : null}
+      <TuitionAssignmentModal
+        open={editAssignmentId != null}
+        assignmentId={editAssignmentId ?? ""}
+        branding={branding}
+        onClose={() => setEditAssignmentId(null)}
+        onSaved={() => {
+          setEditAssignmentId(null);
+          void loadData();
+        }}
+      />
 
-      {adjustFamilyId && adjustAssignmentId ? (
-        <TuitionAdjustModal
-          organizationId={organizationId}
-          familyId={adjustFamilyId}
-          assignmentId={adjustAssignmentId}
-          branding={branding}
-          onClose={() => {
-            setAdjustFamilyId(null);
-            setAdjustAssignmentId(null);
-          }}
-          onSaved={() => {
-            setAdjustFamilyId(null);
-            setAdjustAssignmentId(null);
-            void loadData();
-          }}
-        />
-      ) : null}
+      <TuitionAdjustModal
+        open={adjustFamilyId != null && adjustAssignmentId != null}
+        organizationId={organizationId}
+        familyId={adjustFamilyId ?? ""}
+        assignmentId={adjustAssignmentId ?? ""}
+        branding={branding}
+        onClose={() => {
+          setAdjustFamilyId(null);
+          setAdjustAssignmentId(null);
+        }}
+        onSaved={() => {
+          setAdjustFamilyId(null);
+          setAdjustAssignmentId(null);
+          void loadData();
+        }}
+      />
 
       {readiness ? (
         <TuitionSetupPanel

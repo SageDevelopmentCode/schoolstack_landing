@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import SchoolParentAvatar from "@/components/school-parent/SchoolParentAvatar";
+import NavigationLink from "@/components/school/shared/NavigationLink";
 import {
   buildParentNavItems,
   isParentNavItemActive,
@@ -21,6 +21,13 @@ import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
+import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
+import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
+import {
+  detectPortalFromPathname,
+  shouldShowPortalSwitcher,
+  type SchoolPortalOption,
+} from "@/lib/auth/portal-switcher-types";
 import type {
   FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
@@ -37,6 +44,7 @@ type SchoolParentHeaderProps = {
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
+  portalOptions?: SchoolPortalOption[];
   previewMode?: boolean;
   previewBasePath?: string;
   previewParentBasePath?: string;
@@ -66,7 +74,7 @@ function NavLink({
   const active = isParentNavItemActive(pathname, item);
 
   return (
-    <Link
+    <NavigationLink
       href={item.href}
       className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
       style={{
@@ -77,7 +85,7 @@ function NavLink({
     >
       <Icon className="h-3.5 w-3.5" />
       {item.name}
-    </Link>
+    </NavigationLink>
   );
 }
 
@@ -88,12 +96,20 @@ export default function SchoolParentHeader({
   branding,
   features,
   userProfile,
+  portalOptions = [],
   previewMode = false,
   previewBasePath,
   previewParentBasePath,
 }: SchoolParentHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const previewPortalOptions = usePreviewPortalOptions();
+  const resolvedPortalOptions =
+    previewMode && previewPortalOptions.length > 0
+      ? previewPortalOptions
+      : portalOptions;
+  const showPreviewSwitcher =
+    previewMode && shouldShowPortalSwitcher(resolvedPortalOptions);
   const supabase = useMemo(() => createClient(), []);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -171,7 +187,7 @@ export default function SchoolParentHeader({
     <header className="shrink-0 border-b border-gray-100 bg-white">
       <div className="flex items-center px-4 py-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Link href={homeHref} className="min-w-0 shrink">
+          <NavigationLink href={homeHref} className="min-w-0 shrink">
             <SchoolDemoWordmark
               logo={{
                 src: branding.logo.src,
@@ -182,7 +198,7 @@ export default function SchoolParentHeader({
               }}
               className="h-8 w-auto max-w-[min(180px,40vw)] object-contain sm:h-10"
             />
-          </Link>
+          </NavigationLink>
         </div>
 
         <nav className="hidden items-center gap-1 lg:flex">
@@ -212,7 +228,7 @@ export default function SchoolParentHeader({
                     const Icon = item.icon;
                     const active = isParentNavItemActive(pathname, item);
                     return (
-                      <Link
+                      <NavigationLink
                         key={item.key}
                         href={item.href}
                         onClick={() => setMoreOpen(false)}
@@ -225,7 +241,7 @@ export default function SchoolParentHeader({
                       >
                         <Icon className="h-4 w-4" />
                         {item.name}
-                      </Link>
+                      </NavigationLink>
                     );
                   })}
                 </div>
@@ -260,13 +276,21 @@ export default function SchoolParentHeader({
                     </p>
                   ) : null}
                 </div>
-                <Link
+                <SchoolPortalSwitcherMenuItems
+                  C={C}
+                  options={resolvedPortalOptions}
+                  currentPortal={detectPortalFromPathname(pathname, slug)}
+                  onNavigate={() => setMenuOpen(false)}
+                />
+                {!showPreviewSwitcher ? (
+                <NavigationLink
                   href={applicationsHref}
                   className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => setMenuOpen(false)}
                 >
                   Your applications
-                </Link>
+                </NavigationLink>
+                ) : null}
                 {!previewMode ? (
                   <button
                     type="button"

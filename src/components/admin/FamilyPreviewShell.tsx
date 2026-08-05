@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Eye, X } from "lucide-react";
+import NavigationLink from "@/components/school/shared/NavigationLink";
+import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import { familyPreviewBasePath } from "@/lib/admissions/family-preview-access";
 
@@ -47,6 +49,7 @@ export default function FamilyPreviewShell({
   }
 
   return (
+    <NavigationLoadingProvider>
     <div className="flex min-h-dvh flex-col bg-bg">
       <div
         className="shrink-0 border-b px-4 py-3 sm:px-6"
@@ -87,7 +90,7 @@ export default function FamilyPreviewShell({
               const active =
                 tab.id === "parent" ? isParentRoute : !isParentRoute;
               return (
-                <Link
+                <NavigationLink
                   key={tab.id}
                   href={tab.href}
                   className="rounded-md px-3 py-1.5 text-xs font-medium transition"
@@ -98,7 +101,7 @@ export default function FamilyPreviewShell({
                   }}
                 >
                   {tab.label}
-                </Link>
+                </NavigationLink>
               );
             })}
           </div>
@@ -107,5 +110,6 @@ export default function FamilyPreviewShell({
 
       <div className="flex-1 min-h-0">{children}</div>
     </div>
+    </NavigationLoadingProvider>
   );
 }

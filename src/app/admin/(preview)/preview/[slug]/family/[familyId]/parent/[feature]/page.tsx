@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import ParentHomePage from "@/components/school-parent/ParentHomePage";
 import ParentBillingPage from "@/components/school-parent/billing/ParentBillingPage";
+import ParentCommitteesPage from "@/components/school-parent/committees/ParentCommitteesPage";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
 import {
@@ -19,6 +20,8 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
+import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
+import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -104,6 +107,12 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
   }
 
   if (feature === "billing") {
+    const initialData = await loadParentBillingPreviewData({
+      organizationId: org.id,
+      familyId,
+      slug,
+    });
+
     return (
       <SchoolParentPageShell title={pageName}>
         <ParentBillingPage
@@ -112,6 +121,29 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
           branding={org.branding}
           slug={slug}
           previewMode
+          initialData={initialData}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "committees") {
+    const initialData = await loadParentCommitteesPreviewData({
+      organizationId: org.id,
+      familyId,
+    });
+    const guardianName = userProfile.displayName || userProfile.email || "Parent";
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentCommitteesPage
+          organizationId={org.id}
+          schoolSlug={slug}
+          schoolName={org.name}
+          branding={org.branding}
+          guardianName={guardianName}
+          previewMode
+          initialData={initialData}
         />
       </SchoolParentPageShell>
     );

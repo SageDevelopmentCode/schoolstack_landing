@@ -24,6 +24,7 @@ import {
 } from "@/lib/admissions/payment-return-polling";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import { createClient } from "@/utils/supabase/client";
 
 type PublicEnrollmentChecklistClientProps = {
@@ -37,6 +38,7 @@ type PublicEnrollmentChecklistClientProps = {
   previewMode?: boolean;
   backHref?: string;
   userProfile?: FamilyUserProfile;
+  portalOptions?: SchoolPortalOption[];
 };
 
 function celebrationStorageKey(checklistId: string) {
@@ -58,6 +60,7 @@ export default function PublicEnrollmentChecklistClient({
   previewMode = false,
   backHref,
   userProfile,
+  portalOptions = [],
 }: PublicEnrollmentChecklistClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -245,6 +248,7 @@ export default function PublicEnrollmentChecklistClient({
       organizationId={organizationId}
       userEmail={resolvedProfile.email}
       userDisplayName={resolvedProfile.displayName}
+      portalOptions={portalOptions}
       previewMode={previewMode}
       previewHomeHref={backHref}
       fullBleed
@@ -264,7 +268,7 @@ export default function PublicEnrollmentChecklistClient({
         onInstancesChange={previewMode ? undefined : setInstances}
         onActiveItemChange={previewMode ? undefined : persistActiveItem}
         onAllRequiredComplete={previewMode ? undefined : handleAllRequiredComplete}
-        mode={previewMode ? "preview" : "live"}
+        mode="live"
         backLink={{
           href: backHref ?? `/school/${schoolSlug}/apply`,
           label: "Back to applications",

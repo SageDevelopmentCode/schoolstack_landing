@@ -5,7 +5,9 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
+import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
+import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type {
   OrganizationBranding,
@@ -24,6 +26,7 @@ type SchoolParentBaselineProps = {
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
+  portalOptions?: SchoolPortalOption[];
   children: ReactNode;
   previewMode?: boolean;
   previewBasePath?: string;
@@ -41,6 +44,7 @@ export default function SchoolParentBaseline({
   branding,
   features,
   userProfile,
+  portalOptions = [],
   children,
   previewMode = false,
   previewBasePath,
@@ -54,6 +58,7 @@ export default function SchoolParentBaseline({
   const showHelpButton = !previewMode && isParentHelpPage(pathname, slug);
 
   return (
+    <NavigationLoadingProvider>
     <div
       className={
         previewMode
@@ -69,6 +74,7 @@ export default function SchoolParentBaseline({
         branding={branding}
         features={features}
         userProfile={userProfile}
+        portalOptions={portalOptions}
         previewMode={previewMode}
         previewBasePath={previewBasePath}
         previewParentBasePath={previewParentBasePath}
@@ -114,5 +120,6 @@ export default function SchoolParentBaseline({
         />
       ) : null}
     </div>
+    </NavigationLoadingProvider>
   );
 }

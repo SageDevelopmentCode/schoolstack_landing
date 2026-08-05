@@ -8,6 +8,7 @@ import {
   getFamilyUserProfile,
   userHasEnrolledAccess,
 } from "@/lib/admissions/parent-portal-access";
+import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { createClient } from "@/utils/supabase/server";
@@ -66,6 +67,12 @@ export default async function SchoolParentProtectedLayout({
     user,
   );
 
+  const portalOptions = await listSchoolPortalOptionsForUser(
+    supabase,
+    user.id,
+    slug,
+  );
+
   return (
     <SchoolParentBaseline
       slug={slug}
@@ -74,6 +81,7 @@ export default async function SchoolParentProtectedLayout({
       branding={org.branding}
       features={org.features}
       userProfile={userProfile}
+      portalOptions={portalOptions}
     >
       {children}
     </SchoolParentBaseline>

@@ -3,6 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
 import {
+  LazyAustinMicroSchoolAdminDashboardDemo,
+  prefetchAustinMicroSchoolAdminDemo,
+} from "@/components/demo/austinmicroschool/lazyAustinMicroSchoolDemos";
+import {
+  LazyKineoSchoolAdminDashboardDemo,
+  prefetchKineoSchoolAdminDemo,
+} from "@/components/demo/kineoschool/lazyKineoSchoolDemos";
+import {
   LazyAthenaAdminDashboardDemo,
   prefetchAthenaAdminDemo,
 } from "@/components/demo/athena/lazyAthenaDemos";
@@ -165,6 +173,8 @@ export default function ScaledAdminDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isAustinMicroSchool = demoSlug === "austin-micro-school";
+  const isKineoSchool = demoSlug === "kineo-school";
   const isHiltonHorizons = demoSlug === "hilton-horizons-academy";
   const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
@@ -189,7 +199,9 @@ export default function ScaledAdminDemoPreview({
   const isOneAcreFarm = demoSlug === "one-acre-farm";
 
   useEffect(() => {
-    if (isLabLearning) prefetchLabLearningAdminDemo();
+    if (isAustinMicroSchool) prefetchAustinMicroSchoolAdminDemo();
+    else if (isKineoSchool) prefetchKineoSchoolAdminDemo();
+    else if (isLabLearning) prefetchLabLearningAdminDemo();
     else if (isOneAcreFarm) prefetchOneAcreFarmAdminDemo();
     else if (isTrueNorth) prefetchTrueNorthAdminDemo();
     else if (isCreationAcres) prefetchCreationAcresAdminDemo();
@@ -212,7 +224,7 @@ export default function ScaledAdminDemoPreview({
     else if (isTheWoodlandsMicroschool) prefetchTheWoodlandsMicroschoolAdminDemo();
     else if (isWonderHere) prefetchWonderHereAdminDemo();
     else prefetchAthenaAdminDemo();
-  }, [isLabLearning, isOneAcreFarm, isTrueNorth, isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
+  }, [isAustinMicroSchool, isKineoSchool, isLabLearning, isOneAcreFarm, isTrueNorth, isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -226,7 +238,11 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isLabLearning
+  const DemoComponent = isAustinMicroSchool
+    ? LazyAustinMicroSchoolAdminDashboardDemo
+    : isKineoSchool
+    ? LazyKineoSchoolAdminDashboardDemo
+    : isLabLearning
     ? LazyLabLearningAdminDashboardDemo
     : isOneAcreFarm
     ? LazyOneAcreFarmAdminDashboardDemo

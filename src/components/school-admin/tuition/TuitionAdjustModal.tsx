@@ -7,6 +7,7 @@ import { listChargesForAssignment } from "@/lib/tuition/charges";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { AdjustmentType, TuitionAdjustment } from "@/lib/tuition/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
@@ -19,6 +20,7 @@ const ADJUST_REASONS = [
 ] as const;
 
 type TuitionAdjustModalProps = {
+  open: boolean;
   organizationId: string;
   familyId: string;
   assignmentId: string;
@@ -28,6 +30,7 @@ type TuitionAdjustModalProps = {
 };
 
 export default function TuitionAdjustModal({
+  open,
   organizationId,
   assignmentId,
   branding,
@@ -45,6 +48,8 @@ export default function TuitionAdjustModal({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!open || !assignmentId) return;
+
     void (async () => {
       const [adjustments, charges] = await Promise.all([
         listAdjustmentsForAssignment(supabase, assignmentId),
@@ -54,7 +59,7 @@ export default function TuitionAdjustModal({
       const tuitionCharge = charges.find((c) => c.chargeType === "tuition");
       if (tuitionCharge) setBaseAmountCents(tuitionCharge.baseAmountCents);
     })();
-  }, [assignmentId, supabase]);
+  }, [assignmentId, open, supabase]);
 
   const draftAmount = computeAdjustedAmountCents(baseAmountCents, [
     {
@@ -96,16 +101,14 @@ export default function TuitionAdjustModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center p-4 z-50"
-      style={{ backgroundColor: "rgba(0,0,0,0.35)" }}
-      onClick={onClose}
+    <SchoolAdminModalShell
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      ariaLabel="Adjust tuition"
+      panelStyle={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
     >
-      <div
-        className="w-full max-w-lg rounded-xl p-5 flex flex-col gap-4"
-        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="p-5 flex flex-col gap-4">
         <div>
           <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
             Adjust tuition
@@ -196,6 +199,6 @@ export default function TuitionAdjustModal({
           </button>
         </div>
       </div>
-    </div>
+    </SchoolAdminModalShell>
   );
 }

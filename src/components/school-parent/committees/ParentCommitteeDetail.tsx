@@ -13,6 +13,7 @@ type ParentCommitteeDetailProps = {
   schoolSlug: string;
   schoolName: string;
   guardianName: string;
+  readOnly?: boolean;
   onBack: () => void;
   onRequestSubmitted: () => void;
 };
@@ -24,6 +25,7 @@ export default function ParentCommitteeDetail({
   schoolSlug,
   schoolName,
   guardianName,
+  readOnly = false,
   onBack,
   onRequestSubmitted,
 }: ParentCommitteeDetailProps) {
@@ -36,13 +38,15 @@ export default function ParentCommitteeDetail({
     null,
   );
 
-  const canRequest =
+  const showRequestForm =
     !committee.isMember &&
     (!committee.requestStatus || committee.requestStatus === "declined");
 
-  const canWithdraw = committee.requestStatus === "pending" && committee.requestId;
+  const showWithdrawSection =
+    committee.requestStatus === "pending" && committee.requestId;
 
   const handleSubmit = async () => {
+    if (readOnly) return;
     setSubmitting(true);
     try {
       const res = await fetch("/api/parent-portal/committees/join-requests", {
@@ -76,7 +80,7 @@ export default function ParentCommitteeDetail({
   };
 
   const handleWithdraw = async () => {
-    if (!committee.requestId) return;
+    if (readOnly || !committee.requestId) return;
     setWithdrawing(true);
     try {
       const params = new URLSearchParams({
@@ -180,7 +184,7 @@ export default function ParentCommitteeDetail({
         </div>
       )}
 
-      {canRequest && (
+      {showRequestForm && (
         <div
           className="rounded-2xl border p-6 space-y-4"
           style={{ backgroundColor: C.surface, borderColor: C.border }}
@@ -203,7 +207,8 @@ export default function ParentCommitteeDetail({
               <select
                 value={preferredDutyRoleId}
                 onChange={(e) => setPreferredDutyRoleId(e.target.value)}
-                className="w-full text-sm rounded-lg border px-3 py-2"
+                disabled={readOnly}
+                className="w-full text-sm rounded-lg border px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ borderColor: C.border, color: C.textPrimary }}
               >
                 <option value="">No preference</option>
@@ -224,7 +229,8 @@ export default function ParentCommitteeDetail({
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
               placeholder="e.g. 3rd grade"
-              className="w-full text-sm rounded-lg border px-3 py-2"
+              disabled={readOnly}
+              className="w-full text-sm rounded-lg border px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ borderColor: C.border, color: C.textPrimary }}
             />
           </div>
@@ -238,7 +244,8 @@ export default function ParentCommitteeDetail({
               onChange={(e) => setNote(e.target.value)}
               rows={3}
               placeholder="Share relevant experience or availability…"
-              className="w-full text-sm rounded-lg border px-3 py-2"
+              disabled={readOnly}
+              className="w-full text-sm rounded-lg border px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ borderColor: C.border, color: C.textPrimary }}
             />
           </div>
@@ -246,8 +253,8 @@ export default function ParentCommitteeDetail({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting}
-            className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white rounded-xl cursor-pointer disabled:opacity-50"
+            disabled={readOnly || submitting}
+            className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white rounded-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: C.accent }}
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -256,7 +263,7 @@ export default function ParentCommitteeDetail({
         </div>
       )}
 
-      {canWithdraw && (
+      {showWithdrawSection && (
         <div
           className="rounded-2xl border p-6"
           style={{ backgroundColor: C.surface, borderColor: C.border }}
@@ -267,8 +274,8 @@ export default function ParentCommitteeDetail({
           <button
             type="button"
             onClick={handleWithdraw}
-            disabled={withdrawing}
-            className="text-sm font-medium cursor-pointer disabled:opacity-50"
+            disabled={readOnly || withdrawing}
+            className="text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ color: C.error }}
           >
             {withdrawing ? "Withdrawing…" : "Withdraw request"}

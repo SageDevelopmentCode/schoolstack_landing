@@ -1,8 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import TuitionLateFeeSettingsPanel from "@/components/school-admin/tuition/TuitionLateFeeSettingsPanel";
+import TuitionSubTabBar from "@/components/school-admin/tuition/TuitionSubTabBar";
+import {
+  DEFAULT_TUITION_RULES_TAB,
+  TUITION_RULES_TABS,
+  type TuitionRulesTabId,
+} from "@/components/school-admin/tuition/tuition-rules-tabs";
+import {
+  tabPanelTransition,
+  tabPanelVariants,
+} from "@/lib/school-admin/admin-modal-motion";
 import {
   createAdjustmentRule,
   listAdjustmentRules,
@@ -27,13 +38,15 @@ export default function TuitionRulesPanel({
 }: TuitionRulesPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const reducedMotion = useReducedMotion() ?? false;
   const [rules, setRules] = useState<TuitionAdjustmentRule[]>([]);
-  const [csvContent, setCsvContent] = useState("");
-  const [importResult, setImportResult] = useState<string | null>(null);
   const [previewRuleId, setPreviewRuleId] = useState<string | null>(null);
   const [previewMatches, setPreviewMatches] = useState<RulePreviewMatch[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [activeRulesTab, setActiveRulesTab] = useState<TuitionRulesTabId>(
+    DEFAULT_TUITION_RULES_TAB,
+  );
 
   const loadRules = useCallback(async () => {
     const rows = await listAdjustmentRules(supabase, organizationId);
@@ -45,6 +58,15 @@ export default function TuitionRulesPanel({
       void loadRules();
     });
   }, [loadRules]);
+
+  const handleRulesTabChange = (tab: TuitionRulesTabId) => {
+    setActiveRulesTab(tab);
+    if (tab !== "adjustments") {
+      setPreviewRuleId(null);
+      setPreviewMatches([]);
+      setPreviewError(null);
+    }
+  };
 
   const handleCreateSiblingRule = async () => {
     try {
@@ -73,57 +95,6 @@ export default function TuitionRulesPanel({
       await loadRules();
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to update rule."));
-    }
-  };
-
-  const handleImport = async () => {
-    try {
-      const response = await fetch("/api/tuition/import-financial-aid", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId, csvContent }),
-      });
-      const result = (await response.json()) as {
-        imported?: number;
-        skipped?: number;
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(result.error ?? "Failed to import financial aid.");
-      }
-      const message = `Imported ${result.imported ?? 0}, skipped ${result.skipped ?? 0}.`;
-      setImportResult(message);
-      adminToast.success("Financial aid import complete");
-    } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to import financial aid."));
-    }
-  };
-
-  const handleProcessDue = async () => {
-    try {
-      const response = await fetch("/api/tuition/process-due", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId }),
-      });
-      const result = (await response.json()) as {
-        overdueCount?: number;
-        rulesEvaluated?: number;
-        lateFeesApplied?: number;
-        lateFeesNotified?: number;
-        autopayProcessed?: number;
-        autopayFailed?: number;
-        autopaySkipped?: number;
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(result.error ?? "Failed to process due charges.");
-      }
-      const message = `Marked ${result.overdueCount ?? 0} overdue, re-evaluated ${result.rulesEvaluated ?? 0} assignments, applied ${result.lateFeesApplied ?? 0} late fees, autopay charged ${result.autopayProcessed ?? 0}, failed ${result.autopayFailed ?? 0}, skipped ${result.autopaySkipped ?? 0}.`;
-      setImportResult(message);
-      adminToast.success("Due charges processed");
-    } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to process due charges."));
     }
   };
 
@@ -164,176 +135,170 @@ export default function TuitionRulesPanel({
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <TuitionLateFeeSettingsPanel
-        organizationId={organizationId}
-        branding={branding}
+    <div className="flex flex-col gap-5">
+      <TuitionSubTabBar
+        C={C}
+        tabs={TUITION_RULES_TABS}
+        activeTab={activeRulesTab}
+        onTabChange={handleRulesTabChange}
+        ariaLabel="Tuition rules sections"
+        testIdPrefix="tuition-rules"
       />
 
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Automatic adjustments apply when enrollments are created or when you run
-          process due.
-        </p>
-        <button
-          type="button"
-          onClick={() => void handleCreateSiblingRule()}
-          className="inline-flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-md"
-          style={{ backgroundColor: C.accentLight, color: C.accent }}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeRulesTab}
+          variants={tabPanelVariants(reducedMotion)}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={tabPanelTransition(reducedMotion)}
         >
-          <Plus className="w-4 h-4" />
-          Add sibling rule
-        </button>
-      </div>
+          {activeRulesTab === "late_fees" ? (
+            <div
+              id="tuition-rules-panel-late_fees"
+              role="tabpanel"
+              aria-labelledby="tuition-rules-tab-late_fees"
+              data-testid="tuition-rules-panel-late_fees"
+            >
+              <TuitionLateFeeSettingsPanel
+                organizationId={organizationId}
+                branding={branding}
+              />
+            </div>
+          ) : null}
 
-      <div className="flex flex-col gap-2">
-        {rules.map((rule) => (
-          <div
-            key={rule.id}
-            className="rounded-lg text-sm"
-            style={{ border: `1px solid ${C.border}`, backgroundColor: C.surface }}
-          >
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <div>
-                <p className="font-medium" style={{ color: C.textPrimary }}>
-                  {rule.name}
+          {activeRulesTab === "adjustments" ? (
+            <div
+              className="flex flex-col gap-4"
+              id="tuition-rules-panel-adjustments"
+              role="tabpanel"
+              aria-labelledby="tuition-rules-tab-adjustments"
+              data-testid="tuition-rules-panel-adjustments"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm" style={{ color: C.textSecondary }}>
+                  Automatic adjustments apply when enrollments are created.
                 </p>
-                <p style={{ color: C.textTertiary }}>
-                  {rule.reason} · priority {rule.priority}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => void handleCreateSiblingRule()}
+                  className="inline-flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-md shrink-0"
+                  style={{ backgroundColor: C.accentLight, color: C.accent }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add sibling rule
+                </button>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handlePreviewRule(rule)}
-                  className="text-xs font-medium px-2 py-1 rounded"
-                  style={{
-                    backgroundColor: C.bg,
-                    color: C.textPrimary,
-                    border: `1px solid ${C.border}`,
-                  }}
-                  data-testid="tuition-rule-preview-button"
-                >
-                  {previewRuleId === rule.id ? "Hide preview" : "Preview"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleToggleRule(rule)}
-                  className="text-xs font-medium px-2 py-1 rounded"
-                  style={{
-                    backgroundColor: rule.active ? C.accentLight : C.bg,
-                    color: rule.active ? C.accent : C.textTertiary,
-                  }}
-                >
-                  {rule.active ? "Active" : "Inactive"}
-                </button>
+
+              <div className="flex flex-col gap-2">
+                {rules.map((rule) => (
+                  <div
+                    key={rule.id}
+                    className="rounded-lg text-sm"
+                    style={{ border: `1px solid ${C.border}`, backgroundColor: C.surface }}
+                  >
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div>
+                        <p className="font-medium" style={{ color: C.textPrimary }}>
+                          {rule.name}
+                        </p>
+                        <p style={{ color: C.textTertiary }}>
+                          {rule.reason} · priority {rule.priority}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handlePreviewRule(rule)}
+                          className="text-xs font-medium px-2 py-1 rounded"
+                          style={{
+                            backgroundColor: C.bg,
+                            color: C.textPrimary,
+                            border: `1px solid ${C.border}`,
+                          }}
+                          data-testid="tuition-rule-preview-button"
+                        >
+                          {previewRuleId === rule.id ? "Hide preview" : "Preview"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleToggleRule(rule)}
+                          className="text-xs font-medium px-2 py-1 rounded"
+                          style={{
+                            backgroundColor: rule.active ? C.accentLight : C.bg,
+                            color: rule.active ? C.accent : C.textTertiary,
+                          }}
+                        >
+                          {rule.active ? "Active" : "Inactive"}
+                        </button>
+                      </div>
+                    </div>
+                    {previewRuleId === rule.id ? (
+                      <div
+                        className="border-t px-4 py-3 flex flex-col gap-2"
+                        style={{ borderColor: C.border }}
+                        data-testid="tuition-rule-preview"
+                      >
+                        {previewLoading ? (
+                          <p className="text-xs" style={{ color: C.textSecondary }}>
+                            Loading preview…
+                          </p>
+                        ) : previewError ? (
+                          <p className="text-xs" style={{ color: C.error }}>
+                            {previewError}
+                          </p>
+                        ) : previewMatches.length > 0 ? (
+                          <>
+                            <p className="text-xs" style={{ color: C.textSecondary }}>
+                              {previewMatches.length === 1
+                                ? "1 student would be affected"
+                                : `${previewMatches.length} students would be affected`}
+                            </p>
+                            <ul className="flex flex-col gap-2">
+                              {previewMatches.map((match) => (
+                                <li
+                                  key={match.assignmentId}
+                                  className="flex items-center justify-between gap-3 text-xs"
+                                  data-testid="tuition-rule-preview-row"
+                                >
+                                  <span style={{ color: C.textPrimary }}>
+                                    {match.familyName} — {match.studentName}
+                                  </span>
+                                  {match.alreadyApplied ? (
+                                    <span
+                                      className="rounded-full px-2 py-0.5 font-medium"
+                                      style={{
+                                        backgroundColor: C.accentLight,
+                                        color: C.accent,
+                                      }}
+                                    >
+                                      Applied
+                                    </span>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          </>
+                        ) : (
+                          <p className="text-xs" style={{ color: C.textSecondary }}>
+                            No families match this rule yet.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+                {!rules.length ? (
+                  <p className="text-sm" style={{ color: C.textTertiary }}>
+                    No rules configured yet.
+                  </p>
+                ) : null}
               </div>
             </div>
-            {previewRuleId === rule.id ? (
-              <div
-                className="border-t px-4 py-3 flex flex-col gap-2"
-                style={{ borderColor: C.border }}
-                data-testid="tuition-rule-preview"
-              >
-                {previewLoading ? (
-                  <p className="text-xs" style={{ color: C.textSecondary }}>
-                    Loading preview…
-                  </p>
-                ) : previewError ? (
-                  <p className="text-xs" style={{ color: C.error }}>
-                    {previewError}
-                  </p>
-                ) : previewMatches.length > 0 ? (
-                  <>
-                    <p className="text-xs" style={{ color: C.textSecondary }}>
-                      {previewMatches.length === 1
-                        ? "1 student would be affected"
-                        : `${previewMatches.length} students would be affected`}
-                    </p>
-                    <ul className="flex flex-col gap-2">
-                      {previewMatches.map((match) => (
-                        <li
-                          key={match.assignmentId}
-                          className="flex items-center justify-between gap-3 text-xs"
-                          data-testid="tuition-rule-preview-row"
-                        >
-                          <span style={{ color: C.textPrimary }}>
-                            {match.familyName} — {match.studentName}
-                          </span>
-                          {match.alreadyApplied ? (
-                            <span
-                              className="rounded-full px-2 py-0.5 font-medium"
-                              style={{ backgroundColor: C.accentLight, color: C.accent }}
-                            >
-                              Applied
-                            </span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : (
-                  <p className="text-xs" style={{ color: C.textSecondary }}>
-                    No families match this rule yet.
-                  </p>
-                )}
-              </div>
-            ) : null}
-          </div>
-        ))}
-        {!rules.length ? (
-          <p className="text-sm" style={{ color: C.textTertiary }}>
-            No rules configured yet.
-          </p>
-        ) : null}
-      </div>
-
-      <div
-        className="rounded-lg p-4 flex flex-col gap-3"
-        style={{ border: `1px solid ${C.border}`, backgroundColor: C.surface }}
-      >
-        <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-          Bulk financial aid import
-        </p>
-        <p className="text-xs" style={{ color: C.textTertiary }}>
-          CSV columns: family_email, adjustment_type, value_percent, value_cents, reason
-        </p>
-        <textarea
-          value={csvContent}
-          onChange={(e) => setCsvContent(e.target.value)}
-          rows={4}
-          className="rounded-md px-3 py-2 text-sm font-mono"
-          style={{
-            backgroundColor: C.input,
-            border: `1px solid ${C.inputBorder}`,
-            color: C.textPrimary,
-          }}
-          placeholder="family_email,adjustment_type,value_percent,reason&#10;parent@email.com,percent_discount,15,Financial aid"
-        />
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => void handleImport()}
-            className="text-sm font-medium px-3 py-2 rounded-md"
-            style={{ backgroundColor: C.accent, color: "#fff" }}
-          >
-            Import CSV
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleProcessDue()}
-            className="text-sm font-medium px-3 py-2 rounded-md"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
-          >
-            Process due & rules
-          </button>
-        </div>
-        {importResult ? (
-          <p className="text-xs" style={{ color: C.textSecondary }}>
-            {importResult}
-          </p>
-        ) : null}
-      </div>
+          ) : null}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
