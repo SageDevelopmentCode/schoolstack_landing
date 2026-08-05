@@ -11,6 +11,7 @@ import {
   requireSchoolAdminUser,
   schoolAdminLoginPath,
 } from "@/lib/school-admin/access";
+import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +69,9 @@ export default async function SchoolAdminProtectedLayout({
   }
 
   const userProfile = user ? getSchoolAdminUserProfile(user) : null;
+  const portalOptions = user
+    ? await listSchoolPortalOptionsForUser(supabase, user.id, slug)
+    : [];
 
   return (
     <SchoolAdminBaseline
@@ -77,6 +81,7 @@ export default async function SchoolAdminProtectedLayout({
       branding={org.branding}
       features={org.features}
       userProfile={userProfile}
+      portalOptions={portalOptions}
     >
       {children}
     </SchoolAdminBaseline>

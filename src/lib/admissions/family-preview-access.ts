@@ -25,17 +25,19 @@ import {
   type FamilyChildOverview,
   type FamilyUserProfile,
 } from "./parent-portal-access";
+import {
+  familyPreviewBasePath,
+  familyPreviewParentBasePath,
+  listPreviewPortalOptions,
+  schoolAdminPreviewBasePath,
+} from "./preview-portal-options";
 
-export function familyPreviewBasePath(slug: string, familyId: string): string {
-  return `/admin/preview/${slug}/family/${familyId}`;
-}
-
-export function familyPreviewParentBasePath(
-  slug: string,
-  familyId: string,
-): string {
-  return `${familyPreviewBasePath(slug, familyId)}/parent`;
-}
+export {
+  familyPreviewBasePath,
+  familyPreviewParentBasePath,
+  listPreviewPortalOptions,
+  schoolAdminPreviewBasePath,
+};
 
 export function familyPreviewParentPath(
   slug: string,
@@ -45,6 +47,39 @@ export function familyPreviewParentPath(
 ): string {
   const base = `${familyPreviewParentBasePath(slug, familyId)}/${featureKey}`;
   return subtab ? `${base}/${subtab}` : base;
+}
+
+export async function findOwnerLinkedFamilyId(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<string | null> {
+  const { data: memberships, error: membershipError } = await supabase
+    .from("organization_memberships")
+    .select("user_id")
+    .eq("organization_id", organizationId)
+    .eq("status", "active")
+    .in("role", ["owner", "admin"]);
+
+  if (membershipError) throw membershipError;
+
+  const ownerUserIds = (memberships ?? [])
+    .map((row) => String(row.user_id))
+    .filter(Boolean);
+
+  if (ownerUserIds.length === 0) return null;
+
+  const { data: guardians, error: guardianError } = await supabase
+    .from("guardians")
+    .select("family_id")
+    .eq("organization_id", organizationId)
+    .in("user_id", ownerUserIds)
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (guardianError) throw guardianError;
+
+  const familyId = guardians?.[0]?.family_id;
+  return familyId != null ? String(familyId) : null;
 }
 
 async function getGuardianIdsForFamily(
@@ -212,6 +247,19 @@ export async function getFamilyPreviewProfile(
 
   if (!guardian) {
     return { email: "", displayName: "Family" };
+  }
+
+  const { getOwnerLinkedPreviewProfile } = await import(
+    "./family-preview-profile-server"
+  );
+  const ownerLinkedProfile = await getOwnerLinkedPreviewProfile(
+    supabase,
+    organizationId,
+    familyId,
+    guardian,
+  );
+  if (ownerLinkedProfile) {
+    return ownerLinkedProfile;
   }
 
   const firstName = String(guardian.first_name ?? "").trim();

@@ -30,6 +30,7 @@ import { formatPhoneNumberInput } from "@/lib/phone-format";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 
 type ReadOnlyLayout = "page" | "detail";
 
@@ -49,6 +50,7 @@ type ApplicationReadOnlyViewProps = {
   userProfile?: FamilyUserProfile;
   previewMode?: boolean;
   previewHomeHref?: string;
+  portalOptions?: SchoolPortalOption[];
 };
 
 function formatFieldValue(field: ApplicationField, value: string | undefined): string {
@@ -355,6 +357,7 @@ function ApplicationReadOnlyBody({
   userProfile,
   previewMode = false,
   previewHomeHref,
+  portalOptions = [],
 }: ApplicationReadOnlyViewProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
@@ -462,6 +465,7 @@ function ApplicationReadOnlyBody({
         organizationId={organizationId}
         userEmail={userProfile.email}
         userDisplayName={userProfile.displayName}
+        portalOptions={portalOptions}
         previewMode={previewMode}
         previewHomeHref={previewHomeHref}
       >

@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import NavigationLink from "@/components/school/shared/NavigationLink";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { ArrowRight, FileText, Plus } from "lucide-react";
 import EnrolledFamilyBanner from "@/components/admissions/EnrolledFamilyBanner";
 import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
+import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
 import ApplyRequiredActionsSection from "@/components/admissions/ApplyRequiredActionsSection";
 import {
   applicationStatusBadgeStyle,
@@ -20,6 +22,7 @@ import { formatInstantInTimezone } from "@/lib/admissions/admissions-availabilit
 import { fireEnrollmentConfetti } from "@/lib/enrollment-confetti";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 
 type ApplyDashboardProps = {
   branding: OrganizationBranding;
@@ -34,6 +37,7 @@ type ApplyDashboardProps = {
   parentPortalHref?: string;
   enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
   userProfile: FamilyUserProfile;
+  portalOptions?: SchoolPortalOption[];
   previewMode?: boolean;
   previewBasePath?: string;
   focusApplicationId?: string | null;
@@ -145,11 +149,18 @@ export default function ApplyDashboard({
   parentPortalHref,
   enrollmentProgressByApplicationId,
   userProfile,
+  portalOptions = [],
   previewMode = false,
   previewBasePath,
   focusApplicationId = null,
 }: ApplyDashboardProps) {
   const router = useRouter();
+  const previewPortalOptions = usePreviewPortalOptions();
+  const resolvedPortalOptions = previewMode
+    ? previewPortalOptions.length > 0
+      ? previewPortalOptions
+      : portalOptions
+    : portalOptions;
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const previewHomeHref = previewBasePath ?? undefined;
 
@@ -177,6 +188,7 @@ export default function ApplyDashboard({
       organizationId={organizationId}
       userEmail={userProfile.email}
       userDisplayName={userProfile.displayName}
+      portalOptions={resolvedPortalOptions}
       previewMode={previewMode}
       previewHomeHref={previewHomeHref}
     >
@@ -313,14 +325,14 @@ export default function ApplyDashboard({
                         </p>
                       ) : null}
                     </div>
-                    <Link
+                    <NavigationLink
                       href={action.href}
                       className="inline-flex shrink-0 items-center gap-1.5 self-end text-sm font-medium underline-offset-2 transition hover:underline sm:self-center"
                       style={{ color: C.accent }}
                     >
                       {action.label}
                       <ArrowRight className="h-4 w-4" />
-                    </Link>
+                    </NavigationLink>
                   </div>
                 </div>
               );

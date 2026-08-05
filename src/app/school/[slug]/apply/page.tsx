@@ -12,6 +12,7 @@ import {
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { createClient } from "@/utils/supabase/server";
+import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 
 export const dynamic = "force-dynamic";
 
@@ -60,11 +61,13 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     );
   }
 
-  const [applications, hasEnrolledAccess, timezoneResult, userProfile] = await Promise.all([
+  const [applications, hasEnrolledAccess, timezoneResult, userProfile, portalOptions] =
+    await Promise.all([
     listFamilyApplications(supabase, org.id, user.id),
     userHasEnrolledAccess(supabase, user.id, org.id),
     supabase.from("organizations").select("timezone").eq("id", org.id).maybeSingle(),
     getFamilyUserProfile(supabase, user.id, org.id, user),
+    listSchoolPortalOptionsForUser(supabase, user.id, slug),
   ]);
 
   const timezone =
@@ -108,6 +111,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       parentPortalHref={parentPortalHref ?? undefined}
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}
       userProfile={userProfile}
+      portalOptions={portalOptions}
     />
   );
 }

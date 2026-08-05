@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { LogOut, User } from "lucide-react";
 import SchoolParentAvatar from "@/components/school-parent/SchoolParentAvatar";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
+import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
+import type { PortalId, SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { SchoolAdminUserProfile } from "@/lib/school-admin/access";
 
@@ -13,6 +15,9 @@ type SchoolAdminProfileMenuProps = {
   userProfile: SchoolAdminUserProfile;
   isExpanded: boolean;
   onSignOut: () => Promise<void>;
+  portalOptions?: SchoolPortalOption[];
+  currentPortal?: PortalId;
+  previewMode?: boolean;
 };
 
 type PopoverPosition = {
@@ -38,6 +43,9 @@ export default function SchoolAdminProfileMenu({
   userProfile,
   isExpanded,
   onSignOut,
+  portalOptions = [],
+  currentPortal = "admin",
+  previewMode = false,
 }: SchoolAdminProfileMenuProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -151,6 +159,12 @@ export default function SchoolAdminProfileMenu({
                 </p>
               ) : null}
             </div>
+            <SchoolPortalSwitcherMenuItems
+              C={C}
+              options={portalOptions}
+              currentPortal={currentPortal}
+              onNavigate={() => setMenuOpen(false)}
+            />
             <button
               type="button"
               role="menuitem"
@@ -166,7 +180,7 @@ export default function SchoolAdminProfileMenu({
                 />
               ) : null}
               <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
-                Sign out
+                {previewMode ? "Exit preview" : "Sign out"}
               </ButtonLoadingLabel>
             </button>
           </div>,

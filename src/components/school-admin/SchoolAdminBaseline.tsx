@@ -23,6 +23,10 @@ import {
   type SchoolAdminUserProfile,
 } from "@/lib/school-admin/access";
 import {
+  detectPortalFromPathname,
+  type SchoolPortalOption,
+} from "@/lib/auth/portal-switcher-types";
+import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
@@ -33,6 +37,7 @@ import type {
 import { createClient } from "@/utils/supabase/client";
 import AdminPageContentShell from "@/components/school-admin/AdminPageContentShell";
 import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
+import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 
 const AdminSupportRequestModal = dynamic(
   () => import("@/components/school-admin/AdminSupportRequestModal"),
@@ -60,6 +65,8 @@ type SchoolAdminBaselineProps = {
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   userProfile: SchoolAdminUserProfile | null;
+  portalOptions?: SchoolPortalOption[];
+  previewMode?: boolean;
   children: ReactNode;
 };
 
@@ -232,6 +239,8 @@ function Sidebar({
   onOpenSupport,
   onOpenNotifications,
   unreadCount,
+  portalOptions = [],
+  previewMode = false,
 }: {
   C: AdminThemeTokens;
   branding: OrganizationBranding;
@@ -246,6 +255,8 @@ function Sidebar({
   onOpenSupport: () => void;
   onOpenNotifications: () => void;
   unreadCount: number;
+  portalOptions?: SchoolPortalOption[];
+  previewMode?: boolean;
 }) {
   const { logo } = branding;
   const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
@@ -493,6 +504,9 @@ function Sidebar({
             userProfile={userProfile}
             isExpanded={isExpanded}
             onSignOut={onSignOut}
+            portalOptions={portalOptions}
+            currentPortal={detectPortalFromPathname(pathname, slug)}
+            previewMode={previewMode}
           />
         ) : null}
         <button
@@ -532,6 +546,8 @@ export default function SchoolAdminBaseline({
   branding,
   features,
   userProfile,
+  portalOptions = [],
+  previewMode = false,
   children,
 }: SchoolAdminBaselineProps) {
   const pathname = usePathname();
@@ -571,12 +587,14 @@ export default function SchoolAdminBaseline({
   }, [organizationId]);
 
   useEffect(() => {
+    if (previewMode) return;
     queueMicrotask(() => {
       void fetchUnreadCount();
     });
-  }, [fetchUnreadCount]);
+  }, [fetchUnreadCount, previewMode]);
 
   useEffect(() => {
+    if (previewMode) return;
     const handleFocus = () => {
       if (Date.now() - lastUnreadFetchRef.current < FOCUS_REFETCH_MS) return;
       void fetchUnreadCount();
@@ -584,7 +602,7 @@ export default function SchoolAdminBaseline({
 
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [fetchUnreadCount]);
+  }, [fetchUnreadCount, previewMode]);
 
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
@@ -592,12 +610,17 @@ export default function SchoolAdminBaseline({
     branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
 
   const handleSignOut = async () => {
+    if (previewMode) {
+      router.push("/admin/organizations");
+      return;
+    }
     await supabase.auth.signOut();
     router.push(schoolAdminLoginPath(slug));
     router.refresh();
   };
 
   return (
+    <NavigationLoadingProvider>
     <div
       className="flex h-dvh w-full overflow-hidden"
       style={{ backgroundColor: C.bg, fontFamily: bodyFont }}
@@ -613,6 +636,8 @@ export default function SchoolAdminBaseline({
         onToggleExpand={() => setSidebarExpanded((v) => !v)}
         userProfile={userProfile}
         onSignOut={handleSignOut}
+        portalOptions={portalOptions}
+        previewMode={previewMode}
         onOpenSupport={() => setSupportOpen(true)}
         onOpenNotifications={() => setNotificationsOpen(true)}
         unreadCount={unreadCount}
@@ -648,5 +673,6 @@ export default function SchoolAdminBaseline({
         </div>
       </main>
     </div>
+    </NavigationLoadingProvider>
   );
 }

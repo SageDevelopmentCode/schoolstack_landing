@@ -10,6 +10,7 @@ import {
 import { userOwnsApplication } from "@/lib/admissions/application-auth";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
+import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 
 export const dynamic = "force-dynamic";
 
@@ -62,9 +63,10 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const [application, userProfile] = await Promise.all([
+  const [application, userProfile, portalOptions] = await Promise.all([
     loadApplicationDetail(supabase, applicationId, org.id, user.id),
     getFamilyUserProfile(supabase, user.id, org.id, user),
+    listSchoolPortalOptionsForUser(supabase, user.id, slug),
   ]);
 
   if (!application) {
@@ -87,6 +89,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
       organizationId={org.id}
       application={application}
       userProfile={userProfile}
+      portalOptions={portalOptions}
     />
   );
 }
