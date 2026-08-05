@@ -62,6 +62,7 @@ Daily `add_organization_progress_log_*.sql` seeds insert into **both** slugs. If
 | `add_organization_progress_log_2026_07_22.sql` | July 22 — Phase 3 started; tuition setup wizard, family billing, and parent payments |
 | `add_organization_progress_log_2026_07_24.sql` | July 24 — tuition and billing progress |
 | `add_organization_progress_log_2026_07_25.sql` | July 25 — parent billing portal, invoices, and committees |
+| `add_organization_progress_log_2026_08_04.sql` | August 4 — tuition admin redesign, portal loading, and billing schedule warnings |
 
 ## Enrollment checklist seeds
 
