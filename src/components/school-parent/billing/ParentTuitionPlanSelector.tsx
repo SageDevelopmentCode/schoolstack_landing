@@ -111,14 +111,21 @@ export default function ParentTuitionPlanSelector({
 
   return (
     <div
+      id="parent-tuition-plan-selector"
       className="flex flex-col gap-6 w-full rounded-xl p-5"
-      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+      style={{
+        backgroundColor: C.surface,
+        border: `1px solid ${C.warningBorder}`,
+      }}
       data-testid="parent-tuition-plan-selector"
     >
       <div>
         <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
           {heading}
         </h2>
+        <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+          Required before tuition charges are generated.
+        </p>
         <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
           Annual tuition {formatCents(annualAmountCents)} · {ratePlan.name}
           {tier ? ` (${tier.label})` : ""} for the school year.

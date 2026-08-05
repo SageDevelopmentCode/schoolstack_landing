@@ -93,9 +93,14 @@ export default function ParentBillingSummaryCard({
               ) : null}
             </div>
           ) : (
-            <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
-              Balance due
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
+                Balance due
+              </p>
+              {summary.hasPendingSchedule && !showBreakdown ? (
+                <ParentNeedsScheduleBadge C={C} label="Schedule needed" />
+              ) : null}
+            </div>
           )}
           <p className="text-3xl font-semibold mt-1" style={{ color: C.textPrimary }}>
             {formatCents(summary.balanceDueCents)}
