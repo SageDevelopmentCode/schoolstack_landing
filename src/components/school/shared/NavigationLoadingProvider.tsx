@@ -93,18 +93,26 @@ export default function NavigationLoadingProvider({
     if (didHydrateFromStorageRef.current) return;
     didHydrateFromStorageRef.current = true;
 
+    let shouldRestore = false;
     try {
       if (sessionStorage.getItem(NAV_LOADING_STORAGE_KEY) === "1") {
         sessionStorage.removeItem(NAV_LOADING_STORAGE_KEY);
-        setLabel("Loading");
-        startedAtRef.current = Date.now();
-        previousPathnameRef.current = pathname;
-        setVisible(true);
-        hideWithMinDuration();
+        shouldRestore = true;
       }
     } catch {
       // Ignore storage failures
     }
+
+    if (!shouldRestore) return;
+
+    const startedAt = Date.now();
+    queueMicrotask(() => {
+      setLabel("Loading");
+      startedAtRef.current = startedAt;
+      previousPathnameRef.current = pathname;
+      setVisible(true);
+      hideWithMinDuration();
+    });
   }, [hideWithMinDuration, pathname]);
 
   useEffect(() => {
