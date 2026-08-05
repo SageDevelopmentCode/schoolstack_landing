@@ -6,6 +6,7 @@ import type { FamilyGuardianRecord } from "@/lib/admissions/family-guardians";
 import { formatCents } from "@/lib/tuition/pricing";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { TuitionChoiceCard } from "@/components/school-admin/tuition/TuitionPaymentScheduleCards";
+import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -17,6 +18,7 @@ type SplitRow = {
 };
 
 type TuitionBillingSplitModalProps = {
+  open: boolean;
   familyId: string;
   familyName: string;
   branding: OrganizationBranding;
@@ -29,6 +31,7 @@ function guardianName(guardian: FamilyGuardianRecord): string {
 }
 
 export default function TuitionBillingSplitModal({
+  open,
   familyId,
   familyName,
   branding,
@@ -44,6 +47,8 @@ export default function TuitionBillingSplitModal({
   const [guardians, setGuardians] = useState<FamilyGuardianRecord[]>([]);
 
   useEffect(() => {
+    if (!open || !familyId) return;
+
     void (async () => {
       setLoading(true);
       setError(null);
@@ -91,7 +96,7 @@ export default function TuitionBillingSplitModal({
         setLoading(false);
       }
     })();
-  }, [familyId]);
+  }, [familyId, open]);
 
   const totalPercent = rows.reduce(
     (sum, row) => sum + (Number(row.sharePercent) || 0),
@@ -134,12 +139,15 @@ export default function TuitionBillingSplitModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div
-        className="w-full max-w-lg rounded-xl p-5 flex flex-col gap-4"
-        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-        data-testid="tuition-billing-split-modal"
-      >
+    <SchoolAdminModalShell
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      ariaLabel="Billing split"
+      testId="tuition-billing-split-modal"
+      panelStyle={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+    >
+      <div className="p-5 flex flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
@@ -269,6 +277,6 @@ export default function TuitionBillingSplitModal({
           </button>
         </div>
       </div>
-    </div>
+    </SchoolAdminModalShell>
   );
 }

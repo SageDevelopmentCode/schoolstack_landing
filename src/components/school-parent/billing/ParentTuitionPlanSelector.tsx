@@ -175,31 +175,34 @@ export default function ParentTuitionPlanSelector({
         </p>
       ) : null}
 
-      {!readOnly ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowPreview(true)}
-            disabled={!selectedPreview}
-            data-testid="parent-schedule-preview-button"
-            style={getAdminButtonStyle(C, "secondary")}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
-          >
-            See schedule preview
-          </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            if (readOnly) return;
+            setShowPreview(true);
+          }}
+          disabled={readOnly || !selectedPreview}
+          data-testid="parent-schedule-preview-button"
+          style={getAdminButtonStyle(C, "secondary")}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          See schedule preview
+          {readOnly ? " (preview)" : ""}
+        </button>
 
-          <button
-            type="button"
-            onClick={() => void handleConfirm()}
-            disabled={saving}
-            style={getAdminButtonStyle(C, "primary")}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            Confirm payment schedule
-          </button>
-        </div>
-      ) : null}
+        <button
+          type="button"
+          onClick={() => void handleConfirm()}
+          disabled={readOnly || saving}
+          style={getAdminButtonStyle(C, "primary")}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Confirm payment schedule
+          {readOnly ? " (preview)" : ""}
+        </button>
+      </div>
 
       <PaymentSchedulePreviewModal
         C={C}

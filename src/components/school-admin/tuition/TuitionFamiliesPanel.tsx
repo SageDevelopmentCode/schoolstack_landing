@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import {
+  tabPanelTransition,
+  tabPanelVariants,
+} from "@/lib/school-admin/admin-modal-motion";
 import { listFamilyBillingSummaries } from "@/lib/tuition/charges";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
@@ -83,6 +88,7 @@ export default function TuitionFamiliesPanel({
 }: TuitionFamiliesPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const reducedMotion = useReducedMotion() ?? false;
   const [families, setFamilies] = useState<FamilyBillingSummary[]>([]);
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -418,6 +424,15 @@ export default function TuitionFamiliesPanel({
             onTabChange={setActiveFamilyTab}
           />
 
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeFamilyTab}
+              variants={tabPanelVariants(reducedMotion)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={tabPanelTransition(reducedMotion)}
+            >
           {activeFamilyTab === "assignments" ? (
             <div
               className="flex flex-col gap-4"
@@ -503,8 +518,15 @@ export default function TuitionFamiliesPanel({
                                 color: C.textPrimary,
                                 border: `1px solid ${C.border}`,
                               }}
+                              aria-label={
+                                assignment.pendingPaymentPlanSelection
+                                  ? `Set payment schedule for ${assignment.studentName ?? "student"}`
+                                  : `Edit tier and schedule for ${assignment.studentName ?? "student"}`
+                              }
                             >
-                              Edit
+                              {assignment.pendingPaymentPlanSelection
+                                ? "Set schedule"
+                                : "Edit"}
                             </button>
                             <button
                               type="button"
@@ -767,18 +789,19 @@ export default function TuitionFamiliesPanel({
               )}
             </div>
           ) : null}
+            </motion.div>
+          </AnimatePresence>
         </div>
       ) : null}
 
-      {splitModalOpen && selectedFamily ? (
-        <TuitionBillingSplitModal
-          familyId={selectedFamily.familyId}
-          familyName={selectedFamily.familyName}
-          branding={branding}
-          onClose={() => setSplitModalOpen(false)}
-          onSaved={() => void loadFamilies()}
-        />
-      ) : null}
+      <TuitionBillingSplitModal
+        open={splitModalOpen && selectedFamily != null}
+        familyId={selectedFamily?.familyId ?? ""}
+        familyName={selectedFamily?.familyName ?? ""}
+        branding={branding}
+        onClose={() => setSplitModalOpen(false)}
+        onSaved={() => void loadFamilies()}
+      />
     </div>
   );
 }

@@ -264,7 +264,7 @@ export default function PublicEnrollmentChecklistClient({
         onInstancesChange={previewMode ? undefined : setInstances}
         onActiveItemChange={previewMode ? undefined : persistActiveItem}
         onAllRequiredComplete={previewMode ? undefined : handleAllRequiredComplete}
-        mode={previewMode ? "preview" : "live"}
+        mode="live"
         backLink={{
           href: backHref ?? `/school/${schoolSlug}/apply`,
           label: "Back to applications",

@@ -66,19 +66,21 @@ export default function ParentPaymentMethodCard({
         <CreditCard className="w-5 h-5 shrink-0" style={{ color: C.textTertiary }} />
       </div>
 
-      {!readOnly ? (
-        <button
-          type="button"
-          onClick={onManage}
-          disabled={loading}
-          style={getAdminButtonStyle(C, label ? "secondary" : "primary")}
-          className="self-start inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
-          data-testid="parent-payment-method-manage"
-        >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          {label ? "Update card" : "Add card"}
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={() => {
+          if (readOnly) return;
+          onManage();
+        }}
+        disabled={readOnly || loading}
+        style={getAdminButtonStyle(C, label ? "secondary" : "primary")}
+        className="self-start inline-flex items-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        data-testid="parent-payment-method-manage"
+      >
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+        {label ? "Update card" : "Add card"}
+        {readOnly ? " (preview)" : ""}
+      </button>
     </div>
   );
 }

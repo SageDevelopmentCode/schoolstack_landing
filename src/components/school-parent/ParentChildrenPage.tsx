@@ -27,6 +27,7 @@ type ParentChildrenPageProps = {
   schoolSlug: string;
   familyChildren: FamilyChildOverview[];
   childProfiles: Record<string, ChildProfileData>;
+  previewBasePath?: string;
 };
 
 const fadeUp = {
@@ -164,9 +165,11 @@ export default function ParentChildrenPage({
   schoolSlug,
   familyChildren,
   childProfiles,
+  previewBasePath,
 }: ParentChildrenPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const applyDashboardHref = previewBasePath ?? `/school/${schoolSlug}/apply`;
   const selectedProfile = selectedApplicationId
     ? childProfiles[selectedApplicationId] ?? null
     : null;
@@ -186,7 +189,7 @@ export default function ParentChildrenPage({
             We don&apos;t have any student records from your applications yet. Visit
             your{" "}
             <Link
-              href={`/school/${schoolSlug}/apply`}
+              href={applyDashboardHref}
               className="font-medium underline underline-offset-2"
               style={{ color: C.accent }}
             >

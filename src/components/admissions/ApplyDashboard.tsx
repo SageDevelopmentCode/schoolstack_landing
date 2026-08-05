@@ -198,20 +198,33 @@ export default function ApplyDashboard({
                 Track submitted applications and continue drafts for {schoolName}.
               </p>
             </div>
-            {!previewMode ? (
-            <Link
-              href={`/school/${schoolSlug}/forms/apply?new=1`}
-              className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-dashed px-4 py-2.5 text-sm font-medium transition hover:opacity-90 sm:w-auto"
-              style={{
-                color: C.accent,
-                borderColor: `color-mix(in srgb, ${C.accent} 30%, transparent)`,
-                backgroundColor: "transparent",
-              }}
-            >
-              <Plus className="h-4 w-4 shrink-0" />
-              New application
-            </Link>
-            ) : null}
+            {previewMode ? (
+              <span
+                aria-disabled="true"
+                className="inline-flex w-full shrink-0 cursor-not-allowed items-center justify-center gap-2 whitespace-nowrap rounded-md border border-dashed px-4 py-2.5 text-sm font-medium opacity-50 sm:w-auto"
+                style={{
+                  color: C.accent,
+                  borderColor: `color-mix(in srgb, ${C.accent} 30%, transparent)`,
+                  backgroundColor: "transparent",
+                }}
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                New application
+              </span>
+            ) : (
+              <Link
+                href={`/school/${schoolSlug}/forms/apply?new=1`}
+                className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-dashed px-4 py-2.5 text-sm font-medium transition hover:opacity-90 sm:w-auto"
+                style={{
+                  color: C.accent,
+                  borderColor: `color-mix(in srgb, ${C.accent} 30%, transparent)`,
+                  backgroundColor: "transparent",
+                }}
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                New application
+              </Link>
+            )}
           </div>
 
         {applications.length === 0 ? (

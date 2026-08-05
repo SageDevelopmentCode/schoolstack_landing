@@ -130,7 +130,7 @@ export function buildTuitionReadinessStatus(
       id: "payment_plans",
       title: "Families choose payment schedules",
       description:
-        "When multiple installment options exist, families confirm their schedule in the parent portal under Billing. Admins can override in Edit assignment if needed.",
+        "When multiple installment options exist, families confirm their schedule in the parent portal under Billing. Admins can set the payment schedule from Set schedule if needed.",
       status: paymentPlanStatus,
     },
     {

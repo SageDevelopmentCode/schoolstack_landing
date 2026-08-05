@@ -1390,7 +1390,7 @@ function PaymentPanel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorContext = buildErrorContext(organizationId, applicationId, instanceId);
-  const showCombinedOption = isLive && combinedPaymentCandidates.length >= 2;
+  const showCombinedOption = combinedPaymentCandidates.length >= 2;
   const combinedNetAmountCents = useMemo(
     () =>
       combinedPaymentCandidates.reduce(
@@ -1583,14 +1583,15 @@ function PaymentPanel({
           </div>
           <button
             type="button"
-            disabled={submitting}
+            disabled={!isLive || submitting}
             onClick={() => setCombinedPaymentModalOpen(true)}
             className="mt-4 rounded-md px-5 py-2.5 text-sm font-semibold text-white"
-            style={panelButtonStyle(C, submitting)}
+            style={panelButtonStyle(C, !isLive || submitting)}
           >
             {submitting
               ? "Redirecting…"
               : `Pay for all children — ${formatFeeAmount(combinedNetAmountCents)}`}
+            {!isLive ? " (preview)" : ""}
           </button>
         </div>
       ) : null}

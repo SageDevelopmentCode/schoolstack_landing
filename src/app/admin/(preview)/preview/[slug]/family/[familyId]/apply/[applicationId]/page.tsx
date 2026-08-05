@@ -5,6 +5,7 @@ import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnly
 import {
   applicationBelongsToFamily,
   familyPreviewBasePath,
+  getFamilyPreviewProfile,
   loadApplicationDetailForFamily,
 } from "@/lib/admissions/family-preview-access";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -62,14 +63,21 @@ export default async function FamilyPreviewApplicationPage({ params }: PageProps
     notFound();
   }
 
+  const userProfile = await getFamilyPreviewProfile(supabase, org.id, familyId);
+  const previewHomeHref = familyPreviewBasePath(slug, familyId);
+
   if (application.status === "draft") {
     return (
       <ApplicationReadOnlyView
         branding={org.branding}
         schoolName={org.name}
         schoolSlug={slug}
+        organizationId={org.id}
         application={application}
-        backHref={familyPreviewBasePath(slug, familyId)}
+        userProfile={userProfile}
+        previewMode
+        previewHomeHref={previewHomeHref}
+        backHref={previewHomeHref}
       />
     );
   }
@@ -85,8 +93,12 @@ export default async function FamilyPreviewApplicationPage({ params }: PageProps
       branding={org.branding}
       schoolName={org.name}
       schoolSlug={slug}
+      organizationId={org.id}
       application={application}
-      backHref={familyPreviewBasePath(slug, familyId)}
+      userProfile={userProfile}
+      previewMode
+      previewHomeHref={previewHomeHref}
+      backHref={previewHomeHref}
     />
   );
 }

@@ -143,16 +143,19 @@ export default function ParentBillingChargeRow({
             {formatCents(remainingCents)}
           </span>
         ) : null}
-        {charge.status !== "paid" && charge.status !== "void" && !readOnly ? (
+        {charge.status !== "paid" && charge.status !== "void" ? (
           <button
             type="button"
-            onClick={() => onPay(charge.id)}
-            disabled={payingChargeId === charge.id}
+            onClick={() => {
+              if (readOnly) return;
+              onPay(charge.id);
+            }}
+            disabled={readOnly || payingChargeId === charge.id}
             aria-label={showAutopayHint ? "Pay early" : "Pay charge"}
-            className="text-xs font-medium px-2 py-1 rounded disabled:opacity-60"
+            className="text-xs font-medium px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: C.accentLight, color: C.accent }}
           >
-            {payingChargeId === charge.id ? "…" : "Pay"}
+            {payingChargeId === charge.id ? "…" : readOnly ? "Pay (preview)" : "Pay"}
           </button>
         ) : null}
       </div>

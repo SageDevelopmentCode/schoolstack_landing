@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, CalendarDays, CheckSquare, Heart, Loader2 } from "lucide-react";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import type {
   ParentCommitteeBrowseItem,
   ParentCommitteeListItem,
@@ -19,6 +20,8 @@ type ParentCommitteesPageProps = {
   schoolName: string;
   branding: OrganizationBranding;
   guardianName: string;
+  previewMode?: boolean;
+  initialData?: ParentCommitteesInitialData;
 };
 
 type Tab = "explore" | "mine";
@@ -49,21 +52,28 @@ function ParentCommitteesPageContent({
   schoolName,
   branding,
   guardianName,
+  previewMode = false,
+  initialData,
 }: ParentCommitteesPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const hasInitialData = initialData !== undefined;
 
   const tab = (searchParams.get("tab") === "mine" ? "mine" : "explore") as Tab;
   const exploreCommitteeId = searchParams.get("explore");
   const workspaceCommitteeId = searchParams.get("committee");
   const activeSection = searchParams.get("section") ?? "home";
 
-  const [browseCommittees, setBrowseCommittees] = useState<ParentCommitteeBrowseItem[]>([]);
-  const [myCommittees, setMyCommittees] = useState<ParentCommitteeListItem[]>([]);
-  const [loadingBrowse, setLoadingBrowse] = useState(true);
-  const [loadingMine, setLoadingMine] = useState(true);
+  const [browseCommittees, setBrowseCommittees] = useState<ParentCommitteeBrowseItem[]>(
+    initialData?.browseCommittees ?? [],
+  );
+  const [myCommittees, setMyCommittees] = useState<ParentCommitteeListItem[]>(
+    initialData?.myCommittees ?? [],
+  );
+  const [loadingBrowse, setLoadingBrowse] = useState(!hasInitialData);
+  const [loadingMine, setLoadingMine] = useState(!hasInitialData);
   const [error, setError] = useState<string | null>(null);
 
   const setUrl = useCallback(
@@ -80,6 +90,7 @@ function ParentCommitteesPageContent({
   );
 
   const reloadLists = useCallback(async () => {
+    if (previewMode) return;
     try {
       const params = new URLSearchParams({ organizationId });
       const [browseRes, mineRes] = await Promise.all([
@@ -101,9 +112,11 @@ function ParentCommitteesPageContent({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load committees.");
     }
-  }, [organizationId]);
+  }, [organizationId, previewMode]);
 
   useEffect(() => {
+    if (hasInitialData) return;
+
     let cancelled = false;
     (async () => {
       setLoadingBrowse(true);
@@ -143,7 +156,7 @@ function ParentCommitteesPageContent({
     return () => {
       cancelled = true;
     };
-  }, [organizationId]);
+  }, [organizationId, hasInitialData]);
 
   const selectedBrowseCommittee = exploreCommitteeId
     ? browseCommittees.find((c) => c.id === exploreCommitteeId) ?? null
@@ -152,10 +165,12 @@ function ParentCommitteesPageContent({
   if (workspaceCommitteeId) {
     return (
       <ParentCommitteeWorkspace
+        key={workspaceCommitteeId}
         committeeId={workspaceCommitteeId}
         organizationId={organizationId}
         C={C}
         activeSection={activeSection}
+        initialCommittee={initialData?.workspacesByCommitteeId[workspaceCommitteeId]}
         onSectionChange={(section) =>
           setUrl({ committee: workspaceCommitteeId, section, tab: "mine", explore: null })
         }
@@ -173,6 +188,7 @@ function ParentCommitteesPageContent({
         schoolSlug={schoolSlug}
         schoolName={schoolName}
         guardianName={guardianName}
+        readOnly={previewMode}
         onBack={() => setUrl({ explore: null })}
         onRequestSubmitted={() => {
           void reloadLists();

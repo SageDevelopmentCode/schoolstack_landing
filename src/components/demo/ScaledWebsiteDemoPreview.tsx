@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
 import {
+  LazyKineoSchoolWebsiteDashboardDemo,
+  prefetchKineoSchoolWebsiteDemo,
+} from "@/components/demo/kineoschool/lazyKineoSchoolDemos";
+import {
   LazyAthenaWebsiteDashboardDemo,
   prefetchAthenaWebsiteDemo,
 } from "@/components/demo/athena/lazyAthenaDemos";
@@ -110,6 +114,7 @@ export default function ScaledWebsiteDemoPreview({
 }: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isKineoSchool = demoSlug === "kineo-school";
   const isHiltonHorizons = demoSlug === "hilton-horizons-academy";
   const isZoeLearningHouse = demoSlug === "zoe-learning-house";
   const isMonarchHills = demoSlug === "monarch-hills-education";
@@ -134,7 +139,8 @@ export default function ScaledWebsiteDemoPreview({
   const isOneAcreFarm = demoSlug === "one-acre-farm";
 
   useEffect(() => {
-    if (isLabLearning) prefetchLabLearningWebsiteDemo();
+    if (isKineoSchool) prefetchKineoSchoolWebsiteDemo();
+    else if (isLabLearning) prefetchLabLearningWebsiteDemo();
     else if (isOneAcreFarm) prefetchOneAcreFarmWebsiteDemo();
     else if (isTrueNorth) prefetchTrueNorthWebsiteDemo();
     else if (isCreationAcres) prefetchCreationAcresWebsiteDemo();
@@ -157,7 +163,7 @@ export default function ScaledWebsiteDemoPreview({
     else if (isTheWoodlandsMicroschool) prefetchTheWoodlandsMicroschoolWebsiteDemo();
     else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isLabLearning, isOneAcreFarm, isTrueNorth, isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
+  }, [isKineoSchool, isLabLearning, isOneAcreFarm, isTrueNorth, isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -171,7 +177,9 @@ export default function ScaledWebsiteDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isLabLearning
+  const DemoComponent = isKineoSchool
+    ? LazyKineoSchoolWebsiteDashboardDemo
+    : isLabLearning
     ? LazyLabLearningWebsiteDashboardDemo
     : isOneAcreFarm
     ? LazyOneAcreFarmWebsiteDashboardDemo

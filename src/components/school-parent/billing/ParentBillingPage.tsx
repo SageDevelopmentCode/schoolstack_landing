@@ -647,14 +647,13 @@ function ParentBillingPageContent({
         />
       ) : null}
 
-      {!previewMode ? (
-        <ParentPaymentMethodCard
-          C={C}
-          savedPaymentMethod={savedPaymentMethod}
-          loading={paymentMethodLoading}
-          onManage={() => void handleManagePaymentMethod()}
-        />
-      ) : null}
+      <ParentPaymentMethodCard
+        C={C}
+        savedPaymentMethod={savedPaymentMethod}
+        loading={paymentMethodLoading}
+        onManage={() => void handleManagePaymentMethod()}
+        readOnly={previewMode}
+      />
 
       <ParentAutopayConfirmModal
         C={C}

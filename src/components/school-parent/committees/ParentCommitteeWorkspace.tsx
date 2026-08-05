@@ -13,6 +13,7 @@ type ParentCommitteeWorkspaceProps = {
   organizationId: string;
   C: AdminThemeTokens;
   activeSection: string;
+  initialCommittee?: Committee;
   onSectionChange: (section: string) => void;
   onBack: () => void;
 };
@@ -22,15 +23,18 @@ export default function ParentCommitteeWorkspace({
   organizationId,
   C,
   activeSection,
+  initialCommittee,
   onSectionChange,
   onBack,
 }: ParentCommitteeWorkspaceProps) {
   const supabase = useMemo(() => createClient(), []);
-  const [committee, setCommittee] = useState<Committee | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [committee, setCommittee] = useState<Committee | null>(initialCommittee ?? null);
+  const [loading, setLoading] = useState(!initialCommittee);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialCommittee) return;
+
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -57,7 +61,7 @@ export default function ParentCommitteeWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [committeeId, organizationId]);
+  }, [committeeId, organizationId, initialCommittee]);
 
   if (loading) {
     return (

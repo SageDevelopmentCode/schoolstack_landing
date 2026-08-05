@@ -136,22 +136,20 @@ export async function applicationBelongsToFamily(
   return Boolean(data);
 }
 
-export async function getFamilyPreviewProfile(
+async function getFamilyPreviewPrimaryGuardian(
   supabase: SupabaseClient,
   organizationId: string,
   familyId: string,
-): Promise<FamilyUserProfile> {
+) {
   const { data: guardians, error } = await supabase
     .from("guardians")
-    .select("id, first_name, last_name, email, created_at")
+    .select("id, first_name, last_name, email, user_id, created_at")
     .eq("organization_id", organizationId)
     .eq("family_id", familyId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  if (!guardians?.length) {
-    return { email: "", displayName: "Family" };
-  }
+  if (!guardians?.length) return null;
 
   const { data: application } = await supabase
     .from("applications")
@@ -167,13 +165,58 @@ export async function getFamilyPreviewProfile(
     ? String(application.primary_guardian_id)
     : null;
 
-  const guardian =
-    guardians.find((row) => String(row.id) === primaryGuardianId) ??
-    guardians[0];
+  return (
+    guardians.find((row) => String(row.id) === primaryGuardianId) ?? guardians[0]
+  );
+}
 
-  const firstName = String(guardian?.first_name ?? "").trim();
-  const lastName = String(guardian?.last_name ?? "").trim();
-  const email = typeof guardian?.email === "string" ? guardian.email.trim() : "";
+export async function getFamilyPreviewGuardianUserId(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<string | null> {
+  const guardian = await getFamilyPreviewPrimaryGuardian(
+    supabase,
+    organizationId,
+    familyId,
+  );
+  if (!guardian?.user_id) return null;
+  const userId = String(guardian.user_id).trim();
+  return userId || null;
+}
+
+export async function getFamilyPreviewGuardianId(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<string | null> {
+  const guardian = await getFamilyPreviewPrimaryGuardian(
+    supabase,
+    organizationId,
+    familyId,
+  );
+  if (!guardian?.id) return null;
+  return String(guardian.id);
+}
+
+export async function getFamilyPreviewProfile(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<FamilyUserProfile> {
+  const guardian = await getFamilyPreviewPrimaryGuardian(
+    supabase,
+    organizationId,
+    familyId,
+  );
+
+  if (!guardian) {
+    return { email: "", displayName: "Family" };
+  }
+
+  const firstName = String(guardian.first_name ?? "").trim();
+  const lastName = String(guardian.last_name ?? "").trim();
+  const email = typeof guardian.email === "string" ? guardian.email.trim() : "";
   const displayName =
     [firstName, lastName].filter(Boolean).join(" ") || email || "Family";
 

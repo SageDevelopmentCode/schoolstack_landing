@@ -126,12 +126,15 @@ export default function ParentBillingSummaryCard({
             </p>
           ) : null}
         </div>
-        {summary.nextCharge && nextChargeId && !readOnly ? (
+        {summary.nextCharge && nextChargeId ? (
           <button
             type="button"
-            disabled={payingChargeId === nextChargeId}
-            onClick={() => onPay(nextChargeId)}
-            className="inline-flex shrink-0 items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+            disabled={readOnly || payingChargeId === nextChargeId}
+            onClick={() => {
+              if (readOnly) return;
+              onPay(nextChargeId);
+            }}
+            className="inline-flex shrink-0 items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: C.accent, color: "#fff" }}
           >
             {payingChargeId === nextChargeId ? (
@@ -140,6 +143,7 @@ export default function ParentBillingSummaryCard({
               <CreditCard className="w-4 h-4" />
             )}
             Pay now
+            {readOnly ? " (preview)" : ""}
           </button>
         ) : null}
       </div>
@@ -197,42 +201,44 @@ export default function ParentBillingSummaryCard({
         </div>
       ) : null}
 
-      {!readOnly ? (
-        <div
-          className="flex items-center justify-between gap-4 rounded-lg px-4 py-3"
-          style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-              Autopay
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>
-              {autopayEnabled
-                ? "Due charges are paid automatically with your saved card."
-                : "Pay each charge manually in the parent portal."}
-            </p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={autopayEnabled}
-            aria-label="Autopay"
-            data-testid="parent-billing-autopay-toggle"
-            onClick={() => onAutopayToggleRequest(!autopayEnabled)}
-            className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors"
-            style={{
-              backgroundColor: autopayEnabled ? C.accent : C.border,
-            }}
-          >
-            <span
-              className="inline-block h-5 w-5 rounded-full bg-white transition-transform"
-              style={{
-                transform: autopayEnabled ? "translateX(22px)" : "translateX(2px)",
-              }}
-            />
-          </button>
+      <div
+        className="flex items-center justify-between gap-4 rounded-lg px-4 py-3"
+        style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+      >
+        <div className="min-w-0">
+          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+            Autopay
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>
+            {autopayEnabled
+              ? "Due charges are paid automatically with your saved card."
+              : "Pay each charge manually in the parent portal."}
+          </p>
         </div>
-      ) : null}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={autopayEnabled}
+          aria-label="Autopay"
+          data-testid="parent-billing-autopay-toggle"
+          disabled={readOnly}
+          onClick={() => {
+            if (readOnly) return;
+            onAutopayToggleRequest(!autopayEnabled);
+          }}
+          className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            backgroundColor: autopayEnabled ? C.accent : C.border,
+          }}
+        >
+          <span
+            className="inline-block h-5 w-5 rounded-full bg-white transition-transform"
+            style={{
+              transform: autopayEnabled ? "translateX(22px)" : "translateX(2px)",
+            }}
+          />
+        </button>
+      </div>
     </div>
   );
 }
