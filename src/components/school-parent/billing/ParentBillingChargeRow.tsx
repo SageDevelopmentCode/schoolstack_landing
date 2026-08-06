@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  formatParentChargeAmountLabel,
   formatParentChargeDueLine,
   formatParentChargeStatusBadge,
   type ChargeStatusBadgeTone,
@@ -60,6 +61,7 @@ export default function ParentBillingChargeRow({
   });
 
   const remainingCents = chargeRemainingCents(charge);
+  const amountDisplay = formatParentChargeAmountLabel(charge);
   const showBreakdown =
     charge.chargeType !== "late_fee" && charge.baseAmountCents !== charge.amountCents;
   const totalLine = breakdown.find((line) => line.kind === "total");
@@ -139,8 +141,11 @@ export default function ParentBillingChargeRow({
       </div>
       <div className="flex shrink-0 items-center gap-2 pt-0.5">
         {!showBreakdown ? (
-          <span className="font-medium" style={{ color: C.textPrimary }}>
-            {formatCents(remainingCents)}
+          <span
+            className="font-medium"
+            style={{ color: amountDisplay.isPaid ? C.success : C.textPrimary }}
+          >
+            {amountDisplay.text}
           </span>
         ) : null}
         {charge.status !== "paid" && charge.status !== "void" ? (

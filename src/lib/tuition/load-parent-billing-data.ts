@@ -20,14 +20,14 @@ import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import { fetchFamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import type { FamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
-import type { PaymentRecord } from "@/lib/stripe/application-payments";
+import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 
 export type ParentBillingInitialData = {
   charges: TuitionCharge[];
   allFamilyCharges: TuitionCharge[];
-  payments: PaymentRecord[];
+  payments: ParentTuitionPaymentRecord[];
   adjustments: TuitionAdjustment[];
   readiness: FamilyBillingReadiness;
   familySummary: ParentBillingFamilySummary;

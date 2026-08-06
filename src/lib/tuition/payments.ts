@@ -2,6 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import { settleTuitionPayment } from "./payment-settlement";
 
+export type ParentTuitionPaymentRecord = PaymentRecord & {
+  studentFirstName: string | null;
+};
+
 export async function createTuitionPaymentRecord(
   supabase: SupabaseClient,
   input: {
@@ -98,7 +102,7 @@ export async function listTuitionPaymentsForFamily(
 export async function listParentTuitionPaymentHistory(
   supabase: SupabaseClient,
   familyId: string,
-): Promise<PaymentRecord[]> {
+): Promise<ParentTuitionPaymentRecord[]> {
   const { data, error } = await supabase
     .from("application_payments")
     .select("*")
@@ -109,7 +113,144 @@ export async function listParentTuitionPaymentHistory(
 
   if (error) throw error;
 
-  return mapTuitionPaymentRows(data ?? [], familyId);
+  const payments = mapTuitionPaymentRows(data ?? [], familyId);
+  const studentNamesByChargeId = await fetchStudentFirstNamesByChargeId(
+    supabase,
+    payments
+      .map((payment) => payment.tuitionChargeId)
+      .filter((id): id is string => Boolean(id)),
+  );
+
+  return payments.map((payment) => ({
+    ...payment,
+    studentFirstName: payment.tuitionChargeId
+      ? (studentNamesByChargeId.get(payment.tuitionChargeId) ?? null)
+      : null,
+  }));
+}
+
+async function fetchStudentFirstNamesByChargeId(
+  supabase: SupabaseClient,
+  chargeIds: string[],
+): Promise<Map<string, string>> {
+  const uniqueChargeIds = [...new Set(chargeIds)];
+  if (uniqueChargeIds.length === 0) return new Map();
+
+  const { data: charges, error: chargesError } = await supabase
+    .from("tuition_charges")
+    .select("id, assignment_id")
+    .in("id", uniqueChargeIds);
+
+  if (chargesError) throw chargesError;
+
+  const assignmentIds = [
+    ...new Set(
+      (charges ?? [])
+        .map((charge) =>
+          charge.assignment_id ? String(charge.assignment_id) : null,
+        )
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  if (assignmentIds.length === 0) return new Map();
+
+  const { data: assignments, error: assignmentsError } = await supabase
+    .from("tuition_enrollment_assignments")
+    .select("id, enrollment_id")
+    .in("id", assignmentIds);
+
+  if (assignmentsError) throw assignmentsError;
+
+  const enrollmentIds = [
+    ...new Set(
+      (assignments ?? [])
+        .map((assignment) =>
+          assignment.enrollment_id ? String(assignment.enrollment_id) : null,
+        )
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  if (enrollmentIds.length === 0) return new Map();
+
+  const { data: enrollments, error: enrollmentsError } = await supabase
+    .from("enrollments")
+    .select("id, student_id")
+    .in("id", enrollmentIds);
+
+  if (enrollmentsError) throw enrollmentsError;
+
+  const studentIds = [
+    ...new Set(
+      (enrollments ?? [])
+        .map((enrollment) =>
+          enrollment.student_id ? String(enrollment.student_id) : null,
+        )
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  if (studentIds.length === 0) return new Map();
+
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id, first_name")
+    .in("id", studentIds);
+
+  if (studentsError) throw studentsError;
+
+  const studentFirstNameById = new Map(
+    (students ?? []).map((student) => [
+      String(student.id),
+      typeof student.first_name === "string" ? student.first_name : "Student",
+    ]),
+  );
+  const enrollmentStudentId = new Map(
+    (enrollments ?? []).map((enrollment) => [
+      String(enrollment.id),
+      enrollment.student_id ? String(enrollment.student_id) : null,
+    ]),
+  );
+  const assignmentEnrollmentId = new Map(
+    (assignments ?? []).map((assignment) => [
+      String(assignment.id),
+      assignment.enrollment_id ? String(assignment.enrollment_id) : null,
+    ]),
+  );
+  const chargeAssignmentId = new Map(
+    (charges ?? []).map((charge) => [
+      String(charge.id),
+      charge.assignment_id ? String(charge.assignment_id) : null,
+    ]),
+  );
+
+  const result = new Map<string, string>();
+  for (const chargeId of uniqueChargeIds) {
+    const assignmentId = chargeAssignmentId.get(chargeId);
+    if (!assignmentId) continue;
+    const enrollmentId = assignmentEnrollmentId.get(assignmentId);
+    if (!enrollmentId) continue;
+    const studentId = enrollmentStudentId.get(enrollmentId);
+    if (!studentId) continue;
+    const firstName = studentFirstNameById.get(studentId);
+    if (firstName) result.set(chargeId, firstName);
+  }
+
+  return result;
+}
+
+export function mapParentTuitionPaymentRows(
+  rows: Record<string, unknown>[],
+  familyId: string,
+  studentNamesByChargeId: Map<string, string> = new Map(),
+): ParentTuitionPaymentRecord[] {
+  return mapTuitionPaymentRows(rows, familyId).map((payment) => ({
+    ...payment,
+    studentFirstName: payment.tuitionChargeId
+      ? (studentNamesByChargeId.get(payment.tuitionChargeId) ?? null)
+      : null,
+  }));
 }
 
 function mapTuitionPaymentRows(

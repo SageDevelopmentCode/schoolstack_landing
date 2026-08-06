@@ -171,7 +171,18 @@ export default function ParentBillingSummaryCard({
                     {childFirstName(child.studentName)}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    {child.balanceDueCents > 0 ? (
+                    {child.balanceDueCents > 0 && child.nextCharge ? (
+                      <span
+                        className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                        style={{
+                          backgroundColor: C.accentLight,
+                          color: C.accent,
+                        }}
+                      >
+                        Due {formatBillingDueDate(child.nextCharge.dueDate)} ·{" "}
+                        {formatCents(child.balanceDueCents)}
+                      </span>
+                    ) : child.balanceDueCents > 0 ? (
                       <span
                         className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
                         style={{
