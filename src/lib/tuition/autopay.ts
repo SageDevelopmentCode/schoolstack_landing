@@ -25,7 +25,10 @@ import {
   type AutopaySkipReason,
 } from "./autopay-cron-report";
 import { rowToBillingAccount } from "./row-mappers";
-import { removeFamilyPaymentMethod } from "./payment-methods";
+import {
+  extractPaymentMethodDisplayFields,
+  removeFamilyPaymentMethod,
+} from "./payment-methods";
 import type { AdjustmentType, TuitionBillingAccount } from "./types";
 
 const STALE_PAYMENT_METHOD_MESSAGE =
@@ -87,17 +90,51 @@ export async function saveFamilyPaymentMethod(
     isDefault?: boolean;
   },
 ): Promise<void> {
-  if (input.isDefault) {
-    let clearQuery = supabase
-      .from("family_payment_methods")
-      .update({ is_default: false })
-      .eq("billing_account_id", input.billingAccountId);
+  const rowPayload = {
+    stripe_payment_method_id: input.stripePaymentMethodId,
+    brand: input.brand ?? null,
+    last4: input.last4 ?? null,
+    exp_month: input.expMonth ?? null,
+    exp_year: input.expYear ?? null,
+    is_default: input.isDefault ?? true,
+  };
 
-    if (input.guardianId) {
-      clearQuery = clearQuery.eq("guardian_id", input.guardianId);
+  if (input.guardianId) {
+    const { data: existing, error: existingError } = await supabase
+      .from("family_payment_methods")
+      .select("id")
+      .eq("billing_account_id", input.billingAccountId)
+      .eq("guardian_id", input.guardianId)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+
+    if (existing) {
+      const { error } = await supabase
+        .from("family_payment_methods")
+        .update(rowPayload)
+        .eq("id", existing.id);
+      if (error) throw error;
+      return;
     }
 
-    await clearQuery;
+    const { error } = await supabase.from("family_payment_methods").insert({
+      organization_id: input.organizationId,
+      family_id: input.familyId,
+      billing_account_id: input.billingAccountId,
+      guardian_id: input.guardianId,
+      ...rowPayload,
+    });
+    if (error) throw error;
+    return;
+  }
+
+  if (input.isDefault) {
+    await supabase
+      .from("family_payment_methods")
+      .update({ is_default: false })
+      .eq("billing_account_id", input.billingAccountId)
+      .is("guardian_id", null);
   }
 
   const { error } = await supabase.from("family_payment_methods").upsert(
@@ -105,25 +142,18 @@ export async function saveFamilyPaymentMethod(
       organization_id: input.organizationId,
       family_id: input.familyId,
       billing_account_id: input.billingAccountId,
-      guardian_id: input.guardianId ?? null,
-      stripe_payment_method_id: input.stripePaymentMethodId,
-      brand: input.brand ?? null,
-      last4: input.last4 ?? null,
-      exp_month: input.expMonth ?? null,
-      exp_year: input.expYear ?? null,
-      is_default: input.isDefault ?? true,
+      guardian_id: null,
+      ...rowPayload,
     },
     { onConflict: "organization_id,stripe_payment_method_id" },
   );
 
   if (error) throw error;
 
-  if (!input.guardianId) {
-    await supabase
-      .from("tuition_billing_accounts")
-      .update({ default_payment_method_id: input.stripePaymentMethodId })
-      .eq("id", input.billingAccountId);
-  }
+  await supabase
+    .from("tuition_billing_accounts")
+    .update({ default_payment_method_id: input.stripePaymentMethodId })
+    .eq("id", input.billingAccountId);
 }
 
 export async function trySaveTuitionPaymentMethod(
@@ -145,7 +175,7 @@ export async function trySaveTuitionPaymentMethod(
   if (!paymentMethodId) return;
 
   const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-  const card = paymentMethod.card;
+  const displayFields = extractPaymentMethodDisplayFields(paymentMethod);
 
   const { data: billingAccount, error: billingError } = await supabase
     .from("tuition_billing_accounts")
@@ -174,10 +204,7 @@ export async function trySaveTuitionPaymentMethod(
     billingAccountId: String(billingAccount.id),
     stripePaymentMethodId: paymentMethodId,
     guardianId,
-    brand: card?.brand,
-    last4: card?.last4,
-    expMonth: card?.exp_month,
-    expYear: card?.exp_year,
+    ...displayFields,
     isDefault: true,
   });
 }
@@ -202,7 +229,7 @@ export async function savePaymentMethodFromSetupIntent(
   if (!paymentMethodId) return;
 
   const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-  const card = paymentMethod.card;
+  const displayFields = extractPaymentMethodDisplayFields(paymentMethod);
 
   const { data: billingAccount, error: billingError } = await supabase
     .from("tuition_billing_accounts")
@@ -231,10 +258,7 @@ export async function savePaymentMethodFromSetupIntent(
     billingAccountId: String(billingAccount.id),
     stripePaymentMethodId: paymentMethodId,
     guardianId,
-    brand: card?.brand,
-    last4: card?.last4,
-    expMonth: card?.exp_month,
-    expYear: card?.exp_year,
+    ...displayFields,
     isDefault: true,
   });
 }

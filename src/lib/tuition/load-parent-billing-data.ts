@@ -1,7 +1,7 @@
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
-import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
+import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
 import {
   fetchParentBillingFamilySummary,
   pickInitialChildKey,
@@ -61,7 +61,7 @@ export async function loadParentBillingInitialData(input: {
       listChargesForFamilyGuardian(supabase, input.familyId, guardianId, {
         hasBillingSplit,
       }),
-      listTuitionPaymentsForFamily(supabase, input.familyId),
+      listParentTuitionPaymentHistory(supabase, input.familyId),
       listAdjustmentsForFamily(supabase, input.familyId),
       fetchFamilyBillingReadiness(supabase, {
         organizationId: input.organizationId,

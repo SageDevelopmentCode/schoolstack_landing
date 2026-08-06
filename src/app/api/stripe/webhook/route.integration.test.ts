@@ -6,6 +6,7 @@ import { POST } from "@/app/api/stripe/webhook/route";
 import { setStripeClientForTests } from "@/lib/stripe/client";
 import {
   buildCheckoutSessionCompletedEvent,
+  buildCheckoutSessionEvent,
   createMockStripeClient,
   signWebhookPayload,
 } from "@/test/mocks/stripe";
@@ -106,5 +107,43 @@ describeIntegration("POST /api/stripe/webhook", () => {
 
     assert.equal(application?.fee_status, "paid");
     assert.equal(application?.status, "submitted");
+  });
+
+  it("returns 200 and processes a signed checkout.session.async_payment_succeeded event", async () => {
+    const admin = createTestAdminClient();
+    const form = await seedFeeEnabledForm(admin);
+    const draft = await seedDraftApplication(admin, { form });
+    const payment = await seedPendingPayment(admin, {
+      organizationId: draft.organizationId,
+      applicationId: draft.applicationId,
+    });
+
+    const session = {
+      id: payment.checkoutSessionId,
+      object: "checkout.session",
+      payment_intent: `pi_test_${randomUUID().slice(0, 8)}`,
+      metadata: { payment_id: payment.paymentId },
+    } as Stripe.Checkout.Session;
+
+    const event = buildCheckoutSessionEvent(
+      "checkout.session.async_payment_succeeded",
+      session,
+    );
+    const payload = JSON.stringify(event);
+    const signature = signWebhookPayload(payload, WEBHOOK_SECRET);
+
+    const response = await POST(buildSignedRequest(event, signature));
+    const body = (await response.json()) as { received?: boolean };
+
+    assert.equal(response.status, 200);
+    assert.equal(body.received, true);
+
+    const { data: paymentRow } = await admin
+      .from("application_payments")
+      .select("status")
+      .eq("id", payment.paymentId)
+      .single();
+
+    assert.equal(paymentRow?.status, "succeeded");
   });
 });

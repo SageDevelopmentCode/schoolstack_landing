@@ -1,4 +1,34 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type Stripe from "stripe";
+
+export type PaymentMethodDisplayFields = {
+  brand?: string;
+  last4?: string;
+  expMonth?: number;
+  expYear?: number;
+};
+
+export function extractPaymentMethodDisplayFields(
+  paymentMethod: Stripe.PaymentMethod,
+): PaymentMethodDisplayFields {
+  if (paymentMethod.card) {
+    return {
+      brand: paymentMethod.card.brand,
+      last4: paymentMethod.card.last4 ?? undefined,
+      expMonth: paymentMethod.card.exp_month,
+      expYear: paymentMethod.card.exp_year,
+    };
+  }
+
+  if (paymentMethod.us_bank_account) {
+    return {
+      brand: paymentMethod.us_bank_account.bank_name ?? "Bank account",
+      last4: paymentMethod.us_bank_account.last4 ?? undefined,
+    };
+  }
+
+  return {};
+}
 
 export type SavedPaymentMethodSummary = {
   brand: string | null;

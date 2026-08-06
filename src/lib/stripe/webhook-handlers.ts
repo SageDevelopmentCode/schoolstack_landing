@@ -20,9 +20,11 @@ import {
 } from "@/lib/tuition/autopay";
 import {
   attachCheckoutSessionToPayment,
+  attachStripeCheckoutToPayment,
   getApplicationPaymentByCheckoutSession,
   getPaymentById,
   listPaymentsByCheckoutSession,
+  markPaymentFailed,
   markPaymentSucceeded,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
@@ -84,6 +86,7 @@ export async function handleCheckoutSessionCompleted(
     metadata.organization_id
   ) {
     await handleTuitionCheckoutCompleted(admin, {
+      session,
       checkoutSessionId,
       paymentIntentId,
       metadata,
@@ -105,6 +108,108 @@ export async function handleCheckoutSessionCompleted(
     paymentIntentId,
     metadata,
   });
+}
+
+export async function handleCheckoutSessionAsyncPaymentSucceeded(
+  admin: SupabaseClient,
+  session: Stripe.Checkout.Session,
+): Promise<void> {
+  await handleCheckoutSessionCompleted(admin, session);
+}
+
+export async function handleCheckoutSessionAsyncPaymentFailed(
+  admin: SupabaseClient,
+  session: Stripe.Checkout.Session,
+): Promise<void> {
+  const checkoutSessionId = session.id;
+  const metadata = session.metadata ?? {};
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id;
+  const organizationId =
+    typeof metadata.organization_id === "string" ? metadata.organization_id : null;
+
+  const payments = await resolveCheckoutSessionPayments(admin, {
+    checkoutSessionId,
+    metadata,
+  });
+
+  for (const payment of payments) {
+    if (payment.status !== "pending") continue;
+
+    const updatedPayment = await markPaymentFailed(admin, payment.id, {
+      stripePaymentIntentId: paymentIntentId,
+      stripeCheckoutSessionId: checkoutSessionId,
+    });
+
+    if (!updatedPayment || updatedPayment.status !== "failed") continue;
+
+    if (organizationId) {
+      const entityType =
+        payment.paymentType === "tuition"
+          ? "tuition_charge"
+          : payment.enrollmentChecklistItemId
+            ? "enrollment_checklist_item"
+            : payment.applicationId
+              ? "application"
+              : "application_payment";
+      const entityId =
+        payment.paymentType === "tuition"
+          ? (payment.tuitionChargeId ?? payment.id)
+          : (payment.enrollmentChecklistItemId ??
+            payment.applicationId ??
+            payment.id);
+
+      void logActivityEvent(admin, {
+        organizationId,
+        actorType: "system",
+        surface: "system",
+        action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED,
+        entityType,
+        entityId,
+        summary: "Payment failed (ACH)",
+        metadata: {
+          checkoutSessionId,
+          paymentId: payment.id,
+          applicationId: payment.applicationId,
+          paymentType: payment.paymentType,
+          tuitionChargeId: payment.tuitionChargeId,
+        },
+        severity: "warning",
+      });
+    }
+  }
+}
+
+async function resolveCheckoutSessionPayments(
+  admin: SupabaseClient,
+  input: {
+    checkoutSessionId: string;
+    metadata: Stripe.Metadata;
+  },
+): Promise<PaymentRecord[]> {
+  const paymentIds = parseCsvMetadata(input.metadata.payment_ids);
+  const singlePaymentId =
+    typeof input.metadata.payment_id === "string"
+      ? input.metadata.payment_id
+      : null;
+
+  if (paymentIds.length > 0) {
+    const resolvedPayments = await Promise.all(
+      paymentIds.map((paymentId) => getPaymentById(admin, paymentId)),
+    );
+    return resolvedPayments.filter(
+      (payment): payment is PaymentRecord => payment !== null,
+    );
+  }
+
+  if (singlePaymentId) {
+    const payment = await getPaymentById(admin, singlePaymentId);
+    return payment ? [payment] : [];
+  }
+
+  return listPaymentsByCheckoutSession(admin, input.checkoutSessionId);
 }
 
 async function handleCombinedEnrollmentChecklistCheckoutCompleted(
@@ -291,12 +396,13 @@ async function handleTuitionSetupCheckoutCompleted(
 async function handleTuitionCheckoutCompleted(
   admin: SupabaseClient,
   input: {
+    session: Stripe.Checkout.Session;
     checkoutSessionId: string;
     paymentIntentId: string | undefined;
     metadata: Stripe.Metadata;
   },
 ): Promise<void> {
-  const { checkoutSessionId, paymentIntentId, metadata } = input;
+  const { session, checkoutSessionId, paymentIntentId, metadata } = input;
   const paymentId =
     typeof metadata.payment_id === "string" ? metadata.payment_id : null;
   let payment = paymentId ? await getPaymentById(admin, paymentId) : null;
@@ -305,11 +411,20 @@ async function handleTuitionCheckoutCompleted(
     payment = await getApplicationPaymentByCheckoutSession(admin, checkoutSessionId);
   }
 
-  if (payment && payment.status !== "succeeded") {
-    payment = await markPaymentSucceeded(admin, payment.id, {
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutSessionId: checkoutSessionId,
-    });
+  const paymentSettled = session.payment_status === "paid";
+
+  if (payment && payment.status === "pending") {
+    if (paymentSettled) {
+      payment = await markPaymentSucceeded(admin, payment.id, {
+        stripePaymentIntentId: paymentIntentId,
+        stripeCheckoutSessionId: checkoutSessionId,
+      });
+    } else {
+      await attachStripeCheckoutToPayment(admin, payment.id, {
+        stripeCheckoutSessionId: checkoutSessionId,
+        stripePaymentIntentId: paymentIntentId,
+      });
+    }
   }
 
   const chargeId =
@@ -317,7 +432,7 @@ async function handleTuitionCheckoutCompleted(
       ? metadata.tuition_charge_id
       : payment?.tuitionChargeId;
 
-  if (chargeId && payment) {
+  if (paymentSettled && chargeId && payment) {
     await settleTuitionPayment(admin, {
       chargeId,
       amountCents: payment.amountCents,
@@ -326,13 +441,25 @@ async function handleTuitionCheckoutCompleted(
     });
   }
 
-  if (payment?.familyId && paymentIntentId) {
-    await trySaveTuitionPaymentMethod(admin, {
-      familyId: payment.familyId,
-      organizationId: String(metadata.organization_id),
-      paymentIntentId,
-      payerUserId: payment.payerUserId,
-    });
+  if (paymentSettled && payment?.familyId && paymentIntentId) {
+    try {
+      await trySaveTuitionPaymentMethod(admin, {
+        familyId: payment.familyId,
+        organizationId: String(metadata.organization_id),
+        paymentIntentId,
+        payerUserId: payment.payerUserId,
+      });
+    } catch (error) {
+      console.warn(
+        "checkout.session.completed: tuition payment method save failed",
+        payment.id,
+        error,
+      );
+    }
+  }
+
+  if (!paymentSettled) {
+    return;
   }
 
   const charge =

@@ -3,6 +3,8 @@
  *
  * Production must subscribe to:
  * - checkout.session.completed
+ * - checkout.session.async_payment_succeeded
+ * - checkout.session.async_payment_failed
  * - account.updated
  *
  * Configure STRIPE_WEBHOOK_SECRET in the environment for signature verification.
@@ -13,6 +15,8 @@ import { apiError } from "@/lib/api/route-errors";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/stripe/client";
 import {
   handleAccountUpdated,
+  handleCheckoutSessionAsyncPaymentFailed,
+  handleCheckoutSessionAsyncPaymentSucceeded,
   handleCheckoutSessionCompleted,
 } from "@/lib/stripe/webhook-handlers";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -57,6 +61,18 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed":
         await handleCheckoutSessionCompleted(
+          admin,
+          event.data.object as Stripe.Checkout.Session,
+        );
+        break;
+      case "checkout.session.async_payment_succeeded":
+        await handleCheckoutSessionAsyncPaymentSucceeded(
+          admin,
+          event.data.object as Stripe.Checkout.Session,
+        );
+        break;
+      case "checkout.session.async_payment_failed":
+        await handleCheckoutSessionAsyncPaymentFailed(
           admin,
           event.data.object as Stripe.Checkout.Session,
         );

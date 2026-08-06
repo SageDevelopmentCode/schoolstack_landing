@@ -91,7 +91,32 @@ export async function listTuitionPaymentsForFamily(
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => ({
+  return mapTuitionPaymentRows(data ?? [], familyId);
+}
+
+/** Parent portal payment history — completed payments only. */
+export async function listParentTuitionPaymentHistory(
+  supabase: SupabaseClient,
+  familyId: string,
+): Promise<PaymentRecord[]> {
+  const { data, error } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("family_id", familyId)
+    .eq("payment_type", "tuition")
+    .eq("status", "succeeded")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return mapTuitionPaymentRows(data ?? [], familyId);
+}
+
+function mapTuitionPaymentRows(
+  rows: Record<string, unknown>[],
+  familyId: string,
+): PaymentRecord[] {
+  return rows.map((row) => ({
     id: String(row.id),
     organizationId: String(row.organization_id),
     applicationId: null,

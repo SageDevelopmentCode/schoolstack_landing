@@ -3,7 +3,7 @@ import { getFamilyPreviewGuardianId } from "@/lib/admissions/family-preview-acce
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
-import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
+import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
 import {
   fetchParentBillingFamilySummary,
   pickInitialChildKey,
@@ -40,7 +40,7 @@ export async function loadParentBillingPreviewData(input: {
       listChargesForFamilyGuardian(admin, input.familyId, guardianId, {
         hasBillingSplit,
       }),
-      listTuitionPaymentsForFamily(admin, input.familyId),
+      listParentTuitionPaymentHistory(admin, input.familyId),
       listAdjustmentsForFamily(admin, input.familyId),
       fetchFamilyBillingReadiness(admin, {
         organizationId: input.organizationId,

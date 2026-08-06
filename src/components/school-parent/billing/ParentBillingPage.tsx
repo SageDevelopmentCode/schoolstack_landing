@@ -18,7 +18,7 @@ import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSe
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
-import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
+import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
 import { formatBillingDueDate } from "@/lib/tuition/due-date-display";
 import { formatCents } from "@/lib/tuition/pricing";
 import { pickRecentLateFeeNotice } from "@/lib/tuition/late-fee-notice";
@@ -171,7 +171,7 @@ function ParentBillingPageContent({
           listChargesForFamilyGuardian(supabase, familyId, guardianId, {
             hasBillingSplit: splitActive,
           }),
-          listTuitionPaymentsForFamily(supabase, familyId),
+          listParentTuitionPaymentHistory(supabase, familyId),
           listAdjustmentsForFamily(supabase, familyId),
           fetchFamilyBillingReadiness(supabase, {
             organizationId,

@@ -46,7 +46,11 @@ export function signWebhookPayload(payload: string, secret: string): string {
   });
 }
 
-export function buildCheckoutSessionCompletedEvent(
+export function buildCheckoutSessionEvent(
+  type:
+    | "checkout.session.completed"
+    | "checkout.session.async_payment_succeeded"
+    | "checkout.session.async_payment_failed",
   session: Stripe.Checkout.Session,
 ): Stripe.Event {
   return {
@@ -58,6 +62,12 @@ export function buildCheckoutSessionCompletedEvent(
     livemode: false,
     pending_webhooks: 0,
     request: null,
-    type: "checkout.session.completed",
+    type,
   } as Stripe.Event;
+}
+
+export function buildCheckoutSessionCompletedEvent(
+  session: Stripe.Checkout.Session,
+): Stripe.Event {
+  return buildCheckoutSessionEvent("checkout.session.completed", session);
 }

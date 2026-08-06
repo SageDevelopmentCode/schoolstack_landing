@@ -412,3 +412,156 @@ export async function seedPaymentAccountForOrg(
   });
   return organizationId;
 }
+
+export type TuitionPaymentWebhookSeed = {
+  organizationId: string;
+  familyId: string;
+  guardianId: string;
+  billingAccountId: string;
+  chargeId: string;
+  assignmentId: string;
+  paymentId: string;
+  checkoutSessionId: string;
+};
+
+export async function seedTuitionPaymentWebhook(
+  admin: SupabaseClient,
+): Promise<TuitionPaymentWebhookSeed> {
+  const form = await seedFeeEnabledForm(admin);
+  const draft = await seedDraftApplication(admin, { form });
+
+  const { data: student, error: studentError } = await admin
+    .from("students")
+    .insert({
+      organization_id: draft.organizationId,
+      family_id: draft.familyId,
+      first_name: "Tuition",
+      last_name: "Webhook",
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  if (studentError) throw studentError;
+
+  const { data: enrollment, error: enrollmentError } = await admin
+    .from("enrollments")
+    .insert({
+      organization_id: draft.organizationId,
+      student_id: student.id,
+      program_id: draft.programId,
+      status: "enrolled",
+    })
+    .select("id")
+    .single();
+
+  if (enrollmentError) throw enrollmentError;
+
+  const { data: ratePlan, error: ratePlanError } = await admin
+    .from("tuition_rate_plans")
+    .insert({
+      organization_id: draft.organizationId,
+      program_id: draft.programId,
+      name: "Integration Tuition Webhook",
+      billing_basis: "annual",
+      amount_cents: 720_000,
+      status: "active",
+      effective_start: "2026-08-01",
+      effective_end: "2027-07-31",
+    })
+    .select("id")
+    .single();
+
+  if (ratePlanError) throw ratePlanError;
+
+  const { data: paymentPlan, error: paymentPlanError } = await admin
+    .from("tuition_payment_plans")
+    .insert({
+      organization_id: draft.organizationId,
+      rate_plan_id: ratePlan.id,
+      name: "Annual",
+      installment_count: 1,
+      installment_amount_cents: 720_000,
+      billing_day_of_month: 1,
+      is_default: true,
+    })
+    .select("id")
+    .single();
+
+  if (paymentPlanError) throw paymentPlanError;
+
+  const { data: assignment, error: assignmentError } = await admin
+    .from("tuition_enrollment_assignments")
+    .insert({
+      organization_id: draft.organizationId,
+      enrollment_id: enrollment.id,
+      family_id: draft.familyId,
+      rate_plan_id: ratePlan.id,
+      payment_plan_id: paymentPlan.id,
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  if (assignmentError) throw assignmentError;
+
+  const { data: charge, error: chargeError } = await admin
+    .from("tuition_charges")
+    .insert({
+      organization_id: draft.organizationId,
+      assignment_id: assignment.id,
+      family_id: draft.familyId,
+      label: "Aug Tuition",
+      base_amount_cents: 720_000,
+      amount_cents: 720_000,
+      due_date: "2026-08-01",
+      status: "sent",
+      charge_type: "tuition",
+      installment_number: 1,
+    })
+    .select("id")
+    .single();
+
+  if (chargeError) throw chargeError;
+
+  const { data: billingAccount, error: billingAccountError } = await admin
+    .from("tuition_billing_accounts")
+    .insert({
+      organization_id: draft.organizationId,
+      family_id: draft.familyId,
+    })
+    .select("id")
+    .single();
+
+  if (billingAccountError) throw billingAccountError;
+
+  const checkoutSessionId = `cs_test_${randomUUID().slice(0, 12)}`;
+
+  const { data: payment, error: paymentError } = await admin
+    .from("application_payments")
+    .insert({
+      organization_id: draft.organizationId,
+      family_id: draft.familyId,
+      tuition_charge_id: charge.id,
+      payment_type: "tuition",
+      label: "Aug Tuition",
+      amount_cents: 720_000,
+      status: "pending",
+      stripe_checkout_session_id: checkoutSessionId,
+    })
+    .select("id")
+    .single();
+
+  if (paymentError) throw paymentError;
+
+  return {
+    organizationId: draft.organizationId,
+    familyId: draft.familyId,
+    guardianId: draft.guardianId,
+    billingAccountId: String(billingAccount.id),
+    chargeId: String(charge.id),
+    assignmentId: String(assignment.id),
+    paymentId: String(payment.id),
+    checkoutSessionId,
+  };
+}
