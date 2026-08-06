@@ -73,6 +73,12 @@ export async function reportOperationalError(
       ? ACTIVITY_ACTIONS.API_ERROR
       : ACTIVITY_ACTIONS.ADMIN_OPERATION_FAILED);
 
+  const causeMessage = stackFromCause(cause);
+  const stack =
+    api?.stack && typeof api.stack === "string"
+      ? api.stack
+      : causeMessage;
+
   const summary = api
     ? `${api.method} ${api.route} returned ${api.status}: ${error}`
     : `${operation} failed: ${error}`;
@@ -93,6 +99,7 @@ export async function reportOperationalError(
       error,
       code: code ?? null,
       details: details ?? null,
+      ...(stack ? { stack } : {}),
       ...(api
         ? {
             route: api.route,

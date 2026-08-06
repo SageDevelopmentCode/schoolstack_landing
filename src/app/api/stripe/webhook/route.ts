@@ -84,6 +84,9 @@ export async function POST(request: Request) {
         break;
     }
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7667/ingest/3cb8dff8-e332-4ae8-b1e5-8d6e920d55ef',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'89972b'},body:JSON.stringify({sessionId:'89972b',location:'api/stripe/webhook/route.ts:catch',message:'stripe webhook handler failed',data:{eventType:event.type,eventId:event.id,errorMessage:error instanceof Error?error.message:String(error),errorCode:error&&typeof error==='object'&&'code' in error?String((error as {code?:unknown}).code):null},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     return apiError(ROUTE, {
       request,
       status: 500,

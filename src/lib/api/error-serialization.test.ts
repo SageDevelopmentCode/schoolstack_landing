@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
-import { stackFromCause } from "@/lib/api/error-serialization";
+import { messageFromCause, stackFromCause } from "@/lib/api/error-serialization";
 
 describe("stackFromCause", () => {
   it("serializes Postgrest-style error objects", () => {
@@ -19,5 +19,16 @@ describe("stackFromCause", () => {
     const error = new Error("boom");
     error.stack = "Error: boom\n    at test";
     assert.equal(stackFromCause(error), error.stack);
+  });
+
+  it("extracts Postgrest-style messages with details", () => {
+    assert.equal(
+      messageFromCause({
+        code: "23505",
+        message: "duplicate key value violates unique constraint",
+        details: "Key (billing_account_id, guardian_id)=(...) already exists.",
+      }),
+      "duplicate key value violates unique constraint — Key (billing_account_id, guardian_id)=(...) already exists.",
+    );
   });
 });

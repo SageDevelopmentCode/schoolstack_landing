@@ -27,8 +27,8 @@
 -- ) and status = 'pending';
 
 -- Restore Candace default Link card after webhook unset it (optional):
--- update family_payment_methods
--- set is_default = true
--- where stripe_payment_method_id = 'pm_1U1Jj2JPlPJpPJRqotOTeyQ4';
+update family_payment_methods
+set is_default = true
+where stripe_payment_method_id = 'pm_1U1Jj2JPlPJpPJRqotOTeyQ4';
 
 -- commit;

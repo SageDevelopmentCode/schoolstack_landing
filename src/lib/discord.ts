@@ -366,7 +366,11 @@ export async function notifyWebsiteApiError(payload: {
   }
 
   if (payload.stack) {
-    fields.push(embedField("Stack", truncate(payload.stack, 900)));
+    const stackText =
+      typeof payload.stack === "string"
+        ? payload.stack
+        : JSON.stringify(payload.stack, null, 2);
+    fields.push(embedField("Stack", truncate(stackText, 900)));
   }
 
   await sendWebsiteNotificationDiscordEmbed(

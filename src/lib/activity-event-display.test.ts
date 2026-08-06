@@ -117,6 +117,20 @@ describe("formatActivityEventNarrative", () => {
     );
   });
 
+  it("shows API error summaries directly instead of a generic phrase", () => {
+    assert.equal(
+      formatActivityEventNarrative(
+        baseEvent({
+          actor_type: "system",
+          action: ACTIVITY_ACTIONS.API_ERROR,
+          summary:
+            "POST /api/stripe/webhook returned 500: Webhook handler failed. — duplicate key value",
+        }),
+      ),
+      "POST /api/stripe/webhook returned 500: Webhook handler failed. — duplicate key value",
+    );
+  });
+
   it("omits school when organization is missing", () => {
     assert.equal(
       formatActivityEventNarrative(
