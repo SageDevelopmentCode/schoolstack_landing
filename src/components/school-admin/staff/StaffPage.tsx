@@ -332,13 +332,13 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
   }, []);
 
   useEffect(() => {
-    if (!selectedId) {
-      setIsEditing(false);
-      return;
-    }
-    const member = staffMembers.find((item) => item.id === selectedId);
-    if (!member) return;
     queueMicrotask(() => {
+      if (!selectedId) {
+        setIsEditing(false);
+        return;
+      }
+      const member = staffMembers.find((item) => item.id === selectedId);
+      if (!member) return;
       resetEditForm(member);
       setIsEditing(false);
     });
