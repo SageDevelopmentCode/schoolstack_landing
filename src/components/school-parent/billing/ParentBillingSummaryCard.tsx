@@ -234,12 +234,17 @@ export default function ParentBillingSummaryCard({
                       >
                         {childFirstNameFromFullName(child.studentName)}
                         {child.status === "ready" ? (
-                          <CheckCircle2
-                            className="h-3.5 w-3.5 shrink-0"
-                            style={{ color: C.success }}
-                            aria-label={BILLING_ACTIVE_TOOLTIP}
+                          <span
+                            className="inline-flex shrink-0"
                             title={BILLING_ACTIVE_TOOLTIP}
-                          />
+                            aria-label={BILLING_ACTIVE_TOOLTIP}
+                          >
+                            <CheckCircle2
+                              className="h-3.5 w-3.5"
+                              style={{ color: C.success }}
+                              aria-hidden
+                            />
+                          </span>
                         ) : null}
                         {child.status === "needs_schedule" ? (
                           <ParentNeedsScheduleBadge C={C} label="Schedule needed" />
