@@ -53,6 +53,13 @@ export async function resetFamilyBillingState(
     if (adjustmentsError) throw adjustmentsError;
   }
 
+  const { error: paymentsError } = await admin
+    .from("application_payments")
+    .delete()
+    .eq("family_id", familyId);
+
+  if (paymentsError) throw paymentsError;
+
   const { error: chargesError } = await admin
     .from("tuition_charges")
     .delete()
@@ -108,6 +115,14 @@ export async function openUpcomingChargesPanel(page: Page): Promise<void> {
   if (await trigger.isVisible()) {
     await trigger.click();
     await expect(page.getByTestId("parent-billing-upcoming-charges-panel")).toBeVisible();
+  }
+}
+
+export async function closeUpcomingChargesPanel(page: Page): Promise<void> {
+  const panel = page.getByTestId("parent-billing-upcoming-charges-panel");
+  if (await panel.isVisible()) {
+    await panel.getByRole("button", { name: "Close" }).click();
+    await expect(panel).not.toBeVisible();
   }
 }
 
