@@ -5,7 +5,13 @@ import {
   getFamilyTuitionSelectionContexts,
   type FamilyTuitionSelectionItem,
 } from "./enrollment-selection";
+import { paymentScheduleLabel } from "./setup-wizard";
 import type { TuitionCharge, TuitionEnrollmentAssignment } from "./types";
+
+export type PaymentPlanSummary = {
+  name: string;
+  installmentCount: number;
+};
 
 export type ParentBillingChildStatus = "needs_schedule" | "ready" | "no_assignment";
 
@@ -23,8 +29,10 @@ export type ParentBillingChildView = {
   balanceDueCents: number;
   totalRemainingCents: number;
   nextCharge: ParentBillingNextCharge | null;
+  nextChargeId: string | null;
   status: ParentBillingChildStatus;
   selectionItem: FamilyTuitionSelectionItem | null;
+  paymentPlanLabel: string | null;
 };
 
 export type ParentBillingFamilySummary = {
@@ -73,6 +81,28 @@ export function resolveAnnualTuitionCents(input: {
   return input.fallbackCents ?? 0;
 }
 
+export function resolvePaymentPlanLabel(input: {
+  assignment: Pick<TuitionEnrollmentAssignment, "paymentPlanId">;
+  selectionItem: FamilyTuitionSelectionItem | null;
+  paymentPlansById: Map<string, PaymentPlanSummary>;
+}): string | null {
+  if (input.selectionItem) {
+    const plan = input.selectionItem.context.ratePlan.paymentPlans.find(
+      (item) => item.id === input.assignment.paymentPlanId,
+    );
+    if (plan) {
+      return plan.name || paymentScheduleLabel(plan.installmentCount);
+    }
+  }
+
+  const plan = input.paymentPlansById.get(input.assignment.paymentPlanId);
+  if (plan) {
+    return plan.name || paymentScheduleLabel(plan.installmentCount);
+  }
+
+  return null;
+}
+
 export function resolveUpcomingDue(charges: TuitionCharge[]): UpcomingDueSummary {
   const openCharges = charges.filter((charge) =>
     OPEN_CHARGE_STATUSES.has(charge.status),
@@ -108,12 +138,74 @@ export function resolveUpcomingDue(charges: TuitionCharge[]): UpcomingDueSummary
   };
 }
 
+export function resolveNextChargeIdForAssignment(
+  charges: TuitionCharge[],
+  dueDate: string | null | undefined,
+): string | null {
+  if (!dueDate) return null;
+
+  const openOnDate = charges
+    .filter(
+      (charge) =>
+        charge.dueDate === dueDate && OPEN_CHARGE_STATUSES.has(charge.status),
+    )
+    .sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0));
+
+  return openOnDate[0]?.id ?? null;
+}
+
+export function countOpenChargesOnEarliestDueDate(charges: TuitionCharge[]): number {
+  const openCharges = charges.filter((charge) =>
+    OPEN_CHARGE_STATUSES.has(charge.status),
+  );
+  if (openCharges.length === 0) return 0;
+
+  const earliestDueDate = [...openCharges].sort((a, b) =>
+    a.dueDate.localeCompare(b.dueDate),
+  )[0]!.dueDate;
+
+  return openCharges.filter((charge) => charge.dueDate === earliestDueDate).length;
+}
+
+export function childFirstNameFromFullName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? name;
+}
+
+export function listOpenChargesOnEarliestDueDate(
+  charges: TuitionCharge[],
+): TuitionCharge[] {
+  const openCharges = charges.filter((charge) =>
+    OPEN_CHARGE_STATUSES.has(charge.status),
+  );
+  if (openCharges.length === 0) return [];
+
+  const earliestDueDate = [...openCharges].sort((a, b) =>
+    a.dueDate.localeCompare(b.dueDate),
+  )[0]!.dueDate;
+
+  return openCharges
+    .filter((charge) => charge.dueDate === earliestDueDate)
+    .sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0));
+}
+
+export function resolveFamilyPayNowLabel(input: {
+  chargesOnEarliestDueDate: number;
+}): string {
+  if (input.chargesOnEarliestDueDate > 1) {
+    return "Pay combined";
+  }
+
+  return "Pay now";
+}
+
 export function buildParentBillingFamilySummary(input: {
   assignments: AssignmentRow[];
   charges: TuitionCharge[];
   selectionItems: FamilyTuitionSelectionItem[];
   allFamilyCharges?: TuitionCharge[];
+  paymentPlansById?: Map<string, PaymentPlanSummary>;
 }): ParentBillingFamilySummary {
+  const paymentPlansById = input.paymentPlansById ?? new Map();
   const selectionByEnrollmentId = new Map(
     input.selectionItems.map((item) => [
       item.context.assignment.enrollmentId,
@@ -156,8 +248,17 @@ export function buildParentBillingFamilySummary(input: {
       balanceDueCents: upcomingDue.upcomingDueCents,
       totalRemainingCents: upcomingDue.totalRemainingCents,
       nextCharge: upcomingDue.nextCharge,
+      nextChargeId: resolveNextChargeIdForAssignment(
+        assignmentCharges,
+        upcomingDue.nextCharge?.dueDate,
+      ),
       status,
       selectionItem,
+      paymentPlanLabel: resolvePaymentPlanLabel({
+        assignment: row.assignment,
+        selectionItem,
+        paymentPlansById,
+      }),
     };
   });
 
@@ -194,7 +295,7 @@ export async function fetchParentBillingFamilySummary(
     allFamilyCharges?: TuitionCharge[];
   },
 ): Promise<ParentBillingFamilySummary> {
-  const [selectionItems, assignmentRows] = await Promise.all([
+  const [selectionItems, assignmentRows, paymentPlansResult] = await Promise.all([
     getFamilyTuitionSelectionContexts(supabase, {
       organizationId: input.organizationId,
       familyId: input.familyId,
@@ -205,9 +306,24 @@ export async function fetchParentBillingFamilySummary(
       .eq("organization_id", input.organizationId)
       .eq("family_id", input.familyId)
       .eq("status", "active"),
+    supabase
+      .from("tuition_payment_plans")
+      .select("id, name, installment_count")
+      .eq("organization_id", input.organizationId),
   ]);
 
   if (assignmentRows.error) throw assignmentRows.error;
+  if (paymentPlansResult.error) throw paymentPlansResult.error;
+
+  const paymentPlansById = new Map(
+    (paymentPlansResult.data ?? []).map((plan) => [
+      String(plan.id),
+      {
+        name: String(plan.name),
+        installmentCount: Number(plan.installment_count),
+      },
+    ]),
+  );
 
   const rows = assignmentRows.data ?? [];
   if (rows.length === 0) {
@@ -230,8 +346,14 @@ export async function fetchParentBillingFamilySummary(
         balanceDueCents: 0,
         totalRemainingCents: 0,
         nextCharge: null,
+        nextChargeId: null,
         status: "needs_schedule" as const,
         selectionItem: item,
+        paymentPlanLabel: resolvePaymentPlanLabel({
+          assignment: item.context.assignment,
+          selectionItem: item,
+          paymentPlansById,
+        }),
       })),
     };
   }
@@ -293,6 +415,7 @@ export async function fetchParentBillingFamilySummary(
     charges: input.charges,
     selectionItems,
     allFamilyCharges: input.allFamilyCharges,
+    paymentPlansById,
   });
 }
 

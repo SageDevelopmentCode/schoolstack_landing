@@ -290,6 +290,14 @@ export function formatActivityEventNarrative(
   event: ActivityEventRow,
   context?: Partial<ActivityEventDisplayContext>,
 ): string {
+  if (
+    event.action === ACTIVITY_ACTIONS.API_ERROR ||
+    event.action === ACTIVITY_ACTIONS.ADMIN_OPERATION_FAILED ||
+    event.action === ACTIVITY_ACTIONS.NOTIFICATION_FAILED
+  ) {
+    return event.summary.trim() || formatActivityActionLabel(event.action);
+  }
+
   const actor = resolveActorDisplayLabel(event, context);
   const phrase = formatActivityActionPhrase(event.action, event.summary);
   const school = event.organizations?.name?.trim();

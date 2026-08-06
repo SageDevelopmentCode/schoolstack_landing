@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { stackFromCause } from "@/lib/api/error-serialization";
+import {
+  messageFromCause,
+  stackFromCause,
+} from "@/lib/api/error-serialization";
 import {
   reportOperationalError,
 } from "@/lib/operational-errors";
@@ -30,12 +33,18 @@ export function apiError(
     console.error(`[${route}] ${opts.status} ${opts.error}`, opts.cause ?? "");
   }
 
+  const causeMessage = messageFromCause(opts.cause);
+  const reportedError =
+    causeMessage && !opts.error.includes(causeMessage)
+      ? `${opts.error} — ${causeMessage}`
+      : causeMessage || opts.error;
+
   if (shouldNotify(opts.status, opts.notify)) {
     void reportOperationalError({
       supabase: createAdminClient(),
       surface: "api",
       operation: route,
-      error: opts.error,
+      error: reportedError,
       code: opts.code ?? null,
       notify: true,
       actor: { type: "system" },

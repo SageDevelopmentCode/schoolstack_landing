@@ -53,6 +53,13 @@ export async function resetFamilyBillingState(
     if (adjustmentsError) throw adjustmentsError;
   }
 
+  const { error: paymentsError } = await admin
+    .from("application_payments")
+    .delete()
+    .eq("family_id", familyId);
+
+  if (paymentsError) throw paymentsError;
+
   const { error: chargesError } = await admin
     .from("tuition_charges")
     .delete()
@@ -101,6 +108,22 @@ export async function waitForBillingPage(page: Page): Promise<void> {
 export async function gotoBillingPage(page: Page): Promise<void> {
   await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
   await waitForBillingPage(page);
+}
+
+export async function openUpcomingChargesPanel(page: Page): Promise<void> {
+  const trigger = page.getByTestId("parent-billing-upcoming-charges-trigger");
+  if (await trigger.isVisible()) {
+    await trigger.click();
+    await expect(page.getByTestId("parent-billing-upcoming-charges-panel")).toBeVisible();
+  }
+}
+
+export async function closeUpcomingChargesPanel(page: Page): Promise<void> {
+  const panel = page.getByTestId("parent-billing-upcoming-charges-panel");
+  if (await panel.isVisible()) {
+    await panel.getByRole("button", { name: "Close" }).click();
+    await expect(panel).not.toBeVisible();
+  }
 }
 
 export async function finalizeEnrollmentBilling(

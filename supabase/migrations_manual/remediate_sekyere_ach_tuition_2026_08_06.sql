@@ -1,3 +1,8 @@
+-- RESOLVED (2026-08-06): Sekyere / Georgie ACH incident self-resolved.
+-- payment 7a5fa4d2-efdf-4e95-ac68-5a5d4f07bd74 and charge 01341d14-bdd1-4848-8669-ac851547bfb9
+-- are both status paid/succeeded. Live PM is pm_1U1K6DJPlPJpPJRqApsjXUKs (not pm_1U1Jj2… below).
+-- Keep for reference only — do not run unless a new async_payment_failed occurs.
+--
 -- Manual remediation if an ACH tuition payment fails after being marked paid early.
 -- Paste into Supabase SQL Editor only when Stripe reports async_payment_failed.
 -- Review payment_id / charge_id for the specific family before running.
@@ -26,7 +31,7 @@
 --   'b4fa91d1-da16-498c-b622-70ec375a5fe3'
 -- ) and status = 'pending';
 
--- Restore Candace default Link card after webhook unset it (optional):
+-- Restore Candace default Link card after webhook unset it (optional; stale PM id):
 -- update family_payment_methods
 -- set is_default = true
 -- where stripe_payment_method_id = 'pm_1U1Jj2JPlPJpPJRqotOTeyQ4';

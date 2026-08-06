@@ -194,31 +194,30 @@ export async function selectGradeLevel(
   optionLabel = "Kindergarten",
 ): Promise<void> {
   const gradeTrigger = page.locator("#student_grade");
+  const pickerTimeout = process.env.CI ? 15_000 : 10_000;
+  const isMobile = (page.viewportSize()?.width ?? 1280) < 640;
   await expect(gradeTrigger).toBeVisible();
   await expect(gradeTrigger).toBeEnabled();
   await gradeTrigger.click();
 
-  const isMobile = (page.viewportSize()?.width ?? 1280) < 640;
-
   if (isMobile) {
     const dialog = page.getByRole("dialog", { name: "Grade level" });
-    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    await expect(dialog).toBeVisible({ timeout: pickerTimeout });
     const option = dialog.getByRole("option", { name: optionLabel });
     await expect(option).toBeVisible();
     await option.scrollIntoViewIfNeeded();
-    await option.click({ timeout: 10_000 });
-    await expect(dialog).toBeHidden({ timeout: 5_000 });
-    await expect(gradeTrigger).toHaveText(new RegExp(optionLabel, "i"));
-    return;
+    await option.click({ timeout: pickerTimeout });
+    await expect(dialog).toBeHidden({ timeout: pickerTimeout });
+  } else {
+    const listbox = page.getByRole("listbox", { name: "Grade level" });
+    await expect(listbox).toBeVisible({ timeout: pickerTimeout });
+    const option = listbox.getByRole("option", { name: optionLabel });
+    await expect(option).toBeVisible();
+    await option.scrollIntoViewIfNeeded();
+    await option.click({ timeout: pickerTimeout });
+    await expect(listbox).toHaveCount(0, { timeout: pickerTimeout });
   }
 
-  const listbox = page.getByRole("listbox", { name: "Grade level" });
-  await expect(listbox).toBeVisible({ timeout: 10_000 });
-  const option = listbox.getByRole("option", { name: optionLabel });
-  await expect(option).toBeVisible();
-  await option.scrollIntoViewIfNeeded();
-  await option.click({ timeout: 10_000 });
-  await expect(listbox).toHaveCount(0, { timeout: 5_000 });
   await expect(gradeTrigger).toHaveText(new RegExp(optionLabel, "i"));
 }
 

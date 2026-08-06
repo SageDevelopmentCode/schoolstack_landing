@@ -12,6 +12,7 @@ import {
   finalizeEnrollmentBilling,
   getE2eParentFamily,
   gotoBillingPage,
+  openUpcomingChargesPanel,
   resetFamilyBillingState,
 } from "../helpers/billing-fixtures";
 import { getSeedManifest } from "../helpers/seed-manifest";
@@ -181,6 +182,7 @@ test("full tuition setup to parent billing smoke", async ({
 
   await gotoBillingPage(parentPage);
   await expect(parentPage.getByText("Upcoming charges")).toBeVisible();
+  await openUpcomingChargesPanel(parentPage);
   await expect(parentPage.getByTestId("parent-billing-charge-row").first()).toBeVisible();
   await expect(parentPage.getByTestId("parent-billing-summary")).toBeVisible();
   await expect(parentPage.getByRole("button", { name: "Pay now" })).toBeVisible();

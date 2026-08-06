@@ -3,11 +3,14 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CircleAlert, Loader2 } from "lucide-react";
-import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
+import { ChevronRight, CircleAlert, Loader2 } from "lucide-react";
+import ParentBillingUpcomingChargesPanel, {
+  formatUpcomingChargesSummary,
+} from "@/components/school-parent/billing/ParentBillingUpcomingChargesPanel";
 import ParentBillingPaymentHistoryRow from "@/components/school-parent/billing/ParentBillingPaymentHistoryRow";
 import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
 import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
+import ParentBillingChildDetailModal from "@/components/school-parent/billing/ParentBillingChildDetailModal";
 import ParentAutopayConfirmModal from "@/components/school-parent/billing/ParentAutopayConfirmModal";
 import ParentPaymentMethodCard from "@/components/school-parent/billing/ParentPaymentMethodCard";
 import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
@@ -19,7 +22,10 @@ import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSe
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
-import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
+import {
+  listParentTuitionPaymentHistory,
+  resolveLastPaymentDaySummary,
+} from "@/lib/tuition/payments";
 import { buildStudentColorIndexMap } from "@/lib/tuition/student-badge-colors";
 import { formatCents } from "@/lib/tuition/pricing";
 import { pickRecentLateFeeNotice } from "@/lib/tuition/late-fee-notice";
@@ -33,9 +39,13 @@ import {
 } from "@/lib/tuition/payment-methods";
 import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import {
+  childFirstNameFromFullName,
+  countOpenChargesOnEarliestDueDate,
   fetchParentBillingFamilySummary,
+  listOpenChargesOnEarliestDueDate,
   pickInitialChildKey,
   pickNextPendingChildKey,
+  resolveFamilyPayNowLabel,
   type ParentBillingFamilySummary,
 } from "@/lib/tuition/parent-billing-summary";
 import {
@@ -125,8 +135,13 @@ function ParentBillingPageContent({
   const [payingChargeId, setPayingChargeId] = useState<string | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [pendingPayCharge, setPendingPayCharge] = useState<TuitionCharge | null>(null);
+  const [pendingPayCharges, setPendingPayCharges] = useState<TuitionCharge[] | null>(null);
   const [payCheckoutLoading, setPayCheckoutLoading] = useState(false);
+  const [payingCombined, setPayingCombined] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [detailModalChildKey, setDetailModalChildKey] = useState<string | null>(null);
+  const [manualUpcomingChargesPanelOpen, setManualUpcomingChargesPanelOpen] = useState(false);
+  const [dismissedDeepLinkChargeId, setDismissedDeepLinkChargeId] = useState<string | null>(null);
   const [highlightedChargeId, setHighlightedChargeId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<FamilyBillingReadiness | null>(
     initialData?.readiness ?? null,
@@ -153,7 +168,20 @@ function ParentBillingPageContent({
     [charges],
   );
 
+  const lastPaymentSummary = useMemo(
+    () => resolveLastPaymentDaySummary(payments),
+    [payments],
+  );
+
   const pendingPayResolution = useMemo(() => {
+    if (pendingPayCharges && pendingPayCharges.length > 0) {
+      const totalCents = pendingPayCharges.reduce(
+        (sum, charge) => sum + chargeRemainingCents(charge),
+        0,
+      );
+      return { amountCents: totalCents, error: null as string | null };
+    }
+
     if (!pendingPayCharge) {
       return { amountCents: 0, error: null as string | null };
     }
@@ -163,7 +191,26 @@ function ParentBillingPageContent({
       remainingCents: chargeRemainingCents(pendingPayCharge),
       customDraft: payCustomDraft,
     });
-  }, [pendingPayCharge, payAmountMode, payCustomDraft]);
+  }, [pendingPayCharge, pendingPayCharges, payAmountMode, payCustomDraft]);
+
+  const combinedPaymentLineItems = useMemo(() => {
+    if (!pendingPayCharges?.length || !familySummary) return undefined;
+
+    return pendingPayCharges.map((charge) => {
+      const child = familySummary.children.find(
+        (row) => row.assignmentId === charge.assignmentId,
+      );
+      const studentName = child
+        ? childFirstNameFromFullName(child.studentName)
+        : "Student";
+
+      return {
+        id: charge.id,
+        label: `${studentName} — ${charge.label}`,
+        amountCents: chargeRemainingCents(charge),
+      };
+    });
+  }, [pendingPayCharges, familySummary]);
 
   const loadBilling = useCallback(async (): Promise<ParentBillingFamilySummary | null> => {
     setLoading(true);
@@ -242,37 +289,52 @@ function ParentBillingPageContent({
     });
   }, [hasInitialData, loadBilling]);
 
-  useEffect(() => {
-    if (!deepLinkChargeId || loading) return;
-
+  const deepLinkTargetCharge = useMemo(() => {
+    if (!deepLinkChargeId || loading) return null;
     const targetCharge = charges.find((charge) => charge.id === deepLinkChargeId);
-    if (!targetCharge) return;
+    if (!targetCharge || !OPEN_CHARGE_STATUSES.has(targetCharge.status)) return null;
+    return targetCharge;
+  }, [deepLinkChargeId, loading, charges]);
 
-    document
-      .querySelector(`[data-charge-id="${deepLinkChargeId}"]`)
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  const deepLinkOpensUpcomingChargesPanel =
+    deepLinkTargetCharge !== null && dismissedDeepLinkChargeId !== deepLinkChargeId;
+
+  const upcomingChargesPanelOpen =
+    manualUpcomingChargesPanelOpen || deepLinkOpensUpcomingChargesPanel;
+
+  useEffect(() => {
+    if (!deepLinkTargetCharge || !deepLinkChargeId) return;
+
+    const scrollToCharge = () => {
+      document
+        .querySelector(`[data-charge-id="${deepLinkChargeId}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
 
     queueMicrotask(() => {
       setHighlightedChargeId(deepLinkChargeId);
+      window.requestAnimationFrame(scrollToCharge);
     });
-    const timeout = window.setTimeout(() => {
+    const scrollTimeout = window.setTimeout(scrollToCharge, 300);
+    const highlightTimeout = window.setTimeout(() => {
       setHighlightedChargeId(null);
     }, 3000);
 
-    return () => window.clearTimeout(timeout);
-  }, [charges, deepLinkChargeId, loading]);
+    return () => {
+      window.clearTimeout(scrollTimeout);
+      window.clearTimeout(highlightTimeout);
+    };
+  }, [deepLinkTargetCharge, deepLinkChargeId]);
 
   const childViews = familySummary?.children ?? [];
   const deepLinkChildKey = useMemo(() => {
-    if (!deepLinkChargeId || loading) return null;
-    const targetCharge = charges.find((charge) => charge.id === deepLinkChargeId);
-    if (!targetCharge) return null;
+    if (!deepLinkTargetCharge) return null;
     return (
       familySummary?.children.find(
-        (child) => child.assignmentId === targetCharge.assignmentId,
+        (child) => child.assignmentId === deepLinkTargetCharge.assignmentId,
       )?.childKey ?? null
     );
-  }, [deepLinkChargeId, charges, familySummary?.children, loading]);
+  }, [deepLinkTargetCharge, familySummary?.children]);
   const resolvedActiveChildKey = deepLinkChildKey ?? activeChildKey;
   const activeChild =
     childViews.find((child) => child.childKey === resolvedActiveChildKey) ??
@@ -307,6 +369,15 @@ function ParentBillingPageContent({
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const handleSelectChild = (childKey: string) => {
+    setDetailModalChildKey(childKey);
+  };
+
+  const combinedChargesOnEarliestDueDate = useMemo(
+    () => listOpenChargesOnEarliestDueDate(charges),
+    [charges],
+  );
+
   const nextChargeRecord = familySummary?.nextCharge
     ? [...charges]
         .filter(
@@ -316,6 +387,11 @@ function ParentBillingPageContent({
         )
         .sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0))[0]
     : null;
+
+  const chargesOnEarliestDueDate = countOpenChargesOnEarliestDueDate(charges);
+  const familyPayNowLabel = resolveFamilyPayNowLabel({
+    chargesOnEarliestDueDate,
+  });
 
   const readinessMessage = (() => {
     if (!readiness) return null;
@@ -363,7 +439,21 @@ function ParentBillingPageContent({
     setPayError(null);
     setPayAmountMode("balance");
     setPayCustomDraft(formatCentsForInput(chargeRemainingCents(charge)));
+    setPendingPayCharges(null);
     setPendingPayCharge(charge);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePayCombined = () => {
+    if (previewMode) return;
+    const combinedCharges = combinedChargesOnEarliestDueDate;
+    if (combinedCharges.length < 2) return;
+
+    setPayError(null);
+    setPayAmountMode("balance");
+    setPayCustomDraft("");
+    setPendingPayCharge(null);
+    setPendingPayCharges(combinedCharges);
     setPaymentModalOpen(true);
   };
 
@@ -371,14 +461,63 @@ function ParentBillingPageContent({
     if (payCheckoutLoading) return;
     setPaymentModalOpen(false);
     setPendingPayCharge(null);
+    setPendingPayCharges(null);
     setPayError(null);
     setPayingChargeId(null);
+    setPayingCombined(false);
     setPayAmountMode("balance");
     setPayCustomDraft("");
   };
 
   const handleConfirmTuitionPayment = async (method: CheckoutPaymentMethod) => {
-    if (!pendingPayCharge || previewMode) return;
+    if (previewMode) return;
+
+    if (pendingPayCharges && pendingPayCharges.length > 0) {
+      setPayCheckoutLoading(true);
+      setPayError(null);
+      setPayingCombined(true);
+
+      try {
+        const response = await fetch("/api/tuition/charges/combined-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentMethod: method,
+            orgSlug: slug,
+            chargeIds: pendingPayCharges.map((charge) => charge.id),
+          }),
+        });
+        const payload = (await response.json()) as {
+          checkoutUrl?: string;
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(
+            typeof payload.error === "string"
+              ? payload.error
+              : "Failed to start checkout.",
+          );
+        }
+
+        if (payload.checkoutUrl) {
+          window.location.href = payload.checkoutUrl;
+          return;
+        }
+
+        throw new Error("Failed to start checkout.");
+      } catch (error) {
+        setPayError(
+          error instanceof Error ? error.message : "Failed to start checkout.",
+        );
+        setPayingCombined(false);
+      } finally {
+        setPayCheckoutLoading(false);
+      }
+      return;
+    }
+
+    if (!pendingPayCharge) return;
 
     const { amountCents, error: amountError } = pendingPayResolution;
     if (amountError) {
@@ -514,40 +653,63 @@ function ParentBillingPageContent({
     }
   };
 
-  const renderChildCharges = (assignmentId: string | null) => {
-    const childCharges = (assignmentId
+  const getOpenChargesForAssignment = (assignmentId: string | null) =>
+    (assignmentId
       ? charges.filter((charge) => charge.assignmentId === assignmentId)
       : charges
     ).filter((charge) => OPEN_CHARGE_STATUSES.has(charge.status));
+
+  const upcomingPanelAssignmentId =
+    childViews.length > 0 && activeChild ? activeChild.assignmentId : null;
+  const upcomingPanelCharges = getOpenChargesForAssignment(upcomingPanelAssignmentId);
+  const upcomingPanelStudentName =
+    childViews.length > 0 && activeChild ? activeChild.studentName : null;
+  const upcomingPanelTotalRemainingCents =
+    childViews.length > 0 && activeChild
+      ? activeChild.totalRemainingCents
+      : (familySummary?.totalRemainingCents ?? 0);
+
+  const renderChildCharges = (assignmentId: string | null) => {
+    const childCharges = getOpenChargesForAssignment(assignmentId);
+    const summaryText = formatUpcomingChargesSummary(childCharges);
 
     return (
       <div>
         <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
           Upcoming charges
         </h2>
-        <div className="flex flex-col gap-2">
-          {childCharges.length > 0 ? (
-            childCharges.map((charge) => (
-              <ParentBillingChargeRow
-                key={charge.id}
-                C={C}
-                charge={charge}
-                adjustmentsForAssignment={
-                  adjustmentsByAssignment.get(charge.assignmentId) ?? []
-                }
-                payingChargeId={payingChargeId}
-                highlighted={highlightedChargeId === charge.id}
-                autopayEnabled={autopayEnabled}
-                onPay={handlePay}
-                readOnly={previewMode}
-              />
-            ))
-          ) : (
-            <p className="text-sm" style={{ color: C.textTertiary }}>
-              No upcoming charges yet.
-            </p>
-          )}
-        </div>
+        {childCharges.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setManualUpcomingChargesPanelOpen(true)}
+            aria-expanded={upcomingChargesPanelOpen}
+            aria-controls="parent-billing-upcoming-charges-panel"
+            className="flex w-full items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-sm transition-shadow"
+            style={{
+              backgroundColor: C.surface,
+              border: `1px solid ${C.border}`,
+            }}
+            data-testid="parent-billing-upcoming-charges-trigger"
+          >
+            <div className="min-w-0">
+              <p className="font-medium" style={{ color: C.textPrimary }}>
+                View payment schedule
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+                {summaryText}
+              </p>
+            </div>
+            <ChevronRight
+              className="h-4 w-4 shrink-0"
+              style={{ color: C.textTertiary }}
+              aria-hidden
+            />
+          </button>
+        ) : (
+          <p className="text-sm" style={{ color: C.textTertiary }}>
+            No upcoming charges yet.
+          </p>
+        )}
       </div>
     );
   };
@@ -569,6 +731,9 @@ function ParentBillingPageContent({
 
     return renderChildCharges(activeChild.assignmentId);
   };
+
+  const detailModalChild =
+    childViews.find((child) => child.childKey === detailModalChildKey) ?? null;
 
   if (loading) {
     return <ParentBillingPageFallback branding={branding} />;
@@ -707,9 +872,20 @@ function ParentBillingPageContent({
           summary={familySummary}
           autopayEnabled={autopayEnabled}
           payingChargeId={payingChargeId}
+          payingCombined={payingCombined}
           onPay={handlePay}
+          onPayCombined={
+            combinedChargesOnEarliestDueDate.length > 1
+              ? handlePayCombined
+              : undefined
+          }
           onAutopayToggleRequest={handleAutopayToggleRequest}
+          onSelectChild={handleSelectChild}
           nextChargeId={nextChargeRecord?.id ?? null}
+          familyPayNowLabel={familyPayNowLabel}
+          chargesOnEarliestDueDate={chargesOnEarliestDueDate}
+          lastPaymentSummary={lastPaymentSummary}
+          showStudentOnLastPayment={hasMultipleChildren}
           readOnly={previewMode}
         />
       ) : null}
@@ -734,16 +910,28 @@ function ParentBillingPageContent({
 
       <PaymentMethodSelectionModal
         C={C}
-        open={paymentModalOpen && pendingPayCharge != null}
+        open={
+          paymentModalOpen &&
+          (pendingPayCharge != null ||
+            (pendingPayCharges != null && pendingPayCharges.length > 0))
+        }
         onClose={handleClosePaymentModal}
         netAmountCents={pendingPayResolution.amountCents}
-        label={pendingPayCharge?.label ?? "Tuition payment"}
+        label={
+          pendingPayCharges && pendingPayCharges.length > 0
+            ? `Combined tuition (${pendingPayCharges.length} students)`
+            : (pendingPayCharge?.label ?? "Tuition payment")
+        }
+        lineItems={combinedPaymentLineItems}
+        variant={
+          pendingPayCharges && pendingPayCharges.length > 0 ? "combined" : "single"
+        }
         savedPaymentMethod={savedPaymentMethod}
         loading={payCheckoutLoading}
         error={payError}
         confirmDisabled={Boolean(pendingPayResolution.error)}
         beforeSummary={
-          pendingPayCharge ? (
+          pendingPayCharge && !pendingPayCharges?.length ? (
             <TuitionPayAmountField
               C={C}
               remainingCents={chargeRemainingCents(pendingPayCharge)}
@@ -757,8 +945,55 @@ function ParentBillingPageContent({
         onConfirm={handleConfirmTuitionPayment}
       />
 
+      <ParentBillingChildDetailModal
+        C={C}
+        open={detailModalChildKey != null}
+        child={detailModalChild}
+        charges={charges}
+        adjustmentsByAssignment={adjustmentsByAssignment}
+        payingChargeId={payingChargeId}
+        autopayEnabled={autopayEnabled}
+        readOnly={previewMode}
+        onClose={() => setDetailModalChildKey(null)}
+        onPay={(chargeId) => {
+          setDetailModalChildKey(null);
+          handlePay(chargeId);
+        }}
+        onReviewSchedule={() => {
+          setDetailModalChildKey(null);
+          if (detailModalChild) {
+            setActiveChildKey(detailModalChild.childKey);
+          }
+          scrollToScheduleSelector();
+        }}
+      />
+
+      <ParentBillingUpcomingChargesPanel
+        C={C}
+        open={upcomingChargesPanelOpen}
+        charges={upcomingPanelCharges}
+        studentName={upcomingPanelStudentName}
+        totalRemainingCents={upcomingPanelTotalRemainingCents}
+        adjustmentsByAssignment={adjustmentsByAssignment}
+        payingChargeId={payingChargeId}
+        highlightedChargeId={highlightedChargeId}
+        autopayEnabled={autopayEnabled}
+        readOnly={previewMode}
+        onClose={() => {
+          setManualUpcomingChargesPanelOpen(false);
+          if (deepLinkChargeId) {
+            setDismissedDeepLinkChargeId(deepLinkChargeId);
+          }
+        }}
+        onPay={handlePay}
+      />
+
       {childViews.length > 0 ? (
-        <div className="flex flex-col gap-4" data-testid="parent-billing-child-panel">
+        <div
+          id="parent-billing-child-panel"
+          className="flex flex-col gap-4"
+          data-testid="parent-billing-child-panel"
+        >
           {hasMultipleChildren && resolvedActiveChildKey ? (
             <ParentBillingChildTabs
               C={C}
