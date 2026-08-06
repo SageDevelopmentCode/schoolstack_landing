@@ -59,6 +59,15 @@ export default defineConfig({
       },
     },
     {
+      name: "teacher",
+      testMatch: /teacher\/.*\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: AUTH_STATE_PATHS.staff,
+      },
+    },
+    {
       name: "api-parent",
       testMatch: /api\/(submit|bootstrap|checkout)\.spec\.ts/,
       dependencies: ["setup"],

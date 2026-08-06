@@ -11,6 +11,7 @@ import {
   E2E_NONADMIN_EMAIL,
   E2E_OTHER_PARENT_EMAIL,
   E2E_PARENT_EMAIL,
+  E2E_STAFF_EMAIL,
   E2E_TEST_PASSWORD,
   TEST_ORG_SLUG,
 } from "./constants";
@@ -850,6 +851,10 @@ export async function seedE2eDatabase(): Promise<void> {
     email: E2E_NONADMIN_EMAIL,
     password: E2E_TEST_PASSWORD,
   });
+  const staffUserId = await ensureAuthUser(admin, {
+    email: E2E_STAFF_EMAIL,
+    password: E2E_TEST_PASSWORD,
+  });
 
   runDbQuery(`
     insert into public.organization_settings (organization_id, branding, features)
@@ -879,6 +884,50 @@ export async function seedE2eDatabase(): Promise<void> {
     on conflict (organization_id, user_id) do update
     set role = excluded.role,
         status = excluded.status;
+  `);
+
+  runDbQuery(`
+    insert into public.organization_memberships (
+      organization_id,
+      user_id,
+      role,
+      status
+    )
+    values (
+      '${organizationId}',
+      '${staffUserId}',
+      'teacher',
+      'active'
+    )
+    on conflict (organization_id, user_id) do update
+    set role = excluded.role,
+        status = excluded.status;
+  `);
+
+  runDbQuery(`
+    insert into public.staff_members (
+      organization_id,
+      user_id,
+      first_name,
+      last_name,
+      email,
+      role_title,
+      status
+    )
+    select
+      '${organizationId}',
+      '${staffUserId}',
+      'E2E',
+      'Staff',
+      '${E2E_STAFF_EMAIL}',
+      'Lead Teacher',
+      'active'
+    where not exists (
+      select 1
+      from public.staff_members sm
+      where sm.organization_id = '${organizationId}'
+        and sm.user_id = '${staffUserId}'
+    );
   `);
 
   runDbQuery(`

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
 import { ApplyAuthShellLoader } from "@/components/admissions/ApplyAuthShellLoader";
 import ButtonLoadingLabel, {
@@ -16,6 +17,7 @@ import {
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { AuthActivityMetadata } from "@/lib/activity-log";
+import { attemptPostSignInRedirect } from "@/lib/auth/resolve-post-sign-in-redirect";
 import { createClient } from "@/utils/supabase/client";
 
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -43,6 +45,7 @@ export default function ParentPortalSignIn({
   subtitle = "Enter the email you used for your application. We&apos;ll send you a one-time code.",
   onComplete,
 }: ParentPortalSignInProps) {
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
@@ -61,6 +64,20 @@ export default function ParentPortalSignIn({
   };
 
   const normalizedCode = code.replace(/\D/g, "").slice(0, 6);
+
+  const completeSignIn = useCallback(
+    async (method: "otp" | "session_restored") => {
+      if (
+        organizationSlug &&
+        (await attemptPostSignInRedirect(router, organizationSlug, method))
+      ) {
+        return;
+      }
+
+      onComplete();
+    },
+    [onComplete, organizationSlug, router],
+  );
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -92,7 +109,7 @@ export default function ParentPortalSignIn({
             organizationSlug,
           },
         });
-        onComplete();
+        void completeSignIn("session_restored");
         return;
       }
 
@@ -104,7 +121,7 @@ export default function ParentPortalSignIn({
     return () => {
       cancelled = true;
     };
-  }, [authPage, onComplete, organizationId, organizationSlug, supabase.auth]);
+  }, [authPage, completeSignIn, organizationId, organizationSlug, supabase.auth]);
 
   const notifyOtpRequested = useCallback(
     (resent: boolean) => {
@@ -194,7 +211,7 @@ export default function ParentPortalSignIn({
         },
       });
 
-      onComplete();
+      await completeSignIn("otp");
     } catch (err) {
       reportAuthOtpFailed({
         email: email.trim().toLowerCase(),

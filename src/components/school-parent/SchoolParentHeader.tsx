@@ -263,7 +263,7 @@ export default function SchoolParentHeader({
             </button>
             {menuOpen ? (
               <div
-                className="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-xl border border-gray-100 bg-white py-1 shadow-lg"
+                className="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-gray-100 bg-white py-1 shadow-lg"
                 role="menu"
               >
                 <div className="border-b border-gray-100 px-3 py-2.5">

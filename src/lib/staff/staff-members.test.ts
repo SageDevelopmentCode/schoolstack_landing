@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   addStaffPortalAccess,
   StaffMemberError,
+  updateStaffMember,
 } from "./staff-members";
 
 type StaffRow = {
@@ -84,6 +85,13 @@ function createMockSupabase(options: {
         return { data: null, error: null };
       },
       single: async () => {
+        if (table === "staff_members" && nextFilters.id != null) {
+          const row = staffRows.find((item) => item.id === nextFilters.id);
+          if (row) {
+            return { data: row, error: null };
+          }
+        }
+
         if (table === "staff_members" && nextFilters.id != null && updatedStaff) {
           return { data: updatedStaff, error: null };
         }
@@ -339,5 +347,73 @@ describe("addStaffPortalAccess", () => {
     assert.equal(result.employmentStatus, "active");
     assert.equal(membershipUpdates.length, 1);
     assert.equal(membershipUpdates[0]?.status, "active");
+  });
+});
+
+describe("updateStaffMember", () => {
+  const organizationId = "org-1";
+
+  it("updates staff profile fields", async () => {
+    const existingStaff: StaffRow = {
+      id: "staff-1",
+      organization_id: organizationId,
+      user_id: "user-teacher-1",
+      first_name: "Taylor",
+      last_name: "Reyes",
+      email: "teacher@example.com",
+      role_title: "Lead Teacher",
+      status: "active",
+      created_at: "2026-08-01T00:00:00Z",
+      updated_at: "2026-08-01T00:00:00Z",
+    };
+
+    const { admin } = createMockSupabase({
+      existingStaff,
+      membership: { id: "membership-1", role: "teacher", status: "active" },
+    });
+
+    const result = await updateStaffMember(admin, {
+      organizationId,
+      staffMemberId: "staff-1",
+      firstName: "Jordan",
+      lastName: "Taylor",
+      roleTitle: "Assistant Teacher",
+      employmentStatus: "on_leave",
+    });
+
+    assert.equal(result.firstName, "Jordan");
+    assert.equal(result.lastName, "Taylor");
+    assert.equal(result.roleTitle, "Assistant Teacher");
+    assert.equal(result.employmentStatus, "on_leave");
+  });
+
+  it("syncs portal role to organization membership", async () => {
+    const existingStaff: StaffRow = {
+      id: "staff-1",
+      organization_id: organizationId,
+      user_id: "user-teacher-1",
+      first_name: "Taylor",
+      last_name: "Reyes",
+      email: "teacher@example.com",
+      role_title: "Lead Teacher",
+      status: "active",
+      created_at: "2026-08-01T00:00:00Z",
+      updated_at: "2026-08-01T00:00:00Z",
+    };
+
+    const { admin, membershipUpdates } = createMockSupabase({
+      existingStaff,
+      membership: { id: "membership-1", role: "teacher", status: "active" },
+    });
+
+    const result = await updateStaffMember(admin, {
+      organizationId,
+      staffMemberId: "staff-1",
+      portalRole: "staff",
+    });
+
+    assert.equal(result.portalRole, "staff");
+    assert.equal(membershipUpdates.length, 1);
+    assert.equal(membershipUpdates[0]?.role, "staff");
   });
 });

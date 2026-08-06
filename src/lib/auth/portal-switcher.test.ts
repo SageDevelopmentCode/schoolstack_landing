@@ -76,6 +76,26 @@ describe("shouldShowPortalSwitcher", () => {
     assert.equal(shouldShowPortalSwitcher(options), true);
   });
 
+  it("shows when user has teacher and family access", () => {
+    const options: SchoolPortalOption[] = [
+      { id: "teacher", label: "Staff portal", href: "/school/rooted-meadows/teacher" },
+      { id: "family_apply", label: "My applications", href: "/school/rooted-meadows/apply" },
+      { id: "family_parent", label: "Parent portal", href: "/school/rooted-meadows/parent" },
+    ];
+
+    assert.equal(shouldShowPortalSwitcher(options), true);
+  });
+
+  it("hides for family-only apply and parent portals", () => {
+    assert.equal(
+      shouldShowPortalSwitcher([
+        { id: "family_apply", label: "My applications", href: "/school/rooted-meadows/apply" },
+        { id: "family_parent", label: "Parent portal", href: "/school/rooted-meadows/parent" },
+      ]),
+      false,
+    );
+  });
+
   it("hides when only one portal is available", () => {
     assert.equal(
       shouldShowPortalSwitcher([

@@ -8,11 +8,13 @@ import ParentPortalLoginBadge, {
 } from "@/components/admissions/ParentPortalLoginBadge";
 import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import CopyableUrlRow from "@/components/ui/CopyableUrlRow";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { schoolTeacherLoginPath } from "@/lib/organization-settings/teacher-routes";
 import type {
+  StaffEmploymentStatus,
   StaffMemberRecord,
   StaffPortalRole,
 } from "@/lib/staff/staff-members";
@@ -303,6 +305,44 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editRoleTitle, setEditRoleTitle] = useState("");
+  const [editPortalRole, setEditPortalRole] = useState<StaffPortalRole>("teacher");
+  const [editEmploymentStatus, setEditEmploymentStatus] =
+    useState<StaffEmploymentStatus>("active");
+  const [saveLoading, setSaveLoading] = useState(false);
+
+  const inputStyle: React.CSSProperties = useMemo(
+    () => ({
+      borderColor: C.inputBorder,
+      backgroundColor: C.input,
+      color: C.textPrimary,
+    }),
+    [C],
+  );
+
+  const resetEditForm = useCallback((member: StaffMemberRecord) => {
+    setEditFirstName(member.firstName);
+    setEditLastName(member.lastName);
+    setEditRoleTitle(member.roleTitle ?? "");
+    setEditPortalRole(member.portalRole ?? "teacher");
+    setEditEmploymentStatus(member.employmentStatus);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setIsEditing(false);
+      return;
+    }
+    const member = staffMembers.find((item) => item.id === selectedId);
+    if (!member) return;
+    queueMicrotask(() => {
+      resetEditForm(member);
+      setIsEditing(false);
+    });
+  }, [selectedId, staffMembers, resetEditForm]);
 
   const loadStaff = useCallback(async () => {
     setLoading(true);
@@ -359,6 +399,38 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
     () => staffMembers.find((member) => member.id === selectedId) ?? null,
     [selectedId, staffMembers],
   );
+
+  const handleSaveEdit = async () => {
+    if (!selectedMember) return;
+
+    setSaveLoading(true);
+    try {
+      const response = await fetch(`/api/school/${slug}/staff/${selectedMember.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: editFirstName,
+          lastName: editLastName,
+          roleTitle: editRoleTitle,
+          portalRole: editPortalRole,
+          employmentStatus: editEmploymentStatus,
+        }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body.error ?? "Failed to update staff member.");
+      }
+
+      adminToast.success("Staff member updated.");
+      setIsEditing(false);
+      await loadStaff();
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to update staff member."));
+    } finally {
+      setSaveLoading(false);
+    }
+  };
 
   const handlePortalAction = async (
     action: "deactivatePortalAccess" | "reactivatePortalAccess",
@@ -454,7 +526,12 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
                   <button
                     key={member.id}
                     type="button"
-                    onClick={() => setSelectedId(member.id)}
+                    onClick={() => {
+                      if (member.id !== selectedId) {
+                        setIsEditing(false);
+                      }
+                      setSelectedId(member.id);
+                    }}
                     className="w-full border-b px-3 py-3 text-left transition-colors"
                     style={{
                       borderColor: C.border,
@@ -491,17 +568,152 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
             </div>
           ) : (
             <div className="p-6">
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-                  {staffDisplayName(selectedMember)}
-                </h2>
-                <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-                  {selectedMember.roleTitle || "No job title"} ·{" "}
-                  {employmentStatusLabel(selectedMember.employmentStatus)}
-                </p>
+              <div className="mb-6 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+                    {staffDisplayName(selectedMember)}
+                  </h2>
+                  <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
+                    {selectedMember.roleTitle || "No job title"} ·{" "}
+                    {employmentStatusLabel(selectedMember.employmentStatus)}
+                  </p>
+                </div>
+                {!isEditing ? (
+                  <button
+                    type="button"
+                    disabled={actionLoading || saveLoading}
+                    onClick={() => {
+                      resetEditForm(selectedMember);
+                      setIsEditing(true);
+                    }}
+                    className="rounded-md px-3 py-2 text-xs font-medium disabled:opacity-60"
+                    style={getAdminButtonStyle(C, "secondary")}
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={saveLoading}
+                      onClick={() => {
+                        resetEditForm(selectedMember);
+                        setIsEditing(false);
+                      }}
+                      className="rounded-md px-3 py-2 text-xs font-medium disabled:opacity-60"
+                      style={getAdminButtonStyle(C, "secondary")}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saveLoading}
+                      onClick={() => void handleSaveEdit()}
+                      className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium disabled:opacity-60"
+                      style={getAdminButtonStyle(C, "primary")}
+                    >
+                      {saveLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                      Save
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-6">
+                <section>
+                  <h3
+                    className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
+                    style={{ color: C.textTertiary }}
+                  >
+                    Profile
+                  </h3>
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                            First name
+                          </span>
+                          <input
+                            required
+                            value={editFirstName}
+                            onChange={(event) => setEditFirstName(event.target.value)}
+                            className="w-full rounded-md border px-3 py-2 text-sm"
+                            style={inputStyle}
+                          />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                            Last name
+                          </span>
+                          <input
+                            required
+                            value={editLastName}
+                            onChange={(event) => setEditLastName(event.target.value)}
+                            className="w-full rounded-md border px-3 py-2 text-sm"
+                            style={inputStyle}
+                          />
+                        </label>
+                      </div>
+                      <label className="block space-y-1">
+                        <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                          Job title
+                        </span>
+                        <input
+                          required
+                          value={editRoleTitle}
+                          onChange={(event) => setEditRoleTitle(event.target.value)}
+                          className="w-full rounded-md border px-3 py-2 text-sm"
+                          style={inputStyle}
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                          Employment status
+                        </span>
+                        <select
+                          value={editEmploymentStatus}
+                          onChange={(event) =>
+                            setEditEmploymentStatus(
+                              event.target.value as StaffEmploymentStatus,
+                            )
+                          }
+                          className="w-full rounded-md border px-3 py-2 text-sm"
+                          style={inputStyle}
+                        >
+                          <option value="active">Active</option>
+                          <option value="on_leave">On leave</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                        <p className="text-[11px]" style={{ color: C.textTertiary }}>
+                          To revoke sign-in access, use Deactivate portal access below.
+                        </p>
+                      </label>
+                    </div>
+                  ) : (
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt style={{ color: C.textTertiary }}>Name</dt>
+                        <dd style={{ color: C.textPrimary }}>
+                          {staffDisplayName(selectedMember)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt style={{ color: C.textTertiary }}>Job title</dt>
+                        <dd style={{ color: C.textPrimary }}>
+                          {selectedMember.roleTitle || "—"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt style={{ color: C.textTertiary }}>Employment status</dt>
+                        <dd style={{ color: C.textPrimary }}>
+                          {employmentStatusLabel(selectedMember.employmentStatus)}
+                        </dd>
+                      </div>
+                    </dl>
+                  )}
+                </section>
+
                 <section>
                   <h3
                     className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
@@ -515,6 +727,11 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
                       <dd style={{ color: C.textPrimary }}>
                         {selectedMember.email || "—"}
                       </dd>
+                      {isEditing ? (
+                        <p className="mt-1 text-[11px]" style={{ color: C.textTertiary }}>
+                          Email cannot be changed here.
+                        </p>
+                      ) : null}
                     </div>
                   </dl>
                 </section>
@@ -529,9 +746,25 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
                   <dl className="space-y-2 text-sm">
                     <div>
                       <dt style={{ color: C.textTertiary }}>Role</dt>
-                      <dd style={{ color: C.textPrimary }}>
-                        {portalRoleLabel(selectedMember.portalRole)}
-                      </dd>
+                      {isEditing ? (
+                        <dd className="mt-1">
+                          <select
+                            value={editPortalRole}
+                            onChange={(event) =>
+                              setEditPortalRole(event.target.value as StaffPortalRole)
+                            }
+                            className="w-full max-w-xs rounded-md border px-3 py-2 text-sm"
+                            style={inputStyle}
+                          >
+                            <option value="teacher">Teacher</option>
+                            <option value="staff">Staff</option>
+                          </select>
+                        </dd>
+                      ) : (
+                        <dd style={{ color: C.textPrimary }}>
+                          {portalRoleLabel(selectedMember.portalRole)}
+                        </dd>
+                      )}
                     </div>
                     <div>
                       <dt style={{ color: C.textTertiary }}>Sign-in status</dt>
@@ -544,8 +777,8 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
                     </div>
                     <div>
                       <dt style={{ color: C.textTertiary }}>Sign-in URL</dt>
-                      <dd className="mt-1 break-all text-xs" style={{ color: C.textPrimary }}>
-                        {loginUrl}
+                      <dd>
+                        <CopyableUrlRow url={loginUrl} C={C} />
                       </dd>
                     </div>
                   </dl>

@@ -48,6 +48,7 @@ export default function SchoolAdminPreviewLayoutClient({
       familyId,
       hasEnrolledAccess,
       org,
+      includeAdmin: true,
     });
   }, [familyId, hasEnrolledAccess, org, slug]);
 

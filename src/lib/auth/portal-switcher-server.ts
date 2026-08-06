@@ -4,7 +4,10 @@ import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { fetchOrganizationWithSettingsUncached } from "@/lib/organization-settings/fetch";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
+import { getTeacherPortalHomeHref } from "@/lib/organization-settings/teacher-nav";
+import { isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
 import { userCanAccessSchoolAdmin } from "@/lib/school-admin/access";
+import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 
 export async function userHasFamilyPortalAccess(
@@ -40,10 +43,12 @@ export async function listSchoolPortalOptionsForUser(
 
   const options: SchoolPortalOption[] = [];
 
-  const [hasAdminAccess, hasFamilyAccess, hasEnrolledAccess] = await Promise.all([
+  const [hasAdminAccess, hasFamilyAccess, hasEnrolledAccess, hasTeacherAccess] =
+    await Promise.all([
     userCanAccessSchoolAdmin(supabase, userId, org.id),
     userHasFamilyPortalAccess(supabase, userId, org.id),
     userHasEnrolledAccess(supabase, userId, org.id),
+    userHasTeacherPortalAccess(supabase, userId, org.id),
   ]);
 
   if (hasAdminAccess) {
@@ -52,6 +57,22 @@ export async function listSchoolPortalOptionsForUser(
       label: "School admin",
       href: `/school/${slug}/admin`,
     });
+  }
+
+  if (hasTeacherAccess && isTeacherPortalEnabled(org.features)) {
+    const teacherHref = getTeacherPortalHomeHref(
+      slug,
+      org.features.teacher,
+      org.features.feature_nav?.teacher,
+    );
+
+    if (teacherHref) {
+      options.push({
+        id: "teacher",
+        label: "Staff portal",
+        href: teacherHref,
+      });
+    }
   }
 
   if (hasFamilyAccess) {

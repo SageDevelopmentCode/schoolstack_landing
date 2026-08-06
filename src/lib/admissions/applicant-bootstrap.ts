@@ -14,14 +14,17 @@ export type BootstrapApplicantInput = {
   forceNew?: boolean;
 };
 
-export type BootstrapApplicantAction = "resume" | "redirect_apply_dashboard";
+export type BootstrapApplicantAction =
+  | "resume"
+  | "redirect_apply_dashboard"
+  | "redirect_teacher_portal";
 
 export type BootstrapApplicantResult = {
   action: BootstrapApplicantAction;
   applicationId?: string;
-  familyId: string;
-  guardianId: string;
-  membershipId: string;
+  familyId?: string;
+  guardianId?: string;
+  membershipId?: string;
   createdNewApplication?: boolean;
 };
 
@@ -84,6 +87,29 @@ export async function bootstrapApplicant(
   }
 
   const feeConfig = parseApplicationFormFeeConfig(formRow.fee_config);
+
+  const { data: teacherMembership, error: teacherMembershipError } = await admin
+    .from("organization_memberships")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .in("role", ["teacher", "staff"])
+    .maybeSingle();
+
+  if (teacherMembershipError) {
+    throw new BootstrapApplicantError(
+      teacherMembershipError.message,
+      "membership_lookup_failed",
+      500,
+    );
+  }
+
+  if (teacherMembership) {
+    return {
+      action: "redirect_teacher_portal",
+    };
+  }
 
   let membershipId: string;
 

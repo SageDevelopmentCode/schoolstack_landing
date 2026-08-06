@@ -66,6 +66,7 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
   const supabase = useMemo(() => createClient(), []);
 
   const initialSchoolSlug = searchParams.get("school")?.trim() ?? null;
+  const initialAuthMethod = searchParams.get("auth")?.trim() ?? null;
   const initialOrganization = useMemo(
     () =>
       initialSchoolSlug
@@ -74,9 +75,10 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
     [initialSchoolSlug, organizations],
   );
 
-  const [phase, setPhase] = useState<LoginPhase>(
-    initialOrganization ? "email" : "select_org",
-  );
+  const [phase, setPhase] = useState<LoginPhase>(() => {
+    if (!initialOrganization) return "select_org";
+    return initialAuthMethod === "password" ? "password" : "email";
+  });
   const [direction, setDirection] = useState(1);
   const [selectedOrganization, setSelectedOrganization] =
     useState<LiveOrganizationOption | null>(initialOrganization);
@@ -422,11 +424,6 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
     goToPhase("email", -1);
   };
 
-  const switchToPassword = () => {
-    setCode("");
-    goToPhase("password", 1);
-  };
-
   const switchToOtpEmail = () => {
     setPassword("");
     setCode("");
@@ -449,7 +446,7 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
         <span className="font-medium" style={{ color: C.textPrimary }}>
           {selectedOrganization?.name}
         </span>
-        . We&apos;ll send you a one-time code, or you can sign in with your password.
+        . We&apos;ll send you a one-time code.
       </>
     ) : phase === "password" ? (
       "Sign in with your email and password."
@@ -605,18 +602,6 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
                       </ButtonLoadingLabel>
                     </button>
                   </form>
-
-                  <p className="text-sm" style={{ color: C.textSecondary }}>
-                    Prefer a password?{" "}
-                    <button
-                      type="button"
-                      onClick={switchToPassword}
-                      className="font-medium underline-offset-2 hover:underline"
-                      style={{ color: C.accent }}
-                    >
-                      Sign in with password
-                    </button>
-                  </p>
 
                   <p className="text-sm" style={{ color: C.textSecondary }}>
                     New here?{" "}

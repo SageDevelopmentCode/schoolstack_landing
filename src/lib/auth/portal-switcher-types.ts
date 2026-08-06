@@ -1,4 +1,4 @@
-export type PortalId = "admin" | "family_apply" | "family_parent";
+export type PortalId = "admin" | "teacher" | "family_apply" | "family_parent";
 
 export type SchoolPortalOption = {
   id: PortalId;
@@ -15,6 +15,10 @@ export function detectPortalFromPathname(pathname: string, slug: string): Portal
     pathname.startsWith(`/school/${slug}/admin`)
   ) {
     return "admin";
+  }
+
+  if (pathname.startsWith(`/school/${slug}/teacher`)) {
+    return "teacher";
   }
 
   if (
@@ -38,5 +42,8 @@ export function detectPortalFromPathname(pathname: string, slug: string): Portal
 }
 
 export function shouldShowPortalSwitcher(options: SchoolPortalOption[]): boolean {
-  return options.length >= 2;
+  const hasStaffPortal = options.some(
+    (option) => option.id === "admin" || option.id === "teacher",
+  );
+  return hasStaffPortal && options.length >= 2;
 }

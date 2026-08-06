@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import ApplyAuthPage from "@/components/admissions/ApplyAuthPage";
 import ApplyDashboard from "@/components/admissions/ApplyDashboard";
@@ -11,6 +11,10 @@ import {
 } from "@/lib/admissions/parent-portal-access";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
+import { getTeacherPortalHomeHref } from "@/lib/organization-settings/teacher-nav";
+import { isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
+import { userHasFamilyPortalAccess } from "@/lib/auth/portal-switcher-server";
+import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 import { createClient } from "@/utils/supabase/server";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 
@@ -49,6 +53,26 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (user) {
+    const [hasTeacherAccess, hasFamilyAccess] = await Promise.all([
+      userHasTeacherPortalAccess(supabase, user.id, org.id),
+      userHasFamilyPortalAccess(supabase, user.id, org.id),
+    ]);
+
+    if (
+      hasTeacherAccess &&
+      !hasFamilyAccess &&
+      isTeacherPortalEnabled(org.features)
+    ) {
+      const teacherHref = getTeacherPortalHomeHref(
+        slug,
+        org.features.teacher,
+        org.features.feature_nav?.teacher,
+      );
+      redirect(teacherHref ?? `/school/${slug}/teacher`);
+    }
+  }
 
   if (!user) {
     return (

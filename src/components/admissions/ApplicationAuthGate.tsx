@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, LogIn, UserPlus } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
@@ -10,6 +11,7 @@ import ButtonLoadingLabel, {
 } from "@/components/ui/ButtonLoadingLabel";
 import VerificationCodeInput from "@/components/ui/VerificationCodeInput";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
+import { attemptPostSignInRedirect } from "@/lib/auth/resolve-post-sign-in-redirect";
 import { reportAuthOtpFailed } from "@/lib/activity-auth-client";
 import {
   buildAdminThemeTokens,
@@ -135,6 +137,7 @@ export default function ApplicationAuthGate({
   onBootstrapped,
   onRedirectApplyDashboard,
 }: ApplicationAuthGateProps) {
+  const router = useRouter();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
   const pageBg = branding.colors.bg;
@@ -302,6 +305,15 @@ export default function ApplicationAuthGate({
       return payload;
     }
 
+    if (payload.action === "redirect_teacher_portal") {
+      if (
+        schoolSlug &&
+        (await attemptPostSignInRedirect(router, schoolSlug, "otp"))
+      ) {
+        return payload;
+      }
+    }
+
     onBootstrapped?.(payload);
     return payload;
   };
@@ -322,8 +334,18 @@ export default function ApplicationAuthGate({
         throw new Error(verifyError.message);
       }
 
+      if (
+        schoolSlug &&
+        (await attemptPostSignInRedirect(router, schoolSlug, "otp"))
+      ) {
+        return;
+      }
+
       const result = await bootstrapApplicant();
-      if (result.action !== "redirect_apply_dashboard") {
+      if (
+        result.action !== "redirect_apply_dashboard" &&
+        result.action !== "redirect_teacher_portal"
+      ) {
         onComplete();
       }
     } catch (error) {
