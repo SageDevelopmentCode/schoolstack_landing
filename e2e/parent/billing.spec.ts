@@ -562,6 +562,7 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
   await regenerateFutureCharges(admin, String(assignment!.id));
 
   await gotoBillingPage(page);
+  await openUpcomingChargesPanel(page);
   const breakdown = page.getByTestId("parent-billing-charge-breakdown").first();
   await expect(breakdown).toBeVisible();
   await expect(page.getByText(/sibling discount/i).first()).toBeVisible();

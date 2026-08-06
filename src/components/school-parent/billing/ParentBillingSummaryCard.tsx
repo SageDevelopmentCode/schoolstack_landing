@@ -12,7 +12,7 @@ import {
   type DueCountdownUrgency,
 } from "@/lib/tuition/due-date-display";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
+import type { ParentLastPaymentDaySummary } from "@/lib/tuition/payments";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 
 const BILLING_ACTIVE_TOOLTIP =
@@ -31,10 +31,17 @@ type ParentBillingSummaryCardProps = {
   nextChargeId: string | null;
   familyPayNowLabel: string;
   chargesOnEarliestDueDate: number;
-  mostRecentPayment?: ParentTuitionPaymentRecord | null;
+  lastPaymentSummary?: ParentLastPaymentDaySummary | null;
   showStudentOnLastPayment?: boolean;
   readOnly?: boolean;
 };
+
+function formatStudentNamesForLastPayment(names: string[]): string {
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0]!;
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
 
 function countdownColor(C: AdminThemeTokens, urgency: DueCountdownUrgency): string {
   if (urgency === "overdue") return C.error;
@@ -56,7 +63,7 @@ export default function ParentBillingSummaryCard({
   nextChargeId,
   familyPayNowLabel,
   chargesOnEarliestDueDate,
-  mostRecentPayment = null,
+  lastPaymentSummary = null,
   showStudentOnLastPayment = false,
   readOnly = false,
 }: ParentBillingSummaryCardProps) {
@@ -74,9 +81,13 @@ export default function ParentBillingSummaryCard({
     readOnly ||
     payingCombined ||
     (useCombinedPay ? false : payingChargeId === nextChargeId);
-  const lastPaymentDateLabel = mostRecentPayment?.paidAt
-    ? formatBillingDueDate(mostRecentPayment.paidAt.slice(0, 10))
+  const lastPaymentDateLabel = lastPaymentSummary?.paidAt
+    ? formatBillingDueDate(lastPaymentSummary.paidAt.slice(0, 10))
     : null;
+  const lastPaymentStudentLabel =
+    showStudentOnLastPayment && lastPaymentSummary?.studentFirstNames.length
+      ? ` for ${formatStudentNamesForLastPayment(lastPaymentSummary.studentFirstNames)}`
+      : "";
 
   return (
     <div
@@ -136,7 +147,7 @@ export default function ParentBillingSummaryCard({
               Family total remaining: {formatCents(summary.familyTotalRemainingCents)}
             </p>
           ) : null}
-          {mostRecentPayment && lastPaymentDateLabel ? (
+          {lastPaymentSummary && lastPaymentDateLabel ? (
             <div
               className="mt-2 inline-flex rounded-lg px-3 py-2 text-sm"
               style={{
@@ -146,11 +157,9 @@ export default function ParentBillingSummaryCard({
               }}
               data-testid="parent-billing-last-payment-banner"
             >
-              Last payment: {formatCents(mostRecentPayment.amountCents)} on{" "}
+              Last payment: {formatCents(lastPaymentSummary.amountCents)} on{" "}
               {lastPaymentDateLabel}
-              {showStudentOnLastPayment && mostRecentPayment.studentFirstName
-                ? ` for ${mostRecentPayment.studentFirstName}`
-                : ""}
+              {lastPaymentStudentLabel}
             </div>
           ) : null}
           {showEstimatedAnnual ? (

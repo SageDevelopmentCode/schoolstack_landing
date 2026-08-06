@@ -24,7 +24,7 @@ import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-s
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import {
   listParentTuitionPaymentHistory,
-  resolveMostRecentTuitionPayment,
+  resolveLastPaymentDaySummary,
 } from "@/lib/tuition/payments";
 import { buildStudentColorIndexMap } from "@/lib/tuition/student-badge-colors";
 import { formatCents } from "@/lib/tuition/pricing";
@@ -140,7 +140,8 @@ function ParentBillingPageContent({
   const [payingCombined, setPayingCombined] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [detailModalChildKey, setDetailModalChildKey] = useState<string | null>(null);
-  const [upcomingChargesPanelOpen, setUpcomingChargesPanelOpen] = useState(false);
+  const [manualUpcomingChargesPanelOpen, setManualUpcomingChargesPanelOpen] = useState(false);
+  const [dismissedDeepLinkChargeId, setDismissedDeepLinkChargeId] = useState<string | null>(null);
   const [highlightedChargeId, setHighlightedChargeId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<FamilyBillingReadiness | null>(
     initialData?.readiness ?? null,
@@ -167,8 +168,8 @@ function ParentBillingPageContent({
     [charges],
   );
 
-  const mostRecentPayment = useMemo(
-    () => resolveMostRecentTuitionPayment(payments),
+  const lastPaymentSummary = useMemo(
+    () => resolveLastPaymentDaySummary(payments),
     [payments],
   );
 
@@ -288,13 +289,21 @@ function ParentBillingPageContent({
     });
   }, [hasInitialData, loadBilling]);
 
-  useEffect(() => {
-    if (!deepLinkChargeId || loading) return;
-
+  const deepLinkTargetCharge = useMemo(() => {
+    if (!deepLinkChargeId || loading) return null;
     const targetCharge = charges.find((charge) => charge.id === deepLinkChargeId);
-    if (!targetCharge || !OPEN_CHARGE_STATUSES.has(targetCharge.status)) return;
+    if (!targetCharge || !OPEN_CHARGE_STATUSES.has(targetCharge.status)) return null;
+    return targetCharge;
+  }, [deepLinkChargeId, loading, charges]);
 
-    setUpcomingChargesPanelOpen(true);
+  const deepLinkOpensUpcomingChargesPanel =
+    deepLinkTargetCharge !== null && dismissedDeepLinkChargeId !== deepLinkChargeId;
+
+  const upcomingChargesPanelOpen =
+    manualUpcomingChargesPanelOpen || deepLinkOpensUpcomingChargesPanel;
+
+  useEffect(() => {
+    if (!deepLinkTargetCharge || !deepLinkChargeId) return;
 
     const scrollToCharge = () => {
       document
@@ -315,19 +324,17 @@ function ParentBillingPageContent({
       window.clearTimeout(scrollTimeout);
       window.clearTimeout(highlightTimeout);
     };
-  }, [charges, deepLinkChargeId, loading]);
+  }, [deepLinkTargetCharge, deepLinkChargeId]);
 
   const childViews = familySummary?.children ?? [];
   const deepLinkChildKey = useMemo(() => {
-    if (!deepLinkChargeId || loading) return null;
-    const targetCharge = charges.find((charge) => charge.id === deepLinkChargeId);
-    if (!targetCharge) return null;
+    if (!deepLinkTargetCharge) return null;
     return (
       familySummary?.children.find(
-        (child) => child.assignmentId === targetCharge.assignmentId,
+        (child) => child.assignmentId === deepLinkTargetCharge.assignmentId,
       )?.childKey ?? null
     );
-  }, [deepLinkChargeId, charges, familySummary?.children, loading]);
+  }, [deepLinkTargetCharge, familySummary?.children]);
   const resolvedActiveChildKey = deepLinkChildKey ?? activeChildKey;
   const activeChild =
     childViews.find((child) => child.childKey === resolvedActiveChildKey) ??
@@ -674,7 +681,7 @@ function ParentBillingPageContent({
         {childCharges.length > 0 ? (
           <button
             type="button"
-            onClick={() => setUpcomingChargesPanelOpen(true)}
+            onClick={() => setManualUpcomingChargesPanelOpen(true)}
             aria-expanded={upcomingChargesPanelOpen}
             aria-controls="parent-billing-upcoming-charges-panel"
             className="flex w-full items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-sm transition-shadow"
@@ -877,7 +884,7 @@ function ParentBillingPageContent({
           nextChargeId={nextChargeRecord?.id ?? null}
           familyPayNowLabel={familyPayNowLabel}
           chargesOnEarliestDueDate={chargesOnEarliestDueDate}
-          mostRecentPayment={mostRecentPayment}
+          lastPaymentSummary={lastPaymentSummary}
           showStudentOnLastPayment={hasMultipleChildren}
           readOnly={previewMode}
         />
@@ -972,7 +979,12 @@ function ParentBillingPageContent({
         highlightedChargeId={highlightedChargeId}
         autopayEnabled={autopayEnabled}
         readOnly={previewMode}
-        onClose={() => setUpcomingChargesPanelOpen(false)}
+        onClose={() => {
+          setManualUpcomingChargesPanelOpen(false);
+          if (deepLinkChargeId) {
+            setDismissedDeepLinkChargeId(deepLinkChargeId);
+          }
+        }}
         onPay={handlePay}
       />
 
