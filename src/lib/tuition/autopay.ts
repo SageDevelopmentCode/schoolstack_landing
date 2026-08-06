@@ -75,6 +75,19 @@ export async function setAutopayEnabled(
   return rowToBillingAccount(data);
 }
 
+async function syncBillingAccountDefaultPaymentMethod(
+  supabase: SupabaseClient,
+  billingAccountId: string,
+  stripePaymentMethodId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("tuition_billing_accounts")
+    .update({ default_payment_method_id: stripePaymentMethodId })
+    .eq("id", billingAccountId);
+
+  if (error) throw error;
+}
+
 export async function saveFamilyPaymentMethod(
   supabase: SupabaseClient,
   input: {
@@ -90,46 +103,40 @@ export async function saveFamilyPaymentMethod(
     isDefault?: boolean;
   },
 ): Promise<void> {
+  const isDefault = input.isDefault ?? true;
   const rowPayload = {
     stripe_payment_method_id: input.stripePaymentMethodId,
     brand: input.brand ?? null,
     last4: input.last4 ?? null,
     exp_month: input.expMonth ?? null,
     exp_year: input.expYear ?? null,
-    is_default: input.isDefault ?? true,
+    is_default: isDefault,
   };
 
   if (input.guardianId) {
-    const { data: existing, error: existingError } = await supabase
-      .from("family_payment_methods")
-      .select("id")
-      .eq("billing_account_id", input.billingAccountId)
-      .eq("guardian_id", input.guardianId)
-      .maybeSingle();
-
-    if (existingError) throw existingError;
-
-    if (existing) {
-      const { error } = await supabase
-        .from("family_payment_methods")
-        .update(rowPayload)
-        .eq("id", existing.id);
-      if (error) throw error;
-      return;
-    }
-
-    const { error } = await supabase.from("family_payment_methods").insert({
-      organization_id: input.organizationId,
-      family_id: input.familyId,
-      billing_account_id: input.billingAccountId,
-      guardian_id: input.guardianId,
-      ...rowPayload,
-    });
+    const { error } = await supabase.from("family_payment_methods").upsert(
+      {
+        organization_id: input.organizationId,
+        family_id: input.familyId,
+        billing_account_id: input.billingAccountId,
+        guardian_id: input.guardianId,
+        ...rowPayload,
+      },
+      { onConflict: "billing_account_id,guardian_id" },
+    );
     if (error) throw error;
+
+    if (isDefault) {
+      await syncBillingAccountDefaultPaymentMethod(
+        supabase,
+        input.billingAccountId,
+        input.stripePaymentMethodId,
+      );
+    }
     return;
   }
 
-  if (input.isDefault) {
+  if (isDefault) {
     await supabase
       .from("family_payment_methods")
       .update({ is_default: false })
@@ -150,10 +157,11 @@ export async function saveFamilyPaymentMethod(
 
   if (error) throw error;
 
-  await supabase
-    .from("tuition_billing_accounts")
-    .update({ default_payment_method_id: input.stripePaymentMethodId })
-    .eq("id", input.billingAccountId);
+  await syncBillingAccountDefaultPaymentMethod(
+    supabase,
+    input.billingAccountId,
+    input.stripePaymentMethodId,
+  );
 }
 
 export async function trySaveTuitionPaymentMethod(

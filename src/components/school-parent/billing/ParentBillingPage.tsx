@@ -3,8 +3,10 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CircleAlert, Loader2 } from "lucide-react";
-import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
+import { ChevronRight, CircleAlert, Loader2 } from "lucide-react";
+import ParentBillingUpcomingChargesPanel, {
+  formatUpcomingChargesSummary,
+} from "@/components/school-parent/billing/ParentBillingUpcomingChargesPanel";
 import ParentBillingPaymentHistoryRow from "@/components/school-parent/billing/ParentBillingPaymentHistoryRow";
 import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
 import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
@@ -138,6 +140,7 @@ function ParentBillingPageContent({
   const [payingCombined, setPayingCombined] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [detailModalChildKey, setDetailModalChildKey] = useState<string | null>(null);
+  const [upcomingChargesPanelOpen, setUpcomingChargesPanelOpen] = useState(false);
   const [highlightedChargeId, setHighlightedChargeId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<FamilyBillingReadiness | null>(
     initialData?.readiness ?? null,
@@ -289,20 +292,29 @@ function ParentBillingPageContent({
     if (!deepLinkChargeId || loading) return;
 
     const targetCharge = charges.find((charge) => charge.id === deepLinkChargeId);
-    if (!targetCharge) return;
+    if (!targetCharge || !OPEN_CHARGE_STATUSES.has(targetCharge.status)) return;
 
-    document
-      .querySelector(`[data-charge-id="${deepLinkChargeId}"]`)
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setUpcomingChargesPanelOpen(true);
+
+    const scrollToCharge = () => {
+      document
+        .querySelector(`[data-charge-id="${deepLinkChargeId}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
 
     queueMicrotask(() => {
       setHighlightedChargeId(deepLinkChargeId);
+      window.requestAnimationFrame(scrollToCharge);
     });
-    const timeout = window.setTimeout(() => {
+    const scrollTimeout = window.setTimeout(scrollToCharge, 300);
+    const highlightTimeout = window.setTimeout(() => {
       setHighlightedChargeId(null);
     }, 3000);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(scrollTimeout);
+      window.clearTimeout(highlightTimeout);
+    };
   }, [charges, deepLinkChargeId, loading]);
 
   const childViews = familySummary?.children ?? [];
@@ -634,40 +646,59 @@ function ParentBillingPageContent({
     }
   };
 
-  const renderChildCharges = (assignmentId: string | null) => {
-    const childCharges = (assignmentId
+  const getOpenChargesForAssignment = (assignmentId: string | null) =>
+    (assignmentId
       ? charges.filter((charge) => charge.assignmentId === assignmentId)
       : charges
     ).filter((charge) => OPEN_CHARGE_STATUSES.has(charge.status));
+
+  const upcomingPanelAssignmentId =
+    childViews.length > 0 && activeChild ? activeChild.assignmentId : null;
+  const upcomingPanelCharges = getOpenChargesForAssignment(upcomingPanelAssignmentId);
+  const upcomingPanelStudentName =
+    childViews.length > 0 && activeChild ? activeChild.studentName : null;
+
+  const renderChildCharges = (assignmentId: string | null) => {
+    const childCharges = getOpenChargesForAssignment(assignmentId);
+    const summaryText = formatUpcomingChargesSummary(childCharges);
 
     return (
       <div>
         <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
           Upcoming charges
         </h2>
-        <div className="flex flex-col gap-2">
-          {childCharges.length > 0 ? (
-            childCharges.map((charge) => (
-              <ParentBillingChargeRow
-                key={charge.id}
-                C={C}
-                charge={charge}
-                adjustmentsForAssignment={
-                  adjustmentsByAssignment.get(charge.assignmentId) ?? []
-                }
-                payingChargeId={payingChargeId}
-                highlighted={highlightedChargeId === charge.id}
-                autopayEnabled={autopayEnabled}
-                onPay={handlePay}
-                readOnly={previewMode}
-              />
-            ))
-          ) : (
-            <p className="text-sm" style={{ color: C.textTertiary }}>
-              No upcoming charges yet.
-            </p>
-          )}
-        </div>
+        {childCharges.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setUpcomingChargesPanelOpen(true)}
+            aria-expanded={upcomingChargesPanelOpen}
+            aria-controls="parent-billing-upcoming-charges-panel"
+            className="flex w-full items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-sm transition-shadow"
+            style={{
+              backgroundColor: C.surface,
+              border: `1px solid ${C.border}`,
+            }}
+            data-testid="parent-billing-upcoming-charges-trigger"
+          >
+            <div className="min-w-0">
+              <p className="font-medium" style={{ color: C.textPrimary }}>
+                View payment schedule
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+                {summaryText}
+              </p>
+            </div>
+            <ChevronRight
+              className="h-4 w-4 shrink-0"
+              style={{ color: C.textTertiary }}
+              aria-hidden
+            />
+          </button>
+        ) : (
+          <p className="text-sm" style={{ color: C.textTertiary }}>
+            No upcoming charges yet.
+          </p>
+        )}
       </div>
     );
   };
@@ -924,6 +955,20 @@ function ParentBillingPageContent({
           }
           scrollToScheduleSelector();
         }}
+      />
+
+      <ParentBillingUpcomingChargesPanel
+        C={C}
+        open={upcomingChargesPanelOpen}
+        charges={upcomingPanelCharges}
+        studentName={upcomingPanelStudentName}
+        adjustmentsByAssignment={adjustmentsByAssignment}
+        payingChargeId={payingChargeId}
+        highlightedChargeId={highlightedChargeId}
+        autopayEnabled={autopayEnabled}
+        readOnly={previewMode}
+        onClose={() => setUpcomingChargesPanelOpen(false)}
+        onPay={handlePay}
       />
 
       {childViews.length > 0 ? (

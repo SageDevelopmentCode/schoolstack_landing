@@ -6,6 +6,7 @@ import { TEST_ORG_SLUG } from "../helpers/constants";
 import {
   getE2eParentFamily,
   gotoBillingPage,
+  openUpcomingChargesPanel,
   resetFamilyBillingState,
   waitForBillingPage,
 } from "../helpers/billing-fixtures";
@@ -128,6 +129,7 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
 
   await gotoBillingPage(page);
   await expect(page.getByText("Upcoming charges")).toBeVisible();
+  await openUpcomingChargesPanel(page);
   await expect(page.getByText(/Tuition/)).toHaveCount(5);
 });
 
@@ -294,6 +296,7 @@ test("parent billing page lets family choose payment schedule inline", async ({
   await page.getByRole("button", { name: "Confirm payment schedule" }).click();
 
   await expect(page.getByText("Upcoming charges")).toBeVisible();
+  await openUpcomingChargesPanel(page);
   await expect(page.getByText(/Tuition/)).toHaveCount(1);
 });
 

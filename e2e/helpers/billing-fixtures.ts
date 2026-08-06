@@ -103,6 +103,14 @@ export async function gotoBillingPage(page: Page): Promise<void> {
   await waitForBillingPage(page);
 }
 
+export async function openUpcomingChargesPanel(page: Page): Promise<void> {
+  const trigger = page.getByTestId("parent-billing-upcoming-charges-trigger");
+  if (await trigger.isVisible()) {
+    await trigger.click();
+    await expect(page.getByTestId("parent-billing-upcoming-charges-panel")).toBeVisible();
+  }
+}
+
 export async function finalizeEnrollmentBilling(
   admin: SupabaseClient,
   enrollmentId: string,
