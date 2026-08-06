@@ -4,6 +4,12 @@ import { settleTuitionPayment } from "./payment-settlement";
 
 export type ParentTuitionPaymentRecord = PaymentRecord & {
   studentFirstName: string | null;
+  enrollmentId: string | null;
+};
+
+export type StudentPaymentContext = {
+  firstName: string;
+  enrollmentId: string;
 };
 
 export async function createTuitionPaymentRecord(
@@ -114,25 +120,29 @@ export async function listParentTuitionPaymentHistory(
   if (error) throw error;
 
   const payments = mapTuitionPaymentRows(data ?? [], familyId);
-  const studentNamesByChargeId = await fetchStudentFirstNamesByChargeId(
+  const studentContextByChargeId = await fetchStudentContextByChargeId(
     supabase,
     payments
       .map((payment) => payment.tuitionChargeId)
       .filter((id): id is string => Boolean(id)),
   );
 
-  return payments.map((payment) => ({
-    ...payment,
-    studentFirstName: payment.tuitionChargeId
-      ? (studentNamesByChargeId.get(payment.tuitionChargeId) ?? null)
-      : null,
-  }));
+  return payments.map((payment) => {
+    const context = payment.tuitionChargeId
+      ? studentContextByChargeId.get(payment.tuitionChargeId)
+      : undefined;
+    return {
+      ...payment,
+      studentFirstName: context?.firstName ?? null,
+      enrollmentId: context?.enrollmentId ?? null,
+    };
+  });
 }
 
-async function fetchStudentFirstNamesByChargeId(
+async function fetchStudentContextByChargeId(
   supabase: SupabaseClient,
   chargeIds: string[],
-): Promise<Map<string, string>> {
+): Promise<Map<string, StudentPaymentContext>> {
   const uniqueChargeIds = [...new Set(chargeIds)];
   if (uniqueChargeIds.length === 0) return new Map();
 
@@ -225,7 +235,7 @@ async function fetchStudentFirstNamesByChargeId(
     ]),
   );
 
-  const result = new Map<string, string>();
+  const result = new Map<string, StudentPaymentContext>();
   for (const chargeId of uniqueChargeIds) {
     const assignmentId = chargeAssignmentId.get(chargeId);
     if (!assignmentId) continue;
@@ -234,7 +244,9 @@ async function fetchStudentFirstNamesByChargeId(
     const studentId = enrollmentStudentId.get(enrollmentId);
     if (!studentId) continue;
     const firstName = studentFirstNameById.get(studentId);
-    if (firstName) result.set(chargeId, firstName);
+    if (firstName) {
+      result.set(chargeId, { firstName, enrollmentId });
+    }
   }
 
   return result;
@@ -243,14 +255,18 @@ async function fetchStudentFirstNamesByChargeId(
 export function mapParentTuitionPaymentRows(
   rows: Record<string, unknown>[],
   familyId: string,
-  studentNamesByChargeId: Map<string, string> = new Map(),
+  studentContextByChargeId: Map<string, StudentPaymentContext> = new Map(),
 ): ParentTuitionPaymentRecord[] {
-  return mapTuitionPaymentRows(rows, familyId).map((payment) => ({
-    ...payment,
-    studentFirstName: payment.tuitionChargeId
-      ? (studentNamesByChargeId.get(payment.tuitionChargeId) ?? null)
-      : null,
-  }));
+  return mapTuitionPaymentRows(rows, familyId).map((payment) => {
+    const context = payment.tuitionChargeId
+      ? studentContextByChargeId.get(payment.tuitionChargeId)
+      : undefined;
+    return {
+      ...payment,
+      studentFirstName: context?.firstName ?? null,
+      enrollmentId: context?.enrollmentId ?? null,
+    };
+  });
 }
 
 function mapTuitionPaymentRows(

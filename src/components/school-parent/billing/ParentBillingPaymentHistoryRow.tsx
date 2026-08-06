@@ -3,12 +3,14 @@
 import { formatBillingDueDate } from "@/lib/tuition/due-date-display";
 import { formatCents } from "@/lib/tuition/pricing";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
+import { getStudentBadgeColors } from "@/lib/tuition/student-badge-colors";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ParentBillingPaymentHistoryRowProps = {
   C: AdminThemeTokens;
   payment: ParentTuitionPaymentRecord;
   showStudentBadge?: boolean;
+  badgeColorIndex?: number;
 };
 
 function formatTuitionPaymentMethodLabel(
@@ -23,10 +25,12 @@ export default function ParentBillingPaymentHistoryRow({
   C,
   payment,
   showStudentBadge = false,
+  badgeColorIndex = 0,
 }: ParentBillingPaymentHistoryRowProps) {
   const paymentMethodLabel = formatTuitionPaymentMethodLabel(
     payment.paymentMethodType,
   );
+  const badgeColors = getStudentBadgeColors(C, badgeColorIndex);
 
   return (
     <div
@@ -36,18 +40,21 @@ export default function ParentBillingPaymentHistoryRow({
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
+          {showStudentBadge && payment.studentFirstName ? (
+            <span
+              className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+              style={{
+                backgroundColor: badgeColors.backgroundColor,
+                color: badgeColors.color,
+              }}
+              data-testid="parent-billing-payment-student-badge"
+            >
+              For {payment.studentFirstName}
+            </span>
+          ) : null}
           <p style={{ color: C.textPrimary }}>
             {payment.label ?? "Tuition payment"}
           </p>
-          {showStudentBadge && payment.studentFirstName ? (
-            <span
-              className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide"
-              style={{ backgroundColor: C.elevated, color: C.textSecondary }}
-              data-testid="parent-billing-payment-student-badge"
-            >
-              {payment.studentFirstName}
-            </span>
-          ) : null}
         </div>
         <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
           {payment.paidAt

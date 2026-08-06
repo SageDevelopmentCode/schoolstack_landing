@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { mapParentTuitionPaymentRows } from "./payments";
 
 describe("mapParentTuitionPaymentRows", () => {
-  it("includes studentFirstName when charge id is mapped", () => {
+  it("includes studentFirstName and enrollmentId when charge id is mapped", () => {
     const rows = mapParentTuitionPaymentRows(
       [
         {
@@ -21,15 +21,21 @@ describe("mapParentTuitionPaymentRows", () => {
         },
       ],
       "family-1",
-      new Map([["charge-1", "Claire"]]),
+      new Map([
+        [
+          "charge-1",
+          { firstName: "Claire", enrollmentId: "enrollment-claire" },
+        ],
+      ]),
     );
 
     assert.equal(rows.length, 1);
     assert.equal(rows[0]?.studentFirstName, "Claire");
+    assert.equal(rows[0]?.enrollmentId, "enrollment-claire");
     assert.equal(rows[0]?.amountCents, 60000);
   });
 
-  it("returns null studentFirstName when charge is unmapped", () => {
+  it("returns null student fields when charge is unmapped", () => {
     const rows = mapParentTuitionPaymentRows(
       [
         {
@@ -50,5 +56,6 @@ describe("mapParentTuitionPaymentRows", () => {
     );
 
     assert.equal(rows[0]?.studentFirstName, null);
+    assert.equal(rows[0]?.enrollmentId, null);
   });
 });

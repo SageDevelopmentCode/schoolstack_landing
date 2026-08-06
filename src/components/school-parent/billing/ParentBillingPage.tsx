@@ -20,6 +20,7 @@ import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuitio
 import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
+import { buildStudentColorIndexMap } from "@/lib/tuition/student-badge-colors";
 import { formatCents } from "@/lib/tuition/pricing";
 import { pickRecentLateFeeNotice } from "@/lib/tuition/late-fee-notice";
 import { formatCentsForInput } from "@/lib/admissions/application-form-schema";
@@ -278,6 +279,10 @@ function ParentBillingPageContent({
     childViews[0] ??
     null;
   const hasMultipleChildren = childViews.length > 1;
+  const studentColorMap = useMemo(
+    () => buildStudentColorIndexMap(childViews.map((child) => child.childKey)),
+    [childViews],
+  );
   const hasPendingSchedule = familySummary?.hasPendingSchedule ?? false;
   const pendingScheduleCount = childViews.filter(
     (child) => child.status === "needs_schedule",
@@ -787,6 +792,9 @@ function ParentBillingPageContent({
                 C={C}
                 payment={payment}
                 showStudentBadge={hasMultipleChildren}
+                badgeColorIndex={
+                  studentColorMap.get(payment.enrollmentId ?? "") ?? 0
+                }
               />
             ))}
           </div>
