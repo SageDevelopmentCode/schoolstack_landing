@@ -248,10 +248,6 @@ export default function PublicApplicationFormClient({
       }
 
       try {
-        if (await attemptPostSignInRedirect(router, schoolSlug, "session_restored")) {
-          return;
-        }
-
         const result = await bootstrapApplicant(organizationId, formVersionId, {
           forceNew,
         });

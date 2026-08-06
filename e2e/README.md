@@ -6,7 +6,7 @@ For agent workflows, see [`.agents/skills/e2e-local/SKILL.md`](../.agents/skills
 
 `globalSetup` seeds the database; the `setup` project signs in test users and writes `e2e/.auth/` before authenticated tests run.
 
-**Important:** Stop any dev server on port 3000 before running E2E, or ensure it uses local Supabase — Playwright passes E2E env vars to `dev:next` via `webServer.env`.
+**Important:** E2E runs its own Next.js server on **port 3100** (not 3000/3001), so your regular `npm run dev` can stay running. Playwright passes E2E env vars to that server via `webServer.env`.
 
 ## Prerequisites
 
@@ -69,7 +69,7 @@ npm run performance:ci:prepare   # seed + e2e/.auth/*.json + scripts/lhci-auth-r
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<from supabase status> \
 SUPABASE_SERVICE_ROLE_KEY=<from supabase status> \
-NEXT_PUBLIC_SITE_URL=http://localhost:3000 \
+NEXT_PUBLIC_SITE_URL=http://localhost:3100 \
 npm run build
 npm run performance:ci
 ```

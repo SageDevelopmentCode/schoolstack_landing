@@ -3,6 +3,7 @@ import path from "node:path";
 import { chromium } from "@playwright/test";
 import {
   AUTH_STATE_PATHS,
+  E2E_BASE_URL,
   E2E_ADMIN_EMAIL,
   E2E_NONADMIN_EMAIL,
   E2E_PARENT_EMAIL,
@@ -16,7 +17,7 @@ async function createStorageState(
   password: string,
   outputPath: string,
 ): Promise<void> {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? E2E_BASE_URL;
   const loginPath = `/school/${TEST_ORG_SLUG}/admin/login`;
 
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -64,7 +65,7 @@ export async function createAuthStorageStates(): Promise<void> {
 }
 
 async function createStaffStorageState(): Promise<void> {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? E2E_BASE_URL;
   const loginPath = `/login?school=${TEST_ORG_SLUG}&auth=password`;
 
   fs.mkdirSync(path.dirname(AUTH_STATE_PATHS.staff), { recursive: true });

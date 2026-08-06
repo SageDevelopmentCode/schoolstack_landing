@@ -1,5 +1,9 @@
 import { TEST_ORG_SLUG } from "../helpers/constants";
 
+export const E2E_PORT = Number(process.env.PLAYWRIGHT_PORT ?? "3100");
+export const E2E_BASE_URL =
+  process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${E2E_PORT}`;
+
 export const E2E_ADMIN_EMAIL =
   process.env.E2E_ADMIN_EMAIL ?? "e2e-admin@schoolstack.test";
 export const E2E_PARENT_EMAIL =
