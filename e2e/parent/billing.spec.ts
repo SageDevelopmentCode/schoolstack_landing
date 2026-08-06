@@ -817,7 +817,8 @@ test("parent billing summary supports per-student pay and child drill-down", asy
   await gotoBillingPage(page);
   await expect(page.getByTestId("parent-billing-summary")).toBeVisible();
   await expect(page.getByTestId("parent-billing-last-payment-banner")).toBeVisible();
-  await expect(page.getByTestId("parent-billing-multi-charge-hint")).toBeVisible();
+  await openUpcomingChargesPanel(page);
+  await expect(page.getByTestId("parent-billing-upcoming-total-remaining")).toBeVisible();
   await expect(
     page.getByTestId("parent-billing-family-pay-now"),
   ).toHaveText(/Pay combined/);

@@ -657,6 +657,10 @@ function ParentBillingPageContent({
   const upcomingPanelCharges = getOpenChargesForAssignment(upcomingPanelAssignmentId);
   const upcomingPanelStudentName =
     childViews.length > 0 && activeChild ? activeChild.studentName : null;
+  const upcomingPanelTotalRemainingCents =
+    childViews.length > 0 && activeChild
+      ? activeChild.totalRemainingCents
+      : (familySummary?.totalRemainingCents ?? 0);
 
   const renderChildCharges = (assignmentId: string | null) => {
     const childCharges = getOpenChargesForAssignment(assignmentId);
@@ -962,6 +966,7 @@ function ParentBillingPageContent({
         open={upcomingChargesPanelOpen}
         charges={upcomingPanelCharges}
         studentName={upcomingPanelStudentName}
+        totalRemainingCents={upcomingPanelTotalRemainingCents}
         adjustmentsByAssignment={adjustmentsByAssignment}
         payingChargeId={payingChargeId}
         highlightedChargeId={highlightedChargeId}

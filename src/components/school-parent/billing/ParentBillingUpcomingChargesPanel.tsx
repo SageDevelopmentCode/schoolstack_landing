@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
 import { formatBillingDueDate } from "@/lib/tuition/due-date-display";
+import { formatCents } from "@/lib/tuition/pricing";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
 
@@ -12,6 +13,7 @@ type ParentBillingUpcomingChargesPanelProps = {
   open: boolean;
   charges: TuitionCharge[];
   studentName?: string | null;
+  totalRemainingCents?: number;
   adjustmentsByAssignment: Map<string, TuitionAdjustment[]>;
   payingChargeId: string | null;
   highlightedChargeId?: string | null;
@@ -43,6 +45,7 @@ export default function ParentBillingUpcomingChargesPanel({
   open,
   charges,
   studentName,
+  totalRemainingCents = 0,
   adjustmentsByAssignment,
   payingChargeId,
   highlightedChargeId = null,
@@ -102,6 +105,15 @@ export default function ParentBillingUpcomingChargesPanel({
                 {studentName ? (
                   <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
                     {studentName}
+                  </p>
+                ) : null}
+                {totalRemainingCents > 0 ? (
+                  <p
+                    className="text-sm mt-1"
+                    style={{ color: C.textSecondary }}
+                    data-testid="parent-billing-upcoming-total-remaining"
+                  >
+                    Total remaining: {formatCents(totalRemainingCents)}
                   </p>
                 ) : null}
               </div>

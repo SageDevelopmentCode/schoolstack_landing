@@ -66,8 +66,6 @@ export default function ParentBillingSummaryCard({
   const dueCountdown = summary.nextCharge
     ? formatDueCountdown(summary.nextCharge.dueDate)
     : null;
-  const showMultiChargeHint =
-    chargesOnEarliestDueDate > 1 && summary.nextCharge != null;
   const useCombinedPay = chargesOnEarliestDueDate > 1 && onPayCombined != null;
   const familyPayDisabled =
     readOnly ||
@@ -126,17 +124,6 @@ export default function ParentBillingSummaryCard({
           <p className="text-3xl font-semibold mt-1" style={{ color: C.textPrimary }}>
             {formatCents(summary.balanceDueCents)}
           </p>
-          {showMultiChargeHint ? (
-            <p
-              className="text-sm mt-2"
-              style={{ color: C.textSecondary }}
-              data-testid="parent-billing-multi-charge-hint"
-            >
-              Total due on {formatBillingDueDate(summary.nextCharge!.dueDate)} across{" "}
-              {chargesOnEarliestDueDate} students. Pay combined above, or pay each student
-              below.
-            </p>
-          ) : null}
           {summary.familyTotalRemainingCents != null ? (
             <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
               Family total remaining: {formatCents(summary.familyTotalRemainingCents)}
