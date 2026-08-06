@@ -10,6 +10,25 @@ if (fs.existsSync(".env.e2e.local")) {
 // Dedicated E2E port so `npm run dev` on 3000/3001 can stay running.
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? E2E_BASE_URL;
 
+function resolveWebServerPort(): number {
+  if (process.env.PLAYWRIGHT_PORT) {
+    return Number(process.env.PLAYWRIGHT_PORT);
+  }
+
+  try {
+    const url = new URL(baseURL);
+    if (url.port) {
+      return Number(url.port);
+    }
+  } catch {
+    // fall through to default E2E port
+  }
+
+  return E2E_PORT;
+}
+
+const webServerPort = resolveWebServerPort();
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -86,7 +105,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev:next -- -p ${E2E_PORT}`,
+    command: `npm run dev:next -- -p ${webServerPort}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
