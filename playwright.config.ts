@@ -1,13 +1,33 @@
 import fs from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
-import { AUTH_STATE_PATHS } from "./e2e/fixtures/constants";
+import { AUTH_STATE_PATHS, E2E_BASE_URL, E2E_PORT } from "./e2e/fixtures/constants";
 
 if (fs.existsSync(".env.e2e.local")) {
   dotenv.config({ path: ".env.e2e.local", override: true });
 }
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+// Dedicated E2E port so `npm run dev` on 3000/3001 can stay running.
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? E2E_BASE_URL;
+
+function resolveWebServerPort(): number {
+  if (process.env.PLAYWRIGHT_PORT) {
+    return Number(process.env.PLAYWRIGHT_PORT);
+  }
+
+  try {
+    const url = new URL(baseURL);
+    if (url.port) {
+      return Number(url.port);
+    }
+  } catch {
+    // fall through to default E2E port
+  }
+
+  return E2E_PORT;
+}
+
+const webServerPort = resolveWebServerPort();
 
 export default defineConfig({
   testDir: "./e2e",
@@ -59,6 +79,15 @@ export default defineConfig({
       },
     },
     {
+      name: "teacher",
+      testMatch: /teacher\/.*\.spec\.ts/,
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: AUTH_STATE_PATHS.staff,
+      },
+    },
+    {
       name: "api-parent",
       testMatch: /api\/(submit|bootstrap|checkout)\.spec\.ts/,
       dependencies: ["setup"],
@@ -76,7 +105,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev:next",
+    command: `npm run dev:next -- -p ${webServerPort}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

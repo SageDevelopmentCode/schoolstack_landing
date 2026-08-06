@@ -19,7 +19,7 @@ Run Playwright E2E tests against **local Supabase only**. Never use production S
 4. **No Stripe** — Playwright runs `dev:next` (not `npm run dev`). `STRIPE_*` keys are cleared in `playwright.config.ts`
 5. **No outbound email** — `DISABLE_OUTBOUND_EMAIL=1` is set for the Playwright web server; Zoho/SMTP keys are cleared so application-submit tests do not send mail
 6. **Admissions Discord** — set `DISCORD_E2E_ALERTS_WEBHOOK_URL` in `.env.e2e.local`; prod `ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL` is cleared in `playwright.config.ts` so submit/payment/visit alerts do not hit the school channel
-7. If port 3000 has a dev server that may use prod `.env.local`, stop it before `npm run test:e2e`
+7. E2E uses **port 3100** by default — your dev server on 3000/3001 can stay running
 
 ## Prerequisites
 
@@ -88,13 +88,13 @@ Password: `E2eTestPassword123!` (override via `E2E_TEST_PASSWORD` in `.env.e2e.l
 |---------|-----|
 | `supabase db reset` fails | See `supabase/migrations/README.md` |
 | 404 on `/school/*` routes | Run `supabase db reset`; confirm grants migration applied |
-| `Invalid login credentials` in setup | Stop port-3000 server; verify `.env.e2e.local` has local keys |
+| `Invalid login credentials` in setup | Verify `.env.e2e.local` has local keys and `PLAYWRIGHT_BASE_URL=http://localhost:3100` |
 | Empty `e2e/.auth/*.json` | `rm -rf e2e/.auth` and re-run |
 | Playwright browser missing | `npm run test:e2e:install` |
-| Port 3000 in use | `lsof -ti:3000 \| xargs kill -9` then re-run |
+| Port 3100 in use | `lsof -ti:3100 \| xargs kill -9` then re-run |
 | Prod block error in globalSetup | Fix `NEXT_PUBLIC_SUPABASE_URL` in `.env.e2e.local` |
-| Zoho bounce emails after E2E | Stop any `npm run dev` on port 3000 so Playwright starts its own server with `DISABLE_OUTBOUND_EMAIL=1` |
-| Admissions Discord in school channel | Add `DISCORD_E2E_ALERTS_WEBHOOK_URL` to `.env.e2e.local`; stop reused port-3000 dev server |
+| Zoho bounce emails after E2E | Ensure Playwright starts its own server on 3100 with `DISABLE_OUTBOUND_EMAIL=1` |
+| Admissions Discord in school channel | Add `DISCORD_E2E_ALERTS_WEBHOOK_URL` to `.env.e2e.local` |
 | `Node.js 20 detected without native WebSocket support` | Ensure `ws` is installed (`npm install`); seed uses it as Realtime transport |
 
 ## More detail
@@ -112,7 +112,7 @@ npm run performance:ci:prepare
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<from supabase status> \
 SUPABASE_SERVICE_ROLE_KEY=<from supabase status> \
-NEXT_PUBLIC_SITE_URL=http://localhost:3000 \
+NEXT_PUBLIC_SITE_URL=http://localhost:3100 \
 npm run build
 npm run performance:ci
 ```

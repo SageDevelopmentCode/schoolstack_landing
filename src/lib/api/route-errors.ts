@@ -1,18 +1,9 @@
 import { NextResponse } from "next/server";
+import { stackFromCause } from "@/lib/api/error-serialization";
 import {
   reportOperationalError,
 } from "@/lib/operational-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
-
-function stackFromCause(cause: unknown): string | undefined {
-  if (cause instanceof Error && cause.stack) {
-    return cause.stack;
-  }
-  if (cause !== undefined) {
-    return String(cause);
-  }
-  return undefined;
-}
 
 function shouldNotify(status: number, notify?: boolean): boolean {
   if (notify !== undefined) {

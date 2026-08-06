@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  formatParentChargeAmountLabel,
   formatParentChargeDueLine,
   formatParentChargeStatusBadge,
 } from "./charge-status-display";
@@ -13,20 +14,21 @@ function charge(overrides: Partial<TuitionCharge> & Pick<TuitionCharge, "id">): 
     assignmentId: "assignment-1",
     familyId: "family-1",
     guardianId: null,
-    label: overrides.label ?? "Aug Tuition",
+    label: "Aug Tuition",
     baseAmountCents: 36000,
     amountCents: 36000,
-    paidCents: overrides.paidCents ?? 0,
+    paidCents: 0,
     currency: "usd",
-    dueDate: overrides.dueDate ?? "2026-09-01",
-    status: overrides.status ?? "scheduled",
-    chargeType: overrides.chargeType ?? "tuition",
+    dueDate: "2026-09-01",
+    status: "scheduled",
+    chargeType: "tuition",
     installmentNumber: 1,
     metadata: {},
     sentAt: null,
-    paidAt: overrides.paidAt ?? null,
+    paidAt: null,
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
+    ...overrides,
   };
 }
 
@@ -67,5 +69,33 @@ describe("formatParentChargeDueLine", () => {
       }),
     );
     assert.equal(line, "Paid Aug 1, 2026");
+  });
+});
+
+describe("formatParentChargeAmountLabel", () => {
+  it("shows paid amount for settled charges", () => {
+    const display = formatParentChargeAmountLabel(
+      charge({
+        id: "c-1",
+        status: "paid",
+        paidCents: 60000,
+        amountCents: 60000,
+      }),
+    );
+    assert.equal(display.text, "Paid $600");
+    assert.equal(display.isPaid, true);
+  });
+
+  it("shows remaining balance for open charges", () => {
+    const display = formatParentChargeAmountLabel(
+      charge({
+        id: "c-1",
+        status: "scheduled",
+        amountCents: 60000,
+        paidCents: 0,
+      }),
+    );
+    assert.equal(display.text, "$600");
+    assert.equal(display.isPaid, false);
   });
 });

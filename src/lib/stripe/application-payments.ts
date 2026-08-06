@@ -299,12 +299,111 @@ export async function markPaymentSucceeded(
 /** @deprecated Use markPaymentSucceeded */
 export const markApplicationPaymentSucceeded = markPaymentSucceeded;
 
+export async function markPaymentFailed(
+  supabase: SupabaseClient,
+  paymentId: string,
+  input: {
+    stripePaymentIntentId?: string;
+    stripeCheckoutSessionId?: string;
+  } = {},
+): Promise<PaymentRecord | null> {
+  const { data: existing, error: existingError } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (!existing) return null;
+
+  if (existing.status === "failed" || existing.status === "succeeded") {
+    return rowToPayment(existing as Record<string, unknown>);
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    status: "failed",
+  };
+
+  if (input.stripePaymentIntentId) {
+    updatePayload.stripe_payment_intent_id = input.stripePaymentIntentId;
+  }
+  if (input.stripeCheckoutSessionId) {
+    updatePayload.stripe_checkout_session_id = input.stripeCheckoutSessionId;
+  }
+
+  const { data, error } = await supabase
+    .from("application_payments")
+    .update(updatePayload)
+    .eq("id", paymentId)
+    .eq("status", "pending")
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data) {
+    return rowToPayment(data as Record<string, unknown>);
+  }
+
+  const { data: current, error: currentError } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  if (currentError) throw currentError;
+  return current ? rowToPayment(current as Record<string, unknown>) : null;
+}
+
 export async function attachCheckoutSessionToPayment(
   supabase: SupabaseClient,
   paymentId: string,
   checkoutSessionId: string,
 ): Promise<void> {
   await attachCheckoutSessionToPayments(supabase, [paymentId], checkoutSessionId);
+}
+
+export async function attachStripeCheckoutToPayment(
+  supabase: SupabaseClient,
+  paymentId: string,
+  input: {
+    stripeCheckoutSessionId?: string;
+    stripePaymentIntentId?: string;
+  },
+): Promise<void> {
+  const patch: Record<string, unknown> = {};
+  if (input.stripeCheckoutSessionId) {
+    patch.stripe_checkout_session_id = input.stripeCheckoutSessionId;
+  }
+  if (input.stripePaymentIntentId) {
+    patch.stripe_payment_intent_id = input.stripePaymentIntentId;
+  }
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await supabase
+    .from("application_payments")
+    .update(patch)
+    .eq("id", paymentId);
+
+  if (error) throw error;
+}
+
+export async function listPendingPaymentsForTuitionCharge(
+  supabase: SupabaseClient,
+  tuitionChargeId: string,
+): Promise<PaymentRecord[]> {
+  const { data, error } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("tuition_charge_id", tuitionChargeId)
+    .eq("payment_type", "tuition")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) =>
+    rowToPayment(row as Record<string, unknown>),
+  );
 }
 
 export async function attachCheckoutSessionToPayments(

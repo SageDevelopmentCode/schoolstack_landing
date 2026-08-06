@@ -13,10 +13,14 @@ import {
   seedFeeEnabledForm,
   seedPaymentAccountForOrg,
   seedPendingPayment,
+  seedTuitionPaymentWebhook,
 } from "@/test/integration/seed-admissions";
+import { saveFamilyPaymentMethod } from "@/lib/tuition/autopay";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   handleAccountUpdated,
+  handleCheckoutSessionAsyncPaymentFailed,
+  handleCheckoutSessionAsyncPaymentSucceeded,
   handleCheckoutSessionCompleted,
 } from "@/lib/stripe/webhook-handlers";
 
@@ -26,11 +30,13 @@ function buildCheckoutSession(input: {
   id: string;
   paymentIntentId?: string;
   metadata?: Record<string, string>;
+  paymentStatus?: Stripe.Checkout.Session.PaymentStatus;
 }): Stripe.Checkout.Session {
   return {
     id: input.id,
     object: "checkout.session",
     payment_intent: input.paymentIntentId ?? `pi_test_${randomUUID().slice(0, 8)}`,
+    payment_status: input.paymentStatus ?? "paid",
     metadata: input.metadata ?? {},
   } as Stripe.Checkout.Session;
 }
@@ -273,6 +279,204 @@ describeIntegration("handleCheckoutSessionCompleted", () => {
       ),
       true,
     );
+  });
+
+  it("completes enrollment checklist payment via async_payment_succeeded", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedEnrollmentChecklistPayment(admin);
+
+    await handleCheckoutSessionAsyncPaymentSucceeded(
+      admin,
+      buildCheckoutSession({
+        id: fixture.checkoutSessionId,
+        metadata: {
+          payment_type: "enrollment_checklist",
+          checklist_item_id: fixture.checklistItemId,
+          organization_id: fixture.organizationId,
+          application_id: fixture.applicationId,
+          payment_id: fixture.paymentId,
+        },
+      }),
+    );
+
+    const { data: paymentRow } = await admin
+      .from("application_payments")
+      .select("status")
+      .eq("id", fixture.paymentId)
+      .single();
+
+    const { data: checklistItem } = await admin
+      .from("enrollment_checklist_items")
+      .select("payment_status, status")
+      .eq("id", fixture.checklistItemId)
+      .single();
+
+    assert.equal(paymentRow?.status, "succeeded");
+    assert.equal(checklistItem?.payment_status, "paid");
+    assert.equal(checklistItem?.status, "completed");
+  });
+
+  it("marks pending enrollment payment failed via async_payment_failed", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedEnrollmentChecklistPayment(admin);
+
+    await handleCheckoutSessionAsyncPaymentFailed(
+      admin,
+      buildCheckoutSession({
+        id: fixture.checkoutSessionId,
+        metadata: {
+          payment_type: "enrollment_checklist",
+          checklist_item_id: fixture.checklistItemId,
+          organization_id: fixture.organizationId,
+          application_id: fixture.applicationId,
+          payment_id: fixture.paymentId,
+        },
+      }),
+    );
+
+    const { data: paymentRow } = await admin
+      .from("application_payments")
+      .select("status")
+      .eq("id", fixture.paymentId)
+      .single();
+
+    const { data: checklistItem } = await admin
+      .from("enrollment_checklist_items")
+      .select("payment_status, status")
+      .eq("id", fixture.checklistItemId)
+      .single();
+
+    assert.equal(paymentRow?.status, "failed");
+    assert.equal(checklistItem?.payment_status, "pending");
+    assert.equal(checklistItem?.status, "not_started");
+  });
+});
+
+describeIntegration("handleTuitionCheckoutCompleted", () => {
+  before(() => {
+    loadTestEnv();
+  });
+
+  it("keeps ACH tuition pending until payment_status is paid", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+
+    await handleCheckoutSessionCompleted(
+      admin,
+      buildCheckoutSession({
+        id: fixture.checkoutSessionId,
+        paymentStatus: "unpaid",
+        metadata: {
+          payment_type: "tuition",
+          tuition_charge_id: fixture.chargeId,
+          organization_id: fixture.organizationId,
+          payment_id: fixture.paymentId,
+        },
+      }),
+    );
+
+    const { data: paymentRow } = await admin
+      .from("application_payments")
+      .select("status, stripe_payment_intent_id")
+      .eq("id", fixture.paymentId)
+      .single();
+
+    const { data: chargeRow } = await admin
+      .from("tuition_charges")
+      .select("status, paid_cents")
+      .eq("id", fixture.chargeId)
+      .single();
+
+    assert.equal(paymentRow?.status, "pending");
+    assert.ok(paymentRow?.stripe_payment_intent_id);
+    assert.equal(chargeRow?.status, "sent");
+    assert.equal(chargeRow?.paid_cents ?? 0, 0);
+  });
+
+  it("settles tuition on async_payment_succeeded", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+
+    const session = buildCheckoutSession({
+      id: fixture.checkoutSessionId,
+      paymentStatus: "unpaid",
+      metadata: {
+        payment_type: "tuition",
+        tuition_charge_id: fixture.chargeId,
+        organization_id: fixture.organizationId,
+        payment_id: fixture.paymentId,
+      },
+    });
+
+    await handleCheckoutSessionCompleted(admin, session);
+
+    await handleCheckoutSessionAsyncPaymentSucceeded(
+      admin,
+      buildCheckoutSession({
+        id: fixture.checkoutSessionId,
+        paymentStatus: "paid",
+        metadata: session.metadata as Record<string, string>,
+      }),
+    );
+
+    const { data: paymentRow } = await admin
+      .from("application_payments")
+      .select("status")
+      .eq("id", fixture.paymentId)
+      .single();
+
+    const { data: chargeRow } = await admin
+      .from("tuition_charges")
+      .select("status, paid_cents")
+      .eq("id", fixture.chargeId)
+      .single();
+
+    assert.equal(paymentRow?.status, "succeeded");
+    assert.equal(chargeRow?.status, "paid");
+    assert.equal(chargeRow?.paid_cents, 720_000);
+  });
+
+  it("replaces an existing guardian payment method row in place", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+    const originalPaymentMethodId = `pm_test_${randomUUID().slice(0, 8)}`;
+    const nextPaymentMethodId = `pm_test_${randomUUID().slice(0, 8)}`;
+
+    await admin.from("family_payment_methods").insert({
+      organization_id: fixture.organizationId,
+      family_id: fixture.familyId,
+      billing_account_id: fixture.billingAccountId,
+      guardian_id: fixture.guardianId,
+      stripe_payment_method_id: originalPaymentMethodId,
+      brand: "link",
+      last4: "0000",
+      is_default: true,
+    });
+
+    await saveFamilyPaymentMethod(admin, {
+      organizationId: fixture.organizationId,
+      familyId: fixture.familyId,
+      billingAccountId: fixture.billingAccountId,
+      guardianId: fixture.guardianId,
+      stripePaymentMethodId: nextPaymentMethodId,
+      brand: "Chase",
+      last4: "3225",
+      isDefault: true,
+    });
+
+    const { data: rows, error } = await admin
+      .from("family_payment_methods")
+      .select("stripe_payment_method_id, brand, last4, is_default")
+      .eq("billing_account_id", fixture.billingAccountId)
+      .eq("guardian_id", fixture.guardianId);
+
+    if (error) throw error;
+
+    assert.equal(rows?.length, 1);
+    assert.equal(rows?.[0]?.stripe_payment_method_id, nextPaymentMethodId);
+    assert.equal(rows?.[0]?.brand, "Chase");
+    assert.equal(rows?.[0]?.last4, "3225");
+    assert.equal(rows?.[0]?.is_default, true);
   });
 });
 

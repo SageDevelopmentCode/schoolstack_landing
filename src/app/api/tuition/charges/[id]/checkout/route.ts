@@ -10,13 +10,17 @@ import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { createAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
-import { getSiteUrl } from "@/lib/stripe/client";
+import { getStripeClient, getSiteUrl } from "@/lib/stripe/client";
 import { isCheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import {
   getOrganizationPaymentAccount,
   isPaymentReady,
 } from "@/lib/stripe/organization-payment-account";
-import { attachCheckoutSessionToPayment } from "@/lib/stripe/application-payments";
+import {
+  attachCheckoutSessionToPayment,
+  listPendingPaymentsForTuitionCharge,
+  markPaymentFailed,
+} from "@/lib/stripe/application-payments";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -154,6 +158,41 @@ export async function POST(request: Request, context: RouteContext) {
       userId: user.id,
       email: user.email,
     });
+
+    const stripe = getStripeClient();
+    const pendingPayments = await listPendingPaymentsForTuitionCharge(
+      admin,
+      charge.id,
+    );
+
+    for (const pendingPayment of pendingPayments) {
+      if (!pendingPayment.stripeCheckoutSessionId) continue;
+
+      const existingSession = await stripe.checkout.sessions.retrieve(
+        pendingPayment.stripeCheckoutSessionId,
+      );
+
+      if (existingSession.status === "open" && existingSession.url) {
+        return NextResponse.json({
+          checkoutUrl: existingSession.url,
+          processingFeeCents:
+            typeof existingSession.metadata?.processing_fee_cents === "string"
+              ? Number(existingSession.metadata.processing_fee_cents)
+              : 0,
+          grossAmountCents:
+            typeof existingSession.metadata?.gross_amount_cents === "string"
+              ? Number(existingSession.metadata.gross_amount_cents)
+              : pendingPayment.amountCents,
+        });
+      }
+
+      if (existingSession.status === "expired") {
+        await markPaymentFailed(admin, pendingPayment.id, {
+          stripeCheckoutSessionId: pendingPayment.stripeCheckoutSessionId,
+        });
+      }
+    }
+
     const payment = await createTuitionPaymentRecord(admin, {
       organizationId: charge.organizationId,
       familyId: charge.familyId,

@@ -25,20 +25,25 @@ export function listPreviewPortalOptions(input: {
   familyId: string;
   hasEnrolledAccess: boolean;
   org: OrganizationWithSettings;
+  /** Include School admin for admin-preview dual-access switching only. */
+  includeAdmin?: boolean;
 }): SchoolPortalOption[] {
-  const { slug, familyId, hasEnrolledAccess, org } = input;
-  const options: SchoolPortalOption[] = [
-    {
+  const { slug, familyId, hasEnrolledAccess, org, includeAdmin = false } = input;
+  const options: SchoolPortalOption[] = [];
+
+  if (includeAdmin) {
+    options.push({
       id: "admin",
       label: "School admin",
       href: schoolAdminPreviewBasePath(slug, familyId),
-    },
-    {
-      id: "family_apply",
-      label: "My applications",
-      href: familyPreviewBasePath(slug, familyId),
-    },
-  ];
+    });
+  }
+
+  options.push({
+    id: "family_apply",
+    label: "My applications",
+    href: familyPreviewBasePath(slug, familyId),
+  });
 
   if (hasEnrolledAccess && isParentPortalEnabled(org.features)) {
     const parentHref = getParentPortalHomeHref(

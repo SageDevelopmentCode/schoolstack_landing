@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { ArrowLeftRight, Check } from "lucide-react";
 import { useNavigationLoading } from "@/components/school/shared/NavigationLoadingProvider";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import type {
-  PortalId,
-  SchoolPortalOption,
+import {
+  shouldShowPortalSwitcher,
+  type PortalId,
+  type SchoolPortalOption,
 } from "@/lib/auth/portal-switcher-types";
 
 type SchoolPortalSwitcherMenuItemsProps = {
@@ -25,7 +26,7 @@ export default function SchoolPortalSwitcherMenuItems({
   const router = useRouter();
   const { startNavigation } = useNavigationLoading();
 
-  if (options.length < 2) {
+  if (!shouldShowPortalSwitcher(options)) {
     return null;
   }
 

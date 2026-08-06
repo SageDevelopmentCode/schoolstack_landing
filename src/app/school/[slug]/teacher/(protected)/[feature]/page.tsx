@@ -2,9 +2,15 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
+import TeacherDashboardPage from "@/components/school-teacher/TeacherDashboardPage";
 import { getTeacherPageLabel } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import {
+  getStaffUserProfile,
+  requireTeacherPortalUser,
+} from "@/lib/staff/teacher-portal-access";
+import type { StaffPortalRole } from "@/lib/staff/staff-members";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +55,52 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
     feature,
     org.features.feature_nav?.teacher,
   );
+
+  if (feature === "dashboard") {
+    const user = await requireTeacherPortalUser(supabase, org.id);
+    const userProfile = await getStaffUserProfile(
+      supabase,
+      user.id,
+      org.id,
+      user,
+    );
+
+    const { data: staffMember } = await supabase
+      .from("staff_members")
+      .select("role_title")
+      .eq("organization_id", org.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const { data: membership } = await supabase
+      .from("organization_memberships")
+      .select("role")
+      .eq("organization_id", org.id)
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    const portalRole =
+      membership?.role === "teacher" || membership?.role === "staff"
+        ? (membership.role as StaffPortalRole)
+        : null;
+
+    return (
+      <TeacherDashboardPage
+        slug={slug}
+        schoolName={org.name}
+        branding={org.branding}
+        features={org.features}
+        userProfile={userProfile}
+        roleTitle={
+          typeof staffMember?.role_title === "string"
+            ? staffMember.role_title
+            : null
+        }
+        portalRole={portalRole}
+      />
+    );
+  }
 
   return (
     <SchoolTeacherComingSoon branding={org.branding} featureLabel={pageName} />

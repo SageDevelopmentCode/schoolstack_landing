@@ -2,7 +2,8 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 
 const WEBHOOK_FORWARD_TO = "localhost:3000/api/stripe/webhook";
-const STRIPE_EVENTS = "checkout.session.completed,account.updated";
+const STRIPE_EVENTS =
+  "checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,account.updated";
 const WEBHOOK_SECRET_PATTERN = /whsec_[a-zA-Z0-9]+/;
 
 const children: ChildProcess[] = [];

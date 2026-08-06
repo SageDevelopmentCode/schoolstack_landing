@@ -17,7 +17,6 @@ import {
 } from "@/lib/activity-auth-client";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { shouldShowPortalSwitcher } from "@/lib/auth/portal-switcher-types";
 import { createClient } from "@/utils/supabase/client";
 
 type ApplyPortalNavbarProps = {
@@ -110,9 +109,6 @@ export default function ApplyPortalNavbar({
   const initials = profileInitials(userDisplayName);
   const homeHref =
     previewHomeHref ?? `/school/${schoolSlug}/apply`;
-  const showPreviewSwitcher =
-    previewMode && shouldShowPortalSwitcher(portalOptions);
-  const showProfileMenu = !previewMode || showPreviewSwitcher;
 
   return (
     <header
@@ -128,16 +124,6 @@ export default function ApplyPortalNavbar({
           />
         </div>
 
-        {previewMode && !showPreviewSwitcher ? (
-          <span
-            className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
-          >
-            Preview
-          </span>
-        ) : null}
-
-        {showProfileMenu ? (
         <div className="relative shrink-0" ref={menuRef}>
           <button
             type="button"
@@ -205,7 +191,6 @@ export default function ApplyPortalNavbar({
             </div>
           ) : null}
         </div>
-        ) : null}
       </div>
     </header>
   );

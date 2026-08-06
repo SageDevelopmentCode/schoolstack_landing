@@ -1,7 +1,9 @@
+import { chargeRemainingCents } from "./billing-splits";
 import {
   formatBillingDueDate,
   formatDueCountdown,
 } from "./due-date-display";
+import { formatCents } from "./pricing";
 import type { TuitionCharge } from "./types";
 
 export type ChargeStatusBadgeTone = "success" | "neutral" | "warning" | "danger";
@@ -55,4 +57,27 @@ export function formatParentChargeDueLine(
   }
 
   return `Due ${dueDateLabel} (${countdown.label})`;
+}
+
+export type ParentChargeAmountDisplay = {
+  text: string;
+  isPaid: boolean;
+};
+
+export function formatParentChargeAmountLabel(
+  charge: TuitionCharge,
+): ParentChargeAmountDisplay {
+  if (charge.status === "paid") {
+    const paidCents =
+      charge.paidCents > 0 ? charge.paidCents : charge.amountCents;
+    return {
+      text: `Paid ${formatCents(paidCents)}`,
+      isPaid: true,
+    };
+  }
+
+  return {
+    text: formatCents(chargeRemainingCents(charge)),
+    isPaid: false,
+  };
 }

@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { stackFromCause } from "@/lib/api/error-serialization";
 import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
@@ -43,16 +44,6 @@ export type ReportOperationalErrorInput = {
     digest?: string;
   };
 };
-
-function stackFromCause(cause: unknown): string | undefined {
-  if (cause instanceof Error && cause.stack) {
-    return cause.stack;
-  }
-  if (cause !== undefined) {
-    return String(cause);
-  }
-  return undefined;
-}
 
 export async function reportOperationalError(
   input: ReportOperationalErrorInput,

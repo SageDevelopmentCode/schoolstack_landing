@@ -7,6 +7,7 @@ import ApplicationAuthGate from "@/components/admissions/ApplicationAuthGate";
 import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
 import { ApplyAuthShellLoader } from "@/components/admissions/ApplyAuthShellLoader";
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
+import { attemptPostSignInRedirect } from "@/lib/auth/resolve-post-sign-in-redirect";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import {
   familyHasOtherApplications,
@@ -210,6 +211,14 @@ export default function PublicApplicationFormClient({
         return;
       }
 
+      if (result.action === "redirect_teacher_portal") {
+        if (await attemptPostSignInRedirect(router, schoolSlug, "session_restored")) {
+          return;
+        }
+        router.replace(`/school/${schoolSlug}/teacher`);
+        return;
+      }
+
       if (result.applicationId) {
         await resumeWithApplication(result.applicationId);
       }
@@ -265,6 +274,8 @@ export default function PublicApplicationFormClient({
     formVersionId,
     handleBootstrapResult,
     organizationId,
+    router,
+    schoolSlug,
     serverAuthState,
     supabase.auth,
   ]);

@@ -1,7 +1,7 @@
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
-import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
+import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
 import {
   fetchParentBillingFamilySummary,
   pickInitialChildKey,
@@ -20,14 +20,14 @@ import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import { fetchFamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import type { FamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
-import type { PaymentRecord } from "@/lib/stripe/application-payments";
+import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 
 export type ParentBillingInitialData = {
   charges: TuitionCharge[];
   allFamilyCharges: TuitionCharge[];
-  payments: PaymentRecord[];
+  payments: ParentTuitionPaymentRecord[];
   adjustments: TuitionAdjustment[];
   readiness: FamilyBillingReadiness;
   familySummary: ParentBillingFamilySummary;
@@ -61,7 +61,7 @@ export async function loadParentBillingInitialData(input: {
       listChargesForFamilyGuardian(supabase, input.familyId, guardianId, {
         hasBillingSplit,
       }),
-      listTuitionPaymentsForFamily(supabase, input.familyId),
+      listParentTuitionPaymentHistory(supabase, input.familyId),
       listAdjustmentsForFamily(supabase, input.familyId),
       fetchFamilyBillingReadiness(supabase, {
         organizationId: input.organizationId,

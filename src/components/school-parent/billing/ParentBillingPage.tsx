@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CircleAlert, Loader2 } from "lucide-react";
 import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
+import ParentBillingPaymentHistoryRow from "@/components/school-parent/billing/ParentBillingPaymentHistoryRow";
 import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
 import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
 import ParentAutopayConfirmModal from "@/components/school-parent/billing/ParentAutopayConfirmModal";
@@ -18,8 +19,8 @@ import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSe
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
-import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
-import { formatBillingDueDate } from "@/lib/tuition/due-date-display";
+import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
+import { buildStudentColorIndexMap } from "@/lib/tuition/student-badge-colors";
 import { formatCents } from "@/lib/tuition/pricing";
 import { pickRecentLateFeeNotice } from "@/lib/tuition/late-fee-notice";
 import { formatCentsForInput } from "@/lib/admissions/application-form-schema";
@@ -44,7 +45,7 @@ import {
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
-import type { PaymentRecord } from "@/lib/stripe/application-payments";
+import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { createClient } from "@/utils/supabase/client";
@@ -75,6 +76,8 @@ function ParentBillingPageFallback({
   );
 }
 
+const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
+
 function ParentBillingPageContent({
   organizationId,
   familyId,
@@ -93,7 +96,9 @@ function ParentBillingPageContent({
   const hasInitialData = initialData !== undefined;
 
   const [charges, setCharges] = useState<TuitionCharge[]>(initialData?.charges ?? []);
-  const [payments, setPayments] = useState<PaymentRecord[]>(initialData?.payments ?? []);
+  const [payments, setPayments] = useState<ParentTuitionPaymentRecord[]>(
+    initialData?.payments ?? [],
+  );
   const [adjustments, setAdjustments] = useState<TuitionAdjustment[]>(
     initialData?.adjustments ?? [],
   );
@@ -171,7 +176,7 @@ function ParentBillingPageContent({
           listChargesForFamilyGuardian(supabase, familyId, guardianId, {
             hasBillingSplit: splitActive,
           }),
-          listTuitionPaymentsForFamily(supabase, familyId),
+          listParentTuitionPaymentHistory(supabase, familyId),
           listAdjustmentsForFamily(supabase, familyId),
           fetchFamilyBillingReadiness(supabase, {
             organizationId,
@@ -274,6 +279,10 @@ function ParentBillingPageContent({
     childViews[0] ??
     null;
   const hasMultipleChildren = childViews.length > 1;
+  const studentColorMap = useMemo(
+    () => buildStudentColorIndexMap(childViews.map((child) => child.childKey)),
+    [childViews],
+  );
   const hasPendingSchedule = familySummary?.hasPendingSchedule ?? false;
   const pendingScheduleCount = childViews.filter(
     (child) => child.status === "needs_schedule",
@@ -506,9 +515,10 @@ function ParentBillingPageContent({
   };
 
   const renderChildCharges = (assignmentId: string | null) => {
-    const childCharges = assignmentId
+    const childCharges = (assignmentId
       ? charges.filter((charge) => charge.assignmentId === assignmentId)
-      : charges;
+      : charges
+    ).filter((charge) => OPEN_CHARGE_STATUSES.has(charge.status));
 
     return (
       <div>
@@ -764,29 +774,28 @@ function ParentBillingPageContent({
       )}
 
       <div>
-        <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
+        <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
           Payment history
         </h2>
+        {hasMultipleChildren ? (
+          <p className="text-xs mt-1 mb-3" style={{ color: C.textTertiary }}>
+            All students
+          </p>
+        ) : (
+          <div className="mb-3" />
+        )}
         {payments.length ? (
           <div className="flex flex-col gap-2">
             {payments.map((payment) => (
-              <div
+              <ParentBillingPaymentHistoryRow
                 key={payment.id}
-                className="flex items-center justify-between px-4 py-3 rounded-lg text-sm"
-                style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-              >
-                <div>
-                  <p style={{ color: C.textPrimary }}>{payment.label ?? "Tuition payment"}</p>
-                  <p className="text-xs" style={{ color: C.textTertiary }}>
-                    {payment.paidAt
-                      ? formatBillingDueDate(payment.paidAt.slice(0, 10))
-                      : payment.status}
-                  </p>
-                </div>
-                <span className="font-medium" style={{ color: C.textPrimary }}>
-                  {formatCents(payment.amountCents)}
-                </span>
-              </div>
+                C={C}
+                payment={payment}
+                showStudentBadge={hasMultipleChildren}
+                badgeColorIndex={
+                  studentColorMap.get(payment.enrollmentId ?? "") ?? 0
+                }
+              />
             ))}
           </div>
         ) : (
