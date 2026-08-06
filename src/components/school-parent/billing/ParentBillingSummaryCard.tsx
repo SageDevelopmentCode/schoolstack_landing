@@ -66,6 +66,9 @@ export default function ParentBillingSummaryCard({
   const dueCountdown = summary.nextCharge
     ? formatDueCountdown(summary.nextCharge.dueDate)
     : null;
+  const showDueCountdown =
+    dueCountdown != null &&
+    (dueCountdown.urgency === "overdue" || dueCountdown.urgency === "urgent");
   const useCombinedPay = chargesOnEarliestDueDate > 1 && onPayCombined != null;
   const familyPayDisabled =
     readOnly ||
@@ -86,8 +89,20 @@ export default function ParentBillingSummaryCard({
           {summary.nextCharge ? (
             <div className="flex flex-col gap-0.5">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                  Due {formatBillingDueDate(summary.nextCharge.dueDate)}
+                <p
+                  className="flex flex-wrap items-center gap-x-2 text-sm font-medium"
+                  style={{ color: C.textPrimary }}
+                >
+                  <span>Due {formatBillingDueDate(summary.nextCharge.dueDate)}</span>
+                  {showDueCountdown ? (
+                    <span
+                      className="font-normal"
+                      style={{ color: countdownColor(C, dueCountdown.urgency) }}
+                      data-testid="parent-billing-due-countdown"
+                    >
+                      {dueCountdown.label}
+                    </span>
+                  ) : null}
                 </p>
                 {autopayEnabled && summary.balanceDueCents > 0 ? (
                   <span
@@ -102,14 +117,6 @@ export default function ParentBillingSummaryCard({
                   </span>
                 ) : null}
               </div>
-              {dueCountdown ? (
-                <p
-                  className="text-xs"
-                  style={{ color: countdownColor(C, dueCountdown.urgency) }}
-                >
-                  {dueCountdown.label}
-                </p>
-              ) : null}
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
