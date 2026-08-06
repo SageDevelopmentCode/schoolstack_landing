@@ -9,6 +9,7 @@ import {
   resolveAnnualTuitionCents,
   resolveFamilyPayNowLabel,
   resolveNextChargeIdForAssignment,
+  resolvePaymentPlanLabel,
   resolveUpcomingDue,
 } from "@/lib/tuition/parent-billing-summary";
 import type { FamilyTuitionSelectionItem } from "@/lib/tuition/enrollment-selection";
@@ -162,7 +163,104 @@ describe("resolveUpcomingDue", () => {
   });
 });
 
+describe("resolvePaymentPlanLabel", () => {
+  const paymentPlansById = new Map([
+    [
+      "payment-plan-1",
+      { name: "10 payments", installmentCount: 10 },
+    ],
+    [
+      "payment-plan-2",
+      { name: "", installmentCount: 4 },
+    ],
+  ]);
+
+  it("resolves plan name from paymentPlansById", () => {
+    assert.equal(
+      resolvePaymentPlanLabel({
+        assignment: assignment({ paymentPlanId: "payment-plan-1" }),
+        selectionItem: null,
+        paymentPlansById,
+      }),
+      "10 payments",
+    );
+  });
+
+  it("falls back to installment count label when plan name is empty", () => {
+    assert.equal(
+      resolvePaymentPlanLabel({
+        assignment: assignment({ paymentPlanId: "payment-plan-2" }),
+        selectionItem: null,
+        paymentPlansById,
+      }),
+      "4 payments",
+    );
+  });
+
+  it("resolves from selection context when pending schedule", () => {
+    const item = selectionItem("enrollment-1", "Julia", 720000);
+    item.context.ratePlan.paymentPlans = [
+      {
+        id: "payment-plan-1",
+        organizationId: "org-1",
+        ratePlanId: "plan-1",
+        name: "10 payments",
+        installmentCount: 10,
+        installmentAmountCents: 72000,
+        billingDayOfMonth: 1,
+        isDefault: true,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ];
+
+    assert.equal(
+      resolvePaymentPlanLabel({
+        assignment: item.context.assignment,
+        selectionItem: item,
+        paymentPlansById: new Map(),
+      }),
+      "10 payments",
+    );
+  });
+
+  it("returns null when plan cannot be resolved", () => {
+    assert.equal(
+      resolvePaymentPlanLabel({
+        assignment: assignment({ paymentPlanId: "missing-plan" }),
+        selectionItem: selectionItem("enrollment-1", "Julia", 720000),
+        paymentPlansById: new Map(),
+      }),
+      null,
+    );
+  });
+});
+
 describe("buildParentBillingFamilySummary", () => {
+  it("includes payment plan label on ready children", () => {
+    const summary = buildParentBillingFamilySummary({
+      assignments: [
+        {
+          assignment: assignment({
+            id: "assignment-1",
+            enrollmentId: "enrollment-1",
+            paymentPlanId: "payment-plan-1",
+            metadata: {},
+          }),
+          enrollmentId: "enrollment-1",
+          studentName: "Julia Cecilia",
+        },
+      ],
+      charges: [charge({ assignmentId: "assignment-1" })],
+      selectionItems: [],
+      paymentPlansById: new Map([
+        ["payment-plan-1", { name: "10 payments", installmentCount: 10 }],
+      ]),
+    });
+
+    assert.equal(summary.children[0]?.paymentPlanLabel, "10 payments");
+  });
+
   it("rolls up upcoming due on earliest date and total remaining", () => {
     const summary = buildParentBillingFamilySummary({
       assignments: [

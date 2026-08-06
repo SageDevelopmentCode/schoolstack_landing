@@ -269,6 +269,20 @@ export function mapParentTuitionPaymentRows(
   });
 }
 
+export function resolveMostRecentTuitionPayment(
+  payments: ParentTuitionPaymentRecord[],
+): ParentTuitionPaymentRecord | null {
+  const succeeded = payments.filter(
+    (payment) => payment.status === "succeeded" && payment.paidAt,
+  );
+
+  if (succeeded.length === 0) return null;
+
+  return [...succeeded].sort((a, b) =>
+    (b.paidAt ?? "").localeCompare(a.paidAt ?? ""),
+  )[0]!;
+}
+
 function mapTuitionPaymentRows(
   rows: Record<string, unknown>[],
   familyId: string,

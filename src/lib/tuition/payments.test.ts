@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { mapParentTuitionPaymentRows } from "./payments";
+import type { PaymentRecord } from "@/lib/stripe/application-payments";
+import {
+  mapParentTuitionPaymentRows,
+  resolveMostRecentTuitionPayment,
+  type ParentTuitionPaymentRecord,
+} from "./payments";
 
 describe("mapParentTuitionPaymentRows", () => {
   it("includes studentFirstName and enrollmentId when charge id is mapped", () => {
@@ -57,5 +62,84 @@ describe("mapParentTuitionPaymentRows", () => {
 
     assert.equal(rows[0]?.studentFirstName, null);
     assert.equal(rows[0]?.enrollmentId, null);
+  });
+});
+
+function paymentRecord(
+  overrides: Partial<ParentTuitionPaymentRecord> = {},
+): ParentTuitionPaymentRecord {
+  const base: PaymentRecord = {
+    id: "payment-1",
+    organizationId: "org-1",
+    applicationId: null,
+    familyId: "family-1",
+    tuitionChargeId: "charge-1",
+    paymentType: "tuition",
+    enrollmentChecklistItemId: null,
+    label: "Aug Tuition",
+    payerUserId: null,
+    stripeCheckoutSessionId: null,
+    stripePaymentIntentId: null,
+    amountCents: 60000,
+    chargedAmountCents: null,
+    processingFeeCents: null,
+    paymentMethodType: null,
+    currency: "USD",
+    status: "succeeded",
+    paidAt: "2026-08-01T12:00:00.000Z",
+    createdAt: "2026-08-01T12:00:00.000Z",
+  };
+
+  return {
+    ...base,
+    studentFirstName: null,
+    enrollmentId: null,
+    ...overrides,
+  };
+}
+
+describe("resolveMostRecentTuitionPayment", () => {
+  it("returns the latest succeeded payment by paidAt", () => {
+    const result = resolveMostRecentTuitionPayment([
+      paymentRecord({
+        id: "payment-older",
+        paidAt: "2026-07-01T12:00:00.000Z",
+        amountCents: 360000,
+      }),
+      paymentRecord({
+        id: "payment-newer",
+        paidAt: "2026-08-06T05:46:48.000Z",
+        amountCents: 432000,
+      }),
+    ]);
+
+    assert.equal(result?.id, "payment-newer");
+    assert.equal(result?.amountCents, 432000);
+  });
+
+  it("ignores pending and failed payments", () => {
+    const result = resolveMostRecentTuitionPayment([
+      paymentRecord({ id: "payment-pending", status: "pending", paidAt: null }),
+      paymentRecord({
+        id: "payment-failed",
+        status: "failed",
+        paidAt: "2026-09-01T12:00:00.000Z",
+      }),
+      paymentRecord({
+        id: "payment-succeeded",
+        paidAt: "2026-08-01T12:00:00.000Z",
+      }),
+    ]);
+
+    assert.equal(result?.id, "payment-succeeded");
+  });
+
+  it("returns null when there are no succeeded payments", () => {
+    assert.equal(
+      resolveMostRecentTuitionPayment([
+        paymentRecord({ status: "pending", paidAt: null }),
+      ]),
+      null,
+    );
   });
 });

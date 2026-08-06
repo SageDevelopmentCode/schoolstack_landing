@@ -12,6 +12,7 @@ import {
   type DueCountdownUrgency,
 } from "@/lib/tuition/due-date-display";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 
 const BILLING_ACTIVE_TOOLTIP =
@@ -30,6 +31,8 @@ type ParentBillingSummaryCardProps = {
   nextChargeId: string | null;
   familyPayNowLabel: string;
   chargesOnEarliestDueDate: number;
+  mostRecentPayment?: ParentTuitionPaymentRecord | null;
+  showStudentOnLastPayment?: boolean;
   readOnly?: boolean;
 };
 
@@ -53,6 +56,8 @@ export default function ParentBillingSummaryCard({
   nextChargeId,
   familyPayNowLabel,
   chargesOnEarliestDueDate,
+  mostRecentPayment = null,
+  showStudentOnLastPayment = false,
   readOnly = false,
 }: ParentBillingSummaryCardProps) {
   const showBreakdown = summary.children.length > 1;
@@ -68,6 +73,9 @@ export default function ParentBillingSummaryCard({
     readOnly ||
     payingCombined ||
     (useCombinedPay ? false : payingChargeId === nextChargeId);
+  const lastPaymentDateLabel = mostRecentPayment?.paidAt
+    ? formatBillingDueDate(mostRecentPayment.paidAt.slice(0, 10))
+    : null;
 
   return (
     <div
@@ -134,10 +142,22 @@ export default function ParentBillingSummaryCard({
               Family total remaining: {formatCents(summary.familyTotalRemainingCents)}
             </p>
           ) : null}
-          {summary.totalRemainingCents > summary.balanceDueCents ? (
-            <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
-              Total remaining: {formatCents(summary.totalRemainingCents)}
-            </p>
+          {mostRecentPayment && lastPaymentDateLabel ? (
+            <div
+              className="mt-2 inline-flex rounded-lg px-3 py-2 text-sm"
+              style={{
+                backgroundColor: C.successBg,
+                color: C.success,
+                border: `1px solid ${C.border}`,
+              }}
+              data-testid="parent-billing-last-payment-banner"
+            >
+              Last payment: {formatCents(mostRecentPayment.amountCents)} on{" "}
+              {lastPaymentDateLabel}
+              {showStudentOnLastPayment && mostRecentPayment.studentFirstName
+                ? ` for ${mostRecentPayment.studentFirstName}`
+                : ""}
+            </div>
           ) : null}
           {showEstimatedAnnual ? (
             <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
@@ -255,7 +275,8 @@ export default function ParentBillingSummaryCard({
                           </span>
                         ) : null}
                         <span className="text-xs" style={{ color: C.textTertiary }}>
-                          Annual {formatCents(child.annualTuitionCents)}
+                          {child.paymentPlanLabel ??
+                            `Annual ${formatCents(child.annualTuitionCents)}`}
                         </span>
                       </div>
                     </div>

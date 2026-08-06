@@ -20,7 +20,10 @@ import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSe
 import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
 import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
-import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
+import {
+  listParentTuitionPaymentHistory,
+  resolveMostRecentTuitionPayment,
+} from "@/lib/tuition/payments";
 import { buildStudentColorIndexMap } from "@/lib/tuition/student-badge-colors";
 import { formatCents } from "@/lib/tuition/pricing";
 import { pickRecentLateFeeNotice } from "@/lib/tuition/late-fee-notice";
@@ -159,6 +162,11 @@ function ParentBillingPageContent({
   const lateFeeNotice = useMemo(
     () => pickRecentLateFeeNotice(charges),
     [charges],
+  );
+
+  const mostRecentPayment = useMemo(
+    () => resolveMostRecentTuitionPayment(payments),
+    [payments],
   );
 
   const pendingPayResolution = useMemo(() => {
@@ -834,6 +842,8 @@ function ParentBillingPageContent({
           nextChargeId={nextChargeRecord?.id ?? null}
           familyPayNowLabel={familyPayNowLabel}
           chargesOnEarliestDueDate={chargesOnEarliestDueDate}
+          mostRecentPayment={mostRecentPayment}
+          showStudentOnLastPayment={hasMultipleChildren}
           readOnly={previewMode}
         />
       ) : null}
@@ -898,15 +908,9 @@ function ParentBillingPageContent({
         open={detailModalChildKey != null}
         child={detailModalChild}
         charges={charges}
-        payments={payments}
         adjustmentsByAssignment={adjustmentsByAssignment}
         payingChargeId={payingChargeId}
         autopayEnabled={autopayEnabled}
-        badgeColorIndex={
-          detailModalChild
-            ? (studentColorMap.get(detailModalChild.childKey) ?? 0)
-            : 0
-        }
         readOnly={previewMode}
         onClose={() => setDetailModalChildKey(null)}
         onPay={(chargeId) => {

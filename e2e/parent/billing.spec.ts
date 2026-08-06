@@ -786,8 +786,34 @@ test("parent billing summary supports per-student pay and child drill-down", asy
     await regenerateFutureCharges(admin, String(assignment!.id));
   }
 
+  const { data: paidCharge, error: paidChargeError } = await admin
+    .from("tuition_charges")
+    .select("id, amount_cents")
+    .eq("family_id", family.id)
+    .order("due_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  expect(paidChargeError).toBeNull();
+  expect(paidCharge?.id).toBeTruthy();
+
+  const { error: paymentInsertError } = await admin.from("application_payments").insert({
+    organization_id: organizationId,
+    family_id: family.id,
+    tuition_charge_id: paidCharge!.id,
+    payment_type: "tuition",
+    label: "Aug Tuition",
+    amount_cents: paidCharge!.amount_cents,
+    currency: "USD",
+    status: "succeeded",
+    paid_at: "2026-08-06T12:00:00.000Z",
+  });
+
+  expect(paymentInsertError).toBeNull();
+
   await gotoBillingPage(page);
   await expect(page.getByTestId("parent-billing-summary")).toBeVisible();
+  await expect(page.getByTestId("parent-billing-last-payment-banner")).toBeVisible();
   await expect(page.getByTestId("parent-billing-multi-charge-hint")).toBeVisible();
   await expect(
     page.getByTestId("parent-billing-family-pay-now"),
@@ -799,11 +825,26 @@ test("parent billing summary supports per-student pay and child drill-down", asy
     page.getByTestId(`parent-billing-child-pay-${enrollmentIds[1]}`),
   ).toBeVisible();
 
+  const juliaSummary = page.getByTestId(
+    `parent-billing-child-summary-${enrollmentIds[0]}`,
+  );
+  await expect(juliaSummary.getByText("10 payments")).toBeVisible();
+  await expect(juliaSummary.getByText("Annual $7,200")).toHaveCount(0);
+
   await page
     .getByTestId(`parent-billing-child-summary-select-${enrollmentIds[1]}`)
     .click();
   await expect(page.getByTestId("parent-billing-child-detail-modal")).toBeVisible();
   await expect(page.getByRole("heading", { name: /Caleb/ })).toBeVisible();
+  await expect(page.getByText("Payment schedule")).toBeVisible();
+  await expect(page.getByText("Upcoming charges")).toHaveCount(0);
+  await expect(
+    page.getByTestId("parent-billing-child-detail-modal").getByText("Payment history"),
+  ).toHaveCount(0);
+  await expect(
+    page.getByTestId("parent-billing-child-detail-modal").getByText("10 payments"),
+  ).toBeVisible();
+  await expect(page.getByTestId("parent-billing-charge-row").first()).toBeVisible();
   await page.getByLabel("Close").first().click();
   await expect(page.getByTestId("parent-billing-child-detail-modal")).toHaveCount(0);
 
