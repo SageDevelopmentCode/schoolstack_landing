@@ -1,8 +1,11 @@
 "use client";
 
-import { CreditCard, Loader2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, CreditCard, Loader2 } from "lucide-react";
 import { formatCents } from "@/lib/tuition/pricing";
-import type { ParentBillingFamilySummary } from "@/lib/tuition/parent-billing-summary";
+import {
+  childFirstNameFromFullName,
+  type ParentBillingFamilySummary,
+} from "@/lib/tuition/parent-billing-summary";
 import {
   formatBillingDueDate,
   formatDueCountdown,
@@ -11,26 +14,24 @@ import {
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 
+const BILLING_ACTIVE_TOOLTIP =
+  "Tuition billing is active — payment schedule confirmed";
+
 type ParentBillingSummaryCardProps = {
   C: AdminThemeTokens;
   summary: ParentBillingFamilySummary;
   autopayEnabled: boolean;
   payingChargeId: string | null;
+  payingCombined: boolean;
   onPay: (chargeId: string) => void;
+  onPayCombined?: () => void;
   onAutopayToggleRequest: (enabled: boolean) => void;
+  onSelectChild?: (childKey: string) => void;
   nextChargeId: string | null;
+  familyPayNowLabel: string;
+  chargesOnEarliestDueDate: number;
   readOnly?: boolean;
 };
-
-function childFirstName(name: string): string {
-  return name.trim().split(/\s+/)[0] ?? name;
-}
-
-function statusLabel(status: ParentBillingFamilySummary["children"][number]["status"]) {
-  if (status === "needs_schedule") return "Schedule needed";
-  if (status === "ready") return "Active";
-  return "Not assigned";
-}
 
 function countdownColor(C: AdminThemeTokens, urgency: DueCountdownUrgency): string {
   if (urgency === "overdue") return C.error;
@@ -44,9 +45,14 @@ export default function ParentBillingSummaryCard({
   summary,
   autopayEnabled,
   payingChargeId,
+  payingCombined,
   onPay,
+  onPayCombined,
   onAutopayToggleRequest,
+  onSelectChild,
   nextChargeId,
+  familyPayNowLabel,
+  chargesOnEarliestDueDate,
   readOnly = false,
 }: ParentBillingSummaryCardProps) {
   const showBreakdown = summary.children.length > 1;
@@ -55,6 +61,13 @@ export default function ParentBillingSummaryCard({
   const dueCountdown = summary.nextCharge
     ? formatDueCountdown(summary.nextCharge.dueDate)
     : null;
+  const showMultiChargeHint =
+    chargesOnEarliestDueDate > 1 && summary.nextCharge != null;
+  const useCombinedPay = chargesOnEarliestDueDate > 1 && onPayCombined != null;
+  const familyPayDisabled =
+    readOnly ||
+    payingCombined ||
+    (useCombinedPay ? false : payingChargeId === nextChargeId);
 
   return (
     <div
@@ -105,6 +118,17 @@ export default function ParentBillingSummaryCard({
           <p className="text-3xl font-semibold mt-1" style={{ color: C.textPrimary }}>
             {formatCents(summary.balanceDueCents)}
           </p>
+          {showMultiChargeHint ? (
+            <p
+              className="text-sm mt-2"
+              style={{ color: C.textSecondary }}
+              data-testid="parent-billing-multi-charge-hint"
+            >
+              Total due on {formatBillingDueDate(summary.nextCharge!.dueDate)} across{" "}
+              {chargesOnEarliestDueDate} students. Pay combined above, or pay each student
+              below.
+            </p>
+          ) : null}
           {summary.familyTotalRemainingCents != null ? (
             <p className="text-sm mt-2" style={{ color: C.textSecondary }}>
               Family total remaining: {formatCents(summary.familyTotalRemainingCents)}
@@ -131,23 +155,28 @@ export default function ParentBillingSummaryCard({
             </p>
           ) : null}
         </div>
-        {summary.nextCharge && nextChargeId ? (
+        {summary.nextCharge && (useCombinedPay || nextChargeId) ? (
           <button
             type="button"
-            disabled={readOnly || payingChargeId === nextChargeId}
+            disabled={familyPayDisabled}
             onClick={() => {
               if (readOnly) return;
-              onPay(nextChargeId);
+              if (useCombinedPay) {
+                onPayCombined?.();
+                return;
+              }
+              if (nextChargeId) onPay(nextChargeId);
             }}
             className="inline-flex shrink-0 items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: C.accent, color: "#fff" }}
+            data-testid="parent-billing-family-pay-now"
           >
-            {payingChargeId === nextChargeId ? (
+            {payingCombined || payingChargeId === nextChargeId ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <CreditCard className="w-4 h-4" />
             )}
-            Pay now
+            {familyPayNowLabel}
             {readOnly ? " (preview)" : ""}
           </button>
         ) : null}
@@ -159,60 +188,116 @@ export default function ParentBillingSummaryCard({
             By student
           </p>
           <div className="flex flex-col gap-2">
-            {summary.children.map((child) => (
-              <div
-                key={child.childKey}
-                className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm"
-                style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
-                data-testid={`parent-billing-child-summary-${child.childKey}`}
-              >
-                <div className="min-w-0">
-                  <p className="font-medium" style={{ color: C.textPrimary }}>
-                    {childFirstName(child.studentName)}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    {child.balanceDueCents > 0 && child.nextCharge ? (
-                      <span
-                        className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
-                        style={{
-                          backgroundColor: C.accentLight,
-                          color: C.accent,
-                        }}
+            {summary.children.map((child) => {
+              const canPay =
+                child.balanceDueCents > 0 &&
+                child.nextChargeId != null &&
+                !readOnly;
+              const isPaying = child.nextChargeId
+                ? payingChargeId === child.nextChargeId
+                : false;
+
+              return (
+                <div
+                  key={child.childKey}
+                  className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-sm"
+                  style={{
+                    backgroundColor: C.bg,
+                    border: `1px solid ${C.border}`,
+                  }}
+                  data-testid={`parent-billing-child-summary-${child.childKey}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onSelectChild?.(child.childKey)}
+                    className="min-w-0 flex flex-1 text-left rounded-md -m-1 p-1 transition-opacity hover:opacity-80"
+                    data-testid={`parent-billing-child-summary-select-${child.childKey}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="flex items-center gap-1.5 font-medium"
+                        style={{ color: C.textPrimary }}
                       >
-                        Due {formatBillingDueDate(child.nextCharge.dueDate)} ·{" "}
-                        {formatCents(child.balanceDueCents)}
-                      </span>
-                    ) : child.balanceDueCents > 0 ? (
-                      <span
-                        className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
-                        style={{
-                          backgroundColor: C.accentLight,
-                          color: C.accent,
+                        {childFirstNameFromFullName(child.studentName)}
+                        {child.status === "ready" ? (
+                          <CheckCircle2
+                            className="h-3.5 w-3.5 shrink-0"
+                            style={{ color: C.success }}
+                            aria-label={BILLING_ACTIVE_TOOLTIP}
+                            title={BILLING_ACTIVE_TOOLTIP}
+                          />
+                        ) : null}
+                        {child.status === "needs_schedule" ? (
+                          <ParentNeedsScheduleBadge C={C} label="Schedule needed" />
+                        ) : null}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        {child.balanceDueCents > 0 && child.nextCharge ? (
+                          <span
+                            className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                            style={{
+                              backgroundColor: C.accentLight,
+                              color: C.accent,
+                            }}
+                          >
+                            Due {formatBillingDueDate(child.nextCharge.dueDate)} ·{" "}
+                            {formatCents(child.balanceDueCents)}
+                          </span>
+                        ) : child.balanceDueCents > 0 ? (
+                          <span
+                            className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                            style={{
+                              backgroundColor: C.accentLight,
+                              color: C.accent,
+                            }}
+                          >
+                            Due {formatCents(child.balanceDueCents)}
+                          </span>
+                        ) : null}
+                        <span className="text-xs" style={{ color: C.textTertiary }}>
+                          Annual {formatCents(child.annualTuitionCents)}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {canPay ? (
+                      <button
+                        type="button"
+                        disabled={isPaying}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onPay(child.nextChargeId!);
                         }}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: C.accent, color: "#fff" }}
+                        data-testid={`parent-billing-child-pay-${child.childKey}`}
                       >
-                        Due {formatCents(child.balanceDueCents)}
-                      </span>
+                        {isPaying ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <CreditCard className="h-3.5 w-3.5" />
+                        )}
+                        Pay {formatCents(child.balanceDueCents)}
+                      </button>
                     ) : null}
-                    <span className="text-xs" style={{ color: C.textTertiary }}>
-                      Annual {formatCents(child.annualTuitionCents)}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onSelectChild?.(child.childKey)}
+                      className="rounded-md p-1 transition-opacity hover:opacity-80"
+                      aria-label={`View ${childFirstNameFromFullName(child.studentName)} billing details`}
+                      data-testid={`parent-billing-child-summary-chevron-${child.childKey}`}
+                    >
+                      <ChevronRight
+                        className="h-4 w-4 shrink-0"
+                        style={{ color: C.textTertiary }}
+                        aria-hidden
+                      />
+                    </button>
                   </div>
                 </div>
-                {child.status === "needs_schedule" ? (
-                  <ParentNeedsScheduleBadge C={C} label="Schedule needed" />
-                ) : (
-                  <span
-                    className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                    style={{
-                      backgroundColor: C.elevated,
-                      color: C.textSecondary,
-                    }}
-                  >
-                    {statusLabel(child.status)}
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : null}

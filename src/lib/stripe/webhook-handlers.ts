@@ -67,6 +67,19 @@ export async function handleCheckoutSessionCompleted(
   }
 
   if (
+    metadata.payment_type === "tuition_combined" &&
+    metadata.organization_id
+  ) {
+    await handleCombinedTuitionCheckoutCompleted(admin, {
+      session,
+      checkoutSessionId,
+      paymentIntentId,
+      metadata,
+    });
+    return;
+  }
+
+  if (
     metadata.payment_type === "enrollment_checklist" &&
     metadata.checklist_item_id &&
     metadata.organization_id
@@ -390,6 +403,95 @@ async function handleTuitionSetupCheckoutCompleted(
       guardianId,
     },
     severity: "info",
+  });
+}
+
+async function handleCombinedTuitionCheckoutCompleted(
+  admin: SupabaseClient,
+  input: {
+    session: Stripe.Checkout.Session;
+    checkoutSessionId: string;
+    paymentIntentId: string | undefined;
+    metadata: Stripe.Metadata;
+  },
+): Promise<void> {
+  const { session, checkoutSessionId, paymentIntentId, metadata } = input;
+  const paymentSettled = session.payment_status === "paid";
+  const tuitionChargeIds = parseCsvMetadata(metadata.tuition_charge_ids);
+  const payments = await resolveCheckoutSessionPayments(admin, {
+    checkoutSessionId,
+    metadata,
+  });
+
+  for (const payment of payments) {
+    if (payment.status === "succeeded") continue;
+
+    if (paymentSettled) {
+      await markPaymentSucceeded(admin, payment.id, {
+        stripePaymentIntentId: paymentIntentId,
+        stripeCheckoutSessionId: checkoutSessionId,
+      });
+    } else if (payment.status === "pending") {
+      await attachStripeCheckoutToPayment(admin, payment.id, {
+        stripeCheckoutSessionId: checkoutSessionId,
+        stripePaymentIntentId: paymentIntentId,
+      });
+    }
+  }
+
+  if (!paymentSettled) {
+    return;
+  }
+
+  const refreshedPayments = await resolveCheckoutSessionPayments(admin, {
+    checkoutSessionId,
+    metadata,
+  });
+
+  for (const payment of refreshedPayments) {
+    if (!payment.tuitionChargeId) continue;
+
+    await settleTuitionPayment(admin, {
+      chargeId: payment.tuitionChargeId,
+      amountCents: payment.amountCents,
+      payerUserId: payment.payerUserId,
+      paymentId: payment.id,
+    });
+    void sendPaymentCompletedNotifications(admin, payment.id);
+  }
+
+  const firstPayment = refreshedPayments[0];
+  if (firstPayment?.familyId && paymentIntentId) {
+    try {
+      await trySaveTuitionPaymentMethod(admin, {
+        familyId: firstPayment.familyId,
+        organizationId: String(metadata.organization_id),
+        paymentIntentId,
+        payerUserId: firstPayment.payerUserId,
+      });
+    } catch (error) {
+      console.warn(
+        "checkout.session.completed: combined tuition payment method save failed",
+        checkoutSessionId,
+        error,
+      );
+    }
+  }
+
+  void logActivityEvent(admin, {
+    organizationId: metadata.organization_id as string,
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+    entityType: "tuition_charge",
+    entityId: tuitionChargeIds[0] ?? checkoutSessionId,
+    summary: "Combined tuition payment completed",
+    metadata: {
+      checkoutSessionId,
+      paymentIds: refreshedPayments.map((payment) => payment.id),
+      tuitionChargeIds,
+      familyId: firstPayment?.familyId ?? null,
+    },
   });
 }
 

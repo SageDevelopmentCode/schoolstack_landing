@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildParentBillingFamilySummary,
+  countOpenChargesOnEarliestDueDate,
+  listOpenChargesOnEarliestDueDate,
   pickInitialChildKey,
   pickNextPendingChildKey,
   resolveAnnualTuitionCents,
+  resolveFamilyPayNowLabel,
+  resolveNextChargeIdForAssignment,
   resolveUpcomingDue,
 } from "@/lib/tuition/parent-billing-summary";
 import type { FamilyTuitionSelectionItem } from "@/lib/tuition/enrollment-selection";
@@ -266,6 +270,8 @@ describe("buildParentBillingFamilySummary", () => {
     assert.equal(summary.children[1]?.totalRemainingCents, 720000);
     assert.equal(summary.nextCharge?.dueDate, "2026-08-01");
     assert.equal(summary.nextCharge?.amountCents, 432000);
+    assert.equal(summary.children[0]?.nextChargeId, "charge-1");
+    assert.equal(summary.children[1]?.nextChargeId, "charge-3");
   });
 
   it("marks children awaiting schedule and totals estimated annual tuition", () => {
@@ -299,6 +305,85 @@ describe("buildParentBillingFamilySummary", () => {
     assert.equal(summary.annualTuitionCents, 1440000);
     assert.equal(summary.children[0]?.status, "needs_schedule");
     assert.equal(summary.children[1]?.annualTuitionCents, 720000);
+  });
+});
+
+describe("resolveNextChargeIdForAssignment", () => {
+  it("returns the earliest installment on the due date", () => {
+    assert.equal(
+      resolveNextChargeIdForAssignment(
+        [
+          charge({ id: "charge-1", installmentNumber: 1, dueDate: "2026-08-01" }),
+          charge({
+            id: "charge-2",
+            installmentNumber: 2,
+            dueDate: "2026-09-01",
+          }),
+        ],
+        "2026-08-01",
+      ),
+      "charge-1",
+    );
+  });
+});
+
+describe("countOpenChargesOnEarliestDueDate", () => {
+  it("counts all open charges on the earliest due date", () => {
+    assert.equal(
+      countOpenChargesOnEarliestDueDate([
+        charge({ id: "charge-1", assignmentId: "assignment-1", dueDate: "2026-08-01" }),
+        charge({
+          id: "charge-2",
+          assignmentId: "assignment-2",
+          dueDate: "2026-08-01",
+        }),
+        charge({
+          id: "charge-3",
+          assignmentId: "assignment-2",
+          dueDate: "2026-09-01",
+          installmentNumber: 2,
+        }),
+      ]),
+      2,
+    );
+  });
+
+  it("lists open charges on the earliest due date", () => {
+    const charges = [
+      charge({ id: "charge-1", assignmentId: "assignment-1", dueDate: "2026-08-01" }),
+      charge({
+        id: "charge-2",
+        assignmentId: "assignment-2",
+        dueDate: "2026-08-01",
+      }),
+      charge({
+        id: "charge-3",
+        assignmentId: "assignment-2",
+        dueDate: "2026-09-01",
+        installmentNumber: 2,
+      }),
+    ];
+
+    assert.deepEqual(
+      listOpenChargesOnEarliestDueDate(charges).map((row) => row.id),
+      ["charge-1", "charge-2"],
+    );
+  });
+});
+
+describe("resolveFamilyPayNowLabel", () => {
+  it("uses Pay combined when multiple charges share the due date", () => {
+    assert.equal(
+      resolveFamilyPayNowLabel({ chargesOnEarliestDueDate: 2 }),
+      "Pay combined",
+    );
+  });
+
+  it("uses Pay now for a single charge on the due date", () => {
+    assert.equal(
+      resolveFamilyPayNowLabel({ chargesOnEarliestDueDate: 1 }),
+      "Pay now",
+    );
   });
 });
 

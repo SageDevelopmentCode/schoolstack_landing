@@ -23,6 +23,7 @@ export type ParentBillingChildView = {
   balanceDueCents: number;
   totalRemainingCents: number;
   nextCharge: ParentBillingNextCharge | null;
+  nextChargeId: string | null;
   status: ParentBillingChildStatus;
   selectionItem: FamilyTuitionSelectionItem | null;
 };
@@ -108,6 +109,66 @@ export function resolveUpcomingDue(charges: TuitionCharge[]): UpcomingDueSummary
   };
 }
 
+export function resolveNextChargeIdForAssignment(
+  charges: TuitionCharge[],
+  dueDate: string | null | undefined,
+): string | null {
+  if (!dueDate) return null;
+
+  const openOnDate = charges
+    .filter(
+      (charge) =>
+        charge.dueDate === dueDate && OPEN_CHARGE_STATUSES.has(charge.status),
+    )
+    .sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0));
+
+  return openOnDate[0]?.id ?? null;
+}
+
+export function countOpenChargesOnEarliestDueDate(charges: TuitionCharge[]): number {
+  const openCharges = charges.filter((charge) =>
+    OPEN_CHARGE_STATUSES.has(charge.status),
+  );
+  if (openCharges.length === 0) return 0;
+
+  const earliestDueDate = [...openCharges].sort((a, b) =>
+    a.dueDate.localeCompare(b.dueDate),
+  )[0]!.dueDate;
+
+  return openCharges.filter((charge) => charge.dueDate === earliestDueDate).length;
+}
+
+export function childFirstNameFromFullName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? name;
+}
+
+export function listOpenChargesOnEarliestDueDate(
+  charges: TuitionCharge[],
+): TuitionCharge[] {
+  const openCharges = charges.filter((charge) =>
+    OPEN_CHARGE_STATUSES.has(charge.status),
+  );
+  if (openCharges.length === 0) return [];
+
+  const earliestDueDate = [...openCharges].sort((a, b) =>
+    a.dueDate.localeCompare(b.dueDate),
+  )[0]!.dueDate;
+
+  return openCharges
+    .filter((charge) => charge.dueDate === earliestDueDate)
+    .sort((a, b) => (a.installmentNumber ?? 0) - (b.installmentNumber ?? 0));
+}
+
+export function resolveFamilyPayNowLabel(input: {
+  chargesOnEarliestDueDate: number;
+}): string {
+  if (input.chargesOnEarliestDueDate > 1) {
+    return "Pay combined";
+  }
+
+  return "Pay now";
+}
+
 export function buildParentBillingFamilySummary(input: {
   assignments: AssignmentRow[];
   charges: TuitionCharge[];
@@ -156,6 +217,10 @@ export function buildParentBillingFamilySummary(input: {
       balanceDueCents: upcomingDue.upcomingDueCents,
       totalRemainingCents: upcomingDue.totalRemainingCents,
       nextCharge: upcomingDue.nextCharge,
+      nextChargeId: resolveNextChargeIdForAssignment(
+        assignmentCharges,
+        upcomingDue.nextCharge?.dueDate,
+      ),
       status,
       selectionItem,
     };
@@ -230,6 +295,7 @@ export async function fetchParentBillingFamilySummary(
         balanceDueCents: 0,
         totalRemainingCents: 0,
         nextCharge: null,
+        nextChargeId: null,
         status: "needs_schedule" as const,
         selectionItem: item,
       })),
