@@ -3,18 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
   <title>MudKitchen</title>
+  <style>
+  @media (prefers-color-scheme: dark) {
+    .email-accent { color: #C5D5B8 !important; }
+    .email-link { color: #C5D5B8 !important; }
+  }
+</style>
 </head>
-<body style="margin:0;padding:0;background-color:#F7F1E7;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;color:#2B241D;-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;-webkit-font-smoothing:antialiased;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
     {{ .Token }} is your verification code — finish creating your account.
   </div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F7F1E7;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr>
       <td align="center" style="padding:24px 16px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#FFFAF4;border:1px solid #DDD0BE;border-radius:12px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
           <tr>
-  <td style="padding:28px 32px 24px;text-align:center;border-bottom:2px solid #2E4A3C;">
+  <td style="padding:28px 32px 8px;text-align:center;">
     <a href="https://trymudkitchen.com" style="text-decoration:none;display:inline-block;">
       <img src="https://trymudkitchen.com/images/Logo.png" alt="MudKitchen" width="120" height="auto" style="display:block;border:0;max-width:120px;height:auto;margin:0 auto;">
     </a>
@@ -22,44 +30,44 @@
 </tr><tr>
   <td style="padding:28px 32px 24px;">
     
-      <p style="margin:0 0 12px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6D6257;">
+      <p style="margin:0 0 12px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:0.65;">
   Verify Email
 </p>
-      <h1 style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:22px;font-weight:600;line-height:1.3;color:#2E4A3C;">
+      <h1 class="email-accent" style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:22px;font-weight:600;line-height:1.3;color:#2E4A3C;">
   Confirm your email
 </h1>
-      <p style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:15px;line-height:1.65;color:#2B241D;">
+      <p style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:15px;line-height:1.65;">
   Enter this code to finish creating your account and continue your application.
 </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;">
   <tr>
-    <td align="center" style="border:1px solid #DDD0BE;border-radius:8px;padding:20px 24px;">
-      <p style="margin:0 0 10px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6D6257;">
+    <td align="center" style="padding:8px 0 20px;">
+      <p style="margin:0 0 10px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:0.65;">
         Your verification code
       </p>
-      <p style="margin:0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:28px;font-weight:700;letter-spacing:0.2em;line-height:1.2;color:#2E4A3C;">
+      <p class="email-accent" style="margin:0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:28px;font-weight:700;letter-spacing:0.2em;line-height:1.2;color:#2E4A3C;">
         {{ .Token }}
       </p>
-      <p style="margin:12px 0 0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;color:#6D6257;">
+      <p style="margin:12px 0 0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;opacity:0.65;">
         This code expires in one hour.
       </p>
     </td>
   </tr>
 </table>
-      <p style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:14px;line-height:1.65;color:#6D6257;">
+      <p style="margin:0 0 16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:14px;line-height:1.65;opacity:0.65;">
   If you didn&rsquo;t request this code, you can safely ignore this email.
 </p>
-      <p style="margin:0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:14px;line-height:1.65;color:#6D6257;">
+      <p style="margin:0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:14px;line-height:1.65;opacity:0.65;">
   &mdash; The MudKitchen team
 </p>
     
   </td>
 </tr><tr>
-  <td style="padding:20px 32px;text-align:center;border-top:1px solid #DDD0BE;">
+  <td style="padding:24px 32px 8px;text-align:center;">
     <p style="margin:0 0 6px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:13px;line-height:1.5;">
-      <a href="https://trymudkitchen.com" style="color:#2E4A3C;text-decoration:none;">trymudkitchen.com</a>
+      <a class="email-link" href="https://trymudkitchen.com" style="color:#2E4A3C;text-decoration:none;">trymudkitchen.com</a>
     </p>
-    <p style="margin:0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:12px;line-height:1.5;color:#6D6257;">
+    <p style="margin:0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:12px;line-height:1.5;opacity:0.65;">
       &copy; 2026 MudKitchen. All rights reserved.
     </p>
   </td>

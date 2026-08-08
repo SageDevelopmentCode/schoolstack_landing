@@ -8,6 +8,10 @@ import {
 } from "@/lib/tuition/charge-status-display";
 import { buildChargeAdjustmentBreakdown, formatCents } from "@/lib/tuition/pricing";
 import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
+import {
+  PAY_AHEAD_REDUCTION_HINT,
+  PAY_AHEAD_REDUCTION_LABEL,
+} from "@/lib/tuition/tuition-pay-copy";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
 
@@ -35,6 +39,10 @@ function badgeStyles(C: AdminThemeTokens, tone: ChargeStatusBadgeTone) {
   switch (tone) {
     case "success":
       return { backgroundColor: C.successBg, color: C.success };
+    case "info":
+      return { backgroundColor: C.infoBg, color: C.info };
+    case "accent":
+      return { backgroundColor: C.accentLight, color: C.accent };
     case "warning":
       return { backgroundColor: C.warningBg, color: C.warning };
     case "danger":
@@ -65,6 +73,9 @@ export default function ParentBillingChargeRow({
   const showBreakdown =
     charge.chargeType !== "late_fee" && charge.baseAmountCents !== charge.amountCents;
   const totalLine = breakdown.find((line) => line.kind === "total");
+  const hasPayAheadReduction = breakdown.some(
+    (line) => line.label === PAY_AHEAD_REDUCTION_LABEL,
+  );
   const statusBadge = formatParentChargeStatusBadge(charge);
   const dueLine = formatParentChargeDueLine(charge);
   const showAutopayHint =
@@ -120,7 +131,14 @@ export default function ParentBillingChargeRow({
                   <span
                     style={{
                       color:
-                        line.kind === "adjustment" ? C.textSecondary : C.textPrimary,
+                        line.kind === "base"
+                          ? C.textTertiary
+                          : line.label === PAY_AHEAD_REDUCTION_LABEL
+                            ? C.success
+                            : line.kind === "adjustment"
+                              ? C.textSecondary
+                              : C.textPrimary,
+                      textDecoration: line.kind === "base" ? "line-through" : undefined,
                     }}
                   >
                     {formatBreakdownAmount(line.amountCents)}
@@ -129,12 +147,21 @@ export default function ParentBillingChargeRow({
               ))}
             {totalLine ? (
               <div
-                className="flex items-center justify-between gap-3 pt-1 font-medium"
-                style={{ color: C.textPrimary }}
+                className="flex items-center justify-between gap-3 pt-1 font-semibold"
+                style={{ color: C.accent }}
               >
                 <span>{totalLine.label}</span>
                 <span>{formatCents(totalLine.amountCents)}</span>
               </div>
+            ) : null}
+            {hasPayAheadReduction ? (
+              <p
+                className="pt-1 text-[11px] leading-snug"
+                style={{ color: C.textTertiary }}
+                data-testid="parent-billing-charge-pay-ahead-hint"
+              >
+                {PAY_AHEAD_REDUCTION_HINT}
+              </p>
             ) : null}
           </div>
         ) : null}
@@ -157,8 +184,8 @@ export default function ParentBillingChargeRow({
             }}
             disabled={readOnly || payingChargeId === charge.id}
             aria-label={showAutopayHint ? "Pay early" : "Pay charge"}
-            className="text-xs font-medium px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: C.accentLight, color: C.accent }}
+            className="text-xs font-medium px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:opacity-90"
+            style={{ backgroundColor: C.accent, color: "#fff" }}
           >
             {payingChargeId === charge.id ? "…" : readOnly ? "Pay (preview)" : "Pay"}
           </button>

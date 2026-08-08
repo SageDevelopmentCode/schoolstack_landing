@@ -13,6 +13,10 @@ import {
 } from "@/lib/admissions/application-submit";
 import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
 import { settleTuitionPayment } from "@/lib/tuition/payment-settlement";
+import {
+  sendCombinedTuitionPaymentReceiptNotifications,
+  sendTuitionPaymentReceiptNotifications,
+} from "@/lib/tuition/payment-receipt-notifications";
 import { getChargeById } from "@/lib/tuition/charges";
 import {
   savePaymentMethodFromSetupIntent,
@@ -26,6 +30,7 @@ import {
   listPaymentsByCheckoutSession,
   markPaymentFailed,
   markPaymentSucceeded,
+  syncPaymentCheckoutDetailsFromMetadata,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
 import {
@@ -499,7 +504,13 @@ async function handleCombinedTuitionCheckoutCompleted(
       payerUserId: payment.payerUserId,
       paymentId: payment.id,
     });
-    void sendPaymentCompletedNotifications(admin, payment.id);
+  }
+
+  if (newlySucceededAny && refreshedPayments.length > 0) {
+    void sendCombinedTuitionPaymentReceiptNotifications(admin, {
+      checkoutSessionId,
+      paymentIds: refreshedPayments.map((payment) => payment.id),
+    });
   }
 
   const firstPayment = refreshedPayments[0];
@@ -559,6 +570,15 @@ async function handleTuitionCheckoutCompleted(
     payment = await getApplicationPaymentByCheckoutSession(admin, checkoutSessionId);
   }
 
+  if (payment) {
+    await syncPaymentCheckoutDetailsFromMetadata(admin, payment.id, metadata, {
+      paymentMethodType: payment.paymentMethodType,
+      chargedAmountCents: payment.chargedAmountCents,
+      processingFeeCents: payment.processingFeeCents,
+    });
+    payment = (await getPaymentById(admin, payment.id)) ?? payment;
+  }
+
   const paymentSettled = session.payment_status === "paid";
   let newlySucceeded = false;
 
@@ -584,12 +604,18 @@ async function handleTuitionCheckoutCompleted(
       : payment?.tuitionChargeId;
 
   if (paymentSettled && chargeId && payment) {
-    await settleTuitionPayment(admin, {
+    const settleResult = await settleTuitionPayment(admin, {
       chargeId,
       amountCents: payment.amountCents,
       payerUserId: payment.payerUserId,
       paymentId: payment.id,
     });
+
+    if (newlySucceeded) {
+      void sendTuitionPaymentReceiptNotifications(admin, payment.id, {
+        settleResult,
+      });
+    }
   }
 
   if (paymentSettled && payment?.familyId && paymentIntentId) {

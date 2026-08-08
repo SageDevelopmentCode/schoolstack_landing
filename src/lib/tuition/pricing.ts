@@ -1,4 +1,5 @@
 import type { AdjustmentType, TuitionAdjustment, TuitionRateTier } from "./types";
+import { PAY_AHEAD_REDUCTION_LABEL } from "./tuition-pay-copy";
 
 export type TuitionInputMode = "annual" | "monthly";
 
@@ -145,6 +146,14 @@ export function buildChargeAdjustmentBreakdown(input: {
       });
     }
     running = next;
+  }
+
+  if (amountCents < running) {
+    lines.push({
+      kind: "adjustment",
+      label: PAY_AHEAD_REDUCTION_LABEL,
+      amountCents: amountCents - running,
+    });
   }
 
   lines.push({ kind: "total", label: "You pay", amountCents: amountCents });

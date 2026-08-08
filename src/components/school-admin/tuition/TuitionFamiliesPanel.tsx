@@ -18,6 +18,7 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
 import TuitionBillingSplitModal from "@/components/school-admin/tuition/TuitionBillingSplitModal";
+import TuitionManualPaymentModal from "@/components/school-admin/tuition/TuitionManualPaymentModal";
 import TuitionFamilyTabBar from "@/components/school-admin/tuition/TuitionFamilyTabBar";
 import {
   DEFAULT_TUITION_FAMILY_TAB,
@@ -96,6 +97,12 @@ export default function TuitionFamiliesPanel({
   const [panelError, setPanelError] = useState<string | null>(null);
   const [invoiceNotice, setInvoiceNotice] = useState<string | null>(null);
   const [splitModalOpen, setSplitModalOpen] = useState(false);
+  const [manualPaymentCharge, setManualPaymentCharge] = useState<{
+    id: string;
+    label: string;
+    amountCents: number;
+    paidCents: number;
+  } | null>(null);
   const [activeFamilyTab, setActiveFamilyTab] = useState<TuitionFamilyTabId>(
     DEFAULT_TUITION_FAMILY_TAB,
   );
@@ -134,18 +141,31 @@ export default function TuitionFamiliesPanel({
   const selectedFamily =
     families.find((f) => f.familyId === selectedFamilyId) ?? null;
 
-  const handleManualPayment = async (chargeId: string) => {
+  const handleManualPayment = async (amountCents: number) => {
+    if (!manualPaymentCharge) return;
+    const chargeId = manualPaymentCharge.id;
     setActionLoading(chargeId);
     try {
       const response = await fetch(`/api/tuition/charges/${chargeId}/manual-payment`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountCents }),
       });
       if (!response.ok) {
         const payload = (await response.json()) as { error?: string };
         throw new Error(payload.error ?? "Failed to record manual payment.");
       }
       adminToast.success("Manual payment recorded");
+      setManualPaymentCharge(null);
       await loadFamilies();
+      if (selectedFamilyId) {
+        const [charges, payments] = await Promise.all([
+          listChargesForFamily(supabase, selectedFamilyId),
+          listTuitionPaymentsForFamily(supabase, selectedFamilyId),
+        ]);
+        setFamilyCharges(charges);
+        setFamilyPayments(payments);
+      }
     } catch (err) {
       const message = formatActionError(err, "Failed to record manual payment.");
       setPanelError(message);
@@ -703,7 +723,14 @@ export default function TuitionFamiliesPanel({
                             <button
                               type="button"
                               disabled={actionLoading === charge.id}
-                              onClick={() => void handleManualPayment(charge.id)}
+                              onClick={() =>
+                                setManualPaymentCharge({
+                                  id: charge.id,
+                                  label: charge.label,
+                                  amountCents: charge.amountCents,
+                                  paidCents: charge.paidCents,
+                                })
+                              }
                               className="text-xs font-medium px-2 py-1 rounded"
                               style={{ backgroundColor: C.accentLight, color: C.accent }}
                             >
@@ -801,6 +828,15 @@ export default function TuitionFamiliesPanel({
         branding={branding}
         onClose={() => setSplitModalOpen(false)}
         onSaved={() => void loadFamilies()}
+      />
+
+      <TuitionManualPaymentModal
+        open={manualPaymentCharge != null}
+        charge={manualPaymentCharge}
+        branding={branding}
+        saving={manualPaymentCharge != null && actionLoading === manualPaymentCharge.id}
+        onClose={() => setManualPaymentCharge(null)}
+        onConfirm={handleManualPayment}
       />
     </div>
   );

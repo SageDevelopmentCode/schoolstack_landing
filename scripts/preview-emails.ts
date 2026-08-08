@@ -8,6 +8,7 @@ import {
   buildPaymentReceiptConfirmationHtml,
   buildTuitionDueReminderHtml,
   buildTuitionLateFeeHtml,
+  buildTuitionPaymentReceiptHtml,
 } from "../src/lib/emails";
 import {
   buildSupabaseConfirmSignupOtpHtml,
@@ -23,6 +24,17 @@ mkdirSync(outDir, { recursive: true });
 mkdirSync(supabaseTemplatesDir, { recursive: true });
 
 const sampleToken = "482916";
+
+/** Cream shell colors removed for dark-mode-friendly transparent layout */
+const FORBIDDEN_BACKGROUND_COLORS = ["#F7F1E7", "#FFFAF4", "#DDD0BE"];
+
+function assertNoCreamBackgrounds(html: string, label: string): void {
+  for (const color of FORBIDDEN_BACKGROUND_COLORS) {
+    if (html.includes(color)) {
+      throw new Error(`${label} still contains removed background color: ${color}`);
+    }
+  }
+}
 
 const supabaseMagicLinkExport = buildSupabaseMagicLinkOtpHtml();
 const supabaseConfirmSignupExport = buildSupabaseConfirmSignupOtpHtml();
@@ -120,6 +132,104 @@ const previews = [
     checks: ["Tuition Reminder", "Total due", "View billing", "Materials fee"],
   },
   {
+    filename: "tuition-payment-receipt-standard.html",
+    html: buildTuitionPaymentReceiptHtml({
+      name: "Jon Cecilia",
+      schoolName: "Rooted Meadows",
+      billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
+      paidAtLabel: "August 8, 2026 at 2:30 PM",
+      paymentMethodLabel: "Card",
+      amountCents: 72000,
+      chargedAmountCents: 74182,
+      processingFeeCents: 2182,
+      studentName: "Jon",
+      chargeLabel: "Aug Tuition",
+    }),
+    checks: [
+      "Payment Receipt",
+      "Thank you",
+      "Jon",
+      "Aug Tuition",
+      "$720.00",
+      "$741.82",
+      "View billing",
+    ],
+  },
+  {
+    filename: "tuition-payment-receipt-lump-sum.html",
+    html: buildTuitionPaymentReceiptHtml({
+      name: "Jon Cecilia",
+      schoolName: "Rooted Meadows",
+      billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
+      paidAtLabel: "August 8, 2026 at 3:00 PM",
+      paymentMethodLabel: "Card",
+      amountCents: 500000,
+      chargedAmountCents: 514550,
+      processingFeeCents: 14550,
+      studentName: "Jon",
+      chargeLabel: "Aug Tuition",
+      lumpSumBreakdown: {
+        installmentCents: 72000,
+        futureCents: 428000,
+        redistributed: true,
+      },
+    }),
+    checks: [
+      "Payment breakdown",
+      "$720.00 installment",
+      "$4,280.00 future",
+      "Future installments were recalculated",
+    ],
+  },
+  {
+    filename: "tuition-payment-receipt-combined.html",
+    html: buildTuitionPaymentReceiptHtml({
+      name: "Cecilia Family",
+      schoolName: "Rooted Meadows",
+      billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
+      paidAtLabel: "August 8, 2026 at 4:00 PM",
+      paymentMethodLabel: "Card",
+      amountCents: 144000,
+      chargedAmountCents: 148364,
+      processingFeeCents: 4364,
+      combinedLineItems: [
+        {
+          studentName: "Caleb",
+          chargeLabel: "Aug Tuition",
+          amountCents: 72000,
+        },
+        {
+          studentName: "Jon",
+          chargeLabel: "Aug Tuition",
+          amountCents: 72000,
+        },
+      ],
+    }),
+    checks: [
+      "Charges paid",
+      "Caleb",
+      "Jon",
+      "$1,483.64",
+      "View billing",
+    ],
+  },
+  {
+    filename: "tuition-payment-receipt-bank.html",
+    html: buildTuitionPaymentReceiptHtml({
+      name: "Jon Cecilia",
+      schoolName: "Rooted Meadows",
+      billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
+      paidAtLabel: "August 8, 2026 at 5:00 PM",
+      paymentMethodLabel: "ACH",
+      amountCents: 72000,
+      chargedAmountCents: 72500,
+      processingFeeCents: 500,
+      studentName: "Jon",
+      chargeLabel: "Aug Tuition",
+    }),
+    checks: ["ACH", "$5.00", "Processing fee", "$725.00"],
+  },
+  {
     filename: "late-fee.html",
     html: buildTuitionLateFeeHtml({
       familyName: "Nguyen",
@@ -156,8 +266,13 @@ for (const preview of previews) {
     }
   }
 
+  assertNoCreamBackgrounds(preview.html, preview.filename);
+
   console.log(`✓ ${preview.filename}`);
 }
+
+assertNoCreamBackgrounds(supabaseMagicLinkExport, "magic-link.html");
+assertNoCreamBackgrounds(supabaseConfirmSignupExport, "confirm-signup.html");
 
 if (!supabaseMagicLinkExport.includes("{{ .Token }}")) {
   throw new Error("magic-link.html export missing {{ .Token }}");

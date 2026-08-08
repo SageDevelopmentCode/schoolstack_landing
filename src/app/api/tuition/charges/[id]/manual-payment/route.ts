@@ -6,6 +6,7 @@ import {
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
 import { recordManualTuitionPayment } from "@/lib/tuition/payments";
+import { sendTuitionPaymentReceiptNotifications } from "@/lib/tuition/payment-receipt-notifications";
 import { getChargeById } from "@/lib/tuition/charges";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -71,13 +72,18 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    await recordManualTuitionPayment(admin, {
+    const { paymentId, settleResult } = await recordManualTuitionPayment(admin, {
       organizationId: charge.organizationId,
       familyId: charge.familyId,
       tuitionChargeId: charge.id,
       amountCents,
       label: charge.label,
       payerUserId: user.id,
+    });
+
+    void sendTuitionPaymentReceiptNotifications(admin, paymentId, {
+      settleResult,
+      manual: true,
     });
 
     return NextResponse.json({ ok: true });

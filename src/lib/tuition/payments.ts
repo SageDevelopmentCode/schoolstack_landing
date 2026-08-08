@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
-import { settleTuitionPayment } from "./payment-settlement";
+import {
+  settleTuitionPayment,
+  type SettleTuitionPaymentResult,
+} from "./payment-settlement";
 
 export type ParentTuitionPaymentRecord = PaymentRecord & {
   studentFirstName: string | null;
@@ -74,6 +77,10 @@ export async function createTuitionPaymentRecord(
         : null,
     stripePaymentIntentId: null,
     amountCents: Number(data.amount_cents),
+    amountAppliedCents:
+      typeof data.amount_applied_cents === "number"
+        ? data.amount_applied_cents
+        : null,
     chargedAmountCents:
       typeof data.charged_amount_cents === "number"
         ? data.charged_amount_cents
@@ -347,6 +354,10 @@ function mapTuitionPaymentRows(
         ? row.stripe_payment_intent_id
         : null,
     amountCents: Number(row.amount_cents),
+    amountAppliedCents:
+      typeof row.amount_applied_cents === "number"
+        ? row.amount_applied_cents
+        : null,
     chargedAmountCents:
       typeof row.charged_amount_cents === "number"
         ? row.charged_amount_cents
@@ -377,7 +388,7 @@ export async function recordManualTuitionPayment(
     label: string;
     payerUserId?: string;
   },
-): Promise<void> {
+): Promise<{ paymentId: string; settleResult: SettleTuitionPaymentResult }> {
   const { data: payment, error: paymentError } = await supabase
     .from("application_payments")
     .insert({
@@ -397,10 +408,15 @@ export async function recordManualTuitionPayment(
 
   if (paymentError) throw paymentError;
 
-  await settleTuitionPayment(supabase, {
+  const settleResult = await settleTuitionPayment(supabase, {
     chargeId: input.tuitionChargeId,
     amountCents: input.amountCents,
     payerUserId: input.payerUserId ?? null,
     paymentId: String(payment.id),
   });
+
+  return {
+    paymentId: String(payment.id),
+    settleResult,
+  };
 }

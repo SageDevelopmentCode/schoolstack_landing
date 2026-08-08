@@ -6,7 +6,13 @@ import {
 import { formatCents } from "./pricing";
 import type { TuitionCharge } from "./types";
 
-export type ChargeStatusBadgeTone = "success" | "neutral" | "warning" | "danger";
+export type ChargeStatusBadgeTone =
+  | "success"
+  | "neutral"
+  | "info"
+  | "accent"
+  | "warning"
+  | "danger";
 
 export type ChargeStatusBadge = {
   label: string;
@@ -24,9 +30,9 @@ export function formatParentChargeStatusBadge(charge: TuitionCharge): ChargeStat
     case "overdue":
       return { label: "OVERDUE", tone: "danger" };
     case "scheduled":
-      return { label: "SCHEDULED", tone: "neutral" };
+      return { label: "SCHEDULED", tone: "info" };
     case "sent":
-      return { label: "SENT", tone: "neutral" };
+      return { label: "SENT", tone: "accent" };
     case "void":
       return { label: "VOID", tone: "neutral" };
     case "waived":
