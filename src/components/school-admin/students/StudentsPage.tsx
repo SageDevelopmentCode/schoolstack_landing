@@ -10,6 +10,7 @@ import StudentDetailPanel from "./StudentDetailPanel";
 import {
   formatEnrolledDate,
   formatEnrolledStudentName,
+  formatStudentGrade,
   listOrgEnrolledStudents,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
@@ -65,6 +66,7 @@ function matchesSearch(student: AdminEnrolledStudentSummary, query: string): boo
   const haystack = [
     formatEnrolledStudentName(student),
     student.grade ?? "",
+    formatStudentGrade(student.grade) ?? "",
     student.familyName ?? "",
     student.primaryContactName ?? "",
     student.primaryContactEmail ?? "",
@@ -295,7 +297,7 @@ export default function StudentsPage({
                         className="px-3 py-3 sm:px-4"
                         style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
                       >
-                        {student.grade ?? "—"}
+                        {formatStudentGrade(student.grade) ?? "—"}
                       </td>
                       <td
                         className="px-3 py-3 sm:px-4"

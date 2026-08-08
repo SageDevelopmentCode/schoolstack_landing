@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatShortDate } from "@/lib/admissions/application-submissions";
+import { STUDENT_GRADE_OPTIONS } from "@/lib/admissions/apply-system-fields";
 
 export type AdminEnrolledStudentSummary = {
   id: string;
@@ -101,6 +102,13 @@ export function formatEnrolledStudentName(student: {
   lastName: string;
 }): string {
   return formatPersonName(student.firstName, student.lastName) || "Student";
+}
+
+export function formatStudentGrade(grade: string | null | undefined): string | null {
+  if (!grade) return null;
+  const normalized = grade.trim().toLowerCase();
+  const match = STUDENT_GRADE_OPTIONS.find((option) => option.value === normalized);
+  return match?.label ?? grade;
 }
 
 export { studentStatusLabel };

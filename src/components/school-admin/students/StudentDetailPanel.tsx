@@ -11,6 +11,7 @@ import FamilyGuardiansSection from "@/components/school-admin/admissions/FamilyG
 import {
   formatEnrolledDate,
   formatEnrolledStudentName,
+  formatStudentGrade,
   loadEnrolledStudentDetail,
   studentStatusLabel,
   type AdminEnrolledStudentSummary,
@@ -104,6 +105,7 @@ export default function StudentDetailPanel({
   );
 
   const studentName = formatEnrolledStudentName(student);
+  const formattedGrade = formatStudentGrade(student.grade);
   const programLabel =
     student.programNames.length > 0 ? student.programNames.join(" · ") : "No program";
   const contactLabel = student.primaryContactEmail ?? "No contact email";
@@ -131,7 +133,7 @@ export default function StudentDetailPanel({
                 Grade
               </dt>
               <dd className="mt-0.5" style={{ color: C.textPrimary }}>
-                {panelDetail.grade ?? "—"}
+                {formatStudentGrade(panelDetail.grade) ?? "—"}
               </dd>
             </div>
             <div>
@@ -322,7 +324,7 @@ export default function StudentDetailPanel({
               </span>
             </div>
             <p className="mt-0.5 truncate text-xs" style={{ color: C.textTertiary }}>
-              {student.grade ? `${student.grade} · ` : null}
+              {formattedGrade ? `${formattedGrade} · ` : null}
               {programLabel}
             </p>
             <p className="mt-1 truncate text-xs" style={{ color: C.textSecondary }}>
