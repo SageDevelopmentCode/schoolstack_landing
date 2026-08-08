@@ -27,6 +27,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: supabaseStorageRemotePatterns(),
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
 };
 
 const withBundleAnalyzer = bundleAnalyzer({

@@ -16,6 +16,7 @@ import {
   statusBadgeClassName,
 } from "@/lib/performance/score-styles";
 import {
+  BULK_AUDIT_FORM_FACTORS,
   PERFORMANCE_PAGE_CATEGORIES,
   type AuditEnvironment,
   type AuditFormFactor,
@@ -50,6 +51,19 @@ type PerformancePageRow = {
 
 const PSI_THROTTLE_MS = 2000;
 const LOCAL_POLL_INTERVAL_MS = 2000;
+
+type BulkPassProgress = Pick<
+  BulkRunProgress,
+  "formFactor" | "formFactorPass" | "formFactorPasses"
+>;
+
+function bulkPassProgress(passIndex: number, formFactor: AuditFormFactor): BulkPassProgress {
+  return {
+    formFactor,
+    formFactorPass: passIndex + 1,
+    formFactorPasses: BULK_AUDIT_FORM_FACTORS.length,
+  };
+}
 
 function formatMs(value: number | null) {
   if (value === null || Number.isNaN(value)) return "—";
@@ -129,7 +143,7 @@ export default function AdminPerformancePage() {
 
     try {
       const response = await fetch(
-        `/api/admin/performance/pages?environment=${environment}`,
+        `/api/admin/performance/pages?environment=${environment}&formFactor=${formFactor}`,
       );
 
       if (!response.ok) {
@@ -156,7 +170,7 @@ export default function AdminPerformancePage() {
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, [environment]);
+  }, [environment, formFactor]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -197,28 +211,44 @@ export default function AdminPerformancePage() {
   }, [selectedCategories, filteredPages]);
 
   const runButtonLabel = useMemo(() => {
-    if (selectedCategories.size === 0) return "Run all";
+    const formFactorSuffix =
+      environment === "ci" ? "" : ", mobile + desktop";
+
+    if (selectedCategories.size === 0) {
+      return environment === "ci" ? "Run all" : "Run all (mobile + desktop)";
+    }
     if (selectedCategories.size === 1) {
       const category = [...selectedCategories][0];
       const count = categoryCounts[category] ?? filteredPages.length;
-      return `Run ${formatCategoryLabel(category)} (${count})`;
+      return `Run ${formatCategoryLabel(category)} (${count}${formFactorSuffix})`;
     }
-    return `Run selected (${filteredPages.length})`;
-  }, [categoryCounts, filteredPages.length, selectedCategories]);
+    return `Run selected (${filteredPages.length}${formFactorSuffix})`;
+  }, [categoryCounts, environment, filteredPages.length, selectedCategories]);
 
   const canRunBulk =
     selectedCategories.size === 0 || filteredPages.length > 0;
 
+  const showCiDesktopEmptyNote = useMemo(() => {
+    if (environment !== "ci" || formFactor !== "desktop") return false;
+    return !pages.some((page) => page.latestResult?.status === "success");
+  }, [environment, formFactor, pages]);
+
   const runProductionBulk = useCallback(
-    async (targets: PerformancePageRow[]) => {
+    async (
+      targets: PerformancePageRow[],
+      bulkFormFactor: AuditFormFactor,
+      passIndex: number,
+    ) => {
       let completed = 0;
       let firstError: string | null = null;
+      const passProgress = bulkPassProgress(passIndex, bulkFormFactor);
 
       setBulkProgress({
         environment: "production",
         status: "running",
         completed: 0,
         total: targets.length,
+        ...passProgress,
       });
 
       for (const [index, target] of targets.entries()) {
@@ -229,6 +259,7 @@ export default function AdminPerformancePage() {
           completed,
           total: targets.length,
           currentLabel: target.label,
+          ...passProgress,
         });
 
         try {
@@ -238,7 +269,7 @@ export default function AdminPerformancePage() {
             body: JSON.stringify({
               environment: "production",
               pageIds: [target.id],
-              formFactor,
+              formFactor: bulkFormFactor,
             }),
           });
 
@@ -263,6 +294,7 @@ export default function AdminPerformancePage() {
           completed,
           total: targets.length,
           currentLabel: target.label,
+          ...passProgress,
         });
 
         await loadPages({ silent: true });
@@ -278,13 +310,14 @@ export default function AdminPerformancePage() {
         completed,
         total: targets.length,
         errorMessage: firstError ?? undefined,
+        ...passProgress,
       });
     },
-    [formFactor, loadPages],
+    [loadPages],
   );
 
   const pollLocalRun = useCallback(
-    async (runId: string, total: number) => {
+    async (runId: string, total: number, passProgress?: BulkPassProgress) => {
       while (true) {
         const response = await fetch(`/api/admin/performance/runs/${runId}`);
 
@@ -296,8 +329,9 @@ export default function AdminPerformancePage() {
             completed: 0,
             total,
             errorMessage: "Failed to load audit run status.",
+            ...passProgress,
           });
-          return;
+          return false;
         }
 
         const payload = (await response.json()) as {
@@ -328,12 +362,17 @@ export default function AdminPerformancePage() {
           currentLabel:
             typeof lastResult?.label === "string" ? lastResult.label : undefined,
           errorMessage: run?.error_message ?? undefined,
+          ...passProgress,
         });
 
         await loadPages({ silent: true });
 
-        if (runStatus === "completed" || runStatus === "failed") {
-          return;
+        if (runStatus === "completed") {
+          return true;
+        }
+
+        if (runStatus === "failed") {
+          return false;
         }
 
         await sleep(LOCAL_POLL_INTERVAL_MS);
@@ -357,58 +396,70 @@ export default function AdminPerformancePage() {
           }
 
           if (environment === "production") {
-            await runProductionBulk(targets);
-          } else {
-            const response = await fetch("/api/admin/performance/enqueue", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ pageIds, formFactor }),
-            });
-
-            if (!response.ok) {
-              let message = "Failed to enqueue local audit.";
-              try {
-                const payload = (await response.json()) as { error?: string };
-                if (payload.error?.trim()) message = payload.error.trim();
-              } catch {
-                // ignore
-              }
-              setBulkProgress({
-                environment: "local",
-                status: "failed",
-                completed: 0,
-                total: targets.length,
-                errorMessage: message,
-              });
-              return;
+            for (const [passIndex, bulkFormFactor] of BULK_AUDIT_FORM_FACTORS.entries()) {
+              await runProductionBulk(targets, bulkFormFactor, passIndex);
             }
+          } else {
+            for (const [passIndex, bulkFormFactor] of BULK_AUDIT_FORM_FACTORS.entries()) {
+              const passProgress = bulkPassProgress(passIndex, bulkFormFactor);
 
-            const payload = (await response.json()) as {
-              run?: { id?: string; page_ids?: string[] };
-            };
-            const runId = payload.run?.id;
-            const total = payload.run?.page_ids?.length ?? targets.length;
+              const response = await fetch("/api/admin/performance/enqueue", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pageIds, formFactor: bulkFormFactor }),
+              });
 
-            if (!runId) {
+              if (!response.ok) {
+                let message = "Failed to enqueue local audit.";
+                try {
+                  const payload = (await response.json()) as { error?: string };
+                  if (payload.error?.trim()) message = payload.error.trim();
+                } catch {
+                  // ignore
+                }
+                setBulkProgress({
+                  environment: "local",
+                  status: "failed",
+                  completed: 0,
+                  total: targets.length,
+                  errorMessage: message,
+                  ...passProgress,
+                });
+                return;
+              }
+
+              const payload = (await response.json()) as {
+                run?: { id?: string; page_ids?: string[] };
+              };
+              const runId = payload.run?.id;
+              const total = payload.run?.page_ids?.length ?? targets.length;
+
+              if (!runId) {
+                setBulkProgress({
+                  environment: "local",
+                  status: "failed",
+                  completed: 0,
+                  total,
+                  errorMessage: "Enqueue succeeded but no run id was returned.",
+                  ...passProgress,
+                });
+                return;
+              }
+
               setBulkProgress({
+                runId,
                 environment: "local",
-                status: "failed",
+                status: "queued",
                 completed: 0,
                 total,
-                errorMessage: "Enqueue succeeded but no run id was returned.",
+                ...passProgress,
               });
-              return;
+
+              const succeeded = await pollLocalRun(runId, total, passProgress);
+              if (!succeeded) {
+                return;
+              }
             }
-
-            setBulkProgress({
-              runId,
-              environment: "local",
-              status: "queued",
-              completed: 0,
-              total,
-            });
-
-            await pollLocalRun(runId, total);
           }
 
           await loadPages({ silent: true });
@@ -608,10 +659,13 @@ export default function AdminPerformancePage() {
 
         {environment === "ci" ? (
           <p className="w-full text-xs text-admin-faint">
-            CI results are uploaded automatically from pull request Lighthouse runs.
-            Marketing and admissions pages are public; school admin and parent portal
-            pages are audited with E2E session cookies (not login redirects) for{" "}
-            {CANONICAL_SCHOOL_SLUG}.
+            CI results are uploaded automatically from pull request Lighthouse runs
+            (mobile and desktop). Marketing and admissions pages are public; school
+            admin and parent portal pages are audited with E2E session cookies (not
+            login redirects) for {CANONICAL_SCHOOL_SLUG}.
+            {showCiDesktopEmptyNote
+              ? " Desktop CI data will appear after the next PR Lighthouse run."
+              : null}
           </p>
         ) : environment === "local" ? (
           <p className="w-full text-xs text-admin-faint">

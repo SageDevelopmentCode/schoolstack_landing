@@ -24,6 +24,8 @@
     "performance:audit": "tsx scripts/run-performance-audits.ts",
     "performance:audit:watch": "tsx scripts/run-performance-audits.ts --watch",
     "performance:ci": "lhci autorun",
+    "performance:ci:mobile": "PERFORMANCE_FORM_FACTOR=mobile lhci autorun",
+    "performance:ci:desktop": "PERFORMANCE_FORM_FACTOR=desktop lhci autorun",
     "performance:ci:prepare": "tsx scripts/prepare-performance-ci.ts",
     "performance:ci:upload": "tsx scripts/upload-lhci-results.ts"
   },

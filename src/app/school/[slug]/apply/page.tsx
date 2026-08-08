@@ -85,14 +85,18 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     );
   }
 
-  const [applications, hasEnrolledAccess, timezoneResult, userProfile, portalOptions] =
+  const [applications, hasEnrolledAccess, timezoneResult, userProfile] =
     await Promise.all([
     listFamilyApplications(supabase, org.id, user.id),
     userHasEnrolledAccess(supabase, user.id, org.id),
     supabase.from("organizations").select("timezone").eq("id", org.id).maybeSingle(),
     getFamilyUserProfile(supabase, user.id, org.id, user),
-    listSchoolPortalOptionsForUser(supabase, user.id, slug),
   ]);
+
+  const portalOptions = await listSchoolPortalOptionsForUser(supabase, user.id, slug, {
+    org,
+    hasEnrolledAccess,
+  });
 
   const timezone =
     typeof timezoneResult.data?.timezone === "string" &&

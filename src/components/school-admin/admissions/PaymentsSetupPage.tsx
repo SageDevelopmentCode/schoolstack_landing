@@ -39,6 +39,7 @@ import type {
   ConnectStatusResult,
 } from "@/lib/stripe/connect-status";
 import { STRIPE_DASHBOARD_LINK_SENTINEL } from "@/lib/stripe/connect-status";
+import { openStripeConnectDashboard } from "@/lib/stripe/open-stripe-dashboard";
 import PaymentsHistoryPanel from "./PaymentsHistoryPanel";
 
 type PaymentsSetupPageProps = {
@@ -654,9 +655,11 @@ export default function PaymentsSetupPage({
   const phase = getSetupPhase(loading, isReady, hasAccount);
   const isPolling = phase === "in_progress" && !isReady;
 
-  if (!isPolling && pollExhausted) {
-    setPollExhausted(false);
-  }
+  useEffect(() => {
+    if (!isPolling && pollExhausted) {
+      setPollExhausted(false);
+    }
+  }, [isPolling, pollExhausted]);
 
   useEffect(() => {
     if (!isPolling) return;
@@ -709,18 +712,7 @@ export default function PaymentsSetupPage({
     setError(null);
 
     try {
-      const response = await fetch("/api/stripe/connect/dashboard-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: orgId }),
-      });
-      const payload = (await response.json()) as { url?: string; error?: string };
-
-      if (!response.ok || !payload.url) {
-        throw new Error(payload.error ?? "Failed to open Stripe dashboard.");
-      }
-
-      window.open(payload.url, "_blank", "noopener,noreferrer");
+      await openStripeConnectDashboard(orgId);
       adminToast.success("Stripe dashboard opened");
     } catch (err) {
       const message = formatActionError(err, "Failed to open Stripe dashboard.");

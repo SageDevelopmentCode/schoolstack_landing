@@ -346,8 +346,16 @@ export async function fetchFamilyBillingReadiness(
 ): Promise<FamilyBillingReadiness> {
   const { organizationId, familyId, slug } = input;
 
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id, first_name, last_name")
+    .eq("family_id", familyId);
+
+  if (studentsError) throw studentsError;
+
+  const familyStudentIds = (students ?? []).map((row) => String(row.id));
+
   const [
-    { data: students, error: studentsError },
     { data: enrollments, error: enrollmentsError },
     { data: assignments, error: assignmentsError },
     { data: charges, error: chargesError },
@@ -356,15 +364,19 @@ export async function fetchFamilyBillingReadiness(
     { data: tiers, error: tiersError },
     { data: paymentPlans, error: paymentPlansError },
   ] = await Promise.all([
-    supabase
-      .from("students")
-      .select("id, first_name, last_name")
-      .eq("family_id", familyId),
-    supabase
-      .from("enrollments")
-      .select("id, student_id, program_id, status")
-      .eq("organization_id", organizationId)
-      .eq("status", "enrolled"),
+    familyStudentIds.length > 0
+      ? supabase
+          .from("enrollments")
+          .select("id, student_id, program_id, status")
+          .eq("organization_id", organizationId)
+          .eq("status", "enrolled")
+          .in("student_id", familyStudentIds)
+      : Promise.resolve({ data: [] as Array<{
+          id: string;
+          student_id: string;
+          program_id: string;
+          status: string;
+        }>, error: null }),
     supabase
       .from("tuition_enrollment_assignments")
       .select(
@@ -394,7 +406,6 @@ export async function fetchFamilyBillingReadiness(
       .eq("organization_id", organizationId),
   ]);
 
-  if (studentsError) throw studentsError;
   if (enrollmentsError) throw enrollmentsError;
   if (assignmentsError) throw assignmentsError;
   if (chargesError) throw chargesError;
@@ -403,7 +414,6 @@ export async function fetchFamilyBillingReadiness(
   if (tiersError) throw tiersError;
   if (paymentPlansError) throw paymentPlansError;
 
-  const familyStudentIds = new Set((students ?? []).map((row) => String(row.id)));
   const studentMap = new Map(
     (students ?? []).map((student) => [
       String(student.id),
@@ -423,9 +433,7 @@ export async function fetchFamilyBillingReadiness(
     (paymentPlans ?? []).map((plan) => [String(plan.id), String(plan.name)]),
   );
 
-  const familyEnrollments = (enrollments ?? []).filter((enrollment) =>
-    familyStudentIds.has(String(enrollment.student_id)),
-  );
+  const familyEnrollments = enrollments ?? [];
   const enrolledEnrollmentIds = familyEnrollments.map((enrollment) =>
     String(enrollment.id),
   );

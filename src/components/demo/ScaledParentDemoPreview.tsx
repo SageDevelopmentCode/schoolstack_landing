@@ -1,111 +1,124 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
-import {
-  LazyAustinMicroSchoolParentDashboardDemo,
-  prefetchAustinMicroSchoolParentDemo,
-} from "@/components/demo/austinmicroschool/lazyAustinMicroSchoolDemos";
-import {
-  LazyKineoSchoolParentDashboardDemo,
-  prefetchKineoSchoolParentDemo,
-} from "@/components/demo/kineoschool/lazyKineoSchoolDemos";
-import {
-  LazyAthenaParentDashboardDemo,
-  prefetchAthenaParentDemo,
-} from "@/components/demo/athena/lazyAthenaDemos";
-import {
-  LazyWonderingOaksLearningParentDashboardDemo,
-  prefetchWonderingOaksLearningParentDemo,
-} from "@/components/demo/wonderingoakslearning/lazyWonderingOaksLearningDemos";
-import {
-  LazyWildHeartsAdventureParentDashboardDemo,
-  prefetchWildHeartsAdventureParentDemo,
-} from "@/components/demo/wildheartsadventure/lazyWildHeartsAdventureDemos";
-import {
-  LazyNaturesSchoolhouseParentDashboardDemo,
-  prefetchNaturesSchoolhouseParentDemo,
-} from "@/components/demo/natureschoolhouse/lazyNaturesSchoolhouseDemos";
-import {
-  LazyTheWoodlandsMicroschoolParentDashboardDemo,
-  prefetchTheWoodlandsMicroschoolParentDemo,
-} from "@/components/demo/thewoodlandsmicroschool/lazyTheWoodlandsMicroschoolDemos";
-import {
-  LazyWonderHereParentDashboardDemo,
-  prefetchWonderHereParentDemo,
-} from "@/components/demo/wonderhere/lazyWonderHereDemos";
-import {
-  LazyMonarchHillsParentDashboardDemo,
-  prefetchMonarchHillsParentDemo,
-} from "@/components/demo/monarchhills/lazyMonarchHillsDemos";
-import {
-  LazyHiltonHorizonParentDashboardDemo,
-  prefetchHiltonHorizonParentDemo,
-} from "@/components/demo/hiltonhorizon/lazyHiltonHorizonDemos";
-import {
-  LazyZoeLearningHouseParentDashboardDemo,
-  prefetchZoeLearningHouseParentDemo,
-} from "@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos";
-import {
-  LazyMicahMissionParentDashboardDemo,
-  prefetchMicahMissionParentDemo,
-} from "@/components/demo/micahmission/lazyMicahMissionDemos";
-import {
-  LazyHomeworkHubParentDashboardDemo,
-  prefetchHomeworkHubParentDemo,
-} from "@/components/demo/homeworkhub/lazyHomeworkHubDemos";
-import {
-  LazyAscendMicroschoolParentDashboardDemo,
-  prefetchAscendMicroschoolParentDemo,
-} from "@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos";
-import {
-  LazyRootedMeadowsParentDashboardDemo,
-  prefetchRootedMeadowsParentDemo,
-} from "@/components/demo/rootedmeadows/lazyRootedMeadowsDemos";
-import {
-  LazyPrestigeHomeschoolAcademyParentDashboardDemo,
-  prefetchPrestigeHomeschoolAcademyParentDemo,
-} from "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos";
-import {
-  LazySpringRiverSchoolParentDashboardDemo,
-  prefetchSpringRiverSchoolParentDemo,
-} from "@/components/demo/springriverschool/lazySpringRiverSchoolDemos";
-import {
-  LazyArizonaGiftedAcademyParentDashboardDemo,
-  prefetchArizonaGiftedAcademyParentDemo,
-} from "@/components/demo/arizonagiftedacademy/lazyArizonaGiftedAcademyDemos";
-import {
-  LazyLighthouseHomeschoolParentDashboardDemo,
-  prefetchLighthouseHomeschoolParentDemo,
-} from "@/components/demo/lighthousehomeschool/lazyLighthouseHomeschoolDemos";
-import {
-  LazyLuffLearningParentDashboardDemo,
-  prefetchLuffLearningParentDemo,
-} from "@/components/demo/lufflearning/lazyLuffLearningDemos";
-import {
-  LazyParadiseEarthAcademyParentDashboardDemo,
-  prefetchParadiseEarthAcademyParentDemo,
-} from "@/components/demo/paradiseearthacademy/lazyParadiseEarthAcademyDemos";
-import {
-  LazyCreationAcresParentDashboardDemo,
-  prefetchCreationAcresParentDemo,
-} from "@/components/demo/creationacres/lazyCreationAcresDemos";
-import {
-  LazyTrueNorthParentDashboardDemo,
-  prefetchTrueNorthParentDemo,
-} from "@/components/demo/truenorth/lazyTrueNorthDemos";
-import {
-  LazyLabLearningParentDashboardDemo,
-  prefetchLabLearningParentDemo,
-} from "@/components/demo/lablearning/lazyLabLearningDemos";
-import {
-  LazyOneAcreFarmParentDashboardDemo,
-  prefetchOneAcreFarmParentDemo,
-} from "@/components/demo/oneacrefarm/lazyOneAcreFarmDemos";
-import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
+import type { DemoWalkthroughParentTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
+
+type DemoComponent = ComponentType<Record<string, unknown>>;
+
+const LOADERS: Record<string, () => Promise<{ default: DemoComponent }>> = {
+  "austin-micro-school": () =>
+    import("@/components/demo/austinmicroschool/lazyAustinMicroSchoolDemos").then(
+      (m) => ({ default: m.LazyAustinMicroSchoolParentDashboardDemo }),
+    ),
+  "kineo-school": () =>
+    import("@/components/demo/kineoschool/lazyKineoSchoolDemos").then((m) => ({
+      default: m.LazyKineoSchoolParentDashboardDemo,
+    })),
+  "hilton-horizons-academy": () =>
+    import("@/components/demo/hiltonhorizon/lazyHiltonHorizonDemos").then((m) => ({
+      default: m.LazyHiltonHorizonParentDashboardDemo,
+    })),
+  "zoe-learning-house": () =>
+    import("@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos").then(
+      (m) => ({ default: m.LazyZoeLearningHouseParentDashboardDemo }),
+    ),
+  "monarch-hills-education": () =>
+    import("@/components/demo/monarchhills/lazyMonarchHillsDemos").then((m) => ({
+      default: m.LazyMonarchHillsParentDashboardDemo,
+    })),
+  "wondering-oaks-learning": () =>
+    import(
+      "@/components/demo/wonderingoakslearning/lazyWonderingOaksLearningDemos"
+    ).then((m) => ({ default: m.LazyWonderingOaksLearningParentDashboardDemo })),
+  "wild-hearts-adventure": () =>
+    import(
+      "@/components/demo/wildheartsadventure/lazyWildHeartsAdventureDemos"
+    ).then((m) => ({ default: m.LazyWildHeartsAdventureParentDashboardDemo })),
+  "natures-schoolhouse": () =>
+    import(
+      "@/components/demo/natureschoolhouse/lazyNaturesSchoolhouseDemos"
+    ).then((m) => ({ default: m.LazyNaturesSchoolhouseParentDashboardDemo })),
+  "the-woodlands-microschool": () =>
+    import(
+      "@/components/demo/thewoodlandsmicroschool/lazyTheWoodlandsMicroschoolDemos"
+    ).then((m) => ({
+      default: m.LazyTheWoodlandsMicroschoolParentDashboardDemo,
+    })),
+  "wonderhere-lakeland": () =>
+    import("@/components/demo/wonderhere/lazyWonderHereDemos").then((m) => ({
+      default: m.LazyWonderHereParentDashboardDemo,
+    })),
+  "micahs-mission-school": () =>
+    import("@/components/demo/micahmission/lazyMicahMissionDemos").then((m) => ({
+      default: m.LazyMicahMissionParentDashboardDemo,
+    })),
+  "homework-hub": () =>
+    import("@/components/demo/homeworkhub/lazyHomeworkHubDemos").then((m) => ({
+      default: m.LazyHomeworkHubParentDashboardDemo,
+    })),
+  "ascend-micro-school": () =>
+    import("@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos").then(
+      (m) => ({ default: m.LazyAscendMicroschoolParentDashboardDemo }),
+    ),
+  "rooted-meadows": () =>
+    import("@/components/demo/rootedmeadows/lazyRootedMeadowsDemos").then((m) => ({
+      default: m.LazyRootedMeadowsParentDashboardDemo,
+    })),
+  "prestige-homeschool-academy": () =>
+    import(
+      "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos"
+    ).then((m) => ({
+      default: m.LazyPrestigeHomeschoolAcademyParentDashboardDemo,
+    })),
+  "spring-river-school": () =>
+    import("@/components/demo/springriverschool/lazySpringRiverSchoolDemos").then(
+      (m) => ({ default: m.LazySpringRiverSchoolParentDashboardDemo }),
+    ),
+  "arizona-gifted-academy": () =>
+    import(
+      "@/components/demo/arizonagiftedacademy/lazyArizonaGiftedAcademyDemos"
+    ).then((m) => ({ default: m.LazyArizonaGiftedAcademyParentDashboardDemo })),
+  "lighthouse-homeschool": () =>
+    import(
+      "@/components/demo/lighthousehomeschool/lazyLighthouseHomeschoolDemos"
+    ).then((m) => ({ default: m.LazyLighthouseHomeschoolParentDashboardDemo })),
+  "luff-learning": () =>
+    import("@/components/demo/lufflearning/lazyLuffLearningDemos").then((m) => ({
+      default: m.LazyLuffLearningParentDashboardDemo,
+    })),
+  "paradise-earth-academy": () =>
+    import(
+      "@/components/demo/paradiseearthacademy/lazyParadiseEarthAcademyDemos"
+    ).then((m) => ({ default: m.LazyParadiseEarthAcademyParentDashboardDemo })),
+  "creation-acres": () =>
+    import("@/components/demo/creationacres/lazyCreationAcresDemos").then((m) => ({
+      default: m.LazyCreationAcresParentDashboardDemo,
+    })),
+  "true-north": () =>
+    import("@/components/demo/truenorth/lazyTrueNorthDemos").then((m) => ({
+      default: m.LazyTrueNorthParentDashboardDemo,
+    })),
+  "lab-learning": () =>
+    import("@/components/demo/lablearning/lazyLabLearningDemos").then((m) => ({
+      default: m.LazyLabLearningParentDashboardDemo,
+    })),
+  "one-acre-farm": () =>
+    import("@/components/demo/oneacrefarm/lazyOneAcreFarmDemos").then((m) => ({
+      default: m.LazyOneAcreFarmParentDashboardDemo,
+    })),
+  "athena-microacademy": () =>
+    import("@/components/demo/athena/lazyAthenaDemos").then((m) => ({
+      default: m.LazyAthenaParentDashboardDemo,
+    })),
+};
+
+function loadDemo(slug: string) {
+  return (LOADERS[slug] ?? LOADERS["athena-microacademy"])();
+}
 
 export default function ScaledParentDemoPreview({
   demoSlug = "athena-microacademy",
@@ -122,124 +135,41 @@ export default function ScaledParentDemoPreview({
   billingChildIds?: readonly ("emma" | "jake" | "liam")[];
   tuitionOverride?: DemoTuitionOverride | null;
   initialCommitteeId?: string;
-  initialCommitteeSection?: "home" | "about" | "resources" | "calendar" | "tasks" | "messages" | "members" | "settings";
+  initialCommitteeSection?:
+    | "home"
+    | "about"
+    | "resources"
+    | "calendar"
+    | "tasks"
+    | "messages"
+    | "members"
+    | "settings";
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
-  const isAustinMicroSchool = demoSlug === "austin-micro-school";
-  const isKineoSchool = demoSlug === "kineo-school";
-  const isHiltonHorizons = demoSlug === "hilton-horizons-academy";
-  const isZoeLearningHouse = demoSlug === "zoe-learning-house";
-  const isMonarchHills = demoSlug === "monarch-hills-education";
-  const isWonderingOaks = demoSlug === "wondering-oaks-learning";
-  const isWildHeartsAdventure = demoSlug === "wild-hearts-adventure";
-  const isNaturesSchoolhouse = demoSlug === "natures-schoolhouse";
-  const isTheWoodlandsMicroschool = demoSlug === "the-woodlands-microschool";
-  const isWonderHere = demoSlug === "wonderhere-lakeland";
-  const isMicahMissionSchool = demoSlug === "micahs-mission-school";
-  const isHomeworkHub = demoSlug === "homework-hub";
-  const isAscendMicroSchool = demoSlug === "ascend-micro-school";
+  const [DemoComponent, setDemoComponent] = useState<DemoComponent | null>(null);
   const isRootedMeadows = demoSlug === "rooted-meadows";
-  const isPrestigeHomeschoolAcademy = demoSlug === "prestige-homeschool-academy";
-  const isSpringRiverSchool = demoSlug === "spring-river-school";
-  const isArizonaGiftedAcademy = demoSlug === "arizona-gifted-academy";
-  const isLighthouseHomeschool = demoSlug === "lighthouse-homeschool";
-  const isLuffLearning = demoSlug === "luff-learning";
-  const isParadiseEarthAcademy = demoSlug === "paradise-earth-academy";
-  const isCreationAcres = demoSlug === "creation-acres";
-  const isTrueNorth = demoSlug === "true-north";
-  const isLabLearning = demoSlug === "lab-learning";
-  const isOneAcreFarm = demoSlug === "one-acre-farm";
 
   useEffect(() => {
-    if (isAustinMicroSchool) prefetchAustinMicroSchoolParentDemo();
-    else if (isKineoSchool) prefetchKineoSchoolParentDemo();
-    else if (isLabLearning) prefetchLabLearningParentDemo();
-    else if (isOneAcreFarm) prefetchOneAcreFarmParentDemo();
-    else if (isTrueNorth) prefetchTrueNorthParentDemo();
-    else if (isCreationAcres) prefetchCreationAcresParentDemo();
-    else if (isParadiseEarthAcademy) prefetchParadiseEarthAcademyParentDemo();
-    else if (isLuffLearning) prefetchLuffLearningParentDemo();
-    else if (isLighthouseHomeschool) prefetchLighthouseHomeschoolParentDemo();
-    else if (isSpringRiverSchool) prefetchSpringRiverSchoolParentDemo();
-    else if (isArizonaGiftedAcademy) prefetchArizonaGiftedAcademyParentDemo();
-    else if (isPrestigeHomeschoolAcademy) prefetchPrestigeHomeschoolAcademyParentDemo();
-    else if (isRootedMeadows) prefetchRootedMeadowsParentDemo();
-    else if (isAscendMicroSchool) prefetchAscendMicroschoolParentDemo();
-    else if (isHomeworkHub) prefetchHomeworkHubParentDemo();
-    else if (isMicahMissionSchool) prefetchMicahMissionParentDemo();
-    else if (isHiltonHorizons) prefetchHiltonHorizonParentDemo();
-    else if (isZoeLearningHouse) prefetchZoeLearningHouseParentDemo();
-    else if (isMonarchHills) prefetchMonarchHillsParentDemo();
-    else if (isWonderingOaks) prefetchWonderingOaksLearningParentDemo();
-    else if (isWildHeartsAdventure) prefetchWildHeartsAdventureParentDemo();
-    else if (isNaturesSchoolhouse) prefetchNaturesSchoolhouseParentDemo();
-    else if (isTheWoodlandsMicroschool) prefetchTheWoodlandsMicroschoolParentDemo();
-    else if (isWonderHere) prefetchWonderHereParentDemo();
-    else prefetchAthenaParentDemo();
-  }, [isAustinMicroSchool, isKineoSchool, isLabLearning, isOneAcreFarm, isTrueNorth, isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
+    let cancelled = false;
+    setDemoComponent(null);
+    void loadDemo(demoSlug).then((mod) => {
+      if (!cancelled) setDemoComponent(() => mod.default);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [demoSlug]);
 
   useEffect(() => {
     const el = outerRef.current;
     if (!el) return;
-
     const update = () => setScale(el.offsetWidth / DESIGN_WIDTH);
     update();
-
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
-  const DemoComponent = isAustinMicroSchool
-    ? LazyAustinMicroSchoolParentDashboardDemo
-    : isKineoSchool
-    ? LazyKineoSchoolParentDashboardDemo
-    : isLabLearning
-    ? LazyLabLearningParentDashboardDemo
-    : isOneAcreFarm
-    ? LazyOneAcreFarmParentDashboardDemo
-    : isTrueNorth
-    ? LazyTrueNorthParentDashboardDemo
-    : isCreationAcres
-    ? LazyCreationAcresParentDashboardDemo
-    : isParadiseEarthAcademy
-    ? LazyParadiseEarthAcademyParentDashboardDemo
-    : isLuffLearning
-    ? LazyLuffLearningParentDashboardDemo
-    : isLighthouseHomeschool
-    ? LazyLighthouseHomeschoolParentDashboardDemo
-    : isSpringRiverSchool
-    ? LazySpringRiverSchoolParentDashboardDemo
-    : isArizonaGiftedAcademy
-    ? LazyArizonaGiftedAcademyParentDashboardDemo
-    : isPrestigeHomeschoolAcademy
-    ? LazyPrestigeHomeschoolAcademyParentDashboardDemo
-    : isRootedMeadows
-    ? LazyRootedMeadowsParentDashboardDemo
-    : isAscendMicroSchool
-    ? LazyAscendMicroschoolParentDashboardDemo
-    : isHomeworkHub
-    ? LazyHomeworkHubParentDashboardDemo
-    : isMicahMissionSchool
-    ? LazyMicahMissionParentDashboardDemo
-    : isHiltonHorizons
-    ? LazyHiltonHorizonParentDashboardDemo
-    : isZoeLearningHouse
-    ? LazyZoeLearningHouseParentDashboardDemo
-    : isMonarchHills
-      ? LazyMonarchHillsParentDashboardDemo
-      : isWonderingOaks
-        ? LazyWonderingOaksLearningParentDashboardDemo
-      : isWildHeartsAdventure
-        ? LazyWildHeartsAdventureParentDashboardDemo
-      : isNaturesSchoolhouse
-        ? LazyNaturesSchoolhouseParentDashboardDemo
-      : isTheWoodlandsMicroschool
-        ? LazyTheWoodlandsMicroschoolParentDashboardDemo
-      : isWonderHere
-        ? LazyWonderHereParentDashboardDemo
-        : LazyAthenaParentDashboardDemo;
 
   return (
     <DemoPreviewFrame variant="parent">
@@ -253,22 +183,26 @@ export default function ScaledParentDemoPreview({
             transformOrigin: "top left",
           }}
         >
-          <DemoComponent
-            initialTab={
-              initialParentTab as "home" | "enrollment" | "billing"
-            }
-            disableTour
-            hideNav={false}
-            enrollmentVariant={
-              isRootedMeadows && parentEnrollmentVariant === "prototype"
-                ? "prototype"
-                : "default"
-            }
-            billingChildIds={isRootedMeadows ? billingChildIds : undefined}
-            tuitionOverride={isRootedMeadows ? tuitionOverride : undefined}
-            initialCommitteeId={isRootedMeadows ? initialCommitteeId : undefined}
-            initialCommitteeSection={isRootedMeadows ? initialCommitteeSection : undefined}
-          />
+          {DemoComponent ? (
+            <DemoComponent
+              initialTab={
+                initialParentTab as "home" | "enrollment" | "billing"
+              }
+              disableTour
+              hideNav={false}
+              enrollmentVariant={
+                isRootedMeadows && parentEnrollmentVariant === "prototype"
+                  ? "prototype"
+                  : "default"
+              }
+              billingChildIds={isRootedMeadows ? billingChildIds : undefined}
+              tuitionOverride={isRootedMeadows ? tuitionOverride : undefined}
+              initialCommitteeId={isRootedMeadows ? initialCommitteeId : undefined}
+              initialCommitteeSection={
+                isRootedMeadows ? initialCommitteeSection : undefined
+              }
+            />
+          ) : null}
         </div>
       </div>
     </DemoPreviewFrame>

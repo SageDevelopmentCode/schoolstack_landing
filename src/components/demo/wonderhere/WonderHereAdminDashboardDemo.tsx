@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
-import ParentDashboardDemo from "@/components/sections/ParentDashboardDemo";
+import ParentDashboardDemo from "@/components/demo/ParentDashboardDemoLazy";
 import {
   WONDERHERE_ADMIN_COLORS,
   WONDERHERE_ADMIN_COMPACT_ROWS,

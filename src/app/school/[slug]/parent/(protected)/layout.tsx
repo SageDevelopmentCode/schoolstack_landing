@@ -60,18 +60,15 @@ export default async function SchoolParentProtectedLayout({
     redirect(`/school/${slug}/apply`);
   }
 
-  const userProfile = await getFamilyUserProfile(
-    supabase,
-    user.id,
-    org.id,
-    user,
-  );
-
-  const portalOptions = await listSchoolPortalOptionsForUser(
-    supabase,
-    user.id,
-    slug,
-  );
+  // Enrolled parents always have family access; skip re-checking both in the switcher.
+  const [userProfile, portalOptions] = await Promise.all([
+    getFamilyUserProfile(supabase, user.id, org.id, user),
+    listSchoolPortalOptionsForUser(supabase, user.id, slug, {
+      org,
+      hasEnrolledAccess: true,
+      hasFamilyAccess: true,
+    }),
+  ]);
 
   return (
     <SchoolParentBaseline

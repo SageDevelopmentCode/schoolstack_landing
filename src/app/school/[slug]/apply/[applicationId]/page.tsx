@@ -66,7 +66,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   const [application, userProfile, portalOptions] = await Promise.all([
     loadApplicationDetail(supabase, applicationId, org.id, user.id),
     getFamilyUserProfile(supabase, user.id, org.id, user),
-    listSchoolPortalOptionsForUser(supabase, user.id, slug),
+    listSchoolPortalOptionsForUser(supabase, user.id, slug, { org }),
   ]);
 
   if (!application) {

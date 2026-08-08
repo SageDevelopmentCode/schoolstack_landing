@@ -70,7 +70,10 @@ export default async function SchoolAdminProtectedLayout({
 
   const userProfile = user ? getSchoolAdminUserProfile(user) : null;
   const portalOptions = user
-    ? await listSchoolPortalOptionsForUser(supabase, user.id, slug)
+    ? await listSchoolPortalOptionsForUser(supabase, user.id, slug, {
+        org,
+        hasAdminAccess: true,
+      })
     : [];
 
   return (

@@ -22,6 +22,52 @@ export type ParentCommitteesInitialData = {
   workspacesByCommitteeId: Record<string, Committee>;
 };
 
+export async function loadParentCommitteesInitialData(input: {
+  organizationId: string;
+  userId: string;
+}): Promise<ParentCommitteesInitialData> {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const [browseCommittees, myCommittees] = await Promise.all([
+    listBrowsableCommitteesForParent(
+      supabase,
+      input.organizationId,
+      input.userId,
+    ),
+    listParentCommitteeMemberships(
+      supabase,
+      input.organizationId,
+      input.userId,
+    ),
+  ]);
+
+  const workspacesByCommitteeId: Record<string, Committee> = {};
+  const workspaceResults = await Promise.allSettled(
+    myCommittees.map((committee) =>
+      getParentCommitteeWorkspace(
+        supabase,
+        input.organizationId,
+        input.userId,
+        committee.id,
+      ).then((workspace) => [committee.id, workspace] as const),
+    ),
+  );
+
+  for (const result of workspaceResults) {
+    if (result.status === "fulfilled") {
+      const [committeeId, workspace] = result.value;
+      workspacesByCommitteeId[committeeId] = workspace;
+    }
+  }
+
+  return {
+    browseCommittees,
+    myCommittees,
+    workspacesByCommitteeId,
+  };
+}
+
 export async function loadParentCommitteesPreviewData(input: {
   organizationId: string;
   familyId: string;

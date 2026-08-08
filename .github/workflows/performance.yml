@@ -81,15 +81,49 @@ jobs:
           ZOHO_SMTP_USER: ""
           ZOHO_SMTP_PASSWORD: ""
 
-      - name: Run Lighthouse CI
+      - name: Run Lighthouse CI (mobile)
         run: npm run performance:ci
         env:
           CI: true
+          PERFORMANCE_FORM_FACTOR: mobile
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
           PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+      - name: Upload mobile Lighthouse results to Supabase
+        if: success()
+        run: npm run performance:ci:upload
+        env:
+          CI: true
+          PERFORMANCE_FORM_FACTOR: mobile
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Run Lighthouse CI (desktop)
+        run: npm run performance:ci
+        env:
+          CI: true
+          PERFORMANCE_FORM_FACTOR: desktop
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+      - name: Upload desktop Lighthouse results to Supabase
+        if: success()
+        run: npm run performance:ci:upload
+        env:
+          CI: true
+          PERFORMANCE_FORM_FACTOR: desktop
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Upload Lighthouse CI reports
         if: always()
@@ -98,16 +132,6 @@ jobs:
           name: lighthouse-ci
           path: .lighthouseci/
           retention-days: 7
-
-      - name: Upload results to Supabase
-        if: success()
-        run: npm run performance:ci:upload
-        env:
-          CI: true
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
   notify:
     needs: lighthouse

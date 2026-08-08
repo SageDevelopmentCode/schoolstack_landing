@@ -6,7 +6,7 @@
 |----------|---------|--------------|
 | [lint.yml](./lint.yml) | PR / push to `main` | `npm run lint:errors` |
 | [e2e.yml](./e2e.yml) | PR / push to `main` | Playwright E2E with local Supabase |
-| [performance.yml](./performance.yml) | PR / push to `main` | Lighthouse CI on production build with local Supabase + authenticated admin/parent audits (mobile) |
+| [performance.yml](./performance.yml) | PR / push to `main` | Lighthouse CI on production build with local Supabase + authenticated admin/parent audits (mobile and desktop) |
 
 ## Performance CI
 
@@ -15,9 +15,9 @@ The [performance.yml](./performance.yml) workflow:
 1. Starts local Supabase (`supabase start` + `supabase db reset`) and exports E2E env vars
 2. Seeds the database and creates Playwright auth storage states (`npm run performance:ci:prepare`)
 3. Builds the production Next.js app with local `NEXT_PUBLIC_SUPABASE_*` baked in (`npm run build`)
-4. Runs `npm run performance:ci` (`lhci autorun` via [`lighthouserc.js`](../../lighthouserc.js)) — a Puppeteer script injects E2E cookies per URL so admin dashboard/submissions and parent portal pages audit real authenticated shells
-5. Uploads `.lighthouseci/` reports as a workflow artifact (7-day retention)
-6. Optionally uploads results to Supabase (`environment: ci`) when repository secrets are set
+4. Runs Lighthouse CI twice via `npm run performance:ci` (`lhci autorun` with `PERFORMANCE_FORM_FACTOR=mobile` then `desktop`) — a Puppeteer script injects E2E cookies per URL so admin dashboard/submissions and parent portal pages audit real authenticated shells
+5. Uploads mobile and desktop results to Supabase (`environment: ci`, separate `form_factor` per run) when repository secrets are set
+6. Uploads `.lighthouseci/` reports as a workflow artifact (7-day retention; desktop pass overwrites the artifact from the mobile pass)
 
 **Auth mapping** (from [`page-manifest.ts`](../../src/lib/performance/page-manifest.ts)):
 
@@ -38,8 +38,10 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<from supabase status> \
 SUPABASE_SERVICE_ROLE_KEY=<from supabase status> \
 NEXT_PUBLIC_SITE_URL=http://localhost:3000 \
 npm run build
-npm run performance:ci
-npm run performance:ci:upload   # requires production Supabase env vars
+npm run performance:ci:mobile
+PERFORMANCE_FORM_FACTOR=mobile npm run performance:ci:upload   # requires production Supabase env vars
+npm run performance:ci:desktop
+PERFORMANCE_FORM_FACTOR=desktop npm run performance:ci:upload
 ```
 
 Assertions start at **warn** level (performance score ≥ 60, LCP ≤ 5s, etc.) so baselines can be established before tightening to hard failures.
@@ -66,6 +68,8 @@ To surface PR Lighthouse scores in `/admin/performance` (CI tab), add repository
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 Apply migration [`20260719_add_performance_ci_environment.sql`](../../supabase/migrations/20260719_add_performance_ci_environment.sql) on the target project first.
+
+Historical CI rows are mobile-only until a PR runs after the mobile+desktop workflow ships; use the **Desktop** tab to view desktop scores once uploaded.
 
 ### Troubleshooting Performance CI
 

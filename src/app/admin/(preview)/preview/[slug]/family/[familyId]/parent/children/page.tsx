@@ -54,6 +54,7 @@ export default async function FamilyPreviewParentChildrenPage({ params }: PagePr
     familyId,
   );
 
+  // Preview uses admin-scoped loaders; preload so client RLS does not block panel opens.
   const childProfileEntries = await Promise.all(
     familyChildren.map(async (child) => {
       const [application, checklist] = await Promise.all([
@@ -88,6 +89,7 @@ export default async function FamilyPreviewParentChildrenPage({ params }: PagePr
         branding={org.branding}
         schoolName={org.name}
         schoolSlug={slug}
+        organizationId={org.id}
         familyChildren={familyChildren}
         childProfiles={childProfiles}
         previewBasePath={familyPreviewBasePath(slug, familyId)}

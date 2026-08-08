@@ -146,6 +146,9 @@ export function parseDraftProgress(
 
 export function formatSubmissionProgress(submission: AdminApplicationSubmission): string {
   if (submission.status === "draft") {
+    if (submission.totalSteps <= 0) {
+      return "Draft";
+    }
     return `Step ${submission.stepIndex + 1} of ${submission.totalSteps}`;
   }
 
@@ -204,6 +207,47 @@ const APPLICATION_SUBMISSION_SELECT = `
   )
 `;
 
+/** List/table payload — omits bulky schema + responses JSON. */
+const APPLICATION_SUBMISSION_LIST_SELECT = `
+  id,
+  status,
+  fee_status,
+  primary_guardian_id,
+  created_at,
+  submitted_at,
+  updated_at,
+  application_form_versions!inner (
+    title,
+    public_slug,
+    fee_config,
+    post_submit_config
+  ),
+  guardians:primary_guardian_id (
+    id,
+    first_name,
+    last_name,
+    email
+  ),
+  families (
+    name,
+    primary_email
+  ),
+  programs (
+    name
+  ),
+  students:student_id (
+    first_name,
+    last_name
+  )
+`;
+
+export const ORG_SUBMISSIONS_LIST_DEFAULT_LIMIT = 100;
+
+export type ListOrgApplicationSubmissionsOptions = {
+  limit?: number;
+  offset?: number;
+};
+
 function mapApplicationRowToAdminSubmission(
   row: Record<string, unknown>,
   visitsByApplicationId: Map<string, Awaited<ReturnType<typeof listScheduledVisitsForApplications>>>,
@@ -226,10 +270,15 @@ function mapApplicationRowToAdminSubmission(
         }[]
       | null;
     const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
-    const schema = (form?.schema as ApplicationFormSchema) ?? { sections: [], acknowledgments: [] };
+    const schema = form?.schema as ApplicationFormSchema | undefined;
+    const hasFullPayload = schema != null && row.responses !== undefined;
     const feeConfig = parseApplicationFormFeeConfig(form?.fee_config);
-    const responses = parseStringRecord(row.responses);
-    const { stepIndex, totalSteps } = parseDraftProgress(row.responses, schema);
+    const responses = hasFullPayload
+      ? parseStringRecord(row.responses)
+      : {};
+    const { stepIndex, totalSteps } = hasFullPayload && schema
+      ? parseDraftProgress(row.responses, schema)
+      : { stepIndex: 0, totalSteps: 0 };
 
     const guardian = row.guardians as
       | { id?: string; first_name?: string; last_name?: string; email?: string | null }
@@ -295,7 +344,7 @@ function mapApplicationRowToAdminSubmission(
         guardianRow?.email?.trim() ||
         familyRow?.primary_email?.trim() ||
         null,
-      studentLabel: studentFromTable ?? extractStudentLabel(responses),
+      studentLabel: studentFromTable ?? (hasFullPayload ? extractStudentLabel(responses) : null),
       stepIndex,
       totalSteps,
       createdAt: String(row.created_at),
@@ -310,39 +359,27 @@ function mapApplicationRowToAdminSubmission(
 export async function listOrgApplicationSubmissions(
   supabase: SupabaseClient,
   organizationId: string,
+  options: ListOrgApplicationSubmissionsOptions = {},
 ): Promise<AdminApplicationSubmission[]> {
+  const limit = Math.min(
+    Math.max(options.limit ?? ORG_SUBMISSIONS_LIST_DEFAULT_LIMIT, 1),
+    500,
+  );
+  const offset = Math.max(options.offset ?? 0, 0);
+
   const { data, error } = await supabase
     .from("applications")
-    .select(APPLICATION_SUBMISSION_SELECT)
+    .select(APPLICATION_SUBMISSION_LIST_SELECT)
     .eq("organization_id", organizationId)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) throw error;
 
-  const rows = data ?? [];
-  const submittedIds = rows
-    .filter((row) => String(row.status) !== "draft")
-    .map((row) => String(row.id));
-  const applicationIds = rows.map((row) => String(row.id));
-  const visits = await listScheduledVisitsForApplications(supabase, submittedIds);
-  const enrollmentByApplicationId = await listEnrollmentProgressForApplications(
+  return mapApplicationRowsToAdminSubmissions(
     supabase,
     organizationId,
-    applicationIds,
-  );
-  const visitsByApplicationId = new Map<string, typeof visits>();
-  for (const visit of visits) {
-    const existing = visitsByApplicationId.get(visit.applicationId) ?? [];
-    existing.push(visit);
-    visitsByApplicationId.set(visit.applicationId, existing);
-  }
-
-  return rows.map((row) =>
-    mapApplicationRowToAdminSubmission(
-      row as Record<string, unknown>,
-      visitsByApplicationId,
-      enrollmentByApplicationId,
-    ),
+    (data ?? []) as Record<string, unknown>[],
   );
 }
 
@@ -422,12 +459,14 @@ async function mapApplicationRowsToAdminSubmissions(
     .filter((row) => String(row.status) !== "draft")
     .map((row) => String(row.id));
   const applicationIds = rows.map((row) => String(row.id));
-  const visits = await listScheduledVisitsForApplications(supabase, submittedIds);
-  const enrollmentByApplicationId = await listEnrollmentProgressForApplications(
-    supabase,
-    organizationId,
-    applicationIds,
-  );
+  const [visits, enrollmentByApplicationId] = await Promise.all([
+    listScheduledVisitsForApplications(supabase, submittedIds),
+    listEnrollmentProgressForApplications(
+      supabase,
+      organizationId,
+      applicationIds,
+    ),
+  ]);
   const visitsByApplicationId = new Map<string, typeof visits>();
   for (const visit of visits) {
     const existing = visitsByApplicationId.get(visit.applicationId) ?? [];

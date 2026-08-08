@@ -102,7 +102,7 @@ export default function LoginExperience({ organizations }: LoginExperienceProps)
       setActiveSlide((index) => (index + 1) % AUTH_GATE_PROMO.slides.length);
     }, AUTH_GATE_PROMO.slideIntervalMs);
     return () => clearInterval(id);
-  }, [activeSlide]);
+  }, []);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;

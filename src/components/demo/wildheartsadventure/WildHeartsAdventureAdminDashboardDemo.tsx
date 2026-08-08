@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo, createContext, useCo
 import Image from "next/image";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
-import ParentDashboardDemo from "@/components/sections/ParentDashboardDemo";
+import ParentDashboardDemo from "@/components/demo/ParentDashboardDemoLazy";
 import {
   WILD_HEARTS_ADMIN_COLORS,
   WILD_HEARTS_ADMIN_COMPACT_ROWS,

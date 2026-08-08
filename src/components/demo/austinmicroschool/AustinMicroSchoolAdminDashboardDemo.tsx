@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo, createContext, useCo
 import Image from "next/image";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
-import ParentDashboardDemo from "@/components/sections/ParentDashboardDemo";
+import ParentDashboardDemo from "@/components/demo/ParentDashboardDemoLazy";
 import {
   AUSTIN_MICRO_SCHOOL_ADMIN_COLORS,
   AUSTIN_MICRO_SCHOOL_ADMIN_COMPACT_ROWS,

@@ -65,6 +65,41 @@ describe("formatActivityNotificationDetail", () => {
     );
   });
 
+  it("uses guardian and student labels for enrollment checklist payments", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+        "Georgie S.",
+        "Enrollment checklist payment completed",
+        "$655",
+        null,
+        {
+          guardianLabel: "Candace S.",
+          paymentLabel: "Supply and Activities Fee",
+          entityType: "enrollment_checklist_item",
+        },
+      ),
+      "Candace S. paid a $655 Supply and Activities Fee for Georgie S.",
+    );
+  });
+
+  it("uses application fee fallback for application entity payments", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+        "Georgie S.",
+        "Application fee payment completed",
+        "$150",
+        null,
+        {
+          guardianLabel: "Candace S.",
+          entityType: "application",
+        },
+      ),
+      "Candace S. paid a $150 application fee for Georgie S.",
+    );
+  });
+
   it("uses short subject label for enrollment copy", () => {
     assert.equal(
       formatActivityNotificationDetail(
@@ -73,6 +108,62 @@ describe("formatActivityNotificationDetail", () => {
         "Enrollment completed",
       ),
       "Nina T. finished enrollment",
+    );
+  });
+
+  it("uses guardian and student labels for enrollment completed", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED,
+        "Georgie S.",
+        "Enrollment completed",
+        null,
+        null,
+        { guardianLabel: "Candace S." },
+      ),
+      "Candace S. finished enrollment for Georgie S.",
+    );
+  });
+
+  it("uses guardian and student labels for application submitted", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.APPLICATION_SUBMITTED,
+        "Georgie S.",
+        "Application submitted",
+        null,
+        null,
+        { guardianLabel: "Candace S." },
+      ),
+      "Candace S. submitted an application for Georgie S.",
+    );
+  });
+
+  it("uses guardian and student labels for visit scheduled", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED,
+        "Georgie S.",
+        "Visit scheduled",
+        null,
+        null,
+        { guardianLabel: "Candace S." },
+      ),
+      "Candace S. scheduled a visit for Georgie S.",
+    );
+  });
+
+  it("keeps school-driven accepted copy child-centric", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.APPLICATION_ACCEPTED,
+        "Georgie S.",
+        "Application accepted",
+        null,
+        null,
+        { guardianLabel: "Candace S." },
+      ),
+      "Georgie S.'s application was accepted",
     );
   });
 

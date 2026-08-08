@@ -9,6 +9,7 @@ import DetailPanelStepTimeline, {
   type DetailPanelStepTimelineItem,
 } from "@/components/school-admin/admissions/DetailPanelStepTimeline";
 import { AdmissionsFamilyAccessGuideButton } from "@/components/school-admin/admissions/AdmissionsFamilyAccessGuide";
+import AdminDashboardQuickLinksPanel from "@/components/school-admin/AdminDashboardQuickLinksPanel";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -153,10 +154,14 @@ export default function AdminDashboardPage({
     status.steps.find((step) => step.id === status.firstIncompleteStepId) ?? null;
   const allComplete = status.completedCount === status.totalCount;
   const applyFormPublished = status.applyFormPublicPath !== null;
+  const stripeStepStatus =
+    status.steps.find((step) => step.id === "stripe")?.status ?? "not_started";
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-6 py-8">
-      <div className="mb-6 flex items-start gap-4">
+    <div className="flex h-full min-h-0 w-full flex-col lg:flex-row">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-3xl px-6 py-8">
+        <div className="mb-6 flex items-start gap-4">
         <div
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: C.accentGlow }}
@@ -178,12 +183,12 @@ export default function AdminDashboardPage({
             {hero.subtitle}
           </p>
         </div>
-      </div>
+        </div>
 
-      <div
-        className="rounded-lg border p-5"
-        style={{ backgroundColor: C.surface, borderColor: C.border }}
-      >
+        <div
+          className="rounded-lg border p-5"
+          style={{ backgroundColor: C.surface, borderColor: C.border }}
+        >
         <DetailPanelProgressBar
           C={C}
           completed={status.completedCount}
@@ -204,13 +209,13 @@ export default function AdminDashboardPage({
           activeItemId={status.firstIncompleteStepId}
           showStatusText
         />
-      </div>
+        </div>
 
-      {nextStep ? (
-        <div
-          className="mt-5 rounded-lg border p-5"
-          style={{ backgroundColor: C.surface, borderColor: C.border }}
-        >
+        {nextStep ? (
+          <div
+            className="mt-5 rounded-lg border p-5"
+            style={{ backgroundColor: C.surface, borderColor: C.border }}
+          >
           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
             Next step
           </p>
@@ -239,12 +244,12 @@ export default function AdminDashboardPage({
               />
             ) : null}
           </div>
-        </div>
-      ) : (
-        <div
-          className="mt-5 rounded-lg border p-5"
-          style={{ backgroundColor: C.surface, borderColor: C.border }}
-        >
+          </div>
+        ) : (
+          <div
+            className="mt-5 rounded-lg border p-5"
+            style={{ backgroundColor: C.surface, borderColor: C.border }}
+          >
           <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
             Admissions is live
           </p>
@@ -267,9 +272,19 @@ export default function AdminDashboardPage({
               publicPath={status.applyFormPublicPath}
               isPublished={applyFormPublished}
             />
+            </div>
           </div>
+        )}
         </div>
-      )}
+      </div>
+
+      <AdminDashboardQuickLinksPanel
+        organizationId={organizationId}
+        slug={slug}
+        C={C}
+        stripeStepStatus={stripeStepStatus}
+        applyFormPublicPath={status.applyFormPublicPath}
+      />
     </div>
   );
 }

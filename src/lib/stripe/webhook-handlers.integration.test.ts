@@ -316,6 +316,35 @@ describeIntegration("handleCheckoutSessionCompleted", () => {
     assert.equal(checklistItem?.status, "completed");
   });
 
+  it("logs one payment activity event when checkout and async_payment_succeeded both fire", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedEnrollmentChecklistPayment(admin);
+    const session = buildCheckoutSession({
+      id: fixture.checkoutSessionId,
+      paymentStatus: "paid",
+      metadata: {
+        payment_type: "enrollment_checklist",
+        checklist_item_id: fixture.checklistItemId,
+        organization_id: fixture.organizationId,
+        application_id: fixture.applicationId,
+        payment_id: fixture.paymentId,
+      },
+    });
+
+    await handleCheckoutSessionCompleted(admin, session);
+    await handleCheckoutSessionAsyncPaymentSucceeded(admin, session);
+
+    const { data: activityEvents, error } = await admin
+      .from("activity_events")
+      .select("id")
+      .eq("organization_id", fixture.organizationId)
+      .eq("action", ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED)
+      .contains("metadata", { paymentId: fixture.paymentId });
+
+    assert.ifError(error);
+    assert.equal(activityEvents?.length, 1);
+  });
+
   it("marks pending enrollment payment failed via async_payment_failed", async () => {
     const admin = createTestAdminClient();
     const fixture = await seedEnrollmentChecklistPayment(admin);

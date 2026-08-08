@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { Committee } from "@/lib/committees/types";
-import CommitteeWorkspaceShell from "@/components/school-admin/committees/CommitteeWorkspaceShell";
 import { parseCommitteeSection } from "@/components/school-admin/committees/committee-routing";
+import ParentCommitteeWorkspaceShell from "@/components/school-parent/committees/ParentCommitteeWorkspaceShell";
 import { createClient } from "@/utils/supabase/client";
 
 type ParentCommitteeWorkspaceProps = {
@@ -86,7 +86,7 @@ export default function ParentCommitteeWorkspace({
   }
 
   return (
-    <CommitteeWorkspaceShell
+    <ParentCommitteeWorkspaceShell
       committee={committee}
       C={C}
       supabase={supabase}
@@ -95,7 +95,6 @@ export default function ParentCommitteeWorkspace({
       onSectionChange={onSectionChange}
       onBack={onBack}
       onCommitteeChange={setCommittee}
-      readOnly
       backLabel="My committees"
     />
   );

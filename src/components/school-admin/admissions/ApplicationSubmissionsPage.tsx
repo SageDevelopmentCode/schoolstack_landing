@@ -155,42 +155,58 @@ export default function ApplicationSubmissionsPage({
 
   const flowsPath = schoolAdminPath(slug, "admissions", "flows");
 
+  const loadLoginStatus = useCallback(async () => {
+    try {
+      const loginResponse = await fetch(
+        `/api/admissions/organizations/${organizationId}/parent-login-status`,
+      );
+      if (!loginResponse.ok) {
+        setLoginStatusByGuardianId({});
+        return;
+      }
+      const loginBody = (await loginResponse.json()) as {
+        statuses?: ParentPortalLoginStatus[];
+      };
+      setLoginStatusByGuardianId(
+        Object.fromEntries(
+          (loginBody.statuses ?? []).map((status) => [status.guardianId, status]),
+        ),
+      );
+    } catch {
+      setLoginStatusByGuardianId({});
+    }
+  }, [organizationId]);
+
   const loadSubmissions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [rows, loginResponse] = await Promise.all([
-        listOrgApplicationSubmissions(supabase, organizationId),
-        fetch(`/api/admissions/organizations/${organizationId}/parent-login-status`),
+      const [rows] = await Promise.all([
+        listOrgApplicationSubmissions(supabase, organizationId, { limit: 500 }),
+        loadLoginStatus(),
       ]);
 
       setSubmissions(rows);
-
-      if (loginResponse.ok) {
-        const loginBody = (await loginResponse.json()) as {
-          statuses?: ParentPortalLoginStatus[];
-        };
-        const statusMap = Object.fromEntries(
-          (loginBody.statuses ?? []).map((status) => [status.guardianId, status]),
-        );
-        setLoginStatusByGuardianId(statusMap);
-      } else {
-        setLoginStatusByGuardianId({});
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load submissions.");
       setLoginStatusByGuardianId({});
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [loadLoginStatus, organizationId, supabase]);
 
   useEffect(() => {
-    if (hasInitialData) return;
+    if (hasInitialData) {
+      // Defer Auth Admin fan-out so SSR TTFB stays lean.
+      queueMicrotask(() => {
+        void loadLoginStatus();
+      });
+      return;
+    }
     queueMicrotask(() => {
       void loadSubmissions();
     });
-  }, [hasInitialData, loadSubmissions]);
+  }, [hasInitialData, loadLoginStatus, loadSubmissions]);
 
   useEffect(() => {
     if (!deepLinkApplicationId || loading) return;

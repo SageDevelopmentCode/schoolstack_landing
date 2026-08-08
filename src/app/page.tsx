@@ -86,7 +86,9 @@ export default function Home() {
       <Navbar />
       <main>
         <HeroSection />
-        <ProductPreviewSection />
+        <InViewSectionGate minHeight="32rem">
+          <ProductPreviewSection />
+        </InViewSectionGate>
         <InViewSectionGate minHeight="28rem">
           <PainSection />
         </InViewSectionGate>
