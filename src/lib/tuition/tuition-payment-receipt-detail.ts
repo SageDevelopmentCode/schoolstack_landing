@@ -30,12 +30,22 @@ function formatPaidAtLabel(iso: string): string {
   });
 }
 
-function resolvePaymentMethodLabel(
-  payment: ParentTuitionPaymentRecord,
+export function formatTuitionPaymentMethodLabel(
+  payment: Pick<
+    ParentTuitionPaymentRecord,
+    "paymentMethodType" | "stripeCheckoutSessionId"
+  >,
 ): string {
   if (payment.paymentMethodType === "card") return "Card";
   if (payment.paymentMethodType === "us_bank_account") return "Bank account";
+  if (payment.stripeCheckoutSessionId) return "Paid online";
   return "Manual payment";
+}
+
+function resolvePaymentMethodLabel(
+  payment: ParentTuitionPaymentRecord,
+): string {
+  return formatTuitionPaymentMethodLabel(payment);
 }
 
 export function resolveRelatedTuitionPayments(

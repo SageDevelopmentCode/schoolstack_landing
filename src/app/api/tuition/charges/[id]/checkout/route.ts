@@ -24,6 +24,7 @@ import {
   attachCheckoutSessionToPayment,
   listPendingPaymentsForTuitionCharge,
   markPaymentFailed,
+  updatePaymentCheckoutDetails,
 } from "@/lib/stripe/application-payments";
 import {
   expireOpenCheckoutSession,
@@ -234,6 +235,9 @@ export async function POST(request: Request, context: RouteContext) {
       }
     }
 
+    const studentName = await getStudentNameForCharge(admin, charge.id);
+    const quote = quoteProcessingFee(requestedAmountCents, body.paymentMethod);
+
     const payment = await createTuitionPaymentRecord(admin, {
       organizationId: charge.organizationId,
       familyId: charge.familyId,
@@ -242,15 +246,15 @@ export async function POST(request: Request, context: RouteContext) {
       label: charge.label,
       payerUserId: user.id,
       currency: charge.currency,
+      paymentMethodType: body.paymentMethod,
+      chargedAmountCents: quote.grossAmountCents,
+      processingFeeCents: quote.processingFeeCents,
     });
 
     const orgSlug = typeof body.orgSlug === "string" ? body.orgSlug : "school";
     const baseUrl = getSiteUrl();
     const successUrl = `${baseUrl}/school/${orgSlug}/parent/billing?paid=1`;
     const cancelUrl = `${baseUrl}/school/${orgSlug}/parent/billing?cancelled=1`;
-
-    const studentName = await getStudentNameForCharge(admin, charge.id);
-    const quote = quoteProcessingFee(requestedAmountCents, body.paymentMethod);
 
     const tuitionMetadata = {
       payment_type: "tuition",
@@ -318,6 +322,17 @@ export async function POST(request: Request, context: RouteContext) {
       session = result.session;
       processingFeeCents = result.quote.processingFeeCents;
       grossAmountCents = result.quote.grossAmountCents;
+    }
+
+    if (
+      processingFeeCents !== quote.processingFeeCents ||
+      grossAmountCents !== quote.grossAmountCents
+    ) {
+      await updatePaymentCheckoutDetails(admin, payment.id, {
+        paymentMethodType: body.paymentMethod,
+        chargedAmountCents: grossAmountCents,
+        processingFeeCents,
+      });
     }
 
     await attachCheckoutSessionToPayment(admin, payment.id, session.id);

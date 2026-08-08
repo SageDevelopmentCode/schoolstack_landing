@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { ParentTuitionPaymentRecord } from "./payments";
 import {
   buildTuitionPaymentReceiptDetail,
+  formatTuitionPaymentMethodLabel,
   resolveRelatedTuitionPayments,
 } from "./tuition-payment-receipt-detail";
 
@@ -142,5 +143,26 @@ describe("buildTuitionPaymentReceiptDetail", () => {
     ]);
 
     assert.equal(detail?.paymentMethodLabel, "Manual payment");
+  });
+
+  it("labels legacy Stripe checkout payments as paid online", () => {
+    assert.equal(
+      formatTuitionPaymentMethodLabel({
+        paymentMethodType: null,
+        stripeCheckoutSessionId: "cs_test",
+      }),
+      "Paid online",
+    );
+
+    const detail = buildTuitionPaymentReceiptDetail([
+      payment({
+        paymentMethodType: null,
+        stripeCheckoutSessionId: "cs_test",
+        chargedAmountCents: 300000,
+        processingFeeCents: 0,
+      }),
+    ]);
+
+    assert.equal(detail?.paymentMethodLabel, "Paid online");
   });
 });

@@ -30,6 +30,7 @@ import {
   listPaymentsByCheckoutSession,
   markPaymentFailed,
   markPaymentSucceeded,
+  syncPaymentCheckoutDetailsFromMetadata,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
 import {
@@ -567,6 +568,15 @@ async function handleTuitionCheckoutCompleted(
 
   if (!payment) {
     payment = await getApplicationPaymentByCheckoutSession(admin, checkoutSessionId);
+  }
+
+  if (payment) {
+    await syncPaymentCheckoutDetailsFromMetadata(admin, payment.id, metadata, {
+      paymentMethodType: payment.paymentMethodType,
+      chargedAmountCents: payment.chargedAmountCents,
+      processingFeeCents: payment.processingFeeCents,
+    });
+    payment = (await getPaymentById(admin, payment.id)) ?? payment;
   }
 
   const paymentSettled = session.payment_status === "paid";

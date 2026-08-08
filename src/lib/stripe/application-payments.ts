@@ -359,6 +359,95 @@ export async function markPaymentFailed(
   return current ? rowToPayment(current as Record<string, unknown>) : null;
 }
 
+type CheckoutMetadataPaymentFields = {
+  paymentMethodType: PaymentMethodType | null;
+  chargedAmountCents: number | null;
+  processingFeeCents: number | null;
+};
+
+export function parseCheckoutMetadataPaymentPatch(
+  metadata: Record<string, string | undefined> | null | undefined,
+  existing?: CheckoutMetadataPaymentFields,
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  const paymentMethod = metadata?.payment_method;
+
+  if (
+    !existing?.paymentMethodType &&
+    (paymentMethod === "card" || paymentMethod === "us_bank_account")
+  ) {
+    patch.payment_method_type = paymentMethod;
+  }
+
+  const grossAmountCents = metadata?.gross_amount_cents;
+  if (
+    existing?.chargedAmountCents == null &&
+    typeof grossAmountCents === "string" &&
+    grossAmountCents
+  ) {
+    patch.charged_amount_cents = Number(grossAmountCents);
+  }
+
+  const processingFeeCents = metadata?.processing_fee_cents;
+  if (
+    existing?.processingFeeCents == null &&
+    typeof processingFeeCents === "string" &&
+    processingFeeCents
+  ) {
+    patch.processing_fee_cents = Number(processingFeeCents);
+  }
+
+  return patch;
+}
+
+export async function updatePaymentCheckoutDetails(
+  supabase: SupabaseClient,
+  paymentId: string,
+  input: {
+    chargedAmountCents?: number;
+    processingFeeCents?: number;
+    paymentMethodType?: PaymentMethodType;
+  },
+): Promise<void> {
+  const patch: Record<string, unknown> = {};
+
+  if (input.paymentMethodType) {
+    patch.payment_method_type = input.paymentMethodType;
+  }
+  if (typeof input.chargedAmountCents === "number") {
+    patch.charged_amount_cents = input.chargedAmountCents;
+  }
+  if (typeof input.processingFeeCents === "number") {
+    patch.processing_fee_cents = input.processingFeeCents;
+  }
+
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await supabase
+    .from("application_payments")
+    .update(patch)
+    .eq("id", paymentId);
+
+  if (error) throw error;
+}
+
+export async function syncPaymentCheckoutDetailsFromMetadata(
+  supabase: SupabaseClient,
+  paymentId: string,
+  metadata: Record<string, string | undefined> | null | undefined,
+  existing?: CheckoutMetadataPaymentFields,
+): Promise<void> {
+  const patch = parseCheckoutMetadataPaymentPatch(metadata, existing);
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await supabase
+    .from("application_payments")
+    .update(patch)
+    .eq("id", paymentId);
+
+  if (error) throw error;
+}
+
 export async function attachCheckoutSessionToPayment(
   supabase: SupabaseClient,
   paymentId: string,
