@@ -47,6 +47,8 @@ function MethodOption({
   icon: Icon,
   iconBackground,
   iconColor,
+  savedCardSummary = null,
+  savedCardNote = null,
   onSelect,
 }: {
   C: AdminThemeTokens;
@@ -57,58 +59,94 @@ function MethodOption({
   icon: typeof CreditCard;
   iconBackground: string;
   iconColor: string;
+  savedCardSummary?: string | null;
+  savedCardNote?: string | null;
   onSelect: () => void;
 }) {
+  const showSavedCard = selected && savedCardSummary != null;
+
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className="flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition"
+      className="flex h-full flex-col gap-2 rounded-lg border px-3 py-3 text-left transition"
       style={{
         borderColor: selected ? C.accent : C.border,
         backgroundColor: selected ? C.accentLight : "#FFFFFF",
         boxShadow: selected ? `0 0 0 1px ${C.accent}` : "none",
       }}
     >
-      <span
-        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
-        style={{
-          borderColor: selected ? C.accent : C.border,
-          backgroundColor: selected ? C.accent : "transparent",
-        }}
-        aria-hidden="true"
-      >
-        {selected ? (
-          <span
-            className="h-1.5 w-1.5 rounded-full"
-            style={{ backgroundColor: "#FFFFFF" }}
-          />
-        ) : null}
-      </span>
-      <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
-        style={{ backgroundColor: iconBackground }}
-        aria-hidden="true"
-      >
-        <Icon className="h-4 w-4" style={{ color: iconColor }} />
-      </span>
-      <span className="min-w-0 flex-1">
+      <span className="flex items-center justify-between">
         <span
-          className="block text-sm font-semibold"
-          style={{ color: C.textPrimary }}
+          className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
+          style={{
+            borderColor: selected ? C.accent : C.border,
+            backgroundColor: selected ? C.accent : "transparent",
+          }}
+          aria-hidden="true"
         >
-          {title}
+          {selected ? (
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: "#FFFFFF" }}
+            />
+          ) : null}
         </span>
         <span
-          className="mt-0.5 block text-xs"
-          style={{ color: C.textSecondary }}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+          style={{ backgroundColor: iconBackground }}
+          aria-hidden="true"
         >
-          {description}
+          <Icon className="h-4 w-4" style={{ color: iconColor }} />
         </span>
       </span>
+      <span className="min-w-0">
+        {showSavedCard ? (
+          <>
+            <div className="flex min-w-0 items-baseline justify-between gap-1">
+              <span
+                className="shrink-0 text-sm font-semibold"
+                style={{ color: C.textPrimary }}
+              >
+                {title}
+              </span>
+              <span
+                className="truncate text-[11px]"
+                style={{ color: C.textSecondary }}
+              >
+                {savedCardSummary}
+              </span>
+            </div>
+            {savedCardNote ? (
+              <p
+                className="mt-0.5 text-[11px] leading-snug"
+                style={{ color: C.textTertiary }}
+                data-testid="payment-method-saved-card-hint"
+              >
+                {savedCardNote}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <span
+              className="block text-sm font-semibold"
+              style={{ color: C.textPrimary }}
+            >
+              {title}
+            </span>
+            <span
+              className="mt-0.5 block text-xs"
+              style={{ color: C.textSecondary }}
+            >
+              {description}
+            </span>
+          </>
+        )}
+      </span>
       <span
-        className="shrink-0 text-xs tabular-nums"
+        className="text-xs tabular-nums"
         style={{ color: C.textTertiary }}
       >
         ~{formatFeeAmount(feeCents)} fee
@@ -246,8 +284,10 @@ export default function PaymentMethodSelectionModal({
   const isCombined = variant === "combined";
   const savedCardLabel = formatPaymentMethodLabel(savedPaymentMethod);
   const savedCardExpiry = formatSavedCardExpiry(savedPaymentMethod);
-  const showSavedCardHint =
-    selectedMethod === "card" && savedCardLabel != null;
+  const savedCardSummary =
+    savedCardLabel != null
+      ? `${savedCardLabel}${savedCardExpiry ? ` · Expires ${savedCardExpiry}` : ""}`
+      : null;
 
   return (
     <AnimatePresence>
@@ -307,7 +347,7 @@ export default function PaymentMethodSelectionModal({
 
             {beforeSummary}
 
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
               <MethodOption
                 C={C}
                 selected={selectedMethod === "card"}
@@ -317,6 +357,10 @@ export default function PaymentMethodSelectionModal({
                 icon={CreditCard}
                 iconBackground="#EFF6FF"
                 iconColor="#2563EB"
+                savedCardSummary={
+                  selectedMethod === "card" ? savedCardSummary : null
+                }
+                savedCardNote="Confirm or change card on the next screen."
                 onSelect={() => setSelectedMethod("card")}
               />
               <MethodOption
@@ -331,25 +375,6 @@ export default function PaymentMethodSelectionModal({
                 onSelect={() => setSelectedMethod("us_bank_account")}
               />
             </div>
-
-            {showSavedCardHint ? (
-              <div
-                className="mt-4 rounded-lg border px-4 py-3 text-sm"
-                style={{
-                  borderColor: C.border,
-                  backgroundColor: C.elevated,
-                }}
-                data-testid="payment-method-saved-card-hint"
-              >
-                <p style={{ color: C.textPrimary }}>
-                  Card on file: {savedCardLabel}
-                  {savedCardExpiry ? ` · Expires ${savedCardExpiry}` : ""}
-                </p>
-                <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>
-                  You&apos;ll confirm this card (or choose another) on the next screen.
-                </p>
-              </div>
-            ) : null}
 
             <div className="mt-4">
               <PaymentSummary

@@ -5,8 +5,10 @@ import {
   AuthError,
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
-import { getChargeById, markChargeSent } from "@/lib/tuition/charges";
+import { getChargeById, listChargesForAssignment, markChargeSent } from "@/lib/tuition/charges";
 import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
+import { getAssignmentPaymentContext } from "@/lib/tuition/family-checklist-responses";
+import { maxTuitionPayCents } from "@/lib/tuition/tuition-pay-amount";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { createAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
@@ -130,7 +132,20 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const maxOverpayCents = remainingCents * 12;
+    const assignmentCharges = await listChargesForAssignment(
+      admin,
+      charge.assignmentId,
+    );
+    const { payRemainingYearCents } = getAssignmentPaymentContext(
+      assignmentCharges,
+      charge.assignmentId,
+      charge.id,
+    );
+    const maxOverpayCents = maxTuitionPayCents({
+      remainingCents,
+      payRemainingYearCents:
+        payRemainingYearCents > remainingCents ? payRemainingYearCents : undefined,
+    });
     if (requestedAmountCents > maxOverpayCents) {
       return apiError(ROUTE, {
         request,

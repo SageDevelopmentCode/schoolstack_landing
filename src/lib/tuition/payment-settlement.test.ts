@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { chargeRemainingCents } from "./billing-splits";
-import { redistributeOpenInstallments } from "./payment-settlement";
+import {
+  previewInstallmentRedistribution,
+  redistributeOpenInstallments,
+} from "./payment-settlement";
 
 describe("chargeRemainingCents", () => {
   it("returns unpaid balance", () => {
@@ -16,6 +19,51 @@ describe("chargeRemainingCents", () => {
       chargeRemainingCents({ amountCents: 36000, paidCents: 40000 }),
       0,
     );
+  });
+});
+
+describe("previewInstallmentRedistribution", () => {
+  it("projects reduced future installments after surplus", () => {
+    const preview = previewInstallmentRedistribution({
+      openCharges: [
+        { amountCents: 36000, paidCents: 0 },
+        { amountCents: 36000, paidCents: 0 },
+      ],
+      surplusCents: 4000,
+    });
+
+    assert.equal(preview.futureInstallmentCount, 2);
+    assert.equal(preview.newTotalRemainingCents, 68000);
+    assert.equal(
+      preview.projectedAmountsCents.reduce((sum, value) => sum + value, 0),
+      68000,
+    );
+    assert.equal(preview.fullyPaid, false);
+    assert.equal(preview.creditBalanceCents, 0);
+  });
+
+  it("marks year fully paid when surplus covers all remaining", () => {
+    const preview = previewInstallmentRedistribution({
+      openCharges: [
+        { amountCents: 36000, paidCents: 0 },
+        { amountCents: 36000, paidCents: 0 },
+      ],
+      surplusCents: 72000,
+    });
+
+    assert.equal(preview.fullyPaid, true);
+    assert.equal(preview.newTotalRemainingCents, 0);
+    assert.equal(preview.creditBalanceCents, 0);
+  });
+
+  it("returns credit balance when surplus exceeds remaining", () => {
+    const preview = previewInstallmentRedistribution({
+      openCharges: [{ amountCents: 36000, paidCents: 0 }],
+      surplusCents: 50000,
+    });
+
+    assert.equal(preview.fullyPaid, true);
+    assert.equal(preview.creditBalanceCents, 14000);
   });
 });
 

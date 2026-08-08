@@ -1,7 +1,8 @@
 "use client";
 
-import { CheckCircle2, ChevronRight, CreditCard, Loader2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, CreditCard, Loader2, Wallet } from "lucide-react";
 import { formatCents } from "@/lib/tuition/pricing";
+import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import {
   childFirstNameFromFullName,
   type ParentBillingFamilySummary,
@@ -14,6 +15,10 @@ import {
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentLastPaymentDaySummary } from "@/lib/tuition/payments";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
+import {
+  EXTRA_PAY_BUTTON_HINT,
+  EXTRA_PAY_BUTTON_LABEL,
+} from "@/lib/tuition/tuition-pay-copy";
 
 const BILLING_ACTIVE_TOOLTIP =
   "Tuition billing is active — payment schedule confirmed";
@@ -25,6 +30,7 @@ type ParentBillingSummaryCardProps = {
   payingChargeId: string | null;
   payingCombined: boolean;
   onPay: (chargeId: string) => void;
+  onPayExtra?: (chargeId: string) => void;
   onPayCombined?: () => void;
   onAutopayToggleRequest: (enabled: boolean) => void;
   onSelectChild?: (childKey: string) => void;
@@ -57,6 +63,7 @@ export default function ParentBillingSummaryCard({
   payingChargeId,
   payingCombined,
   onPay,
+  onPayExtra,
   onPayCombined,
   onAutopayToggleRequest,
   onSelectChild,
@@ -216,6 +223,10 @@ export default function ParentBillingSummaryCard({
                 child.balanceDueCents > 0 &&
                 child.nextChargeId != null &&
                 !readOnly;
+              const canPayExtra =
+                !readOnly &&
+                child.nextChargeId != null &&
+                child.totalRemainingCents > child.balanceDueCents;
               const isPaying = child.nextChargeId
                 ? payingChargeId === child.nextChargeId
                 : false;
@@ -308,6 +319,24 @@ export default function ParentBillingSummaryCard({
                           <CreditCard className="h-3.5 w-3.5" />
                         )}
                         Pay {formatCents(child.balanceDueCents)}
+                      </button>
+                    ) : null}
+                    {canPayExtra && onPayExtra ? (
+                      <button
+                        type="button"
+                        disabled={isPaying}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onPayExtra(child.nextChargeId!);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={getAdminButtonStyle(C, "secondary")}
+                        data-testid={`parent-billing-child-pay-extra-${child.childKey}`}
+                        title={EXTRA_PAY_BUTTON_HINT}
+                        aria-label={EXTRA_PAY_BUTTON_HINT}
+                      >
+                        <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {EXTRA_PAY_BUTTON_LABEL}
                       </button>
                     ) : null}
                     <button

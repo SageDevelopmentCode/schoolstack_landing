@@ -879,3 +879,116 @@ test("parent billing summary supports per-student pay and child drill-down", asy
     .click();
   await expect(page.getByRole("heading", { name: "How would you like to pay?" })).toBeVisible();
 });
+
+test("parent billing extra payment shows updated schedule preview", async ({ page }) => {
+  const admin = createAdminClient();
+  const manifest = getSeedManifest();
+  const organizationId = manifest.organizationId;
+  const family = await getE2eParentFamily(admin, organizationId);
+  await resetFamilyBillingState(admin, family.id);
+
+  const { data: program } = await admin
+    .from("programs")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: student } = await admin
+    .from("students")
+    .insert({
+      organization_id: organizationId,
+      family_id: family.id,
+      first_name: "ExtraPay",
+      last_name: "Student",
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  const { data: enrollment } = await admin
+    .from("enrollments")
+    .insert({
+      organization_id: organizationId,
+      student_id: student!.id,
+      program_id: program!.id,
+      status: "enrolled",
+    })
+    .select("id")
+    .single();
+
+  const { data: ratePlan } = await admin
+    .from("tuition_rate_plans")
+    .insert({
+      organization_id: organizationId,
+      program_id: program!.id,
+      name: "Extra Pay E2E",
+      billing_basis: "annual",
+      amount_cents: 720000,
+      status: "active",
+      effective_start: "2026-08-01",
+      effective_end: "2027-05-31",
+    })
+    .select("id")
+    .single();
+
+  const { data: tier } = await admin
+    .from("tuition_rate_tiers")
+    .insert({
+      organization_id: organizationId,
+      rate_plan_id: ratePlan!.id,
+      code: "standard",
+      label: "Standard",
+      amount_cents: 720000,
+      sort_order: 0,
+      is_default: true,
+    })
+    .select("id")
+    .single();
+
+  const { data: paymentPlan } = await admin
+    .from("tuition_payment_plans")
+    .insert({
+      organization_id: organizationId,
+      rate_plan_id: ratePlan!.id,
+      name: "10 payments",
+      installment_count: 10,
+      installment_amount_cents: 72000,
+      billing_day_of_month: 1,
+      is_default: true,
+    })
+    .select("id")
+    .single();
+
+  const { data: assignment } = await admin
+    .from("tuition_enrollment_assignments")
+    .insert({
+      organization_id: organizationId,
+      enrollment_id: enrollment!.id,
+      family_id: family.id,
+      rate_plan_id: ratePlan!.id,
+      rate_tier_id: tier!.id,
+      payment_plan_id: paymentPlan!.id,
+      assignment_source: "default",
+      status: "active",
+      metadata: { pendingPaymentPlanSelection: false },
+      effective_start: "2026-08-01",
+    })
+    .select("id")
+    .single();
+
+  await regenerateFutureCharges(admin, String(assignment!.id));
+
+  await gotoBillingPage(page);
+  await page.getByTestId("parent-billing-family-pay-now").click();
+
+  const paymentModal = page.getByRole("dialog", { name: "How would you like to pay?" });
+  await expect(paymentModal).toBeVisible();
+  await paymentModal.getByTestId("tuition-pay-extra-mode-button").click();
+  await paymentModal.getByTestId("tuition-pay-custom-amount-input").fill("3600");
+  await expect(paymentModal.getByTestId("tuition-pay-schedule-preview")).toBeVisible();
+  await expect(paymentModal.getByTestId("tuition-pay-schedule-before")).toBeVisible();
+  await expect(paymentModal.getByTestId("tuition-pay-schedule-after")).toContainText("$3,600.00");
+  await expect(paymentModal.getByText(/9 payments at approximately/i)).toBeVisible();
+  await expect(paymentModal.getByText(/\$400\.00/)).toBeVisible();
+});

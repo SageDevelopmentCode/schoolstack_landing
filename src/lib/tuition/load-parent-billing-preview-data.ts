@@ -16,6 +16,7 @@ import { getDefaultPaymentMethodForGuardian } from "@/lib/tuition/payment-method
 import { getRecentAutopayFailureForFamily } from "@/lib/tuition/autopay-notifications";
 import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import { fetchFamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
+import { shouldShowTaxCreditPaymentBanner } from "@/lib/tuition/family-checklist-responses";
 import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -88,6 +89,14 @@ export async function loadParentBillingPreviewData(input: {
     familyId: input.familyId,
   });
 
+  const showTaxCreditPaymentBanner = await shouldShowTaxCreditPaymentBanner(
+    admin,
+    {
+      familyId: input.familyId,
+      charges: chargeRows,
+    },
+  );
+
   return {
     charges: chargeRows,
     allFamilyCharges,
@@ -101,5 +110,6 @@ export async function loadParentBillingPreviewData(input: {
     guardianId,
     hasBillingSplit,
     initialChildKey: pickInitialChildKey(familySummary.children),
+    showTaxCreditPaymentBanner,
   };
 }

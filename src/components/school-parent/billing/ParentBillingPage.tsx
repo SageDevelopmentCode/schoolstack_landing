@@ -61,6 +61,8 @@ import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
+import { getAssignmentPaymentContext } from "@/lib/tuition/family-checklist-responses";
+import { EXTRA_PAY_BANNER_CTA } from "@/lib/tuition/tuition-pay-copy";
 import { createClient } from "@/utils/supabase/client";
 
 type ParentBillingPageProps = {
@@ -155,6 +157,10 @@ function ParentBillingPageContent({
   const [activeChildKey, setActiveChildKey] = useState<string | null>(
     initialData?.initialChildKey ?? null,
   );
+  const [showTaxCreditPaymentBanner] = useState(
+    initialData?.showTaxCreditPaymentBanner ?? false,
+  );
+  const [dismissedTaxCreditBanner, setDismissedTaxCreditBanner] = useState(false);
 
   const adjustmentsByAssignment = useMemo(() => {
     const map = new Map<string, TuitionAdjustment[]>();
@@ -189,12 +195,22 @@ function ParentBillingPageContent({
       return { amountCents: 0, error: null as string | null };
     }
 
+    const { payRemainingYearCents } = getAssignmentPaymentContext(
+      charges,
+      pendingPayCharge.assignmentId,
+      pendingPayCharge.id,
+    );
+
     return resolveTuitionPayAmountCents({
       mode: payAmountMode,
       remainingCents: chargeRemainingCents(pendingPayCharge),
       customDraft: payCustomDraft,
+      payRemainingYearCents:
+        payRemainingYearCents > chargeRemainingCents(pendingPayCharge)
+          ? payRemainingYearCents
+          : undefined,
     });
-  }, [pendingPayCharge, pendingPayCharges, payAmountMode, payCustomDraft]);
+  }, [charges, pendingPayCharge, pendingPayCharges, payAmountMode, payCustomDraft]);
 
   const combinedPaymentLineItems = useMemo(() => {
     if (!pendingPayCharges?.length || !familySummary) return undefined;
@@ -214,6 +230,21 @@ function ParentBillingPageContent({
       };
     });
   }, [pendingPayCharges, familySummary]);
+
+  const singlePayModalLabel = useMemo(() => {
+    if (!pendingPayCharge) return "Tuition payment";
+    if (!familySummary) return pendingPayCharge.label;
+
+    const child = familySummary.children.find(
+      (row) => row.assignmentId === pendingPayCharge.assignmentId,
+    );
+    const studentName = child
+      ? childFirstNameFromFullName(child.studentName)
+      : null;
+    return studentName
+      ? `${studentName} — ${pendingPayCharge.label}`
+      : pendingPayCharge.label;
+  }, [pendingPayCharge, familySummary]);
 
   const loadBilling = useCallback(async (): Promise<ParentBillingFamilySummary | null> => {
     setLoading(true);
@@ -438,18 +469,36 @@ function ParentBillingPageContent({
     }
   })();
 
-  const handlePay = (chargeId: string) => {
+  const pendingPayContext = useMemo(() => {
+    if (!pendingPayCharge) {
+      return {
+        payRemainingYearCents: 0,
+        futureOpenCharges: [],
+      };
+    }
+    return getAssignmentPaymentContext(
+      charges,
+      pendingPayCharge.assignmentId,
+      pendingPayCharge.id,
+    );
+  }, [charges, pendingPayCharge]);
+
+  const handlePay = (chargeId: string, options?: { extra?: boolean }) => {
     if (previewMode) return;
     const charge = charges.find((row) => row.id === chargeId);
     if (!charge) return;
     if (chargeRemainingCents(charge) <= 0) return;
 
     setPayError(null);
-    setPayAmountMode("balance");
+    setPayAmountMode(options?.extra ? "custom" : "balance");
     setPayCustomDraft(formatCentsForInput(chargeRemainingCents(charge)));
     setPendingPayCharges(null);
     setPendingPayCharge(charge);
     setPaymentModalOpen(true);
+  };
+
+  const handlePayExtra = (chargeId: string) => {
+    handlePay(chargeId, { extra: true });
   };
 
   const handlePayCombined = () => {
@@ -794,6 +843,47 @@ function ParentBillingPageContent({
         </div>
       ) : null}
 
+      {showTaxCreditPaymentBanner && !dismissedTaxCreditBanner ? (
+        <div
+          className="rounded-xl p-5 flex flex-col gap-3"
+          style={{
+            backgroundColor: C.accentLight,
+            border: `1px solid ${C.border}`,
+          }}
+          data-testid="parent-billing-tax-credit-banner"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                Using Idaho Parent Choice Tax Credit?
+              </p>
+              <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+                Apply a tax credit or lump sum on a child&apos;s tuition payment. Remaining
+                monthly payments will be recalculated automatically.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="text-xs shrink-0"
+              style={{ color: C.textSecondary }}
+              onClick={() => setDismissedTaxCreditBanner(true)}
+            >
+              Dismiss
+            </button>
+          </div>
+          {nextChargeRecord && !previewMode ? (
+            <button
+              type="button"
+              onClick={() => handlePayExtra(nextChargeRecord.id)}
+              className="inline-flex self-start px-4 py-2 rounded-lg text-sm font-medium"
+              style={{ backgroundColor: C.accent, color: "#fff" }}
+            >
+              {EXTRA_PAY_BANNER_CTA}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {readinessMessage ? (
         <div
           className="rounded-xl p-5 flex flex-col gap-3"
@@ -882,6 +972,7 @@ function ParentBillingPageContent({
           payingChargeId={payingChargeId}
           payingCombined={payingCombined}
           onPay={handlePay}
+          onPayExtra={handlePayExtra}
           onPayCombined={
             combinedChargesOnEarliestDueDate.length > 1
               ? handlePayCombined
@@ -928,7 +1019,7 @@ function ParentBillingPageContent({
         label={
           pendingPayCharges && pendingPayCharges.length > 0
             ? `Combined tuition (${pendingPayCharges.length} students)`
-            : (pendingPayCharge?.label ?? "Tuition payment")
+            : singlePayModalLabel
         }
         lineItems={combinedPaymentLineItems}
         variant={
@@ -945,6 +1036,9 @@ function ParentBillingPageContent({
               remainingCents={chargeRemainingCents(pendingPayCharge)}
               mode={payAmountMode}
               customDraft={payCustomDraft}
+              payRemainingYearCents={pendingPayContext.payRemainingYearCents}
+              showTaxCreditPreset={showTaxCreditPaymentBanner}
+              futureOpenCharges={pendingPayContext.futureOpenCharges}
               onModeChange={setPayAmountMode}
               onCustomDraftChange={setPayCustomDraft}
             />

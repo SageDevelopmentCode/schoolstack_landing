@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   formatCentsForInput,
   parseDollarInputToCents,
@@ -7,9 +8,18 @@ import {
 } from "@/lib/admissions/application-form-schema";
 import { formatCents } from "@/lib/tuition/pricing";
 import {
-  maxTuitionOverpayCents,
+  previewTuitionPaymentRedistribution,
+  type InstallmentChargeBalance,
+} from "@/lib/tuition/payment-settlement";
+import {
+  taxCreditPresetAmountCents,
+} from "@/lib/tuition/tuition-pay-presets";
+import {
+  maxTuitionPayCents,
   validateTuitionPayAmountCents,
 } from "@/lib/tuition/tuition-pay-amount";
+import { EXTRA_PAY_MODE_LABEL } from "@/lib/tuition/tuition-pay-copy";
+import TuitionPaySchedulePreview from "@/components/school-parent/billing/TuitionPaySchedulePreview";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 export type TuitionPayAmountMode = "balance" | "custom";
@@ -19,6 +29,9 @@ type TuitionPayAmountFieldProps = {
   remainingCents: number;
   mode: TuitionPayAmountMode;
   customDraft: string;
+  payRemainingYearCents?: number;
+  showTaxCreditPreset?: boolean;
+  futureOpenCharges?: InstallmentChargeBalance[];
   onModeChange: (mode: TuitionPayAmountMode) => void;
   onCustomDraftChange: (value: string) => void;
 };
@@ -27,6 +40,7 @@ export function resolveTuitionPayAmountCents(input: {
   mode: TuitionPayAmountMode;
   remainingCents: number;
   customDraft: string;
+  payRemainingYearCents?: number;
 }): { amountCents: number; error: string | null } {
   if (input.mode === "balance") {
     return {
@@ -34,6 +48,7 @@ export function resolveTuitionPayAmountCents(input: {
       error: validateTuitionPayAmountCents({
         amountCents: input.remainingCents,
         remainingCents: input.remainingCents,
+        payRemainingYearCents: input.payRemainingYearCents,
       }),
     };
   }
@@ -48,6 +63,7 @@ export function resolveTuitionPayAmountCents(input: {
     error: validateTuitionPayAmountCents({
       amountCents: parsed,
       remainingCents: input.remainingCents,
+      payRemainingYearCents: input.payRemainingYearCents,
     }),
   };
 }
@@ -57,15 +73,48 @@ export default function TuitionPayAmountField({
   remainingCents,
   mode,
   customDraft,
+  payRemainingYearCents = 0,
+  showTaxCreditPreset = false,
+  futureOpenCharges = [],
   onModeChange,
   onCustomDraftChange,
 }: TuitionPayAmountFieldProps) {
-  const maxCents = maxTuitionOverpayCents(remainingCents);
-  const { error } = resolveTuitionPayAmountCents({
+  const maxCents = maxTuitionPayCents({
+    remainingCents,
+    payRemainingYearCents:
+      payRemainingYearCents > remainingCents ? payRemainingYearCents : undefined,
+  });
+  const { amountCents, error } = resolveTuitionPayAmountCents({
     mode,
     remainingCents,
     customDraft,
+    payRemainingYearCents:
+      payRemainingYearCents > remainingCents ? payRemainingYearCents : undefined,
   });
+
+  const schedulePreview = useMemo(() => {
+    if (mode !== "custom" || error || amountCents <= remainingCents) {
+      return null;
+    }
+    return previewTuitionPaymentRedistribution({
+      currentChargeRemainingCents: remainingCents,
+      paymentAmountCents: amountCents,
+      futureOpenCharges,
+    });
+  }, [amountCents, error, futureOpenCharges, mode, remainingCents]);
+
+  const taxCreditAmountCents =
+    showTaxCreditPreset && payRemainingYearCents > remainingCents
+      ? taxCreditPresetAmountCents({
+          currentChargeRemainingCents: remainingCents,
+          payRemainingYearCents,
+        })
+      : null;
+
+  const applyPreset = (presetCents: number) => {
+    onModeChange("custom");
+    onCustomDraftChange(formatCentsForInput(presetCents));
+  };
 
   return (
     <div
@@ -96,62 +145,98 @@ export default function TuitionPayAmountField({
             color: C.textPrimary,
           }}
           aria-pressed={mode === "custom"}
+          data-testid="tuition-pay-extra-mode-button"
         >
-          Pay a different amount
+          {EXTRA_PAY_MODE_LABEL}
         </button>
       </div>
 
       {mode === "custom" ? (
-        <div>
-          <label
-            htmlFor="tuition-pay-custom-amount"
-            className="mb-1 block text-xs font-medium"
-            style={{ color: C.textSecondary }}
-          >
-            Payment amount
-          </label>
-          <div className="relative">
-            <span
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm"
-              style={{ color: C.textTertiary }}
-            >
-              $
-            </span>
-            <input
-              id="tuition-pay-custom-amount"
-              type="text"
-              inputMode="decimal"
-              value={customDraft}
-              onChange={(event) =>
-                onCustomDraftChange(sanitizeDollarDraft(event.target.value))
-              }
-              onBlur={() => {
-                const cents = parseDollarInputToCents(customDraft);
-                onCustomDraftChange(formatCentsForInput(cents ?? 0));
-              }}
-              className="w-full rounded-lg border py-2 pl-7 pr-3 text-sm"
-              style={{
-                borderColor: error ? C.error : C.border,
-                backgroundColor: C.surface,
-                color: C.textPrimary,
-              }}
-              placeholder={formatCentsForInput(remainingCents)}
-              data-testid="tuition-pay-custom-amount-input"
-            />
-          </div>
-          <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
-            Between {formatCents(remainingCents)} and {formatCents(maxCents)}.
-            Amounts above your balance are applied to future installments.
+        <div className="space-y-3">
+          <p className="text-xs" style={{ color: C.textTertiary }}>
+            Use a tax credit, bonus, or lump sum to pay ahead. Extra amounts reduce future
+            installments automatically.
           </p>
-          {error ? (
-            <p className="mt-1 text-xs" style={{ color: C.error }} role="alert">
-              {error}
+
+          {showTaxCreditPreset && taxCreditAmountCents != null ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => applyPreset(taxCreditAmountCents)}
+                className="rounded-lg border px-3 py-1.5 text-xs font-medium transition"
+                style={{
+                  borderColor: C.border,
+                  backgroundColor: C.surface,
+                  color: C.textPrimary,
+                }}
+                data-testid="tuition-pay-tax-credit-preset"
+              >
+                Apply $5,000 tax credit ({formatCents(taxCreditAmountCents)})
+              </button>
+            </div>
+          ) : null}
+
+          <div>
+            <label
+              htmlFor="tuition-pay-custom-amount"
+              className="mb-1 block text-xs font-medium"
+              style={{ color: C.textSecondary }}
+            >
+              Payment amount
+            </label>
+            <div className="relative">
+              <span
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm"
+                style={{ color: C.textTertiary }}
+              >
+                $
+              </span>
+              <input
+                id="tuition-pay-custom-amount"
+                type="text"
+                inputMode="decimal"
+                value={customDraft}
+                onChange={(event) =>
+                  onCustomDraftChange(sanitizeDollarDraft(event.target.value))
+                }
+                onBlur={() => {
+                  const cents = parseDollarInputToCents(customDraft);
+                  onCustomDraftChange(formatCentsForInput(cents ?? 0));
+                }}
+                className="w-full rounded-lg border py-2 pl-7 pr-3 text-sm"
+                style={{
+                  borderColor: error ? C.error : C.border,
+                  backgroundColor: C.surface,
+                  color: C.textPrimary,
+                }}
+                placeholder={formatCentsForInput(remainingCents)}
+                data-testid="tuition-pay-custom-amount-input"
+              />
+            </div>
+            <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
+              Pay from {formatCents(remainingCents)} (this installment) up to{" "}
+              {formatCents(maxCents)} (all remaining for this student).
             </p>
+            {error ? (
+              <p className="mt-1 text-xs" style={{ color: C.error }} role="alert">
+                {error}
+              </p>
+            ) : null}
+          </div>
+
+          {schedulePreview ? (
+            <TuitionPaySchedulePreview
+              C={C}
+              paymentAmountCents={amountCents}
+              currentChargeRemainingCents={remainingCents}
+              preview={schedulePreview}
+            />
           ) : null}
         </div>
       ) : (
         <p className="text-xs" style={{ color: C.textTertiary }}>
-          Amounts above your balance are applied to future installments.
+          Pay extra toward tuition to apply a tax credit, bonus, or lump sum — future
+          installments are recalculated automatically.
         </p>
       )}
     </div>

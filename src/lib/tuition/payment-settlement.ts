@@ -6,6 +6,88 @@ import type { TuitionBillingAccountMetadata, TuitionCharge } from "./types";
 
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
 
+export type InstallmentChargeBalance = {
+  amountCents: number;
+  paidCents: number;
+};
+
+export type InstallmentRedistributionPreview = {
+  futureInstallmentCount: number;
+  projectedAmountsCents: number[];
+  newTotalRemainingCents: number;
+  creditBalanceCents: number;
+  fullyPaid: boolean;
+};
+
+export function previewInstallmentRedistribution(input: {
+  openCharges: InstallmentChargeBalance[];
+  surplusCents: number;
+}): InstallmentRedistributionPreview {
+  if (input.surplusCents <= 0 || input.openCharges.length === 0) {
+    const remainingBalances = input.openCharges.map((charge) =>
+      Math.max(0, charge.amountCents - charge.paidCents),
+    );
+    return {
+      futureInstallmentCount: input.openCharges.length,
+      projectedAmountsCents: remainingBalances,
+      newTotalRemainingCents: remainingBalances.reduce((sum, value) => sum + value, 0),
+      creditBalanceCents: 0,
+      fullyPaid: false,
+    };
+  }
+
+  const remainingBalances = input.openCharges.map((charge) =>
+    Math.max(0, charge.amountCents - charge.paidCents),
+  );
+  const totalRemaining = remainingBalances.reduce((sum, value) => sum + value, 0);
+  const newTotalRemaining = Math.max(0, totalRemaining - input.surplusCents);
+  const creditBalanceCents = Math.max(0, input.surplusCents - totalRemaining);
+
+  if (newTotalRemaining === 0) {
+    return {
+      futureInstallmentCount: input.openCharges.length,
+      projectedAmountsCents: input.openCharges.map((charge) => charge.paidCents),
+      newTotalRemainingCents: 0,
+      creditBalanceCents,
+      fullyPaid: true,
+    };
+  }
+
+  const count = input.openCharges.length;
+  const baseAmount = Math.floor(newTotalRemaining / count);
+  let remainder = newTotalRemaining - baseAmount * count;
+
+  const projectedAmountsCents = input.openCharges.map((charge) => {
+    const extra = remainder > 0 ? 1 : 0;
+    if (remainder > 0) remainder -= 1;
+    return charge.paidCents + baseAmount + extra;
+  });
+
+  return {
+    futureInstallmentCount: count,
+    projectedAmountsCents,
+    newTotalRemainingCents: newTotalRemaining,
+    creditBalanceCents: 0,
+    fullyPaid: false,
+  };
+}
+
+export function previewTuitionPaymentRedistribution(input: {
+  currentChargeRemainingCents: number;
+  paymentAmountCents: number;
+  futureOpenCharges: InstallmentChargeBalance[];
+}): InstallmentRedistributionPreview & { surplusCents: number } {
+  const surplusCents = Math.max(
+    0,
+    input.paymentAmountCents - input.currentChargeRemainingCents,
+  );
+  const preview = previewInstallmentRedistribution({
+    openCharges: input.futureOpenCharges,
+    surplusCents,
+  });
+  return { ...preview, surplusCents };
+}
+
 export type SettleTuitionPaymentInput = {
   chargeId: string;
   amountCents: number;
@@ -143,43 +225,26 @@ export async function redistributeOpenInstallments(
     return false;
   }
 
-  const remainingBalances = openCharges.map((charge) => {
-    const amountCents = Number(charge.amount_cents);
-    const paidCents = Number(charge.paid_cents ?? 0);
-    return Math.max(0, amountCents - paidCents);
+  const chargeBalances: InstallmentChargeBalance[] = openCharges.map((charge) => ({
+    amountCents: Number(charge.amount_cents),
+    paidCents: Number(charge.paid_cents ?? 0),
+  }));
+
+  const preview = previewInstallmentRedistribution({
+    openCharges: chargeBalances,
+    surplusCents: input.surplusCents,
   });
 
-  const totalRemaining = remainingBalances.reduce((sum, value) => sum + value, 0);
-  const newTotalRemaining = Math.max(0, totalRemaining - input.surplusCents);
-
-  if (newTotalRemaining === 0) {
-    for (const charge of openCharges) {
-      const { error: updateError } = await supabase
-        .from("tuition_charges")
-        .update({ amount_cents: Number(charge.paid_cents ?? 0) })
-        .eq("id", charge.id);
-      if (updateError) throw updateError;
-    }
-    const leftover = input.surplusCents - totalRemaining;
-    if (leftover > 0) {
-      await storeGuardianCredit(supabase, {
-        ...input,
-        surplusCents: leftover,
-      });
-    }
-    return true;
+  if (preview.creditBalanceCents > 0) {
+    await storeGuardianCredit(supabase, {
+      ...input,
+      surplusCents: preview.creditBalanceCents,
+    });
   }
-
-  const count = openCharges.length;
-  const baseAmount = Math.floor(newTotalRemaining / count);
-  let remainder = newTotalRemaining - baseAmount * count;
 
   for (let index = 0; index < openCharges.length; index++) {
     const charge = openCharges[index]!;
-    const paidCents = Number(charge.paid_cents ?? 0);
-    const extra = remainder > 0 ? 1 : 0;
-    if (remainder > 0) remainder -= 1;
-    const nextAmountCents = paidCents + baseAmount + extra;
+    const nextAmountCents = preview.projectedAmountsCents[index]!;
 
     const { error: updateError } = await supabase
       .from("tuition_charges")
