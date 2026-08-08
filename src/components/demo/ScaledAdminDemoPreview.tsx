@@ -189,16 +189,20 @@ export default function ScaledAdminDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
-  const [DemoComponent, setDemoComponent] = useState<AdminDemoComponent | null>(
-    null,
-  );
+  const [loadedDemo, setLoadedDemo] = useState<{
+    slug: string;
+    Component: AdminDemoComponent;
+  } | null>(null);
   const isRootedMeadows = demoSlug === "rooted-meadows";
+  const DemoComponent =
+    loadedDemo?.slug === demoSlug ? loadedDemo.Component : null;
 
   useEffect(() => {
     let cancelled = false;
-    setDemoComponent(null);
     void loadAdminDemo(demoSlug).then((mod) => {
-      if (!cancelled) setDemoComponent(() => mod.default);
+      if (!cancelled) {
+        setLoadedDemo({ slug: demoSlug, Component: mod.default });
+      }
     });
     return () => {
       cancelled = true;

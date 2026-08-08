@@ -207,11 +207,12 @@ const APPLICATION_SUBMISSION_SELECT = `
   )
 `;
 
-/** List/table payload — omits bulky schema + responses JSON. */
+/** List/table payload — omits bulky form schema JSON. */
 const APPLICATION_SUBMISSION_LIST_SELECT = `
   id,
   status,
   fee_status,
+  responses,
   primary_guardian_id,
   created_at,
   submitted_at,
@@ -273,9 +274,8 @@ function mapApplicationRowToAdminSubmission(
     const schema = form?.schema as ApplicationFormSchema | undefined;
     const hasFullPayload = schema != null && row.responses !== undefined;
     const feeConfig = parseApplicationFormFeeConfig(form?.fee_config);
-    const responses = hasFullPayload
-      ? parseStringRecord(row.responses)
-      : {};
+    const responses =
+      row.responses !== undefined ? parseStringRecord(row.responses) : {};
     const { stepIndex, totalSteps } = hasFullPayload && schema
       ? parseDraftProgress(row.responses, schema)
       : { stepIndex: 0, totalSteps: 0 };
@@ -344,7 +344,9 @@ function mapApplicationRowToAdminSubmission(
         guardianRow?.email?.trim() ||
         familyRow?.primary_email?.trim() ||
         null,
-      studentLabel: studentFromTable ?? (hasFullPayload ? extractStudentLabel(responses) : null),
+      studentLabel:
+        studentFromTable ??
+        (row.responses !== undefined ? extractStudentLabel(responses) : null),
       stepIndex,
       totalSteps,
       createdAt: String(row.created_at),

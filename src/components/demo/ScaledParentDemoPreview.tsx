@@ -147,14 +147,20 @@ export default function ScaledParentDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
-  const [DemoComponent, setDemoComponent] = useState<DemoComponent | null>(null);
+  const [loadedDemo, setLoadedDemo] = useState<{
+    slug: string;
+    Component: DemoComponent;
+  } | null>(null);
   const isRootedMeadows = demoSlug === "rooted-meadows";
+  const DemoComponent =
+    loadedDemo?.slug === demoSlug ? loadedDemo.Component : null;
 
   useEffect(() => {
     let cancelled = false;
-    setDemoComponent(null);
     void loadDemo(demoSlug).then((mod) => {
-      if (!cancelled) setDemoComponent(() => mod.default);
+      if (!cancelled) {
+        setLoadedDemo({ slug: demoSlug, Component: mod.default });
+      }
     });
     return () => {
       cancelled = true;

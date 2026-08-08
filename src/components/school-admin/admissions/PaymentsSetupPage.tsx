@@ -656,12 +656,6 @@ export default function PaymentsSetupPage({
   const isPolling = phase === "in_progress" && !isReady;
 
   useEffect(() => {
-    if (!isPolling && pollExhausted) {
-      setPollExhausted(false);
-    }
-  }, [isPolling, pollExhausted]);
-
-  useEffect(() => {
     if (!isPolling) return;
 
     pollCountRef.current = 0;
@@ -962,7 +956,7 @@ export default function PaymentsSetupPage({
                   />
                 ) : null}
 
-                {!loading && hasAccount && !isReady && pollExhausted ? (
+                {!loading && hasAccount && !isReady && isPolling && pollExhausted ? (
                   <p className="mt-3 text-sm" style={{ color: C.textSecondary }}>
                     Still verifying? Continue in Stripe or contact support if this
                     takes longer than expected.
