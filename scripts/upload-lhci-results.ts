@@ -16,6 +16,7 @@ import {
   resolvePageUrl,
 } from "@/lib/performance/page-manifest";
 import { normalizeLighthouseResult } from "@/lib/performance/lighthouse-parse";
+import type { AuditFormFactor } from "@/lib/performance/types";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 config({ path: resolve(process.cwd(), ".env.local") });
@@ -30,6 +31,10 @@ type LhciManifestEntry = {
 
 function log(message: string) {
   console.log(`[performance:ci:upload] ${message}`);
+}
+
+function resolveFormFactor(): AuditFormFactor {
+  return process.env.PERFORMANCE_FORM_FACTOR === "desktop" ? "desktop" : "mobile";
 }
 
 function normalizeUrl(url: string) {
@@ -192,6 +197,7 @@ async function main() {
 
   const commit = process.env.GITHUB_SHA?.slice(0, 7) ?? "local";
   const branch = process.env.GITHUB_REF_NAME ?? "unknown";
+  const formFactor = resolveFormFactor();
 
   const { data: run, error: runError } = await admin
     .from("performance_audit_runs")
@@ -199,9 +205,9 @@ async function main() {
       environment: "ci",
       status: "completed",
       page_ids: pageIds,
-      form_factor: "mobile",
+      form_factor: formFactor,
       completed_count: resultRows.length,
-      error_message: `CI run ${commit} on ${branch}`,
+      error_message: `CI run ${commit} (${formFactor}) on ${branch}`,
     })
     .select("id")
     .single();

@@ -5749,7 +5749,7 @@ export default function ParentDashboardDemo({ initialTab = "home", disableTour =
                           <p className="text-sm text-gray-700 leading-relaxed">{feedSelectedPost.text}</p>
                           {feedSelectedPost.attachments?.map((att, i) =>
                             att.type === "image" ? (
-                              <img key={i} src={att.src} alt={att.name || ""} loading="lazy" decoding="async" className="w-full max-h-44 object-cover rounded-xl" />
+                              <img key={i} src={att.src} alt={att.name || ""} loading="lazy" decoding="async" className="w-full max-h-44 object-cover rounded-xl" width={640} height={176} />
                             ) : null
                           )}
                           <div className="border-t border-gray-100 pt-3">

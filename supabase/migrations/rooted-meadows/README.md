@@ -63,6 +63,8 @@ Daily `add_organization_progress_log_*.sql` seeds insert into **both** slugs. If
 | `add_organization_progress_log_2026_07_24.sql` | July 24 — tuition and billing progress |
 | `add_organization_progress_log_2026_07_25.sql` | July 25 — parent billing portal, invoices, and committees |
 | `add_organization_progress_log_2026_08_04.sql` | August 4 — tuition admin redesign, portal loading, and billing schedule warnings |
+| `add_organization_progress_log_2026_08_05.sql` | August 5 — teacher portal opens, staff editing, and portal switcher |
+| `add_organization_progress_log_2026_08_08.sql` | August 8 — student roster, teacher assignments, and teacher My Students |
 
 ## Enrollment checklist seeds
 

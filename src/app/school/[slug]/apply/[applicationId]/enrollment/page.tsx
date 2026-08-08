@@ -90,7 +90,7 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
       organizationId: org.id,
       userId: user.id,
     }),
-    listSchoolPortalOptionsForUser(supabase, user.id, slug),
+    listSchoolPortalOptionsForUser(supabase, user.id, slug, { org }),
   ]);
 
   if (!checklist) {

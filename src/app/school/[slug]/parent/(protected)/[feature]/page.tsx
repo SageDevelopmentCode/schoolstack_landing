@@ -1,9 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import ParentHomePage from "@/components/school-parent/ParentHomePage";
-import ParentBillingPage from "@/components/school-parent/billing/ParentBillingPage";
-import ParentCommitteesPage from "@/components/school-parent/committees/ParentCommitteesPage";
+import nextDynamic from "next/dynamic";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
 import { getRequestUser } from "@/lib/auth/session";
@@ -12,6 +10,7 @@ import {
   listFamilyChildrenForHome,
 } from "@/lib/admissions/parent-portal-access";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
+import { loadParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import {
@@ -25,6 +24,16 @@ import {
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { createClient } from "@/utils/supabase/server";
+
+const ParentHomePage = nextDynamic(
+  () => import("@/components/school-parent/ParentHomePage"),
+);
+const ParentBillingPage = nextDynamic(
+  () => import("@/components/school-parent/billing/ParentBillingPage"),
+);
+const ParentCommitteesPage = nextDynamic(
+  () => import("@/components/school-parent/committees/ParentCommitteesPage"),
+);
 
 export const dynamic = "force-dynamic";
 
@@ -154,6 +163,10 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
 
   if (feature === "committees") {
     const guardianName = userProfile.displayName || user.email || "Parent";
+    const initialData = await loadParentCommitteesInitialData({
+      organizationId: org.id,
+      userId: user.id,
+    });
 
     return (
       <SchoolParentPageShell title={pageName}>
@@ -163,6 +176,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           schoolName={org.name}
           branding={org.branding}
           guardianName={guardianName}
+          initialData={initialData}
         />
       </SchoolParentPageShell>
     );

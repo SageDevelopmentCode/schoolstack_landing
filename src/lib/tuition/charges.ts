@@ -22,14 +22,11 @@ export async function listChargesForFamily(
   return (data ?? []).map(rowToCharge);
 }
 
-export async function listChargesForFamilyGuardian(
-  supabase: SupabaseClient,
-  familyId: string,
+export function filterChargesForFamilyGuardian(
+  charges: TuitionCharge[],
   guardianId: string | null,
   options?: { hasBillingSplit?: boolean },
-): Promise<TuitionCharge[]> {
-  const charges = await listChargesForFamily(supabase, familyId);
-
+): TuitionCharge[] {
   if (!options?.hasBillingSplit) {
     return charges;
   }
@@ -41,6 +38,16 @@ export async function listChargesForFamilyGuardian(
   return charges.filter(
     (charge) => charge.guardianId === null || charge.guardianId === guardianId,
   );
+}
+
+export async function listChargesForFamilyGuardian(
+  supabase: SupabaseClient,
+  familyId: string,
+  guardianId: string | null,
+  options?: { hasBillingSplit?: boolean },
+): Promise<TuitionCharge[]> {
+  const charges = await listChargesForFamily(supabase, familyId);
+  return filterChargesForFamilyGuardian(charges, guardianId, options);
 }
 
 export async function listChargesForAssignment(
@@ -122,17 +129,39 @@ export async function voidCharge(
 export async function listFamilyBillingSummaries(
   supabase: SupabaseClient,
   organizationId: string,
+  options: { limit?: number | null; offset?: number } = {},
 ): Promise<FamilyBillingSummary[]> {
-  const { data: families, error: familiesError } = await supabase
+  const offset = Math.max(options.offset ?? 0, 0);
+  const limit =
+    options.limit === null
+      ? null
+      : Math.min(Math.max(options.limit ?? 100, 1), 500);
+
+  let familiesQuery = supabase
     .from("families")
     .select("id, name, primary_email")
     .eq("organization_id", organizationId)
     .order("name", { ascending: true });
 
+  if (limit != null) {
+    familiesQuery = familiesQuery.range(offset, offset + limit - 1);
+  }
+
+  const { data: families, error: familiesError } = await familiesQuery;
+
   if (familiesError) throw familiesError;
   if (!families?.length) return [];
 
   const familyIds = families.map((f) => String(f.id));
+
+  const { data: students, error: studentsError } = await supabase
+    .from("students")
+    .select("id, family_id, first_name, last_name")
+    .in("family_id", familyIds);
+
+  if (studentsError) throw studentsError;
+
+  const studentIds = (students ?? []).map((s) => String(s.id));
 
   const [
     { data: billingAccounts },
@@ -142,7 +171,6 @@ export async function listFamilyBillingSummaries(
     { data: paymentMethods },
     { data: autopayFailures },
     { data: guardians },
-    { data: students },
     { data: enrollments },
     { data: programs },
     { data: ratePlans },
@@ -151,7 +179,9 @@ export async function listFamilyBillingSummaries(
   ] = await Promise.all([
     supabase
       .from("tuition_billing_accounts")
-      .select("*")
+      .select(
+        "id, organization_id, family_id, autopay_enabled, default_payment_method_id, billing_email, status, metadata, created_at, updated_at",
+      )
       .eq("organization_id", organizationId)
       .in("family_id", familyIds),
     supabase
@@ -160,10 +190,13 @@ export async function listFamilyBillingSummaries(
         "id, family_id, enrollment_id, rate_plan_id, rate_tier_id, payment_plan_id, metadata",
       )
       .eq("organization_id", organizationId)
-      .eq("status", "active"),
+      .eq("status", "active")
+      .in("family_id", familyIds),
     supabase
       .from("tuition_charges")
-      .select("*")
+      .select(
+        "id, family_id, amount_cents, paid_cents, status, due_date, label, paid_at",
+      )
       .eq("organization_id", organizationId)
       .in("family_id", familyIds)
       .not("status", "eq", "void"),
@@ -176,10 +209,7 @@ export async function listFamilyBillingSummaries(
       .from("family_payment_methods")
       .select("billing_account_id, guardian_id")
       .eq("organization_id", organizationId)
-      .in(
-        "family_id",
-        familyIds,
-      ),
+      .in("family_id", familyIds),
     supabase
       .from("activity_events")
       .select("metadata, created_at")
@@ -192,15 +222,22 @@ export async function listFamilyBillingSummaries(
       .select("id, family_id, first_name, last_name, email, user_id, relationship")
       .in("family_id", familyIds)
       .order("created_at", { ascending: true }),
-    supabase
-      .from("students")
-      .select("id, family_id, first_name, last_name")
-      .in("family_id", familyIds),
-    supabase
-      .from("enrollments")
-      .select("id, student_id, program_id, status")
-      .eq("organization_id", organizationId)
-      .eq("status", "enrolled"),
+    studentIds.length > 0
+      ? supabase
+          .from("enrollments")
+          .select("id, student_id, program_id, status")
+          .eq("organization_id", organizationId)
+          .eq("status", "enrolled")
+          .in("student_id", studentIds)
+      : Promise.resolve({
+          data: [] as Array<{
+            id: string;
+            student_id: string;
+            program_id: string;
+            status: string;
+          }>,
+          error: null,
+        }),
     supabase
       .from("programs")
       .select("id, name")
@@ -522,7 +559,9 @@ export async function getTuitionKpis(
   familiesAtRisk: number;
   activeAssignments: number;
 }> {
-  const summaries = await listFamilyBillingSummaries(supabase, organizationId);
+  const summaries = await listFamilyBillingSummaries(supabase, organizationId, {
+    limit: null,
+  });
   const yearStart = new Date();
   yearStart.setUTCMonth(0, 1);
 

@@ -109,12 +109,27 @@ function renderEmphasizedText(text: string) {
 function NotificationDetailText({
   detail,
   subjectLabel,
+  guardianLabel,
   C,
 }: {
   detail: string;
   subjectLabel: string | null;
+  guardianLabel: string | null;
   C: AdminThemeTokens;
 }) {
+  if (guardianLabel && detail.startsWith(guardianLabel)) {
+    const remainder = detail.slice(guardianLabel.length);
+    return (
+      <p
+        className="truncate text-sm font-normal leading-snug"
+        style={{ color: C.textPrimary }}
+      >
+        <span className="font-semibold">{guardianLabel}</span>
+        {renderEmphasizedText(remainder)}
+      </p>
+    );
+  }
+
   if (subjectLabel && detail.startsWith(subjectLabel)) {
     const remainder = detail.slice(subjectLabel.length);
     return (
@@ -216,6 +231,7 @@ function NotificationRow({
           <NotificationDetailText
             detail={notification.detail}
             subjectLabel={notification.subjectLabel}
+            guardianLabel={notification.guardianLabel}
             C={C}
           />
           <p

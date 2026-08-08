@@ -37,6 +37,7 @@ export type SchoolAdminActivityNotification = {
   title: string;
   summary: string;
   subjectLabel: string | null;
+  guardianLabel: string | null;
   programName: string | null;
   detail: string;
   createdAt: string;
@@ -63,6 +64,7 @@ export type SchoolAdminActivityNotificationsPage = {
 
 type ApplicationNotificationContext = {
   subjectLabel: string | null;
+  guardianLabel: string | null;
   programName: string | null;
 };
 
@@ -99,6 +101,10 @@ const APPLICATION_CONTEXT_SELECT = `
   id,
   responses,
   students:student_id (
+    first_name,
+    last_name
+  ),
+  guardians:primary_guardian_id (
     first_name,
     last_name
   ),
@@ -291,9 +297,18 @@ function mapApplicationRowToContext(
 
   const program = row.programs as { name?: string } | { name?: string }[] | null;
   const programRow = Array.isArray(program) ? program[0] : program;
+  const guardian = row.guardians as
+    | { first_name?: string; last_name?: string }
+    | { first_name?: string; last_name?: string }[]
+    | null;
+  const guardianRow = Array.isArray(guardian) ? guardian[0] : guardian;
+  const guardianLabel = guardianRow
+    ? formatSubjectShortLabel(guardianRow.first_name, guardianRow.last_name)
+    : null;
 
   return {
     subjectLabel,
+    guardianLabel,
     programName: programRow?.name ? String(programRow.name) : null,
   };
 }
@@ -324,10 +339,32 @@ async function fetchApplicationNotificationContexts(
   return contexts;
 }
 
-type PaymentAmountContext = {
+type PaymentNotificationContext = {
   amountCents: number;
   currency: string;
+  label: string | null;
 };
+
+function resolveApplicationPaymentFeeLabel(
+  paymentLabel: string | null | undefined,
+  entityType: string | null | undefined,
+): string {
+  if (paymentLabel?.trim()) return paymentLabel.trim();
+  if (entityType === "application") return "application fee";
+  return "fee";
+}
+
+export function formatGuardianActionForStudent(
+  guardianLabel: string | null | undefined,
+  studentLabel: string,
+  guardianActionPhrase: string,
+  studentOnlyPhrase: string,
+): string {
+  if (guardianLabel && guardianLabel !== studentLabel) {
+    return `${guardianLabel} ${guardianActionPhrase} for ${studentLabel}`;
+  }
+  return studentOnlyPhrase;
+}
 
 function resolvePaymentIdForEvent(
   event: ActivityEventForNotification,
@@ -343,18 +380,18 @@ function resolvePaymentIdForEvent(
 }
 
 function formatPaymentAmountLabel(
-  amount: PaymentAmountContext | null,
+  amount: Pick<PaymentNotificationContext, "amountCents" | "currency"> | null,
 ): string | null {
   if (!amount || amount.amountCents <= 0) return null;
   return formatCents(amount.amountCents, amount.currency);
 }
 
-async function fetchPaymentAmountContexts(
+async function fetchPaymentNotificationContexts(
   supabase: SupabaseClient,
   events: ActivityEventForNotification[],
-): Promise<Map<string, PaymentAmountContext>> {
+): Promise<Map<string, PaymentNotificationContext>> {
   const paymentIds = new Set<string>();
-  const directAmounts = new Map<string, PaymentAmountContext>();
+  const directAmounts = new Map<string, PaymentNotificationContext>();
 
   for (const event of events) {
     if (event.action !== ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED) {
@@ -366,6 +403,9 @@ async function fetchPaymentAmountContexts(
       directAmounts.set(event.id, {
         amountCents,
         currency: metadataString(event.metadata, "currency") ?? "USD",
+        label:
+          metadataString(event.metadata, "chargeLabel") ??
+          metadataString(event.metadata, "paymentLabel"),
       });
       continue;
     }
@@ -376,7 +416,7 @@ async function fetchPaymentAmountContexts(
     }
   }
 
-  const paymentsById = new Map<string, PaymentAmountContext>();
+  const paymentsById = new Map<string, PaymentNotificationContext>();
   await Promise.all(
     [...paymentIds].map(async (paymentId) => {
       const payment = await getPaymentById(supabase, paymentId);
@@ -388,11 +428,12 @@ async function fetchPaymentAmountContexts(
       paymentsById.set(paymentId, {
         amountCents,
         currency: payment.currency,
+        label: payment.label?.trim() || null,
       });
     }),
   );
 
-  const amountsByEventId = new Map<string, PaymentAmountContext>();
+  const contextsByEventId = new Map<string, PaymentNotificationContext>();
   for (const event of events) {
     if (event.action !== ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED) {
       continue;
@@ -400,20 +441,20 @@ async function fetchPaymentAmountContexts(
 
     const directAmount = directAmounts.get(event.id);
     if (directAmount) {
-      amountsByEventId.set(event.id, directAmount);
+      contextsByEventId.set(event.id, directAmount);
       continue;
     }
 
     const paymentId = resolvePaymentIdForEvent(event);
     if (!paymentId) continue;
 
-    const paymentAmount = paymentsById.get(paymentId);
-    if (paymentAmount) {
-      amountsByEventId.set(event.id, paymentAmount);
+    const paymentContext = paymentsById.get(paymentId);
+    if (paymentContext) {
+      contextsByEventId.set(event.id, paymentContext);
     }
   }
 
-  return amountsByEventId;
+  return contextsByEventId;
 }
 
 function resolveTuitionChargeIdForEvent(
@@ -579,6 +620,11 @@ export function formatActivityNotificationDetail(
   fallbackSummary: string,
   paymentAmountLabel?: string | null,
   tuitionContext?: TuitionNotificationContext | null,
+  options?: {
+    guardianLabel?: string | null;
+    paymentLabel?: string | null;
+    entityType?: string | null;
+  },
 ): string {
   const isTuitionPayment =
     action === ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED &&
@@ -604,13 +650,40 @@ export function formatActivityNotificationDetail(
     return fallbackSummary;
   }
 
+  const guardianLabel = options?.guardianLabel ?? null;
+
   switch (action) {
     case ACTIVITY_ACTIONS.APPLICATION_SUBMITTED:
-      return `${subjectLabel} submitted an application`;
-    case ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED:
+      return formatGuardianActionForStudent(
+        guardianLabel,
+        subjectLabel,
+        "submitted an application",
+        `${subjectLabel} submitted an application`,
+      );
+    case ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED: {
+      const feeLabel = resolveApplicationPaymentFeeLabel(
+        options?.paymentLabel,
+        options?.entityType,
+      );
+
+      if (guardianLabel && guardianLabel !== subjectLabel) {
+        const paymentPhrase = paymentAmountLabel
+          ? `paid a ${paymentAmountLabel} ${feeLabel}`
+          : `paid a ${feeLabel}`;
+        return formatGuardianActionForStudent(
+          guardianLabel,
+          subjectLabel,
+          paymentPhrase,
+          paymentAmountLabel
+            ? `${subjectLabel} paid a ${paymentAmountLabel} application fee`
+            : `${subjectLabel} paid an application fee`,
+        );
+      }
+
       return paymentAmountLabel
         ? `${subjectLabel} paid a ${paymentAmountLabel} application fee`
         : `${subjectLabel} paid an application fee`;
+    }
     case ACTIVITY_ACTIONS.APPLICATION_UNDER_REVIEW:
       return `${subjectLabel}'s application is under review`;
     case ACTIVITY_ACTIONS.APPLICATION_OBSERVATION:
@@ -622,9 +695,19 @@ export function formatActivityNotificationDetail(
     case ACTIVITY_ACTIONS.APPLICATION_WITHDRAWN:
       return `${subjectLabel}'s application was withdrawn`;
     case ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED:
-      return `${subjectLabel} scheduled a visit`;
+      return formatGuardianActionForStudent(
+        guardianLabel,
+        subjectLabel,
+        "scheduled a visit",
+        `${subjectLabel} scheduled a visit`,
+      );
     case ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED:
-      return `${subjectLabel} finished enrollment`;
+      return formatGuardianActionForStudent(
+        guardianLabel,
+        subjectLabel,
+        "finished enrollment",
+        `${subjectLabel} finished enrollment`,
+      );
     default:
       return fallbackSummary;
   }
@@ -777,8 +860,10 @@ export function mapActivityEventToNotification(
   context: ApplicationNotificationContext | null,
   paymentAmountLabel?: string | null,
   tuitionContext?: TuitionNotificationContext | null,
+  paymentLabel?: string | null,
 ): SchoolAdminActivityNotification {
   const metadataSubject = metadataString(event.metadata, "guardianName");
+  const guardianLabel = context?.guardianLabel ?? metadataSubject ?? null;
   const subjectLabel =
     tuitionContext?.subjectLabel ??
     context?.subjectLabel ??
@@ -791,6 +876,7 @@ export function mapActivityEventToNotification(
     title: formatActivityNotificationTitle(event.action),
     summary: event.summary,
     subjectLabel,
+    guardianLabel,
     programName,
     detail: formatActivityNotificationDetail(
       event.action,
@@ -798,6 +884,11 @@ export function mapActivityEventToNotification(
       event.summary,
       paymentAmountLabel,
       tuitionContext,
+      {
+        guardianLabel,
+        paymentLabel,
+        entityType: event.entity_type,
+      },
     ),
     createdAt: event.created_at,
     href: link.href,
@@ -894,7 +985,7 @@ export async function fetchSchoolAdminActivityNotifications(
     supabase,
     applicationIds,
   );
-  const paymentAmountsByEventId = await fetchPaymentAmountContexts(
+  const paymentContexts = await fetchPaymentNotificationContexts(
     supabase,
     events,
   );
@@ -920,9 +1011,8 @@ export async function fetchSchoolAdminActivityNotifications(
     const tuitionContext = chargeId
       ? tuitionContexts.get(chargeId) ?? null
       : null;
-    let paymentAmountLabel = formatPaymentAmountLabel(
-      paymentAmountsByEventId.get(event.id) ?? null,
-    );
+    const paymentContext = paymentContexts.get(event.id) ?? null;
+    let paymentAmountLabel = formatPaymentAmountLabel(paymentContext);
     if (
       !paymentAmountLabel &&
       event.action === ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED
@@ -939,6 +1029,7 @@ export async function fetchSchoolAdminActivityNotifications(
         context,
         paymentAmountLabel,
         tuitionContext,
+        paymentContext?.label ?? null,
       ),
     );
   }

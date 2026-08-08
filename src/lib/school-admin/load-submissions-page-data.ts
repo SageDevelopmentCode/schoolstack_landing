@@ -1,18 +1,18 @@
-import { listOrgParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
 import {
   listOrgApplicationSubmissions,
   type AdminApplicationSubmission,
 } from "@/lib/admissions/application-submissions";
-import type { ParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 
 export type ApplicationSubmissionsPageData = {
   submissions: AdminApplicationSubmission[];
-  loginStatusByGuardianId: Record<string, ParentPortalLoginStatus>;
 };
 
+/**
+ * SSR path for submissions table. Intentionally skips Auth Admin login-status
+ * fan-out — badges load client-side via /parent-login-status.
+ */
 export async function loadApplicationSubmissionsPageData(
   organizationId: string,
 ): Promise<ApplicationSubmissionsPageData> {
@@ -24,14 +24,5 @@ export async function loadApplicationSubmissionsPageData(
     organizationId,
   );
 
-  try {
-    const admin = createAdminClient();
-    const statuses = await listOrgParentPortalLoginStatus(admin, organizationId);
-    const loginStatusByGuardianId = Object.fromEntries(
-      statuses.map((status) => [status.guardianId, status]),
-    );
-    return { submissions, loginStatusByGuardianId };
-  } catch {
-    return { submissions, loginStatusByGuardianId: {} };
-  }
+  return { submissions };
 }

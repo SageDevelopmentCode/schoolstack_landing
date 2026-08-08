@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
-import ParentDashboardDemo from "@/components/sections/ParentDashboardDemo";
+import ParentDashboardDemo from "@/components/demo/ParentDashboardDemoLazy";
 import {
   PARADISE_EARTH_ACADEMY_ADMIN_COLORS,
   PARADISE_EARTH_ACADEMY_ADMIN_COMPACT_ROWS,

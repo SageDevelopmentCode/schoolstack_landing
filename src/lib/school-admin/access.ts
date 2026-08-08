@@ -36,11 +36,12 @@ export async function userCanAccessSchoolAdmin(
   userId: string,
   organizationId: string,
 ): Promise<boolean> {
-  if (await isPlatformAdmin(supabase, userId)) {
-    return true;
-  }
+  const [platformAdmin, orgAdmin] = await Promise.all([
+    isPlatformAdmin(supabase, userId),
+    userIsOrgAdmin(supabase, userId, organizationId),
+  ]);
 
-  return userIsOrgAdmin(supabase, userId, organizationId);
+  return platformAdmin || orgAdmin;
 }
 
 export async function canManageOrganization(

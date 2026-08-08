@@ -7,7 +7,8 @@ import {
   getPerformancePageManifest,
   resolvePageUrl,
 } from "@/lib/performance/page-manifest";
-import type { AuditEnvironment } from "@/lib/performance/types";
+import { parseFormFactor } from "@/lib/performance/api-helpers";
+import type { AuditEnvironment, AuditFormFactor } from "@/lib/performance/types";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -28,13 +29,17 @@ type LatestResultSummary = {
   createdAt: string;
 };
 
-async function loadLatestResults(environment: AuditEnvironment) {
+async function loadLatestResults(
+  environment: AuditEnvironment,
+  formFactor: AuditFormFactor,
+) {
   const admin = createAdminClient();
 
   const { data: runs, error: runsError } = await admin
     .from("performance_audit_runs")
     .select("id")
     .eq("environment", environment)
+    .eq("form_factor", formFactor)
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -91,6 +96,8 @@ export async function GET(request: Request) {
         : environmentParam === "ci"
           ? "ci"
           : "production";
+    const formFactor =
+      parseFormFactor(url.searchParams.get("formFactor")) ?? "mobile";
 
     const admin = createAdminClient();
     const [
@@ -104,9 +111,9 @@ export async function GET(request: Request) {
         .select("*", { count: "exact", head: true })
         .eq("environment", "local")
         .eq("status", "pending"),
-      loadLatestResults("production"),
-      loadLatestResults("local"),
-      loadLatestResults("ci"),
+      loadLatestResults("production", formFactor),
+      loadLatestResults("local", formFactor),
+      loadLatestResults("ci", formFactor),
     ]);
 
     const latest =
@@ -124,6 +131,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       environment,
+      formFactor,
       pages,
       pendingLocalRuns: pendingLocalRuns ?? 0,
     });

@@ -62,6 +62,7 @@ export type FamilyApplication = {
   formTitle: string;
   publicSlug: string | null;
   studentName: string | null;
+  grade: string | null;
   postSubmitTasks: ApplicationPostSubmitTask[];
 };
 
@@ -316,6 +317,11 @@ export async function listFamilyApplications(
       publicSlug:
         typeof form?.public_slug === "string" ? form.public_slug : null,
       studentName: extractStudentLabel(responses),
+      grade: (() => {
+        const student = extractStudentFromResponses(row.responses);
+        const grade = student?.grade?.trim();
+        return grade ? grade : null;
+      })(),
       postSubmitTasks,
     };
   });
@@ -428,7 +434,7 @@ export async function listFamilyChildrenForHome(
     return {
       applicationId: application.id,
       studentName: application.studentName!.trim(),
-      grade: null as string | null,
+      grade: application.grade,
       status: displayStatus,
       statusLabel: applicationStatusLabel(displayStatus),
       isEnrolled,
@@ -438,38 +444,12 @@ export async function listFamilyChildrenForHome(
     };
   });
 
-  // Fetch grades from application responses
-  const { data: responseRows, error } = await supabase
-    .from("applications")
-    .select("id, responses")
-    .eq("organization_id", organizationId)
-    .in(
-      "id",
-      children.map((child) => child.applicationId),
-    );
-
-  if (error) throw error;
-
-  const gradeByApplicationId = new Map<string, string | null>();
-  for (const row of responseRows ?? []) {
-    const student = extractStudentFromResponses(row.responses);
-    gradeByApplicationId.set(
-      String(row.id),
-      student?.grade?.trim() ? student.grade.trim() : null,
-    );
-  }
-
-  return children
-    .map((child) => ({
-      ...child,
-      grade: gradeByApplicationId.get(child.applicationId) ?? null,
-    }))
-    .sort((a, b) => {
-      if (a.isEnrolled !== b.isEnrolled) {
-        return a.isEnrolled ? -1 : 1;
-      }
-      return a.studentName.localeCompare(b.studentName);
-    });
+  return children.sort((a, b) => {
+    if (a.isEnrolled !== b.isEnrolled) {
+      return a.isEnrolled ? -1 : 1;
+    }
+    return a.studentName.localeCompare(b.studentName);
+  });
 }
 
 export async function loadApplicationDetail(

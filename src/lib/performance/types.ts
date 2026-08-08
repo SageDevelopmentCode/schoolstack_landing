@@ -1,5 +1,7 @@
 export type AuditEnvironment = "production" | "local" | "ci";
 export type AuditFormFactor = "mobile" | "desktop";
+
+export const BULK_AUDIT_FORM_FACTORS: AuditFormFactor[] = ["mobile", "desktop"];
 export type AuditRunStatus = "pending" | "running" | "completed" | "failed";
 export type AuditResultStatus = "success" | "failed" | "skipped";
 

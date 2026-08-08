@@ -26,7 +26,7 @@ export const APPLY_SYSTEM_ADMIN_CALLOUT =
 export const APPLY_SYSTEM_PARENT_STEP_NOTICE =
   "You'll be able to apply for another child after this application gets submitted.";
 
-const GRADE_OPTIONS = [
+export const STUDENT_GRADE_OPTIONS = [
   { value: "pk", label: "Pre-K" },
   { value: "k", label: "Kindergarten" },
   { value: "1", label: "1st Grade" },
@@ -84,7 +84,7 @@ function buildSystemField(id: ApplySystemFieldId): ApplicationField {
         type: "select",
         required: true,
         width: "half",
-        options: GRADE_OPTIONS,
+        options: STUDENT_GRADE_OPTIONS,
         system: true,
       };
     default:

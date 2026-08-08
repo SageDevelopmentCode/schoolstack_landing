@@ -17,6 +17,10 @@ import {
   buildLighthouseArgs,
   formatExecError,
 } from "@/lib/performance/lighthouse-cli";
+import {
+  buildCookieHeader,
+  loadCookiesForPageAuth,
+} from "@/lib/performance/lighthouse-auth";
 import { normalizeLighthouseResult } from "@/lib/performance/lighthouse-parse";
 import {
   getPageTargetById,
@@ -39,13 +43,17 @@ async function readLighthouseOutput(outputPath: string) {
   return JSON.parse(rawText) as unknown;
 }
 
-async function runLighthouse(url: string, formFactor: AuditFormFactor) {
+async function runLighthouse(
+  url: string,
+  formFactor: AuditFormFactor,
+  extraHeaders?: Record<string, string>,
+) {
   const outputPath = join(
     tmpdir(),
     `lighthouse-${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
   );
 
-  const args = buildLighthouseArgs(url, formFactor, outputPath);
+  const args = buildLighthouseArgs(url, formFactor, outputPath, { extraHeaders });
 
   try {
     await execFileAsync("npx", ["lighthouse", ...args], {
@@ -119,10 +127,19 @@ async function processPendingRun() {
     }
 
     const url = resolvePageUrl(page.path, "local");
-    log(`Auditing (${formFactor}) ${url}`);
+    const auth = page.requiresAuth;
+    let extraHeaders: Record<string, string> | undefined;
+
+    if (auth !== "none") {
+      const cookies = loadCookiesForPageAuth(auth, new URL(url).hostname);
+      extraHeaders = { Cookie: buildCookieHeader(cookies) };
+    }
+
+    const authSuffix = auth === "none" ? "" : `, ${auth}`;
+    log(`Auditing (${formFactor}${authSuffix}) ${url}`);
 
     try {
-      const raw = await runLighthouse(url, formFactor);
+      const raw = await runLighthouse(url, formFactor, extraHeaders);
       const lighthousePayload =
         raw && typeof raw === "object" && "lhr" in raw
           ? (raw as { lhr: unknown }).lhr

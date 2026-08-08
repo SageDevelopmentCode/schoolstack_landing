@@ -3,12 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
-import { loadEnrollmentChecklistsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
-import {
-  listFamilyChildrenForHome,
-  loadApplicationDetail,
-  type ChildProfileData,
-} from "@/lib/admissions/parent-portal-access";
+import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -55,33 +50,8 @@ export default async function SchoolParentChildrenPage({ params }: PageProps) {
     notFound();
   }
 
+  // Overview cards only — full application schemas load when a profile panel opens.
   const familyChildren = await listFamilyChildrenForHome(supabase, org.id, user.id);
-
-  const applicationIds = familyChildren.map((child) => child.applicationId);
-  const checklistsByApplicationId = await loadEnrollmentChecklistsForApplications(
-    supabase,
-    applicationIds,
-  );
-
-  const childProfileEntries = await Promise.all(
-    familyChildren.map(async (child) => {
-      const application = await loadApplicationDetail(
-        supabase,
-        child.applicationId,
-        org.id,
-        user.id,
-      );
-      if (!application) return null;
-      const checklist = checklistsByApplicationId[child.applicationId] ?? null;
-      return [child.applicationId, { application, checklist }] as const;
-    }),
-  );
-
-  const childProfiles: Record<string, ChildProfileData> = Object.fromEntries(
-    childProfileEntries.filter(
-      (entry): entry is readonly [string, ChildProfileData] => entry !== null,
-    ),
-  );
 
   const pageName = getParentPageLabel("children", org.features.feature_nav?.parent);
 
@@ -91,8 +61,8 @@ export default async function SchoolParentChildrenPage({ params }: PageProps) {
         branding={org.branding}
         schoolName={org.name}
         schoolSlug={slug}
+        organizationId={org.id}
         familyChildren={familyChildren}
-        childProfiles={childProfiles}
       />
     </SchoolParentPageShell>
   );

@@ -2,19 +2,22 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle, Clock } from "lucide-react";
+import { ArrowRight, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import type {
   ChildProfileData,
   FamilyChildOverview,
 } from "@/lib/admissions/parent-portal-access";
+import { loadApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import { applicationStatusBadgeStyle } from "@/lib/admissions/application-status-ui";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { createClient } from "@/utils/supabase/client";
 
 const ChildProfileSidePanel = dynamic(
   () => import("@/components/school-parent/ChildProfileSidePanel"),
@@ -25,8 +28,10 @@ type ParentChildrenPageProps = {
   branding: OrganizationBranding;
   schoolName: string;
   schoolSlug: string;
+  organizationId: string;
   familyChildren: FamilyChildOverview[];
-  childProfiles: Record<string, ChildProfileData>;
+  /** Optional preloaded profiles (e.g. family preview). Live loads on demand. */
+  childProfiles?: Record<string, ChildProfileData>;
   previewBasePath?: string;
 };
 
@@ -163,15 +168,64 @@ export default function ParentChildrenPage({
   branding,
   schoolName,
   schoolSlug,
+  organizationId,
   familyChildren,
-  childProfiles,
+  childProfiles: initialProfiles,
   previewBasePath,
 }: ParentChildrenPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const supabase = useMemo(() => createClient(), []);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<Record<string, ChildProfileData>>(
+    initialProfiles ?? {},
+  );
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const applyDashboardHref = previewBasePath ?? `/school/${schoolSlug}/apply`;
+
+  const loadProfile = useCallback(
+    async (applicationId: string) => {
+      if (profiles[applicationId]) return;
+      setProfileLoading(true);
+      setProfileError(null);
+      try {
+        const [application, checklist] = await Promise.all([
+          loadApplicationDetail(supabase, applicationId, organizationId),
+          loadEnrollmentChecklistForApplication(
+            supabase,
+            applicationId,
+            organizationId,
+          ),
+        ]);
+        if (!application) {
+          setProfileError("Could not load this student profile.");
+          return;
+        }
+        setProfiles((prev) => ({
+          ...prev,
+          [applicationId]: { application, checklist },
+        }));
+      } catch (err) {
+        setProfileError(
+          err instanceof Error ? err.message : "Failed to load student profile.",
+        );
+      } finally {
+        setProfileLoading(false);
+      }
+    },
+    [organizationId, profiles, supabase],
+  );
+
+  const selectChild = useCallback(
+    (applicationId: string) => {
+      setSelectedApplicationId(applicationId);
+      void loadProfile(applicationId);
+    },
+    [loadProfile],
+  );
+
   const selectedProfile = selectedApplicationId
-    ? childProfiles[selectedApplicationId] ?? null
+    ? profiles[selectedApplicationId] ?? null
     : null;
 
   if (familyChildren.length === 0) {
@@ -211,21 +265,42 @@ export default function ParentChildrenPage({
             child={child}
             C={C}
             index={index}
-            onSelect={() => setSelectedApplicationId(child.applicationId)}
+            onSelect={() => selectChild(child.applicationId)}
           />
         ))}
       </div>
 
       {selectedApplicationId !== null ? (
-        <ChildProfileSidePanel
-          open={selectedApplicationId !== null}
-          onClose={() => setSelectedApplicationId(null)}
-          branding={branding}
-          schoolName={schoolName}
-          schoolSlug={schoolSlug}
-          application={selectedProfile?.application ?? null}
-          checklist={selectedProfile?.checklist ?? null}
-        />
+        profileLoading && !selectedProfile ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/20">
+            <div
+              className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm shadow-lg"
+              style={{ backgroundColor: C.surface, color: C.textSecondary }}
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading profile…
+            </div>
+          </div>
+        ) : (
+          <ChildProfileSidePanel
+            open={selectedApplicationId !== null}
+            onClose={() => {
+              setSelectedApplicationId(null);
+              setProfileError(null);
+            }}
+            branding={branding}
+            schoolName={schoolName}
+            schoolSlug={schoolSlug}
+            application={selectedProfile?.application ?? null}
+            checklist={selectedProfile?.checklist ?? null}
+          />
+        )
+      ) : null}
+
+      {profileError ? (
+        <p className="mt-4 text-center text-sm" style={{ color: C.error }}>
+          {profileError}
+        </p>
       ) : null}
     </div>
   );

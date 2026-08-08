@@ -9,11 +9,28 @@ import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsE
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
 import OrganizationParentPortalPanel from "@/components/admin/OrganizationParentPortalPanel";
+import OrganizationNotificationsPanel from "@/components/admin/OrganizationNotificationsPanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 import type { OrganizationSettingsRow } from "@/lib/organization-settings/types";
 
 type OrganizationStatus = "onboarding" | "live" | "paused" | "churned";
+
+type OrganizationDetailTab =
+  | "overview"
+  | "notifications"
+  | "submissions"
+  | "parent-portal";
+
+const ORGANIZATION_DETAIL_TABS: {
+  id: OrganizationDetailTab;
+  label: string;
+}[] = [
+  { id: "overview", label: "Overview" },
+  { id: "notifications", label: "Notifications" },
+  { id: "submissions", label: "Submissions" },
+  { id: "parent-portal", label: "Parent portal" },
+];
 
 type Organization = {
   id: string;
@@ -86,6 +103,8 @@ export default function AdminOrganizationsPage() {
     null,
   );
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [activeDetailTab, setActiveDetailTab] =
+    useState<OrganizationDetailTab>("overview");
 
   useEffect(() => {
     async function load() {
@@ -103,6 +122,10 @@ export default function AdminOrganizationsPage() {
     }
     load();
   }, [supabase]);
+
+  useEffect(() => {
+    queueMicrotask(() => setActiveDetailTab("overview"));
+  }, [selectedId]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -270,6 +293,31 @@ export default function AdminOrganizationsPage() {
               </span>
             </div>
 
+            <div
+              role="tablist"
+              aria-label="Organization sections"
+              className="flex gap-4 overflow-x-auto border-b border-admin-border"
+            >
+              {ORGANIZATION_DETAIL_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeDetailTab === tab.id}
+                  onClick={() => setActiveDetailTab(tab.id)}
+                  className={`text-sm font-medium py-2 border-b-2 transition-colors whitespace-nowrap ${
+                    activeDetailTab === tab.id
+                      ? "border-admin-accent text-admin-accent"
+                      : "border-transparent text-admin-muted hover:text-admin-text"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {activeDetailTab === "overview" ? (
+              <>
             <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
               <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide ">
                 Settings
@@ -356,13 +404,6 @@ export default function AdminOrganizationsPage() {
               organizationId={selected.id}
               organizationName={selected.name}
             />
-
-            <OrganizationSubmissionsPanel
-              organizationId={selected.id}
-              organizationSlug={selected.slug}
-            />
-
-            <OrganizationParentPortalPanel organizationId={selected.id} />
 
             <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
               <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide ">
@@ -476,6 +517,23 @@ export default function AdminOrganizationsPage() {
                 ) : null}
               </ul>
             </section>
+              </>
+            ) : null}
+
+            {activeDetailTab === "notifications" ? (
+              <OrganizationNotificationsPanel organizationId={selected.id} />
+            ) : null}
+
+            {activeDetailTab === "submissions" ? (
+              <OrganizationSubmissionsPanel
+                organizationId={selected.id}
+                organizationSlug={selected.slug}
+              />
+            ) : null}
+
+            {activeDetailTab === "parent-portal" ? (
+              <OrganizationParentPortalPanel organizationId={selected.id} />
+            ) : null}
           </div>
         )}
       </div>

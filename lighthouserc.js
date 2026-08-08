@@ -4,6 +4,10 @@ register();
 
 const { resolveCiLighthouseUrls } = require("./src/lib/performance/page-manifest.ts");
 
+const formFactor =
+  process.env.PERFORMANCE_FORM_FACTOR === "desktop" ? "desktop" : "mobile";
+const isMobile = formFactor === "mobile";
+
 module.exports = {
   ci: {
     collect: {
@@ -14,9 +18,9 @@ module.exports = {
       startServerReadyPattern: "Ready",
       numberOfRuns: 1,
       settings: {
-        preset: "perf",
-        formFactor: "mobile",
-        screenEmulation: { mobile: true },
+        preset: isMobile ? "perf" : "desktop",
+        formFactor,
+        screenEmulation: isMobile ? { mobile: true } : { mobile: false },
         maxWaitForLoad: 90000,
         disableStorageReset: true,
         chromeFlags: process.env.CI

@@ -1,7 +1,10 @@
 import { cookies } from "next/headers";
 import { getFamilyPreviewGuardianId } from "@/lib/admissions/family-preview-access";
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
-import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
+import {
+  filterChargesForFamilyGuardian,
+  listChargesForFamily,
+} from "@/lib/tuition/charges";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
 import {
@@ -34,12 +37,9 @@ export async function loadParentBillingPreviewData(input: {
   const billingSplits = await listBillingSplits(admin, input.familyId);
   const hasBillingSplit = billingSplits.length > 0;
 
-  const [allFamilyCharges, chargeRows, paymentRows, adjustmentRows, readinessState] =
+  const [allFamilyCharges, paymentRows, adjustmentRows, readinessState] =
     await Promise.all([
       listChargesForFamily(admin, input.familyId),
-      listChargesForFamilyGuardian(admin, input.familyId, guardianId, {
-        hasBillingSplit,
-      }),
       listParentTuitionPaymentHistory(admin, input.familyId),
       listAdjustmentsForFamily(admin, input.familyId),
       fetchFamilyBillingReadiness(admin, {
@@ -48,6 +48,12 @@ export async function loadParentBillingPreviewData(input: {
         slug: input.slug,
       }),
     ]);
+
+  const chargeRows = filterChargesForFamilyGuardian(
+    allFamilyCharges,
+    guardianId,
+    { hasBillingSplit },
+  );
 
   const familySummary = await fetchParentBillingFamilySummary(admin, {
     organizationId: input.organizationId,

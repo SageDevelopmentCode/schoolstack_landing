@@ -11,6 +11,7 @@ import {
 } from "@/lib/organization-settings/admin-nav";
 import { isAdminNavPathEnabled } from "@/lib/organization-settings/admin-routes";
 import { loadApplicationSubmissionsPageData } from "@/lib/school-admin/load-submissions-page-data";
+import { loadStudentsPageData } from "@/lib/school-admin/load-students-page-data";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -45,6 +46,10 @@ const TuitionPage = nextDynamic(
 const StaffPage = nextDynamic(
   () => import("@/components/school-admin/staff/StaffPage"),
   { loading: () => <AdminPageSkeleton label="Loading staff" /> },
+);
+const StudentsPage = nextDynamic(
+  () => import("@/components/school-admin/students/StudentsPage"),
+  { loading: () => <AdminPageSkeleton label="Loading students" /> },
 );
 
 export const dynamic = "force-dynamic";
@@ -150,7 +155,6 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
           schoolName={org.name}
           slug={slug}
           initialSubmissions={initialData.submissions}
-          initialLoginStatusByGuardianId={initialData.loginStatusByGuardianId}
         />
       </Suspense>
     );
@@ -183,6 +187,21 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
         branding={org.branding}
         slug={slug}
       />
+    );
+  }
+
+  if (feature === "my_school" && subtab === "students") {
+    const initialData = await loadStudentsPageData(org.id);
+
+    return (
+      <Suspense>
+        <StudentsPage
+          organizationId={org.id}
+          branding={org.branding}
+          slug={slug}
+          initialStudents={initialData.students}
+        />
+      </Suspense>
     );
   }
 

@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
 import { buildApplySystemSection, emptyApplyCustomSection } from "@/lib/admissions/apply-system-fields";
+import { materializeApplicationStudent } from "@/lib/admissions/application-entity-materialization";
 import {
   E2E_ADMIN_EMAIL,
   E2E_NONADMIN_EMAIL,
@@ -731,7 +732,10 @@ async function seedParentApplication(
     throw new Error(`Failed to seed application for ${email}`);
   }
 
-  return application.id as string;
+  const applicationId = application.id as string;
+  await materializeApplicationStudent(admin, applicationId);
+
+  return applicationId;
 }
 
 async function seedAdditionalSubmittedApplication(
@@ -798,7 +802,10 @@ async function seedAdditionalSubmittedApplication(
     throw new Error(`Failed to seed additional application for ${email}`);
   }
 
-  return application.id as string;
+  const applicationId = application.id as string;
+  await materializeApplicationStudent(admin, applicationId);
+
+  return applicationId;
 }
 
 const SEED_MANIFEST_PATH = path.join(process.cwd(), "e2e/.seed-manifest.json");

@@ -1,5 +1,8 @@
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
-import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
+import {
+  filterChargesForFamilyGuardian,
+  listChargesForFamily,
+} from "@/lib/tuition/charges";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import { listParentTuitionPaymentHistory } from "@/lib/tuition/payments";
 import {
@@ -55,12 +58,9 @@ export async function loadParentBillingInitialData(input: {
   const billingSplits = await listBillingSplits(supabase, input.familyId);
   const hasBillingSplit = billingSplits.length > 0;
 
-  const [allFamilyCharges, chargeRows, paymentRows, adjustmentRows, readinessState] =
+  const [allFamilyCharges, paymentRows, adjustmentRows, readinessState] =
     await Promise.all([
       listChargesForFamily(supabase, input.familyId),
-      listChargesForFamilyGuardian(supabase, input.familyId, guardianId, {
-        hasBillingSplit,
-      }),
       listParentTuitionPaymentHistory(supabase, input.familyId),
       listAdjustmentsForFamily(supabase, input.familyId),
       fetchFamilyBillingReadiness(supabase, {
@@ -69,6 +69,12 @@ export async function loadParentBillingInitialData(input: {
         slug: input.slug,
       }),
     ]);
+
+  const chargeRows = filterChargesForFamilyGuardian(
+    allFamilyCharges,
+    guardianId,
+    { hasBillingSplit },
+  );
 
   const familySummary = await fetchParentBillingFamilySummary(supabase, {
     organizationId: input.organizationId,

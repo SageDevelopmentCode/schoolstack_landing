@@ -36,6 +36,30 @@ import {
 import { notifyPaymentsReadyIfNeeded } from "@/lib/stripe/connect-notifications";
 import { syncPaymentAccountFromStripe } from "@/lib/stripe/organization-payment-account";
 
+async function tryMarkPaymentSucceeded(
+  admin: SupabaseClient,
+  payment: PaymentRecord,
+  stripeRefs: {
+    paymentIntentId: string | undefined;
+    checkoutSessionId: string;
+  },
+): Promise<{ payment: PaymentRecord; newlySucceeded: boolean }> {
+  if (payment.status === "succeeded") {
+    return { payment, newlySucceeded: false };
+  }
+
+  const updated = await markPaymentSucceeded(admin, payment.id, {
+    stripePaymentIntentId: stripeRefs.paymentIntentId,
+    stripeCheckoutSessionId: stripeRefs.checkoutSessionId,
+  });
+
+  if (!updated) {
+    return { payment, newlySucceeded: false };
+  }
+
+  return { payment: updated, newlySucceeded: true };
+}
+
 export async function handleCheckoutSessionCompleted(
   admin: SupabaseClient,
   session: Stripe.Checkout.Session,
@@ -252,14 +276,15 @@ async function handleCombinedEnrollmentChecklistCheckoutCompleted(
     payments = await listPaymentsByCheckoutSession(admin, checkoutSessionId);
   }
 
+  let newlySucceededAny = false;
   for (const payment of payments) {
-    if (payment.status === "succeeded") continue;
-
-    const updatedPayment = await markPaymentSucceeded(admin, payment.id, {
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutSessionId: checkoutSessionId,
-    });
-    if (updatedPayment) {
+    const { payment: updatedPayment, newlySucceeded } =
+      await tryMarkPaymentSucceeded(admin, payment, {
+        paymentIntentId,
+        checkoutSessionId,
+      });
+    if (newlySucceeded) {
+      newlySucceededAny = true;
       void sendPaymentCompletedNotifications(admin, updatedPayment.id);
     }
   }
@@ -278,7 +303,13 @@ async function handleCombinedEnrollmentChecklistCheckoutCompleted(
       checkoutSessionId,
       paymentIntentId,
     });
+  }
 
+  if (!newlySucceededAny) {
+    return;
+  }
+
+  for (const instanceId of instanceIds) {
     void logActivityEvent(admin, {
       organizationId,
       actorType: "system",
@@ -324,12 +355,15 @@ async function handleEnrollmentChecklistCheckoutCompleted(
     );
   }
 
-  if (payment && payment.status !== "succeeded") {
-    payment = await markPaymentSucceeded(admin, payment.id, {
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutSessionId: checkoutSessionId,
+  let newlySucceeded = false;
+  if (payment) {
+    const result = await tryMarkPaymentSucceeded(admin, payment, {
+      paymentIntentId,
+      checkoutSessionId,
     });
-    if (payment) {
+    payment = result.payment;
+    newlySucceeded = result.newlySucceeded;
+    if (newlySucceeded) {
       void sendPaymentCompletedNotifications(admin, payment.id);
     }
   }
@@ -340,6 +374,10 @@ async function handleEnrollmentChecklistCheckoutCompleted(
     checkoutSessionId,
     paymentIntentId,
   });
+
+  if (!newlySucceeded) {
+    return;
+  }
 
   void logActivityEvent(admin, {
     organizationId: metadata.organization_id as string,
@@ -423,14 +461,18 @@ async function handleCombinedTuitionCheckoutCompleted(
     metadata,
   });
 
+  let newlySucceededAny = false;
   for (const payment of payments) {
     if (payment.status === "succeeded") continue;
 
     if (paymentSettled) {
-      await markPaymentSucceeded(admin, payment.id, {
-        stripePaymentIntentId: paymentIntentId,
-        stripeCheckoutSessionId: checkoutSessionId,
+      const { newlySucceeded } = await tryMarkPaymentSucceeded(admin, payment, {
+        paymentIntentId,
+        checkoutSessionId,
       });
+      if (newlySucceeded) {
+        newlySucceededAny = true;
+      }
     } else if (payment.status === "pending") {
       await attachStripeCheckoutToPayment(admin, payment.id, {
         stripeCheckoutSessionId: checkoutSessionId,
@@ -478,6 +520,10 @@ async function handleCombinedTuitionCheckoutCompleted(
     }
   }
 
+  if (!newlySucceededAny) {
+    return;
+  }
+
   void logActivityEvent(admin, {
     organizationId: metadata.organization_id as string,
     actorType: "system",
@@ -514,13 +560,16 @@ async function handleTuitionCheckoutCompleted(
   }
 
   const paymentSettled = session.payment_status === "paid";
+  let newlySucceeded = false;
 
   if (payment && payment.status === "pending") {
     if (paymentSettled) {
-      payment = await markPaymentSucceeded(admin, payment.id, {
-        stripePaymentIntentId: paymentIntentId,
-        stripeCheckoutSessionId: checkoutSessionId,
+      const result = await tryMarkPaymentSucceeded(admin, payment, {
+        paymentIntentId,
+        checkoutSessionId,
       });
+      payment = result.payment;
+      newlySucceeded = result.newlySucceeded;
     } else {
       await attachStripeCheckoutToPayment(admin, payment.id, {
         stripeCheckoutSessionId: checkoutSessionId,
@@ -560,7 +609,7 @@ async function handleTuitionCheckoutCompleted(
     }
   }
 
-  if (!paymentSettled) {
+  if (!paymentSettled || !newlySucceeded) {
     return;
   }
 
@@ -609,12 +658,15 @@ async function handleApplicationFeeCheckoutCompleted(
     payment = await getPaymentById(admin, paymentId);
   }
 
-  if (payment && payment.status !== "succeeded") {
-    payment = await markPaymentSucceeded(admin, payment.id, {
-      stripePaymentIntentId: paymentIntentId,
-      stripeCheckoutSessionId: checkoutSessionId,
+  let newlySucceeded = false;
+  if (payment) {
+    const result = await tryMarkPaymentSucceeded(admin, payment, {
+      paymentIntentId,
+      checkoutSessionId,
     });
-    if (payment) {
+    payment = result.payment;
+    newlySucceeded = result.newlySucceeded;
+    if (newlySucceeded) {
       void sendPaymentCompletedNotifications(admin, payment.id);
     }
   }
@@ -624,13 +676,19 @@ async function handleApplicationFeeCheckoutCompleted(
     return;
   }
 
-  await processApplicationFeePayment(admin, payment, checkoutSessionId);
+  await processApplicationFeePayment(
+    admin,
+    payment,
+    checkoutSessionId,
+    newlySucceeded,
+  );
 }
 
 async function processApplicationFeePayment(
   admin: SupabaseClient,
   payment: PaymentRecord,
   checkoutSessionId: string,
+  newlySucceeded: boolean,
 ): Promise<void> {
   if (!payment.applicationId) {
     console.warn("checkout.session.completed: application payment missing application id");
@@ -662,6 +720,10 @@ async function processApplicationFeePayment(
       result.validationError.code,
     );
 
+    if (!newlySucceeded) {
+      return;
+    }
+
     void logActivityEvent(admin, {
       organizationId: application.organizationId,
       actorType: "system",
@@ -677,6 +739,10 @@ async function processApplicationFeePayment(
         submitBlocked: result.validationError.code,
       },
     });
+    return;
+  }
+
+  if (!newlySucceeded) {
     return;
   }
 

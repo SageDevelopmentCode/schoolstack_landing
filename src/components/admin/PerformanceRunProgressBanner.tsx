@@ -1,4 +1,4 @@
-import type { AuditEnvironment } from "@/lib/performance/types";
+import type { AuditEnvironment, AuditFormFactor } from "@/lib/performance/types";
 
 export type BulkRunProgress = {
   runId?: string;
@@ -8,29 +8,43 @@ export type BulkRunProgress = {
   total: number;
   currentLabel?: string;
   errorMessage?: string;
+  formFactor?: AuditFormFactor;
+  formFactorPass?: number;
+  formFactorPasses?: number;
 };
 
+function formatFormFactorPass(progress: BulkRunProgress) {
+  if (!progress.formFactor) return "";
+  const label = progress.formFactor === "mobile" ? "Mobile" : "Desktop";
+  if (progress.formFactorPasses && progress.formFactorPasses > 1) {
+    return `${label} pass — `;
+  }
+  return `${label} — `;
+}
+
 function getProgressMessage(progress: BulkRunProgress) {
+  const passPrefix = formatFormFactorPass(progress);
+
   if (progress.status === "failed") {
     return progress.errorMessage ?? "Audit run failed.";
   }
 
   if (progress.status === "completed") {
-    return `Completed ${progress.completed} of ${progress.total}`;
+    return `${passPrefix}Completed ${progress.completed} of ${progress.total}`;
   }
 
   if (progress.status === "queued") {
-    return "Queued — waiting for Lighthouse runner";
+    return `${passPrefix}Queued — waiting for Lighthouse runner`;
   }
 
   const activeIndex = Math.min(progress.completed + 1, progress.total);
   const labelSuffix = progress.currentLabel ? ` — ${progress.currentLabel}` : "";
 
   if (progress.environment === "production") {
-    return `Auditing ${activeIndex} of ${progress.total}${labelSuffix}`;
+    return `${passPrefix}Auditing ${activeIndex} of ${progress.total}${labelSuffix}`;
   }
 
-  return `Processing ${progress.completed} of ${progress.total}${labelSuffix}`;
+  return `${passPrefix}Processing ${progress.completed} of ${progress.total}${labelSuffix}`;
 }
 
 export function PerformanceRunProgressBanner({

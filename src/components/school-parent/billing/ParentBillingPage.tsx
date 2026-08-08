@@ -19,7 +19,10 @@ import TuitionPayAmountField, {
   type TuitionPayAmountMode,
 } from "@/components/school-parent/billing/TuitionPayAmountField";
 import PaymentMethodSelectionModal from "@/components/admissions/PaymentMethodSelectionModal";
-import { listChargesForFamily, listChargesForFamilyGuardian } from "@/lib/tuition/charges";
+import {
+  filterChargesForFamilyGuardian,
+  listChargesForFamily,
+} from "@/lib/tuition/charges";
 import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import {
@@ -217,12 +220,9 @@ function ParentBillingPageContent({
     try {
       const billingSplits = await listBillingSplits(supabase, familyId);
       const splitActive = billingSplits.length > 0;
-      const [allChargeRows, chargeRows, paymentRows, adjustmentRows, readinessState] =
+      const [allChargeRows, paymentRows, adjustmentRows, readinessState] =
         await Promise.all([
           listChargesForFamily(supabase, familyId),
-          listChargesForFamilyGuardian(supabase, familyId, guardianId, {
-            hasBillingSplit: splitActive,
-          }),
           listParentTuitionPaymentHistory(supabase, familyId),
           listAdjustmentsForFamily(supabase, familyId),
           fetchFamilyBillingReadiness(supabase, {
@@ -231,6 +231,12 @@ function ParentBillingPageContent({
             slug,
           }),
         ]);
+
+      const chargeRows = filterChargesForFamilyGuardian(
+        allChargeRows,
+        guardianId,
+        { hasBillingSplit: splitActive },
+      );
 
       const summary = await fetchParentBillingFamilySummary(supabase, {
         organizationId,
@@ -311,9 +317,10 @@ function ParentBillingPageContent({
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     };
 
+    let rafId = 0;
     queueMicrotask(() => {
       setHighlightedChargeId(deepLinkChargeId);
-      window.requestAnimationFrame(scrollToCharge);
+      rafId = window.requestAnimationFrame(scrollToCharge);
     });
     const scrollTimeout = window.setTimeout(scrollToCharge, 300);
     const highlightTimeout = window.setTimeout(() => {
@@ -321,6 +328,7 @@ function ParentBillingPageContent({
     }, 3000);
 
     return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
       window.clearTimeout(scrollTimeout);
       window.clearTimeout(highlightTimeout);
     };
