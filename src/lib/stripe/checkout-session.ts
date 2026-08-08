@@ -12,6 +12,7 @@ export type CreateAdmissionsCheckoutSessionInput = {
   netAmountCents: number;
   paymentMethod: CheckoutPaymentMethod;
   label: string;
+  description?: string;
   stripeConnectAccountId: string;
   stripeCustomerId: string;
   payerUserId: string;
@@ -25,6 +26,32 @@ export type CreateAdmissionsCheckoutSessionInput = {
 export type AdmissionsCheckoutSessionResult = {
   session: Stripe.Checkout.Session;
   quote: ReturnType<typeof quoteProcessingFee>;
+};
+
+export type TuitionCheckoutDisplayLineItem = {
+  label: string;
+  amountCents: number;
+};
+
+export type CreateTuitionCheckoutSessionInput = {
+  lineItems: TuitionCheckoutDisplayLineItem[];
+  netToSchoolCents: number;
+  paymentMethod: CheckoutPaymentMethod;
+  stripeConnectAccountId: string;
+  stripeCustomerId: string;
+  payerUserId: string;
+  successUrl: string;
+  cancelUrl: string;
+  paymentId: string;
+  paymentIntentMetadata?: Record<string, string>;
+  sessionMetadata?: Record<string, string>;
+};
+
+export type TuitionCheckoutSessionResult = {
+  session: Stripe.Checkout.Session;
+  grossAmountCents: number;
+  netToSchoolCents: number;
+  processingFeeCents: number;
 };
 
 export type AdmissionsCheckoutLineItem = {
@@ -179,7 +206,9 @@ export async function createAdmissionsCheckoutSession(
           unit_amount: quote.grossAmountCents,
           product_data: {
             name: input.label,
-            description: `Includes $${(quote.processingFeeCents / 100).toFixed(2)} processing fee`,
+            description:
+              input.description ??
+              `Includes $${(quote.processingFeeCents / 100).toFixed(2)} processing fee`,
           },
         },
       },
@@ -226,4 +255,84 @@ export async function createAdmissionsCheckoutSession(
   const session = await stripe.checkout.sessions.create(sessionParams);
 
   return { session, quote };
+}
+
+export async function createTuitionCheckoutSession(
+  input: CreateTuitionCheckoutSessionInput,
+  options?: { stripe?: Stripe },
+): Promise<TuitionCheckoutSessionResult> {
+  const stripe = options?.stripe ?? getStripeClient();
+  const grossAmountCents = input.lineItems.reduce(
+    (sum, lineItem) => sum + lineItem.amountCents,
+    0,
+  );
+  const processingFeeCents = Math.max(0, grossAmountCents - input.netToSchoolCents);
+
+  const paymentMethodTypes: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] =
+    input.paymentMethod === "card" ? ["card"] : ["us_bank_account"];
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: "payment",
+    customer: input.stripeCustomerId,
+    payment_method_types: paymentMethodTypes,
+    saved_payment_method_options: {
+      payment_method_save: "enabled",
+    },
+    line_items: input.lineItems.map((lineItem) => ({
+      quantity: 1,
+      price_data: {
+        currency: "usd",
+        unit_amount: lineItem.amountCents,
+        product_data: {
+          name: lineItem.label,
+        },
+      },
+    })),
+    payment_intent_data: {
+      setup_future_usage: "on_session",
+      transfer_data: {
+        destination: input.stripeConnectAccountId,
+        amount: input.netToSchoolCents,
+      },
+      metadata: {
+        payment_id: input.paymentId,
+        supabase_user_id: input.payerUserId,
+        ...(input.paymentIntentMetadata ?? {}),
+        payment_method: input.paymentMethod,
+        net_amount_cents: String(input.netToSchoolCents),
+        processing_fee_cents: String(processingFeeCents),
+        gross_amount_cents: String(grossAmountCents),
+      },
+    },
+    metadata: {
+      payment_id: input.paymentId,
+      supabase_user_id: input.payerUserId,
+      ...(input.sessionMetadata ?? {}),
+      payment_method: input.paymentMethod,
+      net_amount_cents: String(input.netToSchoolCents),
+      processing_fee_cents: String(processingFeeCents),
+      gross_amount_cents: String(grossAmountCents),
+    },
+    success_url: input.successUrl,
+    cancel_url: input.cancelUrl,
+  };
+
+  if (input.paymentMethod === "us_bank_account") {
+    sessionParams.payment_method_options = {
+      us_bank_account: {
+        financial_connections: {
+          permissions: ["payment_method"],
+        },
+      },
+    };
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams);
+
+  return {
+    session,
+    grossAmountCents,
+    netToSchoolCents: input.netToSchoolCents,
+    processingFeeCents,
+  };
 }

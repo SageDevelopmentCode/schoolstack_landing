@@ -82,6 +82,7 @@ function paymentRecord(
     stripeCheckoutSessionId: null,
     stripePaymentIntentId: null,
     amountCents: 60000,
+    amountAppliedCents: null,
     chargedAmountCents: null,
     processingFeeCents: null,
     paymentMethodType: null,

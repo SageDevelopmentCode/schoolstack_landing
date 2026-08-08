@@ -25,6 +25,17 @@ mkdirSync(supabaseTemplatesDir, { recursive: true });
 
 const sampleToken = "482916";
 
+/** Cream shell colors removed for dark-mode-friendly transparent layout */
+const FORBIDDEN_BACKGROUND_COLORS = ["#F7F1E7", "#FFFAF4", "#DDD0BE"];
+
+function assertNoCreamBackgrounds(html: string, label: string): void {
+  for (const color of FORBIDDEN_BACKGROUND_COLORS) {
+    if (html.includes(color)) {
+      throw new Error(`${label} still contains removed background color: ${color}`);
+    }
+  }
+}
+
 const supabaseMagicLinkExport = buildSupabaseMagicLinkOtpHtml();
 const supabaseConfirmSignupExport = buildSupabaseConfirmSignupOtpHtml();
 
@@ -255,8 +266,13 @@ for (const preview of previews) {
     }
   }
 
+  assertNoCreamBackgrounds(preview.html, preview.filename);
+
   console.log(`✓ ${preview.filename}`);
 }
+
+assertNoCreamBackgrounds(supabaseMagicLinkExport, "magic-link.html");
+assertNoCreamBackgrounds(supabaseConfirmSignupExport, "confirm-signup.html");
 
 if (!supabaseMagicLinkExport.includes("{{ .Token }}")) {
   throw new Error("magic-link.html export missing {{ .Token }}");

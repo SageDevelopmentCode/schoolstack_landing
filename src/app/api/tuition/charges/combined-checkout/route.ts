@@ -10,6 +10,10 @@ import {
   listPendingPaymentsForTuitionCharge,
   markPaymentFailed,
 } from "@/lib/stripe/application-payments";
+import {
+  expireOpenCheckoutSession,
+  pendingCombinedCheckoutMatchesRequest,
+} from "@/lib/stripe/pending-checkout-session";
 import { createCombinedAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
 import { getStripeClient, getSiteUrl } from "@/lib/stripe/client";
@@ -155,6 +159,14 @@ export async function POST(request: Request) {
     }
 
     const stripe = getStripeClient();
+    const quoteResult = buildCombinedTuitionPaymentQuote(
+      candidates,
+      body.paymentMethod,
+    );
+    const tuitionChargeIds = candidates.map((candidate) => candidate.charge.id);
+    const totalNetCents = quoteResult.combinedQuote.netAmountCents;
+    const expiredCheckoutSessionIds = new Set<string>();
+
     for (const candidate of candidates) {
       const pendingPayments = await listPendingPaymentsForTuitionCharge(
         admin,
@@ -164,36 +176,51 @@ export async function POST(request: Request) {
       for (const pendingPayment of pendingPayments) {
         if (!pendingPayment.stripeCheckoutSessionId) continue;
 
+        const checkoutSessionId = pendingPayment.stripeCheckoutSessionId;
         const existingSession = await stripe.checkout.sessions.retrieve(
-          pendingPayment.stripeCheckoutSessionId,
+          checkoutSessionId,
         );
 
         if (existingSession.status === "open" && existingSession.url) {
-          return NextResponse.json({
-            checkoutUrl: existingSession.url,
-            processingFeeCents:
-              typeof existingSession.metadata?.processing_fee_cents === "string"
-                ? Number(existingSession.metadata.processing_fee_cents)
-                : 0,
-            grossAmountCents:
-              typeof existingSession.metadata?.gross_amount_cents === "string"
-                ? Number(existingSession.metadata.gross_amount_cents)
-                : pendingPayment.amountCents,
+          if (
+            pendingCombinedCheckoutMatchesRequest({
+              tuitionChargeIds,
+              totalNetCents,
+              paymentMethod: body.paymentMethod,
+              sessionMetadata: existingSession.metadata,
+            })
+          ) {
+            return NextResponse.json({
+              checkoutUrl: existingSession.url,
+              processingFeeCents:
+                typeof existingSession.metadata?.processing_fee_cents === "string"
+                  ? Number(existingSession.metadata.processing_fee_cents)
+                  : 0,
+              grossAmountCents:
+                typeof existingSession.metadata?.gross_amount_cents === "string"
+                  ? Number(existingSession.metadata.gross_amount_cents)
+                  : pendingPayment.amountCents,
+            });
+          }
+
+          if (!expiredCheckoutSessionIds.has(checkoutSessionId)) {
+            await expireOpenCheckoutSession(stripe, checkoutSessionId);
+            expiredCheckoutSessionIds.add(checkoutSessionId);
+          }
+
+          await markPaymentFailed(admin, pendingPayment.id, {
+            stripeCheckoutSessionId: checkoutSessionId,
           });
+          continue;
         }
 
         if (existingSession.status === "expired") {
           await markPaymentFailed(admin, pendingPayment.id, {
-            stripeCheckoutSessionId: pendingPayment.stripeCheckoutSessionId,
+            stripeCheckoutSessionId: checkoutSessionId,
           });
         }
       }
     }
-
-    const quoteResult = buildCombinedTuitionPaymentQuote(
-      candidates,
-      body.paymentMethod,
-    );
 
     const stripeCustomerId = await getOrCreateStripeCustomer(admin, {
       userId: user.id,

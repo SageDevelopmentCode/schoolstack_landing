@@ -109,8 +109,8 @@ export default function ParentBillingUpcomingChargesPanel({
                 ) : null}
                 {totalRemainingCents > 0 ? (
                   <p
-                    className="text-sm mt-1"
-                    style={{ color: C.textSecondary }}
+                    className="text-sm mt-1 font-medium"
+                    style={{ color: C.accent }}
                     data-testid="parent-billing-upcoming-total-remaining"
                   >
                     Total remaining: {formatCents(totalRemainingCents)}

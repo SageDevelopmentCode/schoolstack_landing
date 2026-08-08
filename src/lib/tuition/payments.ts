@@ -77,6 +77,10 @@ export async function createTuitionPaymentRecord(
         : null,
     stripePaymentIntentId: null,
     amountCents: Number(data.amount_cents),
+    amountAppliedCents:
+      typeof data.amount_applied_cents === "number"
+        ? data.amount_applied_cents
+        : null,
     chargedAmountCents:
       typeof data.charged_amount_cents === "number"
         ? data.charged_amount_cents
@@ -350,6 +354,10 @@ function mapTuitionPaymentRows(
         ? row.stripe_payment_intent_id
         : null,
     amountCents: Number(row.amount_cents),
+    amountAppliedCents:
+      typeof row.amount_applied_cents === "number"
+        ? row.amount_applied_cents
+        : null,
     chargedAmountCents:
       typeof row.charged_amount_cents === "number"
         ? row.charged_amount_cents

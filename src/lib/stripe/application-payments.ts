@@ -19,6 +19,7 @@ export type PaymentRecord = {
   stripeCheckoutSessionId: string | null;
   stripePaymentIntentId: string | null;
   amountCents: number;
+  amountAppliedCents: number | null;
   chargedAmountCents: number | null;
   processingFeeCents: number | null;
   paymentMethodType: PaymentMethodType | null;
@@ -68,6 +69,10 @@ function rowToPayment(row: Record<string, unknown>): PaymentRecord {
         ? row.stripe_payment_intent_id
         : null,
     amountCents: Number(row.amount_cents),
+    amountAppliedCents:
+      typeof row.amount_applied_cents === "number"
+        ? row.amount_applied_cents
+        : null,
     chargedAmountCents:
       typeof row.charged_amount_cents === "number"
         ? row.charged_amount_cents

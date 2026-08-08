@@ -41,6 +41,14 @@ describe("formatParentChargeStatusBadge", () => {
     assert.equal(badge.tone, "success");
   });
 
+  it("returns SCHEDULED with info tone", () => {
+    const badge = formatParentChargeStatusBadge(
+      charge({ id: "c-1", status: "scheduled" }),
+    );
+    assert.equal(badge.label, "SCHEDULED");
+    assert.equal(badge.tone, "info");
+  });
+
   it("returns LATE FEE for late fee charges", () => {
     const badge = formatParentChargeStatusBadge(
       charge({ id: "c-1", chargeType: "late_fee", status: "sent" }),

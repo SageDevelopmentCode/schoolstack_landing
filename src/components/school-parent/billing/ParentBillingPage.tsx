@@ -8,6 +8,7 @@ import ParentBillingUpcomingChargesPanel, {
   formatUpcomingChargesSummary,
 } from "@/components/school-parent/billing/ParentBillingUpcomingChargesPanel";
 import ParentBillingPaymentHistoryRow from "@/components/school-parent/billing/ParentBillingPaymentHistoryRow";
+import ParentBillingPaymentReceiptPanel from "@/components/school-parent/billing/ParentBillingPaymentReceiptPanel";
 import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
 import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
 import ParentBillingChildDetailModal from "@/components/school-parent/billing/ParentBillingChildDetailModal";
@@ -30,6 +31,10 @@ import {
   resolveLastPaymentDaySummary,
 } from "@/lib/tuition/payments";
 import { buildStudentColorIndexMap } from "@/lib/tuition/student-badge-colors";
+import {
+  buildTuitionPaymentReceiptDetail,
+  resolveRelatedTuitionPayments,
+} from "@/lib/tuition/tuition-payment-receipt-detail";
 import { formatCents } from "@/lib/tuition/pricing";
 import { pickRecentLateFeeNotice } from "@/lib/tuition/late-fee-notice";
 import { formatCentsForInput } from "@/lib/admissions/application-form-schema";
@@ -146,6 +151,8 @@ function ParentBillingPageContent({
   const [payError, setPayError] = useState<string | null>(null);
   const [detailModalChildKey, setDetailModalChildKey] = useState<string | null>(null);
   const [manualUpcomingChargesPanelOpen, setManualUpcomingChargesPanelOpen] = useState(false);
+  const [paymentReceiptPanelOpen, setPaymentReceiptPanelOpen] = useState(false);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
   const [dismissedDeepLinkChargeId, setDismissedDeepLinkChargeId] = useState<string | null>(null);
   const [highlightedChargeId, setHighlightedChargeId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<FamilyBillingReadiness | null>(
@@ -384,6 +391,14 @@ function ParentBillingPageContent({
     () => buildStudentColorIndexMap(childViews.map((child) => child.childKey)),
     [childViews],
   );
+  const selectedPaymentReceipt = useMemo(() => {
+    if (!selectedPaymentId) return null;
+    const relatedPayments = resolveRelatedTuitionPayments(
+      payments,
+      selectedPaymentId,
+    );
+    return buildTuitionPaymentReceiptDetail(relatedPayments);
+  }, [payments, selectedPaymentId]);
   const hasPendingSchedule = familySummary?.hasPendingSchedule ?? false;
   const pendingScheduleCount = childViews.filter(
     (child) => child.status === "needs_schedule",
@@ -1070,6 +1085,17 @@ function ParentBillingPageContent({
         }}
       />
 
+      <ParentBillingPaymentReceiptPanel
+        C={C}
+        open={paymentReceiptPanelOpen}
+        receipt={selectedPaymentReceipt}
+        studentColorMap={studentColorMap}
+        onClose={() => {
+          setPaymentReceiptPanelOpen(false);
+          setSelectedPaymentId(null);
+        }}
+      />
+
       <ParentBillingUpcomingChargesPanel
         C={C}
         open={upcomingChargesPanelOpen}
@@ -1132,6 +1158,10 @@ function ParentBillingPageContent({
                 badgeColorIndex={
                   studentColorMap.get(payment.enrollmentId ?? "") ?? 0
                 }
+                onClick={() => {
+                  setSelectedPaymentId(payment.id);
+                  setPaymentReceiptPanelOpen(true);
+                }}
               />
             ))}
           </div>
