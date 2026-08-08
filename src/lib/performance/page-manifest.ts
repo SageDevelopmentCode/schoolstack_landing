@@ -200,11 +200,39 @@ export const CI_LHCI_PAGE_PATHS = [
   `/school/${CANONICAL_SCHOOL_SLUG}/parent/children`,
 ] as const;
 
+function parsePerformanceCiPagePathsEnv(value: string | undefined): string[] | null {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  const requested = value
+    .split(/[,\s]+/)
+    .map((path) => path.trim())
+    .filter(Boolean);
+
+  if (!requested.length) {
+    return null;
+  }
+
+  const allowed = new Set<string>(CI_LHCI_PAGE_PATHS);
+  const filtered = requested.filter((path) => allowed.has(path));
+
+  if (!filtered.length) {
+    return null;
+  }
+
+  return CI_LHCI_PAGE_PATHS.filter((path) => filtered.includes(path));
+}
+
 export function getCiLighthousePages(): PageTarget[] {
   const manifest = getPerformancePageManifest();
   const byPath = new Map(manifest.map((page) => [page.path, page]));
 
-  return CI_LHCI_PAGE_PATHS.map((path) => {
+  const selectedPaths =
+    parsePerformanceCiPagePathsEnv(process.env.PERFORMANCE_CI_PAGE_PATHS) ??
+    [...CI_LHCI_PAGE_PATHS];
+
+  return selectedPaths.map((path) => {
     const page = byPath.get(path);
     if (!page) {
       throw new Error(`CI Lighthouse path missing from manifest: ${path}`);

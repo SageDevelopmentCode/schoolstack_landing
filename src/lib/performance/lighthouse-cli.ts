@@ -4,6 +4,7 @@ export function buildLighthouseArgs(
   url: string,
   formFactor: AuditFormFactor,
   outputPath: string,
+  options?: { extraHeaders?: Record<string, string> },
 ): string[] {
   const base = [
     url,
@@ -13,6 +14,11 @@ export function buildLighthouseArgs(
     "--only-categories=performance",
     "--quiet",
   ];
+
+  const extraHeaders = options?.extraHeaders;
+  if (extraHeaders && Object.keys(extraHeaders).length > 0) {
+    base.push(`--extra-headers=${JSON.stringify(extraHeaders)}`);
+  }
 
   if (formFactor === "desktop") {
     return [...base, "--preset=desktop"];

@@ -87,10 +87,15 @@ function truncateError(message: string, maxLength = 80) {
 
 function resolveBulkTargets(
   pages: PerformancePageRow[],
-  pageIds?: string[],
+  pageIds: string[] | undefined,
+  environment: AuditEnvironment,
 ): PerformancePageRow[] {
   if (pageIds?.length) {
     return pages.filter((page) => pageIds.includes(page.id));
+  }
+
+  if (environment === "local") {
+    return pages;
   }
 
   return pages.filter((page) => page.requiresAuth === "none");
@@ -319,7 +324,7 @@ export default function AdminPerformancePage() {
   const pollLocalRun = useCallback(
     async (runId: string, total: number, passProgress?: BulkPassProgress) => {
       while (true) {
-        const response = await fetch(`/api/admin/performance/runs/${runId}`);
+        const response = await fetch(`/api/admin/performance/runs/${runId}?summary=1`);
 
         if (!response.ok) {
           setBulkProgress({
@@ -388,12 +393,14 @@ export default function AdminPerformancePage() {
       if (isBulkRun) {
         setRunningAll(true);
         try {
-          const targets = resolveBulkTargets(pages, pageIds);
+          const targets = resolveBulkTargets(pages, pageIds, environment);
 
           if (!targets.length) {
             alert("No pages selected for audit.");
             return;
           }
+
+          const targetIds = targets.map((target) => target.id);
 
           if (environment === "production") {
             for (const [passIndex, bulkFormFactor] of BULK_AUDIT_FORM_FACTORS.entries()) {
@@ -406,7 +413,7 @@ export default function AdminPerformancePage() {
               const response = await fetch("/api/admin/performance/enqueue", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ pageIds, formFactor: bulkFormFactor }),
+                body: JSON.stringify({ pageIds: targetIds, formFactor: bulkFormFactor }),
               });
 
               if (!response.ok) {
@@ -551,7 +558,9 @@ export default function AdminPerformancePage() {
     setDetailLoading(true);
 
     try {
-      const response = await fetch(`/api/admin/performance/runs/${latest.runId}`);
+      const response = await fetch(
+        `/api/admin/performance/runs/${latest.runId}?resultId=${latest.id}`,
+      );
       if (!response.ok) {
         if (selectedPageIdRef.current !== pageId) return;
         setDetailError("Failed to load audit details.");
@@ -669,8 +678,10 @@ export default function AdminPerformancePage() {
           </p>
         ) : environment === "local" ? (
           <p className="w-full text-xs text-admin-faint">
-            Auth-gated school pages audit the login screen locally until Phase 2 adds
-            Playwright login.
+            Auth-gated school pages use E2E session cookies. Run{" "}
+            <code className="rounded bg-admin-bg px-1 py-0.5">npm run performance:ci:prepare</code>{" "}
+            once (with local Supabase + dev server) before auditing admin/parent routes
+            locally.
           </p>
         ) : null}
       </div>
