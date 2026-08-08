@@ -5,6 +5,7 @@ import {
   emailCta,
   emailDetailCard,
   emailHeading,
+  emailMutedParagraph,
   emailParagraph,
   emailSignOff,
   escapeHtml,
@@ -480,6 +481,159 @@ export async function sendPaymentReceiptConfirmation(payload: {
 
   if (!result.success) {
     console.error("Payment receipt confirmation email failed:", result.error);
+  }
+}
+
+export type TuitionPaymentReceiptLineItem = {
+  studentName: string;
+  chargeLabel: string;
+  amountCents: number;
+};
+
+export type TuitionPaymentReceiptLumpSumBreakdown = {
+  installmentCents: number;
+  futureCents: number;
+  redistributed: boolean;
+};
+
+export function buildTuitionPaymentReceiptHtml(payload: {
+  name: string;
+  schoolName: string;
+  billingUrl: string;
+  paidAtLabel: string;
+  paymentMethodLabel: string;
+  amountCents: number;
+  chargedAmountCents: number;
+  processingFeeCents?: number | null;
+  studentName?: string | null;
+  chargeLabel?: string;
+  lumpSumBreakdown?: TuitionPaymentReceiptLumpSumBreakdown;
+  combinedLineItems?: TuitionPaymentReceiptLineItem[];
+}): string {
+  const isCombined =
+    payload.combinedLineItems != null && payload.combinedLineItems.length > 0;
+
+  const detailRows: Array<{ label: string; value: string }> = [];
+
+  if (!isCombined) {
+    if (payload.studentName) {
+      detailRows.push({ label: "Student", value: payload.studentName });
+    }
+    if (payload.chargeLabel) {
+      detailRows.push({ label: "Charge", value: payload.chargeLabel });
+    }
+  }
+
+  detailRows.push({
+    label: "School amount",
+    value: formatFeeAmount(payload.amountCents),
+  });
+
+  if (payload.processingFeeCents && payload.processingFeeCents > 0) {
+    detailRows.push({
+      label: "Processing fee",
+      value: formatFeeAmount(payload.processingFeeCents),
+    });
+  }
+
+  detailRows.push(
+    { label: "Total paid", value: formatFeeAmount(payload.chargedAmountCents) },
+    { label: "Payment method", value: payload.paymentMethodLabel },
+    { label: "Date paid", value: payload.paidAtLabel },
+  );
+
+  const lumpSumHtml =
+    payload.lumpSumBreakdown && payload.lumpSumBreakdown.futureCents > 0
+      ? `
+      ${emailParagraph("Payment breakdown:")}
+      ${emailDetailCard([
+        {
+          label: "Applied",
+          value: `${formatFeeAmount(payload.lumpSumBreakdown.installmentCents)} installment · ${formatFeeAmount(payload.lumpSumBreakdown.futureCents)} future`,
+        },
+      ])}
+      ${
+        payload.lumpSumBreakdown.redistributed
+          ? emailMutedParagraph("Future installments were recalculated.")
+          : ""
+      }
+    `
+      : "";
+
+  const combinedHtml = isCombined
+    ? `
+      ${emailParagraph("Charges paid:")}
+      ${emailBulletList(
+        payload.combinedLineItems!.map(
+          (item) =>
+            `${escapeHtml(item.studentName)} — ${escapeHtml(item.chargeLabel)} — ${formatFeeAmount(item.amountCents)}`,
+        ),
+      )}
+    `
+    : "";
+
+  return composeEmail({
+    preheader: `Your tuition payment receipt for ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Payment Receipt")}
+      ${emailHeading(`Thank you, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `We received your payment at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(detailRows)}
+      ${combinedHtml}
+      ${lumpSumHtml}
+      ${emailCta({ label: "View billing", href: payload.billingUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTuitionPaymentReceiptEmail(payload: {
+  email: string;
+  schoolName: string;
+  name: string;
+  billingUrl: string;
+  paidAt: string;
+  paymentMethodLabel: string;
+  amountCents: number;
+  chargedAmountCents: number;
+  processingFeeCents?: number | null;
+  studentName?: string | null;
+  chargeLabel?: string;
+  lumpSumBreakdown?: TuitionPaymentReceiptLumpSumBreakdown;
+  combinedLineItems?: TuitionPaymentReceiptLineItem[];
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const paidAtLabel = new Date(payload.paidAt).toLocaleString("en-US", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+
+  const content = buildTuitionPaymentReceiptHtml({
+    name: payload.name,
+    schoolName: payload.schoolName,
+    billingUrl: payload.billingUrl,
+    paidAtLabel,
+    paymentMethodLabel: payload.paymentMethodLabel,
+    amountCents: payload.amountCents,
+    chargedAmountCents: payload.chargedAmountCents,
+    processingFeeCents: payload.processingFeeCents,
+    studentName: payload.studentName,
+    chargeLabel: payload.chargeLabel,
+    lumpSumBreakdown: payload.lumpSumBreakdown,
+    combinedLineItems: payload.combinedLineItems,
+  });
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Payment receipt — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Tuition payment receipt email failed:", result.error);
   }
 }
 

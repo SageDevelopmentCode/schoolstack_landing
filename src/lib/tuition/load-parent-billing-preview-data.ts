@@ -13,7 +13,7 @@ import {
 } from "@/lib/tuition/parent-billing-summary";
 import { getAutopayEnabledForGuardian } from "@/lib/tuition/payment-settlement";
 import { getDefaultPaymentMethodForGuardian } from "@/lib/tuition/payment-methods";
-import { getRecentAutopayFailureForFamily } from "@/lib/tuition/autopay-notifications";
+import { getRecentAutopayFailureForFamily } from "@/lib/tuition/autopay-failure-queries";
 import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import { fetchFamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import { shouldShowTaxCreditPaymentBanner } from "@/lib/tuition/family-checklist-responses";

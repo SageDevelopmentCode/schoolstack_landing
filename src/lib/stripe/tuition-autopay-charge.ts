@@ -7,6 +7,7 @@ import {
   type CheckoutPaymentMethod,
 } from "@/lib/stripe/processing-fee";
 import { settleTuitionPayment } from "@/lib/tuition/payment-settlement";
+import { sendTuitionPaymentReceiptNotifications } from "@/lib/tuition/payment-receipt-notifications";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
 
 export type AutopayChargeInput = {
@@ -72,11 +73,14 @@ export async function executeTuitionAutopayCharge(
     await markPaymentSucceeded(supabase, payment.id, {
       stripePaymentIntentId: paymentIntent.id,
     });
-    await settleTuitionPayment(supabase, {
+    const settleResult = await settleTuitionPayment(supabase, {
       chargeId: input.chargeId,
       amountCents: input.amountCents,
       payerUserId: input.payerUserId,
       paymentId: payment.id,
+    });
+    void sendTuitionPaymentReceiptNotifications(supabase, payment.id, {
+      settleResult,
     });
   }
 
