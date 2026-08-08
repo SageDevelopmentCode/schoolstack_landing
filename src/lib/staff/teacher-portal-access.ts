@@ -41,6 +41,22 @@ export async function userHasTeacherPortalAccess(
   return Boolean(data);
 }
 
+export async function getStaffMemberIdForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("staff_members")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.id ? String(data.id) : null;
+}
+
 export async function getStaffUserProfile(
   supabase: SupabaseClient,
   userId: string,

@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
 import TeacherDashboardPage from "@/components/school-teacher/TeacherDashboardPage";
+import TeacherMyStudentsPage from "@/components/school-teacher/TeacherMyStudentsPage";
 import { getTeacherPageLabel } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { loadTeacherMyStudentsPageData } from "@/lib/school-teacher/load-my-students-page-data";
 import {
   getStaffUserProfile,
   requireTeacherPortalUser,
@@ -98,6 +100,21 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
             : null
         }
         portalRole={portalRole}
+      />
+    );
+  }
+
+  if (feature === "my_students") {
+    const user = await requireTeacherPortalUser(supabase, org.id);
+    const initialData = await loadTeacherMyStudentsPageData(org.id, user.id);
+
+    return (
+      <TeacherMyStudentsPage
+        organizationId={org.id}
+        branding={org.branding}
+        slug={slug}
+        staffMemberId={initialData.staffMemberId}
+        initialStudents={initialData.students}
       />
     );
   }

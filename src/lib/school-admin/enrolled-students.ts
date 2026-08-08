@@ -331,27 +331,11 @@ function mergeEnrollmentAggregate(
   return existing;
 }
 
-export async function listOrgEnrolledStudents(
+async function aggregateEnrolledStudentSummaries(
   supabase: SupabaseClient,
   organizationId: string,
-  options: ListOrgEnrolledStudentsOptions = {},
+  rows: Record<string, unknown>[],
 ): Promise<AdminEnrolledStudentSummary[]> {
-  const limit = Math.min(
-    Math.max(options.limit ?? ORG_ENROLLED_STUDENTS_DEFAULT_LIMIT, 1),
-    500,
-  );
-
-  const { data, error } = await supabase
-    .from("enrollments")
-    .select(ENROLLED_ENROLLMENT_SELECT)
-    .eq("organization_id", organizationId)
-    .eq("status", "enrolled")
-    .order("created_at", { ascending: true })
-    .limit(limit);
-
-  if (error) throw error;
-
-  const rows = (data ?? []) as Record<string, unknown>[];
   const familyIds = new Set<string>();
 
   for (const row of rows) {
@@ -391,6 +375,62 @@ export async function listOrgEnrolledStudents(
       const nameB = formatEnrolledStudentName(b);
       return nameA.localeCompare(nameB);
     });
+}
+
+export async function listOrgEnrolledStudents(
+  supabase: SupabaseClient,
+  organizationId: string,
+  options: ListOrgEnrolledStudentsOptions = {},
+): Promise<AdminEnrolledStudentSummary[]> {
+  const limit = Math.min(
+    Math.max(options.limit ?? ORG_ENROLLED_STUDENTS_DEFAULT_LIMIT, 1),
+    500,
+  );
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(ENROLLED_ENROLLMENT_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+
+  return aggregateEnrolledStudentSummaries(
+    supabase,
+    organizationId,
+    (data ?? []) as Record<string, unknown>[],
+  );
+}
+
+export async function listAssignedEnrolledStudents(
+  supabase: SupabaseClient,
+  organizationId: string,
+  staffMemberId: string,
+  options: ListOrgEnrolledStudentsOptions = {},
+): Promise<AdminEnrolledStudentSummary[]> {
+  const limit = Math.min(
+    Math.max(options.limit ?? ORG_ENROLLED_STUDENTS_DEFAULT_LIMIT, 1),
+    500,
+  );
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(ENROLLED_ENROLLMENT_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .eq("students.assigned_teacher_id", staffMemberId)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+
+  return aggregateEnrolledStudentSummaries(
+    supabase,
+    organizationId,
+    (data ?? []) as Record<string, unknown>[],
+  );
 }
 
 export async function loadEnrolledStudentDetail(
@@ -533,6 +573,25 @@ export async function loadEnrolledStudentDetail(
     assignedTeacherId,
     assignedTeacherName,
   };
+}
+
+export async function loadTeacherAssignedStudentDetail(
+  supabase: SupabaseClient,
+  organizationId: string,
+  staffMemberId: string,
+  studentId: string,
+): Promise<EnrolledStudentDetail | null> {
+  const detail = await loadEnrolledStudentDetail(
+    supabase,
+    organizationId,
+    studentId,
+  );
+
+  if (!detail || detail.assignedTeacherId !== staffMemberId) {
+    return null;
+  }
+
+  return detail;
 }
 
 export async function assignStudentTeacher(
