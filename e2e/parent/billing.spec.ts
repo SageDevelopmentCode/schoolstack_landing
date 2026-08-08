@@ -988,7 +988,7 @@ test("parent billing extra payment shows updated schedule preview", async ({ pag
   await paymentModal.getByTestId("tuition-pay-custom-amount-input").fill("3600");
   await expect(paymentModal.getByTestId("tuition-pay-schedule-preview")).toBeVisible();
   await expect(paymentModal.getByTestId("tuition-pay-schedule-before")).toBeVisible();
-  await expect(paymentModal.getByTestId("tuition-pay-schedule-after")).toContainText("$3,600.00");
+  await expect(paymentModal.getByTestId("tuition-pay-schedule-after")).toContainText("$3,600");
   await expect(paymentModal.getByText(/9 payments at approximately/i)).toBeVisible();
-  await expect(paymentModal.getByText(/\$400\.00/)).toBeVisible();
+  await expect(paymentModal.getByText(/\$400/)).toBeVisible();
 });

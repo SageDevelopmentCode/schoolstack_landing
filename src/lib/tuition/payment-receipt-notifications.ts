@@ -1,5 +1,3 @@
-import "server-only";
-
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PAYMENT_METHOD_LABELS } from "@/lib/admissions/payment-records";
 import {
