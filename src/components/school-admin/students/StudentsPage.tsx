@@ -7,9 +7,11 @@ import { AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import StudentDetailPanel from "./StudentDetailPanel";
+import StudentTeacherAssignSelect from "./StudentTeacherAssignSelect";
 import {
   formatEnrolledDate,
   formatEnrolledStudentName,
+  formatStaffMemberName,
   formatStudentGrade,
   listOrgEnrolledStudents,
   type AdminEnrolledStudentSummary,
@@ -20,6 +22,8 @@ import {
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import { createClient } from "@/utils/supabase/client";
 
 type StudentsPageProps = {
@@ -44,7 +48,7 @@ function studentColumnHeaderBadgeStyle(
       return { backgroundColor: C.accentLight, color: C.accent };
     case "Program":
       return { backgroundColor: C.infoBg, color: C.info };
-    case "Family":
+    case "Teacher":
       return { backgroundColor: C.successBg, color: C.success };
     case "Parent":
       return { backgroundColor: C.warningBg, color: C.warning };
@@ -68,6 +72,7 @@ function matchesSearch(student: AdminEnrolledStudentSummary, query: string): boo
     student.grade ?? "",
     formatStudentGrade(student.grade) ?? "",
     student.familyName ?? "",
+    student.assignedTeacherName ?? "",
     student.primaryContactName ?? "",
     student.primaryContactEmail ?? "",
     student.programNames.join(" "),
@@ -99,8 +104,18 @@ export default function StudentsPage({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(STUDENTS_PAGE_SIZE);
+  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
+  const [assigningStudentId, setAssigningStudentId] = useState<string | null>(
+    null,
+  );
 
   const submissionsPath = schoolAdminPath(slug, "admissions", "submissions");
+  const staffPath = schoolAdminPath(slug, "my_school", "staff");
+
+  const activeStaff = useMemo(
+    () => staffMembers.filter((member) => member.employmentStatus === "active"),
+    [staffMembers],
+  );
 
   const loadStudents = useCallback(async () => {
     setLoading(true);
@@ -124,6 +139,101 @@ export default function StudentsPage({
       void loadStudents();
     });
   }, [hasInitialData, loadStudents]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadStaff() {
+      try {
+        const response = await fetch(`/api/school/${slug}/staff`);
+        if (!response.ok) {
+          throw new Error("Failed to load staff.");
+        }
+        const payload = (await response.json()) as {
+          staffMembers?: StaffMemberRecord[];
+        };
+        if (!cancelled) {
+          setStaffMembers(payload.staffMembers ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setStaffMembers([]);
+        }
+      }
+    }
+
+    void loadStaff();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  const handleAssignTeacher = useCallback(
+    async (studentId: string, staffMemberId: string | null) => {
+      const selectedStaff = staffMemberId
+        ? activeStaff.find((member) => member.id === staffMemberId)
+        : null;
+      let previousStudents: AdminEnrolledStudentSummary[] = [];
+
+      setAssigningStudentId(studentId);
+      setStudents((current) => {
+        previousStudents = current;
+        return current.map((row) =>
+          row.id === studentId
+            ? {
+                ...row,
+                assignedTeacherId: staffMemberId,
+                assignedTeacherName: selectedStaff
+                  ? formatStaffMemberName(selectedStaff)
+                  : null,
+              }
+            : row,
+        );
+      });
+
+      try {
+        const response = await fetch(
+          `/api/school/${slug}/students/${studentId}/teacher`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ staffMemberId }),
+          },
+        );
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(payload?.error ?? "Failed to assign teacher.");
+        }
+
+        const result = (await response.json()) as {
+          assignedTeacherId: string | null;
+          assignedTeacherName: string | null;
+        };
+
+        setStudents((current) =>
+          current.map((row) =>
+            row.id === studentId
+              ? {
+                  ...row,
+                  assignedTeacherId: result.assignedTeacherId,
+                  assignedTeacherName: result.assignedTeacherName,
+                }
+              : row,
+          ),
+        );
+      } catch (error) {
+        setStudents(previousStudents);
+        adminToast.error(formatActionError(error, "Failed to assign teacher."));
+      } finally {
+        setAssigningStudentId(null);
+      }
+    },
+    [activeStaff, slug],
+  );
 
   useEffect(() => {
     if (!deepLinkStudentId || loading) return;
@@ -235,7 +345,7 @@ export default function StudentsPage({
                 }}
               >
                 <tr>
-                  {["Student", "Grade", "Program", "Family", "Parent", "Enrolled"].map(
+                  {["Student", "Grade", "Program", "Teacher", "Parent", "Enrolled"].map(
                     (heading, index, headings) => {
                       const isLast = index === headings.length - 1;
                       return (
@@ -309,7 +419,15 @@ export default function StudentsPage({
                         className="px-3 py-3 sm:px-4"
                         style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
                       >
-                        {student.familyName ?? "—"}
+                        <StudentTeacherAssignSelect
+                          C={C}
+                          studentId={student.id}
+                          assignedTeacherId={student.assignedTeacherId}
+                          activeStaff={activeStaff}
+                          staffPath={staffPath}
+                          disabled={assigningStudentId === student.id}
+                          onAssign={handleAssignTeacher}
+                        />
                       </td>
                       <td
                         className="px-3 py-3 sm:px-4"
@@ -368,6 +486,10 @@ export default function StudentsPage({
             organizationId={organizationId}
             branding={branding}
             schoolSlug={slug}
+            activeStaff={activeStaff}
+            staffPath={staffPath}
+            assigningTeacher={assigningStudentId === selectedStudent.id}
+            onAssignTeacher={handleAssignTeacher}
             onClose={() => setSelectedId(null)}
           />
         ) : null}

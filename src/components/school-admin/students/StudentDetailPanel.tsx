@@ -8,6 +8,7 @@ import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skelet
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import DetailPanelSectionGroup from "@/components/school-admin/admissions/DetailPanelSectionGroup";
 import FamilyGuardiansSection from "@/components/school-admin/admissions/FamilyGuardiansSection";
+import StudentTeacherAssignSelect from "./StudentTeacherAssignSelect";
 import {
   formatEnrolledDate,
   formatEnrolledStudentName,
@@ -21,6 +22,7 @@ import { applicationStatusLabel } from "@/lib/admissions/application-status-ui";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import { createClient } from "@/utils/supabase/client";
 
 type StudentDetailPanelProps = {
@@ -28,6 +30,13 @@ type StudentDetailPanelProps = {
   organizationId: string;
   branding: OrganizationBranding;
   schoolSlug: string;
+  activeStaff: StaffMemberRecord[];
+  staffPath: string;
+  assigningTeacher?: boolean;
+  onAssignTeacher: (
+    studentId: string,
+    staffMemberId: string | null,
+  ) => Promise<void>;
   onClose: () => void;
 };
 
@@ -53,6 +62,10 @@ export default function StudentDetailPanel({
   organizationId,
   branding,
   schoolSlug,
+  activeStaff,
+  staffPath,
+  assigningTeacher = false,
+  onAssignTeacher,
   onClose,
 }: StudentDetailPanelProps) {
   const C = buildAdminThemeTokens(branding);
@@ -134,6 +147,22 @@ export default function StudentDetailPanel({
               </dt>
               <dd className="mt-0.5" style={{ color: C.textPrimary }}>
                 {formatStudentGrade(panelDetail.grade) ?? "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
+                Teacher
+              </dt>
+              <dd className="mt-1">
+                <StudentTeacherAssignSelect
+                  C={C}
+                  studentId={student.id}
+                  assignedTeacherId={student.assignedTeacherId}
+                  activeStaff={activeStaff}
+                  staffPath={staffPath}
+                  disabled={assigningTeacher}
+                  onAssign={onAssignTeacher}
+                />
               </dd>
             </div>
             <div>

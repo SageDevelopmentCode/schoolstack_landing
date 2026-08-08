@@ -15,6 +15,8 @@ export type AdminEnrolledStudentSummary = {
   primaryContactEmail: string | null;
   programNames: string[];
   enrolledAt: string;
+  assignedTeacherId: string | null;
+  assignedTeacherName: string | null;
 };
 
 export type EnrolledStudentEnrollment = {
@@ -39,6 +41,8 @@ export type EnrolledStudentDetail = {
   enrollments: EnrolledStudentEnrollment[];
   applicationId: string | null;
   applicationStatus: string | null;
+  assignedTeacherId: string | null;
+  assignedTeacherName: string | null;
 };
 
 const ENROLLED_ENROLLMENT_SELECT = `
@@ -53,6 +57,12 @@ const ENROLLED_ENROLLMENT_SELECT = `
     date_of_birth,
     status,
     family_id,
+    assigned_teacher_id,
+    staff_members:assigned_teacher_id (
+      id,
+      first_name,
+      last_name
+    ),
     families (
       name,
       primary_email,
@@ -111,6 +121,36 @@ export function formatStudentGrade(grade: string | null | undefined): string | n
   return match?.label ?? grade;
 }
 
+export function formatStaffMemberName(member: {
+  firstName: string;
+  lastName: string;
+}): string {
+  return formatPersonName(member.firstName, member.lastName) || "Staff member";
+}
+
+export class StudentTeacherAssignmentError extends Error {
+  code: string;
+  status: number;
+
+  constructor(message: string, code: string, status: number) {
+    super(message);
+    this.name = "StudentTeacherAssignmentError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+export type AssignStudentTeacherInput = {
+  organizationId: string;
+  studentId: string;
+  staffMemberId: string | null;
+};
+
+export type AssignStudentTeacherResult = {
+  assignedTeacherId: string | null;
+  assignedTeacherName: string | null;
+};
+
 export { studentStatusLabel };
 
 async function fetchPrimaryContactsByFamilyId(
@@ -153,55 +193,73 @@ type EnrollmentAggregate = {
   programNameSet: Set<string>;
 };
 
+type StudentRowWithTeacher = {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  grade?: string | null;
+  date_of_birth?: string | null;
+  status?: string;
+  family_id?: string;
+  assigned_teacher_id?: string | null;
+  staff_members?:
+    | {
+        id?: string;
+        first_name?: string;
+        last_name?: string;
+      }
+    | {
+        id?: string;
+        first_name?: string;
+        last_name?: string;
+      }[]
+    | null;
+  families?:
+    | {
+        name?: string;
+        primary_email?: string | null;
+        primary_phone?: string | null;
+      }
+    | {
+        name?: string;
+        primary_email?: string | null;
+        primary_phone?: string | null;
+      }[]
+    | null;
+};
+
+function parseAssignedTeacher(student: StudentRowWithTeacher): {
+  assignedTeacherId: string | null;
+  assignedTeacherName: string | null;
+} {
+  const assignedTeacherId =
+    typeof student.assigned_teacher_id === "string" &&
+    student.assigned_teacher_id.trim() !== ""
+      ? student.assigned_teacher_id
+      : null;
+
+  const staffMember = unwrapRelation(student.staff_members);
+  if (!staffMember?.id) {
+    return { assignedTeacherId, assignedTeacherName: null };
+  }
+
+  const name = formatStaffMemberName({
+    firstName: String(staffMember.first_name ?? ""),
+    lastName: String(staffMember.last_name ?? ""),
+  });
+
+  return {
+    assignedTeacherId: String(staffMember.id),
+    assignedTeacherName: name,
+  };
+}
+
 function mapEnrollmentRowToAggregate(
   row: Record<string, unknown>,
   primaryContactsByFamilyId: Map<string, { name: string | null; email: string | null }>,
 ): EnrollmentAggregate | null {
   const student = unwrapRelation(
-    row.students as
-      | {
-          id?: string;
-          first_name?: string;
-          last_name?: string;
-          grade?: string | null;
-          date_of_birth?: string | null;
-          status?: string;
-          family_id?: string;
-          families?:
-            | {
-                name?: string;
-                primary_email?: string | null;
-                primary_phone?: string | null;
-              }
-            | {
-                name?: string;
-                primary_email?: string | null;
-                primary_phone?: string | null;
-              }[]
-            | null;
-        }
-      | {
-          id?: string;
-          first_name?: string;
-          last_name?: string;
-          grade?: string | null;
-          date_of_birth?: string | null;
-          status?: string;
-          family_id?: string;
-          families?:
-            | {
-                name?: string;
-                primary_email?: string | null;
-                primary_phone?: string | null;
-              }
-            | {
-                name?: string;
-                primary_email?: string | null;
-                primary_phone?: string | null;
-              }[]
-            | null;
-        }[]
-      | null,
+    row.students as StudentRowWithTeacher | StudentRowWithTeacher[] | null,
   );
 
   if (!student?.id) return null;
@@ -224,6 +282,7 @@ function mapEnrollmentRowToAggregate(
 
   const firstName = String(student.first_name ?? "");
   const lastName = String(student.last_name ?? "");
+  const { assignedTeacherId, assignedTeacherName } = parseAssignedTeacher(student);
 
   const summary: AdminEnrolledStudentSummary = {
     id: String(student.id),
@@ -239,6 +298,8 @@ function mapEnrollmentRowToAggregate(
     primaryContactEmail: primaryContact?.email ?? familyPrimaryEmail,
     programNames: programName ? [programName] : [],
     enrolledAt,
+    assignedTeacherId,
+    assignedTeacherName,
   };
 
   return {
@@ -348,6 +409,12 @@ export async function loadEnrolledStudentDetail(
       date_of_birth,
       status,
       family_id,
+      assigned_teacher_id,
+      staff_members:assigned_teacher_id (
+        id,
+        first_name,
+        last_name
+      ),
       families (
         name,
         primary_email,
@@ -433,6 +500,9 @@ export async function loadEnrolledStudentDetail(
   );
 
   const latestApplication = applicationRows?.[0];
+  const studentWithTeacher = studentRow as StudentRowWithTeacher;
+  const { assignedTeacherId, assignedTeacherName } =
+    parseAssignedTeacher(studentWithTeacher);
 
   return {
     id: String(studentRow.id),
@@ -460,6 +530,77 @@ export async function loadEnrolledStudentDetail(
     applicationStatus: latestApplication?.status
       ? String(latestApplication.status)
       : null,
+    assignedTeacherId,
+    assignedTeacherName,
+  };
+}
+
+export async function assignStudentTeacher(
+  supabase: SupabaseClient,
+  input: AssignStudentTeacherInput,
+): Promise<AssignStudentTeacherResult> {
+  const { organizationId, studentId, staffMemberId } = input;
+
+  const { data: studentRow, error: studentError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("id", studentId)
+    .maybeSingle();
+
+  if (studentError) throw studentError;
+  if (!studentRow) {
+    throw new StudentTeacherAssignmentError(
+      "Student not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  let assignedTeacherName: string | null = null;
+
+  if (staffMemberId) {
+    const { data: staffRow, error: staffError } = await supabase
+      .from("staff_members")
+      .select("id, first_name, last_name, status")
+      .eq("organization_id", organizationId)
+      .eq("id", staffMemberId)
+      .maybeSingle();
+
+    if (staffError) throw staffError;
+    if (!staffRow) {
+      throw new StudentTeacherAssignmentError(
+        "Staff member not found.",
+        "not_found",
+        404,
+      );
+    }
+
+    if (staffRow.status !== "active") {
+      throw new StudentTeacherAssignmentError(
+        "Only active staff members can be assigned.",
+        "invalid_staff",
+        400,
+      );
+    }
+
+    assignedTeacherName = formatStaffMemberName({
+      firstName: String(staffRow.first_name ?? ""),
+      lastName: String(staffRow.last_name ?? ""),
+    });
+  }
+
+  const { error: updateError } = await supabase
+    .from("students")
+    .update({ assigned_teacher_id: staffMemberId })
+    .eq("organization_id", organizationId)
+    .eq("id", studentId);
+
+  if (updateError) throw updateError;
+
+  return {
+    assignedTeacherId: staffMemberId,
+    assignedTeacherName,
   };
 }
 
