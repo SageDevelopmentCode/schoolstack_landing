@@ -22,6 +22,7 @@ export type AdminPostSubmitStep = {
     durationMinutes: number;
     visitDayCount?: number;
     visitDates?: string[];
+    completedManuallyAt?: string;
   };
 };
 
@@ -64,6 +65,7 @@ export function buildAdminPostSubmitSteps(
               durationMinutes: visit.durationMinutes,
               visitDayCount: visit.visitDayCount,
               visitDates: visit.visitDates,
+              completedManuallyAt: visit.completedManuallyAt,
             }
           : undefined,
       };

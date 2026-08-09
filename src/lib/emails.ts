@@ -882,3 +882,59 @@ export async function sendTuitionAutopayFailedEmail(payload: {
 
   return { ok: true };
 }
+
+export function buildNewMessageEmailHtml(payload: {
+  schoolName: string;
+  senderName: string;
+  preview: string;
+  threadUrl: string;
+}): string {
+  const absoluteUrl = payload.threadUrl.startsWith("http")
+    ? payload.threadUrl
+    : `${SITE_URL}${payload.threadUrl}`;
+
+  return composeEmail({
+    preheader: `New message from ${payload.senderName}`,
+    contentHtml: `
+      ${emailBadge("New Message")}
+      ${emailHeading(`You have a new message at ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        `<strong>${escapeHtml(payload.senderName)}</strong> sent you a message:`,
+      )}
+      ${emailDetailCard([
+        {
+          label: "Preview",
+          value: escapeHtml(payload.preview.slice(0, 200)),
+        },
+      ])}
+      ${emailCta({ label: "View conversation", href: absoluteUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendNewMessageEmail(payload: {
+  email: string;
+  schoolName: string;
+  senderName: string;
+  preview: string;
+  threadUrl: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const html = buildNewMessageEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `New message from ${payload.senderName} — ${payload.schoolName}`,
+    content: html,
+  });
+
+  if (!result.success) {
+    console.error("New message email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}

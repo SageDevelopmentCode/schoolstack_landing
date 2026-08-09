@@ -244,17 +244,16 @@ export default function TuitionLateFeeSettingsPanel({
     >
       <div>
         <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-          Late fees & billing rules
+          How should late fees work at your school?
         </p>
         <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
-          Automatically add a late fee when tuition is unpaid after the configured day.
-          Families receive an email when a late fee is added.
+          We&apos;ll email families when a late fee is added.
         </p>
       </div>
 
       <div
         role="radiogroup"
-        aria-label="Enable automatic late fees"
+        aria-label="Should your school charge automatic late fees?"
         className="flex flex-col gap-2"
       >
         <LateFeeRadioCard
@@ -264,8 +263,8 @@ export default function TuitionLateFeeSettingsPanel({
           onChange={() =>
             setSettings((current) => ({ ...current, lateFeeEnabled: true }))
           }
-          title="Automatic late fees enabled"
-          description="Late fees are added when tuition is unpaid after the configured day."
+          title="Yes, charge late fees automatically"
+          description="Add a late fee when tuition is still unpaid after the due date."
         />
         <LateFeeRadioCard
           C={C}
@@ -274,8 +273,8 @@ export default function TuitionLateFeeSettingsPanel({
           onChange={() =>
             setSettings((current) => ({ ...current, lateFeeEnabled: false }))
           }
-          title="Automatic late fees disabled"
-          description="No late fees are applied automatically."
+          title="No, don't charge late fees automatically"
+          description="Families won't receive automatic late fees."
         />
       </div>
 
@@ -285,7 +284,7 @@ export default function TuitionLateFeeSettingsPanel({
         }`}
       >
         <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-          Late fee amount (USD)
+          How much is the late fee?
           <input
             type="number"
             min={0}
@@ -304,7 +303,7 @@ export default function TuitionLateFeeSettingsPanel({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-          Late fee day of month
+          Which day of the month should we check for unpaid tuition?
           <input
             type="number"
             min={1}
@@ -323,7 +322,7 @@ export default function TuitionLateFeeSettingsPanel({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-          Grace days before overdue
+          How many grace days after the due date before tuition is overdue?
           <input
             type="number"
             min={0}
@@ -338,7 +337,7 @@ export default function TuitionLateFeeSettingsPanel({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-          Reminder days before due
+          How many days before the due date should we remind families?
           <input
             type="number"
             min={1}
@@ -358,7 +357,7 @@ export default function TuitionLateFeeSettingsPanel({
 
       <div
         role="radiogroup"
-        aria-label="Recurring late fees"
+        aria-label="Should late fees repeat while tuition is unpaid?"
         className={`flex flex-col gap-2 ${
           resolved.lateFeeEnabled ? "" : "opacity-50 pointer-events-none"
         }`}
@@ -370,8 +369,8 @@ export default function TuitionLateFeeSettingsPanel({
           onChange={() =>
             setSettings((current) => ({ ...current, lateFeeRecurring: true }))
           }
-          title="Apply monthly while unpaid"
-          description="Another late fee is added each month until tuition is paid."
+          title="Yes, each month until paid"
+          description="Add another late fee every month until the balance is paid."
         />
         <LateFeeRadioCard
           C={C}
@@ -380,7 +379,7 @@ export default function TuitionLateFeeSettingsPanel({
           onChange={() =>
             setSettings((current) => ({ ...current, lateFeeRecurring: false }))
           }
-          title="One-time per period"
+          title="No, one time per billing period"
           description="Only one late fee per unpaid billing period."
         />
       </div>
@@ -392,7 +391,7 @@ export default function TuitionLateFeeSettingsPanel({
         className="self-start text-sm font-medium px-3 py-2 rounded-md disabled:opacity-60"
         style={{ backgroundColor: C.accent, color: "#fff" }}
       >
-        {saving ? "Saving…" : "Save late fee settings"}
+        {saving ? "Saving…" : "Save settings"}
       </button>
 
       <div
@@ -403,18 +402,17 @@ export default function TuitionLateFeeSettingsPanel({
       >
         <div>
           <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-            Month-specific late fee days
+            Need a different late fee day for a specific month?
           </p>
           <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
-            Override the default late fee day for a specific month — for example, use
-            the 12th in August during onboarding, then revert to the 10th automatically
+            For example, use the 12th in August during onboarding, then your usual day
             in other months.
           </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-4">
           <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-            Year
+            Which year?
             <input
               type="number"
               value={overrideYear}
@@ -423,7 +421,7 @@ export default function TuitionLateFeeSettingsPanel({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-            Month
+            Which month?
             <select
               value={overrideMonth}
               onChange={(event) => setOverrideMonth(event.target.value)}
@@ -437,7 +435,7 @@ export default function TuitionLateFeeSettingsPanel({
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-            Late fee day
+            On which day?
             <input
               type="number"
               min={1}
@@ -454,7 +452,7 @@ export default function TuitionLateFeeSettingsPanel({
               className="text-sm font-medium px-3 py-2 rounded-md w-full"
               style={{ backgroundColor: C.accentLight, color: C.accent }}
             >
-              Add override
+              Add month override
             </button>
           </div>
         </div>
@@ -489,7 +487,7 @@ export default function TuitionLateFeeSettingsPanel({
           </ul>
         ) : (
           <p className="text-xs" style={{ color: C.textTertiary }}>
-            No month overrides yet. The default late fee day applies every month.
+            No month overrides yet. Your default late fee day applies every month.
           </p>
         )}
       </div>

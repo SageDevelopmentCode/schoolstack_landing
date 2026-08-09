@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Check, ChevronRight, Circle, CircleDot, MinusCircle } from "lucide-react";
 import { outlineItemCardStyle } from "@/components/school-admin/admissions/outline-item-styles";
@@ -23,6 +24,7 @@ export type DetailPanelStepTimelineItem = {
   meta?: string;
   optional?: boolean;
   onClick?: () => void;
+  trailingAction?: ReactNode;
 };
 
 type DetailPanelStepTimelineProps = {
@@ -184,6 +186,9 @@ function TimelineRowBody({
             ) : null}
           </div>
         </div>
+        {item.trailingAction ? (
+          <div className="mt-0.5 shrink-0">{item.trailingAction}</div>
+        ) : null}
         {isClickable ? (
           <ChevronRight
             className="mt-0.5 h-4 w-4 shrink-0 opacity-40"

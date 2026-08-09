@@ -17,6 +17,7 @@ export type ParentNavChildItem = {
   key: string;
   name: string;
   icon: LucideIcon;
+  iconSlug: string;
   href: string;
 };
 
@@ -24,6 +25,7 @@ export type ParentNavItem = {
   key: string;
   name: string;
   icon: LucideIcon;
+  iconSlug: string;
   href: string;
   children?: ParentNavChildItem[];
 };
@@ -94,12 +96,14 @@ export function buildParentNavItems(
     if (!record[key]) continue;
     const resolved = resolveFeatureNavItem("parent", key, mergedNav);
     const children = getEnabledFeatureNavChildren("parent", key, mergedNav);
+    const iconSlug = resolved.icon ?? "puzzle";
     const childItems =
       children.length > 0
         ? children.map((child) => ({
             key: child.key,
             name: getFeatureNavChildLabel(key, child.key, child),
             icon: getFeatureIcon(child.icon),
+            iconSlug: child.icon ?? "puzzle",
             href: parentBasePath
               ? `${parentBasePath}/${key}/${child.key}`
               : `/school/${slug}/parent/${key}/${child.key}`,
@@ -109,7 +113,8 @@ export function buildParentNavItems(
     items.push({
       key,
       name: resolved.label ?? getParentPageLabel(key, mergedNav),
-      icon: getFeatureIcon(resolved.icon),
+      icon: getFeatureIcon(iconSlug),
+      iconSlug,
       href: resolveParentNavHref(slug, key, childItems, parentBasePath),
       ...(childItems ? { children: childItems } : {}),
     });

@@ -11,6 +11,7 @@ import type {
 
 type SchoolTeacherBaselineProps = {
   slug: string;
+  organizationId: string;
   schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
@@ -20,6 +21,7 @@ type SchoolTeacherBaselineProps = {
 
 export default function SchoolTeacherBaseline({
   slug,
+  organizationId,
   schoolName,
   branding,
   features,
@@ -37,6 +39,7 @@ export default function SchoolTeacherBaseline({
     >
       <SchoolTeacherHeader
         slug={slug}
+        organizationId={organizationId}
         schoolName={schoolName}
         branding={branding}
         features={features}

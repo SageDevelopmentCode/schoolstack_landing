@@ -16,6 +16,9 @@ import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { fetchAdmissionsSetupStatus } from "@/lib/school-admin/admissions-setup-status";
+import { loadAdminMessagesPageData } from "@/lib/messages/load-messages-page-data";
+import { getRequestUser } from "@/lib/auth/session";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const SchedulePage = nextDynamic(
@@ -29,6 +32,10 @@ const CommitteesPage = nextDynamic(
 const AdminDashboardPage = nextDynamic(
   () => import("@/components/school-admin/AdminDashboardPage"),
   { loading: () => <AdminPageSkeleton label="Loading dashboard" /> },
+);
+const AdminMessagesPage = nextDynamic(
+  () => import("@/components/school-admin/AdminMessagesPage"),
+  { loading: () => <AdminPageSkeleton label="Loading messages" /> },
 );
 
 export const dynamic = "force-dynamic";
@@ -110,6 +117,29 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
         branding={org.branding}
         schoolName={org.name}
         initialStatus={setupStatus}
+      />
+    );
+  }
+
+  if (feature === "messages") {
+    const user = await getRequestUser();
+    if (!user) notFound();
+
+    const admin = createAdminClient();
+    const initialInbox = await loadAdminMessagesPageData(
+      admin,
+      org.id,
+      user.id,
+      org.name,
+    );
+
+    return (
+      <AdminMessagesPage
+        organizationId={org.id}
+        organizationSlug={slug}
+        schoolName={org.name}
+        branding={org.branding}
+        initialInbox={initialInbox}
       />
     );
   }

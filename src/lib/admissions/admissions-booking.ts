@@ -5,8 +5,10 @@ import {
   type AdmissionsTimeSlot,
   availabilitySlotKey,
   durationToSlotCount,
+  getOrganizationTimezone,
   isStartTimeBookable,
   listAdmissionsAvailabilitySlots,
+  todayKeyInTimezone,
 } from "./admissions-availability";
 import {
   ALL_DAY_TIME_SLOT,
@@ -28,6 +30,8 @@ import {
 
 export type AdmissionsSchedulingMode = "time_slot" | "whole_day";
 
+export const MANUAL_COMPLETION_TIME_SLOT = "ADMIN_MANUAL";
+
 export type ScheduledVisitRecord = {
   id: string;
   organizationId: string;
@@ -42,6 +46,8 @@ export type ScheduledVisitRecord = {
   endDate?: string;
   visitDates?: string[];
   status: "scheduled" | "cancelled";
+  completedManuallyAt?: string;
+  completedManuallyByUserId?: string;
 };
 
 export type ScheduledVisitRow = {
@@ -57,10 +63,12 @@ export type ScheduledVisitRow = {
   visit_day_count?: number | null;
   end_date?: string | null;
   status: string;
+  completed_manually_at?: string | null;
+  completed_manually_by_user_id?: string | null;
 };
 
 const VISIT_SELECT_COLUMNS =
-  "id, organization_id, application_id, post_submit_action_id, action_type, scheduling_mode, scheduled_date, start_time_slot, duration_minutes, visit_day_count, end_date, status";
+  "id, organization_id, application_id, post_submit_action_id, action_type, scheduling_mode, scheduled_date, start_time_slot, duration_minutes, visit_day_count, end_date, status, completed_manually_at, completed_manually_by_user_id";
 
 export type TimeSlotAvailabilityResult = {
   mode: "time_slot";
@@ -109,6 +117,12 @@ function scheduledVisitFromRow(
     endDate: row.end_date ? String(row.end_date) : undefined,
     visitDates,
     status: row.status === "cancelled" ? "cancelled" : "scheduled",
+    completedManuallyAt: row.completed_manually_at
+      ? String(row.completed_manually_at)
+      : undefined,
+    completedManuallyByUserId: row.completed_manually_by_user_id
+      ? String(row.completed_manually_by_user_id)
+      : undefined,
   };
 }
 
@@ -656,4 +670,137 @@ export async function bookAdmissionsVisit(
     scheduledDate,
     startTimeSlot,
   );
+}
+
+export async function markPostSubmitStepCompleteManually(
+  supabase: SupabaseClient,
+  params: {
+    organizationId: string;
+    applicationId: string;
+    actionId: string;
+    actorUserId: string;
+  },
+): Promise<ScheduledVisitRecord> {
+  const context = await loadPostSubmitActionForApplication(
+    supabase,
+    params.applicationId,
+    params.actionId,
+  );
+
+  if (!context) {
+    throw new AdmissionsBookingError(
+      "This post-application step is not available.",
+      "action_not_found",
+    );
+  }
+
+  if (context.organizationId !== params.organizationId) {
+    throw new AdmissionsBookingError(
+      "Application not found.",
+      "not_found",
+    );
+  }
+
+  if (context.applicationStatus === "draft") {
+    throw new AdmissionsBookingError(
+      "Submit the application before marking post-application steps complete.",
+      "application_not_submitted",
+    );
+  }
+
+  const existing = await getScheduledVisitForAction(
+    supabase,
+    params.applicationId,
+    params.actionId,
+  );
+  if (existing) {
+    throw new AdmissionsBookingError(
+      "This step has already been completed.",
+      "already_scheduled",
+    );
+  }
+
+  const timezone = await getOrganizationTimezone(supabase, params.organizationId);
+  const scheduledDate = todayKeyInTimezone(timezone);
+  const durationMinutes = resolvedPostSubmitDurationMinutes(context.action);
+  const completedAt = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("admissions_scheduled_visits")
+    .insert({
+      organization_id: params.organizationId,
+      application_id: params.applicationId,
+      post_submit_action_id: params.actionId,
+      action_type: context.action.type,
+      scheduling_mode: isWholeDayPostSubmitAction(context.action.type)
+        ? "whole_day"
+        : "time_slot",
+      scheduled_date: scheduledDate,
+      start_time_slot: MANUAL_COMPLETION_TIME_SLOT,
+      duration_minutes: durationMinutes,
+      status: "scheduled",
+      completed_manually_at: completedAt,
+      completed_manually_by_user_id: params.actorUserId,
+    })
+    .select(VISIT_SELECT_COLUMNS)
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new AdmissionsBookingError(
+        "This step has already been completed.",
+        "already_scheduled",
+      );
+    }
+    throw error;
+  }
+
+  return scheduledVisitFromRow(data as ScheduledVisitRow);
+}
+
+export async function undoManualPostSubmitStepCompletion(
+  supabase: SupabaseClient,
+  params: {
+    organizationId: string;
+    applicationId: string;
+    actionId: string;
+  },
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("admissions_scheduled_visits")
+    .select("id, organization_id, completed_manually_at")
+    .eq("application_id", params.applicationId)
+    .eq("post_submit_action_id", params.actionId)
+    .eq("status", "scheduled")
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) {
+    throw new AdmissionsBookingError(
+      "This post-application step is not marked complete.",
+      "not_found",
+    );
+  }
+
+  if (String(data.organization_id) !== params.organizationId) {
+    throw new AdmissionsBookingError(
+      "Application not found.",
+      "not_found",
+    );
+  }
+
+  if (!data.completed_manually_at) {
+    throw new AdmissionsBookingError(
+      "Only manually completed steps can be undone.",
+      "not_manual_completion",
+    );
+  }
+
+  const { error: deleteError } = await supabase
+    .from("admissions_scheduled_visits")
+    .delete()
+    .eq("id", data.id);
+
+  if (deleteError) throw deleteError;
 }

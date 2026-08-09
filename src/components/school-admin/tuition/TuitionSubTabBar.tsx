@@ -26,7 +26,7 @@ export default function TuitionSubTabBar<T extends string>({
 }: TuitionSubTabBarProps<T>) {
   return (
     <div
-      className="overflow-x-auto"
+      className="overflow-x-auto overflow-y-hidden scrollbar-hide"
       style={{ borderBottom: `1px solid ${C.border}` }}
       data-testid={`${testIdPrefix}-tab-bar`}
     >

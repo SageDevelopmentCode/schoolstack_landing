@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { listSchoolDemoOptions } from "@/data/school-demos";
+import { SITE_NAME } from "@/lib/site";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -438,7 +439,8 @@ function CrmPanel({
               value={demoSlug}
               onChange={(e) => handleDemoSlugChange(e.target.value)}
               disabled={demoSlugSaving}
-              className="flex-1 min-w-0 h-9 px-3 rounded-admin-md border border-admin-border text-sm text-admin-text focus:outline-none focus:border-admin-accent/40 focus:ring-2 focus:ring-admin-accent/10 bg-admin-surface disabled:opacity-60"
+              className="flex-1 min-w-0"
+              triggerClassName="h-9 px-3 text-admin-text focus:outline-none focus:border-admin-accent/40 focus:ring-2 focus:ring-admin-accent/10 bg-admin-surface disabled:opacity-60"
               aria-label="Demo slug"
             >
               <option value="">None</option>
@@ -668,7 +670,7 @@ function ResearchPanel({ school }: { school: School }) {
                   <path d="M5.5 1l1.2 2.5L9.5 4l-2 1.9.5 2.6L5.5 7.2 3 8.5l.5-2.6L1.5 4l2.8-.5L5.5 1z" stroke="#2563EB" strokeWidth="1.2" strokeLinejoin="round" />
                 </svg>
               </div>
-              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Why SchoolStack Fits</span>
+              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Why {SITE_NAME} Fits</span>
             </div>
             <p className="text-xs text-blue-900/80 leading-relaxed">{school.software_fit_reason}</p>
           </div>
@@ -871,14 +873,14 @@ function AddSchoolSidebar({
                 <Field label="Tuition / Schedule" value={form.tuitionSchedule} onChange={(v) => setField("tuitionSchedule", v)} placeholder="$3,500/year; 2 days/week" />
                 <TextAreaField label="Strengths" value={form.strengths} onChange={(v) => setField("strengths", v)} placeholder="One item per line" rows={3} />
                 <TextAreaField label="Pain Points" value={form.painPoints} onChange={(v) => setField("painPoints", v)} placeholder="One item per line" rows={3} />
-                <TextAreaField label="Why SchoolStack Fits" value={form.softwareFitReason} onChange={(v) => setField("softwareFitReason", v)} placeholder="Brief fit rationale…" rows={3} />
+                <TextAreaField label={`Why ${SITE_NAME} Fits`} value={form.softwareFitReason} onChange={(v) => setField("softwareFitReason", v)} placeholder="Brief fit rationale…" rows={3} />
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-semibold text-admin-faint uppercase tracking-wider">Priority</label>
                     <AdminSelect
                       value={String(form.priorityScore)}
                       onChange={(e) => setField("priorityScore", parseInt(e.target.value, 10))}
-                      className="h-9 px-3 rounded-admin-md border border-admin-border text-sm text-admin-text focus:outline-none focus:border-admin-accent/40 focus:ring-2 focus:ring-admin-accent/10 bg-admin-surface"
+                      triggerClassName="h-9 px-3 text-admin-text focus:outline-none focus:border-admin-accent/40 focus:ring-2 focus:ring-admin-accent/10 bg-admin-surface"
                       aria-label="Priority"
                     >
                       {[5, 4, 3, 2, 1].map((p) => (

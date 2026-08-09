@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import TuitionLateFeeSettingsPanel from "@/components/school-admin/tuition/TuitionLateFeeSettingsPanel";
-import TuitionSubTabBar from "@/components/school-admin/tuition/TuitionSubTabBar";
 import {
   DEFAULT_TUITION_RULES_TAB,
   TUITION_RULES_TABS,
@@ -135,19 +134,45 @@ export default function TuitionRulesPanel({
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      <TuitionSubTabBar
-        C={C}
-        tabs={TUITION_RULES_TABS}
-        activeTab={activeRulesTab}
-        onTabChange={handleRulesTabChange}
-        ariaLabel="Tuition rules sections"
-        testIdPrefix="tuition-rules"
-      />
+    <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
+      <div
+        className="rounded-lg p-3 flex flex-col gap-2"
+        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+        role="tablist"
+        aria-label="Tuition rules sections"
+        data-testid="tuition-rules-tab-bar"
+      >
+        {TUITION_RULES_TABS.map((tab) => {
+          const isActive = activeRulesTab === tab.id;
+          const tabId = `tuition-rules-tab-${tab.id}`;
+          const panelId = `tuition-rules-panel-${tab.id}`;
+
+          return (
+            <button
+              key={tab.id}
+              id={tabId}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={panelId}
+              onClick={() => handleRulesTabChange(tab.id)}
+              className="text-left px-3 py-2 rounded-md text-sm font-medium"
+              style={{
+                backgroundColor: isActive ? C.accentLight : "transparent",
+                color: isActive ? C.accent : C.textPrimary,
+              }}
+              data-testid={tabId}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
       <AnimatePresence mode="wait">
         <motion.div
           key={activeRulesTab}
+          className="min-w-0"
           variants={tabPanelVariants(reducedMotion)}
           initial="initial"
           animate="animate"
@@ -170,16 +195,25 @@ export default function TuitionRulesPanel({
 
           {activeRulesTab === "adjustments" ? (
             <div
-              className="flex flex-col gap-4"
+              className="rounded-lg p-4 flex flex-col gap-4"
+              style={{
+                border: `1px solid ${C.border}`,
+                backgroundColor: C.surface,
+              }}
               id="tuition-rules-panel-adjustments"
               role="tabpanel"
               aria-labelledby="tuition-rules-tab-adjustments"
               data-testid="tuition-rules-panel-adjustments"
             >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm" style={{ color: C.textSecondary }}>
-                  Automatic adjustments apply when enrollments are created.
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                    What tuition discounts or adjustments should apply automatically?
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+                    Rules run when enrollments are created or updated.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => void handleCreateSiblingRule()}
@@ -187,7 +221,7 @@ export default function TuitionRulesPanel({
                   style={{ backgroundColor: C.accentLight, color: C.accent }}
                 >
                   <Plus className="w-4 h-4" />
-                  Add sibling rule
+                  Add sibling discount rule
                 </button>
               </div>
 
@@ -291,7 +325,7 @@ export default function TuitionRulesPanel({
                 ))}
                 {!rules.length ? (
                   <p className="text-sm" style={{ color: C.textTertiary }}>
-                    No rules configured yet.
+                    No automatic adjustments yet.
                   </p>
                 ) : null}
               </div>

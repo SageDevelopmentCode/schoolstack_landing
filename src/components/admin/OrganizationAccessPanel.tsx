@@ -173,7 +173,8 @@ export default function OrganizationAccessPanel({
             onChange={(event) =>
               setRole(event.target.value as "admin" | "owner")
             }
-            className="w-full text-sm border border-admin-border rounded-admin-md px-3 py-2 bg-admin-bg"
+            className="w-full"
+            triggerClassName="px-3 py-2"
           >
             <option value="admin">Admin</option>
             <option value="owner">Owner</option>

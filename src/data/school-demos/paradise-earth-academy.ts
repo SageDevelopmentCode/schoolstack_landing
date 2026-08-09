@@ -398,6 +398,6 @@ export const paradiseEarthAcademyConfig: SchoolWebsiteDemoConfig = {
     tagline: "A private K-8 school in Gilbert, Arizona — Freedom to Flourish!",
     links: ["Programs", "Who We Are", "Garden", "FAQ", "Contact"],
     copyright: "© 2026 Paradise Earth Academy",
-    poweredBy: "Website concept by SchoolStack",
+    poweredBy: "Website concept by MudKitchen",
   },
 };

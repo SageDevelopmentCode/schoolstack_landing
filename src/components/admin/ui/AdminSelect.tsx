@@ -6,12 +6,16 @@ import CustomSelect, {
   type CustomSelectOption,
 } from "@/components/ui/CustomSelect";
 
+const ADMIN_TRIGGER_CLASS =
+  "text-sm rounded-admin-md border border-admin-border bg-admin-bg px-2.5 py-1.5";
+
 type AdminSelectProps = {
   id?: string;
   value?: string;
   onChange?: (event: { target: { value: string } }) => void;
   disabled?: boolean;
   className?: string;
+  triggerClassName?: string;
   "aria-label"?: string;
   children: ReactNode;
 };
@@ -37,6 +41,7 @@ export function AdminSelect({
   onChange,
   disabled = false,
   className = "",
+  triggerClassName = "",
   "aria-label": ariaLabel,
   children,
 }: AdminSelectProps) {
@@ -52,7 +57,7 @@ export function AdminSelect({
       ariaLabel={ariaLabel ?? options.find((o) => o.value === value)?.label ?? "Select"}
       theme={SUPER_ADMIN_SELECT_THEME}
       className={className}
-      triggerClassName="text-sm rounded-admin-md px-2.5 py-1.5"
+      triggerClassName={`${ADMIN_TRIGGER_CLASS} ${triggerClassName}`.trim()}
     />
   );
 }

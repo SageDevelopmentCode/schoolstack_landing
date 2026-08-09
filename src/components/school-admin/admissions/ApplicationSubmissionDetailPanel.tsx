@@ -277,7 +277,12 @@ export default function ApplicationSubmissionDetailPanel({
 
           <ApplicationSubmissionPostSubmitSection
             C={C}
+            applicationId={submission.id}
             steps={detail.postSubmitSteps}
+            onStepUpdated={() => {
+              onSubmissionUpdated?.();
+              void loadDetail();
+            }}
           />
 
           <FamilyGuardiansSection

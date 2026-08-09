@@ -14,6 +14,7 @@ import {
   isCurrentMonth,
   formatSelectedDate,
 } from "@/lib/demo-scheduler";
+import { SITE_NAME } from "@/lib/site";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -166,7 +167,7 @@ export function DemoScheduler({
       <div className="flex md:hidden w-full border-b border-border p-4 flex-col gap-2">
         <div>
           <div className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-1">
-            SchoolStack
+            {SITE_NAME}
           </div>
           <div
             className="font-display leading-snug text-text"
@@ -204,7 +205,7 @@ export function DemoScheduler({
       <div className="hidden md:flex w-[140px] flex-shrink-0 border-r border-border p-5 flex-col gap-5">
         <div>
           <div className="text-[10px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-1.5">
-            SchoolStack
+            {SITE_NAME}
           </div>
           <div
             className="font-display leading-snug text-text"

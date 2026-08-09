@@ -421,6 +421,6 @@ export const theWoodlandsMicroschoolConfig: SchoolWebsiteDemoConfig = {
     tagline: "Empowering Young Minds for a Brighter Future · Conroe, TX",
     links: ["Programs", "Four-Hour Day", "About", "Admissions", "FAQ", "Contact"],
     copyright: "© 2026 The Woodlands Microschool",
-    poweredBy: "Website concept by SchoolStack",
+    poweredBy: "Website concept by MudKitchen",
   },
 };

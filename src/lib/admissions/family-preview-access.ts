@@ -359,6 +359,7 @@ export async function listFamilyApplicationsForFamilyId(
                       durationMinutes: visit.durationMinutes,
                       visitDayCount: visit.visitDayCount,
                       visitDates: visit.visitDates,
+                      completedManuallyAt: visit.completedManuallyAt,
                     }
                   : undefined,
               };

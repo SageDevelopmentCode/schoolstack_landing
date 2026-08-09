@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
---  SchoolStack CRM — Run this entire script in the Supabase SQL editor once.
+--  MudKitchen CRM — Run this entire script in the Supabase SQL editor once.
 --  It creates the table AND inserts all 56 school prospects.
 -- ═══════════════════════════════════════════════════════════════════════════
 

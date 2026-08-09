@@ -36,6 +36,8 @@ import type {
 } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import AdminPageContentShell from "@/components/school-admin/AdminPageContentShell";
+import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
+import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
 import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 
@@ -87,6 +89,7 @@ function SidebarNavItem({
   isExpanded,
   isOpen,
   onToggleOpen,
+  messagesUnreadCount,
 }: {
   C: AdminThemeTokens;
   slug: string;
@@ -95,6 +98,7 @@ function SidebarNavItem({
   isExpanded: boolean;
   isOpen: boolean;
   onToggleOpen: () => void;
+  messagesUnreadCount: number;
 }) {
   const Icon = item.icon;
   const hasChildren = Boolean(item.children?.length);
@@ -110,7 +114,7 @@ function SidebarNavItem({
       <Link
         href={parentHref}
         title={item.name}
-        className="w-full flex items-center transition-colors duration-150"
+        className="relative w-full flex items-center transition-colors duration-150"
         style={{
           justifyContent: isExpanded ? "flex-start" : "center",
           gap: isExpanded ? "8px" : 0,
@@ -126,8 +130,19 @@ function SidebarNavItem({
       >
         <Icon className="w-4 h-4 flex-shrink-0" />
         {isExpanded && (
-          <span className="text-sm font-medium truncate">{item.name}</span>
+          <span className="text-sm font-medium truncate flex items-center gap-1">
+            {item.name}
+            {item.key === "messages" ? (
+              <MessagesNavBadge count={messagesUnreadCount} />
+            ) : null}
+          </span>
         )}
+        {!isExpanded && item.key === "messages" && messagesUnreadCount > 0 ? (
+          <span
+            className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"
+            aria-hidden
+          />
+        ) : null}
       </Link>
     );
   }
@@ -239,6 +254,7 @@ function Sidebar({
   onOpenSupport,
   onOpenNotifications,
   unreadCount,
+  messagesUnreadCount,
   portalOptions = [],
   previewMode = false,
 }: {
@@ -255,6 +271,7 @@ function Sidebar({
   onOpenSupport: () => void;
   onOpenNotifications: () => void;
   unreadCount: number;
+  messagesUnreadCount: number;
   portalOptions?: SchoolPortalOption[];
   previewMode?: boolean;
 }) {
@@ -431,6 +448,7 @@ function Sidebar({
                   pathname={pathname}
                   isExpanded={isExpanded}
                   isOpen={openParents[item.key] ?? false}
+                  messagesUnreadCount={messagesUnreadCount}
                   onToggleOpen={() =>
                     setOpenParents((prev) => ({
                       ...prev,
@@ -569,6 +587,13 @@ export default function SchoolAdminBaseline({
   const [unreadCount, setUnreadCount] = useState(0);
   const lastUnreadFetchRef = useRef(0);
   const FOCUS_REFETCH_MS = 60_000;
+  const messagesEnabled = Boolean(features.admin.messages);
+  const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
+    "/api/school-admin/messages",
+    organizationId,
+    schoolName,
+    messagesEnabled && !previewMode,
+  );
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -641,6 +666,7 @@ export default function SchoolAdminBaseline({
         onOpenSupport={() => setSupportOpen(true)}
         onOpenNotifications={() => setNotificationsOpen(true)}
         unreadCount={unreadCount}
+        messagesUnreadCount={messagesUnreadCount}
       />
 
       {supportOpen ? (

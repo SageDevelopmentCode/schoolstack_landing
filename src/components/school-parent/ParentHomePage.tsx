@@ -17,6 +17,7 @@ import type {
 import { applicationStatusBadgeStyle } from "@/lib/admissions/application-status-ui";
 import type { ParentQuickAction } from "@/lib/organization-settings/parent-home";
 import { getFeatureIcon } from "@/lib/organization-settings/icon-registry";
+import { getParentFeatureIconStyle } from "@/lib/organization-settings/parent-feature-icon-styles";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
@@ -31,19 +32,6 @@ type ParentHomePageProps = {
   quickActions: ParentQuickAction[];
   previewMode?: boolean;
   previewBasePath?: string;
-};
-
-const QUICK_ACTION_STYLES: Record<
-  string,
-  { iconBg: string; iconColor: string }
-> = {
-  "dollar-sign": { iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
-  "message-square": { iconBg: "bg-blue-100", iconColor: "text-blue-600" },
-  "calendar-days": { iconBg: "bg-violet-100", iconColor: "text-violet-600" },
-  "clipboard-list": { iconBg: "bg-amber-100", iconColor: "text-amber-600" },
-  megaphone: { iconBg: "bg-sky-100", iconColor: "text-sky-600" },
-  users: { iconBg: "bg-rose-100", iconColor: "text-rose-600" },
-  heart: { iconBg: "bg-pink-100", iconColor: "text-pink-600" },
 };
 
 const fadeUp = {
@@ -83,12 +71,7 @@ function greetingPrefix(): string {
 }
 
 function quickActionStyle(iconSlug: string) {
-  return (
-    QUICK_ACTION_STYLES[iconSlug] ?? {
-      iconBg: "bg-gray-100",
-      iconColor: "",
-    }
-  );
+  return getParentFeatureIconStyle(iconSlug);
 }
 
 function childApplicationHref(

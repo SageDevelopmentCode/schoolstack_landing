@@ -392,6 +392,6 @@ export const wildHeartsAdventureConfig: SchoolWebsiteDemoConfig = {
     tagline: "Building Wonder · Visalia, California",
     links: ["About", "Programs", "Schedule", "True North", "FAQ", "Contact"],
     copyright: "© 2026 Wild Hearts Adventure Co.",
-    poweredBy: "Website concept by SchoolStack",
+    poweredBy: "Website concept by MudKitchen",
   },
 };
