@@ -130,7 +130,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     void logActivityEvent(admin, {
       organizationId,
-      actorType: "admin",
+      actorType: "school_admin",
       actorUserId: user.id,
       actorEmail: user.email,
       surface: "school_admin",
@@ -239,7 +239,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
     void logActivityEvent(admin, {
       organizationId,
-      actorType: "admin",
+      actorType: "school_admin",
       actorUserId: user.id,
       actorEmail: user.email,
       surface: "school_admin",
