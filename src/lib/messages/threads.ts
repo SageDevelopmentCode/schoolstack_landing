@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  formatEnrolledStudentSubtitle,
+  listFamilyEnrolledStudents,
+  type AdminEnrolledStudentSummary,
+} from "@/lib/school-admin/enrolled-students";
+import {
   mapMessageRow,
   mapParticipantRow,
   mapThreadSummary,
@@ -20,6 +25,119 @@ import type {
   PortalMessage,
 } from "./types";
 
+async function loadFamilyPrimaryGuardianIds(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+): Promise<Map<string, string>> {
+  const primaryByFamily = new Map<string, string>();
+  if (familyIds.length === 0) return primaryByFamily;
+
+  const { data, error } = await admin
+    .from("applications")
+    .select("family_id, primary_guardian_id, updated_at")
+    .eq("organization_id", organizationId)
+    .in("family_id", familyIds)
+    .not("primary_guardian_id", "is", null)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  for (const row of data ?? []) {
+    const familyId = row.family_id ? String(row.family_id) : null;
+    const guardianId = row.primary_guardian_id ? String(row.primary_guardian_id) : null;
+    if (!familyId || !guardianId || primaryByFamily.has(familyId)) continue;
+    primaryByFamily.set(familyId, guardianId);
+  }
+
+  return primaryByFamily;
+}
+
+export async function loadFamilyGuardianDisplayMaps(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+): Promise<{
+  families: Map<string, { name: string }>;
+  guardians: Map<string, { firstName: string; lastName: string }>;
+  familyPrimaryGuardianIds: Map<string, string>;
+  familyFirstGuardianIds: Map<string, string>;
+}> {
+  const families = new Map<string, { name: string }>();
+  const guardians = new Map<string, { firstName: string; lastName: string }>();
+  const familyPrimaryGuardianIds = new Map<string, string>();
+  const familyFirstGuardianIds = new Map<string, string>();
+
+  if (familyIds.length === 0) {
+    return { families, guardians, familyPrimaryGuardianIds, familyFirstGuardianIds };
+  }
+
+  const [
+    { data: familyRows, error: familiesError },
+    { data: guardianRows, error: guardiansError },
+    primaryGuardianIds,
+  ] = await Promise.all([
+    admin
+      .from("families")
+      .select("id, name")
+      .eq("organization_id", organizationId)
+      .in("id", familyIds),
+    admin
+      .from("guardians")
+      .select("id, first_name, last_name, family_id, created_at")
+      .eq("organization_id", organizationId)
+      .in("family_id", familyIds)
+      .order("created_at", { ascending: true }),
+    loadFamilyPrimaryGuardianIds(admin, organizationId, familyIds),
+  ]);
+
+  if (familiesError) throw new Error(familiesError.message);
+  if (guardiansError) throw new Error(guardiansError.message);
+
+  for (const row of familyRows ?? []) {
+    families.set(String(row.id), {
+      name: String(row.name ?? "Family"),
+    });
+  }
+
+  for (const row of guardianRows ?? []) {
+    const guardianId = String(row.id);
+    const familyId = row.family_id ? String(row.family_id) : null;
+    guardians.set(guardianId, {
+      firstName: String(row.first_name ?? ""),
+      lastName: String(row.last_name ?? ""),
+    });
+    if (familyId && !familyFirstGuardianIds.has(familyId)) {
+      familyFirstGuardianIds.set(familyId, guardianId);
+    }
+  }
+
+  for (const [familyId, guardianId] of primaryGuardianIds) {
+    familyPrimaryGuardianIds.set(familyId, guardianId);
+  }
+
+  return { families, guardians, familyPrimaryGuardianIds, familyFirstGuardianIds };
+}
+
+export async function loadFamilyEnrolledStudentsForMessages(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+): Promise<Map<string, AdminEnrolledStudentSummary[]>> {
+  return listFamilyEnrolledStudents(admin, organizationId, familyIds);
+}
+
+export function formatFamilyEnrolledStudentSubtitle(
+  students: AdminEnrolledStudentSummary[],
+): string {
+  return formatEnrolledStudentSubtitle(students);
+}
+
+type LoadDisplayContextOptions = {
+  viewer?: "parent" | "teacher" | "admin";
+  currentStaffMemberId?: string | null;
+};
+
 async function loadDisplayContext(
   admin: SupabaseClient,
   organizationId: string,
@@ -27,25 +145,36 @@ async function loadDisplayContext(
   schoolOfficeLabel: string,
   familyIds: string[],
   staffMemberIds: string[],
+  options: LoadDisplayContextOptions = {},
 ): Promise<ParticipantDisplayContext> {
   const families = new Map<string, { name: string }>();
   const staffMembers = new Map<
     string,
     { firstName: string; lastName: string; roleTitle?: string | null }
   >();
+  const guardians = new Map<string, { firstName: string; lastName: string }>();
+  const familyPrimaryGuardianIds = new Map<string, string>();
+  const familyFirstGuardianIds = new Map<string, string>();
+  const familyEnrolledStudents = new Map<string, AdminEnrolledStudentSummary[]>();
 
   if (familyIds.length > 0) {
-    const { data, error } = await admin
-      .from("families")
-      .select("id, name")
-      .eq("organization_id", organizationId)
-      .in("id", familyIds);
+    const guardianMaps = await loadFamilyGuardianDisplayMaps(
+      admin,
+      organizationId,
+      familyIds,
+    );
 
-    if (error) throw new Error(error.message);
-    for (const row of data ?? []) {
-      families.set(String(row.id), {
-        name: String(row.name ?? "Family"),
-      });
+    for (const [familyId, family] of guardianMaps.families) {
+      families.set(familyId, family);
+    }
+    for (const [guardianId, guardian] of guardianMaps.guardians) {
+      guardians.set(guardianId, guardian);
+    }
+    for (const [familyId, guardianId] of guardianMaps.familyPrimaryGuardianIds) {
+      familyPrimaryGuardianIds.set(familyId, guardianId);
+    }
+    for (const [familyId, guardianId] of guardianMaps.familyFirstGuardianIds) {
+      familyFirstGuardianIds.set(familyId, guardianId);
     }
   }
 
@@ -67,9 +196,24 @@ async function loadDisplayContext(
     }
   }
 
+  if (options.viewer === "teacher" && familyIds.length > 0) {
+    const studentsByFamily = await loadFamilyEnrolledStudentsForMessages(
+      admin,
+      organizationId,
+      familyIds,
+    );
+    for (const [familyId, students] of studentsByFamily) {
+      familyEnrolledStudents.set(familyId, students);
+    }
+  }
+
   return {
     families,
     staffMembers,
+    guardians,
+    familyPrimaryGuardianIds,
+    familyFirstGuardianIds,
+    familyEnrolledStudents,
     schoolOfficeLabel,
     currentUserId,
   };
@@ -341,6 +485,10 @@ export async function listThreadsForOrganization(
     schoolOfficeLabel,
     familyIds,
     staffMemberIds,
+    {
+      viewer,
+      currentStaffMemberId: filter.type === "staff" ? filter.staffMemberId : null,
+    },
   );
 
   const unreadCounts = await getUnreadCounts(admin, threadIds, currentUserId);
@@ -383,6 +531,7 @@ export async function getThreadDetail(
   currentUserId: string,
   schoolOfficeLabel: string,
   viewer: "parent" | "teacher" | "admin",
+  options: { currentStaffMemberId?: string | null } = {},
 ): Promise<MessageThreadDetail | null> {
   const { data: thread, error: threadError } = await admin
     .from("message_threads")
@@ -429,6 +578,7 @@ export async function getThreadDetail(
       schoolOfficeLabel,
       familyIds,
       staffMemberIds,
+      { viewer, currentStaffMemberId: options.currentStaffMemberId ?? null },
     ),
     loadAttachmentsForMessages(admin, messageIds),
   ]);
@@ -468,6 +618,7 @@ export async function getThreadDetail(
     viewer,
     lastMessage ?? null,
     unreadCounts.get(threadId) ?? 0,
+    (messageRows ?? []) as PortalMessageRow[],
   );
 
   return { ...summary, messages };

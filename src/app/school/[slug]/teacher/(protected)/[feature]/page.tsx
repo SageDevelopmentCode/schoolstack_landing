@@ -147,6 +147,7 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         organizationSlug={slug}
         schoolName={org.name}
         branding={org.branding}
+        staffMemberId={staffMemberId}
         initialInbox={initialInbox}
       />
     );

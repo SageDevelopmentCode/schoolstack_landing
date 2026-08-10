@@ -65,6 +65,7 @@ export async function GET(request: Request, context: RouteContext) {
       user.id,
       `${schoolName} Office`,
       "teacher",
+      { currentStaffMemberId: staffMemberId },
     );
 
     if (!thread) {

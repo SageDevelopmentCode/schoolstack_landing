@@ -26,5 +26,5 @@ export async function loadTeacherMessagesInbox(
     { type: "staff", staffMemberId },
   );
 
-  return { threads, contacts };
+  return { threads, contacts, viewerContext: { staffMemberId } };
 }

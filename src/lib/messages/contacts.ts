@@ -1,8 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
-import { listAssignedEnrolledStudents } from "@/lib/school-admin/enrolled-students";
+import { listAssignedEnrolledStudents, formatEnrolledStudentSubtitle, listFamilyEnrolledStudents } from "@/lib/school-admin/enrolled-students";
 import { listStaffMembers } from "@/lib/staff/staff-members";
 import { colorForKey } from "./format";
+import {
+  resolveTeacherFamilyThreadTitle,
+  toMessageStudentRefs,
+  toMessageStudentSummaries,
+  type ParticipantDisplayContext,
+} from "./mappers";
+import { loadFamilyGuardianDisplayMaps } from "./threads";
 import type { MessageContact } from "./types";
 
 export async function listParentMessageContacts(
@@ -125,20 +132,50 @@ export async function listTeacherMessageContacts(
     staffMemberId,
   );
 
-  const familyMap = new Map<string, MessageContact>();
+  const studentsByFamily = new Map<string, typeof students>();
   for (const student of students) {
-    if (!student.familyId || familyMap.has(student.familyId)) continue;
-    familyMap.set(student.familyId, {
-      key: `family:${student.familyId}`,
+    if (!student.familyId) continue;
+    const familyStudents = studentsByFamily.get(student.familyId) ?? [];
+    familyStudents.push(student);
+    studentsByFamily.set(student.familyId, familyStudents);
+  }
+
+  const familyIds = [...studentsByFamily.keys()];
+  const [guardianMaps, enrolledStudentsByFamily] = await Promise.all([
+    loadFamilyGuardianDisplayMaps(admin, organizationId, familyIds),
+    listFamilyEnrolledStudents(admin, organizationId, familyIds),
+  ]);
+
+  const displayContext: ParticipantDisplayContext = {
+    families: guardianMaps.families,
+    staffMembers: new Map(),
+    guardians: guardianMaps.guardians,
+    familyPrimaryGuardianIds: guardianMaps.familyPrimaryGuardianIds,
+    familyFirstGuardianIds: guardianMaps.familyFirstGuardianIds,
+    familyEnrolledStudents: enrolledStudentsByFamily,
+    schoolOfficeLabel: "",
+    currentUserId: "",
+  };
+
+  const contacts: MessageContact[] = [];
+  for (const familyId of familyIds) {
+    const enrolledStudents = enrolledStudentsByFamily.get(familyId) ?? [];
+    contacts.push({
+      key: `family:${familyId}`,
       kind: "family",
-      familyId: student.familyId,
-      name: student.familyName ?? "Family",
-      subtitle: [student.firstName, student.lastName].filter(Boolean).join(" "),
-      color: colorForKey(student.familyId),
+      familyId,
+      name: resolveTeacherFamilyThreadTitle(familyId, displayContext),
+      subtitle:
+        enrolledStudents.length > 0
+          ? formatEnrolledStudentSubtitle(enrolledStudents)
+          : undefined,
+      subtitleStudents: toMessageStudentRefs(enrolledStudents),
+      subtitleStudentSummaries: toMessageStudentSummaries(enrolledStudents),
+      color: colorForKey(familyId),
     });
   }
 
-  return [...familyMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return contacts.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function listAdminMessageContacts(

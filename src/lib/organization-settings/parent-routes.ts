@@ -32,6 +32,11 @@ export function isParentMessagesPath(pathname: string): boolean {
   return /\/parent\/messages(?:\/|$)/.test(pathname);
 }
 
+export function isParentBillingPath(pathname: string): boolean {
+  if (parseSchoolParentPath(pathname)?.feature === "billing") return true;
+  return /\/parent\/billing(?:\/|$)/.test(pathname);
+}
+
 export function isParentFeatureEnabled(
   features: OrganizationFeatures,
   featureKey: string,

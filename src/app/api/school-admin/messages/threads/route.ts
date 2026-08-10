@@ -38,6 +38,7 @@ export async function GET(request: Request) {
       organizationId,
       user.id,
       schoolName,
+      supabase,
     );
 
     return NextResponse.json(inbox);

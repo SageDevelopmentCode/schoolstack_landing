@@ -1,6 +1,13 @@
 import { formatMessageTime } from "./format";
+import {
+  formatEnrolledStudentName,
+  formatEnrolledStudentSubtitle,
+  type AdminEnrolledStudentSummary,
+} from "@/lib/school-admin/enrolled-students";
 import type {
   MessageParticipantKind,
+  MessageStudentRef,
+  MessageStudentSummary,
   MessageThreadParticipant,
   MessageThreadSummary,
   PortalMessage,
@@ -40,10 +47,111 @@ export type PortalMessageRow = {
 
 export type ParticipantDisplayContext = {
   families: Map<string, { name: string }>;
-  staffMembers: Map<string, { firstName: string; lastName: string; roleTitle?: string | null }>;
+  staffMembers: Map<
+    string,
+    { firstName: string; lastName: string; roleTitle?: string | null }
+  >;
+  guardians: Map<string, { firstName: string; lastName: string }>;
+  familyPrimaryGuardianIds: Map<string, string>;
+  familyFirstGuardianIds: Map<string, string>;
+  familyEnrolledStudents: Map<string, AdminEnrolledStudentSummary[]>;
   schoolOfficeLabel: string;
   currentUserId: string;
 };
+
+export function toMessageStudentRefs(
+  summaries: AdminEnrolledStudentSummary[],
+): MessageStudentRef[] {
+  return summaries.map((summary) => ({
+    id: summary.id,
+    name: formatEnrolledStudentName(summary),
+  }));
+}
+
+export function toMessageStudentSummaries(
+  summaries: AdminEnrolledStudentSummary[],
+): MessageStudentSummary[] {
+  return summaries.map((summary) => ({
+    id: summary.id,
+    firstName: summary.firstName,
+    lastName: summary.lastName,
+    grade: summary.grade,
+    dateOfBirth: summary.dateOfBirth,
+    status: summary.status,
+    familyId: summary.familyId,
+    familyName: summary.familyName,
+    primaryContactName: summary.primaryContactName,
+    primaryContactEmail: summary.primaryContactEmail,
+    programNames: summary.programNames,
+    enrolledAt: summary.enrolledAt,
+    assignedTeacherId: summary.assignedTeacherId,
+    assignedTeacherName: summary.assignedTeacherName,
+  }));
+}
+
+export function resolveGuardianDisplayName(
+  guardianId: string,
+  context: ParticipantDisplayContext,
+): string | null {
+  const guardian = context.guardians.get(guardianId);
+  if (!guardian) return null;
+  return [guardian.firstName, guardian.lastName].filter(Boolean).join(" ") || null;
+}
+
+function findLastGuardianMessageSenderId(
+  lastMessage: PortalMessageRow | null | undefined,
+  messages: PortalMessageRow[] | null | undefined,
+): string | null {
+  if (messages && messages.length > 0) {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const row = messages[index];
+      if (row.sender_kind === "guardian" && row.sender_guardian_id) {
+        return String(row.sender_guardian_id);
+      }
+    }
+    return null;
+  }
+
+  if (lastMessage?.sender_kind === "guardian" && lastMessage.sender_guardian_id) {
+    return String(lastMessage.sender_guardian_id);
+  }
+
+  return null;
+}
+
+export function resolveTeacherFamilyThreadTitle(
+  familyId: string,
+  context: ParticipantDisplayContext,
+  lastMessage?: PortalMessageRow | null,
+  messages?: PortalMessageRow[] | null,
+): string {
+  const messagingGuardianId = findLastGuardianMessageSenderId(lastMessage, messages);
+  if (messagingGuardianId) {
+    const messagingName = resolveGuardianDisplayName(messagingGuardianId, context);
+    if (messagingName) return messagingName;
+  }
+
+  const primaryGuardianId = context.familyPrimaryGuardianIds.get(familyId);
+  if (primaryGuardianId) {
+    const primaryName = resolveGuardianDisplayName(primaryGuardianId, context);
+    if (primaryName) return primaryName;
+  }
+
+  const firstGuardianId = context.familyFirstGuardianIds.get(familyId);
+  if (firstGuardianId) {
+    const firstName = resolveGuardianDisplayName(firstGuardianId, context);
+    if (firstName) return firstName;
+  }
+
+  return context.families.get(familyId)?.name ?? "Family";
+}
+
+export function appendStudentLabel(existing: string | undefined, name: string): string {
+  if (!name) return existing ?? "";
+  if (!existing) return name;
+  if (existing.includes(name)) return existing;
+  return `${existing} · ${name}`;
+}
 
 export function mapParticipantRow(
   row: MessageThreadParticipantRow,
@@ -60,7 +168,15 @@ export function resolveThreadTitle(
   participants: MessageThreadParticipant[],
   context: ParticipantDisplayContext,
   viewer: "parent" | "teacher" | "admin",
-): { title: string; subtitle?: string; color: string } {
+  lastMessage?: PortalMessageRow | null,
+  threadMessages?: PortalMessageRow[] | null,
+): {
+  title: string;
+  subtitle?: string;
+  subtitleStudents?: MessageStudentRef[];
+  subtitleStudentSummaries?: MessageStudentSummary[];
+  color: string;
+} {
   const familyParticipant = participants.find((p) => p.kind === "family");
   const staffParticipants = participants.filter((p) => p.kind === "staff_member");
   const hasOffice = participants.some((p) => p.kind === "school_office");
@@ -136,9 +252,30 @@ export function resolveThreadTitle(
       };
     }
 
+    if (viewer === "teacher") {
+      const enrolledStudents =
+        context.familyEnrolledStudents.get(familyParticipant.familyId) ?? [];
+      return {
+        title: resolveTeacherFamilyThreadTitle(
+          familyParticipant.familyId,
+          context,
+          lastMessage,
+          threadMessages,
+        ),
+        subtitle:
+          enrolledStudents.length > 0
+            ? formatEnrolledStudentSubtitle(enrolledStudents)
+            : undefined,
+        subtitleStudents: toMessageStudentRefs(enrolledStudents),
+        subtitleStudentSummaries: toMessageStudentSummaries(enrolledStudents),
+        color: "#7FA888",
+      };
+    }
+
+    const roleSuffix = staff?.roleTitle ? ` · ${staff.roleTitle}` : "";
     return {
       title: family?.name ?? "Family",
-      subtitle: staffName,
+      subtitle: `${staffName}${roleSuffix}`,
       color: "#7FA888",
     };
   }
@@ -155,6 +292,11 @@ export function mapMessageRow(
   if (row.sender_kind === "org_admin") {
     senderName = context.schoolOfficeLabel;
   } else if (row.sender_kind === "guardian" && row.sender_guardian_id) {
+    const guardian = context.guardians.get(row.sender_guardian_id);
+    senderName = guardian
+      ? [guardian.firstName, guardian.lastName].filter(Boolean).join(" ")
+      : "Parent";
+  } else if (row.sender_kind === "guardian") {
     senderName = "Parent";
   } else if (row.sender_kind === "staff_member" && row.sender_staff_member_id) {
     const staff = context.staffMembers.get(row.sender_staff_member_id);
@@ -184,14 +326,23 @@ export function mapThreadSummary(
   viewer: "parent" | "teacher" | "admin",
   lastMessage: PortalMessageRow | null,
   unreadCount: number,
+  threadMessages?: PortalMessageRow[] | null,
 ): MessageThreadSummary {
-  const display = resolveThreadTitle(participants, context, viewer);
+  const display = resolveThreadTitle(
+    participants,
+    context,
+    viewer,
+    lastMessage,
+    threadMessages,
+  );
 
   return {
     id: String(thread.id),
     subject: thread.subject,
     title: display.title,
     subtitle: display.subtitle,
+    subtitleStudents: display.subtitleStudents,
+    subtitleStudentSummaries: display.subtitleStudentSummaries,
     color: display.color,
     lastMessagePreview: lastMessage?.body ?? null,
     lastMessageAt: thread.last_message_at,

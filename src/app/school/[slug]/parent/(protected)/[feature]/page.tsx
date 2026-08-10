@@ -154,7 +154,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
     });
 
     return (
-      <SchoolParentPageShell title={pageName}>
+      <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentBillingPage
           organizationId={org.id}
           familyId={familyId}

@@ -7,8 +7,13 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { buildMessageRenderItems } from "@/lib/messages/format-chat";
 import type { MessageThreadDetail } from "@/lib/messages/types";
 import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
+import MessageStudentSubtitle from "./MessageStudentSubtitle";
 import MessagesComposeBar from "./MessagesComposeBar";
 import MessagesThreadSkeleton from "./MessagesThreadSkeleton";
+
+export type MessagesComposeBanner =
+  | { variant: "info"; staffDisplayName: string }
+  | { variant: "warning"; message: string };
 
 function MessageAttachments({
   attachments,
@@ -84,6 +89,8 @@ export default function MessagesThreadView({
   variant = "card",
   onBack,
   loadingMessages = false,
+  composeBanner = null,
+  onStudentClick,
 }: {
   thread: MessageThreadDetail | null;
   input: string;
@@ -97,6 +104,8 @@ export default function MessagesThreadView({
   variant?: MessagesLayoutVariant;
   onBack?: () => void;
   loadingMessages?: boolean;
+  composeBanner?: MessagesComposeBanner | null;
+  onStudentClick?: (studentId: string) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -147,11 +156,15 @@ export default function MessagesThreadView({
             <p className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>
               {thread.title}
             </p>
-            {thread.subtitle && (
-              <p className="text-xs truncate" style={{ color: C.textTertiary }}>
-                {thread.subtitle}
-              </p>
-            )}
+            {thread.subtitle || thread.subtitleStudents?.length ? (
+              <MessageStudentSubtitle
+                students={thread.subtitleStudents}
+                subtitle={thread.subtitle}
+                onStudentClick={onStudentClick}
+                C={C}
+                truncate
+              />
+            ) : null}
           </div>
         </div>
       </div>
@@ -271,6 +284,29 @@ export default function MessagesThreadView({
           </div>
         )}
       </div>
+
+      {composeBanner ? (
+        <div
+          className="shrink-0 border-t px-4 py-2.5 text-xs leading-relaxed"
+          style={{
+            borderColor: C.border,
+            backgroundColor:
+              composeBanner.variant === "warning" ? C.warningBg : `${C.accent}10`,
+            color: composeBanner.variant === "warning" ? C.warning : C.textSecondary,
+          }}
+        >
+          {composeBanner.variant === "info" ? (
+            <>
+              <span className="font-semibold" style={{ color: C.textPrimary }}>
+                You&apos;re replying as {composeBanner.staffDisplayName}.
+              </span>{" "}
+              The family will see your staff name, not the school office inbox.
+            </>
+          ) : (
+            composeBanner.message
+          )}
+        </div>
+      ) : null}
 
       <MessagesComposeBar
         value={input}

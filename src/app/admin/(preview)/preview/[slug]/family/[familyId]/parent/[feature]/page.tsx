@@ -117,7 +117,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
     });
 
     return (
-      <SchoolParentPageShell title={pageName}>
+      <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentBillingPage
           organizationId={org.id}
           familyId={familyId}

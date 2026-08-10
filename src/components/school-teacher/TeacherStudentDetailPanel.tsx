@@ -12,6 +12,7 @@ import {
   formatEnrolledStudentName,
   formatStudentGrade,
   loadTeacherAssignedStudentDetail,
+  loadTeacherMessageableFamilyStudentDetail,
   studentStatusLabel,
   type AdminEnrolledStudentSummary,
   type EnrolledStudentDetail,
@@ -26,6 +27,7 @@ type TeacherStudentDetailPanelProps = {
   staffMemberId: string;
   branding: OrganizationBranding;
   schoolSlug: string;
+  detailAccess?: "assigned" | "messageableFamily";
   onClose: () => void;
 };
 
@@ -52,6 +54,7 @@ export default function TeacherStudentDetailPanel({
   staffMemberId,
   branding,
   schoolSlug,
+  detailAccess = "assigned",
   onClose,
 }: TeacherStudentDetailPanelProps) {
   const C = buildAdminThemeTokens(branding);
@@ -72,14 +75,22 @@ export default function TeacherStudentDetailPanel({
     setError(null);
 
     try {
-      const nextDetail = await loadTeacherAssignedStudentDetail(
+      const loader =
+        detailAccess === "messageableFamily"
+          ? loadTeacherMessageableFamilyStudentDetail
+          : loadTeacherAssignedStudentDetail;
+      const nextDetail = await loader(
         supabase,
         organizationId,
         staffMemberId,
         student.id,
       );
       if (!nextDetail) {
-        throw new Error("Student not found or not assigned to you.");
+        throw new Error(
+          detailAccess === "messageableFamily"
+            ? "Student not found or not available for this conversation."
+            : "Student not found or not assigned to you.",
+        );
       }
       setDetail(nextDetail);
     } catch (err) {
@@ -88,7 +99,7 @@ export default function TeacherStudentDetailPanel({
     } finally {
       setLoading(false);
     }
-  }, [organizationId, staffMemberId, student.id, supabase]);
+  }, [detailAccess, organizationId, staffMemberId, student.id, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {

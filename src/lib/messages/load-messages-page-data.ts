@@ -32,9 +32,16 @@ export async function loadTeacherMessagesPageData(
 
 export async function loadAdminMessagesPageData(
   admin: SupabaseClient,
+  supabase: SupabaseClient,
   organizationId: string,
   userId: string,
   schoolName: string,
 ): Promise<MessagesInboxData> {
-  return loadAdminMessagesInbox(admin, organizationId, userId, schoolName);
+  return loadAdminMessagesInbox(
+    admin,
+    organizationId,
+    userId,
+    schoolName,
+    supabase,
+  );
 }

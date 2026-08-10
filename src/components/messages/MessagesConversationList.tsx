@@ -1,12 +1,24 @@
 "use client";
 
+import type { KeyboardEvent } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { MessageContact, MessageThreadSummary } from "@/lib/messages/types";
 import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
+import MessageStudentSubtitle from "./MessageStudentSubtitle";
 
 type ListItem =
   | { type: "thread"; thread: MessageThreadSummary }
   | { type: "contact"; contact: MessageContact };
+
+function handleRowKeyDown(
+  event: KeyboardEvent<HTMLDivElement>,
+  onSelect: () => void,
+) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    onSelect();
+  }
+}
 
 export default function MessagesConversationList({
   items,
@@ -15,6 +27,7 @@ export default function MessagesConversationList({
   C,
   showContactsHeader = false,
   variant = "card",
+  onStudentClick,
 }: {
   items: ListItem[];
   activeKey: string | null;
@@ -22,6 +35,7 @@ export default function MessagesConversationList({
   C: AdminThemeTokens;
   showContactsHeader?: boolean;
   variant?: MessagesLayoutVariant;
+  onStudentClick?: (studentId: string) => void;
 }) {
   const embedded = variant === "embedded";
   let showingContacts = false;
@@ -45,6 +59,10 @@ export default function MessagesConversationList({
             item.type === "thread" ? item.thread.title : item.contact.name;
           const subtitle =
             item.type === "thread" ? item.thread.subtitle : item.contact.subtitle;
+          const subtitleStudents =
+            item.type === "thread"
+              ? item.thread.subtitleStudents
+              : item.contact.subtitleStudents;
           const preview =
             item.type === "thread" ? item.thread.lastMessagePreview : "Start a conversation";
           const timeLabel =
@@ -78,9 +96,11 @@ export default function MessagesConversationList({
                   </p>
                 )
               ) : null}
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(key)}
+                onKeyDown={(event) => handleRowKeyDown(event, () => onSelect(key))}
                 className={`relative w-full flex items-start gap-3 text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                   embedded
                     ? "px-4 py-3.5 hover:bg-black/[0.03] active:scale-[0.99]"
@@ -117,14 +137,15 @@ export default function MessagesConversationList({
                       </p>
                     )}
                   </div>
-                  {subtitle && (
-                    <p
-                      className={`truncate ${embedded ? "text-xs" : "text-[10px]"}`}
-                      style={{ color: C.textTertiary }}
-                    >
-                      {subtitle}
-                    </p>
-                  )}
+                  {subtitle || subtitleStudents?.length ? (
+                    <MessageStudentSubtitle
+                      students={subtitleStudents}
+                      subtitle={subtitle}
+                      onStudentClick={onStudentClick}
+                      C={C}
+                      truncate
+                    />
+                  ) : null}
                   <div className="flex items-center justify-between gap-2 mt-0.5">
                     <p
                       className={`truncate ${embedded ? "text-xs" : "text-xs"} ${
@@ -156,7 +177,7 @@ export default function MessagesConversationList({
                     ) : null}
                   </div>
                 </div>
-              </button>
+              </div>
             </div>
           );
         })

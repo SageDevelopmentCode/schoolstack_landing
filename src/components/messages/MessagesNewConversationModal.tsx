@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -10,22 +10,35 @@ import {
   modalPanel,
 } from "@/components/school-admin/committees/committee-motion";
 import MessagesAvatar from "./MessagesAvatar";
+import MessageStudentSubtitle from "./MessageStudentSubtitle";
 
 export default function MessagesNewConversationModal({
   open,
   contacts,
   onClose,
   onSelect,
+  onStudentClick,
   C,
 }: {
   open: boolean;
   contacts: MessageContact[];
   onClose: () => void;
   onSelect: (contact: MessageContact) => void;
+  onStudentClick?: (studentId: string) => void;
   C: AdminThemeTokens;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion() ?? false;
+
+  function handleContactRowKeyDown(
+    event: KeyboardEvent<HTMLDivElement>,
+    contact: MessageContact,
+  ) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(contact);
+    }
+  }
 
   useEffect(() => {
     if (!open) return undefined;
@@ -98,10 +111,12 @@ export default function MessagesNewConversationModal({
                 </p>
               ) : (
                 contacts.map((contact, index) => (
-                  <motion.button
+                  <motion.div
                     key={contact.key}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => onSelect(contact)}
+                    onKeyDown={(event) => handleContactRowKeyDown(event, contact)}
                     className="flex w-full items-center gap-3 px-5 py-3.5 text-left cursor-pointer transition hover:bg-black/[0.03] active:scale-[0.99]"
                     initial={reducedMotion ? false : { opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -116,13 +131,17 @@ export default function MessagesNewConversationModal({
                       <p className="truncate text-sm font-semibold" style={{ color: C.textPrimary }}>
                         {contact.name}
                       </p>
-                      {contact.subtitle ? (
-                        <p className="truncate text-xs" style={{ color: C.textTertiary }}>
-                          {contact.subtitle}
-                        </p>
+                      {contact.subtitle || contact.subtitleStudents?.length ? (
+                        <MessageStudentSubtitle
+                          students={contact.subtitleStudents}
+                          subtitle={contact.subtitle}
+                          onStudentClick={onStudentClick}
+                          C={C}
+                          truncate
+                        />
                       ) : null}
                     </div>
-                  </motion.button>
+                  </motion.div>
                 ))
               )}
             </div>

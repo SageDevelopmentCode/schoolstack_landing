@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { ChevronLeft, Plus } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { contactKeyForThread } from "@/lib/messages/participants-from-contact";
 import {
@@ -23,9 +23,15 @@ import MessagesConversationList from "./MessagesConversationList";
 import MessagesConversationListSkeleton from "./MessagesConversationListSkeleton";
 import MessagesEmptyState from "./MessagesEmptyState";
 import MessagesNewConversationModal from "./MessagesNewConversationModal";
-import MessagesThreadView from "./MessagesThreadView";
+import MessagesThreadView, {
+  type MessagesComposeBanner,
+} from "./MessagesThreadView";
 import type { MessagesLayoutVariant } from "./MessagesAvatar";
 import SkeletonBlock from "@/components/school-admin/skeletons/SkeletonBlock";
+import TeacherStudentDetailPanel from "@/components/school-teacher/TeacherStudentDetailPanel";
+import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
+import type { MessageStudentSummary } from "@/lib/messages/types";
 
 export type MessagesApiConfig = {
   basePath: string;
@@ -35,6 +41,19 @@ export type MessagesApiConfig = {
   familyId?: string;
   viewer: "parent" | "teacher" | "admin";
 };
+
+export type MessagesTeacherPortalConfig = {
+  organizationId: string;
+  organizationSlug: string;
+  staffMemberId: string;
+  branding: OrganizationBranding;
+};
+
+function toEnrolledStudentSummary(
+  summary: MessageStudentSummary,
+): AdminEnrolledStudentSummary {
+  return summary;
+}
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -61,22 +80,68 @@ function mergeMessages(
   );
 }
 
+function isFamilyStaffThread(thread: MessageThreadSummary | MessageThreadDetail): boolean {
+  const hasFamily = thread.participants.some((participant) => participant.kind === "family");
+  const hasStaff = thread.participants.some(
+    (participant) => participant.kind === "staff_member",
+  );
+  const hasOffice = thread.participants.some(
+    (participant) => participant.kind === "school_office",
+  );
+  return hasFamily && hasStaff && !hasOffice;
+}
+
+function resolveAdminComposeState(
+  viewer: MessagesApiConfig["viewer"],
+  thread: MessageThreadDetail | null,
+  readOnly: boolean,
+  staffDisplayName?: string | null,
+): { disabled: boolean; banner: MessagesComposeBanner | null } {
+  if (viewer !== "admin" || readOnly || !thread) {
+    return { disabled: readOnly, banner: null };
+  }
+
+  if (!isFamilyStaffThread(thread)) {
+    return { disabled: false, banner: null };
+  }
+
+  const displayName = staffDisplayName?.trim();
+  if (displayName) {
+    return {
+      disabled: false,
+      banner: { variant: "info", staffDisplayName: displayName },
+    };
+  }
+
+  return {
+    disabled: true,
+    banner: {
+      variant: "warning",
+      message:
+        "Link a staff profile to reply on teacher threads, or message via the school office inbox.",
+    },
+  };
+}
+
 export default function MessagesInboxLayout({
   api,
   initialInbox,
   readOnly = false,
   C,
   variant = "card",
+  teacherPortal = null,
 }: {
   api: MessagesApiConfig;
   initialInbox?: MessagesInboxData;
   readOnly?: boolean;
   C: AdminThemeTokens;
   variant?: MessagesLayoutVariant;
+  teacherPortal?: MessagesTeacherPortalConfig | null;
 }) {
   const searchParams = useSearchParams();
   const [threads, setThreads] = useState<MessageThreadSummary[]>(initialInbox?.threads ?? []);
   const [contacts, setContacts] = useState<MessageContact[]>(initialInbox?.contacts ?? []);
+  const [viewerContext, setViewerContext] = useState(initialInbox?.viewerContext);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeThread, setActiveThread] = useState<MessageThreadDetail | null>(null);
   const [input, setInput] = useState("");
@@ -88,6 +153,9 @@ export default function MessagesInboxLayout({
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [pushPromptDismissed, setPushPromptDismissed] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<AdminEnrolledStudentSummary | null>(
+    null,
+  );
   const deepLinkHandled = useRef(false);
   const pendingOptimisticIds = useRef<Set<string>>(new Set());
 
@@ -107,6 +175,7 @@ export default function MessagesInboxLayout({
       );
       setThreads(data.threads);
       setContacts(data.contacts);
+      setViewerContext(data.viewerContext);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load messages.");
@@ -436,6 +505,44 @@ export default function MessagesInboxLayout({
   );
 
   const embedded = variant === "embedded";
+  const adminComposeState = useMemo(
+    () =>
+      resolveAdminComposeState(
+        api.viewer,
+        activeThread,
+        readOnly,
+        viewerContext?.staffDisplayName,
+      ),
+    [activeThread, api.viewer, readOnly, viewerContext?.staffDisplayName],
+  );
+
+  const teacherStaffMemberId =
+    teacherPortal?.staffMemberId ?? viewerContext?.staffMemberId ?? null;
+
+  const handleStudentClick = useCallback(
+    (studentId: string) => {
+      if (api.viewer !== "teacher" || !teacherStaffMemberId) return;
+
+      const summary =
+        activeThread?.subtitleStudentSummaries?.find(
+          (student) => student.id === studentId,
+        ) ??
+        threads
+          .find((thread) =>
+            thread.subtitleStudentSummaries?.some((student) => student.id === studentId),
+          )
+          ?.subtitleStudentSummaries?.find((student) => student.id === studentId) ??
+        contacts
+          .find((contact) =>
+            contact.subtitleStudentSummaries?.some((student) => student.id === studentId),
+          )
+          ?.subtitleStudentSummaries?.find((student) => student.id === studentId);
+
+      if (!summary) return;
+      setSelectedStudent(toEnrolledStudentSummary(summary));
+    },
+    [activeThread, api.viewer, contacts, teacherStaffMemberId, threads],
+  );
 
   const listItems = embedded
     ? threads.map((thread) => ({ type: "thread" as const, thread }))
@@ -465,12 +572,12 @@ export default function MessagesInboxLayout({
               className="flex w-full flex-col flex-shrink-0 border-r md:w-80 lg:w-96"
               style={{ borderColor: C.border, backgroundColor: C.bg }}
             >
-              <div className="border-b px-4 py-4" style={{ borderColor: C.border }}>
+              <div
+                className="flex items-center justify-between border-b px-4 py-3.5"
+                style={{ borderColor: C.border }}
+              >
                 <SkeletonBlock C={C} className="h-5 w-24" />
-                <SkeletonBlock C={C} className="mt-2 h-3 w-36" />
-              </div>
-              <div className="border-b px-4 py-3" style={{ borderColor: C.border }}>
-                <SkeletonBlock C={C} className="h-10 w-full rounded-full" />
+                <SkeletonBlock C={C} className="h-8 w-16 rounded-full" />
               </div>
               <MessagesConversationListSkeleton C={C} embedded />
             </div>
@@ -540,34 +647,35 @@ export default function MessagesInboxLayout({
           } w-full ${embedded ? "md:w-80 lg:w-96" : "md:w-72"}`}
           style={{ borderColor: C.border, backgroundColor: C.bg }}
         >
-          <div className="border-b px-4 py-4" style={{ borderColor: C.border }}>
-            <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
-              Messages
-            </p>
-            {embedded ? (
-              <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-                Your school conversations
-              </p>
-            ) : null}
-          </div>
           {embedded ? (
-            <div className="px-4 py-3 border-b" style={{ borderColor: C.border }}>
+            <div
+              className="flex items-center justify-between border-b px-4 py-3.5"
+              style={{ borderColor: C.border }}
+            >
+              <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
+                Messages
+              </p>
               <motion.button
                 type="button"
                 onClick={() => setNewConversationOpen(true)}
                 disabled={newConversationContacts.length === 0}
-                className="w-full rounded-full px-4 py-2.5 text-sm font-medium cursor-pointer transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                style={{
-                  backgroundColor: C.accent,
-                  color: "#ffffff",
-                }}
-                whileHover={reducedMotion ? undefined : { scale: 1.01 }}
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium cursor-pointer transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ backgroundColor: C.accent, color: "#ffffff" }}
+                aria-label="Start a new conversation"
+                whileHover={reducedMotion ? undefined : { scale: 1.02 }}
                 whileTap={reducedMotion ? undefined : { scale: 0.98 }}
               >
-                Start a conversation
+                <Plus className="h-4 w-4" />
+                New
               </motion.button>
             </div>
-          ) : null}
+          ) : (
+            <div className="border-b px-4 py-4" style={{ borderColor: C.border }}>
+              <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
+                Messages
+              </p>
+            </div>
+          )}
           <MessagesConversationList
             items={listItems}
             activeKey={activeKey}
@@ -575,6 +683,11 @@ export default function MessagesInboxLayout({
             C={C}
             showContactsHeader={!embedded}
             variant={variant}
+            onStudentClick={
+              api.viewer === "teacher" && teacherStaffMemberId
+                ? handleStudentClick
+                : undefined
+            }
           />
         </div>
 
@@ -605,11 +718,17 @@ export default function MessagesInboxLayout({
             onFilesChange={setStagedFiles}
             onSend={handleSend}
             sending={sending}
-            readOnly={readOnly}
+            readOnly={readOnly || adminComposeState.disabled}
+            composeBanner={adminComposeState.banner}
             C={C}
             variant={variant}
             onBack={embedded ? () => setMobileView("list") : undefined}
             loadingMessages={loadingMessages}
+            onStudentClick={
+              api.viewer === "teacher" && teacherStaffMemberId
+                ? handleStudentClick
+                : undefined
+            }
           />
         </div>
       </div>
@@ -620,9 +739,29 @@ export default function MessagesInboxLayout({
           contacts={newConversationContacts}
           onClose={() => setNewConversationOpen(false)}
           onSelect={handleNewConversationSelect}
+          onStudentClick={
+            api.viewer === "teacher" && teacherStaffMemberId
+              ? handleStudentClick
+              : undefined
+          }
           C={C}
         />
       ) : null}
+
+      <AnimatePresence>
+        {selectedStudent && teacherPortal && teacherStaffMemberId ? (
+          <TeacherStudentDetailPanel
+            key={selectedStudent.id}
+            student={selectedStudent}
+            organizationId={teacherPortal.organizationId}
+            staffMemberId={teacherStaffMemberId}
+            branding={teacherPortal.branding}
+            schoolSlug={teacherPortal.organizationSlug}
+            detailAccess="messageableFamily"
+            onClose={() => setSelectedStudent(null)}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

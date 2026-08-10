@@ -101,8 +101,13 @@ export async function resetFamilyBillingState(
 }
 
 export async function waitForBillingPage(page: Page): Promise<void> {
-  await expect(page.getByRole("heading", { name: "Billing" })).toBeVisible();
   await expect(page.getByText("Loading billing…")).not.toBeVisible({ timeout: 15_000 });
+  await expect(
+    page
+      .getByTestId("parent-billing-summary-panel")
+      .or(page.getByTestId("parent-billing-child-detail-panel"))
+      .or(page.getByTestId("parent-billing-readiness")),
+  ).toBeVisible({ timeout: 15_000 });
 }
 
 export async function gotoBillingPage(page: Page): Promise<void> {

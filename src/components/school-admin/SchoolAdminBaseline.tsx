@@ -16,7 +16,7 @@ import {
   buildAdminNavGroups,
   type AdminNavItem,
 } from "@/lib/organization-settings/admin-nav";
-import { schoolAdminPath, schoolMudKitchenPortalPath } from "@/lib/organization-settings/admin-routes";
+import { schoolAdminPath, schoolMudKitchenPortalPath, isAdminMessagesPath } from "@/lib/organization-settings/admin-routes";
 import { MUDKITCHEN_LOGO_BRAND as MK } from "@/lib/mudkitchen-portal/theme";
 import {
   schoolAdminLoginPath,
@@ -569,6 +569,7 @@ export default function SchoolAdminBaseline({
   children,
 }: SchoolAdminBaselineProps) {
   const pathname = usePathname();
+  const isMessagesPage = isAdminMessagesPath(pathname);
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -694,7 +695,11 @@ export default function SchoolAdminBaseline({
       <AdminToaster C={C} />
 
       <main className="flex-1 overflow-hidden">
-        <div className="relative h-full overflow-y-auto">
+        <div
+          className={`relative h-full ${
+            isMessagesPage ? "overflow-hidden" : "overflow-y-auto"
+          }`}
+        >
           <AdminPageContentShell>{children}</AdminPageContentShell>
         </div>
       </main>

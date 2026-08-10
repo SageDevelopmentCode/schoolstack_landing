@@ -24,18 +24,30 @@ export default function AdminMessagesPage({
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
   return (
-    <Suspense fallback={<div className="py-12 text-center text-sm">Loading messages…</div>}>
-      <MessagesInboxLayout
-      api={{
-        basePath: "/api/school-admin/messages",
-        organizationId,
-        organizationSlug,
-        schoolName,
-        viewer: "admin",
-      }}
-      initialInbox={initialInbox}
-      C={C}
-    />
-    </Suspense>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <Suspense
+        fallback={
+          <div
+            className="flex flex-1 items-center justify-center py-12 text-sm"
+            style={{ color: C.textSecondary }}
+          >
+            Loading messages…
+          </div>
+        }
+      >
+        <MessagesInboxLayout
+          api={{
+            basePath: "/api/school-admin/messages",
+            organizationId,
+            organizationSlug,
+            schoolName,
+            viewer: "admin",
+          }}
+          initialInbox={initialInbox}
+          C={C}
+          variant="embedded"
+        />
+      </Suspense>
+    </div>
   );
 }

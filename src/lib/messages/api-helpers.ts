@@ -206,6 +206,10 @@ export async function sendMessageForViewer(
     {
       families: new Map(),
       staffMembers: new Map(),
+      guardians: new Map(),
+      familyPrimaryGuardianIds: new Map(),
+      familyFirstGuardianIds: new Map(),
+      familyEnrolledStudents: new Map(),
       schoolOfficeLabel: input.schoolOfficeLabel,
       currentUserId: input.userId,
     },

@@ -125,9 +125,12 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
     const user = await getRequestUser();
     if (!user) notFound();
 
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
     const admin = createAdminClient();
     const initialInbox = await loadAdminMessagesPageData(
       admin,
+      supabase,
       org.id,
       user.id,
       org.name,

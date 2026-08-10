@@ -9,6 +9,28 @@ export type MessageParticipantInput =
 
 export type MessageContactKind = "family" | "staff_member" | "school_office";
 
+export type MessageStudentRef = {
+  id: string;
+  name: string;
+};
+
+export type MessageStudentSummary = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  grade: string | null;
+  dateOfBirth: string | null;
+  status: string;
+  familyId: string;
+  familyName: string | null;
+  primaryContactName: string | null;
+  primaryContactEmail: string | null;
+  programNames: string[];
+  enrolledAt: string;
+  assignedTeacherId: string | null;
+  assignedTeacherName: string | null;
+};
+
 export type MessageContact = {
   key: string;
   kind: MessageContactKind;
@@ -16,6 +38,8 @@ export type MessageContact = {
   staffMemberId?: string;
   name: string;
   subtitle?: string;
+  subtitleStudents?: MessageStudentRef[];
+  subtitleStudentSummaries?: MessageStudentSummary[];
   color: string;
 };
 
@@ -57,6 +81,8 @@ export type MessageThreadSummary = {
   subject: string | null;
   title: string;
   subtitle?: string;
+  subtitleStudents?: MessageStudentRef[];
+  subtitleStudentSummaries?: MessageStudentSummary[];
   color: string;
   lastMessagePreview: string | null;
   lastMessageAt: string | null;
@@ -69,7 +95,13 @@ export type MessageThreadDetail = MessageThreadSummary & {
   messages: PortalMessage[];
 };
 
+export type MessagesViewerContext = {
+  staffMemberId?: string | null;
+  staffDisplayName?: string | null;
+};
+
 export type MessagesInboxData = {
   threads: MessageThreadSummary[];
   contacts: MessageContact[];
+  viewerContext?: MessagesViewerContext;
 };

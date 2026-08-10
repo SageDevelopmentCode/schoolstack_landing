@@ -24,6 +24,8 @@ export function threadDetailFromContact(
     subject: null,
     title: contact.name,
     subtitle: contact.subtitle,
+    subtitleStudents: contact.subtitleStudents,
+    subtitleStudentSummaries: contact.subtitleStudentSummaries,
     color: contact.color,
     lastMessagePreview: null,
     lastMessageAt: null,
