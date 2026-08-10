@@ -996,7 +996,10 @@ test("parent billing extra payment shows updated schedule preview", async ({ pag
   await regenerateFutureCharges(admin, String(assignment!.id));
 
   await gotoBillingPage(page);
-  await page.getByTestId("parent-billing-family-pay-now").click();
+  await expect(
+    page.getByTestId(`parent-billing-child-due-card-${enrollment!.id}`),
+  ).toBeVisible();
+  await page.getByTestId(`parent-billing-child-pay-${enrollment!.id}`).click();
 
   const paymentModal = page.getByRole("dialog", { name: "How would you like to pay?" });
   await expect(paymentModal).toBeVisible();
