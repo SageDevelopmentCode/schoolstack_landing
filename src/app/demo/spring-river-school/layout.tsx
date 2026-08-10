@@ -1,14 +1,6 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond } from "next/font/google";
-import { sourceSans3 } from "@/lib/fonts";
+import { cormorantGaramond, sourceSans3 } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-cormorant",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Spring River School Website Demo",
@@ -25,7 +17,7 @@ export default function SpringRiverSchoolLayout({
 }) {
   return (
     <div
-      className={`${cormorant.variable} ${sourceSans3.variable} [&_.font-heading]:font-[family-name:var(--font-cormorant)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
+      className={`${cormorantGaramond.variable} ${sourceSans3.variable} [&_.font-heading]:font-[family-name:var(--font-cormorant)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
     >
       {children}
     </div>

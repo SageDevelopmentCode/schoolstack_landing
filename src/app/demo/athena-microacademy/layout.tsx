@@ -1,21 +1,6 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Work_Sans } from "next/font/google";
+import { instrumentSerif, workSans } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: ["400"],
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-instrument-serif",
-});
-
-const workSans = Work_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-work-sans",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Athena Micro-academy Website Demo",

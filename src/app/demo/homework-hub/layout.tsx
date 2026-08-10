@@ -1,14 +1,6 @@
 import type { Metadata } from "next";
-import { Raleway } from "next/font/google";
-import { sourceSans3 } from "@/lib/fonts";
+import { raleway, sourceSans3 } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const raleway = Raleway({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-raleway",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Homework Hub Website Demo",

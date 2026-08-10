@@ -1,14 +1,6 @@
 import type { Metadata } from "next";
-import { Lato } from "next/font/google";
-import { nunito } from "@/lib/fonts";
+import { lato, nunito } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const lato = Lato({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  display: "swap",
-  variable: "--font-lato",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Wild Hearts Adventure Co. Website Demo",

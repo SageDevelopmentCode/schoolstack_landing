@@ -1,21 +1,6 @@
 import type { Metadata } from "next";
-import { Montserrat, Playfair_Display } from "next/font/google";
+import { montserrat, playfairDisplay } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-playfair",
-});
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-montserrat",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "True North Website Demo",
@@ -32,7 +17,7 @@ export default function TrueNorthLayout({
 }) {
   return (
     <div
-      className={`${playfair.variable} ${montserrat.variable} [&_.font-heading]:font-[family-name:var(--font-playfair)] [&_.font-secondary]:font-[family-name:var(--font-montserrat)]`}
+      className={`${playfairDisplay.variable} ${montserrat.variable} [&_.font-heading]:font-[family-name:var(--font-playfair-display)] [&_.font-secondary]:font-[family-name:var(--font-montserrat)]`}
     >
       {children}
     </div>

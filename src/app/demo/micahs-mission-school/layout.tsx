@@ -1,21 +1,6 @@
 import type { Metadata } from "next";
-import { Lato, Playfair_Display } from "next/font/google";
+import { lato, playfairDisplay } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const playfairDisplay = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-playfair-display",
-});
-
-const lato = Lato({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  display: "swap",
-  variable: "--font-lato",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Micah's Mission School Website Demo",

@@ -1,14 +1,6 @@
 import type { Metadata } from "next";
-import { Libre_Baskerville } from "next/font/google";
-import { nunitoSans } from "@/lib/fonts";
+import { libreBaskerville, nunitoSans } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const libreBaskerville = Libre_Baskerville({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  display: "swap",
-  variable: "--font-libre-baskerville",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "The Woodlands Microschool Website Demo",

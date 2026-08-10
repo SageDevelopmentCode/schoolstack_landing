@@ -1,14 +1,6 @@
 import type { Metadata } from "next";
-import { Quicksand } from "next/font/google";
-import { nunito } from "@/lib/fonts";
+import { nunito, quicksand } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const quicksand = Quicksand({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-quicksand",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Zoe Learning House Website Demo",
