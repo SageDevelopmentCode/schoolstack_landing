@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Fraunces, Nunito } from "next/font/google";
+import { Fraunces } from "next/font/google";
+import { nunito } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
 
 const fraunces = Fraunces({
@@ -7,13 +8,6 @@ const fraunces = Fraunces({
   weight: ["400", "500", "600", "700"],
   display: "swap",
   variable: "--font-fraunces",
-});
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-nunito",
 });
 
 export const metadata: Metadata = pageMetadata({

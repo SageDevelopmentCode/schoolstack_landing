@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Nunito, Source_Sans_3 } from "next/font/google";
+import { Source_Sans_3 } from "next/font/google";
+import { nunito } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-nunito",
-});
 
 const sourceSans = Source_Sans_3({
   subsets: ["latin"],

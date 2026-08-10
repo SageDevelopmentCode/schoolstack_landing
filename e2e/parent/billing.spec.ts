@@ -863,7 +863,9 @@ test("parent billing summary supports per-student pay and child drill-down", asy
 
   const childDetailPanel = page.getByTestId("parent-billing-child-detail-panel");
   await expect(childDetailPanel).toBeVisible();
-  await expect(childDetailPanel.getByRole("heading", { name: /Caleb/ })).toBeVisible();
+  await expect(
+    childDetailPanel.getByRole("heading", { name: "Caleb Summary" }),
+  ).toBeVisible();
   await expect(childDetailPanel.getByText("Payment schedule")).toBeVisible();
   await expect(
     childDetailPanel.getByTestId("parent-billing-upcoming-charges-panel"),

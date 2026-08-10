@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Lato, Nunito } from "next/font/google";
+import { Lato } from "next/font/google";
+import { nunito } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  display: "swap",
-  variable: "--font-nunito",
-});
 
 const lato = Lato({
   subsets: ["latin"],

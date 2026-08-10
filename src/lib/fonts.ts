@@ -1,3 +1,4 @@
+import localFont from "next/font/local";
 import {
   Geist,
   Great_Vibes,
@@ -47,4 +48,38 @@ export const poppins = Poppins({
   weight: ["300", "400", "500", "600"],
   display: "swap",
   variable: "--font-poppins",
+});
+
+export const nunito = localFont({
+  src: [
+    { path: "../fonts/nunito/nunito-latin-400-normal.woff2", weight: "400" },
+    { path: "../fonts/nunito/nunito-latin-500-normal.woff2", weight: "500" },
+    { path: "../fonts/nunito/nunito-latin-600-normal.woff2", weight: "600" },
+    { path: "../fonts/nunito/nunito-latin-700-normal.woff2", weight: "700" },
+  ],
+  display: "swap",
+  variable: "--font-nunito",
+});
+
+export const nunitoSans = localFont({
+  src: [
+    {
+      path: "../fonts/nunito-sans/nunito-sans-latin-400-normal.woff2",
+      weight: "400",
+    },
+    {
+      path: "../fonts/nunito-sans/nunito-sans-latin-500-normal.woff2",
+      weight: "500",
+    },
+    {
+      path: "../fonts/nunito-sans/nunito-sans-latin-600-normal.woff2",
+      weight: "600",
+    },
+    {
+      path: "../fonts/nunito-sans/nunito-sans-latin-700-normal.woff2",
+      weight: "700",
+    },
+  ],
+  display: "swap",
+  variable: "--font-nunito-sans",
 });
