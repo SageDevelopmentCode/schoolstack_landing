@@ -429,10 +429,11 @@ test("parent billing page uses child tabs for multiple pending schedules", async
   await expect(
     page.getByText("Action needed: choose payment schedules (2 children)"),
   ).toBeVisible();
+  await expect(page.getByTestId("parent-billing-nav")).toBeVisible();
+  await page.getByTestId("parent-billing-summary-nav").click();
   await expect(page.getByTestId("parent-billing-summary-panel")).toBeVisible();
   await expect(page.getByTestId("parent-billing-summary")).toBeVisible();
   await expect(page.getByText("Estimated annual tuition")).toBeVisible();
-  await expect(page.getByTestId("parent-billing-nav")).toBeVisible();
   await expect(page.getByTestId("parent-billing-summary-nav")).toBeVisible();
   await expect(
     page.getByTestId("parent-billing-nav").getByTestId("parent-billing-needs-schedule-badge"),
