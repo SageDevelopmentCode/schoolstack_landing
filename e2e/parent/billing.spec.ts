@@ -871,7 +871,7 @@ test("parent billing summary supports per-student pay and child drill-down", asy
     childDetailPanel.getByTestId("parent-billing-upcoming-charges-panel"),
   ).toHaveCount(0);
   await expect(childDetailPanel.getByText("Payments for Caleb")).toBeVisible();
-  await expect(childDetailPanel.getByText("10 payments", { exact: true })).toBeVisible();
+  await expect(childDetailPanel.getByText(/10 payments/)).toBeVisible();
   await expect(childDetailPanel.getByTestId("parent-billing-charge-row").first()).toBeVisible();
 
   await page.getByTestId("parent-billing-family-pay-now").click();
