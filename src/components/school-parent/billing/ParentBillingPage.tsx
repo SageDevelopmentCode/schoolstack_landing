@@ -1063,6 +1063,12 @@ function ParentBillingPageContent({
             />
           </div>
         </div>
+      ) : hasPageBanners ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
+            {pageBanners}
+          </div>
+        </div>
       ) : null}
 
       <ParentAutopayConfirmModal

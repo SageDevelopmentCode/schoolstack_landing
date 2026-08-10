@@ -203,13 +203,19 @@ export async function selectGradeLevel(
   await expect(gradeTrigger).toBeEnabled();
   await gradeTrigger.scrollIntoViewIfNeeded();
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    await gradeTrigger.click();
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const isExpanded = await gradeTrigger.getAttribute("aria-expanded");
+    if (isExpanded !== "true") {
+      await gradeTrigger.click();
+    }
+
     try {
-      await expect(picker).toBeVisible({ timeout: 3_000 });
+      await expect(picker).toBeVisible({ timeout: pickerTimeout });
       break;
     } catch (error) {
-      if (attempt === 2) throw error;
+      if (attempt === 1) throw error;
+      await page.keyboard.press("Escape");
+      await expect(picker).toBeHidden({ timeout: 3_000 });
     }
   }
 

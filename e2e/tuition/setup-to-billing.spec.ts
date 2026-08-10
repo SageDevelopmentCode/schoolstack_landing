@@ -186,7 +186,9 @@ test("full tuition setup to parent billing smoke", async ({
   await openUpcomingChargesPanel(parentPage);
   await expect(parentPage.getByTestId("parent-billing-charge-row").first()).toBeVisible();
   await expect(parentPage.getByTestId("parent-billing-child-detail-panel")).toBeVisible();
-  await expect(parentPage.getByTestId(/parent-billing-child-pay-/)).toBeVisible();
+  await expect(
+    parentPage.getByTestId(`parent-billing-child-pay-${enrollBody.enrollmentId}`),
+  ).toBeVisible();
 
   await parentContext.close();
 });
