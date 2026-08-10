@@ -874,6 +874,8 @@ test("parent billing summary supports per-student pay and child drill-down", asy
   await expect(childDetailPanel.getByText(/10 payments/)).toBeVisible();
   await expect(childDetailPanel.getByTestId("parent-billing-charge-row").first()).toBeVisible();
 
+  await page.getByTestId("parent-billing-summary-nav").click();
+  await expect(page.getByTestId("parent-billing-summary-panel")).toBeVisible();
   await page.getByTestId("parent-billing-family-pay-now").click();
   const paymentModal = page.getByRole("dialog", { name: "How would you like to pay?" });
   await expect(paymentModal).toBeVisible();
