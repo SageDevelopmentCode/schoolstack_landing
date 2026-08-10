@@ -194,13 +194,31 @@ export async function listAdminMessageContacts(
 
   if (familiesError) throw new Error(familiesError.message);
 
+  const familyIds = (families ?? []).map((family) => String(family.id));
+  const guardianMaps = await loadFamilyGuardianDisplayMaps(
+    admin,
+    organizationId,
+    familyIds,
+  );
+
+  const displayContext: ParticipantDisplayContext = {
+    families: guardianMaps.families,
+    staffMembers: new Map(),
+    guardians: guardianMaps.guardians,
+    familyPrimaryGuardianIds: guardianMaps.familyPrimaryGuardianIds,
+    familyFirstGuardianIds: guardianMaps.familyFirstGuardianIds,
+    familyEnrolledStudents: new Map(),
+    schoolOfficeLabel: "",
+    currentUserId: "",
+  };
+
   for (const family of families ?? []) {
     const familyId = String(family.id);
     contacts.push({
       key: `family:${familyId}`,
       kind: "family",
       familyId,
-      name: String(family.name ?? "Family"),
+      name: resolveTeacherFamilyThreadTitle(familyId, displayContext),
       subtitle: "Family",
       color: colorForKey(familyId),
     });

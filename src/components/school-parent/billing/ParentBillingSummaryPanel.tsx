@@ -20,6 +20,8 @@ import type { SavedPaymentMethodSummary } from "@/lib/tuition/payment-methods";
 const BILLING_ACTIVE_TOOLTIP =
   "Tuition billing is active — payment schedule confirmed";
 
+const SECTION_HEADING_CLASS = "text-base font-semibold mb-3";
+
 type ParentBillingSummaryPanelProps = {
   C: AdminThemeTokens;
   summary: ParentBillingFamilySummary;
@@ -77,7 +79,7 @@ export default function ParentBillingSummaryPanel({
 }: ParentBillingSummaryPanelProps) {
   return (
     <div
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-8"
       data-testid="parent-billing-summary-panel"
     >
       {showTaxCreditBanner && onDismissTaxCreditBanner && onApplyTaxCredit ? (
@@ -108,7 +110,7 @@ export default function ParentBillingSummaryPanel({
 
       {childViews.length > 1 ? (
         <section>
-          <h2 className="text-sm font-semibold mb-2" style={{ color: C.textPrimary }}>
+          <h2 className={SECTION_HEADING_CLASS} style={{ color: C.textPrimary }}>
             By student
           </h2>
           <div className="flex flex-col gap-2">
@@ -191,18 +193,24 @@ export default function ParentBillingSummaryPanel({
         </section>
       ) : null}
 
-      <ParentBillingFamilySettings
-        C={C}
-        autopayEnabled={autopayEnabled}
-        savedPaymentMethod={savedPaymentMethod}
-        paymentMethodLoading={paymentMethodLoading}
-        onAutopayToggleRequest={onAutopayToggleRequest}
-        onManagePaymentMethod={onManagePaymentMethod}
-        readOnly={readOnly}
-      />
+      <section data-testid="parent-billing-payment-autopay-section">
+        <h2 className={SECTION_HEADING_CLASS} style={{ color: C.textPrimary }}>
+          Payment & autopay
+        </h2>
+        <ParentBillingFamilySettings
+          C={C}
+          autopayEnabled={autopayEnabled}
+          savedPaymentMethod={savedPaymentMethod}
+          paymentMethodLoading={paymentMethodLoading}
+          onAutopayToggleRequest={onAutopayToggleRequest}
+          onManagePaymentMethod={onManagePaymentMethod}
+          readOnly={readOnly}
+          showPaymentMethodLabel={false}
+        />
+      </section>
 
       <section data-testid="parent-billing-all-family-payments">
-        <h2 className="text-sm font-semibold mb-2" style={{ color: C.textPrimary }}>
+        <h2 className={SECTION_HEADING_CLASS} style={{ color: C.textPrimary }}>
           All family payments
         </h2>
         {payments.length > 0 ? (

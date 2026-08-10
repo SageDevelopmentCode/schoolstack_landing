@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   resolveTeacherFamilyThreadTitle,
+  resolveThreadTitle,
   type ParticipantDisplayContext,
 } from "./mappers";
 import type { PortalMessageRow } from "./mappers";
@@ -98,4 +99,45 @@ test("resolveTeacherFamilyThreadTitle falls back to primary guardian when no gua
     resolveTeacherFamilyThreadTitle("family-1", context),
     "Julius Cecilia",
   );
+});
+
+test("resolveThreadTitle uses guardian name for admin family-staff threads", () => {
+  const context = buildContext({
+    staffMembers: new Map([
+      [
+        "staff-1",
+        {
+          firstName: "Julius",
+          lastName: "Staff",
+          roleTitle: "Primary Staff",
+        },
+      ],
+    ]),
+  });
+
+  const display = resolveThreadTitle(
+    [
+      {
+        id: "participant-family",
+        kind: "family",
+        familyId: "family-1",
+        staffMemberId: null,
+      },
+      {
+        id: "participant-staff",
+        kind: "staff_member",
+        familyId: null,
+        staffMemberId: "staff-1",
+      },
+    ],
+    context,
+    "admin",
+  );
+
+  assert.equal(display.title, "Julius Cecilia, Julius Staff");
+  assert.equal(display.subtitle, undefined);
+  assert.equal(display.listAvatars?.length, 2);
+  assert.equal(display.listAvatars?.[0]?.name, "Julius Cecilia");
+  assert.equal(display.listAvatars?.[1]?.name, "Julius Staff");
+  assert.notEqual(display.title, "Cecilia Family");
 });

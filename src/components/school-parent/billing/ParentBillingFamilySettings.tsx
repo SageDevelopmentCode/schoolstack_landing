@@ -12,6 +12,7 @@ type ParentBillingFamilySettingsProps = {
   onAutopayToggleRequest: (enabled: boolean) => void;
   onManagePaymentMethod: () => void;
   readOnly?: boolean;
+  showPaymentMethodLabel?: boolean;
 };
 
 export default function ParentBillingFamilySettings({
@@ -22,6 +23,7 @@ export default function ParentBillingFamilySettings({
   onAutopayToggleRequest,
   onManagePaymentMethod,
   readOnly = false,
+  showPaymentMethodLabel = true,
 }: ParentBillingFamilySettingsProps) {
   return (
     <div className="flex flex-col gap-4" data-testid="parent-billing-family-settings">
@@ -31,6 +33,7 @@ export default function ParentBillingFamilySettings({
         loading={paymentMethodLoading}
         onManage={onManagePaymentMethod}
         readOnly={readOnly}
+        showLabel={showPaymentMethodLabel}
       />
 
       <div

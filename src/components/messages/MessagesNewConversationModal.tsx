@@ -17,14 +17,12 @@ export default function MessagesNewConversationModal({
   contacts,
   onClose,
   onSelect,
-  onStudentClick,
   C,
 }: {
   open: boolean;
   contacts: MessageContact[];
   onClose: () => void;
   onSelect: (contact: MessageContact) => void;
-  onStudentClick?: (studentId: string) => void;
   C: AdminThemeTokens;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -135,7 +133,6 @@ export default function MessagesNewConversationModal({
                         <MessageStudentSubtitle
                           students={contact.subtitleStudents}
                           subtitle={contact.subtitle}
-                          onStudentClick={onStudentClick}
                           C={C}
                           truncate
                         />

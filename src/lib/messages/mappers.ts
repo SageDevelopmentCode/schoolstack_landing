@@ -1,4 +1,4 @@
-import { formatMessageTime } from "./format";
+import { colorForKey, formatMessageTime } from "./format";
 import {
   formatEnrolledStudentName,
   formatEnrolledStudentSubtitle,
@@ -8,6 +8,7 @@ import type {
   MessageParticipantKind,
   MessageStudentRef,
   MessageStudentSummary,
+  MessageThreadListAvatar,
   MessageThreadParticipant,
   MessageThreadSummary,
   PortalMessage,
@@ -175,6 +176,7 @@ export function resolveThreadTitle(
   subtitle?: string;
   subtitleStudents?: MessageStudentRef[];
   subtitleStudentSummaries?: MessageStudentSummary[];
+  listAvatars?: MessageThreadListAvatar[];
   color: string;
 } {
   const familyParticipant = participants.find((p) => p.kind === "family");
@@ -187,6 +189,18 @@ export function resolveThreadTitle(
       return {
         title: context.schoolOfficeLabel,
         subtitle: "Admin",
+        color: "#4A6354",
+      };
+    }
+    if (viewer === "admin") {
+      return {
+        title: resolveTeacherFamilyThreadTitle(
+          familyParticipant.familyId,
+          context,
+          lastMessage,
+          threadMessages,
+        ),
+        subtitle: context.schoolOfficeLabel,
         color: "#4A6354",
       };
     }
@@ -236,7 +250,6 @@ export function resolveThreadTitle(
   }
 
   if (familyParticipant?.familyId && staffParticipants.length === 1) {
-    const family = context.families.get(familyParticipant.familyId);
     const staff = staffParticipants[0]?.staffMemberId
       ? context.staffMembers.get(staffParticipants[0].staffMemberId)
       : null;
@@ -272,10 +285,28 @@ export function resolveThreadTitle(
       };
     }
 
-    const roleSuffix = staff?.roleTitle ? ` · ${staff.roleTitle}` : "";
+    const staffParticipant = staffParticipants[0];
+    const staffMemberId = staffParticipant?.staffMemberId ?? null;
+    const guardianName = resolveTeacherFamilyThreadTitle(
+      familyParticipant.familyId,
+      context,
+      lastMessage,
+      threadMessages,
+    );
+
     return {
-      title: family?.name ?? "Family",
-      subtitle: `${staffName}${roleSuffix}`,
+      title: `${guardianName}, ${staffName}`,
+      subtitle: undefined,
+      listAvatars: [
+        {
+          name: guardianName,
+          color: colorForKey(familyParticipant.familyId),
+        },
+        {
+          name: staffName,
+          color: colorForKey(staffMemberId ?? staffName),
+        },
+      ],
       color: "#7FA888",
     };
   }
@@ -343,6 +374,7 @@ export function mapThreadSummary(
     subtitle: display.subtitle,
     subtitleStudents: display.subtitleStudents,
     subtitleStudentSummaries: display.subtitleStudentSummaries,
+    listAvatars: display.listAvatars,
     color: display.color,
     lastMessagePreview: lastMessage?.body ?? null,
     lastMessageAt: thread.last_message_at,

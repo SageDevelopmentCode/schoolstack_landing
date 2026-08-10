@@ -4,11 +4,42 @@ import type { KeyboardEvent } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { MessageContact, MessageThreadSummary } from "@/lib/messages/types";
 import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
+import MessagesDualAvatar from "./MessagesDualAvatar";
 import MessageStudentSubtitle from "./MessageStudentSubtitle";
 
-type ListItem =
+export type MessagesConversationListItem =
+  | { type: "section"; key: string; label: string }
   | { type: "thread"; thread: MessageThreadSummary }
   | { type: "contact"; contact: MessageContact };
+
+function renderSectionHeader(
+  label: string,
+  embedded: boolean,
+  C: AdminThemeTokens,
+) {
+  if (embedded) {
+    return (
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1" style={{ backgroundColor: C.border }} />
+          <p className="text-[11px] font-medium" style={{ color: C.textTertiary }}>
+            {label}
+          </p>
+          <div className="h-px flex-1" style={{ backgroundColor: C.border }} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <p
+      className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider"
+      style={{ color: C.textTertiary }}
+    >
+      {label}
+    </p>
+  );
+}
 
 function handleRowKeyDown(
   event: KeyboardEvent<HTMLDivElement>,
@@ -27,15 +58,15 @@ export default function MessagesConversationList({
   C,
   showContactsHeader = false,
   variant = "card",
-  onStudentClick,
+  hideStudentSubtitle = false,
 }: {
-  items: ListItem[];
+  items: MessagesConversationListItem[];
   activeKey: string | null;
   onSelect: (key: string) => void;
   C: AdminThemeTokens;
   showContactsHeader?: boolean;
   variant?: MessagesLayoutVariant;
-  onStudentClick?: (studentId: string) => void;
+  hideStudentSubtitle?: boolean;
 }) {
   const embedded = variant === "embedded";
   let showingContacts = false;
@@ -49,11 +80,19 @@ export default function MessagesConversationList({
         </p>
       ) : (
         items.map((item, itemIndex) => {
+          if (item.type === "section") {
+            return (
+              <div key={item.key}>{renderSectionHeader(item.label, embedded, C)}</div>
+            );
+          }
+
           const isContact = item.type === "contact";
           if (isContact && !showingContacts && showContactsHeader) {
             showingContacts = true;
           }
 
+          const listAvatars =
+            item.type === "thread" ? item.thread.listAvatars : undefined;
           const key = item.type === "thread" ? item.thread.id : item.contact.key;
           const title =
             item.type === "thread" ? item.thread.title : item.contact.name;
@@ -73,6 +112,10 @@ export default function MessagesConversationList({
             item.type === "thread" ? item.thread.color : item.contact.color;
           const isActive = activeKey === key;
           const hasUnread = unread > 0;
+          const shouldShowSubtitle =
+            !listAvatars?.length &&
+            (subtitle || subtitleStudents?.length) &&
+            !(hideStudentSubtitle && subtitleStudents?.length);
 
           return (
             <div key={key}>
@@ -114,7 +157,11 @@ export default function MessagesConversationList({
                     : {}),
                 }}
               >
-                <MessagesAvatar name={title} color={color} size="sm" />
+                {listAvatars?.length === 2 ? (
+                  <MessagesDualAvatar avatars={listAvatars} size="sm" />
+                ) : (
+                  <MessagesAvatar name={title} color={color} size="sm" />
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center gap-2">
                     <p
@@ -137,11 +184,10 @@ export default function MessagesConversationList({
                       </p>
                     )}
                   </div>
-                  {subtitle || subtitleStudents?.length ? (
+                  {shouldShowSubtitle ? (
                     <MessageStudentSubtitle
                       students={subtitleStudents}
                       subtitle={subtitle}
-                      onStudentClick={onStudentClick}
                       C={C}
                       truncate
                     />

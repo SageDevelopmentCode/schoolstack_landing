@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ChevronLeft, Plus } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { buildAdminSectionedListItems } from "@/lib/messages/admin-thread-sections";
 import { contactKeyForThread } from "@/lib/messages/participants-from-contact";
 import {
   threadDetailFromContact,
@@ -544,14 +545,22 @@ export default function MessagesInboxLayout({
     [activeThread, api.viewer, contacts, teacherStaffMemberId, threads],
   );
 
-  const listItems = embedded
-    ? threads.map((thread) => ({ type: "thread" as const, thread }))
-    : [
-        ...threads.map((thread) => ({ type: "thread" as const, thread })),
-        ...contacts
-          .filter((contact) => !contactKeysWithThreads.has(contact.key))
-          .map((contact) => ({ type: "contact" as const, contact })),
-      ];
+  const listItems = useMemo(() => {
+    if (embedded && api.viewer === "admin") {
+      return buildAdminSectionedListItems(threads);
+    }
+
+    if (embedded) {
+      return threads.map((thread) => ({ type: "thread" as const, thread }));
+    }
+
+    return [
+      ...threads.map((thread) => ({ type: "thread" as const, thread })),
+      ...contacts
+        .filter((contact) => !contactKeysWithThreads.has(contact.key))
+        .map((contact) => ({ type: "contact" as const, contact })),
+    ];
+  }, [api.viewer, contactKeysWithThreads, contacts, embedded, threads]);
 
   const newConversationContacts = contacts.filter(
     (contact) => !contactKeysWithThreads.has(contact.key),
@@ -683,11 +692,7 @@ export default function MessagesInboxLayout({
             C={C}
             showContactsHeader={!embedded}
             variant={variant}
-            onStudentClick={
-              api.viewer === "teacher" && teacherStaffMemberId
-                ? handleStudentClick
-                : undefined
-            }
+            hideStudentSubtitle={api.viewer === "teacher" && embedded}
           />
         </div>
 
@@ -739,11 +744,6 @@ export default function MessagesInboxLayout({
           contacts={newConversationContacts}
           onClose={() => setNewConversationOpen(false)}
           onSelect={handleNewConversationSelect}
-          onStudentClick={
-            api.viewer === "teacher" && teacherStaffMemberId
-              ? handleStudentClick
-              : undefined
-          }
           C={C}
         />
       ) : null}

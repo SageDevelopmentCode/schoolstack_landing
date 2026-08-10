@@ -76,6 +76,11 @@ export type MessageAttachment = {
   url?: string | null;
 };
 
+export type MessageThreadListAvatar = {
+  name: string;
+  color: string;
+};
+
 export type MessageThreadSummary = {
   id: string;
   subject: string | null;
@@ -83,6 +88,7 @@ export type MessageThreadSummary = {
   subtitle?: string;
   subtitleStudents?: MessageStudentRef[];
   subtitleStudentSummaries?: MessageStudentSummary[];
+  listAvatars?: MessageThreadListAvatar[];
   color: string;
   lastMessagePreview: string | null;
   lastMessageAt: string | null;
