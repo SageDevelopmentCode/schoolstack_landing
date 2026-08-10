@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google";
+import { Cormorant_Garamond } from "next/font/google";
+import { sourceSans3 } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
 
 const cormorant = Cormorant_Garamond({
@@ -7,13 +8,6 @@ const cormorant = Cormorant_Garamond({
   weight: ["400", "600"],
   display: "swap",
   variable: "--font-cormorant",
-});
-
-const sourceSans = Source_Sans_3({
-  subsets: ["latin"],
-  weight: ["400", "600"],
-  display: "swap",
-  variable: "--font-source-sans",
 });
 
 export const metadata: Metadata = pageMetadata({
@@ -31,7 +25,7 @@ export default function RootedMeadowsTimelineLayout({
 }) {
   return (
     <div
-      className={`${cormorant.variable} ${sourceSans.variable} min-h-screen bg-[#FAF8F4] font-[family-name:var(--font-source-sans)] text-[#2b2a26] [&_.font-heading]:font-[family-name:var(--font-cormorant)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
+      className={`${cormorant.variable} ${sourceSans3.variable} min-h-screen bg-[#FAF8F4] font-[family-name:var(--font-source-sans)] text-[#2b2a26] [&_.font-heading]:font-[family-name:var(--font-cormorant)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
     >
       {children}
     </div>

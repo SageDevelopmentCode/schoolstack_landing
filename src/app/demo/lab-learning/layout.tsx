@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Lora, Source_Sans_3 } from "next/font/google";
+import { Lora } from "next/font/google";
+import { sourceSans3 } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
 
 const lora = Lora({
@@ -8,13 +9,6 @@ const lora = Lora({
   style: ["normal", "italic"],
   display: "swap",
   variable: "--font-lora",
-});
-
-const sourceSans = Source_Sans_3({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-source-sans",
 });
 
 export const metadata: Metadata = pageMetadata({
@@ -32,7 +26,7 @@ export default function LabLearningLayout({
 }) {
   return (
     <div
-      className={`${lora.variable} ${sourceSans.variable} [&_.font-heading]:font-[family-name:var(--font-lora)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
+      className={`${lora.variable} ${sourceSans3.variable} [&_.font-heading]:font-[family-name:var(--font-lora)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
     >
       {children}
     </div>

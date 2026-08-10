@@ -83,3 +83,26 @@ export const nunitoSans = localFont({
   display: "swap",
   variable: "--font-nunito-sans",
 });
+
+export const sourceSans3 = localFont({
+  src: [
+    {
+      path: "../fonts/source-sans-3/source-sans-3-latin-400-normal.woff2",
+      weight: "400",
+    },
+    {
+      path: "../fonts/source-sans-3/source-sans-3-latin-500-normal.woff2",
+      weight: "500",
+    },
+    {
+      path: "../fonts/source-sans-3/source-sans-3-latin-600-normal.woff2",
+      weight: "600",
+    },
+    {
+      path: "../fonts/source-sans-3/source-sans-3-latin-700-normal.woff2",
+      weight: "700",
+    },
+  ],
+  display: "swap",
+  variable: "--font-source-sans",
+});

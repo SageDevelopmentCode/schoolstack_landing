@@ -1,14 +1,6 @@
 import type { Metadata } from "next";
-import { Source_Sans_3 } from "next/font/google";
-import { nunito } from "@/lib/fonts";
+import { nunito, sourceSans3 } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const sourceSans = Source_Sans_3({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-source-sans",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Hilton Horizons Academy Website Demo",
@@ -25,7 +17,7 @@ export default function HiltonHorizonsAcademyLayout({
 }) {
   return (
     <div
-      className={`${nunito.variable} ${sourceSans.variable} [&_.font-heading]:font-[family-name:var(--font-nunito)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
+      className={`${nunito.variable} ${sourceSans3.variable} [&_.font-heading]:font-[family-name:var(--font-nunito)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
     >
       {children}
     </div>
