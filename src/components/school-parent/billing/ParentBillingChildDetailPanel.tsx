@@ -3,6 +3,7 @@
 import { ChevronRight, CreditCard, Loader2, Wallet } from "lucide-react";
 import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
 import ParentBillingPaymentHistoryRow from "@/components/school-parent/billing/ParentBillingPaymentHistoryRow";
+import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
 import { formatUpcomingChargesSummary } from "@/components/school-parent/billing/ParentBillingUpcomingChargesPanel";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
@@ -92,9 +93,14 @@ export default function ParentBillingChildDetailPanel({
       data-testid="parent-billing-child-detail-panel"
     >
       <div>
-        <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-          {child.studentName}
-        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+            {child.studentName}
+          </h2>
+          {child.selectionItem || child.status === "needs_schedule" ? (
+            <ParentNeedsScheduleBadge C={C} label="Schedule needed" />
+          ) : null}
+        </div>
         <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
           {planSubtitle}
           {child.totalRemainingCents > 0

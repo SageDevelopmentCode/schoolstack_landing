@@ -195,36 +195,30 @@ export async function selectGradeLevel(
 ): Promise<void> {
   const gradeTrigger = page.locator("#student_grade");
   const pickerTimeout = process.env.CI ? 15_000 : 10_000;
-  const dialog = page.getByRole("dialog", { name: "Grade level" });
-  const listbox = page.getByRole("listbox", { name: "Grade level" });
-  const picker = dialog.or(listbox);
+  const mobilePicker = page.getByRole("dialog", { name: "Grade level" });
+  const desktopPicker = page.getByRole("listbox", { name: "Grade level" });
 
   await expect(gradeTrigger).toBeVisible();
   await expect(gradeTrigger).toBeEnabled();
   await gradeTrigger.scrollIntoViewIfNeeded();
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const isExpanded = await gradeTrigger.getAttribute("aria-expanded");
-    if (isExpanded !== "true") {
-      await gradeTrigger.click();
-    }
-
-    try {
-      await expect(picker).toBeVisible({ timeout: pickerTimeout });
-      break;
-    } catch (error) {
-      if (attempt === 1) throw error;
-      await page.keyboard.press("Escape");
-      await expect(picker).toBeHidden({ timeout: 3_000 });
-    }
+  if ((await gradeTrigger.getAttribute("aria-expanded")) !== "true") {
+    await gradeTrigger.click();
   }
 
-  const container = (await dialog.isVisible()) ? dialog : listbox;
+  await expect(gradeTrigger).toHaveAttribute("aria-expanded", "true", {
+    timeout: pickerTimeout,
+  });
+
+  const container = (await mobilePicker.isVisible()) ? mobilePicker : desktopPicker;
   const option = container.getByRole("option", { name: optionLabel });
   await expect(option).toBeVisible();
   await option.scrollIntoViewIfNeeded();
   await option.click({ timeout: pickerTimeout });
-  await expect(picker).toBeHidden({ timeout: pickerTimeout });
+
+  await expect(gradeTrigger).toHaveAttribute("aria-expanded", "false", {
+    timeout: pickerTimeout,
+  });
 
   await expect(gradeTrigger).toHaveText(new RegExp(optionLabel, "i"));
 }
