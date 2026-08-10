@@ -24,7 +24,9 @@ export function useMessagesUnreadCount(
   }, [apiBasePath, enabled, organizationId, schoolName]);
 
   useEffect(() => {
-    void fetchUnreadCount();
+    queueMicrotask(() => {
+      void fetchUnreadCount();
+    });
   }, [fetchUnreadCount]);
 
   useEffect(() => {

@@ -115,12 +115,17 @@ export async function gotoBillingPage(page: Page): Promise<void> {
   await waitForBillingPage(page);
 }
 
+export async function expectUpcomingChargesTrigger(page: Page): Promise<void> {
+  await expect(page.getByTestId("parent-billing-upcoming-charges-trigger")).toBeVisible();
+}
+
 export async function openUpcomingChargesPanel(page: Page): Promise<void> {
   const trigger = page.getByTestId("parent-billing-upcoming-charges-trigger");
-  if (await trigger.isVisible()) {
-    await trigger.click();
-    await expect(page.getByTestId("parent-billing-upcoming-charges-panel")).toBeVisible();
-  }
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  const panel = page.getByTestId("parent-billing-upcoming-charges-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText("Upcoming charges")).toBeVisible();
 }
 
 export async function closeUpcomingChargesPanel(page: Page): Promise<void> {

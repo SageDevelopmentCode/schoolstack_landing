@@ -5,6 +5,7 @@ import { regenerateFutureCharges } from "../../src/lib/tuition/charge-generator"
 import { TEST_ORG_SLUG } from "../helpers/constants";
 import {
   closeUpcomingChargesPanel,
+  expectUpcomingChargesTrigger,
   getE2eParentFamily,
   gotoBillingPage,
   openUpcomingChargesPanel,
@@ -129,7 +130,7 @@ test("parent billing page shows generated tuition charges", async ({ page }) => 
   await regenerateFutureCharges(admin, String(assignment!.id));
 
   await gotoBillingPage(page);
-  await expect(page.getByText("Upcoming charges")).toBeVisible();
+  await expectUpcomingChargesTrigger(page);
   await openUpcomingChargesPanel(page);
   await expect(
     page
@@ -300,7 +301,7 @@ test("parent billing page lets family choose payment schedule inline", async ({
   await page.getByText("Pay in full").click();
   await page.getByRole("button", { name: "Confirm payment schedule" }).click();
 
-  await expect(page.getByText("Upcoming charges")).toBeVisible();
+  await expectUpcomingChargesTrigger(page);
   await openUpcomingChargesPanel(page);
   await expect(
     page

@@ -442,7 +442,9 @@ export default function MessagesInboxLayout({
 
   useEffect(() => {
     if (!initialInbox) {
-      void loadInbox();
+      queueMicrotask(() => {
+        void loadInbox();
+      });
     }
   }, [initialInbox, loadInbox]);
 

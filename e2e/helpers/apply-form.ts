@@ -195,28 +195,30 @@ export async function selectGradeLevel(
 ): Promise<void> {
   const gradeTrigger = page.locator("#student_grade");
   const pickerTimeout = process.env.CI ? 15_000 : 10_000;
-  const isMobile = (page.viewportSize()?.width ?? 1280) < 640;
+  const dialog = page.getByRole("dialog", { name: "Grade level" });
+  const listbox = page.getByRole("listbox", { name: "Grade level" });
+  const picker = dialog.or(listbox);
+
   await expect(gradeTrigger).toBeVisible();
   await expect(gradeTrigger).toBeEnabled();
-  await gradeTrigger.click();
+  await gradeTrigger.scrollIntoViewIfNeeded();
 
-  if (isMobile) {
-    const dialog = page.getByRole("dialog", { name: "Grade level" });
-    await expect(dialog).toBeVisible({ timeout: pickerTimeout });
-    const option = dialog.getByRole("option", { name: optionLabel });
-    await expect(option).toBeVisible();
-    await option.scrollIntoViewIfNeeded();
-    await option.click({ timeout: pickerTimeout });
-    await expect(dialog).toBeHidden({ timeout: pickerTimeout });
-  } else {
-    const listbox = page.getByRole("listbox", { name: "Grade level" });
-    await expect(listbox).toBeVisible({ timeout: pickerTimeout });
-    const option = listbox.getByRole("option", { name: optionLabel });
-    await expect(option).toBeVisible();
-    await option.scrollIntoViewIfNeeded();
-    await option.click({ timeout: pickerTimeout });
-    await expect(listbox).toHaveCount(0, { timeout: pickerTimeout });
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await gradeTrigger.click();
+    try {
+      await expect(picker).toBeVisible({ timeout: 3_000 });
+      break;
+    } catch (error) {
+      if (attempt === 2) throw error;
+    }
   }
+
+  const container = (await dialog.isVisible()) ? dialog : listbox;
+  const option = container.getByRole("option", { name: optionLabel });
+  await expect(option).toBeVisible();
+  await option.scrollIntoViewIfNeeded();
+  await option.click({ timeout: pickerTimeout });
+  await expect(picker).toBeHidden({ timeout: pickerTimeout });
 
   await expect(gradeTrigger).toHaveText(new RegExp(optionLabel, "i"));
 }

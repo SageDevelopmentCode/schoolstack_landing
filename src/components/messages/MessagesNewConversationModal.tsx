@@ -41,7 +41,7 @@ export default function MessagesNewConversationModal({
   useEffect(() => {
     if (!open) return undefined;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
 

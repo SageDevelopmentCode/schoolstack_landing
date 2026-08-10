@@ -453,16 +453,18 @@ function ParentBillingPageContent({
   };
 
   useEffect(() => {
-    if (deepLinkChildParam || deepLinkChildKey) {
-      setMobileView("detail");
-      return;
-    }
-    if (
-      hasMultipleChildren &&
-      resolvedActiveTabKey === PARENT_BILLING_SUMMARY_TAB
-    ) {
-      setMobileView("detail");
-    }
+    queueMicrotask(() => {
+      if (deepLinkChildParam || deepLinkChildKey) {
+        setMobileView("detail");
+        return;
+      }
+      if (
+        hasMultipleChildren &&
+        resolvedActiveTabKey === PARENT_BILLING_SUMMARY_TAB
+      ) {
+        setMobileView("detail");
+      }
+    });
   }, [
     deepLinkChildParam,
     deepLinkChildKey,
