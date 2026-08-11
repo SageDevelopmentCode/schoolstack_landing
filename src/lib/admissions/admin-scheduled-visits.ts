@@ -112,6 +112,7 @@ export async function listOrgScheduledVisits(
     )
     .eq("organization_id", organizationId)
     .eq("status", "scheduled")
+    .is("completed_manually_at", null)
     .order("scheduled_date", { ascending: true });
 
   if (error) throw error;

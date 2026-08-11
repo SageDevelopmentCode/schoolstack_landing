@@ -11,6 +11,7 @@ import {
 } from "@/lib/admissions/parent-portal-access";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { loadParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
+import { loadParentMessagesPageData } from "@/lib/messages/load-messages-page-data";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/lib/organization-settings/feature-nav";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ParentHomePage = nextDynamic(
@@ -33,6 +35,9 @@ const ParentBillingPage = nextDynamic(
 );
 const ParentCommitteesPage = nextDynamic(
   () => import("@/components/school-parent/committees/ParentCommitteesPage"),
+);
+const ParentMessagesPage = nextDynamic(
+  () => import("@/components/school-parent/ParentMessagesPage"),
 );
 
 export const dynamic = "force-dynamic";
@@ -149,7 +154,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
     });
 
     return (
-      <SchoolParentPageShell title={pageName}>
+      <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentBillingPage
           organizationId={org.id}
           familyId={familyId}
@@ -177,6 +182,32 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           branding={org.branding}
           guardianName={guardianName}
           initialData={initialData}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "messages") {
+    const familyIds = await getFamilyIdsForUser(supabase, user.id, org.id);
+    const familyId = familyIds[0];
+    const admin = createAdminClient();
+    const initialInbox = await loadParentMessagesPageData(
+      admin,
+      supabase,
+      org.id,
+      user.id,
+      org.name,
+    );
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="embedded">
+        <ParentMessagesPage
+          organizationId={org.id}
+          organizationSlug={slug}
+          schoolName={org.name}
+          branding={org.branding}
+          familyId={familyId}
+          initialInbox={initialInbox}
         />
       </SchoolParentPageShell>
     );

@@ -1,20 +1,6 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, Nunito } from "next/font/google";
+import { dmSerifDisplay, nunito } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const dmSerifDisplay = DM_Serif_Display({
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-  variable: "--font-dm-serif-display",
-});
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  display: "swap",
-  variable: "--font-nunito",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Kineo School Website Demo",

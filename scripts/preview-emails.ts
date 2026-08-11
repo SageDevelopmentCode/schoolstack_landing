@@ -5,6 +5,7 @@ import {
   buildDemoBookingConfirmationHtml,
   buildDemoFeedbackConfirmationHtml,
   buildHomepageQuestionConfirmationHtml,
+  buildNewMessageEmailHtml,
   buildPaymentReceiptConfirmationHtml,
   buildTuitionDueReminderHtml,
   buildTuitionLateFeeHtml,
@@ -239,6 +240,23 @@ const previews = [
       billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
     }),
     checks: ["Late Fee", "late fee", "View billing", "$50.00"],
+  },
+  {
+    filename: "new-message.html",
+    html: buildNewMessageEmailHtml({
+      schoolName: "Rooted Meadows",
+      senderName: "Jane Smith",
+      preview: "Can we reschedule the shadow day to next Tuesday?",
+      threadUrl: "/school/rooted-meadows/parent/messages?thread=abc-123",
+    }),
+    checks: [
+      "New Message",
+      "You have a new message at Rooted Meadows",
+      "Jane Smith",
+      "Can we reschedule the shadow day",
+      "View conversation",
+      "/school/rooted-meadows/parent/messages?thread=abc-123",
+    ],
   },
   {
     filename: "supabase-magic-link-otp.html",

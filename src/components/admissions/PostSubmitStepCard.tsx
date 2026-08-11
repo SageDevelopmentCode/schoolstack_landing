@@ -71,7 +71,9 @@ export default function PostSubmitStepCard({
             </div>
             {isScheduled && task.booking ? (
               <p className="mt-1 text-sm" style={{ color: C.success }}>
-                Scheduled {formatBookingLabel(task)}
+                {task.booking.completedManuallyAt
+                  ? formatBookingLabel(task)
+                  : `Scheduled ${formatBookingLabel(task)}`}
               </p>
             ) : (
               <p className="mt-1 text-sm leading-relaxed" style={{ color: C.textSecondary }}>

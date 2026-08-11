@@ -174,7 +174,7 @@ export default function DemoRequestsPage() {
                       e.target.value as DemoRequestStatus
                     )
                   }
-                  className="text-sm border border-admin-border rounded-admin-md px-2.5 py-1.5 bg-admin-surface text-admin-text focus:outline-none focus:ring-2 focus:ring-admin-accent/30"
+                  triggerClassName="bg-admin-surface text-admin-text focus:outline-none focus:border-admin-accent/40 focus:ring-2 focus:ring-admin-accent/30"
                   aria-label="Demo request status"
                 >
                   <option value="scheduled">Scheduled</option>

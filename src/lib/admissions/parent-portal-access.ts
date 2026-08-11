@@ -51,6 +51,7 @@ export type ApplicationPostSubmitTask = {
     durationMinutes: number;
     visitDayCount?: number;
     visitDates?: string[];
+    completedManuallyAt?: string;
   };
 };
 
@@ -303,6 +304,7 @@ export async function listFamilyApplications(
                       durationMinutes: visit.durationMinutes,
                       visitDayCount: visit.visitDayCount,
                       visitDates: visit.visitDates,
+                      completedManuallyAt: visit.completedManuallyAt,
                     }
                   : undefined,
               };

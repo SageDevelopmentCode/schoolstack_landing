@@ -14,6 +14,8 @@ export const ACTIVITY_ACTIONS = {
   APPLICATION_DECLINED: "application.declined",
   APPLICATION_WITHDRAWN: "application.withdrawn",
   POST_SUBMIT_VISIT_SCHEDULED: "post_submit.visit_scheduled",
+  POST_SUBMIT_STEP_COMPLETED_MANUALLY: "post_submit.step_completed_manually",
+  POST_SUBMIT_STEP_MANUAL_COMPLETION_UNDONE: "post_submit.step_manual_completion_undone",
   FORM_CREATED: "form.created",
   FORM_SAVED: "form.saved",
   FORM_PUBLISHED: "form.published",
@@ -50,6 +52,7 @@ export const ACTIVITY_ACTIONS = {
   COMMITTEE_JOIN_APPROVED: "committee.join_approved",
   COMMITTEE_JOIN_DECLINED: "committee.join_declined",
   COMMITTEE_JOIN_WITHDRAWN: "committee.join_withdrawn",
+  MESSAGES_RECEIVED: "messages.received",
 } as const;
 
 export type ActivityAction =
@@ -136,6 +139,9 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.ENROLLMENT_CHECKLIST_ITEM_COMPLETED]: "Checklist item completed",
   [ACTIVITY_ACTIONS.ENROLLMENT_CHECKLIST_ITEM_FAILED]: "Checklist item failed",
   [ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED]: "Visit scheduled",
+  [ACTIVITY_ACTIONS.POST_SUBMIT_STEP_COMPLETED_MANUALLY]: "Post-application step marked complete",
+  [ACTIVITY_ACTIONS.POST_SUBMIT_STEP_MANUAL_COMPLETION_UNDONE]:
+    "Post-application step manual completion undone",
   [ACTIVITY_ACTIONS.FORM_CREATED]: "Form created",
   [ACTIVITY_ACTIONS.FORM_SAVED]: "Form saved",
   [ACTIVITY_ACTIONS.FORM_PUBLISHED]: "Form published",
@@ -168,6 +174,7 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED]: "Committee join approved",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "Committee join declined",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_WITHDRAWN]: "Committee join withdrawn",
+  [ACTIVITY_ACTIONS.MESSAGES_RECEIVED]: "New message received",
 };
 
 const PARENT_SURFACES: ActivitySurface[] = [

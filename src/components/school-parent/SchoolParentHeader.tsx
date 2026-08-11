@@ -7,12 +7,15 @@ import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import SchoolParentAvatar from "@/components/school-parent/SchoolParentAvatar";
 import NavigationLink from "@/components/school/shared/NavigationLink";
+import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
+import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
 import {
   buildParentNavItems,
   isParentNavItemActive,
   splitParentNavForHeader,
   type ParentNavItem,
 } from "@/lib/organization-settings/parent-nav";
+import { getParentFeatureIconColor } from "@/lib/organization-settings/parent-feature-icon-styles";
 import {
   CLIENT_AUTH_ACTIVITY_ACTIONS,
   reportAuthActivityAndWait,
@@ -61,30 +64,39 @@ function profileInitials(displayName: string): string {
   return "?";
 }
 
+const parentNavFontClass = "font-[family-name:var(--font-poppins)]";
+
 function NavLink({
   item,
   pathname,
   C,
+  messagesUnreadCount,
 }: {
   item: ParentNavItem;
   pathname: string;
   C: AdminThemeTokens;
+  messagesUnreadCount: number;
 }) {
   const Icon = item.icon;
   const active = isParentNavItemActive(pathname, item);
+  const iconColorClass = getParentFeatureIconColor(item.iconSlug);
 
   return (
     <NavigationLink
       href={item.href}
-      className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+      className={`flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${parentNavFontClass}`}
       style={{
-        color: active ? C.accent : C.textSecondary,
         backgroundColor: active ? C.accentLight : "transparent",
         fontWeight: active ? 600 : 500,
       }}
     >
-      <Icon className="h-3.5 w-3.5" />
-      {item.name}
+      <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColorClass}`} />
+      <span style={{ color: active ? C.accent : C.textSecondary }}>
+        {item.name}
+      </span>
+      {item.key === "messages" ? (
+        <MessagesNavBadge count={messagesUnreadCount} />
+      ) : null}
     </NavigationLink>
   );
 }
@@ -127,6 +139,13 @@ export default function SchoolParentHeader({
         previewParentBasePath,
       ),
     [slug, features.parent, features.feature_nav?.parent, previewParentBasePath],
+  );
+  const messagesEnabled = Boolean(features.parent.messages);
+  const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
+    "/api/parent-portal/messages",
+    organizationId,
+    schoolName,
+    messagesEnabled && !previewMode,
   );
   const { primary, more } = useMemo(
     () => splitParentNavForHeader(navItems),
@@ -203,14 +222,20 @@ export default function SchoolParentHeader({
 
         <nav className="hidden items-center gap-1 lg:flex">
           {primary.map((item) => (
-            <NavLink key={item.key} item={item} pathname={pathname} C={C} />
+            <NavLink
+              key={item.key}
+              item={item}
+              pathname={pathname}
+              C={C}
+              messagesUnreadCount={messagesUnreadCount}
+            />
           ))}
           {more.length > 0 ? (
             <div className="relative" ref={moreRef}>
               <button
                 type="button"
                 onClick={() => setMoreOpen((open) => !open)}
-                className="flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                className={`flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${parentNavFontClass}`}
                 style={{
                   color: moreActive ? C.accent : C.textSecondary,
                   backgroundColor: moreActive ? C.accentLight : "transparent",
@@ -227,20 +252,25 @@ export default function SchoolParentHeader({
                   {more.map((item) => {
                     const Icon = item.icon;
                     const active = isParentNavItemActive(pathname, item);
+                    const iconColorClass = getParentFeatureIconColor(item.iconSlug);
                     return (
                       <NavigationLink
                         key={item.key}
                         href={item.href}
                         onClick={() => setMoreOpen(false)}
-                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition-colors"
+                        className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition-colors ${parentNavFontClass}`}
                         style={{
-                          color: active ? C.accent : "#4B5563",
                           backgroundColor: active ? C.accentLight : "transparent",
                           fontWeight: active ? 500 : 400,
                         }}
                       >
-                        <Icon className="h-4 w-4" />
-                        {item.name}
+                        <Icon className={`h-4 w-4 shrink-0 ${iconColorClass}`} />
+                        <span style={{ color: active ? C.accent : "#4B5563" }}>
+                          {item.name}
+                        </span>
+                        {item.key === "messages" ? (
+                          <MessagesNavBadge count={messagesUnreadCount} />
+                        ) : null}
                       </NavigationLink>
                     );
                   })}
@@ -316,7 +346,13 @@ export default function SchoolParentHeader({
       {navItems.length > 0 ? (
         <nav className="flex gap-1 overflow-x-auto border-t border-gray-100 px-4 py-2 lg:hidden">
           {navItems.map((item) => (
-            <NavLink key={item.key} item={item} pathname={pathname} C={C} />
+            <NavLink
+              key={item.key}
+              item={item}
+              pathname={pathname}
+              C={C}
+              messagesUnreadCount={messagesUnreadCount}
+            />
           ))}
         </nav>
       ) : null}

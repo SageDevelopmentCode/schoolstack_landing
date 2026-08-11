@@ -40,7 +40,11 @@ export default withSentryConfig(withBundleAnalyzer(nextConfig), {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
-  widenClientFileUpload: true,
+  widenClientFileUpload: false,
   tunnelRoute: "/monitoring",
   silent: !process.env.CI,
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+  disableLogger: true,
 });

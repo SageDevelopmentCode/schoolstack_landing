@@ -79,7 +79,8 @@ function ActivityFilters({
       <AdminSelect
         value={organizationId}
         onChange={(e) => onOrganizationChange(e.target.value)}
-        className="w-full text-xs rounded-admin-md border border-admin-border bg-admin-bg px-2 py-1.5 text-admin-text"
+        className="w-full"
+        triggerClassName="text-xs px-2 py-1.5 text-admin-text"
         aria-label="Organization filter"
       >
         <option value="">All organizations</option>
@@ -135,7 +136,8 @@ function ActivityLogFilterBar({
         <AdminSelect
           value={organizationId}
           onChange={(e) => onOrganizationChange(e.target.value)}
-          className="flex-1 min-w-0 text-xs rounded-admin-md border border-admin-border bg-admin-bg px-2 py-1.5 text-admin-text"
+          className="flex-1 min-w-0"
+          triggerClassName="text-xs px-2 py-1.5 text-admin-text"
           aria-label="Organization filter"
         >
           <option value="">All organizations</option>
@@ -151,7 +153,8 @@ function ActivityLogFilterBar({
           onChange={(e) =>
             onSurfaceFilterChange(e.target.value as SurfaceFilter)
           }
-          className="flex-1 min-w-0 text-xs rounded-admin-md border border-admin-border bg-admin-bg px-2 py-1.5 text-admin-text"
+          className="flex-1 min-w-0"
+          triggerClassName="text-xs px-2 py-1.5 text-admin-text"
           aria-label="Surface filter"
         >
           {SURFACE_FILTERS.map((filter) => (

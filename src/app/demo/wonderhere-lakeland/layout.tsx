@@ -1,20 +1,6 @@
 import type { Metadata } from "next";
-import { Fraunces, Nunito } from "next/font/google";
+import { fraunces, nunito } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-fraunces",
-});
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-nunito",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "WonderHere Lakeland Website Demo",

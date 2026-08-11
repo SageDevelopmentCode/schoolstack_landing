@@ -22,6 +22,7 @@ const ADMIN_NAV_CATALOG_ENTRIES: PortalNavCatalogEntry[] = [
   { key: "my_school", label: "My School", group: "Main", icon: "school" },
   { key: "committees", label: "Committees", group: "Main", icon: "heart" },
   { key: "schedule", label: "Schedule", group: "Main", icon: "calendar-days" },
+  { key: "messages", label: "Messages", group: "Main", icon: "message-square" },
   { key: "finances", label: "Finances", group: "Tools", icon: "dollar-sign" },
   { key: "marketing", label: "Marketing", group: "Tools", icon: "megaphone" },
 ];

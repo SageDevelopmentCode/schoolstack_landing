@@ -43,6 +43,10 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.APPLICATION_DECLINED]: "declined an application",
   [ACTIVITY_ACTIONS.APPLICATION_WITHDRAWN]: "withdrew an application",
   [ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED]: "scheduled a visit",
+  [ACTIVITY_ACTIONS.POST_SUBMIT_STEP_COMPLETED_MANUALLY]:
+    "marked a post-application step complete",
+  [ACTIVITY_ACTIONS.POST_SUBMIT_STEP_MANUAL_COMPLETION_UNDONE]:
+    "undid a manual post-application step completion",
   [ACTIVITY_ACTIONS.FORM_CREATED]: "created an application form",
   [ACTIVITY_ACTIONS.FORM_SAVED]: "saved an application form",
   [ACTIVITY_ACTIONS.FORM_PUBLISHED]: "published an application form",

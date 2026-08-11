@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx scripts/dev-with-stripe.ts",
     "dev:next": "next dev",
-    "build": "next build",
+    "build": "NODE_OPTIONS='--max-old-space-size=8192' next build --webpack",
     "analyze": "ANALYZE=true npm run build",
     "start": "next start",
     "lint": "eslint",
@@ -53,6 +53,7 @@
     "simple-icons": "^16.16.0",
     "sonner": "^2.0.7",
     "stripe": "^22.3.0",
+    "web-push": "^3.6.7",
     "ws": "^8.21.0"
   },
   "devDependencies": {
@@ -64,6 +65,7 @@
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.1",
     "dotenv": "^17.4.2",
     "eslint": "^9",

@@ -152,7 +152,12 @@ export function formatScheduledVisitWhenLabel(visit: {
   visitDayCount?: number;
   endDate?: string;
   visitDates?: string[];
+  completedManuallyAt?: string;
 }): string {
+  if (visit.completedManuallyAt) {
+    return "Marked complete by school";
+  }
+
   if (visit.schedulingMode === "whole_day") {
     const dates =
       visit.visitDates && visit.visitDates.length > 0

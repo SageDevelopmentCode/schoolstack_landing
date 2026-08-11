@@ -1,20 +1,6 @@
 import type { Metadata } from "next";
-import { Raleway, Source_Sans_3 } from "next/font/google";
+import { raleway, sourceSans3 } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const raleway = Raleway({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-raleway",
-});
-
-const sourceSans = Source_Sans_3({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-source-sans",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Homework Hub Website Demo",
@@ -31,7 +17,7 @@ export default function HomeworkHubLayout({
 }) {
   return (
     <div
-      className={`${raleway.variable} ${sourceSans.variable} [&_.font-heading]:font-[family-name:var(--font-raleway)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
+      className={`${raleway.variable} ${sourceSans3.variable} [&_.font-heading]:font-[family-name:var(--font-raleway)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
     >
       {children}
     </div>

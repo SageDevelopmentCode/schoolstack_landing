@@ -336,7 +336,8 @@ export default function AdminOrganizationsPage() {
                         timezone: selected.timezone,
                       })
                     }
-                    className={`w-full text-sm border rounded-admin-md px-2 py-1.5 ${STATUS[selected.status].pill}`}
+                    className="w-full"
+                    triggerClassName={`border rounded-admin-md px-2 py-1.5 ${STATUS[selected.status].pill}`}
                     aria-label="Organization status"
                   >
                     {STATUSES.map((status) => (
@@ -359,7 +360,7 @@ export default function AdminOrganizationsPage() {
                         timezone: e.target.value,
                       })
                     }
-                    className="w-full text-sm border border-admin-border rounded-admin-md px-2 py-1.5 bg-admin-bg"
+                    className="w-full"
                     aria-label="Organization timezone"
                   >
                     {!TIMEZONE_OPTIONS.some(

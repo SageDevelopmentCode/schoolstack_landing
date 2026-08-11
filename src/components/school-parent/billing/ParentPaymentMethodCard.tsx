@@ -14,6 +14,7 @@ type ParentPaymentMethodCardProps = {
   loading: boolean;
   onManage: () => void;
   readOnly?: boolean;
+  showLabel?: boolean;
 };
 
 function formatExpiry(method: SavedPaymentMethodSummary | null): string | null {
@@ -29,6 +30,7 @@ export default function ParentPaymentMethodCard({
   loading,
   onManage,
   readOnly = false,
+  showLabel = true,
 }: ParentPaymentMethodCardProps) {
   const label = formatPaymentMethodLabel(savedPaymentMethod);
   const expiry = formatExpiry(savedPaymentMethod);
@@ -41,11 +43,16 @@ export default function ParentPaymentMethodCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
-            Payment method
-          </p>
+          {showLabel ? (
+            <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
+              Payment method
+            </p>
+          ) : null}
           {label ? (
-            <p className="text-sm font-medium mt-1" style={{ color: C.textPrimary }}>
+            <p
+              className={`text-sm font-medium ${showLabel ? "mt-1" : ""}`}
+              style={{ color: C.textPrimary }}
+            >
               {label}
               {expiry ? (
                 <span className="font-normal" style={{ color: C.textSecondary }}>

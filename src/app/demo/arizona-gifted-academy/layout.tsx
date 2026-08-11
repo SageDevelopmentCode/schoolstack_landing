@@ -1,21 +1,6 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Source_Sans_3 } from "next/font/google";
+import { playfairDisplay, sourceSans3 } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-playfair-display",
-});
-
-const sourceSans = Source_Sans_3({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-source-sans",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Arizona Gifted Academy Website Demo",
@@ -32,7 +17,7 @@ export default function ArizonaGiftedAcademyLayout({
 }) {
   return (
     <div
-      className={`${playfair.variable} ${sourceSans.variable} [&_.font-heading]:font-[family-name:var(--font-playfair-display)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
+      className={`${playfairDisplay.variable} ${sourceSans3.variable} [&_.font-heading]:font-[family-name:var(--font-playfair-display)] [&_.font-secondary]:font-[family-name:var(--font-source-sans)]`}
     >
       {children}
     </div>

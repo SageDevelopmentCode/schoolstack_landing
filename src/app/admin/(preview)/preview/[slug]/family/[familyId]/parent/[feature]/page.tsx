@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import ParentHomePage from "@/components/school-parent/ParentHomePage";
 import ParentBillingPage from "@/components/school-parent/billing/ParentBillingPage";
 import ParentCommitteesPage from "@/components/school-parent/committees/ParentCommitteesPage";
+import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
 import {
@@ -21,8 +22,10 @@ import {
 } from "@/lib/organization-settings/feature-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
+import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -114,7 +117,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
     });
 
     return (
-      <SchoolParentPageShell title={pageName}>
+      <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentBillingPage
           organizationId={org.id}
           familyId={familyId}
@@ -144,6 +147,43 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
           guardianName={guardianName}
           previewMode
           initialData={initialData}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "messages") {
+    const admin = createAdminClient();
+    const { data: guardian } = await admin
+      .from("guardians")
+      .select("user_id")
+      .eq("organization_id", org.id)
+      .eq("family_id", familyId)
+      .not("user_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+
+    const previewUserId =
+      guardian?.user_id != null ? String(guardian.user_id) : "preview-user";
+
+    const initialInbox = await loadParentMessagesPreviewInbox(
+      admin,
+      org.id,
+      familyId,
+      org.name,
+      previewUserId,
+    );
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="embedded">
+        <ParentMessagesPage
+          organizationId={org.id}
+          organizationSlug={slug}
+          schoolName={org.name}
+          branding={org.branding}
+          familyId={familyId}
+          previewMode
+          initialInbox={initialInbox}
         />
       </SchoolParentPageShell>
     );

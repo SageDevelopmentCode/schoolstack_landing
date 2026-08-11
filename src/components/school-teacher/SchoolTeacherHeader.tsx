@@ -7,6 +7,8 @@ import { ChevronDown, LogOut } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import SchoolParentAvatar from "@/components/school-parent/SchoolParentAvatar";
+import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
+import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
 import {
   buildTeacherNavItems,
   isTeacherNavItemActive,
@@ -26,6 +28,7 @@ import { createClient } from "@/utils/supabase/client";
 
 type SchoolTeacherHeaderProps = {
   slug: string;
+  organizationId: string;
   schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
@@ -47,10 +50,12 @@ function NavLink({
   item,
   pathname,
   C,
+  messagesUnreadCount,
 }: {
   item: TeacherNavItem;
   pathname: string;
   C: AdminThemeTokens;
+  messagesUnreadCount: number;
 }) {
   const Icon = item.icon;
   const active = isTeacherNavItemActive(pathname, item);
@@ -67,12 +72,16 @@ function NavLink({
     >
       <Icon className="h-3.5 w-3.5" />
       {item.name}
+      {item.key === "messages" ? (
+        <MessagesNavBadge count={messagesUnreadCount} />
+      ) : null}
     </Link>
   );
 }
 
 export default function SchoolTeacherHeader({
   slug,
+  organizationId,
   schoolName,
   branding,
   features,
@@ -96,6 +105,13 @@ export default function SchoolTeacherHeader({
         features.feature_nav?.teacher,
       ),
     [slug, features.teacher, features.feature_nav?.teacher],
+  );
+  const messagesEnabled = Boolean(features.teacher.messages);
+  const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
+    "/api/teacher-portal/messages",
+    organizationId,
+    schoolName,
+    messagesEnabled,
   );
   const { primary, more } = useMemo(
     () => splitTeacherNavForHeader(navItems),
@@ -159,7 +175,13 @@ export default function SchoolTeacherHeader({
 
         <nav className="hidden items-center gap-1 lg:flex">
           {primary.map((item) => (
-            <NavLink key={item.key} item={item} pathname={pathname} C={C} />
+            <NavLink
+              key={item.key}
+              item={item}
+              pathname={pathname}
+              C={C}
+              messagesUnreadCount={messagesUnreadCount}
+            />
           ))}
           {more.length > 0 ? (
             <div className="relative" ref={moreRef}>
@@ -197,6 +219,9 @@ export default function SchoolTeacherHeader({
                       >
                         <Icon className="h-4 w-4" />
                         {item.name}
+                        {item.key === "messages" ? (
+                          <MessagesNavBadge count={messagesUnreadCount} />
+                        ) : null}
                       </Link>
                     );
                   })}
@@ -255,7 +280,13 @@ export default function SchoolTeacherHeader({
       {navItems.length > 0 ? (
         <nav className="flex gap-1 overflow-x-auto border-t border-gray-100 px-4 py-2 lg:hidden">
           {navItems.map((item) => (
-            <NavLink key={item.key} item={item} pathname={pathname} C={C} />
+            <NavLink
+              key={item.key}
+              item={item}
+              pathname={pathname}
+              C={C}
+              messagesUnreadCount={messagesUnreadCount}
+            />
           ))}
         </nav>
       ) : null}

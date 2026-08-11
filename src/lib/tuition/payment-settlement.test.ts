@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { chargeRemainingCents } from "./billing-splits";
 import {
   previewInstallmentRedistribution,
+  previewTuitionPaymentRedistribution,
   redistributeOpenInstallments,
 } from "./payment-settlement";
 
@@ -64,6 +65,26 @@ describe("previewInstallmentRedistribution", () => {
 
     assert.equal(preview.fullyPaid, true);
     assert.equal(preview.creditBalanceCents, 14000);
+  });
+});
+
+describe("previewTuitionPaymentRedistribution", () => {
+  it("projects reduced installments after an extra payment on the first charge", () => {
+    const preview = previewTuitionPaymentRedistribution({
+      currentChargeRemainingCents: 72000,
+      paymentAmountCents: 360000,
+      futureOpenCharges: Array.from({ length: 9 }, () => ({
+        amountCents: 72000,
+        paidCents: 0,
+      })),
+    });
+
+    assert.equal(preview.surplusCents, 288000);
+    assert.equal(preview.futureInstallmentCount, 9);
+    assert.equal(preview.newTotalRemainingCents, 360000);
+    assert.equal(preview.fullyPaid, false);
+    assert.equal(preview.creditBalanceCents, 0);
+    assert.deepEqual(preview.projectedAmountsCents, Array(9).fill(40000));
   });
 });
 

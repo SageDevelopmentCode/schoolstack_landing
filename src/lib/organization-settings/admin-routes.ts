@@ -35,6 +35,11 @@ export function parseSchoolAdminPath(pathname: string): AdminNavPath | null {
   };
 }
 
+export function isAdminMessagesPath(pathname: string): boolean {
+  if (parseSchoolAdminPath(pathname)?.feature === "messages") return true;
+  return /\/admin\/messages(?:\/|$)/.test(pathname);
+}
+
 export function isAdminFeatureEnabled(
   features: OrganizationFeatures,
   featureKey: string,

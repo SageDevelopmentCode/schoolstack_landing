@@ -92,8 +92,8 @@ const EMPTY_CUSTOM_FORM: NewCustomFeatureForm = {
 
 const fieldClass =
   "text-sm border border-admin-border rounded-admin-sm px-2 py-1.5 bg-admin-bg";
-const compactSelectClass =
-  "text-sm border border-admin-border rounded-admin-sm px-2 py-1 h-8 bg-admin-bg";
+const compactSelectTriggerClass =
+  "rounded-admin-sm px-2 py-1 h-8";
 
 const FEATURE_PORTALS = ["admin", "teacher", "parent", "additional"] as const;
 type FeaturePortalTab = (typeof FEATURE_PORTALS)[number];
@@ -1459,7 +1459,8 @@ function FeatureSettingsRow({
         <AdminSelect
           value={subsection}
           onChange={(e) => onSubsectionChange?.(e.target.value)}
-          className={`w-full sm:w-auto ${compactSelectClass}`}
+          className="w-full sm:w-auto"
+          triggerClassName={compactSelectTriggerClass}
           aria-label="Subsection"
         >
           {navGroups.map((group) => (
@@ -1589,7 +1590,8 @@ function AddCustomFeatureForm({
           <AdminSelect
             value={form.group}
             onChange={(e) => onGroupChange(e.target.value)}
-            className={`w-full ${compactSelectClass}`}
+            className="w-full"
+            triggerClassName={compactSelectTriggerClass}
             aria-label="Subsection"
           >
             {groups.map((group) => (
@@ -1642,7 +1644,8 @@ function FeatureIconPicker({
         <AdminSelect
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`flex-1 min-w-0 ${compactSelectClass}`}
+          className="flex-1 min-w-0"
+          triggerClassName={compactSelectTriggerClass}
           aria-label="Icon"
         >
           {FEATURE_ICON_OPTIONS.map((option) => (
@@ -1667,7 +1670,8 @@ function FeatureIconPicker({
         <AdminSelect
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`flex-1 ${compactSelectClass}`}
+          className="flex-1"
+          triggerClassName={compactSelectTriggerClass}
           aria-label="Icon"
         >
           {FEATURE_ICON_OPTIONS.map((option) => (

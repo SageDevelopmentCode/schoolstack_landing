@@ -4,15 +4,19 @@ import type { Metadata } from "next";
 import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
 import TeacherDashboardPage from "@/components/school-teacher/TeacherDashboardPage";
 import TeacherMyStudentsPage from "@/components/school-teacher/TeacherMyStudentsPage";
+import TeacherMessagesPage from "@/components/school-teacher/TeacherMessagesPage";
 import { getTeacherPageLabel } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { loadTeacherMessagesPageData } from "@/lib/messages/load-messages-page-data";
 import { loadTeacherMyStudentsPageData } from "@/lib/school-teacher/load-my-students-page-data";
 import {
+  getStaffMemberIdForUser,
   getStaffUserProfile,
   requireTeacherPortalUser,
 } from "@/lib/staff/teacher-portal-access";
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -115,6 +119,36 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         slug={slug}
         staffMemberId={initialData.staffMemberId}
         initialStudents={initialData.students}
+      />
+    );
+  }
+
+  if (feature === "messages") {
+    const user = await requireTeacherPortalUser(supabase, org.id);
+    const staffMemberId = await getStaffMemberIdForUser(
+      supabase,
+      user.id,
+      org.id,
+    );
+    const admin = createAdminClient();
+    const initialInbox = staffMemberId
+      ? await loadTeacherMessagesPageData(
+          admin,
+          org.id,
+          user.id,
+          staffMemberId,
+          org.name,
+        )
+      : { threads: [], contacts: [] };
+
+    return (
+      <TeacherMessagesPage
+        organizationId={org.id}
+        organizationSlug={slug}
+        schoolName={org.name}
+        branding={org.branding}
+        staffMemberId={staffMemberId}
+        initialInbox={initialInbox}
       />
     );
   }

@@ -114,6 +114,12 @@ export function formatEnrolledStudentName(student: {
   return formatPersonName(student.firstName, student.lastName) || "Student";
 }
 
+export function formatEnrolledStudentSubtitle(
+  students: AdminEnrolledStudentSummary[],
+): string {
+  return students.map(formatEnrolledStudentName).join(" · ");
+}
+
 export function formatStudentGrade(grade: string | null | undefined): string | null {
   if (!grade) return null;
   const normalized = grade.trim().toLowerCase();
@@ -404,6 +410,47 @@ export async function listOrgEnrolledStudents(
   );
 }
 
+export async function listFamilyEnrolledStudents(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+): Promise<Map<string, AdminEnrolledStudentSummary[]>> {
+  const byFamily = new Map<string, AdminEnrolledStudentSummary[]>();
+  if (familyIds.length === 0) return byFamily;
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(ENROLLED_ENROLLMENT_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .in("students.family_id", familyIds);
+
+  if (error) throw error;
+
+  const summaries = await aggregateEnrolledStudentSummaries(
+    supabase,
+    organizationId,
+    (data ?? []) as Record<string, unknown>[],
+  );
+
+  for (const summary of summaries) {
+    const list = byFamily.get(summary.familyId) ?? [];
+    list.push(summary);
+    byFamily.set(summary.familyId, list);
+  }
+
+  for (const [familyId, list] of byFamily) {
+    byFamily.set(
+      familyId,
+      [...list].sort((a, b) =>
+        formatEnrolledStudentName(a).localeCompare(formatEnrolledStudentName(b)),
+      ),
+    );
+  }
+
+  return byFamily;
+}
+
 export async function listAssignedEnrolledStudents(
   supabase: SupabaseClient,
   organizationId: string,
@@ -573,6 +620,55 @@ export async function loadEnrolledStudentDetail(
     assignedTeacherId,
     assignedTeacherName,
   };
+}
+
+export async function teacherHasAssignedStudentInFamily(
+  supabase: SupabaseClient,
+  organizationId: string,
+  staffMemberId: string,
+  familyId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("id, students!inner(id)")
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .eq("students.family_id", familyId)
+    .eq("students.assigned_teacher_id", staffMemberId)
+    .limit(1);
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
+export async function loadTeacherMessageableFamilyStudentDetail(
+  supabase: SupabaseClient,
+  organizationId: string,
+  staffMemberId: string,
+  studentId: string,
+): Promise<EnrolledStudentDetail | null> {
+  const detail = await loadEnrolledStudentDetail(
+    supabase,
+    organizationId,
+    studentId,
+  );
+
+  if (!detail || detail.enrollments.length === 0) {
+    return null;
+  }
+
+  const hasAccess = await teacherHasAssignedStudentInFamily(
+    supabase,
+    organizationId,
+    staffMemberId,
+    detail.familyId,
+  );
+
+  if (!hasAccess) {
+    return null;
+  }
+
+  return detail;
 }
 
 export async function loadTeacherAssignedStudentDetail(

@@ -1,20 +1,6 @@
 import type { Metadata } from "next";
-import { Montserrat, Nunito } from "next/font/google";
+import { montserrat, nunito } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-montserrat",
-});
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-nunito",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Monarch Hills Education Website Demo",

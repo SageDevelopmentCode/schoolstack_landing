@@ -3,18 +3,16 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight, CircleAlert, Loader2 } from "lucide-react";
-import ParentBillingUpcomingChargesPanel, {
-  formatUpcomingChargesSummary,
-} from "@/components/school-parent/billing/ParentBillingUpcomingChargesPanel";
-import ParentBillingPaymentHistoryRow from "@/components/school-parent/billing/ParentBillingPaymentHistoryRow";
+import { ChevronLeft, CircleAlert, Loader2 } from "lucide-react";
+import ParentBillingUpcomingChargesPanel from "@/components/school-parent/billing/ParentBillingUpcomingChargesPanel";
 import ParentBillingPaymentReceiptPanel from "@/components/school-parent/billing/ParentBillingPaymentReceiptPanel";
-import ParentBillingChildTabs from "@/components/school-parent/billing/ParentBillingChildTabs";
-import ParentBillingSummaryCard from "@/components/school-parent/billing/ParentBillingSummaryCard";
-import ParentBillingChildDetailModal from "@/components/school-parent/billing/ParentBillingChildDetailModal";
+import ParentBillingFamilySettings from "@/components/school-parent/billing/ParentBillingFamilySettings";
+import ParentBillingNav, {
+  PARENT_BILLING_SUMMARY_TAB,
+} from "@/components/school-parent/billing/ParentBillingNav";
+import ParentBillingSummaryPanel from "@/components/school-parent/billing/ParentBillingSummaryPanel";
+import ParentBillingChildDetailPanel from "@/components/school-parent/billing/ParentBillingChildDetailPanel";
 import ParentAutopayConfirmModal from "@/components/school-parent/billing/ParentAutopayConfirmModal";
-import ParentPaymentMethodCard from "@/components/school-parent/billing/ParentPaymentMethodCard";
-import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
 import TuitionPayAmountField, {
   resolveTuitionPayAmountCents,
   type TuitionPayAmountMode,
@@ -51,7 +49,6 @@ import {
   countOpenChargesOnEarliestDueDate,
   fetchParentBillingFamilySummary,
   listOpenChargesOnEarliestDueDate,
-  pickInitialChildKey,
   pickNextPendingChildKey,
   resolveFamilyPayNowLabel,
   type ParentBillingFamilySummary,
@@ -67,7 +64,6 @@ import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { getAssignmentPaymentContext } from "@/lib/tuition/family-checklist-responses";
-import { EXTRA_PAY_BANNER_CTA } from "@/lib/tuition/tuition-pay-copy";
 import { createClient } from "@/utils/supabase/client";
 
 type ParentBillingPageProps = {
@@ -112,6 +108,8 @@ function ParentBillingPageContent({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const deepLinkChargeId = searchParams.get("charge");
+  const deepLinkChildParam = searchParams.get("child");
+  const deepLinkTabParam = searchParams.get("tab");
   const cardSaved = searchParams.get("card_saved");
   const hasInitialData = initialData !== undefined;
 
@@ -149,7 +147,7 @@ function ParentBillingPageContent({
   const [payCheckoutLoading, setPayCheckoutLoading] = useState(false);
   const [payingCombined, setPayingCombined] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-  const [detailModalChildKey, setDetailModalChildKey] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const [manualUpcomingChargesPanelOpen, setManualUpcomingChargesPanelOpen] = useState(false);
   const [paymentReceiptPanelOpen, setPaymentReceiptPanelOpen] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
@@ -161,9 +159,13 @@ function ParentBillingPageContent({
   const [familySummary, setFamilySummary] = useState<ParentBillingFamilySummary | null>(
     initialData?.familySummary ?? null,
   );
-  const [activeChildKey, setActiveChildKey] = useState<string | null>(
-    initialData?.initialChildKey ?? null,
-  );
+  const [activeTabKey, setActiveTabKey] = useState<string>(() => {
+    if (deepLinkChildParam) return deepLinkChildParam;
+    if (deepLinkTabParam === PARENT_BILLING_SUMMARY_TAB) {
+      return PARENT_BILLING_SUMMARY_TAB;
+    }
+    return initialData?.initialChildKey ?? PARENT_BILLING_SUMMARY_TAB;
+  });
   const [showTaxCreditPaymentBanner] = useState(
     initialData?.showTaxCreditPaymentBanner ?? false,
   );
@@ -288,11 +290,14 @@ function ParentBillingPageContent({
       setAdjustments(adjustmentRows);
       setReadiness(readinessState);
       setFamilySummary(summary);
-      setActiveChildKey((prev) => {
+      setActiveTabKey((prev) => {
         if (prev && summary.children.some((child) => child.childKey === prev)) {
           return prev;
         }
-        return pickInitialChildKey(summary.children);
+        if (summary.children.length <= 1) {
+          return summary.children[0]?.childKey ?? PARENT_BILLING_SUMMARY_TAB;
+        }
+        return PARENT_BILLING_SUMMARY_TAB;
       });
 
       const { data: account } = await supabase
@@ -373,20 +378,25 @@ function ParentBillingPageContent({
   }, [deepLinkTargetCharge, deepLinkChargeId]);
 
   const childViews = familySummary?.children ?? [];
+  const hasMultipleChildren = childViews.length > 1;
   const deepLinkChildKey = useMemo(() => {
+    if (deepLinkChildParam) return deepLinkChildParam;
     if (!deepLinkTargetCharge) return null;
     return (
       familySummary?.children.find(
         (child) => child.assignmentId === deepLinkTargetCharge.assignmentId,
       )?.childKey ?? null
     );
-  }, [deepLinkTargetCharge, familySummary?.children]);
-  const resolvedActiveChildKey = deepLinkChildKey ?? activeChildKey;
-  const activeChild =
-    childViews.find((child) => child.childKey === resolvedActiveChildKey) ??
-    childViews[0] ??
-    null;
-  const hasMultipleChildren = childViews.length > 1;
+  }, [deepLinkChildParam, deepLinkTargetCharge, familySummary?.children]);
+  const resolvedActiveTabKey = deepLinkChildKey ?? activeTabKey;
+  const isSummaryTab =
+    hasMultipleChildren && resolvedActiveTabKey === PARENT_BILLING_SUMMARY_TAB;
+  const activeChild = isSummaryTab
+    ? null
+    : childViews.find((child) => child.childKey === resolvedActiveTabKey) ??
+      childViews[0] ??
+      null;
+  const displayChild = hasMultipleChildren ? activeChild : (childViews[0] ?? null);
   const studentColorMap = useMemo(
     () => buildStudentColorIndexMap(childViews.map((child) => child.childKey)),
     [childViews],
@@ -423,9 +433,44 @@ function ParentBillingPageContent({
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleSelectChild = (childKey: string) => {
-    setDetailModalChildKey(childKey);
+  const handleSelectTab = (tabKey: string) => {
+    setActiveTabKey(tabKey);
+    setMobileView("detail");
+    const params = new URLSearchParams(searchParams.toString());
+    if (tabKey === PARENT_BILLING_SUMMARY_TAB) {
+      params.set("tab", PARENT_BILLING_SUMMARY_TAB);
+      params.delete("child");
+    } else {
+      params.set("child", tabKey);
+      params.delete("tab");
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
+
+  const handleMobileBackToList = () => {
+    setMobileView("list");
+  };
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      if (deepLinkChildParam || deepLinkChildKey) {
+        setMobileView("detail");
+        return;
+      }
+      if (
+        hasMultipleChildren &&
+        resolvedActiveTabKey === PARENT_BILLING_SUMMARY_TAB
+      ) {
+        setMobileView("detail");
+      }
+    });
+  }, [
+    deepLinkChildParam,
+    deepLinkChildKey,
+    hasMultipleChildren,
+    resolvedActiveTabKey,
+  ]);
 
   const combinedChargesOnEarliestDueDate = useMemo(
     () => listOpenChargesOnEarliestDueDate(charges),
@@ -483,6 +528,12 @@ function ParentBillingPageContent({
         return null;
     }
   })();
+
+  const hasPageBanners =
+    scheduleWarningMessage != null ||
+    readinessMessage != null ||
+    (lateFeeNotice != null && !dismissedLateFeeNotice) ||
+    (recentAutopayFailure != null && !dismissedAutopayFailure);
 
   const pendingPayContext = useMemo(() => {
     if (!pendingPayCharge) {
@@ -716,10 +767,14 @@ function ParentBillingPageContent({
   }, [cardSaved, loadBilling, pathname, router]);
 
   const handleScheduleComplete = async () => {
-    const currentKey = activeChildKey;
+    const currentKey = activeTabKey;
     const summary = await loadBilling();
-    if (currentKey && summary) {
-      setActiveChildKey(
+    if (
+      currentKey &&
+      currentKey !== PARENT_BILLING_SUMMARY_TAB &&
+      summary
+    ) {
+      setActiveTabKey(
         pickNextPendingChildKey(summary.children, currentKey) ?? currentKey,
       );
     }
@@ -731,98 +786,23 @@ function ParentBillingPageContent({
       : charges
     ).filter((charge) => OPEN_CHARGE_STATUSES.has(charge.status));
 
-  const upcomingPanelAssignmentId =
-    childViews.length > 0 && activeChild ? activeChild.assignmentId : null;
+  const upcomingPanelAssignmentId = displayChild?.assignmentId ?? null;
   const upcomingPanelCharges = getOpenChargesForAssignment(upcomingPanelAssignmentId);
-  const upcomingPanelStudentName =
-    childViews.length > 0 && activeChild ? activeChild.studentName : null;
-  const upcomingPanelTotalRemainingCents =
-    childViews.length > 0 && activeChild
-      ? activeChild.totalRemainingCents
-      : (familySummary?.totalRemainingCents ?? 0);
+  const upcomingPanelStudentName = displayChild?.studentName ?? null;
+  const upcomingPanelTotalRemainingCents = displayChild
+    ? displayChild.totalRemainingCents
+    : (familySummary?.totalRemainingCents ?? 0);
 
-  const renderChildCharges = (assignmentId: string | null) => {
-    const childCharges = getOpenChargesForAssignment(assignmentId);
-    const summaryText = formatUpcomingChargesSummary(childCharges);
-
-    return (
-      <div>
-        <h2 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
-          Upcoming charges
-        </h2>
-        {childCharges.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setManualUpcomingChargesPanelOpen(true)}
-            aria-expanded={upcomingChargesPanelOpen}
-            aria-controls="parent-billing-upcoming-charges-panel"
-            className="flex w-full items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-sm transition-shadow"
-            style={{
-              backgroundColor: C.surface,
-              border: `1px solid ${C.border}`,
-            }}
-            data-testid="parent-billing-upcoming-charges-trigger"
-          >
-            <div className="min-w-0">
-              <p className="font-medium" style={{ color: C.textPrimary }}>
-                View payment schedule
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-                {summaryText}
-              </p>
-            </div>
-            <ChevronRight
-              className="h-4 w-4 shrink-0"
-              style={{ color: C.textTertiary }}
-              aria-hidden
-            />
-          </button>
-        ) : (
-          <p className="text-sm" style={{ color: C.textTertiary }}>
-            No upcoming charges yet.
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  const renderActiveChildPanel = () => {
-    if (!activeChild) return null;
-
-    if (activeChild.selectionItem) {
-      return (
-        <ParentTuitionPlanSelector
-          C={C}
-          context={activeChild.selectionItem.context}
-          studentName={activeChild.studentName}
-          onComplete={() => void handleScheduleComplete()}
-          readOnly={previewMode}
-        />
-      );
-    }
-
-    return renderChildCharges(activeChild.assignmentId);
-  };
-
-  const detailModalChild =
-    childViews.find((child) => child.childKey === detailModalChildKey) ?? null;
+  const activeChildOpenCharges = getOpenChargesForAssignment(
+    displayChild?.assignmentId ?? null,
+  );
 
   if (loading) {
     return <ParentBillingPageFallback branding={branding} />;
   }
 
-  return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
-      <div className="text-center sm:text-left">
-        <h1 className="text-xl font-semibold" style={{ color: C.textPrimary }}>
-          Billing
-        </h1>
-        <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-          View your tuition schedule and pay online.
-          {hasBillingSplit ? " Amounts shown are your portion of family tuition." : ""}
-        </p>
-      </div>
-
+  const pageBanners = hasPageBanners ? (
+    <div className="flex flex-col gap-4">
       {scheduleWarningMessage ? (
         <div
           className="rounded-xl p-5 flex flex-col gap-3"
@@ -855,47 +835,6 @@ function ParentBillingPageContent({
           >
             Review options below
           </button>
-        </div>
-      ) : null}
-
-      {showTaxCreditPaymentBanner && !dismissedTaxCreditBanner ? (
-        <div
-          className="rounded-xl p-5 flex flex-col gap-3"
-          style={{
-            backgroundColor: C.accentLight,
-            border: `1px solid ${C.border}`,
-          }}
-          data-testid="parent-billing-tax-credit-banner"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                Using Idaho Parent Choice Tax Credit?
-              </p>
-              <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-                Apply a tax credit or lump sum on a child&apos;s tuition payment. Remaining
-                monthly payments will be recalculated automatically.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="text-xs shrink-0"
-              style={{ color: C.textSecondary }}
-              onClick={() => setDismissedTaxCreditBanner(true)}
-            >
-              Dismiss
-            </button>
-          </div>
-          {nextChargeRecord && !previewMode ? (
-            <button
-              type="button"
-              onClick={() => handlePayExtra(nextChargeRecord.id)}
-              className="inline-flex self-start px-4 py-2 rounded-lg text-sm font-medium"
-              style={{ backgroundColor: C.accent, color: "#fff" }}
-            >
-              {EXTRA_PAY_BANNER_CTA}
-            </button>
-          ) : null}
         </div>
       ) : null}
 
@@ -978,39 +917,159 @@ function ParentBillingPageContent({
           </button>
         </div>
       ) : null}
+    </div>
+  ) : null;
 
-      {familySummary ? (
-        <ParentBillingSummaryCard
-          C={C}
-          summary={familySummary}
-          autopayEnabled={autopayEnabled}
-          payingChargeId={payingChargeId}
-          payingCombined={payingCombined}
-          onPay={handlePay}
-          onPayExtra={handlePayExtra}
-          onPayCombined={
-            combinedChargesOnEarliestDueDate.length > 1
-              ? handlePayCombined
-              : undefined
-          }
-          onAutopayToggleRequest={handleAutopayToggleRequest}
-          onSelectChild={handleSelectChild}
-          nextChargeId={nextChargeRecord?.id ?? null}
-          familyPayNowLabel={familyPayNowLabel}
-          chargesOnEarliestDueDate={chargesOnEarliestDueDate}
-          lastPaymentSummary={lastPaymentSummary}
-          showStudentOnLastPayment={hasMultipleChildren}
-          readOnly={previewMode}
-        />
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      {hasMultipleChildren && childViews.length > 0 ? (
+        <div
+          id="parent-billing-child-panel"
+          className="flex min-h-0 flex-1 overflow-hidden border-t"
+          style={{ borderColor: C.border }}
+          data-testid="parent-billing-child-panel"
+        >
+          <div
+            className={`flex h-full min-h-0 shrink-0 flex-col overflow-y-auto border-r md:w-72 lg:w-80 ${
+              mobileView === "detail" ? "hidden md:flex" : "flex w-full"
+            }`}
+            style={{ borderColor: C.border, backgroundColor: C.bg }}
+          >
+            {familySummary ? (
+              <ParentBillingNav
+                C={C}
+                summary={familySummary}
+                childViews={childViews}
+                activeTabKey={resolvedActiveTabKey}
+                onChange={handleSelectTab}
+              />
+            ) : null}
+          </div>
+
+          <div
+            className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${
+              mobileView === "list" ? "hidden md:block" : "block"
+            }`}
+          >
+            <div className="mx-auto flex max-w-2xl flex-col gap-6 px-6 pt-4 pb-6">
+              {pageBanners}
+
+              {mobileView === "detail" ? (
+                <div className="md:hidden">
+                  <button
+                    type="button"
+                    onClick={handleMobileBackToList}
+                    className="inline-flex items-center gap-1 text-sm font-medium"
+                    style={{ color: C.accent }}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    All billing
+                  </button>
+                </div>
+              ) : null}
+
+              {isSummaryTab && familySummary ? (
+                <ParentBillingSummaryPanel
+                  C={C}
+                  summary={familySummary}
+                  childViews={childViews}
+                  payments={payments}
+                  studentColorMap={studentColorMap}
+                  autopayEnabled={autopayEnabled}
+                  payingChargeId={payingChargeId}
+                  payingCombined={payingCombined}
+                  savedPaymentMethod={savedPaymentMethod}
+                  paymentMethodLoading={paymentMethodLoading}
+                  nextChargeId={nextChargeRecord?.id ?? null}
+                  familyPayNowLabel={familyPayNowLabel}
+                  chargesOnEarliestDueDate={chargesOnEarliestDueDate}
+                  lastPaymentSummary={lastPaymentSummary}
+                  showTaxCreditBanner={
+                    showTaxCreditPaymentBanner && !dismissedTaxCreditBanner
+                  }
+                  taxCreditChargeId={nextChargeRecord?.id ?? null}
+                  onDismissTaxCreditBanner={() => setDismissedTaxCreditBanner(true)}
+                  onApplyTaxCredit={handlePayExtra}
+                  readOnly={previewMode}
+                  onPay={handlePay}
+                  onPayCombined={
+                    combinedChargesOnEarliestDueDate.length > 1
+                      ? handlePayCombined
+                      : undefined
+                  }
+                  onSelectChild={handleSelectTab}
+                  onAutopayToggleRequest={handleAutopayToggleRequest}
+                  onManagePaymentMethod={() => void handleManagePaymentMethod()}
+                  onPaymentClick={(paymentId) => {
+                    setSelectedPaymentId(paymentId);
+                    setPaymentReceiptPanelOpen(true);
+                  }}
+                />
+              ) : activeChild ? (
+                <ParentBillingChildDetailPanel
+                  C={C}
+                  child={activeChild}
+                  charges={charges}
+                  openCharges={activeChildOpenCharges}
+                  adjustmentsByAssignment={adjustmentsByAssignment}
+                  payments={payments}
+                  payingChargeId={payingChargeId}
+                  autopayEnabled={autopayEnabled}
+                  readOnly={previewMode}
+                  onPay={handlePay}
+                  onPayExtra={handlePayExtra}
+                  onScheduleComplete={() => void handleScheduleComplete()}
+                  onOpenUpcomingCharges={() => setManualUpcomingChargesPanelOpen(true)}
+                  onPaymentClick={(paymentId) => {
+                    setSelectedPaymentId(paymentId);
+                    setPaymentReceiptPanelOpen(true);
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : displayChild ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
+            {pageBanners}
+            <ParentBillingChildDetailPanel
+              C={C}
+              child={displayChild}
+              charges={charges}
+              openCharges={activeChildOpenCharges}
+              adjustmentsByAssignment={adjustmentsByAssignment}
+              payments={payments}
+              payingChargeId={payingChargeId}
+              autopayEnabled={autopayEnabled}
+              readOnly={previewMode}
+              onPay={handlePay}
+              onPayExtra={handlePayExtra}
+              onScheduleComplete={() => void handleScheduleComplete()}
+              onOpenUpcomingCharges={() => setManualUpcomingChargesPanelOpen(true)}
+              onPaymentClick={(paymentId) => {
+                setSelectedPaymentId(paymentId);
+                setPaymentReceiptPanelOpen(true);
+              }}
+            />
+            <ParentBillingFamilySettings
+              C={C}
+              autopayEnabled={autopayEnabled}
+              savedPaymentMethod={savedPaymentMethod}
+              paymentMethodLoading={paymentMethodLoading}
+              onAutopayToggleRequest={handleAutopayToggleRequest}
+              onManagePaymentMethod={() => void handleManagePaymentMethod()}
+              readOnly={previewMode}
+            />
+          </div>
+        </div>
+      ) : hasPageBanners ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
+            {pageBanners}
+          </div>
+        </div>
       ) : null}
-
-      <ParentPaymentMethodCard
-        C={C}
-        savedPaymentMethod={savedPaymentMethod}
-        loading={paymentMethodLoading}
-        onManage={() => void handleManagePaymentMethod()}
-        readOnly={previewMode}
-      />
 
       <ParentAutopayConfirmModal
         C={C}
@@ -1062,29 +1121,6 @@ function ParentBillingPageContent({
         onConfirm={handleConfirmTuitionPayment}
       />
 
-      <ParentBillingChildDetailModal
-        C={C}
-        open={detailModalChildKey != null}
-        child={detailModalChild}
-        charges={charges}
-        adjustmentsByAssignment={adjustmentsByAssignment}
-        payingChargeId={payingChargeId}
-        autopayEnabled={autopayEnabled}
-        readOnly={previewMode}
-        onClose={() => setDetailModalChildKey(null)}
-        onPay={(chargeId) => {
-          setDetailModalChildKey(null);
-          handlePay(chargeId);
-        }}
-        onReviewSchedule={() => {
-          setDetailModalChildKey(null);
-          if (detailModalChild) {
-            setActiveChildKey(detailModalChild.childKey);
-          }
-          scrollToScheduleSelector();
-        }}
-      />
-
       <ParentBillingPaymentReceiptPanel
         C={C}
         open={paymentReceiptPanelOpen}
@@ -1115,62 +1151,6 @@ function ParentBillingPageContent({
         }}
         onPay={handlePay}
       />
-
-      {childViews.length > 0 ? (
-        <div
-          id="parent-billing-child-panel"
-          className="flex flex-col gap-4"
-          data-testid="parent-billing-child-panel"
-        >
-          {hasMultipleChildren && resolvedActiveChildKey ? (
-            <ParentBillingChildTabs
-              C={C}
-              childViews={childViews}
-              activeChildKey={resolvedActiveChildKey}
-              onChange={setActiveChildKey}
-            />
-          ) : null}
-          {renderActiveChildPanel()}
-        </div>
-      ) : (
-        renderChildCharges(null)
-      )}
-
-      <div>
-        <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-          Payment history
-        </h2>
-        {hasMultipleChildren ? (
-          <p className="text-xs mt-1 mb-3" style={{ color: C.textTertiary }}>
-            All students
-          </p>
-        ) : (
-          <div className="mb-3" />
-        )}
-        {payments.length ? (
-          <div className="flex flex-col gap-2">
-            {payments.map((payment) => (
-              <ParentBillingPaymentHistoryRow
-                key={payment.id}
-                C={C}
-                payment={payment}
-                showStudentBadge={hasMultipleChildren}
-                badgeColorIndex={
-                  studentColorMap.get(payment.enrollmentId ?? "") ?? 0
-                }
-                onClick={() => {
-                  setSelectedPaymentId(payment.id);
-                  setPaymentReceiptPanelOpen(true);
-                }}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm" style={{ color: C.textTertiary }}>
-            No payments yet.
-          </p>
-        )}
-      </div>
     </div>
   );
 }

@@ -10,7 +10,13 @@ import {
 import { listFamilyBillingSummaries } from "@/lib/tuition/charges";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
+import { childFirstNameFromFullName } from "@/lib/tuition/parent-billing-summary";
 import { formatCents } from "@/lib/tuition/pricing";
+import {
+  buildStudentColorIndexMap,
+  getStudentBadgeColors,
+  type StudentBadgeColors,
+} from "@/lib/tuition/student-badge-colors";
 import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { FamilyAssignmentSummary, FamilyBillingSummary } from "@/lib/tuition/types";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
@@ -24,6 +30,28 @@ import {
   DEFAULT_TUITION_FAMILY_TAB,
   type TuitionFamilyTabId,
 } from "@/components/school-admin/tuition/tuition-family-tabs";
+
+const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
+
+function TuitionStudentBadge({
+  firstName,
+  badgeColors,
+}: {
+  firstName: string;
+  badgeColors: StudentBadgeColors;
+}) {
+  return (
+    <span
+      className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+      style={{
+        backgroundColor: badgeColors.backgroundColor,
+        color: badgeColors.color,
+      }}
+    >
+      For {firstName}
+    </span>
+  );
+}
 
 type TuitionFamiliesPanelProps = {
   organizationId: string;
@@ -331,6 +359,57 @@ export default function TuitionFamiliesPanel({
 
   const displayedFamilyCharges = selectedFamilyId ? familyCharges : [];
   const displayedFamilyPayments = selectedFamilyId ? familyPayments : [];
+
+  const assignmentContextByAssignmentId = useMemo(() => {
+    if (!selectedFamily) {
+      return new Map<string, { studentName: string | null; enrollmentId: string }>();
+    }
+    return new Map(
+      selectedFamily.assignments.map((assignment) => [
+        assignment.assignmentId,
+        {
+          studentName: assignment.studentName,
+          enrollmentId: assignment.enrollmentId,
+        },
+      ]),
+    );
+  }, [selectedFamily]);
+
+  const hasMultipleStudents = (selectedFamily?.assignments.length ?? 0) > 1;
+
+  const studentColorMap = useMemo(() => {
+    if (!selectedFamily) return new Map<string, number>();
+    return buildStudentColorIndexMap(
+      selectedFamily.assignments.map((assignment) => assignment.enrollmentId),
+    );
+  }, [selectedFamily]);
+
+  const upcomingFamilyCharges = useMemo(
+    () =>
+      displayedFamilyCharges.filter((charge) =>
+        OPEN_CHARGE_STATUSES.has(charge.status),
+      ),
+    [displayedFamilyCharges],
+  );
+
+  const resolveStudentBadgeForAssignment = (assignmentId: string) => {
+    if (!hasMultipleStudents) return null;
+    const context = assignmentContextByAssignmentId.get(assignmentId);
+    if (!context?.studentName) return null;
+    const firstName = childFirstNameFromFullName(context.studentName);
+    const badgeColors = getStudentBadgeColors(
+      C,
+      studentColorMap.get(context.enrollmentId) ?? 0,
+    );
+    return { firstName, badgeColors };
+  };
+
+  const resolveStudentBadgeForPayment = (tuitionChargeId: string | null) => {
+    if (!tuitionChargeId) return null;
+    const charge = familyCharges.find((item) => item.id === tuitionChargeId);
+    if (!charge) return null;
+    return resolveStudentBadgeForAssignment(charge.assignmentId);
+  };
 
   if (loading) {
     return (
@@ -690,15 +769,27 @@ export default function TuitionFamiliesPanel({
                 Schedule
               </p>
               <div className="flex flex-col gap-2">
-                {displayedFamilyCharges.length > 0 ? (
-                  displayedFamilyCharges.map((charge) => (
+                {upcomingFamilyCharges.length > 0 ? (
+                  upcomingFamilyCharges.map((charge) => {
+                    const studentBadge = resolveStudentBadgeForAssignment(
+                      charge.assignmentId,
+                    );
+                    return (
                     <div
                       key={charge.id}
                       className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
                       style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
                     >
                       <div>
-                        <p style={{ color: C.textPrimary }}>{charge.label}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {studentBadge ? (
+                            <TuitionStudentBadge
+                              firstName={studentBadge.firstName}
+                              badgeColors={studentBadge.badgeColors}
+                            />
+                          ) : null}
+                          <p style={{ color: C.textPrimary }}>{charge.label}</p>
+                        </div>
                         <p className="text-xs" style={{ color: C.textTertiary }}>
                           Due {charge.dueDate} · {charge.status}
                         </p>
@@ -740,7 +831,19 @@ export default function TuitionFamiliesPanel({
                         ) : null}
                       </div>
                     </div>
-                  ))
+                    );
+                  })
+                ) : displayedFamilyCharges.length > 0 ? (
+                  <p
+                    className="text-sm px-3 py-2 rounded-md"
+                    style={{
+                      color: C.textSecondary,
+                      backgroundColor: C.bg,
+                      border: `1px solid ${C.border}`,
+                    }}
+                  >
+                    No upcoming charges. Paid installments appear in Payment history.
+                  </p>
                 ) : (
                   <p
                     className="text-sm px-3 py-2 rounded-md"
@@ -766,22 +869,34 @@ export default function TuitionFamiliesPanel({
               data-testid="tuition-family-panel-payments"
             >
               <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
-                Recent payments
+                Payment history
               </p>
               {displayedFamilyPayments.some((payment) => payment.status === "succeeded") ? (
                 <div className="flex flex-col gap-2">
                   {displayedFamilyPayments
                     .filter((payment) => payment.status === "succeeded")
-                    .map((payment) => (
+                    .map((payment) => {
+                      const studentBadge = resolveStudentBadgeForPayment(
+                        payment.tuitionChargeId,
+                      );
+                      return (
                       <div
                         key={payment.id}
                         className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
                         style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
                       >
                         <div>
-                          <p style={{ color: C.textPrimary }}>
-                            {payment.label ?? "Tuition payment"}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {studentBadge ? (
+                              <TuitionStudentBadge
+                                firstName={studentBadge.firstName}
+                                badgeColors={studentBadge.badgeColors}
+                              />
+                            ) : null}
+                            <p style={{ color: C.textPrimary }}>
+                              {payment.label ?? "Tuition payment"}
+                            </p>
+                          </div>
                           <p className="text-xs" style={{ color: C.textTertiary }}>
                             {payment.paidAt
                               ? new Date(payment.paidAt).toLocaleDateString()
@@ -807,7 +922,8 @@ export default function TuitionFamiliesPanel({
                           </button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                 </div>
               ) : (
                 <p className="text-sm" style={{ color: C.textSecondary }}>

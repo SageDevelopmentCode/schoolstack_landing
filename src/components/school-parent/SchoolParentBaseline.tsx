@@ -8,6 +8,10 @@ import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
+import {
+  isParentBillingPath,
+  isParentMessagesPath,
+} from "@/lib/organization-settings/parent-routes";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type {
   OrganizationBranding,
@@ -55,7 +59,11 @@ export default function SchoolParentBaseline({
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const bodyFont =
     branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
-  const showHelpButton = !previewMode && isParentHelpPage(pathname, slug);
+  const isMessagesPage = isParentMessagesPath(pathname);
+  const isFixedLayoutPage =
+    isMessagesPage || isParentBillingPath(pathname);
+  const showHelpButton =
+    !previewMode && isParentHelpPage(pathname, slug) && !isMessagesPage;
 
   return (
     <NavigationLoadingProvider>
@@ -80,7 +88,11 @@ export default function SchoolParentBaseline({
         previewParentBasePath={previewParentBasePath}
       />
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-white">
+      <main
+        className={`flex min-h-0 flex-1 flex-col bg-white ${
+          isFixedLayoutPage ? "overflow-hidden" : "overflow-y-auto"
+        }`}
+      >
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </main>
 

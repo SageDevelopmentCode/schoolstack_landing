@@ -1,20 +1,6 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, Open_Sans } from "next/font/google";
+import { dmSerifDisplay, openSans } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const dmSerifDisplay = DM_Serif_Display({
-  subsets: ["latin"],
-  weight: ["400"],
-  display: "swap",
-  variable: "--font-dm-serif-display",
-});
-
-const openSans = Open_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  display: "swap",
-  variable: "--font-open-sans",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Luff Learning Website Demo",

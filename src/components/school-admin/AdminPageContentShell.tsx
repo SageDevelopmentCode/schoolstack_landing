@@ -10,7 +10,7 @@ export default function AdminPageContentShell({
   children,
 }: AdminPageContentShellProps) {
   return (
-    <div className="h-full transition-opacity duration-200">
+    <div className="flex h-full min-h-0 flex-col transition-opacity duration-200">
       {children}
     </div>
   );

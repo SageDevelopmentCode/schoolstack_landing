@@ -10,6 +10,7 @@ import { E2E_PARENT_EMAIL } from "../fixtures/constants";
 import { ADMIN_TUITION_PATH } from "../helpers/constants";
 import {
   finalizeEnrollmentBilling,
+  expectUpcomingChargesTrigger,
   getE2eParentFamily,
   gotoBillingPage,
   openUpcomingChargesPanel,
@@ -181,11 +182,13 @@ test("full tuition setup to parent billing smoke", async ({
   const parentPage = await parentContext.newPage();
 
   await gotoBillingPage(parentPage);
-  await expect(parentPage.getByText("Upcoming charges")).toBeVisible();
+  await expectUpcomingChargesTrigger(parentPage);
   await openUpcomingChargesPanel(parentPage);
   await expect(parentPage.getByTestId("parent-billing-charge-row").first()).toBeVisible();
-  await expect(parentPage.getByTestId("parent-billing-summary")).toBeVisible();
-  await expect(parentPage.getByRole("button", { name: "Pay now" })).toBeVisible();
+  await expect(parentPage.getByTestId("parent-billing-child-detail-panel")).toBeVisible();
+  await expect(
+    parentPage.getByTestId(`parent-billing-child-pay-${enrollBody.enrollmentId}`),
+  ).toBeVisible();
 
   await parentContext.close();
 });

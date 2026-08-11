@@ -1,7 +1,9 @@
 "use client";
 
 import { type ReactNode, useMemo } from "react";
+import { usePathname } from "next/navigation";
 import SchoolTeacherHeader from "@/components/school-teacher/SchoolTeacherHeader";
+import { isTeacherMessagesPath } from "@/lib/organization-settings/teacher-routes";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type {
@@ -11,6 +13,7 @@ import type {
 
 type SchoolTeacherBaselineProps = {
   slug: string;
+  organizationId: string;
   schoolName: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
@@ -20,12 +23,15 @@ type SchoolTeacherBaselineProps = {
 
 export default function SchoolTeacherBaseline({
   slug,
+  organizationId,
   schoolName,
   branding,
   features,
   userProfile,
   children,
 }: SchoolTeacherBaselineProps) {
+  const pathname = usePathname();
+  const isMessagesPage = isTeacherMessagesPath(pathname);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const bodyFont =
     branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
@@ -37,13 +43,18 @@ export default function SchoolTeacherBaseline({
     >
       <SchoolTeacherHeader
         slug={slug}
+        organizationId={organizationId}
         schoolName={schoolName}
         branding={branding}
         features={features}
         userProfile={userProfile}
       />
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-white">
+      <main
+        className={`flex min-h-0 flex-1 flex-col bg-white ${
+          isMessagesPage ? "overflow-hidden" : "overflow-y-auto"
+        }`}
+      >
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </main>
     </div>

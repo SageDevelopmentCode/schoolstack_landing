@@ -3,7 +3,7 @@ export const TUITION_FAMILY_TABS = [
   { id: "balance", label: "Balance" },
   { id: "autopay", label: "Autopay" },
   { id: "schedule", label: "Schedule" },
-  { id: "payments", label: "Payments" },
+  { id: "payments", label: "Payment history" },
 ] as const;
 
 export type TuitionFamilyTabId = (typeof TUITION_FAMILY_TABS)[number]["id"];

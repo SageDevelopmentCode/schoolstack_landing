@@ -1,20 +1,6 @@
 import type { Metadata } from "next";
-import { Open_Sans, Poppins } from "next/font/google";
+import { openSans, poppins } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/metadata";
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-poppins",
-});
-
-const openSans = Open_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-open-sans",
-});
 
 export const metadata: Metadata = pageMetadata({
   title: "Ascend Micro School Website Demo",

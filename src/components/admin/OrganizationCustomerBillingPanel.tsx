@@ -192,7 +192,7 @@ export default function OrganizationCustomerBillingPanel({
                 value={billingMonth}
                 disabled={saving}
                 onChange={(event) => setBillingMonth(event.target.value)}
-                className="w-full text-sm border border-admin-border rounded-admin-md bg-admin-bg"
+                className="w-full"
                 aria-label="Billing month"
               >
                 {BILLING_PERIOD_MONTHS.map((month) => (
@@ -205,7 +205,7 @@ export default function OrganizationCustomerBillingPanel({
                 value={billingYear}
                 disabled={saving}
                 onChange={(event) => setBillingYear(event.target.value)}
-                className="w-full text-sm border border-admin-border rounded-admin-md bg-admin-bg"
+                className="w-full"
                 aria-label="Billing year"
               >
                 {billingYearOptions.map((year) => (

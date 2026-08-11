@@ -7262,7 +7262,7 @@ function EnrollmentFlowsTab({
                         className="flex-1 mx-3 px-3 py-1 rounded text-xs text-center"
                         style={{ backgroundColor: "#E5E7EB", color: "#6B7280" }}
                       >
-                        yourschool.schoolstack.io/apply
+                        yourschool.trymudkitchen.com/apply
                       </div>
                       <button
                         onClick={() => setPreviewStep(null)}
@@ -7393,7 +7393,7 @@ function EnrollmentFlowsTab({
                       </button>
 
                       <p className="text-center text-xs mt-3" style={{ color: "#9CA3AF" }}>
-                        Powered by SchoolStack
+                        Powered by MudKitchen
                       </p>
                     </div>{/* inner max-width wrapper */}
                     </div>{/* form content scroll */}
@@ -19075,7 +19075,7 @@ function RunPayrollWizard({
                   </div>
                 </div>
                 <p className="text-[10px] leading-relaxed" style={{ color: C.textTertiary }}>
-                  By approving, you authorize SchoolStack to process ACH deposits to staff on file.
+                  By approving, you authorize MudKitchen to process ACH deposits to staff on file.
                 </p>
               </>
             )}
@@ -23361,7 +23361,7 @@ function SupportModal({ onClose }: { onClose: () => void }) {
   const quickLinks = [
     { icon: <BookOpen className="w-4 h-4" />, label: "Documentation", sub: "Guides, references & API docs" },
     { icon: <BarChart2 className="w-4 h-4" />, label: "Video Tutorials", sub: "Step-by-step walkthroughs" },
-    { icon: <Zap className="w-4 h-4" />, label: "Release Notes", sub: "What's new in SchoolStack" },
+    { icon: <Zap className="w-4 h-4" />, label: "Release Notes", sub: "What's new in MudKitchen" },
   ];
 
   return (

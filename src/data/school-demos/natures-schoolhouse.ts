@@ -391,6 +391,6 @@ export const naturesSchoolhouseConfig: SchoolWebsiteDemoConfig = {
     tagline: "A Place to Learn, A Place to Play, A Place to Grow · Cedar Park, TX",
     links: ["About", "Programs", "Schedule", "Trail Notes", "FAQ", "Contact"],
     copyright: "© 2026 Nature's Schoolhouse Microschool",
-    poweredBy: "Website concept by SchoolStack",
+    poweredBy: "Website concept by MudKitchen",
   },
 };

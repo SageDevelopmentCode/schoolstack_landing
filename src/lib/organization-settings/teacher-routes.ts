@@ -27,6 +27,11 @@ export function parseSchoolTeacherPath(pathname: string): TeacherNavPath | null 
   };
 }
 
+export function isTeacherMessagesPath(pathname: string): boolean {
+  if (parseSchoolTeacherPath(pathname)?.feature === "messages") return true;
+  return /\/teacher\/messages(?:\/|$)/.test(pathname);
+}
+
 export function isTeacherFeatureEnabled(
   features: OrganizationFeatures,
   featureKey: string,
