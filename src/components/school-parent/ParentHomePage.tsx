@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
+import StudentPhoto from "@/components/students/StudentPhoto";
+import { useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -18,11 +19,20 @@ import { applicationStatusBadgeStyle } from "@/lib/admissions/application-status
 import type { ParentQuickAction } from "@/lib/organization-settings/parent-home";
 import { getFeatureIcon } from "@/lib/organization-settings/icon-registry";
 import { getParentFeatureIconStyle } from "@/lib/organization-settings/parent-feature-icon-styles";
+import type { ResolvedParentOnboardingItem } from "@/lib/organization-settings/parent-onboarding";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
+import {
+  SCHOOL_EVENT_TYPE_CHIP_STYLE,
+  SCHOOL_EVENT_TYPE_LABELS,
+} from "@/lib/school-events/event-labels";
+import type { OrganizationEvent } from "@/lib/school-events/types";
+import { parseEventDate } from "@/lib/committees/calendar-utils";
+import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -30,6 +40,8 @@ type ParentHomePageProps = {
   userProfile: FamilyUserProfile;
   familyChildren: FamilyChildOverview[];
   quickActions: ParentQuickAction[];
+  onboardingItems?: ResolvedParentOnboardingItem[];
+  upcomingEvents?: OrganizationEvent[];
   previewMode?: boolean;
   previewBasePath?: string;
 };
@@ -46,17 +58,6 @@ const fadeUp = {
     },
   }),
 };
-
-function studentInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return "?";
-}
 
 function firstName(displayName: string): string {
   const part = displayName.trim().split(/\s+/).filter(Boolean)[0];
@@ -134,15 +135,14 @@ function ChildProfileCard({
           e.currentTarget.style.boxShadow = C.shadowCard;
         }}
       >
-        <div
-          className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl text-base font-semibold transition-transform duration-200 group-hover:scale-105"
-          style={{
-            backgroundColor: C.accentGlow,
-            color: C.accentDark,
-          }}
-        >
-          {studentInitials(child.studentName)}
-        </div>
+        <StudentPhoto
+          name={child.studentName}
+          photoUrl={child.profilePhotoUrl}
+          size="xl"
+          shape="square"
+          theme={C}
+          className="transition-transform duration-200 group-hover:scale-105"
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate font-heading text-sm font-semibold text-gray-800">
             {childFirstName}
@@ -183,14 +183,30 @@ export default function ParentHomePage({
   userProfile,
   familyChildren,
   quickActions,
+  onboardingItems = [],
+  upcomingEvents = [],
   previewMode = false,
   previewBasePath,
 }: ParentHomePageProps) {
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const name = firstName(userProfile.displayName);
+  const calendarHref = previewBasePath
+    ? `${previewBasePath}/parent/calendar`
+    : schoolParentPath(schoolSlug, "calendar");
   const applyDashboardHref =
     previewBasePath ?? `/school/${schoolSlug}/apply`;
   const visibleQuickActions = quickActions;
+  const trackedOnboardingItems = onboardingItems.filter((item) => item.autoTracked);
+  const completedOnboardingCount = trackedOnboardingItems.filter(
+    (item) => item.completed,
+  ).length;
+  const onboardingSubtitle =
+    trackedOnboardingItems.length > 0
+      ? completedOnboardingCount === trackedOnboardingItems.length
+        ? "You're all set"
+        : `${completedOnboardingCount} of ${trackedOnboardingItems.length} complete`
+      : "Finish setting up your account";
 
   return (
     <div
@@ -342,57 +358,61 @@ export default function ParentHomePage({
           </div>
 
           <div className="flex flex-col gap-8 lg:sticky lg:top-[65px] lg:self-start">
-            <motion.section
-              custom={2}
-              initial="hidden"
-              animate="visible"
-              variants={fadeUp}
-              className="space-y-4"
-            >
-              <SectionTitle>Get started</SectionTitle>
-              <div
-                className="flex w-full cursor-default items-center gap-3 rounded-2xl border px-4 py-4 transition-all duration-200 hover:shadow-md"
-                style={{
-                  backgroundColor: `${C.accent}1a`,
-                  borderColor: `${C.accent}33`,
-                  boxShadow: C.shadowCard,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = `${C.accent}55`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = `${C.accent}33`;
-                }}
+            {onboardingItems.length > 0 ? (
+              <motion.section
+                custom={2}
+                initial="hidden"
+                animate="visible"
+                variants={fadeUp}
+                className="space-y-4"
               >
-                <div
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: `${C.accent}26` }}
+                <SectionTitle>Get started</SectionTitle>
+                <button
+                  type="button"
+                  onClick={() => setOnboardingOpen(true)}
+                  className="flex w-full items-center gap-3 rounded-2xl border px-4 py-4 text-left transition-all duration-200 hover:shadow-md cursor-pointer"
+                  style={{
+                    backgroundColor: `${C.accent}1a`,
+                    borderColor: `${C.accent}33`,
+                    boxShadow: C.shadowCard,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = `${C.accent}55`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = `${C.accent}33`;
+                  }}
                 >
-                  <ClipboardCheck
-                    className="h-4 w-4"
-                    style={{ color: C.accent }}
+                  <div
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: `${C.accent}26` }}
+                  >
+                    <ClipboardCheck
+                      className="h-4 w-4"
+                      style={{ color: C.accent }}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="text-sm font-semibold leading-snug"
+                      style={{ color: C.accent }}
+                    >
+                      Complete your onboarding
+                    </p>
+                    <p
+                      className="mt-0.5 text-xs"
+                      style={{ color: `${C.accent}b3` }}
+                    >
+                      {onboardingSubtitle}
+                    </p>
+                  </div>
+                  <ArrowRight
+                    className="h-4 w-4 flex-shrink-0"
+                    style={{ color: `${C.accent}99` }}
                   />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="text-sm font-semibold leading-snug"
-                    style={{ color: C.accent }}
-                  >
-                    Complete your onboarding
-                  </p>
-                  <p
-                    className="mt-0.5 text-xs"
-                    style={{ color: `${C.accent}b3` }}
-                  >
-                    Finish setting up your account
-                  </p>
-                </div>
-                <ArrowRight
-                  className="h-4 w-4 flex-shrink-0"
-                  style={{ color: `${C.accent}99` }}
-                />
-              </div>
-            </motion.section>
+                </button>
+              </motion.section>
+            ) : null}
 
             <motion.section
               custom={3}
@@ -401,38 +421,100 @@ export default function ParentHomePage({
               variants={fadeUp}
               className="space-y-4"
             >
-              <SectionTitle>Upcoming events</SectionTitle>
-              <div
-                className="rounded-2xl border px-4 py-8 text-center"
-                style={{
-                  borderColor: C.border,
-                  backgroundColor: C.surface,
-                  boxShadow: C.shadowCard,
-                }}
-              >
-                <div
-                  className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full"
-                  style={{ backgroundColor: C.accentGlow }}
-                >
-                  <CalendarDays
-                    className="h-5 w-5"
+              <div className="flex items-center justify-between gap-3">
+                <SectionTitle>Upcoming events</SectionTitle>
+                {upcomingEvents.length > 0 ? (
+                  <Link
+                    href={calendarHref}
+                    className="text-xs font-medium"
                     style={{ color: C.accent }}
-                  />
-                </div>
-                <p
-                  className="text-sm font-medium"
-                  style={{ color: C.textPrimary }}
-                >
-                  No events for now
-                </p>
-                <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
-                  School events will show up here.
-                </p>
+                  >
+                    View calendar
+                  </Link>
+                ) : null}
               </div>
+              {upcomingEvents.length === 0 ? (
+                <div
+                  className="rounded-2xl border px-4 py-8 text-center"
+                  style={{
+                    borderColor: C.border,
+                    backgroundColor: C.surface,
+                    boxShadow: C.shadowCard,
+                  }}
+                >
+                  <div
+                    className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full"
+                    style={{ backgroundColor: C.accentGlow }}
+                  >
+                    <CalendarDays
+                      className="h-5 w-5"
+                      style={{ color: C.accent }}
+                    />
+                  </div>
+                  <p
+                    className="text-sm font-medium"
+                    style={{ color: C.textPrimary }}
+                  >
+                    No events for now
+                  </p>
+                  <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
+                    School events will show up here.
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {upcomingEvents.map((event) => {
+                    const colors = SCHOOL_EVENT_TYPE_CHIP_STYLE[event.type];
+                    const dateLabel = parseEventDate(event.date).toLocaleDateString(
+                      "en-US",
+                      { weekday: "short", month: "short", day: "numeric" },
+                    );
+                    return (
+                      <li key={event.id}>
+                        <Link
+                          href={calendarHref}
+                          className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-black/[0.02]"
+                          style={{
+                            borderColor: C.border,
+                            backgroundColor: C.surface,
+                            boxShadow: C.shadowCard,
+                          }}
+                        >
+                          <div className="min-w-0">
+                            <p
+                              className="truncate text-sm font-medium"
+                              style={{ color: C.textPrimary }}
+                            >
+                              {event.title}
+                            </p>
+                            <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+                              {dateLabel}
+                              {!event.isAllDay && event.time ? ` · ${event.time}` : ""}
+                            </p>
+                          </div>
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
+                            style={{ backgroundColor: colors.bg, color: colors.text }}
+                          >
+                            {SCHOOL_EVENT_TYPE_LABELS[event.type]}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </motion.section>
           </div>
         </div>
       </div>
+
+      <ParentOnboardingSidebar
+        C={C}
+        open={onboardingOpen}
+        items={onboardingItems}
+        onClose={() => setOnboardingOpen(false)}
+      />
     </div>
   );
 }

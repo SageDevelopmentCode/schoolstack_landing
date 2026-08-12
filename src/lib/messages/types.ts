@@ -29,6 +29,7 @@ export type MessageStudentSummary = {
   enrolledAt: string;
   assignedTeacherId: string | null;
   assignedTeacherName: string | null;
+  profilePhotoUrl: string | null;
 };
 
 export type MessageContact = {

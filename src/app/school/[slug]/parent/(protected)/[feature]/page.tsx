@@ -10,6 +10,7 @@ import {
   listFamilyChildrenForHome,
 } from "@/lib/admissions/parent-portal-access";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
+import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
 import { loadParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import { loadParentMessagesPageData } from "@/lib/messages/load-messages-page-data";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
@@ -24,6 +25,8 @@ import {
 } from "@/lib/organization-settings/feature-nav";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
+import { loadParentCalendarInitialData } from "@/lib/school-events/load-parent-calendar-data";
+import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -38,6 +41,9 @@ const ParentCommitteesPage = nextDynamic(
 );
 const ParentMessagesPage = nextDynamic(
   () => import("@/components/school-parent/ParentMessagesPage"),
+);
+const ParentCalendarPage = nextDynamic(
+  () => import("@/components/school-parent/calendar/ParentCalendarPage"),
 );
 
 export const dynamic = "force-dynamic";
@@ -100,10 +106,25 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
   }
 
   if (feature === "portal") {
-    const [userProfile, familyChildren] = await Promise.all([
-      getFamilyUserProfile(supabase, user.id, org.id, user),
-      listFamilyChildrenForHome(supabase, org.id, user.id),
-    ]);
+    const familyIds = await getFamilyIdsForUser(supabase, user.id, org.id);
+    const familyId = familyIds[0];
+
+    const [userProfile, familyChildren, upcomingEvents, onboardingItems] =
+      await Promise.all([
+        getFamilyUserProfile(supabase, user.id, org.id, user),
+        listFamilyChildrenForHome(supabase, org.id, user.id),
+        listUpcomingEventsForOrg(supabase, org.id, 3),
+        familyId
+          ? loadResolvedParentOnboardingItems({
+              supabase,
+              organizationId: org.id,
+              familyId,
+              userId: user.id,
+              slug,
+              features: org.features,
+            })
+          : Promise.resolve([]),
+      ]);
     const quickActions = buildParentQuickActions(slug, org.features);
 
     return (
@@ -114,6 +135,8 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           userProfile={userProfile}
           familyChildren={familyChildren}
           quickActions={quickActions}
+          onboardingItems={onboardingItems}
+          upcomingEvents={upcomingEvents}
         />
       </SchoolParentPageShell>
     );
@@ -209,6 +232,18 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           familyId={familyId}
           initialInbox={initialInbox}
         />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "calendar") {
+    const initialData = await loadParentCalendarInitialData({
+      organizationId: org.id,
+    });
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="embedded">
+        <ParentCalendarPage branding={org.branding} initialData={initialData} />
       </SchoolParentPageShell>
     );
   }

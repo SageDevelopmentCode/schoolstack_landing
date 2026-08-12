@@ -7,6 +7,7 @@ import type {
   FeatureDef,
   OrganizationBranding,
   OrganizationFeatures,
+  ParentOnboardingItem,
 } from "./types";
 
 export const DEFAULT_BRANDING: OrganizationBranding = {
@@ -82,6 +83,27 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
   observation_booking: true,
   homeschool_drop_in: false,
 };
+
+export const DEFAULT_PARENT_ONBOARDING_ITEMS: ParentOnboardingItem[] = [
+  {
+    id: "pay_tuition",
+    label: "Pay your tuition",
+    icon: "credit-card",
+    target: "billing",
+  },
+  {
+    id: "message_teacher",
+    label: "Message your teacher",
+    icon: "message-square",
+    target: "messages",
+  },
+  {
+    id: "join_committee",
+    label: "Join a committee",
+    icon: "heart",
+    target: "committees",
+  },
+];
 
 export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "admin", key: "dashboard", label: "Dashboard", description: "Admin home overview" },

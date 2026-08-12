@@ -6,9 +6,11 @@ import type { MessageThreadListAvatar } from "@/lib/messages/types";
 export default function MessagesDualAvatar({
   avatars,
   size = "sm",
+  ringClassName = "ring-white",
 }: {
   avatars: MessageThreadListAvatar[];
   size?: "sm" | "md" | "lg";
+  ringClassName?: string;
 }) {
   const [first, second] = avatars;
   if (!first || !second) return null;
@@ -21,6 +23,7 @@ export default function MessagesDualAvatar({
         : "h-10 w-10 text-xs";
 
   const label = `${first.name} and ${second.name}`;
+  const ringClass = `ring-2 ${ringClassName}`;
 
   return (
     <div
@@ -29,14 +32,14 @@ export default function MessagesDualAvatar({
       role="img"
     >
       <div
-        className={`absolute left-0 top-0 ${sizeClass} flex items-center justify-center rounded-full font-semibold text-white ring-2 ring-white`}
+        className={`absolute left-0 top-0 ${sizeClass} flex items-center justify-center rounded-full font-semibold text-white ${ringClass}`}
         style={{ backgroundColor: first.color }}
         aria-hidden
       >
         {initialsFromName(first.name)}
       </div>
       <div
-        className={`absolute left-4 top-0 ${sizeClass} flex items-center justify-center rounded-full font-semibold text-white ring-2 ring-white`}
+        className={`absolute left-4 top-0 ${sizeClass} flex items-center justify-center rounded-full font-semibold text-white ${ringClass}`}
         style={{ backgroundColor: second.color }}
         aria-hidden
       >

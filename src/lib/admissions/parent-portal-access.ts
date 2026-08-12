@@ -62,6 +62,7 @@ export type FamilyApplication = {
   createdAt: string;
   formTitle: string;
   publicSlug: string | null;
+  studentId: string | null;
   studentName: string | null;
   grade: string | null;
   postSubmitTasks: ApplicationPostSubmitTask[];
@@ -85,6 +86,8 @@ export type ApplicationDetail = {
   responses: Record<string, string>;
   acknowledgments: Record<string, boolean>;
   postSubmitSteps: AdminPostSubmitStep[];
+  studentId: string | null;
+  profilePhotoUrl: string | null;
 };
 
 export type ChildProfileData = {
@@ -99,7 +102,9 @@ export type FamilyUserProfile = {
 
 export type FamilyChildOverview = {
   applicationId: string;
+  studentId: string | null;
   studentName: string;
+  profilePhotoUrl: string | null;
   grade: string | null;
   status: string;
   statusLabel: string;
@@ -217,6 +222,94 @@ async function getStudentIdsForFamilies(
   return (data ?? []).map((row) => String(row.id));
 }
 
+async function loadStudentProfilePhotoUrls(
+  supabase: SupabaseClient,
+  organizationId: string,
+  studentIds: string[],
+): Promise<Map<string, string | null>> {
+  const uniqueIds = [...new Set(studentIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from("students")
+    .select("id, profile_photo_url")
+    .eq("organization_id", organizationId)
+    .in("id", uniqueIds);
+
+  if (error) throw error;
+
+  return new Map(
+    (data ?? []).map((row) => [
+      String(row.id),
+      row.profile_photo_url ? String(row.profile_photo_url) : null,
+    ]),
+  );
+}
+
+export async function userIsGuardianForStudent(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+  studentId: string,
+): Promise<boolean> {
+  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+  if (familyIds.length === 0) return false;
+
+  const { data, error } = await supabase
+    .from("students")
+    .select("id")
+    .eq("id", studentId)
+    .eq("organization_id", organizationId)
+    .in("family_id", familyIds)
+    .maybeSingle();
+
+  if (error) throw error;
+  return Boolean(data);
+}
+
+export function buildFamilyChildOverviews(
+  applications: FamilyApplication[],
+  progressByApplicationId: Map<string, EnrollmentProgressSummary>,
+  photosByStudentId: Map<string, string | null>,
+): FamilyChildOverview[] {
+  const eligible = applications.filter(
+    (application) =>
+      application.status !== "draft" && Boolean(application.studentName?.trim()),
+  );
+
+  const children = eligible.map((application) => {
+    const enrollmentProgress = progressByApplicationId.get(application.id);
+    const displayStatus = displayApplicationStatus(
+      application.status,
+      enrollmentProgress,
+    );
+    const isEnrolled = displayStatus === "enrolled";
+
+    return {
+      applicationId: application.id,
+      studentId: application.studentId,
+      studentName: application.studentName!.trim(),
+      profilePhotoUrl: application.studentId
+        ? (photosByStudentId.get(application.studentId) ?? null)
+        : null,
+      grade: application.grade,
+      status: displayStatus,
+      statusLabel: applicationStatusLabel(displayStatus),
+      isEnrolled,
+      checklistProgress: enrollmentProgress
+        ? { completed: enrollmentProgress.completed, total: enrollmentProgress.total }
+        : null,
+    };
+  });
+
+  return children.sort((a, b) => {
+    if (a.isEnrolled !== b.isEnrolled) {
+      return a.isEnrolled ? -1 : 1;
+    }
+    return a.studentName.localeCompare(b.studentName);
+  });
+}
+
 export async function listFamilyApplications(
   supabase: SupabaseClient,
   organizationId: string,
@@ -232,6 +325,7 @@ export async function listFamilyApplications(
       status,
       submitted_at,
       created_at,
+      student_id,
       responses,
       application_form_versions!inner (
         title,
@@ -318,6 +412,7 @@ export async function listFamilyApplications(
       formTitle: String(form?.title ?? "Application"),
       publicSlug:
         typeof form?.public_slug === "string" ? form.public_slug : null,
+      studentId: row.student_id ? String(row.student_id) : null,
       studentName: extractStudentLabel(responses),
       grade: (() => {
         const student = extractStudentFromResponses(row.responses);
@@ -419,39 +514,24 @@ export async function listFamilyChildrenForHome(
 
   if (eligible.length === 0) return [];
 
-  const progressByApplicationId = await listEnrollmentProgressForApplications(
-    supabase,
-    organizationId,
-    eligible.map((application) => application.id),
+  const [progressByApplicationId, photosByStudentId] = await Promise.all([
+    listEnrollmentProgressForApplications(
+      supabase,
+      organizationId,
+      eligible.map((application) => application.id),
+    ),
+    loadStudentProfilePhotoUrls(
+      supabase,
+      organizationId,
+      eligible.map((application) => application.studentId ?? ""),
+    ),
+  ]);
+
+  return buildFamilyChildOverviews(
+    applications,
+    progressByApplicationId,
+    photosByStudentId,
   );
-
-  const children = eligible.map((application) => {
-    const enrollmentProgress = progressByApplicationId.get(application.id);
-    const displayStatus = displayApplicationStatus(
-      application.status,
-      enrollmentProgress,
-    );
-    const isEnrolled = displayStatus === "enrolled";
-
-    return {
-      applicationId: application.id,
-      studentName: application.studentName!.trim(),
-      grade: application.grade,
-      status: displayStatus,
-      statusLabel: applicationStatusLabel(displayStatus),
-      isEnrolled,
-      checklistProgress: enrollmentProgress
-        ? { completed: enrollmentProgress.completed, total: enrollmentProgress.total }
-        : null,
-    };
-  });
-
-  return children.sort((a, b) => {
-    if (a.isEnrolled !== b.isEnrolled) {
-      return a.isEnrolled ? -1 : 1;
-    }
-    return a.studentName.localeCompare(b.studentName);
-  });
 }
 
 export async function loadApplicationDetail(
@@ -471,8 +551,12 @@ export async function loadApplicationDetail(
       id,
       status,
       submitted_at,
+      student_id,
       responses,
       acknowledgments,
+      students:student_id (
+        profile_photo_url
+      ),
       application_form_versions!inner (
         title,
         public_slug,
@@ -529,6 +613,12 @@ export async function loadApplicationDetail(
     ? ensureApplySystemSchema(rawSchema)
     : rawSchema;
 
+  const studentRow = data.students as
+    | { profile_photo_url?: string | null }
+    | { profile_photo_url?: string | null }[]
+    | null;
+  const student = Array.isArray(studentRow) ? studentRow[0] : studentRow;
+
   return {
     id: String(data.id),
     status: applicationStatus,
@@ -540,5 +630,9 @@ export async function loadApplicationDetail(
     responses: parseStringRecord(data.responses),
     acknowledgments: parseBooleanRecord(data.acknowledgments),
     postSubmitSteps,
+    studentId: data.student_id ? String(data.student_id) : null,
+    profilePhotoUrl: student?.profile_photo_url
+      ? String(student.profile_photo_url)
+      : null,
   };
 }

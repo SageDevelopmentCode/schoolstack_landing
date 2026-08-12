@@ -100,3 +100,42 @@ export function addWeeks(anchorDate: Date, deltaWeeks: number): Date {
   d.setDate(d.getDate() + deltaWeeks * 7);
   return d;
 }
+
+export type ExtendedMonthCell = {
+  date: Date;
+  inCurrentMonth: boolean;
+};
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return dateKey(a) === dateKey(b);
+}
+
+export function isToday(date: Date): boolean {
+  return isSameDay(date, new Date());
+}
+
+export function isSameMonth(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+/** 42-day grid with leading/trailing days from adjacent months (Google Calendar style). */
+export function getExtendedMonthGrid(year: number, month: number): ExtendedMonthCell[] {
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = firstOfMonth.getDay();
+  const gridStart = new Date(year, month, 1 - startOffset);
+
+  return Array.from({ length: 42 }, (_, i) => {
+    const date = new Date(gridStart);
+    date.setDate(gridStart.getDate() + i);
+    return {
+      date,
+      inCurrentMonth: date.getMonth() === month,
+    };
+  });
+}
+
+export function addDays(date: Date, delta: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + delta);
+  return d;
+}

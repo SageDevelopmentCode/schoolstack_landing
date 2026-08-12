@@ -8,6 +8,7 @@ import AdmissionsObservationDayAvailabilityEditor from "@/components/school-admi
 import ApplicationSubmissionDetailPanel from "@/components/school-admin/admissions/ApplicationSubmissionDetailPanel";
 import ScheduledVisitsSection from "@/components/school-admin/ScheduledVisitsSection";
 import ScheduleOverviewTab from "@/components/school-admin/schedule/ScheduleOverviewTab";
+import SchoolEventsTab from "@/components/school-admin/schedule/SchoolEventsTab";
 import ScheduleTabBar from "@/components/school-admin/schedule/ScheduleTabBar";
 import ScheduleVisitLoadingPanel from "@/components/school-admin/schedule/ScheduleVisitLoadingPanel";
 import { parseScheduleTab, SCHEDULE_TABS, type ScheduleTabId } from "@/components/school-admin/schedule/schedule-tabs";
@@ -244,6 +245,10 @@ export default function SchedulePage({
                   onTabChange={setActiveTab}
                   onUpcomingCountChange={handleUpcomingCountChange}
                 />
+              ) : null}
+
+              {activeTab === "events" ? (
+                <SchoolEventsTab C={C} organizationId={organizationId} />
               ) : null}
 
               {activeTab === "tours" ? (

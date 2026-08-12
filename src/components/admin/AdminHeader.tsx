@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CalendarCheck,
   CalendarClock,
+  MessageSquare,
   MessageSquarePlus,
   MessageSquareText,
   LayoutGrid,
@@ -59,6 +60,7 @@ const NAV_ENTRIES: NavEntry[] = [
       label: "Schools",
       items: [
         { href: "/admin/organizations", label: "Organizations", icon: School, color: "#4f46e5" },
+        { href: "/admin/messages", label: "Messages", icon: MessageSquare, color: "#0284c7" },
         { href: "/admin/parent-portal-feedback", label: "Parent feedback", icon: MessageSquarePlus, color: "#9333ea" },
         { href: "/admin/activity", label: "Activity", icon: ScrollText, color: "#0f766e" },
         { href: "/admin/performance", label: "Performance", icon: Gauge, color: "#0d9488" },

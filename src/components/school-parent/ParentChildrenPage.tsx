@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle, Clock, Loader2 } from "lucide-react";
+import StudentPhoto from "@/components/students/StudentPhoto";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import type {
   ChildProfileData,
@@ -48,17 +49,6 @@ const fadeUp = {
   }),
 };
 
-function studentInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return "?";
-}
-
 function ChildCard({
   child,
   C,
@@ -95,15 +85,14 @@ function ChildCard({
         }}
       >
         <div className="flex items-start justify-between gap-3">
-          <div
-            className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl text-lg font-semibold transition-transform duration-200 group-hover:scale-105"
-            style={{
-              backgroundColor: C.accentGlow,
-              color: C.accentDark,
-            }}
-          >
-            {studentInitials(child.studentName)}
-          </div>
+          <StudentPhoto
+            name={child.studentName}
+            photoUrl={child.profilePhotoUrl}
+            size="xl"
+            shape="square"
+            theme={C}
+            className="transition-transform duration-200 group-hover:scale-105"
+          />
           <span
             className="inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
             style={{
@@ -175,6 +164,7 @@ export default function ParentChildrenPage({
 }: ParentChildrenPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
+  const [children, setChildren] = useState(familyChildren);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<Record<string, ChildProfileData>>(
     initialProfiles ?? {},
@@ -182,6 +172,31 @@ export default function ParentChildrenPage({
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const applyDashboardHref = previewBasePath ?? `/school/${schoolSlug}/apply`;
+  const readOnly = Boolean(previewBasePath);
+
+  const handlePhotoUpdated = useCallback(
+    (applicationId: string, profilePhotoUrl: string) => {
+      setChildren((prev) =>
+        prev.map((child) =>
+          child.applicationId === applicationId
+            ? { ...child, profilePhotoUrl }
+            : child,
+        ),
+      );
+      setProfiles((prev) => {
+        const existing = prev[applicationId];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [applicationId]: {
+            ...existing,
+            application: { ...existing.application, profilePhotoUrl },
+          },
+        };
+      });
+    },
+    [],
+  );
 
   const loadProfile = useCallback(
     async (applicationId: string) => {
@@ -228,7 +243,7 @@ export default function ParentChildrenPage({
     ? profiles[selectedApplicationId] ?? null
     : null;
 
-  if (familyChildren.length === 0) {
+  if (children.length === 0) {
     return (
       <div className="px-6 py-8">
         <div
@@ -259,7 +274,7 @@ export default function ParentChildrenPage({
   return (
     <div className="px-6 py-8">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {familyChildren.map((child, index) => (
+        {children.map((child, index) => (
           <ChildCard
             key={child.applicationId}
             child={child}
@@ -291,8 +306,11 @@ export default function ParentChildrenPage({
             branding={branding}
             schoolName={schoolName}
             schoolSlug={schoolSlug}
+            organizationId={organizationId}
             application={selectedProfile?.application ?? null}
             checklist={selectedProfile?.checklist ?? null}
+            readOnly={readOnly}
+            onPhotoUpdated={handlePhotoUpdated}
           />
         )
       ) : null}

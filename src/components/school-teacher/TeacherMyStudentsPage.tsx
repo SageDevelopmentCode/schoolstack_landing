@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
+import StudentPhoto from "@/components/students/StudentPhoto";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import TeacherStudentDetailPanel from "./TeacherStudentDetailPanel";
 import {
@@ -290,7 +291,15 @@ export default function TeacherMyStudentsPage({
                         className="px-3 py-3 sm:px-4"
                         style={{ color: C.textPrimary, ...columnDividerStyle(C, false) }}
                       >
-                        <div className="font-medium">
+                        <div className="flex items-center gap-2.5 font-medium">
+                          <StudentPhoto
+                            name={formatEnrolledStudentName(student)}
+                            photoUrl={student.profilePhotoUrl}
+                            size="sm"
+                            shape="circle"
+                            accentColor={C.accent}
+                            accentGlowColor={C.accentLight}
+                          />
                           {formatEnrolledStudentName(student)}
                         </div>
                       </td>

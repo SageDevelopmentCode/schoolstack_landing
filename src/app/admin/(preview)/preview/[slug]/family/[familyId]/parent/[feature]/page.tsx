@@ -11,9 +11,11 @@ import {
   familyPreviewBasePath,
   familyPreviewParentBasePath,
   familyPreviewParentPath,
+  getFamilyPreviewGuardianUserId,
   getFamilyPreviewProfile,
   listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
+import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import {
@@ -24,6 +26,9 @@ import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-route
 import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
 import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
+import { loadParentCalendarPreviewData } from "@/lib/school-events/load-parent-calendar-preview-data";
+import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
+import ParentCalendarPage from "@/components/school-parent/calendar/ParentCalendarPage";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -83,16 +88,28 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
   const userProfile = await getFamilyPreviewProfile(supabase, org.id, familyId);
 
   if (feature === "portal") {
-    const familyChildren = await listFamilyChildrenForHomeByFamilyId(
-      supabase,
-      org.id,
-      familyId,
-    );
+    const admin = createAdminClient();
+    const [familyChildren, upcomingEvents, previewGuardianUserId] =
+      await Promise.all([
+        listFamilyChildrenForHomeByFamilyId(supabase, org.id, familyId),
+        listUpcomingEventsForOrg(admin, org.id, 3),
+        getFamilyPreviewGuardianUserId(supabase, org.id, familyId),
+      ]);
     const quickActions = buildParentQuickActions(
       slug,
       org.features,
       previewParentBasePath,
     );
+    const onboardingItems = await loadResolvedParentOnboardingItems({
+      supabase,
+      organizationId: org.id,
+      familyId,
+      userId:
+        previewGuardianUserId ?? "00000000-0000-0000-0000-000000000000",
+      slug,
+      features: org.features,
+      previewBasePath: previewParentBasePath,
+    });
 
     return (
       <SchoolParentPageShell title={pageName}>
@@ -102,6 +119,8 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
           userProfile={userProfile}
           familyChildren={familyChildren}
           quickActions={quickActions}
+          onboardingItems={onboardingItems}
+          upcomingEvents={upcomingEvents}
           previewMode
           previewBasePath={previewBasePath}
         />
@@ -184,6 +203,22 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
           familyId={familyId}
           previewMode
           initialInbox={initialInbox}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "calendar") {
+    const initialData = await loadParentCalendarPreviewData({
+      organizationId: org.id,
+    });
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="embedded">
+        <ParentCalendarPage
+          branding={org.branding}
+          initialData={initialData}
+          previewMode
         />
       </SchoolParentPageShell>
     );

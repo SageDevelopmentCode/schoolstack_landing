@@ -49,6 +49,7 @@ import {
 } from "@/lib/organization-settings/icon-registry";
 import {
   BRANDING_FIELDS,
+  DEFAULT_PARENT_ONBOARDING_ITEMS,
   FEATURE_CATALOG,
   PORTAL_LABELS,
 } from "@/lib/organization-settings/catalog";
@@ -67,10 +68,16 @@ import {
   OrganizationLogoUploadError,
   uploadOrganizationLogo,
 } from "@/lib/organization-settings/logo-storage";
+import {
+  getCustomOnboardingUrl,
+  isCustomOnboardingUrlTarget,
+  toCustomOnboardingUrlTarget,
+} from "@/lib/organization-settings/parent-onboarding";
 import type {
   OrganizationBranding,
   OrganizationFeatures,
   OrganizationSettingsRow,
+  ParentOnboardingItem,
   Portal,
   FeaturePortal,
   FeatureNavChildConfig,
@@ -222,6 +229,23 @@ export default function OrganizationSettingsEditor({
       map.set(def.portal, list);
     }
     return map;
+  }, []);
+
+  const parentOnboardingTargetOptions = useMemo(
+    () =>
+      FEATURE_CATALOG.filter(
+        (def) => def.portal === "parent" && def.key !== "portal",
+      ),
+    [],
+  );
+
+  const onboardingItems = features.parent_onboarding?.items ?? DEFAULT_PARENT_ONBOARDING_ITEMS;
+
+  const setOnboardingItems = useCallback((items: ParentOnboardingItem[]) => {
+    setFeatures((prev) => ({
+      ...prev,
+      parent_onboarding: { items },
+    }));
   }, []);
 
   const initializeDefaults = useCallback(() => {
@@ -1014,6 +1038,24 @@ export default function OrganizationSettingsEditor({
         )}
       </section>
 
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
+        <div>
+          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
+            Parent onboarding
+          </h2>
+          <p className="mt-1 text-xs text-admin-muted font-secondary">
+            Checklist shown on the parent home page when families tap Complete
+            your onboarding.
+          </p>
+        </div>
+
+        <ParentOnboardingEditor
+          items={onboardingItems}
+          targetOptions={parentOnboardingTargetOptions}
+          onChange={setOnboardingItems}
+        />
+      </section>
+
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
@@ -1682,6 +1724,183 @@ function FeatureIconPicker({
         </AdminSelect>
       </div>
     </label>
+  );
+}
+
+function ParentOnboardingEditor({
+  items,
+  targetOptions,
+  onChange,
+}: {
+  items: ParentOnboardingItem[];
+  targetOptions: Array<{ key: string; label: string }>;
+  onChange: (items: ParentOnboardingItem[]) => void;
+}) {
+  const updateItem = (index: number, patch: Partial<ParentOnboardingItem>) => {
+    onChange(
+      items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item,
+      ),
+    );
+  };
+
+  const removeItem = (index: number) => {
+    onChange(items.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const addItem = () => {
+    const defaultTarget = targetOptions[0]?.key ?? "billing";
+    onChange([
+      ...items,
+      {
+        id: `onboarding_${Date.now()}`,
+        label: "New onboarding task",
+        icon: DEFAULT_FEATURE_ICON_SLUG,
+        target: defaultTarget,
+      },
+    ]);
+  };
+
+  return (
+    <div className="border border-admin-border rounded-admin-sm divide-y divide-border">
+      <div className="hidden sm:grid sm:grid-cols-[auto_1fr_160px_148px_auto] gap-4 px-4 py-2.5 text-[11px] uppercase tracking-wide text-admin-faint font-secondary">
+        <span aria-hidden="true" />
+        <span>Label</span>
+        <span>Link target</span>
+        <span>Icon</span>
+        <span className="text-right">Remove</span>
+      </div>
+
+      <Reorder.Group
+        axis="y"
+        values={items}
+        onReorder={onChange}
+        as="ul"
+      >
+        {items.map((item, index) => (
+          <ParentOnboardingItemRow
+            key={item.id}
+            item={item}
+            index={index}
+            targetOptions={targetOptions}
+            onUpdate={(patch) => updateItem(index, patch)}
+            onRemove={() => removeItem(index)}
+          />
+        ))}
+      </Reorder.Group>
+
+      <div className="flex justify-end px-4 py-3 border-t border-admin-border">
+        <button
+          type="button"
+          onClick={addItem}
+          className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-admin-sm border border-admin-border bg-admin-bg hover:bg-admin-neutral-bg font-secondary"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add onboarding item
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ParentOnboardingItemRow({
+  item,
+  index,
+  targetOptions,
+  onUpdate,
+  onRemove,
+}: {
+  item: ParentOnboardingItem;
+  index: number;
+  targetOptions: Array<{ key: string; label: string }>;
+  onUpdate: (patch: Partial<ParentOnboardingItem>) => void;
+  onRemove: () => void;
+}) {
+  const dragControls = useDragControls();
+  const isCustomUrl = isCustomOnboardingUrlTarget(item.target);
+  const customUrl = getCustomOnboardingUrl(item.target) ?? "";
+
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={dragControls}
+      as="li"
+      className="list-none px-4 py-3.5"
+    >
+      <div className="flex flex-col gap-3 sm:grid sm:grid-cols-[auto_1fr_160px_148px_auto] sm:items-center sm:gap-4">
+        <button
+          type="button"
+          onPointerDown={(event) => dragControls.start(event)}
+          className="p-1 rounded-admin-sm text-admin-faint hover:text-admin-muted cursor-grab active:cursor-grabbing"
+          aria-label={`Reorder onboarding item ${index + 1}`}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+
+        <input
+          type="text"
+          value={item.label}
+          onChange={(event) => onUpdate({ label: event.target.value })}
+          className={`w-full ${fieldClass}`}
+          aria-label="Onboarding item label"
+        />
+
+        <div className="space-y-2 min-w-0">
+          <AdminSelect
+            value={isCustomUrl ? "__custom_url__" : item.target}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (value === "__custom_url__") {
+                onUpdate({ target: toCustomOnboardingUrlTarget("https://") });
+              } else {
+                onUpdate({ target: value });
+              }
+            }}
+            triggerClassName={compactSelectTriggerClass}
+            aria-label="Onboarding link target"
+          >
+            {targetOptions.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.label}
+              </option>
+            ))}
+            <option value="__custom_url__">Custom URL</option>
+          </AdminSelect>
+          {isCustomUrl ? (
+            <input
+              type="url"
+              value={customUrl}
+              onChange={(event) =>
+                onUpdate({
+                  target: toCustomOnboardingUrlTarget(event.target.value),
+                })
+              }
+              placeholder="https://example.com"
+              className={`w-full ${fieldClass}`}
+              aria-label="Custom onboarding URL"
+            />
+          ) : null}
+        </div>
+
+        <FeatureIconPicker
+          value={item.icon ?? DEFAULT_FEATURE_ICON_SLUG}
+          onChange={(icon) => onUpdate({ icon })}
+          compact
+        />
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1.5 rounded-admin-sm text-admin-muted hover:text-admin-accent hover:bg-admin-neutral-bg"
+            aria-label="Remove onboarding item"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </Reorder.Item>
   );
 }
 

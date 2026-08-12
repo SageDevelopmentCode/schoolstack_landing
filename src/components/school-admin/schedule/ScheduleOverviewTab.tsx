@@ -10,6 +10,9 @@ import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-st
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 import type { ScheduleTabId } from "./schedule-tabs";
+import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
+import { SCHOOL_EVENT_TYPE_LABELS } from "@/lib/school-events/event-labels";
+import type { OrganizationEvent } from "@/lib/school-events/types";
 
 type ScheduleOverviewTabProps = {
   C: AdminThemeTokens;
@@ -95,7 +98,9 @@ export default function ScheduleOverviewTab({
 }: ScheduleOverviewTabProps) {
   const supabase = useMemo(() => createClient(), []);
   const [visits, setVisits] = useState<AdminScheduledVisit[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<OrganizationEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadVisits = useCallback(async () => {
@@ -116,6 +121,24 @@ export default function ScheduleOverviewTab({
       void loadVisits();
     });
   }, [loadVisits]);
+
+  const loadEvents = useCallback(async () => {
+    setEventsLoading(true);
+    try {
+      const rows = await listUpcomingEventsForOrg(supabase, organizationId, 5);
+      setUpcomingEvents(rows);
+    } catch {
+      setUpcomingEvents([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [organizationId, supabase]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void loadEvents();
+    });
+  }, [loadEvents]);
 
   const upcomingVisits = useMemo(
     () =>
@@ -277,6 +300,81 @@ export default function ScheduleOverviewTab({
                   );
                 })}
               </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+              Upcoming school events
+            </h2>
+            <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+              Events families see in the parent portal calendar
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onTabChange("events")}
+            className="rounded-sm px-3 py-1.5 text-xs font-medium"
+            style={getAdminButtonStyle(C, "secondary")}
+          >
+            Manage events
+          </button>
+        </div>
+
+        {eventsLoading ? (
+          <SchoolAdminSummaryCardsSkeleton C={C} count={2} label="Loading school events" />
+        ) : upcomingEvents.length === 0 ? (
+          <div
+            className="rounded-sm border px-4 py-8 text-center"
+            style={{ borderColor: C.border, backgroundColor: C.surface }}
+          >
+            <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+              No school events yet. Add field trips, no-school days, and community events.
+            </p>
+            <button
+              type="button"
+              onClick={() => onTabChange("events")}
+              className="mt-4 rounded-sm px-3 py-2 text-xs font-medium"
+              style={getAdminButtonStyle(C, "primary")}
+            >
+              Add event
+            </button>
+          </div>
+        ) : (
+          <div
+            className="overflow-hidden rounded-sm border"
+            style={{ borderColor: C.border, backgroundColor: C.surface }}
+          >
+            {upcomingEvents.map((event, index) => (
+              <button
+                key={event.id}
+                type="button"
+                onClick={() => onTabChange("events")}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-black/[0.02]"
+                style={{
+                  borderTop: index > 0 ? `1px solid ${C.border}` : undefined,
+                }}
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>
+                    {event.title}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs" style={{ color: C.textSecondary }}>
+                    {event.date}
+                    {!event.isAllDay && event.time ? ` · ${event.time}` : ""}
+                  </p>
+                </div>
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  style={{ backgroundColor: C.accentLight, color: C.accent }}
+                >
+                  {SCHOOL_EVENT_TYPE_LABELS[event.type]}
+                </span>
+              </button>
             ))}
           </div>
         )}

@@ -5,6 +5,7 @@ export type ParentFeatureIconStyle = {
 
 const PARENT_FEATURE_ICON_STYLES: Record<string, ParentFeatureIconStyle> = {
   home: { iconBg: "bg-indigo-100", iconColor: "text-indigo-600" },
+  "credit-card": { iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
   "dollar-sign": { iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
   "message-square": { iconBg: "bg-blue-100", iconColor: "text-blue-600" },
   "calendar-days": { iconBg: "bg-violet-100", iconColor: "text-violet-600" },
