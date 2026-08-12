@@ -8,7 +8,15 @@ import { formatBillingSplitSummary } from "./billing-splits";
 import { computeFamilyAutopayStatus } from "./autopay-status";
 import { computeFamilyBillingReadiness } from "./tuition-readiness";
 import { rowToAdjustment, rowToCharge } from "./row-mappers";
-import type { ChargeStatus, FamilyAssignmentSummary, FamilyBillingSummary, TuitionCharge, UnassignedEnrollmentSummary } from "./types";
+import type {
+  ChargeStatus,
+  EnrollmentBillingStatus,
+  FamilyAssignmentSummary,
+  FamilyBillingSummary,
+  FamilyEnrollmentSummary,
+  TuitionCharge,
+  UnassignedEnrollmentSummary,
+} from "./types";
 import { paymentScheduleLabel } from "./setup-wizard";
 
 export async function listChargesForFamily(
@@ -130,6 +138,18 @@ export async function voidCharge(
   return updateChargeStatus(supabase, chargeId, "void");
 }
 
+export function familyHasBillingRelevance(input: {
+  assignmentCount: number;
+  chargeCount: number;
+  enrollmentCount: number;
+}): boolean {
+  return (
+    input.assignmentCount > 0 ||
+    input.chargeCount > 0 ||
+    input.enrollmentCount > 0
+  );
+}
+
 export async function listFamilyBillingSummaries(
   supabase: SupabaseClient,
   organizationId: string,
@@ -232,7 +252,7 @@ export async function listFamilyBillingSummaries(
           .from("enrollments")
           .select("id, student_id, program_id, status")
           .eq("organization_id", organizationId)
-          .eq("status", "enrolled")
+          .in("status", ["enrolled", "pending"])
           .in("student_id", studentIds)
       : Promise.resolve({
           data: [] as Array<{
@@ -280,6 +300,12 @@ export async function listFamilyBillingSummaries(
   );
   const enrollmentToProgram = new Map(
     (enrollments ?? []).map((e) => [String(e.id), String(e.program_id)]),
+  );
+  const enrollmentToStatus = new Map(
+    (enrollments ?? []).map((e) => [
+      String(e.id),
+      String(e.status) as EnrollmentBillingStatus,
+    ]),
   );
   const ratePlanMap = new Map(
     (ratePlans ?? []).map((plan) => [String(plan.id), String(plan.name)]),
@@ -438,6 +464,7 @@ export async function listFamilyBillingSummaries(
         assignmentId,
         enrollmentId,
         studentName,
+        enrollmentStatus: enrollmentToStatus.get(enrollmentId) ?? "enrolled",
         ratePlanName: ratePlanMap.get(ratePlanId) ?? "Rate plan",
         tierLabel:
           typeof assignment.rate_tier_id === "string"
@@ -469,6 +496,9 @@ export async function listFamilyBillingSummaries(
     const assignedEnrollmentIds = new Set(
       familyAssignments.map((assignment) => String(assignment.enrollment_id)),
     );
+    const enrolledFamilyEnrollments = familyEnrollments.filter(
+      (enrollment) => String(enrollment.status) === "enrolled",
+    );
     const unassignedEnrollments: UnassignedEnrollmentSummary[] = familyEnrollments
       .filter((enrollment) => !assignedEnrollmentIds.has(String(enrollment.id)))
       .map((enrollment) => ({
@@ -476,6 +506,7 @@ export async function listFamilyBillingSummaries(
         studentName: studentMap.get(String(enrollment.student_id)) ?? "Student",
         programName:
           programMap.get(String(enrollment.program_id)) ?? "Program",
+        status: String(enrollment.status) as UnassignedEnrollmentSummary["status"],
       }));
 
     for (const enrollment of familyEnrollments) {
@@ -489,18 +520,33 @@ export async function listFamilyBillingSummaries(
       }
     }
 
+    const familyEnrollmentSummaries: FamilyEnrollmentSummary[] = familyEnrollments.map(
+      (enrollment) => ({
+        enrollmentId: String(enrollment.id),
+        studentName: studentMap.get(String(enrollment.student_id)) ?? "Student",
+        programName:
+          programMap.get(String(enrollment.program_id)) ?? "Program",
+        status: String(enrollment.status) as EnrollmentBillingStatus,
+      }),
+    );
+
     const readiness = computeFamilyBillingReadiness({
-      enrolledEnrollmentIds: familyEnrollments.map((enrollment) =>
+      enrolledEnrollmentIds: enrolledFamilyEnrollments.map((enrollment) =>
         String(enrollment.id),
       ),
       assignments: assignmentSummaries,
       chargeCount: familyCharges.length,
     });
 
-    const hasBillingActivity =
-      familyAssignments.length > 0 ||
-      familyCharges.length > 0 ||
-      children.size > 0;
+    const hasPendingEnrollment = familyEnrollments.some(
+      (enrollment) => String(enrollment.status) === "pending",
+    );
+
+    const hasBillingRelevance = familyHasBillingRelevance({
+      assignmentCount: familyAssignments.length,
+      chargeCount: familyCharges.length,
+      enrollmentCount: familyEnrollments.length,
+    });
 
     const familySplitRows = billingSplitsByFamily.get(familyId) ?? [];
     const hasBillingSplit = familySplitRows.length > 0;
@@ -560,15 +606,17 @@ export async function listFamilyBillingSummaries(
           : "current",
       assignmentIds: familyAssignments.map((a) => String(a.id)),
       assignments: assignmentSummaries,
+      enrollments: familyEnrollmentSummaries,
       unassignedEnrollments,
       readiness,
       billingSplitSummary,
       hasBillingSplit,
-      hasBillingActivity,
-    } satisfies FamilyBillingSummary & { hasBillingActivity: boolean };
+      hasPendingEnrollment,
+      hasBillingRelevance,
+    } satisfies FamilyBillingSummary & { hasBillingRelevance: boolean };
   })
-    .filter((summary) => summary.hasBillingActivity)
-    .map(({ hasBillingActivity: _ignored, ...summary }) => summary)
+    .filter((summary) => summary.hasBillingRelevance)
+    .map(({ hasBillingRelevance: _ignored, ...summary }) => summary)
     .sort((a, b) => {
       if (b.balanceDueCents !== a.balanceDueCents) {
         return b.balanceDueCents - a.balanceDueCents;

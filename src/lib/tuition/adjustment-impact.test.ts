@@ -39,6 +39,23 @@ const draftAdjustment = {
 };
 
 describe("computeAdjustmentImpactPreview", () => {
+  it("returns pending_schedule when schedule is not set but base amount is known", () => {
+    const preview = computeAdjustmentImpactPreview({
+      charges: [],
+      baseAmountCents: 60000,
+      existingAdjustments: [],
+      draftAdjustment,
+      pendingSchedule: true,
+    });
+
+    assert.equal(preview.scenario, "pending_schedule");
+    assert.equal(preview.upcomingInstallments.length, 1);
+    assert.equal(preview.upcomingInstallments[0]?.label, "Estimated installment");
+    assert.equal(preview.upcomingInstallments[0]?.currentAmountCents, 60000);
+    assert.equal(preview.upcomingInstallments[0]?.newAmountCents, 54000);
+    assert.equal(preview.totals.annualSavingsCents, 6000);
+  });
+
   it("returns no_charges when there are no tuition charges", () => {
     const preview = computeAdjustmentImpactPreview({
       charges: [],

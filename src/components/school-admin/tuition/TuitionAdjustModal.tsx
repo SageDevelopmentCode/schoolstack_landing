@@ -8,6 +8,12 @@ import {
 } from "@/lib/tuition/adjustment-impact";
 import { computeAdjustedAmountCents, formatCents } from "@/lib/tuition/pricing";
 import { createAdjustment, listAdjustmentsForAssignment } from "@/lib/tuition/adjustments";
+import {
+  assignmentNeedsPaymentPlanSelection,
+  computeInstallmentAmountCents,
+  getAssignmentById,
+  resolveAssignmentTier,
+} from "@/lib/tuition/assignments";
 import { listChargesForAssignment } from "@/lib/tuition/charges";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { AdjustmentType, TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
@@ -88,20 +94,50 @@ export default function TuitionAdjustModal({
   const [baseAmountCents, setBaseAmountCents] = useState(0);
   const [charges, setCharges] = useState<TuitionCharge[]>([]);
   const [existing, setExisting] = useState<TuitionAdjustment[]>([]);
+  const [pendingSchedule, setPendingSchedule] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open || !assignmentId) return;
 
     void (async () => {
-      const [adjustments, assignmentCharges] = await Promise.all([
+      const [adjustments, assignmentCharges, assignment] = await Promise.all([
         listAdjustmentsForAssignment(supabase, assignmentId),
         listChargesForAssignment(supabase, assignmentId),
+        getAssignmentById(supabase, assignmentId),
       ]);
       setExisting(adjustments);
       setCharges(assignmentCharges);
+      setPendingSchedule(
+        assignment ? assignmentNeedsPaymentPlanSelection(assignment) : false,
+      );
+
       const tuitionCharge = assignmentCharges.find((c) => c.chargeType === "tuition");
-      if (tuitionCharge) setBaseAmountCents(tuitionCharge.baseAmountCents);
+      if (tuitionCharge) {
+        setBaseAmountCents(tuitionCharge.baseAmountCents);
+        return;
+      }
+
+      if (!assignment) {
+        setBaseAmountCents(0);
+        return;
+      }
+
+      const tier = await resolveAssignmentTier(supabase, assignment);
+      const { data: paymentPlan, error: paymentPlanError } = await supabase
+        .from("tuition_payment_plans")
+        .select("installment_count, installment_amount_cents")
+        .eq("id", assignment.paymentPlanId)
+        .maybeSingle();
+
+      if (paymentPlanError) throw paymentPlanError;
+
+      const installmentCount = Number(paymentPlan?.installment_count ?? 1);
+      const installmentAmountCents = tier
+        ? computeInstallmentAmountCents(tier.amountCents, installmentCount)
+        : Number(paymentPlan?.installment_amount_cents ?? 0);
+
+      setBaseAmountCents(installmentAmountCents);
     })();
   }, [assignmentId, open, supabase]);
 
@@ -128,8 +164,9 @@ export default function TuitionAdjustModal({
         baseAmountCents,
         existingAdjustments: existing,
         draftAdjustment,
+        pendingSchedule,
       }),
-    [baseAmountCents, charges, draftAdjustment, existing],
+    [baseAmountCents, charges, draftAdjustment, existing, pendingSchedule],
   );
 
   const adjustedPerInstallment = computeAdjustedAmountCents(baseAmountCents, [
@@ -352,8 +389,16 @@ export default function TuitionAdjustModal({
 
           {impactPreview.scenario === "no_charges" ? (
             <p className="text-sm" style={{ color: C.textSecondary }}>
-              No tuition charges are on file yet. Set a payment schedule before applying
+              No tuition rate is available yet. Assign a rate plan before applying
               discounts.
+            </p>
+          ) : null}
+
+          {impactPreview.scenario === "pending_schedule" ? (
+            <p className="text-sm" style={{ color: C.textSecondary }}>
+              No installments yet. This adjustment will be saved and applied when you
+              set the payment schedule. The estimate above may change if you choose a
+              different schedule.
             </p>
           ) : null}
 
@@ -391,7 +436,8 @@ export default function TuitionAdjustModal({
             </div>
           ) : null}
 
-          {impactPreview.upcomingInstallments.length > 0 ? (
+          {impactPreview.upcomingInstallments.length > 0 &&
+          impactPreview.scenario !== "pending_schedule" ? (
             <div>
               <p className="font-medium" style={{ color: C.accentDark }}>
                 Upcoming installments (will update)

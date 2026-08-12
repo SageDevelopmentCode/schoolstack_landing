@@ -121,6 +121,7 @@ export type FamilyAssignmentSummary = {
   assignmentId: string;
   enrollmentId: string;
   studentName: string | null;
+  enrollmentStatus: EnrollmentBillingStatus;
   ratePlanName: string;
   tierLabel: string | null;
   paymentPlanLabel: string;
@@ -256,10 +257,20 @@ export type FamilyBillingReadinessState =
   | "needs_payment_plan"
   | "no_charges";
 
+export type EnrollmentBillingStatus = "pending" | "enrolled" | "waitlisted" | "withdrawn";
+
+export type FamilyEnrollmentSummary = {
+  enrollmentId: string;
+  studentName: string;
+  programName: string;
+  status: EnrollmentBillingStatus;
+};
+
 export type UnassignedEnrollmentSummary = {
   enrollmentId: string;
   studentName: string;
   programName: string;
+  status: EnrollmentBillingStatus;
 };
 
 export type GuardianAutopayStatus = {
@@ -286,10 +297,12 @@ export type FamilyBillingSummary = {
   status: "current" | "overdue" | "invoice_sent";
   assignmentIds: string[];
   assignments: FamilyAssignmentSummary[];
+  enrollments: FamilyEnrollmentSummary[];
   unassignedEnrollments: UnassignedEnrollmentSummary[];
   readiness: FamilyBillingReadinessState;
   billingSplitSummary: string | null;
   hasBillingSplit: boolean;
+  hasPendingEnrollment: boolean;
 };
 
 export type RatePlanWithDetails = TuitionRatePlan & {

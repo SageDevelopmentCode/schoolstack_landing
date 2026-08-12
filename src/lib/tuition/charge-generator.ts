@@ -8,6 +8,7 @@ import { computeAdjustedAmountCents } from "./pricing";
 import {
   assignmentNeedsPaymentPlanSelection,
   computeInstallmentAmountCents,
+  isEnrollmentEnrolled,
   resolveAssignmentTier,
 } from "./assignments";
 import { rowToAdjustment, rowToAssignment, rowToCharge } from "./row-mappers";
@@ -167,7 +168,7 @@ export async function regenerateFutureCharges(
   const { data: assignment, error: assignmentError } = await supabase
     .from("tuition_enrollment_assignments")
     .select(
-      "id, organization_id, family_id, payment_plan_id, rate_plan_id, rate_tier_id, effective_start, metadata",
+      "id, organization_id, family_id, enrollment_id, payment_plan_id, rate_plan_id, rate_tier_id, effective_start, metadata",
     )
     .eq("id", assignmentId)
     .maybeSingle();
@@ -177,6 +178,14 @@ export async function regenerateFutureCharges(
 
   const parsedAssignment = rowToAssignment(assignment);
   if (assignmentNeedsPaymentPlanSelection(parsedAssignment)) {
+    return [];
+  }
+
+  const enrolled = await isEnrollmentEnrolled(
+    supabase,
+    String(assignment.enrollment_id),
+  );
+  if (!enrolled) {
     return [];
   }
 

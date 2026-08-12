@@ -39,11 +39,11 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    if (enrollment.status !== "enrolled") {
+    if (enrollment.status !== "enrolled" && enrollment.status !== "pending") {
       return apiError(ROUTE, {
         request,
         status: 400,
-        error: "Only enrolled students can be assigned tuition.",
+        error: "Only active enrollments can be assigned tuition.",
         code: "invalid_request",
       });
     }

@@ -384,7 +384,7 @@ async function handleEnrollmentChecklistCheckoutCompleted(
     return;
   }
 
-  void logActivityEvent(admin, {
+  await logActivityEvent(admin, {
     organizationId: metadata.organization_id as string,
     actorType: "system",
     surface: "system",

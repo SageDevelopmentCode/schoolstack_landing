@@ -3,6 +3,7 @@ import type { TuitionAdjustment, TuitionCharge } from "./types";
 
 export type AdjustmentImpactScenario =
   | "no_charges"
+  | "pending_schedule"
   | "all_paid"
   | "partial_paid"
   | "none_paid";
@@ -66,10 +67,42 @@ export function computeAdjustmentImpactPreview(input: {
   baseAmountCents: number;
   existingAdjustments: TuitionAdjustment[];
   draftAdjustment: PricingAdjustment;
+  pendingSchedule?: boolean;
 }): AdjustmentImpactPreview {
   const tuition = tuitionCharges(input.charges);
+  const existingPricing = toPricingAdjustments(input.existingAdjustments);
+  const allPricing = [...existingPricing, input.draftAdjustment];
 
   if (tuition.length === 0) {
+    if (input.pendingSchedule && input.baseAmountCents > 0) {
+      const newAmountCents = computeAdjustedAmountCents(
+        input.baseAmountCents,
+        allPricing,
+      );
+      const savingsPerInstallment = Math.max(
+        0,
+        input.baseAmountCents - newAmountCents,
+      );
+
+      return {
+        scenario: "pending_schedule",
+        paidInstallments: [],
+        upcomingInstallments: [
+          {
+            label: "Estimated installment",
+            currentAmountCents: input.baseAmountCents,
+            newAmountCents,
+          },
+        ],
+        totals: {
+          paidCents: 0,
+          remainingBeforeCents: input.baseAmountCents,
+          remainingAfterCents: newAmountCents,
+          annualSavingsCents: savingsPerInstallment,
+        },
+      };
+    }
+
     return {
       scenario: "no_charges",
       paidInstallments: [],
@@ -82,9 +115,6 @@ export function computeAdjustmentImpactPreview(input: {
       },
     };
   }
-
-  const existingPricing = toPricingAdjustments(input.existingAdjustments);
-  const allPricing = [...existingPricing, input.draftAdjustment];
 
   const paidInstallments: AdjustmentImpactInstallment[] = [];
   const upcomingInstallments: AdjustmentImpactUpcomingInstallment[] = [];

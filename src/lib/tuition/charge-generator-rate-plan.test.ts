@@ -10,6 +10,7 @@ type AssignmentRow = {
   id: string;
   organization_id: string;
   family_id: string;
+  enrollment_id?: string;
   payment_plan_id: string;
   rate_plan_id: string;
   rate_tier_id: string | null;
@@ -34,6 +35,7 @@ type ChargeRow = {
 
 function createRegenerationMockSupabase(options: {
   assignments: AssignmentRow[];
+  enrollments?: Array<{ id: string; status: string }>;
   paymentPlan?: {
     id: string;
     organization_id: string;
@@ -53,6 +55,7 @@ function createRegenerationMockSupabase(options: {
 }) {
   const {
     assignments,
+    enrollments = [{ id: "enrollment-1", status: "enrolled" }],
     paymentPlan = {
       id: "plan-1",
       organization_id: "org-1",
@@ -103,7 +106,23 @@ function createRegenerationMockSupabase(options: {
       maybeSingle: async () => {
         if (table === "tuition_enrollment_assignments" && nextFilters.id) {
           const assignment = assignments.find((row) => row.id === nextFilters.id);
-          return { data: assignment ?? null, error: null };
+          return {
+            data: assignment
+              ? {
+                  ...assignment,
+                  enrollment_id: assignment.enrollment_id ?? "enrollment-1",
+                }
+              : null,
+            error: null,
+          };
+        }
+
+        if (table === "enrollments" && nextFilters.id) {
+          const enrollment = enrollments.find((row) => row.id === nextFilters.id);
+          return {
+            data: enrollment ? { status: enrollment.status } : null,
+            error: null,
+          };
         }
 
         if (table === "tuition_payment_plans" && nextFilters.id) {
@@ -443,5 +462,31 @@ describe("regenerateFutureCharges", () => {
       "scheduled",
     );
     assert.ok(voidedChargeIds.includes("charge-tuition"));
+  });
+
+  it("skips charge generation while enrollment is still pending", async () => {
+    const { supabase, voidedChargeIds, insertedCharges } = createRegenerationMockSupabase({
+      assignments: [
+        {
+          id: "assign-1",
+          organization_id: "org-1",
+          family_id: "family-1",
+          enrollment_id: "enrollment-pending",
+          payment_plan_id: "plan-1",
+          rate_plan_id: "rate-1",
+          rate_tier_id: "tier-1",
+          effective_start: "2026-08-01",
+          metadata: {},
+          status: "active",
+        },
+      ],
+      enrollments: [{ id: "enrollment-pending", status: "pending" }],
+    });
+
+    const result = await regenerateFutureCharges(supabase, "assign-1");
+
+    assert.deepEqual(result, []);
+    assert.equal(voidedChargeIds.length, 0);
+    assert.equal(insertedCharges.length, 0);
   });
 });

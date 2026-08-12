@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   assignmentNeedsPaymentPlanSelection,
   computeInstallmentAmountCents,
+  shouldRegenerateChargesForAssignment,
 } from "./assignments";
 
 describe("assignmentNeedsPaymentPlanSelection", () => {
@@ -21,6 +22,31 @@ describe("assignmentNeedsPaymentPlanSelection", () => {
         metadata: {},
       }),
       false,
+    );
+  });
+});
+
+describe("shouldRegenerateChargesForAssignment", () => {
+  it("skips charge generation for pending enrollments", () => {
+    assert.equal(
+      shouldRegenerateChargesForAssignment(false, { metadata: {} }),
+      false,
+    );
+  });
+
+  it("skips charge generation when payment plan selection is pending", () => {
+    assert.equal(
+      shouldRegenerateChargesForAssignment(true, {
+        metadata: { pendingPaymentPlanSelection: true },
+      }),
+      false,
+    );
+  });
+
+  it("generates charges for enrolled students with a finalized schedule", () => {
+    assert.equal(
+      shouldRegenerateChargesForAssignment(true, { metadata: {} }),
+      true,
     );
   });
 });
