@@ -9,6 +9,12 @@ export function createMockStripeClient(overrides?: {
   accountsCreateLoginLink?: (
     accountId: string,
   ) => Promise<Stripe.LoginLink>;
+  paymentIntentsRetrieve?: (
+    paymentIntentId: string,
+  ) => Promise<Stripe.PaymentIntent>;
+  paymentMethodsRetrieve?: (
+    paymentMethodId: string,
+  ) => Promise<Stripe.PaymentMethod>;
 }): Stripe {
   const stripe = new Stripe(DUMMY_SECRET_KEY);
 
@@ -33,6 +39,30 @@ export function createMockStripeClient(overrides?: {
             created: Math.floor(Date.now() / 1000),
             url: `https://connect.stripe.test/express/${accountId}`,
           }) as Stripe.LoginLink),
+    },
+    paymentIntents: {
+      retrieve:
+        overrides?.paymentIntentsRetrieve ??
+        (async (paymentIntentId: string) =>
+          ({
+            id: paymentIntentId,
+            object: "payment_intent",
+            payment_method: "pm_test_mock",
+          }) as Stripe.PaymentIntent),
+    },
+    paymentMethods: {
+      retrieve:
+        overrides?.paymentMethodsRetrieve ??
+        (async (paymentMethodId: string) =>
+          ({
+            id: paymentMethodId,
+            object: "payment_method",
+            type: "card",
+            card: {
+              brand: "visa",
+              last4: "4242",
+            },
+          }) as Stripe.PaymentMethod),
     },
     webhooks: stripe.webhooks,
   } as unknown as Stripe;

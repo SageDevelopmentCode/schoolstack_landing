@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { before, describe, it } from "node:test";
 import type Stripe from "stripe";
+import { setStripeClientForTests } from "@/lib/stripe/client";
 import {
   createTestAdminClient,
   integrationTestsEnabled,
   loadTestEnv,
 } from "@/test/integration/helpers";
+import { createMockStripeClient } from "@/test/mocks/stripe";
 import {
   seedDraftApplication,
   seedEnrollmentChecklistPayment,
@@ -26,6 +28,12 @@ import {
 
 const describeIntegration = integrationTestsEnabled() ? describe : describe.skip;
 
+function setupWebhookIntegrationTestEnv(): void {
+  loadTestEnv();
+  process.env.STRIPE_SECRET_KEY ??= "sk_test_integration_dummy";
+  setStripeClientForTests(createMockStripeClient());
+}
+
 function buildCheckoutSession(input: {
   id: string;
   paymentIntentId?: string;
@@ -43,7 +51,7 @@ function buildCheckoutSession(input: {
 
 describeIntegration("handleCheckoutSessionCompleted", () => {
   before(() => {
-    loadTestEnv();
+    setupWebhookIntegrationTestEnv();
   });
 
   it("marks payment succeeded and submits a valid draft application", async () => {
@@ -383,7 +391,7 @@ describeIntegration("handleCheckoutSessionCompleted", () => {
 
 describeIntegration("handleTuitionCheckoutCompleted", () => {
   before(() => {
-    loadTestEnv();
+    setupWebhookIntegrationTestEnv();
   });
 
   it("keeps ACH tuition pending until payment_status is paid", async () => {
@@ -511,7 +519,7 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
 
 describeIntegration("handleAccountUpdated", () => {
   before(() => {
-    loadTestEnv();
+    setupWebhookIntegrationTestEnv();
   });
 
   it("syncs charges_enabled on organization payment account", async () => {
