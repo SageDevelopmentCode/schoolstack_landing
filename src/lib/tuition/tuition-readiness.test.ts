@@ -1,15 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  assignTuitionLabel,
   buildTuitionReadinessStatus,
   computeAssignEnrollmentsStepStatus,
   computeBillingScheduleStepStatus,
   computeFamilyBillingReadiness,
   computePaymentPlansStepStatus,
   computeRatePlanStepStatus,
+  partitionUnassignedEnrollments,
   type TuitionReadinessRawData,
 } from "@/lib/tuition/tuition-readiness";
-import type { FamilyAssignmentSummary } from "@/lib/tuition/types";
+import type { FamilyAssignmentSummary, UnassignedEnrollmentSummary } from "@/lib/tuition/types";
 
 const baseData: TuitionReadinessRawData = {
   hasActiveRatePlan: true,
@@ -26,6 +28,7 @@ function assignment(
     assignmentId: "assignment-1",
     enrollmentId: "enrollment-1",
     studentName: "Test Child",
+    enrollmentStatus: "enrolled",
     ratePlanName: "School Year 2026–27",
     tierLabel: "Standard",
     paymentPlanLabel: "4 payments",
@@ -200,5 +203,67 @@ describe("computeFamilyBillingReadiness", () => {
       }),
       "ready",
     );
+  });
+
+  it("does not treat pending-only enrollments as needing assignment", () => {
+    assert.equal(
+      computeFamilyBillingReadiness({
+        enrolledEnrollmentIds: [],
+        assignments: [],
+        chargeCount: 0,
+      }),
+      "ready",
+    );
+  });
+
+  it("does not treat pending enrollments with assignments as needing assignment", () => {
+    assert.equal(
+      computeFamilyBillingReadiness({
+        enrolledEnrollmentIds: [],
+        assignments: [assignment()],
+        chargeCount: 0,
+      }),
+      "no_charges",
+    );
+  });
+});
+
+describe("partitionUnassignedEnrollments", () => {
+  function unassigned(
+    overrides: Partial<UnassignedEnrollmentSummary> = {},
+  ): UnassignedEnrollmentSummary {
+    return {
+      enrollmentId: "enrollment-1",
+      studentName: "Clara Caballero",
+      programName: "School Year 2026–27",
+      status: "pending",
+      ...overrides,
+    };
+  }
+
+  it("separates enrolling students from enrolled students missing tuition", () => {
+    const result = partitionUnassignedEnrollments([
+      unassigned({ enrollmentId: "pending-1", status: "pending" }),
+      unassigned({
+        enrollmentId: "enrolled-1",
+        status: "enrolled",
+        studentName: "Helene Miller",
+      }),
+    ]);
+
+    assert.equal(result.enrolling.length, 1);
+    assert.equal(result.enrolledUnassigned.length, 1);
+    assert.equal(result.enrolling[0]?.enrollmentId, "pending-1");
+    assert.equal(result.enrolledUnassigned[0]?.enrollmentId, "enrolled-1");
+  });
+});
+
+describe("assignTuitionLabel", () => {
+  it("uses singular copy for one student", () => {
+    assert.equal(assignTuitionLabel(1), "Assign tuition");
+  });
+
+  it("uses plural copy for multiple students", () => {
+    assert.equal(assignTuitionLabel(2), "Assign tuition to 2 students");
   });
 });

@@ -16,6 +16,39 @@ export function assignmentNeedsPaymentPlanSelection(
   return assignment.metadata.pendingPaymentPlanSelection === true;
 }
 
+export async function isEnrollmentEnrolled(
+  supabase: SupabaseClient,
+  enrollmentId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("status")
+    .eq("id", enrollmentId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.status === "enrolled";
+}
+
+export function shouldRegenerateChargesForAssignment(
+  isEnrolled: boolean,
+  assignment: Pick<TuitionEnrollmentAssignment, "metadata">,
+): boolean {
+  return isEnrolled && !assignmentNeedsPaymentPlanSelection(assignment);
+}
+
+async function maybeRegenerateChargesForAssignment(
+  supabase: SupabaseClient,
+  enrollmentId: string,
+  assignment: TuitionEnrollmentAssignment,
+): Promise<void> {
+  const isEnrolled = await isEnrollmentEnrolled(supabase, enrollmentId);
+  if (!shouldRegenerateChargesForAssignment(isEnrolled, assignment)) {
+    return;
+  }
+  await regenerateFutureCharges(supabase, assignment.id);
+}
+
 export async function getAssignmentById(
   supabase: SupabaseClient,
   assignmentId: string,
@@ -120,7 +153,14 @@ export async function autoAssignTuitionForEnrollment(
   },
 ): Promise<TuitionEnrollmentAssignment | null> {
   const existing = await getAssignmentForEnrollment(supabase, input.enrollmentId);
-  if (existing?.status === "active") return existing;
+  if (existing?.status === "active") {
+    await maybeRegenerateChargesForAssignment(
+      supabase,
+      input.enrollmentId,
+      existing,
+    );
+    return existing;
+  }
 
   const ratePlan = await getDefaultRatePlanForProgram(
     supabase,
@@ -170,9 +210,11 @@ export async function autoAssignTuitionForEnrollment(
 
   await evaluateAndApplyRulesForAssignment(supabase, assignment.id);
 
-  if (!multiplePaymentPlans) {
-    await regenerateFutureCharges(supabase, assignment.id);
-  }
+  await maybeRegenerateChargesForAssignment(
+    supabase,
+    input.enrollmentId,
+    assignment,
+  );
 
   return assignment;
 }
@@ -222,7 +264,7 @@ export async function backfillTuitionAssignmentsForProgram(
     .select("id, student_id")
     .eq("organization_id", input.organizationId)
     .eq("program_id", input.programId)
-    .eq("status", "enrolled");
+    .in("status", ["enrolled", "pending"]);
 
   if (enrollmentsError) throw enrollmentsError;
   if (!enrollments?.length) {

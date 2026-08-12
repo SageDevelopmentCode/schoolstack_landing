@@ -179,6 +179,24 @@ export function computeFamilyBillingReadiness(input: {
   return "ready";
 }
 
+export function partitionUnassignedEnrollments(
+  enrollments: UnassignedEnrollmentSummary[],
+): {
+  enrolling: UnassignedEnrollmentSummary[];
+  enrolledUnassigned: UnassignedEnrollmentSummary[];
+} {
+  return {
+    enrolling: enrollments.filter((enrollment) => enrollment.status === "pending"),
+    enrolledUnassigned: enrollments.filter(
+      (enrollment) => enrollment.status === "enrolled",
+    ),
+  };
+}
+
+export function assignTuitionLabel(count: number): string {
+  return count === 1 ? "Assign tuition" : `Assign tuition to ${count} students`;
+}
+
 function parseAssignmentMetadata(metadata: unknown): Record<string, unknown> {
   if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
     return metadata as Record<string, unknown>;
@@ -450,6 +468,7 @@ export async function fetchFamilyBillingReadiness(
         assignmentId: String(assignment.id),
         enrollmentId,
         studentName: studentId ? studentMap.get(String(studentId)) ?? null : null,
+        enrollmentStatus: "enrolled",
         ratePlanName:
           ratePlanMap.get(String(assignment.rate_plan_id)) ?? "Rate plan",
         tierLabel:
@@ -475,6 +494,7 @@ export async function fetchFamilyBillingReadiness(
       enrollmentId: String(enrollment.id),
       studentName: studentMap.get(String(enrollment.student_id)) ?? "Student",
       programName: programMap.get(String(enrollment.program_id)) ?? "Program",
+      status: "enrolled" as const,
     }));
 
   const chargeRows = charges ?? [];

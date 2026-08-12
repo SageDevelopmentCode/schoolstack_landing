@@ -266,6 +266,16 @@ export async function startEnrollmentFromApplication(
 
   if (statusError) throw statusError;
 
+  if (application.family_id) {
+    await tryAutoAssignTuitionForEnrollment(supabase, {
+      organizationId: String(application.organization_id),
+      enrollmentId,
+      familyId: String(application.family_id),
+      programId: String(application.program_id),
+      assignedByUserId: actorUserId,
+    });
+  }
+
   void logActivityEvent(supabase, {
     organizationId: String(application.organization_id),
     actorType: "school_admin",

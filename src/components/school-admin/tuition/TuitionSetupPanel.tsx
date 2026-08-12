@@ -11,6 +11,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import {
+  assignTuitionLabel,
   tuitionReadinessPrimaryAction,
   type TuitionReadinessStatus,
   type TuitionReadinessStepId,
@@ -82,12 +83,6 @@ function readinessSubtitle(readiness: TuitionReadinessStatus): string {
   }
 }
 
-function syncAssignmentsLabel(count: number): string {
-  return count === 1
-    ? "Sync assignment for enrolled student"
-    : `Sync assignments for ${count} enrolled students`;
-}
-
 function stepMeta(status: DetailPanelStepTimelineItem["status"]): string | undefined {
   if (status === "completed") return "Complete";
   if (status === "in_progress") return "Needs attention";
@@ -155,7 +150,7 @@ export default function TuitionSetupPanel({
           "No tuition assignments were created. Confirm an active rate plan exists for each program.",
         );
       }
-      adminToast.success("Tuition assignments synced");
+      adminToast.success("Tuition assigned");
       await onRefresh();
       onSwitchToFamilies();
     } catch (error) {
@@ -275,7 +270,7 @@ export default function TuitionSetupPanel({
                     className="inline-flex w-fit items-center gap-2 px-4 py-2 text-sm font-medium"
                   >
                     {syncLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    {syncAssignmentsLabel(readiness.unassignedEnrollmentCount)}
+                    {assignTuitionLabel(readiness.unassignedEnrollmentCount)}
                   </button>
                 </div>
               ) : null}

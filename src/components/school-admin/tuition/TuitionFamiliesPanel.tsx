@@ -18,7 +18,22 @@ import {
   type StudentBadgeColors,
 } from "@/lib/tuition/student-badge-colors";
 import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
-import type { FamilyAssignmentSummary, FamilyBillingSummary } from "@/lib/tuition/types";
+import {
+  assignTuitionLabel,
+  partitionUnassignedEnrollments,
+} from "@/lib/tuition/tuition-readiness";
+import {
+  familyEnrollmentBadgeLabel,
+  familyEnrollmentStatusBadges,
+  formatEnrollmentStatusLabel,
+  type FamilyEnrollmentBadgeKind,
+} from "@/lib/tuition/enrollment-status-labels";
+import type {
+  EnrollmentBillingStatus,
+  FamilyAssignmentSummary,
+  FamilyBillingSummary,
+  UnassignedEnrollmentSummary,
+} from "@/lib/tuition/types";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
@@ -63,6 +78,102 @@ type TuitionFamiliesPanelProps = {
   onRefresh: () => void;
 };
 
+type EnrollmentBadgeStyle = {
+  backgroundColor: string;
+  color: string;
+  border?: string;
+};
+
+function enrollingOutlineBadgeStyle(C: AdminThemeTokens): EnrollmentBadgeStyle {
+  return {
+    backgroundColor: "transparent",
+    color: C.accent,
+    border: `1px solid ${C.accent}`,
+  };
+}
+
+function enrollmentStatusBadgeStyle(
+  status: EnrollmentBillingStatus,
+  C: AdminThemeTokens,
+): EnrollmentBadgeStyle {
+  if (status === "pending") {
+    return enrollingOutlineBadgeStyle(C);
+  }
+  if (status === "enrolled") {
+    return { backgroundColor: C.successBg, color: C.success };
+  }
+  return { backgroundColor: C.elevated, color: C.textSecondary };
+}
+
+function familyEnrollmentBadgeStyle(
+  kind: FamilyEnrollmentBadgeKind,
+  C: AdminThemeTokens,
+): EnrollmentBadgeStyle {
+  if (kind === "enrolling") {
+    return enrollingOutlineBadgeStyle(C);
+  }
+  return { backgroundColor: C.successBg, color: C.success };
+}
+
+function EnrollmentStatusBadge({
+  status,
+  C,
+}: {
+  status: EnrollmentBillingStatus;
+  C: AdminThemeTokens;
+}) {
+  return (
+    <span
+      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+      style={enrollmentStatusBadgeStyle(status, C)}
+    >
+      {formatEnrollmentStatusLabel(status)}
+    </span>
+  );
+}
+
+function FamilyEnrollmentStatusBadge({
+  kind,
+  C,
+}: {
+  kind: FamilyEnrollmentBadgeKind;
+  C: AdminThemeTokens;
+}) {
+  return (
+    <span
+      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+      style={familyEnrollmentBadgeStyle(kind, C)}
+    >
+      {familyEnrollmentBadgeLabel(kind)}
+    </span>
+  );
+}
+
+function UnassignedStudentRow({
+  enrollment,
+  C,
+}: {
+  enrollment: UnassignedEnrollmentSummary;
+  C: AdminThemeTokens;
+}) {
+  return (
+    <li className="flex flex-col gap-1 text-sm">
+      <span className="font-medium" style={{ color: C.textPrimary }}>
+        {enrollment.studentName}
+      </span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <EnrollmentStatusBadge status={enrollment.status} C={C} />
+        <span
+          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+          style={{ backgroundColor: C.accentLight, color: C.accentDark }}
+        >
+          {enrollment.programName}
+        </span>
+      </div>
+    </li>
+  );
+}
+
 function AssignmentMetaBadges({
   assignment,
   C,
@@ -74,6 +185,7 @@ function AssignmentMetaBadges({
 
   return (
     <div className="flex flex-wrap gap-1.5">
+      <EnrollmentStatusBadge status={assignment.enrollmentStatus} C={C} />
       <span
         className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
         style={neutralStyle}
@@ -317,7 +429,7 @@ export default function TuitionFamiliesPanel({
         adminToast.error(message);
         return;
       }
-      adminToast.success("Tuition assignments synced");
+      adminToast.success("Tuition assigned");
       await loadFamilies();
       onRefresh();
     } catch (error) {
@@ -336,8 +448,18 @@ export default function TuitionFamiliesPanel({
         : family.autopayStatus === "partial"
           ? "Autopay partial"
           : "Autopay off";
-    if (family.readiness === "ready") {
+    const { enrolling, enrolledUnassigned } = partitionUnassignedEnrollments(
+      family.unassignedEnrollments,
+    );
+
+    if (family.readiness === "ready" && enrolling.length === 0) {
       return `${formatCents(family.balanceDueCents)} · ${family.status} · ${autopayLabel}`;
+    }
+    if (enrolledUnassigned.length > 0) {
+      return "Setup needed";
+    }
+    if (enrolling.length > 0) {
+      return "Enrolling";
     }
     return "Setup needed";
   };
@@ -466,9 +588,16 @@ export default function TuitionFamiliesPanel({
                 selectedFamilyId === family.familyId ? C.accentLight : "transparent",
             }}
           >
-            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-              {family.familyName}
-            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                {family.familyName}
+              </p>
+              {family.enrollments.length > 0
+                ? familyEnrollmentStatusBadges(family.enrollments).map((kind) => (
+                    <FamilyEnrollmentStatusBadge key={kind} kind={kind} C={C} />
+                  ))
+                : null}
+            </div>
             <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
               {familyStatusLabel(family)}
             </p>
@@ -551,48 +680,102 @@ export default function TuitionFamiliesPanel({
               aria-labelledby="tuition-family-tab-assignments"
               data-testid="tuition-family-panel-assignments"
             >
-              {selectedFamily.readiness === "needs_assignment" ? (
-                <div
-                  className="rounded-lg p-4 flex flex-col gap-3"
-                  style={{
-                    backgroundColor: C.accentLight,
-                    border: `1px solid ${C.border}`,
-                  }}
-                >
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                      Tuition has not been assigned yet
-                    </p>
-                    <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-                      Tuition is assigned automatically at enrollment. Sync assignments if this
-                      student enrolled before your rate plan was ready.
-                    </p>
-                  </div>
+              {(() => {
+                const assignedEnrollmentIds = new Set(
+                  selectedFamily.assignments.map((assignment) => assignment.enrollmentId),
+                );
+                const { enrolling, enrolledUnassigned } = partitionUnassignedEnrollments(
+                  selectedFamily.unassignedEnrollments,
+                );
+                const enrollingWithoutAssignment = enrolling.filter(
+                  (enrollment) => !assignedEnrollmentIds.has(enrollment.enrollmentId),
+                );
 
-                  <div className="flex flex-col gap-2">
-                    <ul className="flex flex-col gap-2">
-                      {selectedFamily.unassignedEnrollments.map((enrollment) => (
-                        <li
-                          key={enrollment.enrollmentId}
-                          className="text-sm"
-                          style={{ color: C.textPrimary }}
-                        >
-                          {enrollment.studentName} · {enrollment.programName}
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      type="button"
-                      disabled={actionLoading === "sync"}
-                      onClick={() => void handleSyncAssignments()}
-                      className="self-start text-xs font-medium px-2 py-1 rounded"
-                      style={{ backgroundColor: C.accent, color: "#fff" }}
-                    >
-                      Sync assignments
-                    </button>
-                  </div>
-                </div>
-              ) : null}
+                return (
+                  <>
+                    {enrollingWithoutAssignment.length > 0 ? (
+                      <div
+                        className="rounded-lg p-4 flex flex-col gap-3"
+                        style={{
+                          backgroundColor: C.accentLight,
+                          border: `1px solid ${C.border}`,
+                        }}
+                      >
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                            Enrollment in progress
+                          </p>
+                          <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+                            Tuition can be set up now. Discounts apply when billing starts
+                            after enrollment is complete.
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <ul className="flex flex-col gap-2">
+                            {enrollingWithoutAssignment.map((enrollment) => (
+                              <UnassignedStudentRow
+                                key={enrollment.enrollmentId}
+                                enrollment={enrollment}
+                                C={C}
+                              />
+                            ))}
+                          </ul>
+                          <button
+                            type="button"
+                            disabled={actionLoading === "sync"}
+                            onClick={() => void handleSyncAssignments()}
+                            className="self-start text-xs font-medium px-2 py-1 rounded"
+                            style={{ backgroundColor: C.accent, color: "#fff" }}
+                          >
+                            {assignTuitionLabel(enrollingWithoutAssignment.length)}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {enrolledUnassigned.length > 0 ? (
+                      <div
+                        className="rounded-lg p-4 flex flex-col gap-3"
+                        style={{
+                          backgroundColor: C.accentLight,
+                          border: `1px solid ${C.border}`,
+                        }}
+                      >
+                        <div>
+                          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                            Tuition not assigned yet
+                          </p>
+                          <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+                            These students are enrolled but don&apos;t have a rate plan applied.
+                            This usually means they enrolled before your rate plan was ready.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <ul className="flex flex-col gap-2">
+                            {enrolledUnassigned.map((enrollment) => (
+                              <UnassignedStudentRow
+                                key={enrollment.enrollmentId}
+                                enrollment={enrollment}
+                                C={C}
+                              />
+                            ))}
+                          </ul>
+                          <button
+                            type="button"
+                            disabled={actionLoading === "sync"}
+                            onClick={() => void handleSyncAssignments()}
+                            className="self-start text-xs font-medium px-2 py-1 rounded"
+                            style={{ backgroundColor: C.accent, color: "#fff" }}
+                          >
+                            {assignTuitionLabel(enrolledUnassigned.length)}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                );
+              })()}
 
               {selectedFamily.assignments.length > 0 ? (
                 <div
@@ -640,17 +823,7 @@ export default function TuitionFamiliesPanel({
                             </button>
                             <button
                               type="button"
-                              disabled={assignment.pendingPaymentPlanSelection}
-                              title={
-                                assignment.pendingPaymentPlanSelection
-                                  ? "Set a payment schedule before applying discounts"
-                                  : undefined
-                              }
-                              aria-label={
-                                assignment.pendingPaymentPlanSelection
-                                  ? `Set a payment schedule before applying discounts for ${assignment.studentName ?? "student"}`
-                                  : `Adjust tuition for ${assignment.studentName ?? "student"}`
-                              }
+                              aria-label={`Adjust tuition for ${assignment.studentName ?? "student"}`}
                               onClick={() =>
                                 onAdjust(
                                   selectedFamily.familyId,
@@ -658,7 +831,7 @@ export default function TuitionFamiliesPanel({
                                   assignment.studentName,
                                 )
                               }
-                              className="text-xs font-medium px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="text-xs font-medium px-2 py-1 rounded"
                               style={{ backgroundColor: C.accentLight, color: C.accent }}
                             >
                               Adjust tuition
@@ -683,11 +856,26 @@ export default function TuitionFamiliesPanel({
                     ))}
                   </ul>
                 </div>
-              ) : selectedFamily.readiness !== "needs_assignment" ? (
-                <p className="text-sm" style={{ color: C.textSecondary }}>
-                  No enrollment assignments yet.
-                </p>
-              ) : null}
+              ) : (() => {
+                const assignedEnrollmentIds = new Set(
+                  selectedFamily.assignments.map((assignment) => assignment.enrollmentId),
+                );
+                const { enrolling, enrolledUnassigned } = partitionUnassignedEnrollments(
+                  selectedFamily.unassignedEnrollments,
+                );
+                const enrollingWithoutAssignment = enrolling.filter(
+                  (enrollment) => !assignedEnrollmentIds.has(enrollment.enrollmentId),
+                );
+                const showEmptyState =
+                  enrollingWithoutAssignment.length === 0 &&
+                  enrolledUnassigned.length === 0;
+
+                return showEmptyState ? (
+                  <p className="text-sm" style={{ color: C.textSecondary }}>
+                    No enrollment assignments yet.
+                  </p>
+                ) : null;
+              })()}
             </div>
           ) : null}
 
