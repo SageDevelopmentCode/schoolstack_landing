@@ -8,6 +8,7 @@ type AdminListItemProps = {
   meta?: ReactNode;
   footer?: ReactNode;
   badge?: ReactNode;
+  leading?: ReactNode;
 };
 
 export function AdminListItem({
@@ -18,6 +19,7 @@ export function AdminListItem({
   meta,
   footer,
   badge,
+  leading,
 }: AdminListItemProps) {
   return (
     <button
@@ -29,19 +31,24 @@ export function AdminListItem({
           : "border-l-2 border-l-transparent hover:bg-admin-bg"
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-3">
+        {leading ? <div className="shrink-0">{leading}</div> : null}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-admin-text truncate">{title}</p>
-          {subtitle ? (
-            <p className="text-xs text-admin-muted truncate mt-0.5">{subtitle}</p>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-admin-text truncate">{title}</p>
+              {subtitle ? (
+                <p className="text-xs text-admin-muted truncate mt-0.5">{subtitle}</p>
+              ) : null}
+              {meta ? <div className="mt-1">{meta}</div> : null}
+            </div>
+            {badge ? <div className="shrink-0">{badge}</div> : null}
+          </div>
+          {footer ? (
+            <p className="text-xs text-admin-faint mt-1.5">{footer}</p>
           ) : null}
-          {meta ? <div className="mt-1">{meta}</div> : null}
         </div>
-        {badge ? <div className="shrink-0">{badge}</div> : null}
       </div>
-      {footer ? (
-        <p className="text-xs text-admin-faint mt-1.5">{footer}</p>
-      ) : null}
     </button>
   );
 }

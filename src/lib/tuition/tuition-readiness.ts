@@ -459,6 +459,9 @@ export async function fetchFamilyBillingReadiness(
         paymentPlanLabel:
           paymentPlanMap.get(paymentPlanId) ?? "Payment plan",
         pendingPaymentPlanSelection: metadata.pendingPaymentPlanSelection === true,
+        activeAdjustmentCount: 0,
+        adjustmentSummaryLabel: null,
+        adjustmentSummaryFull: null,
       };
     },
   );

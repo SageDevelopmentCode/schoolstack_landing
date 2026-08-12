@@ -79,7 +79,7 @@ export function formatAdjustmentSummary(
     case "fixed_discount":
       return `$${((valueCents ?? 0) / 100).toFixed(0)} off · ${reason}`;
     case "custom_amount":
-      return reason;
+      return `$${((valueCents ?? 0) / 100).toFixed(2)}/installment · ${reason}`;
     case "waiver":
       return `Waived · ${reason}`;
     default:

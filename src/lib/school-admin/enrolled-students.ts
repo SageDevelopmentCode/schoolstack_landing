@@ -17,6 +17,7 @@ export type AdminEnrolledStudentSummary = {
   enrolledAt: string;
   assignedTeacherId: string | null;
   assignedTeacherName: string | null;
+  profilePhotoUrl: string | null;
 };
 
 export type EnrolledStudentEnrollment = {
@@ -43,6 +44,7 @@ export type EnrolledStudentDetail = {
   applicationStatus: string | null;
   assignedTeacherId: string | null;
   assignedTeacherName: string | null;
+  profilePhotoUrl: string | null;
 };
 
 const ENROLLED_ENROLLMENT_SELECT = `
@@ -57,6 +59,7 @@ const ENROLLED_ENROLLMENT_SELECT = `
     date_of_birth,
     status,
     family_id,
+    profile_photo_url,
     assigned_teacher_id,
     staff_members:assigned_teacher_id (
       id,
@@ -207,6 +210,7 @@ type StudentRowWithTeacher = {
   date_of_birth?: string | null;
   status?: string;
   family_id?: string;
+  profile_photo_url?: string | null;
   assigned_teacher_id?: string | null;
   staff_members?:
     | {
@@ -306,6 +310,11 @@ function mapEnrollmentRowToAggregate(
     enrolledAt,
     assignedTeacherId,
     assignedTeacherName,
+    profilePhotoUrl:
+      typeof student.profile_photo_url === "string" &&
+      student.profile_photo_url.trim() !== ""
+        ? student.profile_photo_url.trim()
+        : null,
   };
 
   return {
@@ -496,6 +505,7 @@ export async function loadEnrolledStudentDetail(
       date_of_birth,
       status,
       family_id,
+      profile_photo_url,
       assigned_teacher_id,
       staff_members:assigned_teacher_id (
         id,
@@ -619,6 +629,11 @@ export async function loadEnrolledStudentDetail(
       : null,
     assignedTeacherId,
     assignedTeacherName,
+    profilePhotoUrl:
+      typeof studentRow.profile_photo_url === "string" &&
+      studentRow.profile_photo_url.trim() !== ""
+        ? studentRow.profile_photo_url.trim()
+        : null,
   };
 }
 

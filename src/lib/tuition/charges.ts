@@ -1,9 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import {
+  formatActiveAdjustmentsList,
+  formatAssignmentAdjustmentBadgeLabel,
+} from "./adjustment-impact";
 import { formatBillingSplitSummary } from "./billing-splits";
 import { computeFamilyAutopayStatus } from "./autopay-status";
 import { computeFamilyBillingReadiness } from "./tuition-readiness";
-import { rowToCharge } from "./row-mappers";
+import { rowToAdjustment, rowToCharge } from "./row-mappers";
 import type { ChargeStatus, FamilyAssignmentSummary, FamilyBillingSummary, TuitionCharge, UnassignedEnrollmentSummary } from "./types";
 import { paymentScheduleLabel } from "./setup-wizard";
 
@@ -176,6 +180,7 @@ export async function listFamilyBillingSummaries(
     { data: ratePlans },
     { data: tiers },
     { data: paymentPlans },
+    { data: adjustmentRows },
   ] = await Promise.all([
     supabase
       .from("tuition_billing_accounts")
@@ -254,6 +259,11 @@ export async function listFamilyBillingSummaries(
       .from("tuition_payment_plans")
       .select("id, rate_plan_id, name, installment_count")
       .eq("organization_id", organizationId),
+    supabase
+      .from("tuition_adjustments")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("status", "active"),
   ]);
 
   const programMap = new Map(
@@ -286,6 +296,14 @@ export async function listFamilyBillingSummaries(
       },
     ]),
   );
+
+  const adjustmentsByAssignment = new Map<string, ReturnType<typeof rowToAdjustment>[]>();
+  for (const row of adjustmentRows ?? []) {
+    const assignmentId = String(row.assignment_id);
+    const existing = adjustmentsByAssignment.get(assignmentId) ?? [];
+    existing.push(rowToAdjustment(row));
+    adjustmentsByAssignment.set(assignmentId, existing);
+  }
 
   const billingSplitsByFamily = new Map<string, Array<{ shareBps: number; guardianName: string }>>();
   for (const row of billingSplits ?? []) {
@@ -413,9 +431,11 @@ export async function listFamilyBillingSummaries(
         !Array.isArray(assignment.metadata)
           ? (assignment.metadata as Record<string, unknown>)
           : {};
+      const assignmentId = String(assignment.id);
+      const assignmentAdjustments = adjustmentsByAssignment.get(assignmentId) ?? [];
 
       assignmentSummaries.push({
-        assignmentId: String(assignment.id),
+        assignmentId,
         enrollmentId,
         studentName,
         ratePlanName: ratePlanMap.get(ratePlanId) ?? "Rate plan",
@@ -428,6 +448,13 @@ export async function listFamilyBillingSummaries(
             paymentScheduleLabel(paymentPlan.installmentCount)
           : "Payment plan",
         pendingPaymentPlanSelection: metadata.pendingPaymentPlanSelection === true,
+        activeAdjustmentCount: assignmentAdjustments.length,
+        adjustmentSummaryLabel:
+          formatAssignmentAdjustmentBadgeLabel(assignmentAdjustments),
+        adjustmentSummaryFull:
+          assignmentAdjustments.length > 0
+            ? formatActiveAdjustmentsList(assignmentAdjustments)
+            : null,
       });
     }
 

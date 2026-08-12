@@ -57,7 +57,8 @@ type TuitionFamiliesPanelProps = {
   organizationId: string;
   slug: string;
   branding: OrganizationBranding;
-  onAdjust: (familyId: string, assignmentId: string) => void;
+  reloadToken?: number;
+  onAdjust: (familyId: string, assignmentId: string, studentName: string | null) => void;
   onEditAssignment: (assignmentId: string) => void;
   onRefresh: () => void;
 };
@@ -103,6 +104,15 @@ function AssignmentMetaBadges({
           Awaiting schedule choice
         </span>
       ) : null}
+      {assignment.activeAdjustmentCount > 0 && assignment.adjustmentSummaryLabel ? (
+        <span
+          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+          style={{ backgroundColor: C.successBg, color: C.success }}
+          title={assignment.adjustmentSummaryFull ?? assignment.adjustmentSummaryLabel}
+        >
+          {assignment.adjustmentSummaryLabel}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -111,6 +121,7 @@ export default function TuitionFamiliesPanel({
   organizationId,
   slug,
   branding,
+  reloadToken = 0,
   onAdjust,
   onEditAssignment,
   onRefresh,
@@ -164,7 +175,7 @@ export default function TuitionFamiliesPanel({
     queueMicrotask(() => {
       void loadFamilies();
     });
-  }, [loadFamilies]);
+  }, [loadFamilies, reloadToken]);
 
   const selectedFamily =
     families.find((f) => f.familyId === selectedFamilyId) ?? null;
@@ -629,13 +640,28 @@ export default function TuitionFamiliesPanel({
                             </button>
                             <button
                               type="button"
-                              onClick={() =>
-                                onAdjust(selectedFamily.familyId, assignment.assignmentId)
+                              disabled={assignment.pendingPaymentPlanSelection}
+                              title={
+                                assignment.pendingPaymentPlanSelection
+                                  ? "Set a payment schedule before applying discounts"
+                                  : undefined
                               }
-                              className="text-xs font-medium px-2 py-1 rounded"
+                              aria-label={
+                                assignment.pendingPaymentPlanSelection
+                                  ? `Set a payment schedule before applying discounts for ${assignment.studentName ?? "student"}`
+                                  : `Adjust tuition for ${assignment.studentName ?? "student"}`
+                              }
+                              onClick={() =>
+                                onAdjust(
+                                  selectedFamily.familyId,
+                                  assignment.assignmentId,
+                                  assignment.studentName,
+                                )
+                              }
+                              className="text-xs font-medium px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                               style={{ backgroundColor: C.accentLight, color: C.accent }}
                             >
-                              Adjust
+                              Adjust tuition
                             </button>
                             <button
                               type="button"

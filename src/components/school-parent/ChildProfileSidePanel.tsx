@@ -1,10 +1,11 @@
 "use client";
 
-import { createElement, useMemo, useState } from "react";
+import { createElement, useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, X } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import EnrollmentChecklistItemReadOnlyPanel from "@/components/admissions/EnrollmentChecklistItemReadOnlyPanel";
+import StudentPhoto from "@/components/students/StudentPhoto";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
@@ -24,6 +25,11 @@ import {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { ApplicationDetail } from "@/lib/admissions/parent-portal-access";
 import {
+  StudentProfilePhotoClientError,
+  uploadStudentProfilePhotoFromParent,
+} from "@/lib/students/upload-student-profile-photo-client";
+import { parentToast } from "@/lib/school-parent/parent-toast";
+import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
@@ -35,20 +41,12 @@ type ChildProfileSidePanelProps = {
   branding: OrganizationBranding;
   schoolName: string;
   schoolSlug: string;
+  organizationId: string;
   application: ApplicationDetail | null;
   checklist: LoadedEnrollmentChecklist | null;
+  readOnly?: boolean;
+  onPhotoUpdated?: (applicationId: string, profilePhotoUrl: string) => void;
 };
-
-function studentInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return "?";
-}
 
 function formatBirthDate(value: string): string | null {
   const [y, m, d] = value.split("-").map(Number);
@@ -159,26 +157,67 @@ function ChildProfileSidePanelContent({
   branding,
   schoolName,
   schoolSlug,
+  organizationId,
   application,
   checklist,
+  readOnly = false,
+  onPhotoUpdated,
   onClose,
 }: {
   branding: OrganizationBranding;
   schoolName: string;
   schoolSlug: string;
+  organizationId: string;
   application: ApplicationDetail;
   checklist: LoadedEnrollmentChecklist | null;
+  readOnly?: boolean;
+  onPhotoUpdated?: (applicationId: string, profilePhotoUrl: string) => void;
   onClose: () => void;
 }) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const hasChecklist = Boolean(checklist && checklist.items.length > 0);
   const [activeTab, setActiveTab] = useState<"application" | "checklist">("application");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(
+    application.profilePhotoUrl,
+  );
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const student = extractStudentFromResponses(application.responses);
   const fullName = student ? `${student.firstName} ${student.lastName}` : "Student";
   const birthDate = student ? formatBirthDate(student.dateOfBirth) : null;
   const age = student ? calculateAge(student.dateOfBirth) : null;
   const statusStyle = applicationStatusBadgeStyle(application.status, C);
+  const canUploadPhoto = !readOnly && Boolean(application.studentId);
+
+  const handlePhotoUpload = useCallback(
+    async (file: File) => {
+      if (!application.studentId || readOnly) return;
+
+      setPhotoUploading(true);
+
+      try {
+        const nextUrl = await uploadStudentProfilePhotoFromParent(
+          organizationId,
+          application.studentId,
+          file,
+        );
+        setProfilePhotoUrl(nextUrl);
+        onPhotoUpdated?.(application.id, nextUrl);
+        parentToast.success("Profile photo updated.");
+      } catch (error) {
+        parentToast.error(
+          error instanceof StudentProfilePhotoClientError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "Failed to upload photo.",
+        );
+      } finally {
+        setPhotoUploading(false);
+      }
+    },
+    [application.id, application.studentId, onPhotoUpdated, organizationId, readOnly],
+  );
 
   const progress = checklist
     ? computeChecklistProgress(checklist.items, checklist.instances)
@@ -198,13 +237,18 @@ function ChildProfileSidePanelContent({
         className="flex flex-shrink-0 items-start justify-between gap-3 px-4 py-4 sm:px-6"
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <div
-            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl text-base font-semibold"
-            style={{ backgroundColor: C.accentGlow, color: C.accentDark }}
-          >
-            {studentInitials(fullName)}
-          </div>
+        <div className="flex min-w-0 items-center gap-4">
+          <StudentPhoto
+            name={fullName}
+            photoUrl={profilePhotoUrl}
+            size="2xl"
+            shape="square"
+            theme={C}
+            editable={canUploadPhoto}
+            uploading={photoUploading}
+            showEditHint={canUploadPhoto}
+            onFileSelect={(file) => void handlePhotoUpload(file)}
+          />
           <div className="min-w-0">
             <h2
               className="truncate font-heading text-lg font-bold"
@@ -343,8 +387,11 @@ export default function ChildProfileSidePanel({
   branding,
   schoolName,
   schoolSlug,
+  organizationId,
   application,
   checklist,
+  readOnly = false,
+  onPhotoUpdated,
 }: ChildProfileSidePanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
 
@@ -378,11 +425,15 @@ export default function ChildProfileSidePanel({
             onClick={(event) => event.stopPropagation()}
           >
             <ChildProfileSidePanelContent
+              key={application.id}
               branding={branding}
               schoolName={schoolName}
               schoolSlug={schoolSlug}
+              organizationId={organizationId}
               application={application}
               checklist={checklist}
+              readOnly={readOnly}
+              onPhotoUpdated={onPhotoUpdated}
               onClose={onClose}
             />
           </motion.div>

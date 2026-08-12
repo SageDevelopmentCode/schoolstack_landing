@@ -125,6 +125,9 @@ export type FamilyAssignmentSummary = {
   tierLabel: string | null;
   paymentPlanLabel: string;
   pendingPaymentPlanSelection: boolean;
+  activeAdjustmentCount: number;
+  adjustmentSummaryLabel: string | null;
+  adjustmentSummaryFull: string | null;
 };
 
 export type TuitionAdjustment = {

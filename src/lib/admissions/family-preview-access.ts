@@ -12,12 +12,9 @@ import {
   resolvedPostSubmitDurationMinutes,
   resolvedPostSubmitMaxVisitDays,
 } from "./post-submit-templates";
+import { listEnrollmentProgressForApplications } from "./enrollment-checklist-materialization";
 import {
-  listEnrollmentProgressForApplications,
-  type EnrollmentProgressSummary,
-} from "./enrollment-checklist-materialization";
-import { applicationStatusLabel } from "./application-status-ui";
-import {
+  buildFamilyChildOverviews,
   loadApplicationDetail,
   type ApplicationDetail,
   type ApplicationPostSubmitTask,
@@ -134,20 +131,6 @@ function parseStringRecord(value: unknown): Record<string, string> {
     }
   }
   return result;
-}
-
-function displayApplicationStatus(
-  status: string,
-  enrollmentProgress?: EnrollmentProgressSummary,
-): string {
-  if (status === "enrolled") return "enrolled";
-  if (
-    status === "enrolling" &&
-    enrollmentProgress?.checklistStatus === "completed"
-  ) {
-    return "enrolled";
-  }
-  return status;
 }
 
 export async function applicationBelongsToFamily(
@@ -286,6 +269,7 @@ export async function listFamilyApplicationsForFamilyId(
       status,
       submitted_at,
       created_at,
+      student_id,
       responses,
       application_form_versions!inner (
         title,
@@ -373,6 +357,7 @@ export async function listFamilyApplicationsForFamilyId(
       formTitle: String(form?.title ?? "Application"),
       publicSlug:
         typeof form?.public_slug === "string" ? form.public_slug : null,
+      studentId: row.student_id ? String(row.student_id) : null,
       studentName: extractStudentLabel(responses),
       grade: (() => {
         const student = extractStudentFromResponses(row.responses);
@@ -421,39 +406,39 @@ export async function listFamilyChildrenForHomeByFamilyId(
 
   if (eligible.length === 0) return [];
 
-  const progressByApplicationId = await listEnrollmentProgressForApplications(
-    supabase,
-    organizationId,
-    eligible.map((application) => application.id),
+  const studentIds = eligible
+    .map((application) => application.studentId)
+    .filter((id): id is string => Boolean(id));
+
+  const [progressByApplicationId, photosResult] = await Promise.all([
+    listEnrollmentProgressForApplications(
+      supabase,
+      organizationId,
+      eligible.map((application) => application.id),
+    ),
+    studentIds.length > 0
+      ? supabase
+          .from("students")
+          .select("id, profile_photo_url")
+          .eq("organization_id", organizationId)
+          .in("id", studentIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (photosResult.error) throw photosResult.error;
+
+  const photosByStudentId = new Map(
+    (photosResult.data ?? []).map((row) => [
+      String(row.id),
+      row.profile_photo_url ? String(row.profile_photo_url) : null,
+    ]),
   );
 
-  const children = eligible.map((application) => {
-    const enrollmentProgress = progressByApplicationId.get(application.id);
-    const displayStatus = displayApplicationStatus(
-      application.status,
-      enrollmentProgress,
-    );
-    const isEnrolled = displayStatus === "enrolled";
-
-    return {
-      applicationId: application.id,
-      studentName: application.studentName!.trim(),
-      grade: application.grade,
-      status: displayStatus,
-      statusLabel: applicationStatusLabel(displayStatus),
-      isEnrolled,
-      checklistProgress: enrollmentProgress
-        ? { completed: enrollmentProgress.completed, total: enrollmentProgress.total }
-        : null,
-    };
-  });
-
-  return children.sort((a, b) => {
-    if (a.isEnrolled !== b.isEnrolled) {
-      return a.isEnrolled ? -1 : 1;
-    }
-    return a.studentName.localeCompare(b.studentName);
-  });
+  return buildFamilyChildOverviews(
+    applications,
+    progressByApplicationId,
+    photosByStudentId,
+  );
 }
 
 export async function loadApplicationDetailForFamily(

@@ -23,6 +23,7 @@ function buildSummary(
     enrolledAt: "2026-01-01",
     assignedTeacherId: null,
     assignedTeacherName: null,
+    profilePhotoUrl: null,
     ...overrides,
   };
 }

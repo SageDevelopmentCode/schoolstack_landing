@@ -30,6 +30,9 @@ function assignment(
     tierLabel: "Standard",
     paymentPlanLabel: "4 payments",
     pendingPaymentPlanSelection: false,
+    activeAdjustmentCount: 0,
+    adjustmentSummaryLabel: null,
+    adjustmentSummaryFull: null,
     ...overrides,
   };
 }

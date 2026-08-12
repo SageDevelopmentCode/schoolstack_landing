@@ -81,8 +81,17 @@ export type OrganizationFeatures = {
   teacher: TeacherFeatures;
   parent: ParentFeatures;
   feature_nav?: FeatureNavConfig;
+  parent_onboarding?: ParentOnboardingConfig;
 } & Partial<AdditionalFeatures> &
-  Record<string, boolean | AdminFeatures | TeacherFeatures | ParentFeatures | FeatureNavConfig>;
+  Record<
+    string,
+    | boolean
+    | AdminFeatures
+    | TeacherFeatures
+    | ParentFeatures
+    | FeatureNavConfig
+    | ParentOnboardingConfig
+  >;
 
 export type FeatureNavChildConfig = {
   key: string;
@@ -108,6 +117,22 @@ export type FeatureNavConfig = {
   admin?: PortalFeatureNav;
   teacher?: PortalFeatureNav;
   parent?: PortalFeatureNav;
+};
+
+export type ParentOnboardingAutoCompletionType =
+  | "billing"
+  | "messages"
+  | "committees";
+
+export type ParentOnboardingItem = {
+  id: string;
+  label: string;
+  icon?: string;
+  target: string;
+};
+
+export type ParentOnboardingConfig = {
+  items: ParentOnboardingItem[];
 };
 
 export type OrganizationSettingsRow = {

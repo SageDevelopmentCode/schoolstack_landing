@@ -38,6 +38,7 @@ function buildContext(
             enrolledAt: "2026-01-01",
             assignedTeacherId: "staff-1",
             assignedTeacherName: "Julius Staff",
+            profilePhotoUrl: null,
           },
         ],
       ],

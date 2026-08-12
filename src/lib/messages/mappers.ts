@@ -87,6 +87,7 @@ export function toMessageStudentSummaries(
     enrolledAt: summary.enrolledAt,
     assignedTeacherId: summary.assignedTeacherId,
     assignedTeacherName: summary.assignedTeacherName,
+    profilePhotoUrl: summary.profilePhotoUrl,
   }));
 }
 

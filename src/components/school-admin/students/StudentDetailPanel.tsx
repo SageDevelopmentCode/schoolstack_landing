@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ExternalLink, X } from "lucide-react";
+import StudentPhoto from "@/components/students/StudentPhoto";
 import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import DetailPanelSectionGroup from "@/components/school-admin/admissions/DetailPanelSectionGroup";
@@ -337,7 +338,16 @@ export default function StudentDetailPanel({
           className="flex flex-shrink-0 items-start justify-between gap-3 px-4 py-3 sm:px-5"
           style={{ borderBottom: `1px solid ${C.border}` }}
         >
-          <div className="min-w-0">
+          <div className="flex min-w-0 items-start gap-3">
+            <StudentPhoto
+              name={studentName}
+              photoUrl={detail?.profilePhotoUrl ?? student.profilePhotoUrl}
+              size="md"
+              shape="circle"
+              accentColor={C.accent}
+              accentGlowColor={C.accentLight}
+            />
+            <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3
                 className="truncate text-sm font-semibold"
@@ -363,6 +373,7 @@ export default function StudentDetailPanel({
               <span className="mx-1.5 opacity-50">·</span>
               Enrolled {formatEnrolledDate(student.enrolledAt)}
             </p>
+            </div>
           </div>
           <button
             type="button"
