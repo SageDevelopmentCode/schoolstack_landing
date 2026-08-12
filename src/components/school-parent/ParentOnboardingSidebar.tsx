@@ -1,5 +1,6 @@
 "use client";
 
+import { createElement } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ClipboardCheck, X } from "lucide-react";
@@ -44,7 +45,7 @@ function OnboardingProgressBar({
 
 function OnboardingItemIcon({ item }: { item: ResolvedParentOnboardingItem }) {
   const { iconBg, iconColor } = getParentFeatureIconStyle(item.icon ?? "puzzle");
-  const Icon = getFeatureIcon(item.icon ?? "puzzle");
+  const icon = getFeatureIcon(item.icon ?? "puzzle");
 
   if (item.completed) {
     return (
@@ -58,7 +59,7 @@ function OnboardingItemIcon({ item }: { item: ResolvedParentOnboardingItem }) {
     <div
       className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${iconBg}`}
     >
-      <Icon className={`h-4 w-4 ${iconColor}`} />
+      {createElement(icon, { className: `h-4 w-4 ${iconColor}` })}
     </div>
   );
 }

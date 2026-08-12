@@ -250,7 +250,9 @@ export default function ParentChildrenPage({
       return;
     }
     deepLinkHandled.current = true;
-    selectChild(applicationId);
+    queueMicrotask(() => {
+      selectChild(applicationId);
+    });
   }, [children, searchParams, selectChild]);
 
   const selectedProfile = selectedApplicationId

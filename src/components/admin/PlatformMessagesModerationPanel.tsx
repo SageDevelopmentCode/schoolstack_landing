@@ -336,7 +336,9 @@ export default function PlatformMessagesModerationPanel({
 
   useEffect(() => {
     if (!selectedThreadId || !organizationId) {
-      setSelectedThread(null);
+      queueMicrotask(() => {
+        setSelectedThread(null);
+      });
       return;
     }
 

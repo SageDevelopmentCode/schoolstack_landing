@@ -59,7 +59,9 @@ export default function SchoolEventsTab({
   }, [organizationId, supabase]);
 
   useEffect(() => {
-    void loadEvents();
+    queueMicrotask(() => {
+      void loadEvents();
+    });
   }, [loadEvents]);
 
   const openCreateForm = (prefillDate?: string) => {

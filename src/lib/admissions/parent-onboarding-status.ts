@@ -6,10 +6,12 @@ import {
   getParentOnboardingItems,
   resolveParentOnboardingItems,
   type ParentOnboardingCompletionStatus,
-  type ParentOnboardingItem,
   type ResolvedParentOnboardingItem,
 } from "@/lib/organization-settings/parent-onboarding";
-import type { OrganizationFeatures } from "@/lib/organization-settings/types";
+import type {
+  OrganizationFeatures,
+  ParentOnboardingItem,
+} from "@/lib/organization-settings/types";
 
 function needsBillingCheck(items: ParentOnboardingItem[]): boolean {
   return items.some((item) => getAutoCompletionType(item.target) === "billing");
