@@ -8,4 +8,4 @@ export const TUITION_FAMILY_TABS = [
 
 export type TuitionFamilyTabId = (typeof TUITION_FAMILY_TABS)[number]["id"];
 
-export const DEFAULT_TUITION_FAMILY_TAB: TuitionFamilyTabId = "schedule";
+export const DEFAULT_TUITION_FAMILY_TAB: TuitionFamilyTabId = "assignments";

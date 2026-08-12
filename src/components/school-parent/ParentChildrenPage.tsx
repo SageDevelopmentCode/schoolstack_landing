@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle, Clock, Loader2 } from "lucide-react";
 import StudentPhoto from "@/components/students/StudentPhoto";
@@ -238,6 +239,19 @@ export default function ParentChildrenPage({
     },
     [loadProfile],
   );
+
+  const searchParams = useSearchParams();
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    const applicationId = searchParams.get("applicationId");
+    if (!applicationId) return;
+    if (!children.some((child) => child.applicationId === applicationId)) {
+      return;
+    }
+    deepLinkHandled.current = true;
+    selectChild(applicationId);
+  }, [children, searchParams, selectChild]);
 
   const selectedProfile = selectedApplicationId
     ? profiles[selectedApplicationId] ?? null

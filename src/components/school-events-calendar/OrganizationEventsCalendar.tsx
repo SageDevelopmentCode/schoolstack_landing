@@ -249,7 +249,6 @@ export default function OrganizationEventsCalendar({
               eventsByDate={eventsByDate}
               selectedDate={selectedDate}
               selectedEventId={selectedEventId}
-              readOnly={readOnly}
               onDayClick={handleDayClick}
               onEventClick={onEventClick}
             />

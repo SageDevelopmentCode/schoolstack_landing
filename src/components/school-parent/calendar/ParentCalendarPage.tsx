@@ -7,9 +7,10 @@ import OrganizationEventsCalendar from "@/components/school-events-calendar/Orga
 import type { CalendarViewMode } from "@/components/school-events-calendar/CalendarToolbar";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 import {
-  SCHOOL_EVENT_TYPE_CHIP_STYLE,
+  getEventDisplayStyle,
   SCHOOL_EVENT_TYPE_LABELS,
 } from "@/lib/school-events/event-labels";
+import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
 import type { OrganizationEvent, ParentCalendarInitialData } from "@/lib/school-events/types";
 import {
   buildAdminThemeTokens,
@@ -41,7 +42,7 @@ function EventSidebar({
   C: AdminThemeTokens;
   onClose: () => void;
 }) {
-  const typeStyle = SCHOOL_EVENT_TYPE_CHIP_STYLE[event.type];
+  const typeStyle = getEventDisplayStyle(event);
 
   return (
     <>
@@ -111,7 +112,7 @@ function EventSidebar({
               Time
             </p>
             <p className="mt-1 text-sm" style={{ color: C.textPrimary }}>
-              {event.isAllDay ? "All day" : event.time || "—"}
+              {formatEventTimeRange(event)}
             </p>
           </div>
 
@@ -239,15 +240,14 @@ export default function ParentCalendarPage({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="mx-auto max-w-5xl">
+      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
+        <div className="mx-auto w-full max-w-7xl">
           <OrganizationEventsCalendar
             C={C}
             events={events}
             view={view}
             onViewChange={setView}
             readOnly
-            compact
             emptyHint="No events scheduled yet. Your school calendar will appear here when events are added."
             onDayClick={handleDayClick}
             onEventClick={handleEventClick}
@@ -279,7 +279,7 @@ export default function ParentCalendarPage({
               ) : (
                 <ul className="mt-3 space-y-2">
                   {eventsThisMonth.map((event) => {
-                    const colors = SCHOOL_EVENT_TYPE_CHIP_STYLE[event.type];
+                    const colors = getEventDisplayStyle(event);
                     return (
                       <li key={event.id}>
                         <button
@@ -294,7 +294,7 @@ export default function ParentCalendarPage({
                             </p>
                             <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
                               {formatEventDate(event.date)}
-                              {!event.isAllDay && event.time ? ` · ${event.time}` : ""}
+                              {!event.isAllDay ? ` · ${formatEventTimeRange(event)}` : ""}
                             </p>
                           </div>
                           <span

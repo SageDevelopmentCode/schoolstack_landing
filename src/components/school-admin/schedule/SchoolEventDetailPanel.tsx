@@ -6,9 +6,10 @@ import { MapPin, Pencil, Trash2, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 import {
-  SCHOOL_EVENT_TYPE_CHIP_STYLE,
+  getEventDisplayStyle,
   SCHOOL_EVENT_TYPE_LABELS,
 } from "@/lib/school-events/event-labels";
+import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 
 function formatEventDate(date: string) {
@@ -43,7 +44,7 @@ export default function SchoolEventDetailPanel({
 
   if (!event) return null;
 
-  const typeStyle = SCHOOL_EVENT_TYPE_CHIP_STYLE[event.type];
+  const typeStyle = getEventDisplayStyle(event);
 
   return (
     <AnimatePresence>
@@ -62,7 +63,7 @@ export default function SchoolEventDetailPanel({
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ type: "spring", damping: 28, stiffness: 280 }}
-          className="fixed top-0 right-0 bottom-0 z-50 flex w-[380px] flex-col overflow-hidden border-l shadow-xl"
+          className="fixed top-0 right-0 bottom-0 z-50 flex w-[480px] flex-col overflow-hidden border-l shadow-xl"
           style={{ backgroundColor: C.surface, borderColor: C.border }}
         >
           <div
@@ -103,25 +104,14 @@ export default function SchoolEventDetailPanel({
               </p>
             </div>
 
-            {!event.isAllDay && event.time ? (
-              <div>
-                <p className="mb-0.5 text-xs" style={{ color: C.textTertiary }}>
-                  Time
-                </p>
-                <p className="text-sm" style={{ color: C.textPrimary }}>
-                  {event.time}
-                </p>
-              </div>
-            ) : (
-              <div>
-                <p className="mb-0.5 text-xs" style={{ color: C.textTertiary }}>
-                  Time
-                </p>
-                <p className="text-sm" style={{ color: C.textPrimary }}>
-                  All day
-                </p>
-              </div>
-            )}
+            <div>
+              <p className="mb-0.5 text-xs" style={{ color: C.textTertiary }}>
+                Time
+              </p>
+              <p className="text-sm" style={{ color: C.textPrimary }}>
+                {formatEventTimeRange(event)}
+              </p>
+            </div>
 
             {event.location ? (
               <div>

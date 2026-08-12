@@ -1,43 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
-import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
 import OrganizationEventsCalendar from "@/components/school-events-calendar/OrganizationEventsCalendar";
 import type { CalendarViewMode } from "@/components/school-events-calendar/CalendarToolbar";
 import SchoolEventDetailPanel from "@/components/school-admin/schedule/SchoolEventDetailPanel";
+import SchoolEventFormPanel, {
+  EMPTY_EVENT_FORM,
+  type EventFormState,
+} from "@/components/school-admin/schedule/SchoolEventFormPanel";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { SCHOOL_EVENT_TYPE_LABELS } from "@/lib/school-events/event-labels";
+import {
+  addMinutesToTimeInput,
+  DEFAULT_EVENT_DURATION_MINUTES,
+  toTimeInputValue,
+} from "@/lib/school-events/calendar-time";
+import { getDefaultColorKeyForType } from "@/lib/school-events/event-labels";
 import {
   createOrganizationEvent,
   deleteOrganizationEvent,
   listEventsForOrg,
   updateOrganizationEvent,
 } from "@/lib/school-events/events";
-import type { OrganizationEvent, SchoolEventType } from "@/lib/school-events/types";
+import type { OrganizationEvent } from "@/lib/school-events/types";
 import { createClient } from "@/utils/supabase/client";
-
-type EventFormState = {
-  title: string;
-  date: string;
-  time: string;
-  isAllDay: boolean;
-  eventType: SchoolEventType;
-  location: string;
-  description: string;
-};
-
-const EMPTY_FORM: EventFormState = {
-  title: "",
-  date: "",
-  time: "",
-  isAllDay: true,
-  eventType: "other",
-  location: "",
-  description: "",
-};
 
 export default function SchoolEventsTab({
   C,
@@ -50,9 +37,10 @@ export default function SchoolEventsTab({
   const [events, setEvents] = useState<OrganizationEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<CalendarViewMode>("month");
-  const [showModal, setShowModal] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [form, setForm] = useState<EventFormState>(EMPTY_FORM);
+  const [form, setForm] = useState<EventFormState>(EMPTY_EVENT_FORM);
   const [saving, setSaving] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -74,40 +62,59 @@ export default function SchoolEventsTab({
     void loadEvents();
   }, [loadEvents]);
 
-  const openCreateModal = (prefillDate?: string) => {
+  const openCreateForm = (prefillDate?: string) => {
+    setSelectedEventId(null);
     setEditingEventId(null);
+    setFormMode("create");
     setForm({
-      ...EMPTY_FORM,
+      ...EMPTY_EVENT_FORM,
       date: prefillDate ?? "",
+      colorKey: getDefaultColorKeyForType(EMPTY_EVENT_FORM.eventType),
     });
-    setShowModal(true);
+    setFormOpen(true);
   };
 
-  const openEditModal = (event: OrganizationEvent) => {
-    setEditingEventId(event.id);
+  const openEditForm = (event: OrganizationEvent) => {
     setSelectedEventId(null);
+    setEditingEventId(event.id);
+    setFormMode("edit");
     setForm({
       title: event.title,
       date: event.date,
-      time: event.time ?? "",
+      time: toTimeInputValue(event.time),
+      endTime: toTimeInputValue(event.endTime),
       isAllDay: event.isAllDay,
       eventType: event.type,
+      colorKey: event.colorKey ?? getDefaultColorKeyForType(event.type),
+      colorManuallySet: Boolean(event.colorKey),
       location: event.location ?? "",
       description: event.description ?? "",
     });
-    setShowModal(true);
+    setFormOpen(true);
   };
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.date) return;
+    if (!form.isAllDay && !form.time) {
+      adminToast.error("Please set a start time for timed events.");
+      return;
+    }
+
+    let endTime = form.endTime;
+    if (!form.isAllDay && form.time && !endTime) {
+      endTime = addMinutesToTimeInput(form.time, DEFAULT_EVENT_DURATION_MINUTES);
+    }
+
     setSaving(true);
     try {
       const payload = {
         title: form.title.trim(),
         date: form.date,
         time: form.isAllDay ? undefined : form.time || undefined,
+        endTime: form.isAllDay ? undefined : endTime || undefined,
         isAllDay: form.isAllDay,
         type: form.eventType,
+        colorKey: form.colorKey,
         location: form.location || undefined,
         description: form.description || undefined,
       };
@@ -116,6 +123,8 @@ export default function SchoolEventsTab({
         await updateOrganizationEvent(supabase, editingEventId, {
           ...payload,
           time: form.isAllDay ? null : form.time || null,
+          endTime: form.isAllDay ? null : endTime || null,
+          colorKey: form.colorKey,
           location: form.location || null,
           description: form.description || null,
         });
@@ -125,7 +134,7 @@ export default function SchoolEventsTab({
         adminToast.success("Event added");
       }
 
-      setShowModal(false);
+      setFormOpen(false);
       await loadEvents();
     } catch (err) {
       adminToast.error(
@@ -157,7 +166,7 @@ export default function SchoolEventsTab({
         onViewChange={setView}
         selectedEventId={selectedEventId}
         emptyHint="No events yet — click a day to add one, or use Add event."
-        onDayClick={openCreateModal}
+        onDayClick={openCreateForm}
         onEventClick={(event) => setSelectedEventId(event.id)}
         header={
           <div className="mb-1">
@@ -172,7 +181,7 @@ export default function SchoolEventsTab({
         toolbarExtra={
           <button
             type="button"
-            onClick={() => openCreateModal()}
+            onClick={() => openCreateForm()}
             className="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
             style={{ backgroundColor: C.accent }}
           >
@@ -183,112 +192,23 @@ export default function SchoolEventsTab({
       />
 
       <SchoolEventDetailPanel
-        event={selectedEvent}
+        event={formOpen ? null : selectedEvent}
         C={C}
         onClose={() => setSelectedEventId(null)}
         onDelete={handleDelete}
-        onEdit={openEditModal}
+        onEdit={openEditForm}
       />
 
-      <AnimatePresence>
-        {showModal && (
-          <CommitteeModalShell
-            C={C}
-            title={editingEventId ? "Edit event" : "Add event"}
-            onClose={() => setShowModal(false)}
-            footer={
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="cursor-pointer px-4 py-2 text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saving || !form.title.trim() || !form.date}
-                  className="cursor-pointer rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                  style={{ backgroundColor: C.accent }}
-                >
-                  {saving ? "Saving…" : editingEventId ? "Save changes" : "Add event"}
-                </button>
-              </div>
-            }
-          >
-            <div className="space-y-3">
-              <input
-                placeholder="Title"
-                value={form.title}
-                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-                style={{ borderColor: C.border }}
-              />
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-                style={{ borderColor: C.border }}
-              />
-              <label className="flex items-center gap-2 text-sm" style={{ color: C.textSecondary }}>
-                <input
-                  type="checkbox"
-                  checked={form.isAllDay}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, isAllDay: e.target.checked }))
-                  }
-                />
-                All day
-              </label>
-              {!form.isAllDay ? (
-                <input
-                  placeholder="Time (e.g. 9:00 AM)"
-                  value={form.time}
-                  onChange={(e) => setForm((prev) => ({ ...prev, time: e.target.value }))}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                  style={{ borderColor: C.border }}
-                />
-              ) : null}
-              <select
-                value={form.eventType}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    eventType: e.target.value as SchoolEventType,
-                  }))
-                }
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-                style={{ borderColor: C.border }}
-              >
-                {(Object.keys(SCHOOL_EVENT_TYPE_LABELS) as SchoolEventType[]).map((type) => (
-                  <option key={type} value={type}>
-                    {SCHOOL_EVENT_TYPE_LABELS[type]}
-                  </option>
-                ))}
-              </select>
-              <input
-                placeholder="Location (optional)"
-                value={form.location}
-                onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-                style={{ borderColor: C.border }}
-              />
-              <textarea
-                placeholder="Description (optional)"
-                value={form.description}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, description: e.target.value }))
-                }
-                rows={3}
-                className="w-full resize-none rounded-lg border px-3 py-2 text-sm"
-                style={{ borderColor: C.border }}
-              />
-            </div>
-          </CommitteeModalShell>
-        )}
-      </AnimatePresence>
+      <SchoolEventFormPanel
+        C={C}
+        open={formOpen}
+        mode={formMode}
+        form={form}
+        saving={saving}
+        onClose={() => setFormOpen(false)}
+        onChange={setForm}
+        onSave={handleSave}
+      />
     </div>
   );
 }

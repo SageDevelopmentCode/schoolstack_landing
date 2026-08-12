@@ -1,7 +1,7 @@
 "use client";
 
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { SCHOOL_EVENT_TYPE_CHIP_STYLE } from "@/lib/school-events/event-labels";
+import { getEventDisplayStyle } from "@/lib/school-events/event-labels";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 
 export default function EventChip({
@@ -17,7 +17,7 @@ export default function EventChip({
   onClick: () => void;
   compact?: boolean;
 }) {
-  const colors = SCHOOL_EVENT_TYPE_CHIP_STYLE[event.type];
+  const colors = getEventDisplayStyle(event);
 
   return (
     <button

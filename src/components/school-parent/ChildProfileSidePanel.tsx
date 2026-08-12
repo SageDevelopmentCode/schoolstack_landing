@@ -28,6 +28,7 @@ import {
   StudentProfilePhotoClientError,
   uploadStudentProfilePhotoFromParent,
 } from "@/lib/students/upload-student-profile-photo-client";
+import { parentToast } from "@/lib/school-parent/parent-toast";
 import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
@@ -180,7 +181,6 @@ function ChildProfileSidePanelContent({
     application.profilePhotoUrl,
   );
   const [photoUploading, setPhotoUploading] = useState(false);
-  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
 
   const student = extractStudentFromResponses(application.responses);
   const fullName = student ? `${student.firstName} ${student.lastName}` : "Student";
@@ -194,7 +194,6 @@ function ChildProfileSidePanelContent({
       if (!application.studentId || readOnly) return;
 
       setPhotoUploading(true);
-      setPhotoUploadError(null);
 
       try {
         const nextUrl = await uploadStudentProfilePhotoFromParent(
@@ -204,8 +203,9 @@ function ChildProfileSidePanelContent({
         );
         setProfilePhotoUrl(nextUrl);
         onPhotoUpdated?.(application.id, nextUrl);
+        parentToast.success("Profile photo updated.");
       } catch (error) {
-        setPhotoUploadError(
+        parentToast.error(
           error instanceof StudentProfilePhotoClientError
             ? error.message
             : error instanceof Error
@@ -237,15 +237,16 @@ function ChildProfileSidePanelContent({
         className="flex flex-shrink-0 items-start justify-between gap-3 px-4 py-4 sm:px-6"
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-4">
           <StudentPhoto
             name={fullName}
             photoUrl={profilePhotoUrl}
-            size="lg"
+            size="2xl"
             shape="square"
             theme={C}
             editable={canUploadPhoto}
             uploading={photoUploading}
+            showEditHint={canUploadPhoto}
             onFileSelect={(file) => void handlePhotoUpload(file)}
           />
           <div className="min-w-0">
@@ -255,11 +256,6 @@ function ChildProfileSidePanelContent({
             >
               {fullName}
             </h2>
-            {photoUploadError ? (
-              <p className="mt-1 text-xs" style={{ color: C.error }} role="alert">
-                {photoUploadError}
-              </p>
-            ) : null}
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <span
                 className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"

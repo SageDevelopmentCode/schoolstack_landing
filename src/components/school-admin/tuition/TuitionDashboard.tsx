@@ -63,11 +63,13 @@ export default function TuitionDashboard({
   });
   const [adjustFamilyId, setAdjustFamilyId] = useState<string | null>(null);
   const [adjustAssignmentId, setAdjustAssignmentId] = useState<string | null>(null);
+  const [adjustStudentName, setAdjustStudentName] = useState<string | null>(null);
   const [editAssignmentId, setEditAssignmentId] = useState<string | null>(null);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [showSetupPanel, setShowSetupPanel] = useState(false);
   const [readiness, setReadiness] = useState<TuitionReadinessStatus | null>(null);
   const [familiesRefreshKey, setFamiliesRefreshKey] = useState(0);
+  const [familiesReloadToken, setFamiliesReloadToken] = useState(0);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -219,12 +221,14 @@ export default function TuitionDashboard({
           {tab === "families" ? (
             <TuitionFamiliesPanel
               key={familiesRefreshKey}
+              reloadToken={familiesReloadToken}
               organizationId={organizationId}
               slug={slug}
               branding={branding}
-              onAdjust={(familyId, assignmentId) => {
+              onAdjust={(familyId, assignmentId, studentName) => {
                 setAdjustFamilyId(familyId);
                 setAdjustAssignmentId(assignmentId);
+                setAdjustStudentName(studentName);
               }}
               onEditAssignment={(assignmentId) => setEditAssignmentId(assignmentId)}
               onRefresh={() => void loadData()}
@@ -270,14 +274,18 @@ export default function TuitionDashboard({
         organizationId={organizationId}
         familyId={adjustFamilyId ?? ""}
         assignmentId={adjustAssignmentId ?? ""}
+        studentName={adjustStudentName}
         branding={branding}
         onClose={() => {
           setAdjustFamilyId(null);
           setAdjustAssignmentId(null);
+          setAdjustStudentName(null);
         }}
         onSaved={() => {
           setAdjustFamilyId(null);
           setAdjustAssignmentId(null);
+          setAdjustStudentName(null);
+          setFamiliesReloadToken((value) => value + 1);
           void loadData();
         }}
       />

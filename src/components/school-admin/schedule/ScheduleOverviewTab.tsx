@@ -11,7 +11,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
 import type { ScheduleTabId } from "./schedule-tabs";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
-import { SCHOOL_EVENT_TYPE_LABELS } from "@/lib/school-events/event-labels";
+import { getEventDisplayStyle, SCHOOL_EVENT_TYPE_LABELS } from "@/lib/school-events/event-labels";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 
 type ScheduleOverviewTabProps = {
@@ -349,7 +349,9 @@ export default function ScheduleOverviewTab({
             className="overflow-hidden rounded-sm border"
             style={{ borderColor: C.border, backgroundColor: C.surface }}
           >
-            {upcomingEvents.map((event, index) => (
+            {upcomingEvents.map((event, index) => {
+              const colors = getEventDisplayStyle(event);
+              return (
               <button
                 key={event.id}
                 type="button"
@@ -370,12 +372,13 @@ export default function ScheduleOverviewTab({
                 </div>
                 <span
                   className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                  style={{ backgroundColor: C.accentLight, color: C.accent }}
+                  style={{ backgroundColor: colors.bg, color: colors.text }}
                 >
                   {SCHOOL_EVENT_TYPE_LABELS[event.type]}
                 </span>
               </button>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>

@@ -1,13 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { mapOrganizationEventRow, type OrganizationEventRow } from "./mappers";
-import type { OrganizationEvent, SchoolEventType } from "./types";
+import type { OrganizationEvent, SchoolEventColorKey, SchoolEventType } from "./types";
 
 export type CreateOrganizationEventInput = {
   title: string;
   date: string;
   time?: string;
+  endTime?: string;
   isAllDay?: boolean;
   type?: SchoolEventType;
+  colorKey?: SchoolEventColorKey;
   location?: string;
   description?: string;
 };
@@ -16,8 +18,10 @@ export type UpdateOrganizationEventInput = {
   title?: string;
   date?: string;
   time?: string | null;
+  endTime?: string | null;
   isAllDay?: boolean;
   type?: SchoolEventType;
+  colorKey?: SchoolEventColorKey | null;
   location?: string | null;
   description?: string | null;
 };
@@ -102,8 +106,10 @@ export async function createOrganizationEvent(
       title: input.title.trim(),
       event_date: input.date,
       event_time: isAllDay ? null : (input.time ?? null),
+      end_time: isAllDay ? null : (input.endTime ?? null),
       is_all_day: isAllDay,
       event_type: input.type ?? "other",
+      color_key: input.colorKey ?? null,
       location: input.location ?? null,
       description: input.description ?? null,
     })
@@ -123,8 +129,10 @@ export async function updateOrganizationEvent(
   if (input.title !== undefined) patch.title = input.title;
   if (input.date !== undefined) patch.event_date = input.date;
   if (input.time !== undefined) patch.event_time = input.time;
+  if (input.endTime !== undefined) patch.end_time = input.endTime;
   if (input.isAllDay !== undefined) patch.is_all_day = input.isAllDay;
   if (input.type !== undefined) patch.event_type = input.type;
+  if (input.colorKey !== undefined) patch.color_key = input.colorKey;
   if (input.location !== undefined) patch.location = input.location;
   if (input.description !== undefined) patch.description = input.description;
 

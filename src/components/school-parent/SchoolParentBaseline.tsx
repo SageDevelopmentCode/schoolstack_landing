@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
+import ParentToaster from "@/components/school-parent/ParentToaster";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
@@ -131,6 +132,8 @@ export default function SchoolParentBaseline({
           submitEndpoint="/api/parent-portal/support-requests"
         />
       ) : null}
+
+      <ParentToaster C={C} helpButtonVisible={showHelpButton} />
     </div>
     </NavigationLoadingProvider>
   );

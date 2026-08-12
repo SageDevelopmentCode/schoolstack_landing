@@ -27,7 +27,7 @@ import {
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import {
-  SCHOOL_EVENT_TYPE_CHIP_STYLE,
+  getEventDisplayStyle,
   SCHOOL_EVENT_TYPE_LABELS,
 } from "@/lib/school-events/event-labels";
 import type { OrganizationEvent } from "@/lib/school-events/types";
@@ -92,6 +92,17 @@ function childApplicationHref(
   return `/school/${schoolSlug}/apply/${child.applicationId}`;
 }
 
+function childDetailsHref(
+  schoolSlug: string,
+  applicationId: string,
+  previewBasePath?: string,
+): string {
+  const base = previewBasePath
+    ? `${previewBasePath}/parent/children`
+    : schoolParentPath(schoolSlug, "children");
+  return `${base}?applicationId=${encodeURIComponent(applicationId)}`;
+}
+
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
     <h2 className="font-heading text-base font-semibold text-gray-800">
@@ -115,12 +126,24 @@ function ChildProfileCard({
 }) {
   const badgeStyle = applicationStatusBadgeStyle(child.status, C);
   const childFirstName = child.studentName.split(" ")[0];
-  const href = childApplicationHref(schoolSlug, child, previewBasePath);
+  const detailsHref = childDetailsHref(
+    schoolSlug,
+    child.applicationId,
+    previewBasePath,
+  );
+  const applicationHref = childApplicationHref(
+    schoolSlug,
+    child,
+    previewBasePath,
+  );
+  const applicationLinkLabel =
+    child.isEnrolled || child.status === "enrolling"
+      ? "Enrollment checklist"
+      : "View application";
 
   return (
     <motion.div custom={index + 2} initial="hidden" animate="visible" variants={fadeUp}>
-      <Link
-        href={href}
+      <div
         className="group flex items-center gap-4 rounded-2xl border bg-white p-4 transition-all duration-200 hover:-translate-y-0.5"
         style={{
           borderColor: C.border,
@@ -135,44 +158,58 @@ function ChildProfileCard({
           e.currentTarget.style.boxShadow = C.shadowCard;
         }}
       >
-        <StudentPhoto
-          name={child.studentName}
-          photoUrl={child.profilePhotoUrl}
-          size="xl"
-          shape="square"
-          theme={C}
-          className="transition-transform duration-200 group-hover:scale-105"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-heading text-sm font-semibold text-gray-800">
-            {childFirstName}
-          </p>
-          <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-            {child.grade ? `Grade ${child.grade}` : "Grade not listed"}
-          </p>
-          <p
-            className="mt-2 flex items-center gap-1 text-xs font-medium"
+        <Link
+          href={detailsHref}
+          className="flex min-w-0 flex-1 items-center gap-4"
+        >
+          <StudentPhoto
+            name={child.studentName}
+            photoUrl={child.profilePhotoUrl}
+            size="xl"
+            shape="square"
+            theme={C}
+            className="transition-transform duration-200 group-hover:scale-105"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-heading text-sm font-semibold text-gray-800">
+              {childFirstName}
+            </p>
+            <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+              {child.grade ? `Grade ${child.grade}` : "Grade not listed"}
+            </p>
+            <p
+              className="mt-2 flex items-center gap-1 text-xs font-medium"
+              style={{ color: C.accent }}
+            >
+              View details
+              <ArrowRight className="h-3 w-3" />
+            </p>
+          </div>
+        </Link>
+        <div className="relative z-10 flex flex-shrink-0 flex-col items-end gap-2">
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+            style={{
+              backgroundColor: badgeStyle.backgroundColor,
+              color: badgeStyle.color,
+            }}
+          >
+            {child.isEnrolled ? (
+              <CheckCircle className="h-2.5 w-2.5" />
+            ) : (
+              <Clock className="h-2.5 w-2.5" />
+            )}
+            {child.statusLabel}
+          </span>
+          <Link
+            href={applicationHref}
+            className="text-xs font-medium underline-offset-2 hover:underline"
             style={{ color: C.accent }}
           >
-            View details
-            <ArrowRight className="h-3 w-3" />
-          </p>
+            {applicationLinkLabel}
+          </Link>
         </div>
-        <span
-          className="inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-          style={{
-            backgroundColor: badgeStyle.backgroundColor,
-            color: badgeStyle.color,
-          }}
-        >
-          {child.isEnrolled ? (
-            <CheckCircle className="h-2.5 w-2.5" />
-          ) : (
-            <Clock className="h-2.5 w-2.5" />
-          )}
-          {child.statusLabel}
-        </span>
-      </Link>
+      </div>
     </motion.div>
   );
 }
@@ -464,7 +501,7 @@ export default function ParentHomePage({
               ) : (
                 <ul className="space-y-2">
                   {upcomingEvents.map((event) => {
-                    const colors = SCHOOL_EVENT_TYPE_CHIP_STYLE[event.type];
+                    const colors = getEventDisplayStyle(event);
                     const dateLabel = parseEventDate(event.date).toLocaleDateString(
                       "en-US",
                       { weekday: "short", month: "short", day: "numeric" },
