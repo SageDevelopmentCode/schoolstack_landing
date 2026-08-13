@@ -13,6 +13,7 @@ import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
   APPLICATION_STATUS_FILTER_ORDER,
+  APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL,
 } from "@/lib/admissions/application-status-ui";
 import { submissionHasFeeBadges } from "@/lib/admissions/admin-submission-fee-badges";
 import { enrollmentProgressBadgeStyle } from "@/lib/admissions/admin-enrollment-progress";
@@ -212,7 +213,12 @@ export default function ApplicationSubmissionsPage({
     if (!deepLinkApplicationId || loading) return;
     const match = submissions.find((row) => row.id === deepLinkApplicationId);
     if (match) {
-      queueMicrotask(() => setSelectedId(match.id));
+      queueMicrotask(() => {
+        if (match.status === "withdrawn") {
+          setStatusFilter("withdrawn");
+        }
+        setSelectedId(match.id);
+      });
     }
   }, [deepLinkApplicationId, loading, submissions]);
 
@@ -223,6 +229,17 @@ export default function ApplicationSubmissionsPage({
     }
     return counts;
   }, [submissions]);
+
+  const activeSubmissionsCount = useMemo(
+    () =>
+      submissions.filter(
+        (submission) =>
+          !APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL.some(
+            (excluded) => excluded === submission.status,
+          ),
+      ).length,
+    [submissions],
+  );
 
   const formOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -237,7 +254,15 @@ export default function ApplicationSubmissionsPage({
 
   const filteredSubmissions = useMemo(() => {
     return submissions.filter((submission) => {
-      if (statusFilter !== "all" && submission.status !== statusFilter) {
+      if (statusFilter === "all") {
+        if (
+          APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL.some(
+            (excluded) => excluded === submission.status,
+          )
+        ) {
+          return false;
+        }
+      } else if (submission.status !== statusFilter) {
         return false;
       }
       if (formFilter !== "all") {
@@ -300,7 +325,7 @@ export default function ApplicationSubmissionsPage({
             <FilterChip
               active={statusFilter === "all"}
               label="All"
-              count={submissions.length}
+              count={activeSubmissionsCount}
               onClick={() => changeStatusFilter("all")}
               C={C}
             />
