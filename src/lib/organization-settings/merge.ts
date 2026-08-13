@@ -1,4 +1,5 @@
 import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "./catalog";
+import { mergeApplyAuthEntry } from "./apply-auth-entry";
 import { mergeParentOnboarding } from "./parent-onboarding";
 import { migrateLegacyNeutralBranding } from "./school-admin-neutrals";
 import type { OrganizationBranding, OrganizationFeatures } from "./types";
@@ -64,6 +65,7 @@ export function mergeFeatures(
       key !== "parent" &&
       key !== "feature_nav" &&
       key !== "parent_onboarding" &&
+      key !== "apply_auth_entry" &&
       typeof value === "boolean"
     ) {
       merged[key] = value;
@@ -80,6 +82,12 @@ export function mergeFeatures(
   merged.parent_onboarding = mergeParentOnboarding(
     isPlainObject(stored?.parent_onboarding)
       ? (stored.parent_onboarding as Record<string, unknown>)
+      : null,
+  );
+
+  merged.apply_auth_entry = mergeApplyAuthEntry(
+    isPlainObject(stored?.apply_auth_entry)
+      ? (stored.apply_auth_entry as Record<string, unknown>)
       : null,
   );
 

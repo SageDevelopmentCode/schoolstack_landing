@@ -11,6 +11,12 @@ import { applyLateFeesForOrganization, getGraceDaysForSettings } from "@/lib/tui
 import { processAutopayForOrganization } from "@/lib/tuition/autopay";
 import { getTuitionOrgSettings } from "@/lib/tuition/org-settings";
 import { evaluateRulesForOrganization } from "@/lib/tuition/rules-engine";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  schoolAdminActivityContext,
+  summarizeBillingRunSummary,
+} from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -59,6 +65,47 @@ export async function POST(request: Request) {
       admin,
       body.organizationId,
     );
+
+    void logTuitionActivity(admin, {
+      organizationId: body.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_BILLING_RUN_COMPLETED,
+      entityType: "organization",
+      entityId: body.organizationId,
+      summary: "Manual tuition billing run completed",
+      changeSummary: summarizeBillingRunSummary(
+        {
+          overdueCount,
+          rulesEvaluated,
+          lateFeesApplied: lateFeeResult.applied,
+          lateFeesNotified: lateFeeResult.notified,
+          autopayProcessed: autopayResult.processed,
+          autopayFailed: autopayResult.failed,
+          autopaySkipped: autopayResult.skipped,
+        },
+        { manual: true },
+      ),
+      logWhenEmpty: true,
+      metadata: { manual: true },
+      context: schoolAdminActivityContext(user),
+    });
+
+    if (lateFeeResult.applied > 0) {
+      void logTuitionActivity(admin, {
+        organizationId: body.organizationId,
+        action: ACTIVITY_ACTIONS.TUITION_LATE_FEE_APPLIED,
+        entityType: "organization",
+        entityId: body.organizationId,
+        summary: `Applied ${lateFeeResult.applied} late fee${lateFeeResult.applied === 1 ? "" : "s"}`,
+        changeSummary: {
+          changedFields: ["lateFees"],
+          changes: [
+            `Applied ${lateFeeResult.applied} late fee${lateFeeResult.applied === 1 ? "" : "s"}`,
+          ],
+        },
+        logWhenEmpty: true,
+        context: schoolAdminActivityContext(user),
+      });
+    }
 
     return NextResponse.json({
       overdueCount,

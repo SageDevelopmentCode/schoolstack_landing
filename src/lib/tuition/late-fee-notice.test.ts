@@ -22,6 +22,7 @@ function lateFeeCharge(
     chargeType: "late_fee",
     installmentNumber: null,
     sentAt: overrides.sentAt ?? "2026-08-11T12:00:00.000Z",
+    paidAt: overrides.paidAt ?? null,
     metadata: overrides.metadata ?? {},
     createdAt: "2026-08-11T12:00:00.000Z",
     updatedAt: "2026-08-11T12:00:00.000Z",

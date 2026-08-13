@@ -12,6 +12,8 @@ import {
   upsertBillingSplits,
 } from "@/lib/tuition/billing-splits";
 import { regenerateFutureCharges } from "@/lib/tuition/charge-generator";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -84,9 +86,11 @@ export async function POST(request: Request, context: RouteContext) {
   const { familyId } = await context.params;
 
   try {
+    const user = await requireAuthenticatedUser(supabase);
     const admin = createAdminClient();
     const auth = await requireFamilySchoolAdmin(supabase, admin, familyId, request);
     if (auth.error) return auth.error;
+    const activityContext = schoolAdminActivityContext(user);
 
     const body = (await request.json()) as {
       enabled?: boolean;
@@ -94,7 +98,12 @@ export async function POST(request: Request, context: RouteContext) {
     };
 
     if (body.enabled === false) {
-      await clearBillingSplits(admin, familyId);
+      await clearBillingSplits(
+        admin,
+        familyId,
+        String(auth.family.organization_id),
+        { context: activityContext },
+      );
     } else {
       if (!Array.isArray(body.splits) || body.splits.length === 0) {
         return apiError(ROUTE, {
@@ -109,7 +118,7 @@ export async function POST(request: Request, context: RouteContext) {
         organizationId: String(auth.family.organization_id),
         familyId,
         splits: body.splits,
-      });
+      }, { context: activityContext });
     }
 
     const { data: assignments, error: assignmentsError } = await admin

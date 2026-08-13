@@ -10,6 +10,7 @@ import {
   materializeApplicationStudent,
 } from "@/lib/admissions/application-entity-materialization";
 import { sendApplicationSubmittedNotifications } from "@/lib/admissions/application-notifications";
+import { attachFamilyTourToApplication } from "@/lib/admissions/family-tour-booking";
 import {
   getApplicationForSubmit,
   loadPublishedFormForApplication,
@@ -100,6 +101,22 @@ export async function POST(request: Request, context: RouteContext) {
 
     await materializeApplicationStudent(admin, applicationId);
     await submitApplicationRecord(admin, applicationId);
+
+    const { data: applicationRow } = await admin
+      .from("applications")
+      .select("family_id")
+      .eq("id", applicationId)
+      .maybeSingle();
+
+    if (applicationRow?.family_id) {
+      await attachFamilyTourToApplication(admin, {
+        organizationId: application.organizationId,
+        familyId: String(applicationRow.family_id),
+        applicationId,
+        formVersionId: application.formVersionId,
+      });
+    }
+
     void sendApplicationSubmittedNotifications(admin, applicationId);
 
     const { data: formRow } = await admin

@@ -6,6 +6,7 @@ import {
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
 import { refundTuitionPayment } from "@/lib/tuition/autopay";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -58,7 +59,9 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    await refundTuitionPayment(admin, paymentId);
+    await refundTuitionPayment(admin, paymentId, {
+      context: schoolAdminActivityContext(user),
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof AuthError) {

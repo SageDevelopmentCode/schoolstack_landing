@@ -23,6 +23,12 @@ import {
   trySaveTuitionPaymentMethod,
 } from "@/lib/tuition/autopay";
 import {
+  logTuitionActivity,
+  parentActivityContext,
+  summarizePaymentAction,
+  summarizePaymentMethodSaved,
+} from "@/lib/tuition/tuition-activity";
+import {
   attachCheckoutSessionToPayment,
   attachStripeCheckoutToPayment,
   getApplicationPaymentByCheckoutSession,
@@ -424,7 +430,7 @@ async function handleTuitionSetupCheckoutCompleted(
   const payerUserId =
     typeof metadata.supabase_user_id === "string" ? metadata.supabase_user_id : null;
 
-  await savePaymentMethodFromSetupIntent(admin, {
+  const displayFields = await savePaymentMethodFromSetupIntent(admin, {
     organizationId,
     familyId,
     setupIntentId,
@@ -432,20 +438,39 @@ async function handleTuitionSetupCheckoutCompleted(
     guardianId,
   });
 
-  void logActivityEvent(admin, {
+  if (!displayFields) return;
+
+  const { data: family } = await admin
+    .from("families")
+    .select("name")
+    .eq("id", familyId)
+    .maybeSingle();
+
+  const familyName =
+    typeof family?.name === "string" ? family.name : undefined;
+  const changeSummary = summarizePaymentMethodSaved({
+    familyName,
+    last4: displayFields.last4,
+    brand: displayFields.brand,
+  });
+
+  void logTuitionActivity(admin, {
     organizationId,
-    actorType: "parent",
-    actorUserId: payerUserId,
-    surface: "parent_portal",
     action: ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED,
     entityType: "family",
     entityId: familyId,
     summary: "Payment method saved for tuition autopay",
+    changeSummary,
+    logWhenEmpty: true,
     metadata: {
       familyId,
+      familyName: familyName ?? null,
       guardianId,
     },
-    severity: "info",
+    context: parentActivityContext({
+      id: payerUserId ?? "",
+      email: null,
+    }),
   });
 }
 
@@ -658,6 +683,26 @@ async function handleTuitionCheckoutCompleted(
       amountCents: payment?.amountCents ?? null,
       chargeLabel: charge?.label ?? payment?.label ?? null,
     },
+  });
+
+  void logTuitionActivity(admin, {
+    organizationId: String(metadata.organization_id),
+    action: ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED,
+    entityType: "tuition_charge",
+    entityId: chargeId ?? payment?.id ?? checkoutSessionId,
+    summary: "Tuition payment completed",
+    changeSummary: summarizePaymentAction({
+      kind: "completed",
+      amountCents: payment?.amountCents ?? charge?.amountCents ?? 0,
+      chargeLabel: charge?.label ?? payment?.label ?? "Tuition charge",
+    }),
+    logWhenEmpty: true,
+    metadata: {
+      checkoutSessionId,
+      paymentId: payment?.id ?? paymentId ?? null,
+      familyId: payment?.familyId ?? charge?.familyId ?? null,
+    },
+    context: { actorType: "parent", surface: "parent_portal" },
   });
 }
 

@@ -38,6 +38,7 @@ import type {
 } from "@/lib/admissions/application-form-schema";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { ApplyAuthEntryOption } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
 const ApplicationFormExperience = dynamic(
@@ -58,6 +59,7 @@ type PublicApplicationFormClientProps = {
   formVersionId: string;
   shellLayout?: "standalone" | "embedded";
   serverAuthState?: ServerAuthState;
+  tourEntryOption?: ApplyAuthEntryOption | null;
 };
 
 type ClientPhase = "checking_session" | "auth" | "loading_draft" | "form" | "error";
@@ -109,6 +111,7 @@ export default function PublicApplicationFormClient({
   formVersionId,
   shellLayout = "standalone",
   serverAuthState,
+  tourEntryOption = null,
 }: PublicApplicationFormClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -208,6 +211,11 @@ export default function PublicApplicationFormClient({
     async (result: BootstrapApplicantResult) => {
       if (result.action === "redirect_apply_dashboard") {
         router.replace(`/school/${schoolSlug}/apply`);
+        return;
+      }
+
+      if (result.action === "redirect_schedule_tour") {
+        router.replace(`/school/${schoolSlug}/apply/schedule-tour`);
         return;
       }
 
@@ -505,9 +513,13 @@ export default function PublicApplicationFormClient({
       organizationId={organizationId}
       formVersionId={formVersionId}
       forceNew={forceNew}
+      tourEntryOption={tourEntryOption}
       onBootstrapped={handleBootstrapped}
       onRedirectApplyDashboard={() => {
         router.replace(`/school/${schoolSlug}/apply`);
+      }}
+      onRedirectScheduleTour={() => {
+        router.replace(`/school/${schoolSlug}/apply/schedule-tour`);
       }}
       onComplete={() => {
         // Form visibility is driven by handleBootstrapResult after bootstrap.

@@ -30,6 +30,13 @@ import {
   removeFamilyPaymentMethod,
 } from "./payment-methods";
 import type { AdjustmentType, TuitionBillingAccount } from "./types";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizeFinancialAidImport,
+  summarizePaymentAction,
+  type TuitionActivityOptions,
+} from "./tuition-activity";
 
 const STALE_PAYMENT_METHOD_MESSAGE =
   "Saved payment method is no longer valid for autopay. Please re-save your card on the billing page.";
@@ -226,7 +233,7 @@ export async function savePaymentMethodFromSetupIntent(
     payerUserId?: string | null;
     guardianId?: string | null;
   },
-): Promise<void> {
+): Promise<{ last4?: string; brand?: string } | null> {
   const stripe = getStripeClient();
   const setupIntent = await stripe.setupIntents.retrieve(input.setupIntentId);
   const paymentMethodId =
@@ -234,7 +241,7 @@ export async function savePaymentMethodFromSetupIntent(
       ? setupIntent.payment_method
       : setupIntent.payment_method?.id;
 
-  if (!paymentMethodId) return;
+  if (!paymentMethodId) return null;
 
   const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
   const displayFields = extractPaymentMethodDisplayFields(paymentMethod);
@@ -247,7 +254,7 @@ export async function savePaymentMethodFromSetupIntent(
     .maybeSingle();
 
   if (billingError) throw billingError;
-  if (!billingAccount) return;
+  if (!billingAccount) return null;
 
   let guardianId = input.guardianId ?? null;
   if (!guardianId && input.payerUserId) {
@@ -269,6 +276,8 @@ export async function savePaymentMethodFromSetupIntent(
     ...displayFields,
     isDefault: true,
   });
+
+  return displayFields;
 }
 
 export type FinancialAidImportRow = {
@@ -302,6 +311,7 @@ export async function importFinancialAidCsv(
   organizationId: string,
   csvContent: string,
   createdByUserId?: string,
+  options?: TuitionActivityOptions,
 ): Promise<{ imported: number; skipped: number }> {
   const rows = parseCsvRows(csvContent);
 
@@ -354,10 +364,24 @@ export async function importFinancialAidCsv(
       reason: row.reason ?? "Financial aid import",
       source: "import",
       createdByUserId,
-    });
+    }, { skip: true });
 
     await regenerateFutureCharges(supabase, String(assignment.id));
     imported++;
+  }
+
+  if (imported > 0 || skipped > 0) {
+    void logTuitionActivity(supabase, {
+      organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_CREATED,
+      entityType: "organization",
+      entityId: organizationId,
+      summary: "Imported financial aid adjustments",
+      changeSummary: summarizeFinancialAidImport({ imported, skipped }),
+      logWhenEmpty: true,
+      metadata: { imported, skipped, source: "import" },
+      context: options?.context,
+    });
   }
 
   return { imported, skipped };
@@ -822,10 +846,11 @@ export async function processAutopayForOrganization(
 export async function refundTuitionPayment(
   supabase: SupabaseClient,
   paymentId: string,
+  options?: TuitionActivityOptions,
 ): Promise<void> {
   const { data: payment, error: paymentError } = await supabase
     .from("application_payments")
-    .select("id, tuition_charge_id, status, stripe_payment_intent_id, amount_cents")
+    .select("id, organization_id, family_id, tuition_charge_id, status, stripe_payment_intent_id, amount_cents, label")
     .eq("id", paymentId)
     .eq("payment_type", "tuition")
     .maybeSingle();
@@ -855,5 +880,33 @@ export async function refundTuitionPayment(
       .from("tuition_charges")
       .update({ status: "scheduled", paid_at: null, paid_cents: 0 })
       .eq("id", payment.tuition_charge_id);
+  }
+
+  if (!options?.skip) {
+    const chargeLabel =
+      typeof payment.label === "string" && payment.label.trim()
+        ? payment.label
+        : "tuition charge";
+    const changeSummary = summarizePaymentAction({
+      kind: "refunded",
+      amountCents: Number(payment.amount_cents),
+      chargeLabel,
+    });
+    void logTuitionActivity(supabase, {
+      organizationId: String(payment.organization_id),
+      action: ACTIVITY_ACTIONS.TUITION_PAYMENT_REFUNDED,
+      entityType: "application_payment",
+      entityId: paymentId,
+      summary: `Refunded tuition payment for “${chargeLabel}”`,
+      changeSummary,
+      logWhenEmpty: true,
+      metadata: {
+        familyId: payment.family_id ? String(payment.family_id) : null,
+        tuitionChargeId: payment.tuition_charge_id
+          ? String(payment.tuition_charge_id)
+          : null,
+      },
+      context: options?.context,
+    });
   }
 }

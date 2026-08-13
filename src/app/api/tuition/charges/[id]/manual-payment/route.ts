@@ -6,6 +6,7 @@ import {
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
 import { recordManualTuitionPayment } from "@/lib/tuition/payments";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import { sendTuitionPaymentReceiptNotifications } from "@/lib/tuition/payment-receipt-notifications";
 import { getChargeById } from "@/lib/tuition/charges";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -72,14 +73,26 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const { paymentId, settleResult } = await recordManualTuitionPayment(admin, {
-      organizationId: charge.organizationId,
-      familyId: charge.familyId,
-      tuitionChargeId: charge.id,
-      amountCents,
-      label: charge.label,
-      payerUserId: user.id,
-    });
+    const { data: family } = await admin
+      .from("families")
+      .select("name")
+      .eq("id", charge.familyId)
+      .maybeSingle();
+
+    const { paymentId, settleResult } = await recordManualTuitionPayment(
+      admin,
+      {
+        organizationId: charge.organizationId,
+        familyId: charge.familyId,
+        tuitionChargeId: charge.id,
+        amountCents,
+        label: charge.label,
+        payerUserId: user.id,
+        method: "manual",
+        familyName: family?.name ? String(family.name) : undefined,
+      },
+      { context: schoolAdminActivityContext(user) },
+    );
 
     void sendTuitionPaymentReceiptNotifications(admin, paymentId, {
       settleResult,

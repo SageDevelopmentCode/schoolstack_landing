@@ -8,6 +8,8 @@ import {
   computeAdjustedAmountCents,
   formatCents,
   formatTierAmountRange,
+  resolveAssignmentCatalogTuitionCents,
+  resolveFamilyCatalogTuition,
   tuitionInputToAnnualCents,
 } from "./pricing";
 import { buildPaymentOptionPreviews } from "./setup-wizard";
@@ -140,6 +142,127 @@ describe("tuition pricing", () => {
       formatTierAmountRange([{ amountCents: 720000 }], "annual"),
       "$7,200/yr",
     );
+  });
+});
+
+
+describe("resolveAssignmentCatalogTuitionCents", () => {
+  const tierAmountById = new Map([["tier-1", 720000]]);
+  const ratePlanAmountById = new Map([["plan-1", 600000]]);
+  const defaultTierAmountByRatePlanId = new Map([["plan-1", 600000]]);
+
+  it("returns base catalog amount when there are no adjustments", () => {
+    const result = resolveAssignmentCatalogTuitionCents({
+      rateTierId: "tier-1",
+      ratePlanId: "plan-1",
+      tierAmountById,
+      ratePlanAmountById,
+      defaultTierAmountByRatePlanId,
+      adjustments: [],
+    });
+
+    assert.deepEqual(result, { baseCents: 720000, adjustedCents: 720000 });
+  });
+
+  it("applies percent discount to catalog amount", () => {
+    const result = resolveAssignmentCatalogTuitionCents({
+      rateTierId: "tier-1",
+      ratePlanId: "plan-1",
+      tierAmountById,
+      ratePlanAmountById,
+      defaultTierAmountByRatePlanId,
+      adjustments: [
+        {
+          adjustmentType: "percent_discount",
+          valuePercent: 10,
+          valueCents: null,
+          priority: 0,
+          scope: "annual_total",
+        },
+      ],
+    });
+
+    assert.equal(result.baseCents, 720000);
+    assert.equal(result.adjustedCents, 648000);
+  });
+
+  it("falls back to default tier then rate plan amount", () => {
+    const result = resolveAssignmentCatalogTuitionCents({
+      rateTierId: null,
+      ratePlanId: "plan-1",
+      tierAmountById,
+      ratePlanAmountById,
+      defaultTierAmountByRatePlanId,
+      adjustments: [],
+    });
+
+    assert.equal(result.baseCents, 600000);
+    assert.equal(result.adjustedCents, 600000);
+  });
+});
+
+describe("resolveFamilyCatalogTuition", () => {
+  const tierAmountById = new Map([
+    ["tier-1", 720000],
+    ["tier-2", 480000],
+  ]);
+  const ratePlanAmountById = new Map([
+    ["plan-1", 720000],
+    ["plan-2", 480000],
+  ]);
+  const defaultTierAmountByRatePlanId = new Map([
+    ["plan-1", 720000],
+    ["plan-2", 480000],
+  ]);
+
+  it("returns null when there are open charges", () => {
+    const result = resolveFamilyCatalogTuition({
+      assignments: [
+        {
+          rateTierId: "tier-1",
+          ratePlanId: "plan-1",
+          adjustments: [],
+        },
+      ],
+      tierAmountById,
+      ratePlanAmountById,
+      defaultTierAmountByRatePlanId,
+      balanceDueCents: 50000,
+    });
+
+    assert.equal(result, null);
+  });
+
+  it("sums catalog tuition across multiple assignments", () => {
+    const result = resolveFamilyCatalogTuition({
+      assignments: [
+        {
+          rateTierId: "tier-1",
+          ratePlanId: "plan-1",
+          adjustments: [],
+        },
+        {
+          rateTierId: "tier-2",
+          ratePlanId: "plan-2",
+          adjustments: [
+            {
+              adjustmentType: "fixed_discount",
+              valuePercent: null,
+              valueCents: 80000,
+              priority: 0,
+              scope: "annual_total",
+            },
+          ],
+        },
+      ],
+      tierAmountById,
+      ratePlanAmountById,
+      defaultTierAmountByRatePlanId,
+      balanceDueCents: 0,
+    });
+
+    assert.equal(result?.baseCents, 1200000);
+    assert.equal(result?.adjustedCents, 1120000);
   });
 });
 

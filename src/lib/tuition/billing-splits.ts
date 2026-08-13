@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { rowToBillingSplit } from "./row-mappers";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizeBillingSplitChanges,
+  type TuitionActivityOptions,
+} from "./tuition-activity";
 import type { BillingSplitInput, TuitionBillingSplit } from "./types";
 
 export const TOTAL_SHARE_BPS = 10_000;
@@ -100,7 +106,9 @@ export async function upsertBillingSplits(
     familyId: string;
     splits: BillingSplitInput[];
   },
+  options?: TuitionActivityOptions,
 ): Promise<TuitionBillingSplit[]> {
+  const beforeSplits = await listBillingSplits(supabase, input.familyId);
   validateBillingSplits(input.splits);
 
   const { error: deleteError } = await supabase
@@ -123,12 +131,37 @@ export async function upsertBillingSplits(
     .select("*");
 
   if (error) throw error;
-  return (data ?? []).map(rowToBillingSplit);
+  const result = (data ?? []).map(rowToBillingSplit);
+
+  if (!options?.skip) {
+    const changeSummary = summarizeBillingSplitChanges({
+      enabled: true,
+      beforeSplits: beforeSplits.map((split) => ({
+        guardianId: split.guardianId,
+        shareBps: split.shareBps,
+      })),
+      afterSplits: input.splits,
+    });
+    void logTuitionActivity(supabase, {
+      organizationId: input.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_BILLING_SPLITS_UPDATED,
+      entityType: "family",
+      entityId: input.familyId,
+      summary: "Updated billing splits",
+      changeSummary,
+      logWhenEmpty: true,
+      context: options?.context,
+    });
+  }
+
+  return result;
 }
 
 export async function clearBillingSplits(
   supabase: SupabaseClient,
   familyId: string,
+  organizationId?: string,
+  options?: TuitionActivityOptions,
 ): Promise<void> {
   const { error } = await supabase
     .from("tuition_billing_splits")
@@ -136,6 +169,20 @@ export async function clearBillingSplits(
     .eq("family_id", familyId);
 
   if (error) throw error;
+
+  if (!options?.skip && organizationId) {
+    const changeSummary = summarizeBillingSplitChanges({ enabled: false });
+    void logTuitionActivity(supabase, {
+      organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_BILLING_SPLITS_UPDATED,
+      entityType: "family",
+      entityId: familyId,
+      summary: "Disabled billing splits",
+      changeSummary,
+      logWhenEmpty: true,
+      context: options?.context,
+    });
+  }
 }
 
 export async function listBillingSplitsWithGuardians(

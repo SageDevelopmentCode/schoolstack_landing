@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { backfillTuitionAssignmentsForOrganization } from "@/lib/tuition/assignments";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
       admin,
       organizationId,
       user.id,
+      { context: schoolAdminActivityContext(user) },
     );
 
     return NextResponse.json(result);

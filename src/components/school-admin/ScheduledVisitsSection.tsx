@@ -258,8 +258,14 @@ export default function ScheduledVisitsSection({
                 return (
                   <tr
                     key={visit.id}
-                    onClick={() => onVisitClick(visit)}
-                    className="cursor-pointer transition-colors"
+                    onClick={() => {
+                      if (visit.applicationId) {
+                        onVisitClick(visit);
+                      }
+                    }}
+                    className={
+                      visit.applicationId ? "cursor-pointer transition-colors" : ""
+                    }
                     style={{
                       backgroundColor: isSelected ? C.accentLight : "transparent",
                       borderBottom: `1px solid ${C.border}`,

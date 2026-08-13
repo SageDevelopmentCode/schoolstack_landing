@@ -3,6 +3,7 @@ import {
   ROOTED_MEADOWS_ADMIN_LOGO,
 } from "@/data/school-demos/rootedmeadows-admin-demo";
 import type {
+  ApplyAuthEntryOption,
   BrandingFieldDef,
   FeatureDef,
   OrganizationBranding,
@@ -83,6 +84,23 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
   observation_booking: true,
   homeschool_drop_in: false,
 };
+
+export const DEFAULT_APPLY_AUTH_ENTRY_OPTIONS: ApplyAuthEntryOption[] = [
+  {
+    id: "apply",
+    type: "apply",
+    enabled: true,
+    label: "Start your application",
+    description: "New here? Start your application.",
+  },
+  {
+    id: "schedule_campus_tour",
+    type: "schedule_campus_tour",
+    enabled: false,
+    label: "Schedule a tour of campus",
+    description: "Meet with faculty and learn more about our school.",
+  },
+];
 
 export const DEFAULT_PARENT_ONBOARDING_ITEMS: ParentOnboardingItem[] = [
   {

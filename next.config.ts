@@ -24,6 +24,9 @@ function supabaseStorageRemotePatterns(): NonNullable<
 }
 
 const nextConfig: NextConfig = {
+  typescript: {
+    tsconfigPath: "tsconfig.build.json",
+  },
   images: {
     remotePatterns: supabaseStorageRemotePatterns(),
   },

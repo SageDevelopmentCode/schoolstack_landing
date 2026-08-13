@@ -87,7 +87,7 @@ describeIntegration("POST /api/stripe/webhook", () => {
       object: "checkout.session",
       payment_intent: `pi_test_${randomUUID().slice(0, 8)}`,
       metadata: { payment_id: payment.paymentId },
-    } as Stripe.Checkout.Session;
+    } as unknown as Stripe.Checkout.Session;
 
     const event = buildCheckoutSessionCompletedEvent(session);
     const payload = JSON.stringify(event);
@@ -123,7 +123,7 @@ describeIntegration("POST /api/stripe/webhook", () => {
       object: "checkout.session",
       payment_intent: `pi_test_${randomUUID().slice(0, 8)}`,
       metadata: { payment_id: payment.paymentId },
-    } as Stripe.Checkout.Session;
+    } as unknown as Stripe.Checkout.Session;
 
     const event = buildCheckoutSessionEvent(
       "checkout.session.async_payment_succeeded",

@@ -2,16 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import {
   tabPanelTransition,
   tabPanelVariants,
 } from "@/lib/school-admin/admin-modal-motion";
-import TuitionAdjustModal from "@/components/school-admin/tuition/TuitionAdjustModal";
+import TuitionAdjustPanel from "@/components/school-admin/tuition/TuitionAdjustPanel";
 import TuitionAssignmentModal from "@/components/school-admin/tuition/TuitionAssignmentModal";
 import TuitionSetupButton from "@/components/school-admin/tuition/TuitionSetupButton";
 import TuitionSetupPanel from "@/components/school-admin/tuition/TuitionSetupPanel";
 import TuitionFamiliesPanel from "@/components/school-admin/tuition/TuitionFamiliesPanel";
+import TuitionKpiBreakdownPanel from "@/components/school-admin/tuition/TuitionKpiBreakdownPanel";
+import TuitionOutstandingPeriodSelect from "@/components/school-admin/tuition/TuitionOutstandingPeriodSelect";
 import TuitionRateCatalogPanel from "@/components/school-admin/tuition/TuitionRateCatalogPanel";
 import TuitionRulesPanel from "@/components/school-admin/tuition/TuitionRulesPanel";
 import TuitionSetupWizard from "@/components/school-admin/tuition/TuitionSetupWizard";
@@ -19,6 +21,12 @@ import { formatCents } from "@/lib/tuition/pricing";
 import { listRatePlansWithDetails } from "@/lib/tuition/rate-plans";
 import type { RatePlanWithDetails } from "@/lib/tuition/types";
 import { getTuitionKpis } from "@/lib/tuition/charges";
+import type { TuitionKpiBreakdownKind } from "@/lib/tuition/kpi-breakdown";
+import {
+  availableOutstandingPeriods,
+  deriveSchoolYearBounds,
+  type OutstandingPeriod,
+} from "@/lib/tuition/outstanding-period";
 import { fetchTuitionReadinessStatus } from "@/lib/tuition/tuition-readiness";
 import type { TuitionReadinessStatus } from "@/lib/tuition/tuition-readiness";
 import type { TuitionSetupStatus } from "@/lib/tuition/setup-status";
@@ -36,6 +44,39 @@ type TuitionDashboardProps = {
 };
 
 type TabKey = "families" | "catalog" | "rules";
+
+const CLICKABLE_KPI_CARDS: Array<{
+  kind: TuitionKpiBreakdownKind;
+  label: string;
+  ariaLabel: string;
+  getValue: (kpis: {
+    collectedYtdCents: number;
+    outstandingCents: number;
+    familiesAtRisk: number;
+    activeAssignments: number;
+  }) => string;
+  getExpectedTotalCents: (kpis: {
+    collectedYtdCents: number;
+    outstandingCents: number;
+    familiesAtRisk: number;
+    activeAssignments: number;
+  }) => number;
+}> = [
+  {
+    kind: "collected_ytd",
+    label: "Collected YTD",
+    ariaLabel: "View collected YTD breakdown",
+    getValue: (kpis) => formatCents(kpis.collectedYtdCents),
+    getExpectedTotalCents: (kpis) => kpis.collectedYtdCents,
+  },
+  {
+    kind: "at_risk",
+    label: "Families at risk",
+    ariaLabel: "View families at risk breakdown",
+    getValue: (kpis) => String(kpis.familiesAtRisk),
+    getExpectedTotalCents: (kpis) => kpis.familiesAtRisk,
+  },
+];
 
 export default function TuitionDashboard({
   organizationId,
@@ -70,6 +111,26 @@ export default function TuitionDashboard({
   const [readiness, setReadiness] = useState<TuitionReadinessStatus | null>(null);
   const [familiesRefreshKey, setFamiliesRefreshKey] = useState(0);
   const [familiesReloadToken, setFamiliesReloadToken] = useState(0);
+  const [kpiBreakdownKind, setKpiBreakdownKind] = useState<TuitionKpiBreakdownKind | null>(
+    null,
+  );
+  const [focusFamilyId, setFocusFamilyId] = useState<string | null>(null);
+  const [hoveredKpiCard, setHoveredKpiCard] = useState<TuitionKpiBreakdownKind | null>(null);
+  const [outstandingPeriodSelection, setOutstandingPeriod] = useState<OutstandingPeriod>("current_month");
+
+  const schoolYearBounds = useMemo(
+    () => deriveSchoolYearBounds(ratePlans),
+    [ratePlans],
+  );
+
+  const availablePeriods = useMemo(
+    () => availableOutstandingPeriods(schoolYearBounds),
+    [schoolYearBounds],
+  );
+
+  const outstandingPeriod = availablePeriods.includes(outstandingPeriodSelection)
+    ? outstandingPeriodSelection
+    : (availablePeriods[0] ?? "current_month");
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -81,9 +142,13 @@ export default function TuitionDashboard({
         body: JSON.stringify({ organizationId }),
       });
 
-      const [plans, kpiData, readinessStatus] = await Promise.all([
-        listRatePlansWithDetails(supabase, organizationId),
-        getTuitionKpis(supabase, organizationId),
+      const plans = await listRatePlansWithDetails(supabase, organizationId);
+      const bounds = deriveSchoolYearBounds(plans);
+      const [kpiData, readinessStatus] = await Promise.all([
+        getTuitionKpis(supabase, organizationId, {
+          outstandingPeriod,
+          schoolYearBounds: bounds,
+        }),
         fetchTuitionReadinessStatus(supabase, organizationId),
       ]);
       setRatePlans(plans);
@@ -99,7 +164,7 @@ export default function TuitionDashboard({
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [organizationId, outstandingPeriod, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -158,25 +223,144 @@ export default function TuitionDashboard({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Collected YTD", value: formatCents(kpis.collectedYtdCents) },
-          { label: "Outstanding", value: formatCents(kpis.outstandingCents) },
-          { label: "Families at risk", value: String(kpis.familiesAtRisk) },
-          { label: "Active assignments", value: String(kpis.activeAssignments) },
-        ].map((card) => (
-          <div
-            key={card.label}
-            className="rounded-lg p-4"
-            style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-          >
+        {CLICKABLE_KPI_CARDS.slice(0, 1).map((card) => {
+          const isHovered = hoveredKpiCard === card.kind;
+          return (
+            <button
+              key={card.kind}
+              type="button"
+              aria-label={card.ariaLabel}
+              onClick={() => setKpiBreakdownKind(card.kind)}
+              onMouseEnter={() => setHoveredKpiCard(card.kind)}
+              onMouseLeave={() => setHoveredKpiCard(null)}
+              onFocus={() => setHoveredKpiCard(card.kind)}
+              onBlur={() => setHoveredKpiCard(null)}
+              className="rounded-lg p-4 text-left transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{
+                backgroundColor: isHovered ? C.accentLight : C.surface,
+                border: `1px solid ${isHovered ? C.accent : C.border}`,
+                outlineColor: C.accent,
+              }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
+                  {card.label}
+                </p>
+                <ChevronRight
+                  className="h-4 w-4 shrink-0"
+                  style={{ color: isHovered ? C.accent : C.textTertiary }}
+                />
+              </div>
+              <p className="text-lg font-semibold mt-1" style={{ color: C.textPrimary }}>
+                {card.getValue(kpis)}
+              </p>
+              <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+                View breakdown
+              </p>
+            </button>
+          );
+        })}
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="View outstanding breakdown"
+          onClick={() => setKpiBreakdownKind("outstanding")}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setKpiBreakdownKind("outstanding");
+            }
+          }}
+          onMouseEnter={() => setHoveredKpiCard("outstanding")}
+          onMouseLeave={() => setHoveredKpiCard(null)}
+          onFocus={() => setHoveredKpiCard("outstanding")}
+          onBlur={() => setHoveredKpiCard(null)}
+          className="rounded-lg p-4 text-left transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{
+            backgroundColor:
+              hoveredKpiCard === "outstanding" ? C.accentLight : C.surface,
+            border: `1px solid ${hoveredKpiCard === "outstanding" ? C.accent : C.border}`,
+            outlineColor: C.accent,
+          }}
+        >
+          <div className="flex items-start justify-between gap-2">
             <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
-              {card.label}
+              Outstanding
             </p>
-            <p className="text-lg font-semibold mt-1" style={{ color: C.textPrimary }}>
-              {card.value}
-            </p>
+            <ChevronRight
+              className="h-4 w-4 shrink-0"
+              style={{
+                color: hoveredKpiCard === "outstanding" ? C.accent : C.textTertiary,
+              }}
+            />
           </div>
-        ))}
+          <p className="text-lg font-semibold mt-1" style={{ color: C.textPrimary }}>
+            {formatCents(kpis.outstandingCents)}
+          </p>
+          <div
+            className="mt-2"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <TuitionOutstandingPeriodSelect
+              value={outstandingPeriod}
+              onChange={setOutstandingPeriod}
+              schoolYearBounds={schoolYearBounds}
+              C={C}
+            />
+          </div>
+          <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
+            View breakdown
+          </p>
+        </div>
+        {CLICKABLE_KPI_CARDS.slice(1).map((card) => {
+          const isHovered = hoveredKpiCard === card.kind;
+          return (
+            <button
+              key={card.kind}
+              type="button"
+              aria-label={card.ariaLabel}
+              onClick={() => setKpiBreakdownKind(card.kind)}
+              onMouseEnter={() => setHoveredKpiCard(card.kind)}
+              onMouseLeave={() => setHoveredKpiCard(null)}
+              onFocus={() => setHoveredKpiCard(card.kind)}
+              onBlur={() => setHoveredKpiCard(null)}
+              className="rounded-lg p-4 text-left transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{
+                backgroundColor: isHovered ? C.accentLight : C.surface,
+                border: `1px solid ${isHovered ? C.accent : C.border}`,
+                outlineColor: C.accent,
+              }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
+                  {card.label}
+                </p>
+                <ChevronRight
+                  className="h-4 w-4 shrink-0"
+                  style={{ color: isHovered ? C.accent : C.textTertiary }}
+                />
+              </div>
+              <p className="text-lg font-semibold mt-1" style={{ color: C.textPrimary }}>
+                {card.getValue(kpis)}
+              </p>
+              <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+                View breakdown
+              </p>
+            </button>
+          );
+        })}
+        <div
+          className="rounded-lg p-4"
+          style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+        >
+          <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
+            Active assignments
+          </p>
+          <p className="text-lg font-semibold mt-1" style={{ color: C.textPrimary }}>
+            {kpis.activeAssignments}
+          </p>
+        </div>
       </div>
 
       <div className="flex gap-2 border-b" style={{ borderColor: C.border }}>
@@ -225,6 +409,7 @@ export default function TuitionDashboard({
               organizationId={organizationId}
               slug={slug}
               branding={branding}
+              initialFamilyId={focusFamilyId}
               onAdjust={(familyId, assignmentId, studentName) => {
                 setAdjustFamilyId(familyId);
                 setAdjustAssignmentId(assignmentId);
@@ -269,7 +454,7 @@ export default function TuitionDashboard({
         }}
       />
 
-      <TuitionAdjustModal
+      <TuitionAdjustPanel
         open={adjustFamilyId != null && adjustAssignmentId != null}
         organizationId={organizationId}
         familyId={adjustFamilyId ?? ""}
@@ -287,6 +472,32 @@ export default function TuitionDashboard({
           setAdjustStudentName(null);
           setFamiliesReloadToken((value) => value + 1);
           void loadData();
+        }}
+      />
+
+      <TuitionKpiBreakdownPanel
+        open={kpiBreakdownKind != null}
+        kind={kpiBreakdownKind}
+        organizationId={organizationId}
+        branding={branding}
+        outstandingPeriod={outstandingPeriod}
+        schoolYearBounds={schoolYearBounds}
+        onOutstandingPeriodChange={setOutstandingPeriod}
+        expectedTotalCents={
+          kpiBreakdownKind === "outstanding"
+            ? kpis.outstandingCents
+            : kpiBreakdownKind
+              ? CLICKABLE_KPI_CARDS.find((card) => card.kind === kpiBreakdownKind)?.getExpectedTotalCents(
+                  kpis,
+                )
+              : undefined
+        }
+        onClose={() => setKpiBreakdownKind(null)}
+        onOpenFamily={(familyId) => {
+          setKpiBreakdownKind(null);
+          setFocusFamilyId(familyId);
+          setTab("families");
+          setFamiliesReloadToken((value) => value + 1);
         }}
       />
 

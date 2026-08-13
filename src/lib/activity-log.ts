@@ -16,6 +16,7 @@ export const ACTIVITY_ACTIONS = {
   POST_SUBMIT_VISIT_SCHEDULED: "post_submit.visit_scheduled",
   POST_SUBMIT_STEP_COMPLETED_MANUALLY: "post_submit.step_completed_manually",
   POST_SUBMIT_STEP_MANUAL_COMPLETION_UNDONE: "post_submit.step_manual_completion_undone",
+  ADMISSIONS_TOUR_SCHEDULED_PRE_APPLICATION: "admissions.tour_scheduled_pre_application",
   FORM_CREATED: "form.created",
   FORM_SAVED: "form.saved",
   FORM_PUBLISHED: "form.published",
@@ -48,6 +49,25 @@ export const ACTIVITY_ACTIONS = {
   TUITION_AUTOPAY_SUCCEEDED: "tuition.autopay_succeeded",
   TUITION_AUTOPAY_FAILED: "tuition.autopay_failed",
   TUITION_PAYMENT_METHOD_SAVED: "tuition.payment_method_saved",
+  TUITION_RATE_PLAN_CREATED: "tuition.rate_plan.created",
+  TUITION_RATE_PLAN_UPDATED: "tuition.rate_plan.updated",
+  TUITION_ASSIGNMENT_CREATED: "tuition.assignment.created",
+  TUITION_ASSIGNMENT_UPDATED: "tuition.assignment.updated",
+  TUITION_ASSIGNMENT_UNASSIGNED: "tuition.assignment.unassigned",
+  TUITION_ORG_SETTINGS_UPDATED: "tuition.org_settings.updated",
+  TUITION_LATE_FEE_OVERRIDE_UPDATED: "tuition.late_fee_override.updated",
+  TUITION_LATE_FEE_OVERRIDE_DELETED: "tuition.late_fee_override.deleted",
+  TUITION_ADJUSTMENT_RULE_CREATED: "tuition.adjustment_rule.created",
+  TUITION_ADJUSTMENT_RULE_UPDATED: "tuition.adjustment_rule.updated",
+  TUITION_ADJUSTMENT_CREATED: "tuition.adjustment.created",
+  TUITION_ADJUSTMENT_REVOKED: "tuition.adjustment.revoked",
+  TUITION_BILLING_SPLITS_UPDATED: "tuition.billing_splits.updated",
+  TUITION_CHARGE_INVOICE_SENT: "tuition.charge.invoice_sent",
+  TUITION_PAYMENT_MANUAL: "tuition.payment.manual",
+  TUITION_PAYMENT_COMPLETED: "tuition.payment.completed",
+  TUITION_PAYMENT_REFUNDED: "tuition.payment.refunded",
+  TUITION_BILLING_RUN_COMPLETED: "tuition.billing_run.completed",
+  TUITION_LATE_FEE_APPLIED: "tuition.late_fee.applied",
   COMMITTEE_JOIN_REQUESTED: "committee.join_requested",
   COMMITTEE_JOIN_APPROVED: "committee.join_approved",
   COMMITTEE_JOIN_DECLINED: "committee.join_declined",
@@ -170,6 +190,25 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED]: "Payment method saved",
+  [ACTIVITY_ACTIONS.TUITION_RATE_PLAN_CREATED]: "Rate plan created",
+  [ACTIVITY_ACTIONS.TUITION_RATE_PLAN_UPDATED]: "Rate plan updated",
+  [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_CREATED]: "Tuition assigned",
+  [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED]: "Tuition assignment updated",
+  [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UNASSIGNED]: "Tuition unassigned",
+  [ACTIVITY_ACTIONS.TUITION_ORG_SETTINGS_UPDATED]: "Tuition settings updated",
+  [ACTIVITY_ACTIONS.TUITION_LATE_FEE_OVERRIDE_UPDATED]: "Late fee override updated",
+  [ACTIVITY_ACTIONS.TUITION_LATE_FEE_OVERRIDE_DELETED]: "Late fee override deleted",
+  [ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_RULE_CREATED]: "Adjustment rule created",
+  [ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_RULE_UPDATED]: "Adjustment rule updated",
+  [ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_CREATED]: "Tuition adjustment created",
+  [ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_REVOKED]: "Tuition adjustment revoked",
+  [ACTIVITY_ACTIONS.TUITION_BILLING_SPLITS_UPDATED]: "Billing splits updated",
+  [ACTIVITY_ACTIONS.TUITION_CHARGE_INVOICE_SENT]: "Invoice sent",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_MANUAL]: "Manual payment recorded",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED]: "Tuition payment completed",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_REFUNDED]: "Tuition payment refunded",
+  [ACTIVITY_ACTIONS.TUITION_BILLING_RUN_COMPLETED]: "Billing run completed",
+  [ACTIVITY_ACTIONS.TUITION_LATE_FEE_APPLIED]: "Late fees applied",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED]: "Committee join requested",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED]: "Committee join approved",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "Committee join declined",
@@ -374,7 +413,7 @@ async function resolveActorFieldsFromSession(
 export async function logActivityEvent(
   supabase: SupabaseClient,
   event: ActivityEventInput,
-): Promise<void> {
+): Promise<string | null> {
   try {
     let actorUserId = event.actorUserId ?? null;
     let actorEmail = event.actorEmail ?? null;
@@ -392,26 +431,34 @@ export async function logActivityEvent(
       actorName = resolved.actorName;
     }
 
-    const { error } = await supabase.from("activity_events").insert({
-      organization_id: event.organizationId ?? null,
-      actor_type: event.actorType,
-      actor_user_id: actorUserId,
-      actor_email: actorEmail,
-      actor_name: actorName,
-      surface: event.surface,
-      action: event.action,
-      entity_type: event.entityType ?? null,
-      entity_id: event.entityId ?? null,
-      summary: event.summary,
-      metadata: event.metadata ?? {},
-      severity: event.severity ?? "info",
-    });
+    const { data, error } = await supabase
+      .from("activity_events")
+      .insert({
+        organization_id: event.organizationId ?? null,
+        actor_type: event.actorType,
+        actor_user_id: actorUserId,
+        actor_email: actorEmail,
+        actor_name: actorName,
+        surface: event.surface,
+        action: event.action,
+        entity_type: event.entityType ?? null,
+        entity_id: event.entityId ?? null,
+        summary: event.summary,
+        metadata: event.metadata ?? {},
+        severity: event.severity ?? "info",
+      })
+      .select("id")
+      .single();
 
     if (error) {
       console.error("[activity-log] insert failed:", error.message);
+      return null;
     }
+
+    return data?.id ? String(data.id) : null;
   } catch (error) {
     console.error("[activity-log] unexpected error:", error);
+    return null;
   }
 }
 

@@ -178,6 +178,20 @@ export default function ActivityLogDetail({ event }: ActivityLogDetailProps) {
         </section>
       )}
 
+      {Array.isArray(event.metadata.changes) &&
+      event.metadata.changes.length > 0 ? (
+        <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
+          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide">
+            Changes
+          </h2>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-admin-text">
+            {event.metadata.changes.map((change, index) => (
+              <li key={`${index}-${String(change)}`}>{String(change)}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide">

@@ -2,10 +2,6 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
-  ACTIVITY_ACTIONS,
-  logActivityEvent,
-} from "@/lib/activity-log";
-import {
   AuthError,
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
@@ -20,6 +16,12 @@ import {
   setAutopayForGuardian,
 } from "@/lib/tuition/payment-settlement";
 import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  parentActivityContext,
+  summarizeAutopayToggle,
+} from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -97,30 +99,44 @@ export async function POST(request: Request) {
         })
       : null;
 
-    void logActivityEvent(admin, {
+    const savedPaymentMethodLabel = formatPaymentMethodLabel(savedPaymentMethod);
+
+    const { data: family } = await admin
+      .from("families")
+      .select("name")
+      .eq("id", familyId)
+      .maybeSingle();
+
+    const familyName =
+      typeof family?.name === "string" ? family.name : undefined;
+
+    void logTuitionActivity(admin, {
       organizationId,
-      actorType: "parent",
-      actorUserId: user.id,
-      actorEmail: user.email ?? null,
-      surface: "parent_portal",
       action: enabled
         ? ACTIVITY_ACTIONS.TUITION_AUTOPAY_ENABLED
         : ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED,
       entityType: "family",
       entityId: familyId,
       summary: enabled ? "Autopay enabled" : "Autopay disabled",
+      changeSummary: summarizeAutopayToggle({
+        enabled,
+        familyName,
+        paymentMethodLabel: enabled ? savedPaymentMethodLabel ?? undefined : undefined,
+      }),
+      logWhenEmpty: true,
       metadata: {
         familyId,
+        familyName: familyName ?? null,
         guardianId,
         enabled,
       },
-      severity: "info",
+      context: parentActivityContext(user),
     });
 
     return NextResponse.json({
       autopayEnabled,
       savedPaymentMethod,
-      savedPaymentMethodLabel: formatPaymentMethodLabel(savedPaymentMethod),
+      savedPaymentMethodLabel,
     });
   } catch (error) {
     if (error instanceof AuthError) {

@@ -9,10 +9,17 @@ import {
   getFamilyPreviewProfile,
   listFamilyApplicationsForFamilyId,
 } from "@/lib/admissions/family-preview-access";
+import {
+  familyHasScheduledCampusTour,
+  listUpcomingCampusToursForFamily,
+  shouldOfferApplyPortalTourBooking,
+} from "@/lib/admissions/family-tour-booking";
+import { getEnabledTourAuthEntryOption } from "@/lib/organization-settings/apply-auth-entry";
 import { listEnrollmentProgressForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +84,28 @@ export default async function FamilyPreviewApplyPage({
       application.status !== "draft" && application.postSubmitTasks.length > 0,
   );
 
+  const upcomingCampusTours = await listUpcomingCampusToursForFamily(
+    supabase,
+    org.id,
+    [familyId],
+    applications,
+  );
+
+  const tourEntryOption = getEnabledTourAuthEntryOption(org.features);
+  const admin = createAdminClient();
+  const applicationIds = applications.map((application) => application.id);
+  const hasScheduledCampusTour = await familyHasScheduledCampusTour(
+    admin,
+    org.id,
+    familyId,
+    applicationIds,
+  );
+  const showScheduleTourCta = shouldOfferApplyPortalTourBooking({
+    tourEntryEnabled: Boolean(tourEntryOption),
+    applications,
+    hasScheduledCampusTour,
+  });
+
   const enrollmentProgressByApplicationId = Object.fromEntries(
     (
       await listEnrollmentProgressForApplications(
@@ -95,6 +124,10 @@ export default async function FamilyPreviewApplyPage({
       timezone={timezone}
       applications={applications}
       applicationsWithTasks={applicationsWithTasks}
+      upcomingCampusTours={upcomingCampusTours}
+      showScheduleTourCta={showScheduleTourCta}
+      scheduleTourLabel={tourEntryOption?.label}
+      scheduleTourDescription={tourEntryOption?.description}
       hasEnrolledAccess={hasEnrolledAccess}
       parentPortalEnabled={isParentPortalEnabled(org.features)}
       parentPortalHref={

@@ -29,6 +29,7 @@ import {
   applicationOwnershipFilter,
   getFamilyIdsForUser,
 } from "./application-auth";
+import { listFamilyPreApplicationVisits as loadFamilyPreApplicationVisits } from "./family-tour-booking";
 import { applicationStatusLabel } from "./application-status-ui";
 
 const PROGRESS_KEY = "__progress";
@@ -422,6 +423,14 @@ export async function listFamilyApplications(
       postSubmitTasks,
     };
   });
+}
+
+export async function listFamilyPreApplicationVisits(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+) {
+  return loadFamilyPreApplicationVisits(supabase, organizationId, familyIds);
 }
 
 export async function userHasEnrolledAccess(

@@ -10,6 +10,7 @@ import {
   updateAssignment,
 } from "@/lib/tuition/assignments";
 import { getTierById } from "@/lib/tuition/rate-tiers";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -98,7 +99,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         body.paymentPlanId != null
           ? { pendingPaymentPlanSelection: false }
           : undefined,
-    });
+    }, { context: schoolAdminActivityContext(user) });
 
     return NextResponse.json({ assignment: updated });
   } catch (error) {

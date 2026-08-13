@@ -249,6 +249,7 @@ export type TuitionOrgSettings = {
   lateFeeRecurring?: boolean;
   lateFeeEnabled?: boolean;
   reminderDaysBefore?: number[];
+  adjustmentReasons?: string[];
 };
 
 export type FamilyBillingReadinessState =
@@ -280,6 +281,11 @@ export type GuardianAutopayStatus = {
   hasPaymentMethod: boolean;
 };
 
+export type CatalogTuitionSummary = {
+  baseCents: number;
+  adjustedCents: number;
+};
+
 export type FamilyBillingSummary = {
   familyId: string;
   familyName: string;
@@ -303,6 +309,7 @@ export type FamilyBillingSummary = {
   billingSplitSummary: string | null;
   hasBillingSplit: boolean;
   hasPendingEnrollment: boolean;
+  catalogTuition: CatalogTuitionSummary | null;
 };
 
 export type RatePlanWithDetails = TuitionRatePlan & {

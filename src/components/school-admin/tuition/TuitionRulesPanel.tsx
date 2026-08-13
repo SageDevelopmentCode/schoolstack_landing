@@ -6,7 +6,8 @@ import { Plus } from "lucide-react";
 import TuitionLateFeeSettingsPanel from "@/components/school-admin/tuition/TuitionLateFeeSettingsPanel";
 import {
   DEFAULT_TUITION_RULES_TAB,
-  TUITION_RULES_TABS,
+  TUITION_ADJUSTMENT_RULES_UI_ENABLED,
+  VISIBLE_TUITION_RULES_TABS,
   type TuitionRulesTabId,
 } from "@/components/school-admin/tuition/tuition-rules-tabs";
 import {
@@ -53,6 +54,8 @@ export default function TuitionRulesPanel({
   }, [organizationId, supabase]);
 
   useEffect(() => {
+    if (!TUITION_ADJUSTMENT_RULES_UI_ENABLED) return;
+
     queueMicrotask(() => {
       void loadRules();
     });
@@ -142,7 +145,7 @@ export default function TuitionRulesPanel({
         aria-label="Tuition rules sections"
         data-testid="tuition-rules-tab-bar"
       >
-        {TUITION_RULES_TABS.map((tab) => {
+        {VISIBLE_TUITION_RULES_TABS.map((tab) => {
           const isActive = activeRulesTab === tab.id;
           const tabId = `tuition-rules-tab-${tab.id}`;
           const panelId = `tuition-rules-panel-${tab.id}`;
@@ -193,7 +196,7 @@ export default function TuitionRulesPanel({
             </div>
           ) : null}
 
-          {activeRulesTab === "adjustments" ? (
+          {TUITION_ADJUSTMENT_RULES_UI_ENABLED && activeRulesTab === "adjustments" ? (
             <div
               className="rounded-lg p-4 flex flex-col gap-4"
               style={{

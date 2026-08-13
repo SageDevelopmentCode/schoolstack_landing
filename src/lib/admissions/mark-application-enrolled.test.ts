@@ -41,7 +41,11 @@ function createMockSupabase(options: {
     insertEnrollmentError,
   } = options;
 
-  const updates: Array<{ table: string; values: Record<string, unknown> }> = [];
+  const updates: Array<{
+    table: string;
+    values: Record<string, unknown>;
+    filters?: Record<string, unknown>;
+  }> = [];
   let insertedEnrollment: EnrollmentRow | null = null;
 
   function createFilterBuilder(table: string, filters: Record<string, unknown> = {}) {
@@ -82,18 +86,20 @@ function createMockSupabase(options: {
         }
 
         if (
+          application &&
           table === "applications" &&
-          nextFilters.id === application?.id &&
-          inFilters.status?.includes(application?.status)
+          nextFilters.id === application.id &&
+          inFilters.status?.includes(application.status)
         ) {
           return { data: { id: application.id }, error: null };
         }
 
         if (
+          application &&
           table === "applications" &&
-          nextFilters.id === application?.id &&
+          nextFilters.id === application.id &&
           nextFilters.status === "accepted" &&
-          application?.status === "accepted"
+          application.status === "accepted"
         ) {
           return { data: { id: application.id }, error: null };
         }

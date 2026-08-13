@@ -7,6 +7,7 @@ import {
 } from "@/lib/admissions/application-auth";
 import { getChargeById } from "@/lib/tuition/charges";
 import { sendTuitionInvoice } from "@/lib/tuition/send-invoice";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -62,7 +63,11 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const { charge: updated, emailed } = await sendTuitionInvoice(admin, charge.id);
+    const { charge: updated, emailed } = await sendTuitionInvoice(
+      admin,
+      charge.id,
+      { context: schoolAdminActivityContext(user) },
+    );
     return NextResponse.json({ charge: updated, emailed });
   } catch (error) {
     if (error instanceof AuthError) {

@@ -15,8 +15,9 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type AdmissionsDateTimePickerProps = {
   C: AdminThemeTokens;
-  applicationId: string;
-  actionId: string;
+  applicationId?: string;
+  actionId?: string;
+  availabilityEndpointBuilder?: (start: string, end: string) => string;
   timezone: string;
   timezoneLabel: string;
   selectedDate: string | null;
@@ -38,6 +39,7 @@ export default function AdmissionsDateTimePicker({
   C,
   applicationId,
   actionId,
+  availabilityEndpointBuilder,
   timezone,
   timezoneLabel,
   selectedDate,
@@ -77,15 +79,19 @@ export default function AdmissionsDateTimePicker({
 
     const { start, end } = monthDateRange(viewYear, viewMonth);
     const params = new URLSearchParams({
-      actionId,
       start,
       end,
     });
+    if (actionId) {
+      params.set("actionId", actionId);
+    }
+
+    const endpoint = availabilityEndpointBuilder
+      ? availabilityEndpointBuilder(start, end)
+      : `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`;
 
     try {
-      const response = await fetch(
-        `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`,
-      );
+      const response = await fetch(endpoint);
       const payload = (await response.json()) as {
         mode?: string;
         availability?: Record<string, string[]>;
@@ -107,7 +113,7 @@ export default function AdmissionsDateTimePicker({
     } finally {
       setLoading(false);
     }
-  }, [actionId, applicationId, viewMonth, viewYear]);
+  }, [actionId, applicationId, availabilityEndpointBuilder, viewMonth, viewYear]);
 
   useEffect(() => {
     queueMicrotask(() => {

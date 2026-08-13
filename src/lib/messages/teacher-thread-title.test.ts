@@ -80,7 +80,7 @@ test("resolveTeacherFamilyThreadTitle prefers the messaging guardian from thread
       organization_id: "org-1",
       body: "Thanks!",
       sender_user_id: "user-teacher",
-      sender_kind: "staff_member",
+      sender_kind: "staff_member" as const,
       sender_guardian_id: null,
       sender_staff_member_id: "staff-1",
       created_at: "2026-08-09T09:10:00.000Z",

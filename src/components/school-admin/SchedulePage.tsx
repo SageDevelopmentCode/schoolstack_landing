@@ -151,6 +151,10 @@ export default function SchedulePage({
 
   const handleVisitClick = useCallback(
     async (visit: AdminScheduledVisit) => {
+      if (!visit.applicationId) {
+        return;
+      }
+
       if (selectedApplicationId === visit.applicationId) {
         setSelectedApplicationId(null);
         setSelectedSubmission(null);

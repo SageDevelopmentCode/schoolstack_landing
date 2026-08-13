@@ -9,6 +9,12 @@ import {
 } from "@/lib/tuition/late-fees";
 import { getTuitionOrgSettings } from "@/lib/tuition/org-settings";
 import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizeBillingRunSummary,
+  systemActivityContext,
+} from "@/lib/tuition/tuition-activity";
+import {
   AUTOPAY_LINES_GLOBAL_CAP,
   mergeAutopayLines,
   type AutopayLineItem,
@@ -95,11 +101,18 @@ export async function runTuitionBillingCron(
     const graceDays = getGraceDaysForSettings(settings);
     const reminderDaysList = getReminderDaysForSettings(settings);
 
-    overdueCount += await markOverdue(admin, organizationId, graceDays);
+    const orgOverdue = await markOverdue(admin, organizationId, graceDays);
+    overdueCount += orgOverdue;
+
+    let orgReminders = 0;
     for (const reminderDays of reminderDaysList) {
-      remindersSent += await sendReminders(admin, organizationId, reminderDays);
+      const sent = await sendReminders(admin, organizationId, reminderDays);
+      orgReminders += sent;
+      remindersSent += sent;
     }
-    rulesEvaluated += await evaluateRules(admin, organizationId);
+
+    const orgRules = await evaluateRules(admin, organizationId);
+    rulesEvaluated += orgRules;
 
     const lateFeeResult = await applyLateFees(admin, organizationId);
     lateFeesApplied += lateFeeResult.applied;
@@ -114,6 +127,44 @@ export async function runTuitionBillingCron(
     autopayLines = merged.lines;
     autopayLinesTruncated =
       autopayLinesTruncated || autopayResult.truncated || merged.truncated;
+
+    void logTuitionActivity(admin, {
+      organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_BILLING_RUN_COMPLETED,
+      entityType: "organization",
+      entityId: organizationId,
+      summary: "Tuition billing run completed",
+      changeSummary: summarizeBillingRunSummary({
+        overdueCount: orgOverdue,
+        remindersSent: orgReminders,
+        rulesEvaluated: orgRules,
+        lateFeesApplied: lateFeeResult.applied,
+        lateFeesNotified: lateFeeResult.notified,
+        autopayProcessed: autopayResult.processed,
+        autopayFailed: autopayResult.failed,
+        autopaySkipped: autopayResult.skipped,
+      }),
+      logWhenEmpty: true,
+      context: systemActivityContext(),
+    });
+
+    if (lateFeeResult.applied > 0) {
+      void logTuitionActivity(admin, {
+        organizationId,
+        action: ACTIVITY_ACTIONS.TUITION_LATE_FEE_APPLIED,
+        entityType: "organization",
+        entityId: organizationId,
+        summary: `Applied ${lateFeeResult.applied} late fee${lateFeeResult.applied === 1 ? "" : "s"}`,
+        changeSummary: {
+          changedFields: ["lateFees"],
+          changes: [
+            `Applied ${lateFeeResult.applied} late fee${lateFeeResult.applied === 1 ? "" : "s"}`,
+          ],
+        },
+        logWhenEmpty: true,
+        context: systemActivityContext(),
+      });
+    }
   }
 
   const summary: TuitionBillingCronSummary = {

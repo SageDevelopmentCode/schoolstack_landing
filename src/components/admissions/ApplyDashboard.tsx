@@ -4,7 +4,7 @@ import Link from "next/link";
 import NavigationLink from "@/components/school/shared/NavigationLink";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { ArrowRight, FileText, Plus } from "lucide-react";
+import { ArrowRight, Building2, FileText, Plus } from "lucide-react";
 import EnrolledFamilyBanner from "@/components/admissions/EnrolledFamilyBanner";
 import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
 import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
@@ -18,7 +18,9 @@ import {
   type FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
 import type { EnrollmentProgressSummary } from "@/lib/admissions/enrollment-checklist-materialization";
-import { formatInstantInTimezone } from "@/lib/admissions/admissions-availability";
+import { formatInstantInTimezone, formatScheduledVisitWhenLabel } from "@/lib/admissions/admissions-availability";
+import type { FamilyScheduledVisit } from "@/lib/admissions/family-tour-booking";
+import { POST_SUBMIT_ACTION_TEMPLATES } from "@/lib/admissions/post-submit-templates";
 import { fireEnrollmentConfetti } from "@/lib/enrollment-confetti";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -32,6 +34,10 @@ type ApplyDashboardProps = {
   timezone: string;
   applications: FamilyApplication[];
   applicationsWithTasks: FamilyApplication[];
+  upcomingCampusTours?: FamilyScheduledVisit[];
+  showScheduleTourCta?: boolean;
+  scheduleTourLabel?: string;
+  scheduleTourDescription?: string;
   hasEnrolledAccess: boolean;
   parentPortalEnabled: boolean;
   parentPortalHref?: string;
@@ -144,6 +150,10 @@ export default function ApplyDashboard({
   timezone,
   applications,
   applicationsWithTasks,
+  upcomingCampusTours = [],
+  showScheduleTourCta = false,
+  scheduleTourLabel,
+  scheduleTourDescription,
   hasEnrolledAccess,
   parentPortalEnabled,
   parentPortalHref,
@@ -180,6 +190,16 @@ export default function ApplyDashboard({
     fireEnrollmentConfetti();
   }, [hasEnrolledAccess, previewMode, schoolSlug]);
 
+  const scheduleTourHref = previewBasePath
+    ? `${previewBasePath}/apply/schedule-tour`
+    : `/school/${schoolSlug}/apply/schedule-tour`;
+  const scheduleTourTitle =
+    scheduleTourLabel?.trim() ||
+    POST_SUBMIT_ACTION_TEMPLATES.schedule_campus_tour.label;
+  const scheduleTourSubtitle =
+    scheduleTourDescription?.trim() ||
+    POST_SUBMIT_ACTION_TEMPLATES.schedule_campus_tour.defaultInstructions;
+
   return (
     <ApplyPortalPageShell
       branding={branding}
@@ -200,7 +220,99 @@ export default function ApplyDashboard({
           />
         ) : null}
 
-        <section className={hasEnrolledAccess && parentPortalEnabled ? "mt-8" : ""}>
+        {upcomingCampusTours.length > 0 ? (
+          <section className="mt-8">
+            <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
+              Upcoming visits
+            </h2>
+            <div className="mt-4 space-y-3">
+              {upcomingCampusTours.map((visit) => {
+                const whenLabel = formatScheduledVisitWhenLabel({
+                  schedulingMode: visit.schedulingMode,
+                  scheduledDate: visit.scheduledDate,
+                  startTimeSlot: visit.startTimeSlot,
+                  durationMinutes: visit.durationMinutes,
+                });
+
+                return (
+                  <div
+                    key={visit.id}
+                    className="rounded-md border px-5 py-5"
+                    style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+                  >
+                    <h3 className="text-base font-semibold" style={{ color: C.accentDark }}>
+                      {visit.title}
+                    </h3>
+                    <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
+                      {whenLabel}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
+        {showScheduleTourCta ? (
+          <section
+            className={
+              (hasEnrolledAccess && parentPortalEnabled) || upcomingCampusTours.length > 0
+                ? "mt-8"
+                : ""
+            }
+          >
+            <div
+              className="rounded-md border px-5 py-5"
+              style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: C.clayBg, color: C.clay }}
+                  >
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-semibold" style={{ color: C.accentDark }}>
+                      {scheduleTourTitle}
+                    </h2>
+                    <p className="mt-1 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
+                      {scheduleTourSubtitle}
+                    </p>
+                  </div>
+                </div>
+                {previewMode ? (
+                  <span
+                    aria-disabled="true"
+                    className="inline-flex shrink-0 cursor-not-allowed items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium opacity-50"
+                    style={{ backgroundColor: C.accent, color: "#FFFFFF" }}
+                  >
+                    Schedule tour
+                  </span>
+                ) : (
+                  <Link
+                    href={scheduleTourHref}
+                    className="inline-flex shrink-0 items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                    style={{ backgroundColor: C.accent }}
+                  >
+                    Schedule tour
+                  </Link>
+                )}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <section
+          className={
+            hasEnrolledAccess && parentPortalEnabled ||
+            upcomingCampusTours.length > 0 ||
+            showScheduleTourCta
+              ? "mt-8"
+              : ""
+          }
+        >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="text-2xl font-semibold sm:text-3xl" style={{ color: C.accentDark }}>
@@ -249,8 +361,27 @@ export default function ApplyDashboard({
               No applications yet
             </h2>
             <p className="mt-2 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-              Start an application to apply to {schoolName}.
+              {upcomingCampusTours.length > 0
+                ? `When you're ready, start your application to ${schoolName}.`
+                : `Start an application to apply to ${schoolName}.`}
             </p>
+            {previewMode ? (
+              <span
+                aria-disabled="true"
+                className="mt-6 inline-flex cursor-not-allowed items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium opacity-50"
+                style={{ backgroundColor: C.accent, color: "#FFFFFF" }}
+              >
+                Start application
+              </span>
+            ) : (
+              <Link
+                href={`/school/${schoolSlug}/forms/apply`}
+                className="mt-6 inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                style={{ backgroundColor: C.accent }}
+              >
+                Start application
+              </Link>
+            )}
           </div>
         ) : (
           <div className="mt-4 space-y-3">

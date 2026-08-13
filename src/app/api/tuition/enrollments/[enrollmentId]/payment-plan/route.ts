@@ -10,6 +10,10 @@ import {
   finalizeEnrollmentPaymentPlan,
   getAssignmentForEnrollment,
 } from "@/lib/tuition/assignments";
+import {
+  parentActivityContext,
+  schoolAdminActivityContext,
+} from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -105,10 +109,18 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const updated = await finalizeEnrollmentPaymentPlan(admin, {
-      assignmentId: assignment.id,
-      paymentPlanId: body.paymentPlanId,
-    });
+    const updated = await finalizeEnrollmentPaymentPlan(
+      admin,
+      {
+        assignmentId: assignment.id,
+        paymentPlanId: body.paymentPlanId,
+      },
+      {
+        context: isGuardian
+          ? parentActivityContext(user)
+          : schoolAdminActivityContext(user),
+      },
+    );
 
     return NextResponse.json({ assignment: updated });
   } catch (error) {

@@ -8,8 +8,8 @@ import {
 import type { TuitionCharge } from "./types";
 
 function charge(overrides: Partial<TuitionCharge> & Pick<TuitionCharge, "id">): TuitionCharge {
+  const { id, ...rest } = overrides;
   return {
-    id: overrides.id,
     organizationId: "org-1",
     assignmentId: "assignment-1",
     familyId: "family-1",
@@ -28,7 +28,8 @@ function charge(overrides: Partial<TuitionCharge> & Pick<TuitionCharge, "id">): 
     paidAt: null,
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
-    ...overrides,
+    ...rest,
+    id,
   };
 }
 

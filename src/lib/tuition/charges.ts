@@ -8,6 +8,7 @@ import { formatBillingSplitSummary } from "./billing-splits";
 import { computeFamilyAutopayStatus } from "./autopay-status";
 import { computeFamilyBillingReadiness } from "./tuition-readiness";
 import { rowToAdjustment, rowToCharge } from "./row-mappers";
+import { resolveFamilyCatalogTuition } from "./pricing";
 import type {
   ChargeStatus,
   EnrollmentBillingStatus,
@@ -18,6 +19,12 @@ import type {
   UnassignedEnrollmentSummary,
 } from "./types";
 import { paymentScheduleLabel } from "./setup-wizard";
+import type { RawKpiChargeRow } from "./kpi-breakdown";
+import {
+  computeOutstandingCentsFromCharges,
+  type OutstandingPeriod,
+  type SchoolYearBounds,
+} from "./outstanding-period";
 
 export async function listChargesForFamily(
   supabase: SupabaseClient,
@@ -269,11 +276,11 @@ export async function listFamilyBillingSummaries(
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_rate_plans")
-      .select("id, name")
+      .select("id, name, amount_cents")
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_rate_tiers")
-      .select("id, rate_plan_id, label")
+      .select("id, rate_plan_id, label, amount_cents, is_default")
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_payment_plans")
@@ -310,9 +317,26 @@ export async function listFamilyBillingSummaries(
   const ratePlanMap = new Map(
     (ratePlans ?? []).map((plan) => [String(plan.id), String(plan.name)]),
   );
+  const ratePlanAmountById = new Map(
+    (ratePlans ?? []).map((plan) => [String(plan.id), Number(plan.amount_cents)]),
+  );
   const tierMap = new Map(
     (tiers ?? []).map((tier) => [String(tier.id), String(tier.label)]),
   );
+  const tierAmountById = new Map(
+    (tiers ?? []).map((tier) => [String(tier.id), Number(tier.amount_cents)]),
+  );
+  const defaultTierAmountByRatePlanId = new Map<string, number>();
+  for (const tier of tiers ?? []) {
+    const ratePlanId = String(tier.rate_plan_id);
+    if (tier.is_default === true) {
+      defaultTierAmountByRatePlanId.set(ratePlanId, Number(tier.amount_cents));
+      continue;
+    }
+    if (!defaultTierAmountByRatePlanId.has(ratePlanId)) {
+      defaultTierAmountByRatePlanId.set(ratePlanId, Number(tier.amount_cents));
+    }
+  }
   const paymentPlanMap = new Map(
     (paymentPlans ?? []).map((plan) => [
       String(plan.id),
@@ -578,6 +602,31 @@ export async function listFamilyBillingSummaries(
       hasBillingSplit,
     });
 
+    const catalogTuition = resolveFamilyCatalogTuition({
+      assignments: familyAssignments.map((assignment) => {
+        const assignmentId = String(assignment.id);
+        const assignmentAdjustments = adjustmentsByAssignment.get(assignmentId) ?? [];
+        return {
+          rateTierId:
+            typeof assignment.rate_tier_id === "string"
+              ? assignment.rate_tier_id
+              : null,
+          ratePlanId: String(assignment.rate_plan_id),
+          adjustments: assignmentAdjustments.map((adjustment) => ({
+            adjustmentType: adjustment.adjustmentType,
+            valuePercent: adjustment.valuePercent,
+            valueCents: adjustment.valueCents,
+            priority: adjustment.priority,
+            scope: adjustment.scope,
+          })),
+        };
+      }),
+      tierAmountById,
+      ratePlanAmountById,
+      defaultTierAmountByRatePlanId,
+      balanceDueCents,
+    });
+
     return {
       familyId,
       familyName: String(family.name),
@@ -612,6 +661,7 @@ export async function listFamilyBillingSummaries(
       billingSplitSummary,
       hasBillingSplit,
       hasPendingEnrollment,
+      catalogTuition,
       hasBillingRelevance,
     } satisfies FamilyBillingSummary & { hasBillingRelevance: boolean };
   })
@@ -628,30 +678,55 @@ export async function listFamilyBillingSummaries(
 export async function getTuitionKpis(
   supabase: SupabaseClient,
   organizationId: string,
+  options?: {
+    outstandingPeriod?: OutstandingPeriod;
+    schoolYearBounds?: SchoolYearBounds;
+    referenceDate?: Date;
+  },
 ): Promise<{
   collectedYtdCents: number;
   outstandingCents: number;
   familiesAtRisk: number;
   activeAssignments: number;
 }> {
-  const summaries = await listFamilyBillingSummaries(supabase, organizationId, {
-    limit: null,
-  });
-  const yearStart = new Date();
-  yearStart.setUTCMonth(0, 1);
+  const outstandingPeriod = options?.outstandingPeriod ?? "current_month";
+  const schoolYearBounds = options?.schoolYearBounds ?? {
+    effectiveStart: null,
+    effectiveEnd: null,
+  };
+  const referenceDate = options?.referenceDate ?? new Date();
 
-  const { count: activeAssignments, error } = await supabase
-    .from("tuition_enrollment_assignments")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", organizationId)
-    .eq("status", "active");
+  const [summaries, chargesResult, assignmentsResult] = await Promise.all([
+    listFamilyBillingSummaries(supabase, organizationId, {
+      limit: null,
+    }),
+    supabase
+      .from("tuition_charges")
+      .select("id, family_id, assignment_id, label, amount_cents, paid_cents, status, due_date, paid_at")
+      .eq("organization_id", organizationId)
+      .not("status", "eq", "void"),
+    supabase
+      .from("tuition_enrollment_assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .eq("status", "active"),
+  ]);
 
-  if (error) throw error;
+  if (chargesResult.error) throw chargesResult.error;
+  if (assignmentsResult.error) throw assignmentsResult.error;
+
+  const chargeRows = (chargesResult.data ?? []) as RawKpiChargeRow[];
+  const outstandingCents = computeOutstandingCentsFromCharges(
+    chargeRows,
+    outstandingPeriod,
+    schoolYearBounds,
+    referenceDate,
+  );
 
   return {
     collectedYtdCents: summaries.reduce((s, f) => s + f.paidYtdCents, 0),
-    outstandingCents: summaries.reduce((s, f) => s + f.balanceDueCents, 0),
+    outstandingCents,
     familiesAtRisk: summaries.filter((f) => f.status === "overdue").length,
-    activeAssignments: activeAssignments ?? 0,
+    activeAssignments: assignmentsResult.count ?? 0,
   };
 }
