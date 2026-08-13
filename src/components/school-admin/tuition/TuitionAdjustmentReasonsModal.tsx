@@ -47,8 +47,10 @@ export default function TuitionAdjustmentReasonsModal({
 
   useEffect(() => {
     if (!open) return;
-    setDraftReasons(reasons);
-    setError(null);
+    queueMicrotask(() => {
+      setDraftReasons(reasons);
+      setError(null);
+    });
   }, [open, reasons]);
 
   const canDelete = draftReasons.length > 1;

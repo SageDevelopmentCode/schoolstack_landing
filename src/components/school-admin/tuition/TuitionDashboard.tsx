@@ -116,12 +116,21 @@ export default function TuitionDashboard({
   );
   const [focusFamilyId, setFocusFamilyId] = useState<string | null>(null);
   const [hoveredKpiCard, setHoveredKpiCard] = useState<TuitionKpiBreakdownKind | null>(null);
-  const [outstandingPeriod, setOutstandingPeriod] = useState<OutstandingPeriod>("current_month");
+  const [outstandingPeriodSelection, setOutstandingPeriod] = useState<OutstandingPeriod>("current_month");
 
   const schoolYearBounds = useMemo(
     () => deriveSchoolYearBounds(ratePlans),
     [ratePlans],
   );
+
+  const availablePeriods = useMemo(
+    () => availableOutstandingPeriods(schoolYearBounds),
+    [schoolYearBounds],
+  );
+
+  const outstandingPeriod = availablePeriods.includes(outstandingPeriodSelection)
+    ? outstandingPeriodSelection
+    : (availablePeriods[0] ?? "current_month");
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -162,13 +171,6 @@ export default function TuitionDashboard({
       void loadData();
     });
   }, [loadData]);
-
-  useEffect(() => {
-    const available = availableOutstandingPeriods(schoolYearBounds);
-    if (!available.includes(outstandingPeriod)) {
-      setOutstandingPeriod(available[0] ?? "current_month");
-    }
-  }, [outstandingPeriod, schoolYearBounds]);
 
   const handleSetupComplete = async () => {
     setShowSetupWizard(false);

@@ -306,13 +306,6 @@ export default function TuitionFamiliesPanel({
     });
   }, [loadFamilies, reloadToken]);
 
-  useEffect(() => {
-    if (!initialFamilyId) return;
-    if (families.some((family) => family.familyId === initialFamilyId)) {
-      selectFamily(initialFamilyId);
-    }
-  }, [families, initialFamilyId, selectFamily]);
-
   const selectedFamily =
     families.find((f) => f.familyId === selectedFamilyId) ?? null;
 

@@ -88,15 +88,21 @@ export default function TuitionKpiBreakdownPanel({
 
   useEffect(() => {
     if (!open || !kind) {
-      setBreakdown(null);
-      setError(null);
-      setLoading(false);
+      queueMicrotask(() => {
+        setBreakdown(null);
+        setError(null);
+        setLoading(false);
+      });
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setLoading(true);
+        setError(null);
+      }
+    });
 
     void getTuitionKpiBreakdown(supabase, organizationId, kind, {
       outstandingPeriod: kind === "outstanding" ? outstandingPeriod : undefined,
