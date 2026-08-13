@@ -15,11 +15,23 @@ The [performance.yml](./performance.yml) workflow:
 **When it runs**
 
 - **Pull requests:** only when perf-relevant files change (`src/`, `public/`, `package.json`, `next.config.ts`, `middleware.ts`, performance scripts, `e2e/`, etc.). PRs that touch only `supabase/`, `*.sql`, or markdown/docs skip the entire workflow.
-- **Push to `main`:** always runs the full 12-page Lighthouse suite (mobile + desktop).
+- **Push to `main`:** always runs the full 13-page Lighthouse suite (mobile + desktop).
 
 **Page selection on PRs**
 
-A resolver ([`resolve-ci-pages-from-diff.ts`](../../src/lib/performance/resolve-ci-pages-from-diff.ts)) maps the git diff to a subset of [`CI_LHCI_PAGE_PATHS`](../../src/lib/performance/page-manifest.ts). Example: a change to `ParentBillingPage.tsx` audits the parent portal CI paths only (~4 URLs x 2 form factors instead of 12 x 2). Global changes (`layout.tsx`, `middleware.ts`, `package.json`, …) still run the full set.
+A resolver ([`resolve-ci-pages-from-diff.ts`](../../src/lib/performance/resolve-ci-pages-from-diff.ts)) maps the git diff to a subset of [`CI_LHCI_PAGE_PATHS`](../../src/lib/performance/page-manifest.ts). Changed files are matched to page clusters and **unioned** — a tuition component plus a `src/lib/school-admin/` helper no longer expands to the full suite.
+
+| Changed files | CI pages audited |
+|---------------|------------------|
+| `src/components/school-parent/*` | Parent portal cluster (4 paths + auth index) |
+| `src/components/school-admin/tuition/*` or `src/lib/tuition/*` | Admin login + `/admin/my_school/tuition` |
+| `src/components/school-admin/*`, `src/lib/school-admin/*`, `src/components/admin/*` | School admin cluster (login, dashboard, admissions/submissions) |
+| `src/lib/organization-settings/*` | Admin + parent + admissions clusters |
+| `layout.tsx`, `middleware.ts`, `package.json`, … | Full 13-page suite |
+| Unmatched `src/` or `public/` file (no cluster match) | Full 13-page suite (safe fallback) |
+| SQL/docs only (no perf-relevant paths) | Lighthouse skipped (0 pages resolved) |
+
+Example: a change to `ParentBillingPage.tsx` audits the parent portal CI paths only (~4 URLs × 2 form factors instead of 13 × 2).
 
 **Steps (when triggered)**
 
@@ -36,7 +48,7 @@ A resolver ([`resolve-ci-pages-from-diff.ts`](../../src/lib/performance/resolve-
 | URL group | Session |
 |-----------|---------|
 | Marketing + admissions + school admin login | None (public) |
-| School admin dashboard + admissions submissions | `e2e-admin@schoolstack.test` |
+| School admin dashboard, admissions submissions, tuition | `e2e-admin@schoolstack.test` |
 | Parent portal routes | `e2e-parent@schoolstack.test` |
 
 **Local reproduction:**

@@ -194,6 +194,7 @@ export const CI_LHCI_PAGE_PATHS = [
   `/school/${CANONICAL_SCHOOL_SLUG}/admin/login`,
   `/school/${CANONICAL_SCHOOL_SLUG}/admin/dashboard`,
   `/school/${CANONICAL_SCHOOL_SLUG}/admin/admissions/submissions`,
+  `/school/${CANONICAL_SCHOOL_SLUG}/admin/my_school/tuition`,
   `/school/${CANONICAL_SCHOOL_SLUG}/parent`,
   `/school/${CANONICAL_SCHOOL_SLUG}/parent/portal`,
   `/school/${CANONICAL_SCHOOL_SLUG}/parent/billing`,
