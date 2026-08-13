@@ -11,6 +11,7 @@ import {
   listLateFeeOverrides,
   upsertLateFeeOverride,
 } from "@/lib/tuition/late-fee-overrides";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
       year: body.year,
       month: body.month,
       lateFeeDayOfMonth: body.lateFeeDayOfMonth,
-    });
+    }, { context: schoolAdminActivityContext(user) });
 
     return NextResponse.json({ override });
   } catch (error) {
@@ -123,7 +124,9 @@ export async function DELETE(request: Request) {
     }
 
     await requireTuitionOrgAdmin(admin, organizationId, user.id);
-    await deleteLateFeeOverride(admin, overrideId);
+    await deleteLateFeeOverride(admin, overrideId, {
+      context: schoolAdminActivityContext(user),
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

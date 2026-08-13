@@ -21,7 +21,8 @@ export type { ScheduledVisitTiming };
 
 export type AdminScheduledVisit = {
   id: string;
-  applicationId: string;
+  applicationId: string | null;
+  isPreApplication: boolean;
   actionType: PostSubmitActionType;
   stepTitle: string;
   studentLabel: string | null;
@@ -89,6 +90,7 @@ export async function listOrgScheduledVisits(
       `
       id,
       application_id,
+      family_id,
       post_submit_action_id,
       action_type,
       scheduling_mode,
@@ -97,13 +99,20 @@ export async function listOrgScheduledVisits(
       start_time_slot,
       duration_minutes,
       visit_day_count,
-      applications!inner (
+      applications (
         responses,
-        application_form_versions!inner (
+        application_form_versions (
           title,
           post_submit_config
         ),
         students:student_id (
+          first_name,
+          last_name
+        )
+      ),
+      families:family_id (
+        name,
+        guardians (
           first_name,
           last_name
         )
@@ -167,6 +176,32 @@ export async function listOrgScheduledVisits(
       | null;
     const app = Array.isArray(application) ? application[0] : application;
 
+    const family = row.families as
+      | {
+          name?: string;
+          guardians?:
+            | { first_name?: string; last_name?: string }
+            | { first_name?: string; last_name?: string }[]
+            | null;
+        }
+      | {
+          name?: string;
+          guardians?:
+            | { first_name?: string; last_name?: string }
+            | { first_name?: string; last_name?: string }[]
+            | null;
+        }[]
+      | null;
+    const familyRow = Array.isArray(family) ? family[0] : family;
+    const guardian = familyRow?.guardians;
+    const guardianRow = Array.isArray(guardian) ? guardian[0] : guardian;
+    const guardianLabel = guardianRow
+      ? [guardianRow.first_name, guardianRow.last_name].filter(Boolean).join(" ") || null
+      : null;
+    const familyLabel =
+      guardianLabel ??
+      (typeof familyRow?.name === "string" ? familyRow.name : null);
+
     const formVersion = app?.application_form_versions;
     const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
 
@@ -178,6 +213,7 @@ export async function listOrgScheduledVisits(
 
     const responses = parseStringRecord(app?.responses);
     const actionType = String(row.action_type) as PostSubmitActionType;
+    const isPreApplication = row.application_id == null;
     const schedulingMode: AdmissionsSchedulingMode =
       row.scheduling_mode === "whole_day" ? "whole_day" : "time_slot";
     const scheduledDate = String(row.scheduled_date);
@@ -200,15 +236,20 @@ export async function listOrgScheduledVisits(
 
     return {
       id: String(row.id),
-      applicationId: String(row.application_id),
+      applicationId: row.application_id ? String(row.application_id) : null,
+      isPreApplication,
       actionType,
       stepTitle: resolveStepTitle(
         actionType,
         String(row.post_submit_action_id),
         form?.post_submit_config,
       ),
-      studentLabel: studentFromTable ?? extractStudentLabel(responses),
-      formTitle: String(form?.title ?? "Application"),
+      studentLabel: isPreApplication
+        ? familyLabel
+        : studentFromTable ?? extractStudentLabel(responses),
+      formTitle: isPreApplication
+        ? "Pre-application tour"
+        : String(form?.title ?? "Application"),
       schedulingMode,
       scheduledDate,
       endDate,

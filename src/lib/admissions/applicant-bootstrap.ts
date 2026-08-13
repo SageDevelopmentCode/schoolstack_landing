@@ -3,6 +3,7 @@ import {
   parseApplicationFormFeeConfig,
   type ApplicationFormFeeConfig,
 } from "./application-form-schema";
+import { familyHasPreApplicationCampusTour } from "./family-tour-booking";
 
 export type BootstrapApplicantInput = {
   userId: string;
@@ -12,12 +13,14 @@ export type BootstrapApplicantInput = {
   firstName?: string;
   lastName?: string;
   forceNew?: boolean;
+  entryIntent?: "apply" | "schedule_campus_tour";
 };
 
 export type BootstrapApplicantAction =
   | "resume"
   | "redirect_apply_dashboard"
-  | "redirect_teacher_portal";
+  | "redirect_teacher_portal"
+  | "redirect_schedule_tour";
 
 export type BootstrapApplicantResult = {
   action: BootstrapApplicantAction;
@@ -56,6 +59,7 @@ export async function bootstrapApplicant(
     firstName,
     lastName,
     forceNew = false,
+    entryIntent = "apply",
   } = input;
 
   const { data: formRow, error: formError } = await admin
@@ -232,6 +236,32 @@ export async function bootstrapApplicant(
     guardianId = newGuardian.id as string;
   }
 
+  if (entryIntent === "schedule_campus_tour") {
+    const hasTour = await familyHasPreApplicationCampusTour(
+      admin,
+      organizationId,
+      familyId,
+    );
+
+    if (hasTour) {
+      return {
+        action: "redirect_apply_dashboard",
+        familyId,
+        guardianId,
+        membershipId,
+        createdNewApplication: false,
+      };
+    }
+
+    return {
+      action: "redirect_schedule_tour",
+      familyId,
+      guardianId,
+      membershipId,
+      createdNewApplication: false,
+    };
+  }
+
   const { data: existingApplications, error: applicationLookupError } = await admin
     .from("applications")
     .select("id")
@@ -313,9 +343,11 @@ export async function bootstrapApplicant(
     );
   }
 
+  const newApplicationId = newApplication.id as string;
+
   return {
     action: "resume",
-    applicationId: newApplication.id as string,
+    applicationId: newApplicationId,
     familyId,
     guardianId,
     membershipId,

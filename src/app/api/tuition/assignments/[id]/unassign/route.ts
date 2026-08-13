@@ -5,6 +5,7 @@ import {
   getAssignmentById,
   unassignTuitionAssignment,
 } from "@/lib/tuition/assignments";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
@@ -45,9 +46,11 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, assignment.organizationId);
+    const user = await requireSchoolAdminUser(supabase, assignment.organizationId);
 
-    const updated = await unassignTuitionAssignment(admin, assignmentId);
+    const updated = await unassignTuitionAssignment(admin, assignmentId, {
+      context: schoolAdminActivityContext(user),
+    });
 
     return NextResponse.json({ assignment: updated });
   } catch (error) {

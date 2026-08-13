@@ -27,6 +27,10 @@ import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
 } from "@/lib/activity-log";
+import {
+  insertApplicationFormRevision,
+  summarizeApplicationFormChanges,
+} from "./application-form-revisions";
 export type { ProgramOption } from "./programs";
 export { listPrograms } from "./programs";
 
@@ -409,20 +413,56 @@ export async function updateApplicationForm(
   if (error) throw error;
   const form = applicationFormFromRow(data as Record<string, unknown>);
   if (options?.logActivity) {
-    void logActivityEvent(supabase, {
+    const changeSummary = summarizeApplicationFormChanges(existing, form);
+    const summary =
+      changeSummary.changes.length > 0
+        ? `Saved application form “${form.title}” (${changeSummary.changes.length} change${changeSummary.changes.length === 1 ? "" : "s"})`
+        : `Saved application form “${form.title}”`;
+
+    let revisionId: string | null = null;
+    try {
+      revisionId = await insertApplicationFormRevision(supabase, {
+        form,
+        changeSummary,
+        activityEventId: null,
+      });
+    } catch (revisionError) {
+      console.error(
+        "[application-forms] revision insert failed:",
+        revisionError,
+      );
+    }
+
+    const activityEventId = await logActivityEvent(supabase, {
       organizationId: form.organization_id,
       actorType: "school_admin",
       surface: "school_admin",
       action: ACTIVITY_ACTIONS.FORM_SAVED,
       entityType: "application_form_version",
       entityId: form.id,
-      summary: `Saved application form “${form.title}”`,
+      summary,
       metadata: {
         publicSlug: form.public_slug,
         version: form.version,
         status: form.status,
+        changedFields: changeSummary.changedFields,
+        changes: changeSummary.changes,
+        ...(revisionId ? { revisionId } : {}),
       },
     });
+
+    if (revisionId && activityEventId) {
+      const { error: linkError } = await supabase
+        .from("application_form_version_revisions")
+        .update({ activity_event_id: activityEventId })
+        .eq("id", revisionId);
+      if (linkError) {
+        console.error(
+          "[application-forms] revision link failed:",
+          linkError.message,
+        );
+      }
+    }
   }
   return form;
 }

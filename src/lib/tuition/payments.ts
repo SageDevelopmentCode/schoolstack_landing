@@ -4,6 +4,12 @@ import {
   settleTuitionPayment,
   type SettleTuitionPaymentResult,
 } from "./payment-settlement";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizePaymentAction,
+  type TuitionActivityOptions,
+} from "./tuition-activity";
 
 export type ParentTuitionPaymentRecord = PaymentRecord & {
   studentFirstName: string | null;
@@ -387,7 +393,10 @@ export async function recordManualTuitionPayment(
     amountCents: number;
     label: string;
     payerUserId?: string;
+    method?: string;
+    familyName?: string;
   },
+  options?: TuitionActivityOptions,
 ): Promise<{ paymentId: string; settleResult: SettleTuitionPaymentResult }> {
   const { data: payment, error: paymentError } = await supabase
     .from("application_payments")
@@ -414,6 +423,31 @@ export async function recordManualTuitionPayment(
     payerUserId: input.payerUserId ?? null,
     paymentId: String(payment.id),
   });
+
+  if (!options?.skip) {
+    const changeSummary = summarizePaymentAction({
+      kind: "manual",
+      amountCents: input.amountCents,
+      chargeLabel: input.label,
+      familyName: input.familyName,
+      method: input.method,
+    });
+    void logTuitionActivity(supabase, {
+      organizationId: input.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_PAYMENT_MANUAL,
+      entityType: "tuition_charge",
+      entityId: input.tuitionChargeId,
+      summary: `Recorded manual payment for “${input.label}”`,
+      changeSummary,
+      logWhenEmpty: true,
+      metadata: {
+        familyId: input.familyId,
+        paymentId: String(payment.id),
+        familyName: input.familyName ?? null,
+      },
+      context: options?.context,
+    });
+  }
 
   return {
     paymentId: String(payment.id),

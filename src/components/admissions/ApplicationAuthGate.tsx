@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, LogIn, UserPlus } from "lucide-react";
+import { ArrowLeft, Building2, LogIn, UserPlus } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
@@ -17,7 +17,10 @@ import {
   buildAdminThemeTokens,
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
-import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type {
+  ApplyAuthEntryOption,
+  OrganizationBranding,
+} from "@/lib/organization-settings/types";
 import { AUTH_GATE_PROMO } from "@/lib/site";
 import {
   AuthGatePromoPlaceholder,
@@ -45,6 +48,8 @@ type AuthPhase = "choice" | "credentials" | "verify";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
+type AuthEntryIntent = "apply" | "schedule_campus_tour";
+
 export type ApplicationAuthGateProps = {
   branding: OrganizationBranding;
   schoolName: string;
@@ -53,9 +58,11 @@ export type ApplicationAuthGateProps = {
   organizationId: string;
   formVersionId: string;
   forceNew?: boolean;
+  tourEntryOption?: ApplyAuthEntryOption | null;
   onComplete: () => void;
   onBootstrapped?: (result: BootstrapApplicantResult) => void;
   onRedirectApplyDashboard?: () => void;
+  onRedirectScheduleTour?: () => void;
 };
 
 const stepVariants = {
@@ -133,9 +140,11 @@ export default function ApplicationAuthGate({
   organizationId,
   formVersionId,
   forceNew = false,
+  tourEntryOption = null,
   onComplete,
   onBootstrapped,
   onRedirectApplyDashboard,
+  onRedirectScheduleTour,
 }: ApplicationAuthGateProps) {
   const router = useRouter();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
@@ -145,6 +154,7 @@ export default function ApplicationAuthGate({
   const [phase, setPhase] = useState<AuthPhase>("choice");
   const [direction, setDirection] = useState(1);
   const [mode, setMode] = useState<AuthMode>("create");
+  const [entryIntent, setEntryIntent] = useState<AuthEntryIntent>("apply");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -208,7 +218,14 @@ export default function ApplicationAuthGate({
   };
 
   const handleChooseMode = (nextMode: AuthMode) => {
+    setEntryIntent("apply");
     setMode(nextMode);
+    goToPhase("credentials", 1);
+  };
+
+  const handleChooseTour = () => {
+    setEntryIntent("schedule_campus_tour");
+    setMode("create");
     goToPhase("credentials", 1);
   };
 
@@ -289,6 +306,7 @@ export default function ApplicationAuthGate({
         formTitle,
         mode,
         forceNew,
+        entryIntent,
       }),
     });
 
@@ -302,6 +320,11 @@ export default function ApplicationAuthGate({
 
     if (payload.action === "redirect_apply_dashboard") {
       onRedirectApplyDashboard?.();
+      return payload;
+    }
+
+    if (payload.action === "redirect_schedule_tour") {
+      onRedirectScheduleTour?.();
       return payload;
     }
 
@@ -344,7 +367,8 @@ export default function ApplicationAuthGate({
       const result = await bootstrapApplicant();
       if (
         result.action !== "redirect_apply_dashboard" &&
-        result.action !== "redirect_teacher_portal"
+        result.action !== "redirect_teacher_portal" &&
+        result.action !== "redirect_schedule_tour"
       ) {
         onComplete();
       }
@@ -409,9 +433,11 @@ export default function ApplicationAuthGate({
     phase === "choice"
       ? "Begin your application"
       : phase === "credentials"
-        ? mode === "create"
-          ? "Create your account"
-          : "Log in to continue"
+        ? entryIntent === "schedule_campus_tour"
+          ? "Schedule your campus tour"
+          : mode === "create"
+            ? "Create your account"
+            : "Log in to continue"
         : "Check your email";
 
   const phaseSubtext =
@@ -424,7 +450,9 @@ export default function ApplicationAuthGate({
         at {schoolName} and pick up where you left off.
       </>
     ) : phase === "credentials" ? (
-      mode === "create" ? (
+      entryIntent === "schedule_campus_tour" ? (
+        "Create your account so we can save your tour booking and connect it when you apply later."
+      ) : mode === "create" ? (
         "Enter your name and email. We will send a verification code to get started."
       ) : (
         "Enter your email and we will send a verification code to continue your application."
@@ -568,6 +596,34 @@ export default function ApplicationAuthGate({
                       </p>
                     </div>
                   </button>
+
+                  {tourEntryOption ? (
+                    <button
+                      type="button"
+                      onClick={handleChooseTour}
+                      className="flex w-full items-center gap-4 rounded-xl border p-4 text-left shadow-sm transition hover:shadow-md sm:p-5"
+                      style={{
+                        borderColor: C.border,
+                        backgroundColor: C.surface,
+                      }}
+                    >
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full sm:h-12 sm:w-12"
+                        style={{ backgroundColor: C.clayBg, color: C.clay }}
+                      >
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-base font-semibold" style={{ color: C.textPrimary }}>
+                          {tourEntryOption.label ?? "Schedule a tour of campus"}
+                        </p>
+                        <p className="mt-0.5 text-sm" style={{ color: C.textSecondary }}>
+                          {tourEntryOption.description ??
+                            "Meet with faculty and learn more about our school."}
+                        </p>
+                      </div>
+                    </button>
+                  ) : null}
                 </motion.div>
               ) : phase === "credentials" ? (
                 <motion.div

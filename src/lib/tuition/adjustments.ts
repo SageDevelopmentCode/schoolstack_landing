@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { regenerateFutureCharges } from "./charge-generator";
 import { rowToAdjustment } from "./row-mappers";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizeAdjustmentCreated,
+  type TuitionActivityOptions,
+} from "./tuition-activity";
 import type {
   AdjustmentScope,
   AdjustmentSource,
@@ -63,6 +69,7 @@ export async function createAdjustment(
     priority?: number;
     createdByUserId?: string | null;
   },
+  options?: TuitionActivityOptions,
 ): Promise<TuitionAdjustment> {
   const { data, error } = await supabase
     .from("tuition_adjustments")
@@ -86,12 +93,33 @@ export async function createAdjustment(
   if (error) throw error;
 
   await regenerateFutureCharges(supabase, input.assignmentId);
-  return rowToAdjustment(data);
+  const adjustment = rowToAdjustment(data);
+
+  if (!options?.skip) {
+    const changeSummary = summarizeAdjustmentCreated(adjustment);
+    void logTuitionActivity(supabase, {
+      organizationId: input.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_CREATED,
+      entityType: "tuition_adjustment",
+      entityId: adjustment.id,
+      summary: "Created tuition adjustment",
+      changeSummary,
+      logWhenEmpty: true,
+      metadata: {
+        assignmentId: input.assignmentId,
+        source: input.source ?? "manual",
+      },
+      context: options?.context,
+    });
+  }
+
+  return adjustment;
 }
 
 export async function revokeAdjustment(
   supabase: SupabaseClient,
   adjustmentId: string,
+  options?: TuitionActivityOptions,
 ): Promise<TuitionAdjustment> {
   const { data: existing, error: existingError } = await supabase
     .from("tuition_adjustments")
@@ -112,7 +140,25 @@ export async function revokeAdjustment(
   if (error) throw error;
 
   await regenerateFutureCharges(supabase, String(existing.assignment_id));
-  return rowToAdjustment(data);
+  const adjustment = rowToAdjustment(data);
+
+  if (!options?.skip) {
+    void logTuitionActivity(supabase, {
+      organizationId: adjustment.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_REVOKED,
+      entityType: "tuition_adjustment",
+      entityId: adjustment.id,
+      summary: "Revoked tuition adjustment",
+      changeSummary: {
+        changedFields: ["status"],
+        changes: [`Revoked adjustment: ${adjustment.reason}`],
+      },
+      logWhenEmpty: true,
+      context: options?.context,
+    });
+  }
+
+  return adjustment;
 }
 
 export async function upsertRuleAdjustment(

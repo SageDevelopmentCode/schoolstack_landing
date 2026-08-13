@@ -49,6 +49,7 @@ import {
 } from "@/lib/organization-settings/icon-registry";
 import {
   BRANDING_FIELDS,
+  DEFAULT_APPLY_AUTH_ENTRY_OPTIONS,
   DEFAULT_PARENT_ONBOARDING_ITEMS,
   FEATURE_CATALOG,
   PORTAL_LABELS,
@@ -74,6 +75,7 @@ import {
   toCustomOnboardingUrlTarget,
 } from "@/lib/organization-settings/parent-onboarding";
 import type {
+  ApplyAuthEntryOption,
   OrganizationBranding,
   OrganizationFeatures,
   OrganizationSettingsRow,
@@ -240,11 +242,20 @@ export default function OrganizationSettingsEditor({
   );
 
   const onboardingItems = features.parent_onboarding?.items ?? DEFAULT_PARENT_ONBOARDING_ITEMS;
+  const applyAuthEntryOptions =
+    features.apply_auth_entry?.options ?? DEFAULT_APPLY_AUTH_ENTRY_OPTIONS;
 
   const setOnboardingItems = useCallback((items: ParentOnboardingItem[]) => {
     setFeatures((prev) => ({
       ...prev,
       parent_onboarding: { items },
+    }));
+  }, []);
+
+  const setApplyAuthEntryOptions = useCallback((options: ApplyAuthEntryOption[]) => {
+    setFeatures((prev) => ({
+      ...prev,
+      apply_auth_entry: { options },
     }));
   }, []);
 
@@ -1041,6 +1052,23 @@ export default function OrganizationSettingsEditor({
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <div>
           <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
+            Apply entry options
+          </h2>
+          <p className="mt-1 text-xs text-admin-muted font-secondary">
+            Optional paths on the public apply auth screen before families sign in
+            (e.g. schedule a campus tour before starting an application).
+          </p>
+        </div>
+
+        <ApplyAuthEntryEditor
+          options={applyAuthEntryOptions}
+          onChange={setApplyAuthEntryOptions}
+        />
+      </section>
+
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
+        <div>
+          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
             Parent onboarding
           </h2>
           <p className="mt-1 text-xs text-admin-muted font-secondary">
@@ -1724,6 +1752,71 @@ function FeatureIconPicker({
         </AdminSelect>
       </div>
     </label>
+  );
+}
+
+function ApplyAuthEntryEditor({
+  options,
+  onChange,
+}: {
+  options: ApplyAuthEntryOption[];
+  onChange: (options: ApplyAuthEntryOption[]) => void;
+}) {
+  const tourOption = options.find((option) => option.type === "schedule_campus_tour");
+
+  if (!tourOption) {
+    return null;
+  }
+
+  const updateTourOption = (patch: Partial<ApplyAuthEntryOption>) => {
+    onChange(
+      options.map((option) =>
+        option.type === "schedule_campus_tour" ? { ...option, ...patch } : option,
+      ),
+    );
+  };
+
+  return (
+    <div
+      className="rounded-admin-sm border border-admin-border p-4 space-y-4"
+    >
+      <label className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          checked={tourOption.enabled}
+          onChange={(event) => updateTourOption({ enabled: event.target.checked })}
+          className="mt-1 h-4 w-4 rounded border-admin-border"
+        />
+        <span className="text-sm font-medium text-admin-text font-secondary">
+          Schedule campus tour entry
+        </span>
+      </label>
+
+      {tourOption.enabled ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-admin-muted font-secondary">Button label</span>
+            <input
+              type="text"
+              value={tourOption.label ?? ""}
+              onChange={(event) => updateTourOption({ label: event.target.value })}
+              className="rounded-admin-sm border border-admin-border bg-admin-bg px-3 py-2 text-sm font-secondary"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 sm:col-span-2">
+            <span className="text-xs text-admin-muted font-secondary">Button description</span>
+            <input
+              type="text"
+              value={tourOption.description ?? ""}
+              onChange={(event) =>
+                updateTourOption({ description: event.target.value })
+              }
+              className="rounded-admin-sm border border-admin-border bg-admin-bg px-3 py-2 text-sm font-secondary"
+            />
+          </label>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

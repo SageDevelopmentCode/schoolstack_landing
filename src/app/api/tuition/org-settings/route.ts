@@ -10,6 +10,7 @@ import {
   getTuitionOrgSettings,
   updateTuitionOrgSettings,
 } from "@/lib/tuition/org-settings";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import type { TuitionOrgSettings } from "@/lib/tuition/types";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -78,6 +79,7 @@ export async function PUT(request: Request) {
       admin,
       body.organizationId,
       body.settings,
+      { context: schoolAdminActivityContext(user) },
     );
 
     return NextResponse.json({ settings });

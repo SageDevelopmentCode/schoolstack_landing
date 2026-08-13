@@ -2,6 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { upsertRuleAdjustment } from "./adjustments";
 import { regenerateFutureCharges } from "./charge-generator";
 import { rowToAdjustmentRule } from "./row-mappers";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizeAdjustmentRuleChanges,
+  type TuitionActivityOptions,
+} from "./tuition-activity";
 import type { RuleCondition, RuleConditions, TuitionAdjustmentRule } from "./types";
 
 export async function listAdjustmentRules(
@@ -31,6 +37,7 @@ export async function createAdjustmentRule(
     reason: string;
     autoApply?: boolean;
   },
+  options?: TuitionActivityOptions,
 ): Promise<TuitionAdjustmentRule> {
   const { data, error } = await supabase
     .from("tuition_adjustment_rules")
@@ -50,7 +57,23 @@ export async function createAdjustmentRule(
     .single();
 
   if (error) throw error;
-  return rowToAdjustmentRule(data);
+  const rule = rowToAdjustmentRule(data);
+
+  if (!options?.skip) {
+    const changeSummary = summarizeAdjustmentRuleChanges(null, rule);
+    void logTuitionActivity(supabase, {
+      organizationId: input.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_RULE_CREATED,
+      entityType: "tuition_adjustment_rule",
+      entityId: rule.id,
+      summary: `Created adjustment rule “${rule.name}”`,
+      changeSummary,
+      logWhenEmpty: true,
+      context: options?.context,
+    });
+  }
+
+  return rule;
 }
 
 export async function updateAdjustmentRule(
@@ -63,7 +86,17 @@ export async function updateAdjustmentRule(
     active: boolean;
     autoApply: boolean;
   }>,
+  options?: TuitionActivityOptions,
 ): Promise<TuitionAdjustmentRule> {
+  const { data: beforeRow, error: beforeError } = await supabase
+    .from("tuition_adjustment_rules")
+    .select("*")
+    .eq("id", ruleId)
+    .maybeSingle();
+
+  if (beforeError) throw beforeError;
+  const before = beforeRow ? rowToAdjustmentRule(beforeRow) : null;
+
   const patch: Record<string, unknown> = {};
   if (input.name !== undefined) patch.name = input.name;
   if (input.priority !== undefined) patch.priority = input.priority;
@@ -79,7 +112,22 @@ export async function updateAdjustmentRule(
     .single();
 
   if (error) throw error;
-  return rowToAdjustmentRule(data);
+  const rule = rowToAdjustmentRule(data);
+
+  if (!options?.skip) {
+    const changeSummary = summarizeAdjustmentRuleChanges(before, rule);
+    void logTuitionActivity(supabase, {
+      organizationId: rule.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_RULE_UPDATED,
+      entityType: "tuition_adjustment_rule",
+      entityId: rule.id,
+      summary: `Updated adjustment rule “${rule.name}”`,
+      changeSummary,
+      context: options?.context,
+    });
+  }
+
+  return rule;
 }
 
 type RuleEvaluationContext = {

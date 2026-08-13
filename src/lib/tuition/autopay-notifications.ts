@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   ACTIVITY_ACTIONS,
-  logActivityEvent,
-} from "@/lib/activity-log";
+  logTuitionActivity,
+  summarizeAutopayCharge,
+} from "./tuition-activity";
 import {
   buildTuitionAutopayFailedHtml,
   sendTuitionAutopayFailedEmail,
@@ -18,23 +19,32 @@ export async function notifyAutopaySucceeded(
     chargeLabel: string;
     amountCents: number;
     guardianUserId: string | null;
+    familyName?: string;
   },
 ): Promise<void> {
-  await logActivityEvent(supabase, {
+  const changeSummary = summarizeAutopayCharge({
+    succeeded: true,
+    chargeLabel: input.chargeLabel,
+    amountCents: input.amountCents,
+    familyName: input.familyName,
+  });
+
+  await logTuitionActivity(supabase, {
     organizationId: input.organizationId,
-    actorType: "system",
-    surface: "system",
     action: ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED,
     entityType: "tuition_charge",
     entityId: input.chargeId,
     summary: `Autopay succeeded for ${input.chargeLabel}`,
+    changeSummary,
+    logWhenEmpty: true,
     metadata: {
       familyId: input.familyId,
       chargeId: input.chargeId,
       amountCents: input.amountCents,
       guardianUserId: input.guardianUserId,
+      familyName: input.familyName ?? null,
     },
-    severity: "info",
+    context: { actorType: "system", surface: "system" },
   });
 }
 
@@ -51,16 +61,25 @@ export async function notifyAutopayFailed(
     errorMessage: string;
     orgSlug: string;
     stripeTestMode?: boolean;
+    familyName?: string;
   },
 ): Promise<void> {
-  await logActivityEvent(supabase, {
+  const changeSummary = summarizeAutopayCharge({
+    succeeded: false,
+    chargeLabel: input.chargeLabel,
+    amountCents: input.amountCents,
+    familyName: input.familyName,
+    errorMessage: input.errorMessage,
+  });
+
+  await logTuitionActivity(supabase, {
     organizationId: input.organizationId,
-    actorType: "system",
-    surface: "system",
     action: ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED,
     entityType: "tuition_charge",
     entityId: input.chargeId,
     summary: `Autopay failed for ${input.chargeLabel}`,
+    changeSummary,
+    logWhenEmpty: true,
     metadata: {
       familyId: input.familyId,
       chargeId: input.chargeId,
@@ -68,8 +87,10 @@ export async function notifyAutopayFailed(
       amountCents: input.amountCents,
       errorMessage: input.errorMessage,
       stripeTestMode: input.stripeTestMode ?? null,
+      familyName: input.familyName ?? null,
     },
     severity: "error",
+    context: { actorType: "system", surface: "system" },
   });
 
   const [{ data: family }, { data: org }] = await Promise.all([

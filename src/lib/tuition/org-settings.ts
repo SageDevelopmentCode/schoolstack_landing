@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TuitionOrgSettings } from "./types";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizeOrgSettingsChanges,
+  type TuitionActivityOptions,
+} from "./tuition-activity";
 
 export const DEFAULT_GRACE_DAYS = 5;
 export const DEFAULT_REMINDER_DAYS_BEFORE = 3;
@@ -58,6 +64,16 @@ export function parseTuitionOrgSettings(
     settings.reminderDaysBefore = [Math.floor(record.reminderDaysBefore)];
   }
 
+  if (Array.isArray(record.adjustmentReasons)) {
+    const reasons = record.adjustmentReasons
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    if (reasons.length > 0) {
+      settings.adjustmentReasons = reasons;
+    }
+  }
+
   return settings;
 }
 
@@ -110,6 +126,7 @@ export async function updateTuitionOrgSettings(
   supabase: SupabaseClient,
   organizationId: string,
   patch: TuitionOrgSettings,
+  options?: TuitionActivityOptions,
 ): Promise<TuitionOrgSettings> {
   const current = await getTuitionOrgSettings(supabase, organizationId);
   const merged = { ...current, ...patch };
@@ -123,7 +140,20 @@ export async function updateTuitionOrgSettings(
 
   if (updateError) throw updateError;
   if (updated) {
-    return parseTuitionOrgSettings(updated.tuition);
+    const result = parseTuitionOrgSettings(updated.tuition);
+    if (!options?.skip) {
+      const changeSummary = summarizeOrgSettingsChanges(current, result);
+      void logTuitionActivity(supabase, {
+        organizationId,
+        action: ACTIVITY_ACTIONS.TUITION_ORG_SETTINGS_UPDATED,
+        entityType: "organization_settings",
+        entityId: organizationId,
+        summary: "Updated tuition settings",
+        changeSummary,
+        context: options?.context,
+      });
+    }
+    return result;
   }
 
   const { data: inserted, error: insertError } = await supabase
@@ -136,5 +166,20 @@ export async function updateTuitionOrgSettings(
     .single();
 
   if (insertError) throw insertError;
-  return parseTuitionOrgSettings(inserted?.tuition);
+  const result = parseTuitionOrgSettings(inserted?.tuition);
+
+  if (!options?.skip) {
+    const changeSummary = summarizeOrgSettingsChanges(current, result);
+    void logTuitionActivity(supabase, {
+      organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ORG_SETTINGS_UPDATED,
+      entityType: "organization_settings",
+      entityId: organizationId,
+      summary: "Updated tuition settings",
+      changeSummary,
+      context: options?.context,
+    });
+  }
+
+  return result;
 }

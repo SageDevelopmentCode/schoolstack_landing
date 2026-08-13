@@ -4,6 +4,13 @@ import { evaluateAndApplyRulesForAssignment } from "./rules-engine";
 import { rowToAssignment, rowToBillingAccount } from "./row-mappers";
 import { getDefaultRatePlanForProgram } from "./rate-plans";
 import { getDefaultTierForRatePlan, getTierById } from "./rate-tiers";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizeAssignmentChanges,
+  summarizeBackfillResult,
+  type TuitionActivityOptions,
+} from "./tuition-activity";
 import type {
   AssignmentSource,
   TuitionBillingAccount,
@@ -119,6 +126,7 @@ export async function createEnrollmentAssignment(
     effectiveStart?: string | null;
     metadata?: TuitionEnrollmentAssignment["metadata"];
   },
+  options?: TuitionActivityOptions,
 ): Promise<TuitionEnrollmentAssignment> {
   const { data, error } = await supabase
     .from("tuition_enrollment_assignments")
@@ -139,7 +147,28 @@ export async function createEnrollmentAssignment(
     .single();
 
   if (error) throw error;
-  return rowToAssignment(data);
+  const assignment = rowToAssignment(data);
+
+  if (!options?.skip) {
+    const changeSummary = summarizeAssignmentChanges(null, assignment);
+    void logTuitionActivity(supabase, {
+      organizationId: input.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_CREATED,
+      entityType: "tuition_enrollment_assignment",
+      entityId: assignment.id,
+      summary: "Assigned tuition to enrollment",
+      changeSummary,
+      logWhenEmpty: true,
+      metadata: {
+        enrollmentId: input.enrollmentId,
+        familyId: input.familyId,
+        ratePlanId: input.ratePlanId,
+      },
+      context: options?.context,
+    });
+  }
+
+  return assignment;
 }
 
 export async function autoAssignTuitionForEnrollment(
@@ -151,6 +180,7 @@ export async function autoAssignTuitionForEnrollment(
     programId: string;
     assignedByUserId?: string | null;
   },
+  options?: TuitionActivityOptions,
 ): Promise<TuitionEnrollmentAssignment | null> {
   const existing = await getAssignmentForEnrollment(supabase, input.enrollmentId);
   if (existing?.status === "active") {
@@ -192,7 +222,7 @@ export async function autoAssignTuitionForEnrollment(
       paymentPlanId: defaultPaymentPlan.id,
       status: "active",
       metadata,
-    });
+    }, options);
   } else {
     assignment = await createEnrollmentAssignment(supabase, {
       organizationId: input.organizationId,
@@ -205,7 +235,7 @@ export async function autoAssignTuitionForEnrollment(
       assignedByUserId: input.assignedByUserId ?? null,
       effectiveStart: ratePlan.effectiveStart,
       metadata,
-    });
+    }, options);
   }
 
   await evaluateAndApplyRulesForAssignment(supabase, assignment.id);
@@ -319,7 +349,7 @@ export async function backfillTuitionAssignmentsForProgram(
         familyId,
         programId: input.programId,
         assignedByUserId: input.assignedByUserId,
-      });
+      }, { skip: true });
       if (assignment) assignedCount += 1;
       else failedCount += 1;
     } catch {
@@ -338,6 +368,7 @@ export async function backfillTuitionAssignmentsForOrganization(
   supabase: SupabaseClient,
   organizationId: string,
   assignedByUserId?: string | null,
+  options?: TuitionActivityOptions,
 ): Promise<TuitionAssignmentBackfillResult> {
   const { data: ratePlans, error: ratePlansError } = await supabase
     .from("tuition_rate_plans")
@@ -365,13 +396,30 @@ export async function backfillTuitionAssignmentsForOrganization(
     total += result.total;
   }
 
-  return { assignedCount, failedCount, total };
+  const summary = { assignedCount, failedCount, total };
+  if (!options?.skip && total > 0) {
+    void logTuitionActivity(supabase, {
+      organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_CREATED,
+      entityType: "organization",
+      entityId: organizationId,
+      summary: `Assigned tuition to ${assignedCount} enrollment${assignedCount === 1 ? "" : "s"}`,
+      changeSummary: summarizeBackfillResult(summary),
+      logWhenEmpty: true,
+      context: options?.context,
+    });
+  }
+
+  return summary;
 }
 
 export async function unassignTuitionAssignment(
   supabase: SupabaseClient,
   assignmentId: string,
+  options?: TuitionActivityOptions,
 ): Promise<TuitionEnrollmentAssignment> {
+  const before = await getAssignmentById(supabase, assignmentId);
+
   const { error: voidError } = await supabase
     .from("tuition_charges")
     .update({ status: "void" })
@@ -380,7 +428,34 @@ export async function unassignTuitionAssignment(
 
   if (voidError) throw voidError;
 
-  return updateAssignment(supabase, assignmentId, { status: "ended" });
+  const assignment = await updateAssignment(
+    supabase,
+    assignmentId,
+    { status: "ended" },
+    { skip: true },
+  );
+
+  if (!options?.skip && before) {
+    void logTuitionActivity(supabase, {
+      organizationId: assignment.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UNASSIGNED,
+      entityType: "tuition_enrollment_assignment",
+      entityId: assignment.id,
+      summary: "Unassigned tuition",
+      changeSummary: {
+        changedFields: ["status"],
+        changes: ["Ended tuition assignment and voided open charges"],
+      },
+      metadata: {
+        enrollmentId: assignment.enrollmentId,
+        familyId: assignment.familyId,
+      },
+      logWhenEmpty: true,
+      context: options?.context,
+    });
+  }
+
+  return assignment;
 }
 
 export async function finalizeEnrollmentPaymentPlan(
@@ -389,6 +464,7 @@ export async function finalizeEnrollmentPaymentPlan(
     assignmentId: string;
     paymentPlanId: string;
   },
+  options?: TuitionActivityOptions,
 ): Promise<TuitionEnrollmentAssignment> {
   const { data: existing, error: existingError } = await supabase
     .from("tuition_enrollment_assignments")
@@ -431,6 +507,21 @@ export async function finalizeEnrollmentPaymentPlan(
 
   const updated = rowToAssignment(data);
   await regenerateFutureCharges(supabase, updated.id);
+
+  if (!options?.skip) {
+    const changeSummary = summarizeAssignmentChanges(assignment, updated);
+    void logTuitionActivity(supabase, {
+      organizationId: updated.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED,
+      entityType: "tuition_enrollment_assignment",
+      entityId: updated.id,
+      summary: "Finalized tuition payment plan selection",
+      changeSummary,
+      logWhenEmpty: true,
+      context: options?.context,
+    });
+  }
+
   return updated;
 }
 
@@ -458,7 +549,9 @@ export async function updateAssignment(
     status: TuitionEnrollmentAssignment["status"];
     metadata: TuitionEnrollmentAssignment["metadata"];
   }>,
+  options?: TuitionActivityOptions,
 ): Promise<TuitionEnrollmentAssignment> {
+  const before = await getAssignmentById(supabase, assignmentId);
   const patch: Record<string, unknown> = {
     assignment_source: "manual",
   };
@@ -481,7 +574,28 @@ export async function updateAssignment(
     await regenerateFutureCharges(supabase, assignmentId);
   }
 
-  return rowToAssignment(data);
+  const assignment = rowToAssignment(data);
+
+  if (!options?.skip && before) {
+    const changeSummary = summarizeAssignmentChanges(before, assignment);
+    void logTuitionActivity(supabase, {
+      organizationId: assignment.organizationId,
+      action: before
+        ? ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED
+        : ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_CREATED,
+      entityType: "tuition_enrollment_assignment",
+      entityId: assignment.id,
+      summary: "Updated tuition assignment",
+      changeSummary,
+      metadata: {
+        enrollmentId: assignment.enrollmentId,
+        familyId: assignment.familyId,
+      },
+      context: options?.context,
+    });
+  }
+
+  return assignment;
 }
 
 export async function resolveAssignmentTier(

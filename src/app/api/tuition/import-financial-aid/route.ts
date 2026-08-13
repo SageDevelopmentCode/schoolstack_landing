@@ -7,6 +7,7 @@ import {
 } from "@/lib/admissions/application-auth";
 import { requireTuitionOrgAdmin } from "@/lib/tuition/api-auth";
 import { importFinancialAidCsv } from "@/lib/tuition/autopay";
+import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       body.organizationId,
       body.csvContent,
       user.id,
+      { context: schoolAdminActivityContext(user) },
     );
 
     return NextResponse.json(result);

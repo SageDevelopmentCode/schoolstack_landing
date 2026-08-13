@@ -30,6 +30,7 @@ type BootstrapRequestBody = {
   formTitle?: string;
   mode?: ApplyAuthMode;
   forceNew?: boolean;
+  entryIntent?: "apply" | "schedule_campus_tour";
 };
 
 function isApplyAuthMode(value: string): value is ApplyAuthMode {
@@ -90,6 +91,9 @@ export async function POST(request: Request) {
 
   try {
     const admin = createAdminClient();
+    const entryIntent =
+      body.entryIntent === "schedule_campus_tour" ? "schedule_campus_tour" : "apply";
+
     const result = await bootstrapApplicant(admin, {
       userId: user.id,
       email,
@@ -98,6 +102,7 @@ export async function POST(request: Request) {
       firstName: body.firstName,
       lastName: body.lastName,
       forceNew: body.forceNew === true,
+      entryIntent,
     });
 
     const authMode =

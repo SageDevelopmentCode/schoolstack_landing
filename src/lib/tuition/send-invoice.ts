@@ -6,6 +6,12 @@ import {
 import { SITE_URL } from "@/lib/site";
 import { getChargeById, markChargeSent } from "./charges";
 import { formatCents } from "./pricing";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizePaymentAction,
+  type TuitionActivityOptions,
+} from "./tuition-activity";
 import type { TuitionCharge } from "./types";
 
 export function buildTuitionBillingDeepLink(
@@ -24,6 +30,7 @@ export type SendTuitionInvoiceResult = {
 export async function sendTuitionInvoice(
   supabase: SupabaseClient,
   chargeId: string,
+  options?: TuitionActivityOptions,
 ): Promise<SendTuitionInvoiceResult> {
   const charge = await getChargeById(supabase, chargeId);
   if (!charge) {
@@ -74,6 +81,30 @@ export async function sendTuitionInvoice(
       html,
     });
     emailed = result.ok;
+  }
+
+  if (!options?.skip) {
+    const changeSummary = summarizePaymentAction({
+      kind: "invoice_sent",
+      amountCents: charge.amountCents,
+      chargeLabel: charge.label,
+      familyName: family?.name ? String(family.name) : undefined,
+      recipientEmail: email ?? undefined,
+    });
+    void logTuitionActivity(supabase, {
+      organizationId: charge.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_CHARGE_INVOICE_SENT,
+      entityType: "tuition_charge",
+      entityId: charge.id,
+      summary: `Sent invoice for “${charge.label}”`,
+      changeSummary,
+      logWhenEmpty: true,
+      metadata: {
+        familyId: charge.familyId,
+        emailed,
+      },
+      context: options?.context,
+    });
   }
 
   return { charge: updated, emailed };

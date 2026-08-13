@@ -15,7 +15,6 @@ import { formatCents } from "@/lib/tuition/pricing";
 import {
   buildStudentColorIndexMap,
   getStudentBadgeColors,
-  type StudentBadgeColors,
 } from "@/lib/tuition/student-badge-colors";
 import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
 import {
@@ -29,6 +28,7 @@ import {
   type FamilyEnrollmentBadgeKind,
 } from "@/lib/tuition/enrollment-status-labels";
 import type {
+  CatalogTuitionSummary,
   EnrollmentBillingStatus,
   FamilyAssignmentSummary,
   FamilyBillingSummary,
@@ -41,6 +41,7 @@ import { createClient } from "@/utils/supabase/client";
 import TuitionBillingSplitModal from "@/components/school-admin/tuition/TuitionBillingSplitModal";
 import TuitionManualPaymentModal from "@/components/school-admin/tuition/TuitionManualPaymentModal";
 import TuitionFamilyTabBar from "@/components/school-admin/tuition/TuitionFamilyTabBar";
+import TuitionStudentBadge from "@/components/school-admin/tuition/TuitionStudentBadge";
 import {
   DEFAULT_TUITION_FAMILY_TAB,
   type TuitionFamilyTabId,
@@ -48,31 +49,12 @@ import {
 
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
 
-function TuitionStudentBadge({
-  firstName,
-  badgeColors,
-}: {
-  firstName: string;
-  badgeColors: StudentBadgeColors;
-}) {
-  return (
-    <span
-      className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{
-        backgroundColor: badgeColors.backgroundColor,
-        color: badgeColors.color,
-      }}
-    >
-      For {firstName}
-    </span>
-  );
-}
-
 type TuitionFamiliesPanelProps = {
   organizationId: string;
   slug: string;
   branding: OrganizationBranding;
   reloadToken?: number;
+  initialFamilyId?: string | null;
   onAdjust: (familyId: string, assignmentId: string, studentName: string | null) => void;
   onEditAssignment: (assignmentId: string) => void;
   onRefresh: () => void;
@@ -146,6 +128,35 @@ function FamilyEnrollmentStatusBadge({
     >
       {familyEnrollmentBadgeLabel(kind)}
     </span>
+  );
+}
+
+
+function CatalogTuitionAmount({
+  catalogTuition,
+  C,
+  size = "lg",
+}: {
+  catalogTuition: CatalogTuitionSummary;
+  C: AdminThemeTokens;
+  size?: "lg" | "sm";
+}) {
+  const hasDiscount = catalogTuition.baseCents !== catalogTuition.adjustedCents;
+  const amountClass = size === "lg" ? "text-lg font-semibold" : "text-sm font-medium";
+
+  return (
+    <p className={`${amountClass} flex items-center gap-2`} style={{ color: C.textPrimary }}>
+      {hasDiscount ? (
+        <>
+          <span style={{ color: C.textTertiary, textDecoration: "line-through" }}>
+            {formatCents(catalogTuition.baseCents)}
+          </span>
+          <span>{formatCents(catalogTuition.adjustedCents)}</span>
+        </>
+      ) : (
+        <span>{formatCents(catalogTuition.adjustedCents)}</span>
+      )}
+    </p>
   );
 }
 
@@ -234,6 +245,7 @@ export default function TuitionFamiliesPanel({
   slug,
   branding,
   reloadToken = 0,
+  initialFamilyId = null,
   onAdjust,
   onEditAssignment,
   onRefresh,
@@ -271,8 +283,13 @@ export default function TuitionFamiliesPanel({
       const rows = await listFamilyBillingSummaries(supabase, organizationId);
       setFamilies(rows);
       const prev = selectedFamilyIdRef.current;
+      const preferred =
+        initialFamilyId && rows.some((row) => row.familyId === initialFamilyId)
+          ? initialFamilyId
+          : null;
       const next =
-        prev && rows.some((r) => r.familyId === prev) ? prev : rows[0]?.familyId ?? null;
+        preferred ??
+        (prev && rows.some((r) => r.familyId === prev) ? prev : rows[0]?.familyId ?? null);
       if (next !== prev) {
         setActiveFamilyTab(DEFAULT_TUITION_FAMILY_TAB);
       }
@@ -281,13 +298,20 @@ export default function TuitionFamiliesPanel({
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [initialFamilyId, organizationId, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
       void loadFamilies();
     });
   }, [loadFamilies, reloadToken]);
+
+  useEffect(() => {
+    if (!initialFamilyId) return;
+    if (families.some((family) => family.familyId === initialFamilyId)) {
+      selectFamily(initialFamilyId);
+    }
+  }, [families, initialFamilyId, selectFamily]);
 
   const selectedFamily =
     families.find((f) => f.familyId === selectedFamilyId) ?? null;
@@ -451,15 +475,23 @@ export default function TuitionFamiliesPanel({
     const { enrolling, enrolledUnassigned } = partitionUnassignedEnrollments(
       family.unassignedEnrollments,
     );
+    const catalogAmountLabel = family.catalogTuition
+      ? formatCents(family.catalogTuition.adjustedCents)
+      : null;
 
     if (family.readiness === "ready" && enrolling.length === 0) {
       return `${formatCents(family.balanceDueCents)} · ${family.status} · ${autopayLabel}`;
     }
     if (enrolledUnassigned.length > 0) {
-      return "Setup needed";
+      return catalogAmountLabel
+        ? `${catalogAmountLabel} · Setup needed`
+        : "Setup needed";
     }
     if (enrolling.length > 0) {
-      return "Enrolling";
+      return catalogAmountLabel ? `${catalogAmountLabel} · Enrolling` : "Enrolling";
+    }
+    if (catalogAmountLabel && family.readiness !== "ready") {
+      return `${catalogAmountLabel} · Setup needed`;
     }
     return "Setup needed";
   };
@@ -706,8 +738,7 @@ export default function TuitionFamiliesPanel({
                             Enrollment in progress
                           </p>
                           <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-                            Tuition can be set up now. Discounts apply when billing starts
-                            after enrollment is complete.
+                            Tuition rate is set. Installments are created when enrollment is complete.
                           </p>
                         </div>
                         <div className="flex flex-col gap-2">
@@ -889,11 +920,23 @@ export default function TuitionFamiliesPanel({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
-                    Balance due
+                    {selectedFamily.catalogTuition ? "Tuition rate" : "Balance due"}
                   </p>
-                  <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-                    {formatCents(selectedFamily.balanceDueCents)}
-                  </p>
+                  {selectedFamily.catalogTuition ? (
+                    <CatalogTuitionAmount
+                      catalogTuition={selectedFamily.catalogTuition}
+                      C={C}
+                    />
+                  ) : (
+                    <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+                      {formatCents(selectedFamily.balanceDueCents)}
+                    </p>
+                  )}
+                  {selectedFamily.catalogTuition && selectedFamily.hasPendingEnrollment ? (
+                    <p className="text-xs mt-1" style={{ color: C.textSecondary }}>
+                      Billing starts after enrollment is complete.
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <p className="text-xs uppercase" style={{ color: C.textTertiary }}>

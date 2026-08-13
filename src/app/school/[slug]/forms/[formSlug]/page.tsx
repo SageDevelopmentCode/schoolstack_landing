@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import ApplicationFormSetupRequired from "@/components/admissions/ApplicationFormSetupRequired";
 import PublicApplicationFormClient from "@/components/admissions/PublicApplicationFormClient";
 import { getPublishedApplicationFormBySlug } from "@/lib/admissions/application-forms";
+import { getEnabledTourAuthEntryOption } from "@/lib/organization-settings/apply-auth-entry";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 import { Suspense } from "react";
@@ -74,6 +75,8 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const tourEntryOption = getEnabledTourAuthEntryOption(org.features);
+
   return (
     <Suspense>
       <PublicApplicationFormClient
@@ -88,6 +91,7 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
         formVersionId={form.id}
         shellLayout="embedded"
         serverAuthState={user ? "authenticated" : "unauthenticated"}
+        tourEntryOption={tourEntryOption}
       />
     </Suspense>
   );

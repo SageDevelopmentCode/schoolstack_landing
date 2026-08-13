@@ -1,4 +1,9 @@
-import type { AdjustmentType, TuitionAdjustment, TuitionRateTier } from "./types";
+import type {
+  AdjustmentType,
+  CatalogTuitionSummary,
+  TuitionAdjustment,
+  TuitionRateTier,
+} from "./types";
 import { PAY_AHEAD_REDUCTION_LABEL } from "./tuition-pay-copy";
 
 export type TuitionInputMode = "annual" | "monthly";
@@ -166,6 +171,64 @@ export function annualCentsFromTiers(
   if (tiers.length === 0) return 0;
   const defaultTier = tiers.find((tier) => tier.isDefault) ?? tiers[0];
   return defaultTier.amountCents;
+}
+
+export function resolveAssignmentCatalogTuitionCents(input: {
+  rateTierId: string | null;
+  ratePlanId: string;
+  tierAmountById: Map<string, number>;
+  ratePlanAmountById: Map<string, number>;
+  defaultTierAmountByRatePlanId: Map<string, number>;
+  adjustments: PricingAdjustment[];
+}): CatalogTuitionSummary {
+  const tierAmount =
+    (input.rateTierId ? input.tierAmountById.get(input.rateTierId) : undefined) ??
+    input.defaultTierAmountByRatePlanId.get(input.ratePlanId) ??
+    input.ratePlanAmountById.get(input.ratePlanId) ??
+    0;
+
+  return {
+    baseCents: tierAmount,
+    adjustedCents: computeAdjustedAmountCents(tierAmount, input.adjustments),
+  };
+}
+
+export function resolveFamilyCatalogTuition(input: {
+  assignments: Array<{
+    rateTierId: string | null;
+    ratePlanId: string;
+    adjustments: PricingAdjustment[];
+  }>;
+  tierAmountById: Map<string, number>;
+  ratePlanAmountById: Map<string, number>;
+  defaultTierAmountByRatePlanId: Map<string, number>;
+  balanceDueCents: number;
+}): CatalogTuitionSummary | null {
+  if (input.assignments.length === 0 || input.balanceDueCents > 0) {
+    return null;
+  }
+
+  let baseCents = 0;
+  let adjustedCents = 0;
+
+  for (const assignment of input.assignments) {
+    const tuition = resolveAssignmentCatalogTuitionCents({
+      rateTierId: assignment.rateTierId,
+      ratePlanId: assignment.ratePlanId,
+      tierAmountById: input.tierAmountById,
+      ratePlanAmountById: input.ratePlanAmountById,
+      defaultTierAmountByRatePlanId: input.defaultTierAmountByRatePlanId,
+      adjustments: assignment.adjustments,
+    });
+    baseCents += tuition.baseCents;
+    adjustedCents += tuition.adjustedCents;
+  }
+
+  if (baseCents <= 0 && adjustedCents <= 0) {
+    return null;
+  }
+
+  return { baseCents, adjustedCents };
 }
 
 export function formatTierAmountRange(

@@ -5,6 +5,13 @@ import {
   rowToRatePlan,
   rowToRateTier,
 } from "./row-mappers";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizeRatePlanChanges,
+  summarizeRatePlanChildChanges,
+  type TuitionActivityOptions,
+} from "./tuition-activity";
 import type {
   BillingBasis,
   RatePlanStatus,
@@ -123,6 +130,20 @@ export async function getDefaultRatePlanForProgram(
   };
 }
 
+async function getRatePlanById(
+  supabase: SupabaseClient,
+  ratePlanId: string,
+): Promise<TuitionRatePlan | null> {
+  const { data, error } = await supabase
+    .from("tuition_rate_plans")
+    .select("*")
+    .eq("id", ratePlanId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? rowToRatePlan(data) : null;
+}
+
 export async function createRatePlan(
   supabase: SupabaseClient,
   input: {
@@ -137,6 +158,7 @@ export async function createRatePlan(
     status?: RatePlanStatus;
     metadata?: Record<string, unknown>;
   },
+  options?: TuitionActivityOptions,
 ): Promise<TuitionRatePlan> {
   const { data, error } = await supabase
     .from("tuition_rate_plans")
@@ -156,7 +178,23 @@ export async function createRatePlan(
     .single();
 
   if (error) throw error;
-  return rowToRatePlan(data);
+  const plan = rowToRatePlan(data);
+
+  if (!options?.skip) {
+    const changeSummary = summarizeRatePlanChanges(null, plan);
+    void logTuitionActivity(supabase, {
+      organizationId: plan.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_RATE_PLAN_CREATED,
+      entityType: "tuition_rate_plan",
+      entityId: plan.id,
+      summary: `Created rate plan “${plan.name}”`,
+      changeSummary,
+      logWhenEmpty: true,
+      context: options?.context,
+    });
+  }
+
+  return plan;
 }
 
 export async function updateRatePlan(
@@ -172,7 +210,9 @@ export async function updateRatePlan(
     programId: string | null;
     metadata: Record<string, unknown>;
   }>,
+  options?: TuitionActivityOptions,
 ): Promise<TuitionRatePlan> {
+  const before = await getRatePlanById(supabase, ratePlanId);
   const patch: Record<string, unknown> = {};
   if (input.name !== undefined) patch.name = input.name;
   if (input.billingBasis !== undefined) patch.billing_basis = input.billingBasis;
@@ -191,7 +231,25 @@ export async function updateRatePlan(
     .single();
 
   if (error) throw error;
-  return rowToRatePlan(data);
+  const plan = rowToRatePlan(data);
+
+  if (!options?.skip) {
+    const changeSummary = summarizeRatePlanChanges(before, plan);
+    void logTuitionActivity(supabase, {
+      organizationId: plan.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_RATE_PLAN_UPDATED,
+      entityType: "tuition_rate_plan",
+      entityId: plan.id,
+      summary:
+        changeSummary.changes.length > 0
+          ? `Updated rate plan “${plan.name}” (${changeSummary.changes.length} change${changeSummary.changes.length === 1 ? "" : "s"})`
+          : `Updated rate plan “${plan.name}”`,
+      changeSummary,
+      context: options?.context,
+    });
+  }
+
+  return plan;
 }
 
 export async function createPaymentPlan(
@@ -451,8 +509,9 @@ export async function syncRatePlanPaymentOptions(
     paymentCounts: number[];
     defaultPaymentCount: number;
   },
+  options?: TuitionActivityOptions,
 ): Promise<TuitionPaymentPlan[]> {
-  const options = input.paymentCounts.map((count) => ({
+  const paymentOptions = input.paymentCounts.map((count) => ({
     installmentCount: count,
     installmentAmountCents: Math.round(input.annualAmountCents / count),
     isDefault: count === input.defaultPaymentCount,
@@ -462,11 +521,30 @@ export async function syncRatePlanPaymentOptions(
     organizationId: input.organizationId,
     ratePlanId: input.ratePlanId,
     annualAmountCents: input.annualAmountCents,
-    options,
+    options: paymentOptions,
   });
 
   const { regenerateFutureChargesForRatePlan } = await import("./charge-generator");
   await regenerateFutureChargesForRatePlan(supabase, input.ratePlanId);
+
+  if (!options?.skip) {
+    const childChanges = summarizeRatePlanChildChanges({
+      paymentCounts: input.paymentCounts,
+    });
+    void logTuitionActivity(supabase, {
+      organizationId: input.organizationId,
+      action: ACTIVITY_ACTIONS.TUITION_RATE_PLAN_UPDATED,
+      entityType: "tuition_rate_plan",
+      entityId: input.ratePlanId,
+      summary: "Updated rate plan payment options",
+      changeSummary: {
+        changedFields: ["paymentPlans"],
+        changes: childChanges,
+      },
+      logWhenEmpty: childChanges.length > 0,
+      context: options?.context,
+    });
+  }
 
   return plans;
 }

@@ -8,6 +8,7 @@ import { formatBillingSplitSummary } from "./billing-splits";
 import { computeFamilyAutopayStatus } from "./autopay-status";
 import { computeFamilyBillingReadiness } from "./tuition-readiness";
 import { rowToAdjustment, rowToCharge } from "./row-mappers";
+import { resolveFamilyCatalogTuition } from "./pricing";
 import type {
   ChargeStatus,
   EnrollmentBillingStatus,
@@ -269,11 +270,11 @@ export async function listFamilyBillingSummaries(
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_rate_plans")
-      .select("id, name")
+      .select("id, name, amount_cents")
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_rate_tiers")
-      .select("id, rate_plan_id, label")
+      .select("id, rate_plan_id, label, amount_cents, is_default")
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_payment_plans")
@@ -310,9 +311,26 @@ export async function listFamilyBillingSummaries(
   const ratePlanMap = new Map(
     (ratePlans ?? []).map((plan) => [String(plan.id), String(plan.name)]),
   );
+  const ratePlanAmountById = new Map(
+    (ratePlans ?? []).map((plan) => [String(plan.id), Number(plan.amount_cents)]),
+  );
   const tierMap = new Map(
     (tiers ?? []).map((tier) => [String(tier.id), String(tier.label)]),
   );
+  const tierAmountById = new Map(
+    (tiers ?? []).map((tier) => [String(tier.id), Number(tier.amount_cents)]),
+  );
+  const defaultTierAmountByRatePlanId = new Map<string, number>();
+  for (const tier of tiers ?? []) {
+    const ratePlanId = String(tier.rate_plan_id);
+    if (tier.is_default === true) {
+      defaultTierAmountByRatePlanId.set(ratePlanId, Number(tier.amount_cents));
+      continue;
+    }
+    if (!defaultTierAmountByRatePlanId.has(ratePlanId)) {
+      defaultTierAmountByRatePlanId.set(ratePlanId, Number(tier.amount_cents));
+    }
+  }
   const paymentPlanMap = new Map(
     (paymentPlans ?? []).map((plan) => [
       String(plan.id),
@@ -578,6 +596,31 @@ export async function listFamilyBillingSummaries(
       hasBillingSplit,
     });
 
+    const catalogTuition = resolveFamilyCatalogTuition({
+      assignments: familyAssignments.map((assignment) => {
+        const assignmentId = String(assignment.id);
+        const assignmentAdjustments = adjustmentsByAssignment.get(assignmentId) ?? [];
+        return {
+          rateTierId:
+            typeof assignment.rate_tier_id === "string"
+              ? assignment.rate_tier_id
+              : null,
+          ratePlanId: String(assignment.rate_plan_id),
+          adjustments: assignmentAdjustments.map((adjustment) => ({
+            adjustmentType: adjustment.adjustmentType,
+            valuePercent: adjustment.valuePercent,
+            valueCents: adjustment.valueCents,
+            priority: adjustment.priority,
+            scope: adjustment.scope,
+          })),
+        };
+      }),
+      tierAmountById,
+      ratePlanAmountById,
+      defaultTierAmountByRatePlanId,
+      balanceDueCents,
+    });
+
     return {
       familyId,
       familyName: String(family.name),
@@ -612,6 +655,7 @@ export async function listFamilyBillingSummaries(
       billingSplitSummary,
       hasBillingSplit,
       hasPendingEnrollment,
+      catalogTuition,
       hasBillingRelevance,
     } satisfies FamilyBillingSummary & { hasBillingRelevance: boolean };
   })

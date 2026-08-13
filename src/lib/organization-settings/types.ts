@@ -82,6 +82,7 @@ export type OrganizationFeatures = {
   parent: ParentFeatures;
   feature_nav?: FeatureNavConfig;
   parent_onboarding?: ParentOnboardingConfig;
+  apply_auth_entry?: ApplyAuthEntryConfig;
 } & Partial<AdditionalFeatures> &
   Record<
     string,
@@ -91,6 +92,7 @@ export type OrganizationFeatures = {
     | ParentFeatures
     | FeatureNavConfig
     | ParentOnboardingConfig
+    | ApplyAuthEntryConfig
   >;
 
 export type FeatureNavChildConfig = {
@@ -133,6 +135,20 @@ export type ParentOnboardingItem = {
 
 export type ParentOnboardingConfig = {
   items: ParentOnboardingItem[];
+};
+
+export type ApplyAuthEntryType = "apply" | "schedule_campus_tour";
+
+export type ApplyAuthEntryOption = {
+  id: string;
+  type: ApplyAuthEntryType;
+  enabled: boolean;
+  label?: string;
+  description?: string;
+};
+
+export type ApplyAuthEntryConfig = {
+  options: ApplyAuthEntryOption[];
 };
 
 export type OrganizationSettingsRow = {

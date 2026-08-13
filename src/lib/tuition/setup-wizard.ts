@@ -13,6 +13,12 @@ import {
   tuitionInputToAnnualCents,
   type TuitionInputMode,
 } from "./pricing";
+import {
+  ACTIVITY_ACTIONS,
+  logTuitionActivity,
+  summarizeRatePlanChanges,
+  summarizeRatePlanChildChanges,
+} from "./tuition-activity";
 
 export type PaymentScheduleDefinition = {
   count: number;
@@ -655,8 +661,33 @@ export async function saveWizardDraft(
   const metadata = buildWizardMetadata(input.stepIndex, input.pricingMode);
 
   let ratePlan: TuitionRatePlan;
+  const isNewPlan = !input.ratePlanId;
+  let beforePlan: TuitionRatePlan | null = null;
 
   if (input.ratePlanId) {
+    const { data: beforeRow } = await supabase
+      .from("tuition_rate_plans")
+      .select("*")
+      .eq("id", input.ratePlanId)
+      .maybeSingle();
+    beforePlan = beforeRow
+      ? {
+          id: String(beforeRow.id),
+          organizationId: String(beforeRow.organization_id),
+          programId: beforeRow.program_id ? String(beforeRow.program_id) : null,
+          name: String(beforeRow.name),
+          billingBasis: beforeRow.billing_basis as TuitionRatePlan["billingBasis"],
+          amountCents: Number(beforeRow.amount_cents),
+          currency: String(beforeRow.currency ?? "USD"),
+          effectiveStart: beforeRow.effective_start ? String(beforeRow.effective_start) : null,
+          effectiveEnd: beforeRow.effective_end ? String(beforeRow.effective_end) : null,
+          status: beforeRow.status as TuitionRatePlan["status"],
+          metadata: (beforeRow.metadata as Record<string, unknown>) ?? {},
+          createdAt: String(beforeRow.created_at),
+          updatedAt: String(beforeRow.updated_at),
+        }
+      : null;
+
     ratePlan = await updateRatePlan(supabase, input.ratePlanId, {
       name: planName,
       programId: input.programId,
@@ -666,7 +697,7 @@ export async function saveWizardDraft(
       effectiveEnd: input.effectiveEnd ?? null,
       status: "draft",
       metadata,
-    });
+    }, { skip: true });
   } else {
     ratePlan = await createRatePlan(supabase, {
       organizationId: input.organizationId,
@@ -678,7 +709,7 @@ export async function saveWizardDraft(
       effectiveEnd: input.effectiveEnd ?? null,
       status: "draft",
       metadata,
-    });
+    }, { skip: true });
   }
 
   await persistWizardChildren(supabase, {
@@ -692,6 +723,31 @@ export async function saveWizardDraft(
     billingDayOfMonth: input.billingDayOfMonth,
     fees: input.fees ?? [],
     allowEmptyPayments: input.paymentCounts.length === 0,
+  });
+
+  const childChanges = summarizeRatePlanChildChanges({
+    tierCount: tiers.length,
+    paymentCounts: input.paymentCounts,
+    feeCount: (input.fees ?? []).length,
+  });
+  const changeSummary = summarizeRatePlanChanges(
+    isNewPlan ? null : beforePlan,
+    ratePlan,
+  );
+  changeSummary.changes.push(...childChanges);
+
+  void logTuitionActivity(supabase, {
+    organizationId: input.organizationId,
+    action: isNewPlan
+      ? ACTIVITY_ACTIONS.TUITION_RATE_PLAN_CREATED
+      : ACTIVITY_ACTIONS.TUITION_RATE_PLAN_UPDATED,
+    entityType: "tuition_rate_plan",
+    entityId: ratePlan.id,
+    summary: isNewPlan
+      ? `Created draft rate plan “${ratePlan.name}”`
+      : `Saved draft rate plan “${ratePlan.name}”`,
+    changeSummary,
+    logWhenEmpty: true,
   });
 
   return ratePlan;
@@ -740,7 +796,7 @@ export async function createRatePlanFromWizard(
       effectiveEnd: input.effectiveEnd ?? null,
       status: "active",
       metadata: {},
-    });
+    }, { skip: true });
   } else {
     ratePlan = await createRatePlan(supabase, {
       organizationId: input.organizationId,
@@ -752,7 +808,7 @@ export async function createRatePlanFromWizard(
       effectiveEnd: input.effectiveEnd ?? null,
       status: "active",
       metadata: {},
-    });
+    }, { skip: true });
   }
 
   await persistWizardChildren(supabase, {
@@ -773,6 +829,25 @@ export async function createRatePlanFromWizard(
 
   const { regenerateFutureChargesForRatePlan } = await import("./charge-generator");
   await regenerateFutureChargesForRatePlan(supabase, ratePlan.id);
+
+  const changeSummary = summarizeRatePlanChanges(null, ratePlan);
+  changeSummary.changes.push(
+    ...summarizeRatePlanChildChanges({
+      tierCount: tiers.length,
+      paymentPlanCount: input.paymentCounts.length,
+      feeCount: (input.fees ?? []).length,
+    }),
+  );
+
+  void logTuitionActivity(supabase, {
+    organizationId: input.organizationId,
+    action: ACTIVITY_ACTIONS.TUITION_RATE_PLAN_CREATED,
+    entityType: "tuition_rate_plan",
+    entityId: ratePlan.id,
+    summary: `Published rate plan “${ratePlan.name}”`,
+    changeSummary,
+    logWhenEmpty: true,
+  });
 
   return ratePlan;
 }
