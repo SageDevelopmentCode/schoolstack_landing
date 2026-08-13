@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "tsx scripts/dev-with-stripe.ts",
     "dev:next": "next dev",
-    "build": "NODE_OPTIONS='--max-old-space-size=8192' next build --webpack",
+    "build": "NODE_OPTIONS='--max-old-space-size=6144' next build --webpack",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "analyze": "ANALYZE=true npm run build",
     "start": "next start",
     "lint": "eslint",

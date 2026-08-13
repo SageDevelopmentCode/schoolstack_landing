@@ -1,11 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ChargeStatus } from "./types";
+import {
+  remainingChargeBalanceCents,
+  type RawKpiChargeRow,
+} from "./kpi-charge-row";
 import {
   chargeMatchesOutstandingPeriod,
   type OutstandingPeriod,
   resolveOutstandingDateRange,
   type SchoolYearBounds,
 } from "./outstanding-period";
+import type { ChargeStatus } from "./types";
+
+export type { RawKpiChargeRow } from "./kpi-charge-row";
+export { remainingChargeBalanceCents } from "./kpi-charge-row";
 
 export type TuitionKpiBreakdownKind = "collected_ytd" | "outstanding" | "at_risk";
 
@@ -33,29 +40,11 @@ export type TuitionKpiBreakdown = {
   families: TuitionKpiBreakdownFamily[];
 };
 
-export type RawKpiChargeRow = {
-  id: string;
-  family_id: string;
-  assignment_id: string;
-  label: string;
-  amount_cents: number;
-  paid_cents: number | null;
-  status: string;
-  due_date: string;
-  paid_at: string | null;
-};
-
 export function getTuitionYearStartUtc(referenceDate = new Date()): Date {
   const yearStart = new Date(referenceDate);
   yearStart.setUTCMonth(0, 1);
   yearStart.setUTCHours(0, 0, 0, 0);
   return yearStart;
-}
-
-export function remainingChargeBalanceCents(charge: RawKpiChargeRow): number {
-  const amountCents = Number(charge.amount_cents);
-  const paidCents = Number(charge.paid_cents ?? 0);
-  return Math.max(0, amountCents - paidCents);
 }
 
 export function filterChargeLineForKind(
