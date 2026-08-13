@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import TuitionStudentBadge from "@/components/school-admin/tuition/TuitionStudentBadge";
+import TuitionOutstandingPeriodSelect from "@/components/school-admin/tuition/TuitionOutstandingPeriodSelect";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import {
@@ -19,6 +20,11 @@ import {
   getStudentBadgeColors,
 } from "@/lib/tuition/student-badge-colors";
 import type { ChargeStatus } from "@/lib/tuition/types";
+import {
+  outstandingPeriodLabel,
+  type OutstandingPeriod,
+  type SchoolYearBounds,
+} from "@/lib/tuition/outstanding-period";
 import { createClient } from "@/utils/supabase/client";
 
 type TuitionKpiBreakdownPanelProps = {
@@ -27,6 +33,9 @@ type TuitionKpiBreakdownPanelProps = {
   organizationId: string;
   branding: OrganizationBranding;
   expectedTotalCents?: number;
+  outstandingPeriod?: OutstandingPeriod;
+  schoolYearBounds?: SchoolYearBounds;
+  onOutstandingPeriodChange?: (period: OutstandingPeriod) => void;
   onClose: () => void;
   onOpenFamily?: (familyId: string) => void;
 };
@@ -54,6 +63,9 @@ export default function TuitionKpiBreakdownPanel({
   organizationId,
   branding,
   expectedTotalCents,
+  outstandingPeriod = "current_month",
+  schoolYearBounds = { effectiveStart: null, effectiveEnd: null },
+  onOutstandingPeriodChange,
   onClose,
   onOpenFamily,
 }: TuitionKpiBreakdownPanelProps) {
@@ -86,7 +98,10 @@ export default function TuitionKpiBreakdownPanel({
     setLoading(true);
     setError(null);
 
-    void getTuitionKpiBreakdown(supabase, organizationId, kind)
+    void getTuitionKpiBreakdown(supabase, organizationId, kind, {
+      outstandingPeriod: kind === "outstanding" ? outstandingPeriod : undefined,
+      schoolYearBounds: kind === "outstanding" ? schoolYearBounds : undefined,
+    })
       .then((result) => {
         if (cancelled) return;
         setBreakdown(result);
@@ -103,9 +118,11 @@ export default function TuitionKpiBreakdownPanel({
     return () => {
       cancelled = true;
     };
-  }, [kind, open, organizationId, supabase]);
+  }, [kind, open, organizationId, outstandingPeriod, schoolYearBounds, supabase]);
 
   const title = kind ? tuitionKpiBreakdownTitle(kind) : "Breakdown";
+  const outstandingSubtitle =
+    kind === "outstanding" ? outstandingPeriodLabel(outstandingPeriod) : null;
   const displayTotalCents =
     expectedTotalCents ??
     (kind === "at_risk" ? (breakdown?.familyCount ?? 0) : (breakdown?.totalCents ?? 0));
@@ -154,13 +171,33 @@ export default function TuitionKpiBreakdownPanel({
                 <h3 className="text-base font-semibold mt-1" style={{ color: C.textPrimary }}>
                   {title}
                 </h3>
+                {outstandingSubtitle ? (
+                  <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+                    {outstandingSubtitle}
+                  </p>
+                ) : null}
                 {breakdown ? (
                   <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
                     {breakdown.familyCount} famil{breakdown.familyCount === 1 ? "y" : "ies"}
                   </p>
                 ) : null}
               </div>
-              <button
+              <div className="flex shrink-0 items-start gap-2">
+                {kind === "outstanding" && onOutstandingPeriodChange ? (
+                  <div
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    <TuitionOutstandingPeriodSelect
+                      value={outstandingPeriod}
+                      onChange={onOutstandingPeriodChange}
+                      schoolYearBounds={schoolYearBounds}
+                      C={C}
+                      ariaLabel="Outstanding time period"
+                    />
+                  </div>
+                ) : null}
+                <button
                 type="button"
                 onClick={onClose}
                 className="shrink-0 rounded-md p-1.5"
@@ -169,6 +206,7 @@ export default function TuitionKpiBreakdownPanel({
               >
                 <X className="h-4 w-4" />
               </button>
+              </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
@@ -196,7 +234,7 @@ export default function TuitionKpiBreakdownPanel({
                   {kind === "collected_ytd"
                     ? "No tuition collected yet this year."
                     : kind === "outstanding"
-                      ? "No outstanding balances right now."
+                      ? `No outstanding balances for ${outstandingPeriodLabel(outstandingPeriod).toLowerCase()}.`
                       : "No families are currently at risk."}
                 </p>
               ) : breakdown ? (

@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ChargeStatus } from "./types";
+import {
+  chargeMatchesOutstandingPeriod,
+  type OutstandingPeriod,
+  resolveOutstandingDateRange,
+  type SchoolYearBounds,
+} from "./outstanding-period";
 
 export type TuitionKpiBreakdownKind = "collected_ytd" | "outstanding" | "at_risk";
 
@@ -39,8 +45,6 @@ export type RawKpiChargeRow = {
   paid_at: string | null;
 };
 
-const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
-
 export function getTuitionYearStartUtc(referenceDate = new Date()): Date {
   const yearStart = new Date(referenceDate);
   yearStart.setUTCMonth(0, 1);
@@ -58,6 +62,11 @@ export function filterChargeLineForKind(
   charge: RawKpiChargeRow,
   kind: TuitionKpiBreakdownKind,
   yearStart: Date,
+  options?: {
+    outstandingPeriod?: OutstandingPeriod;
+    schoolYearBounds?: SchoolYearBounds;
+    referenceDate?: Date;
+  },
 ): { amountCents: number; date: string } | null {
   if (kind === "collected_ytd") {
     if (charge.status !== "paid" || !charge.paid_at) return null;
@@ -69,7 +78,15 @@ export function filterChargeLineForKind(
   }
 
   if (kind === "outstanding") {
-    if (!OPEN_CHARGE_STATUSES.has(String(charge.status))) return null;
+    const period = options?.outstandingPeriod ?? "current_month";
+    const schoolYearBounds = options?.schoolYearBounds ?? {
+      effectiveStart: null,
+      effectiveEnd: null,
+    };
+    const referenceDate = options?.referenceDate ?? new Date();
+    const range = resolveOutstandingDateRange(period, referenceDate, schoolYearBounds);
+    if (period === "school_year_remainder" && !range) return null;
+    if (!chargeMatchesOutstandingPeriod(charge, period, range)) return null;
     const amountCents = remainingChargeBalanceCents(charge);
     if (amountCents <= 0) return null;
     return {
@@ -94,12 +111,19 @@ export function buildTuitionKpiBreakdown(args: {
   studentNameByAssignmentId: Map<string, string | null>;
   childrenByFamilyId: Map<string, string[]>;
   yearStart?: Date;
+  outstandingPeriod?: OutstandingPeriod;
+  schoolYearBounds?: SchoolYearBounds;
+  referenceDate?: Date;
 }): TuitionKpiBreakdown {
   const yearStart = args.yearStart ?? getTuitionYearStartUtc();
   const familiesById = new Map<string, TuitionKpiBreakdownFamily>();
 
   for (const charge of args.charges) {
-    const filtered = filterChargeLineForKind(charge, args.kind, yearStart);
+    const filtered = filterChargeLineForKind(charge, args.kind, yearStart, {
+      outstandingPeriod: args.outstandingPeriod,
+      schoolYearBounds: args.schoolYearBounds,
+      referenceDate: args.referenceDate,
+    });
     if (!filtered) continue;
 
     const familyId = String(charge.family_id);
@@ -148,6 +172,11 @@ export async function getTuitionKpiBreakdown(
   supabase: SupabaseClient,
   organizationId: string,
   kind: TuitionKpiBreakdownKind,
+  options?: {
+    outstandingPeriod?: OutstandingPeriod;
+    schoolYearBounds?: SchoolYearBounds;
+    referenceDate?: Date;
+  },
 ): Promise<TuitionKpiBreakdown> {
   const [{ data: charges, error: chargesError }, { data: assignments, error: assignmentsError }] =
     await Promise.all([
@@ -251,6 +280,9 @@ export async function getTuitionKpiBreakdown(
     familyNamesById,
     studentNameByAssignmentId,
     childrenByFamilyId,
+    outstandingPeriod: options?.outstandingPeriod,
+    schoolYearBounds: options?.schoolYearBounds,
+    referenceDate: options?.referenceDate,
   });
 }
 

@@ -8,7 +8,12 @@ import {
   type RawKpiChargeRow,
 } from "./kpi-breakdown";
 
-const yearStart = getTuitionYearStartUtc(new Date("2026-08-13T12:00:00.000Z"));
+const referenceDate = new Date("2026-08-13T12:00:00.000Z");
+const yearStart = getTuitionYearStartUtc(referenceDate);
+const outstandingFilterOptions = {
+  outstandingPeriod: "next_3_months" as const,
+  referenceDate,
+};
 
 function makeCharge(overrides: Partial<RawKpiChargeRow> = {}): RawKpiChargeRow {
   return {
@@ -71,13 +76,18 @@ describe("filterChargeLineForKind", () => {
         status: "sent",
         amount_cents: 12_000,
         paid_cents: 2_000,
+        due_date: "2026-08-31",
       }),
       "outstanding",
       yearStart,
+      {
+        outstandingPeriod: "current_month",
+        referenceDate,
+      },
     );
     assert.deepEqual(result, {
       amountCents: 10_000,
-      date: "2026-09-01",
+      date: "2026-08-31",
     });
   });
 
@@ -103,6 +113,7 @@ describe("buildTuitionKpiBreakdown", () => {
     const breakdown = buildTuitionKpiBreakdown({
       kind: "outstanding",
       yearStart,
+      ...outstandingFilterOptions,
       charges: [
         makeCharge({
           id: "c1",

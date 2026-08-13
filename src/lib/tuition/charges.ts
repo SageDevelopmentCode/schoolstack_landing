@@ -19,6 +19,12 @@ import type {
   UnassignedEnrollmentSummary,
 } from "./types";
 import { paymentScheduleLabel } from "./setup-wizard";
+import type { RawKpiChargeRow } from "./kpi-breakdown";
+import {
+  computeOutstandingCentsFromCharges,
+  type OutstandingPeriod,
+  type SchoolYearBounds,
+} from "./outstanding-period";
 
 export async function listChargesForFamily(
   supabase: SupabaseClient,
@@ -672,30 +678,55 @@ export async function listFamilyBillingSummaries(
 export async function getTuitionKpis(
   supabase: SupabaseClient,
   organizationId: string,
+  options?: {
+    outstandingPeriod?: OutstandingPeriod;
+    schoolYearBounds?: SchoolYearBounds;
+    referenceDate?: Date;
+  },
 ): Promise<{
   collectedYtdCents: number;
   outstandingCents: number;
   familiesAtRisk: number;
   activeAssignments: number;
 }> {
-  const summaries = await listFamilyBillingSummaries(supabase, organizationId, {
-    limit: null,
-  });
-  const yearStart = new Date();
-  yearStart.setUTCMonth(0, 1);
+  const outstandingPeriod = options?.outstandingPeriod ?? "current_month";
+  const schoolYearBounds = options?.schoolYearBounds ?? {
+    effectiveStart: null,
+    effectiveEnd: null,
+  };
+  const referenceDate = options?.referenceDate ?? new Date();
 
-  const { count: activeAssignments, error } = await supabase
-    .from("tuition_enrollment_assignments")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", organizationId)
-    .eq("status", "active");
+  const [summaries, chargesResult, assignmentsResult] = await Promise.all([
+    listFamilyBillingSummaries(supabase, organizationId, {
+      limit: null,
+    }),
+    supabase
+      .from("tuition_charges")
+      .select("id, family_id, assignment_id, label, amount_cents, paid_cents, status, due_date, paid_at")
+      .eq("organization_id", organizationId)
+      .not("status", "eq", "void"),
+    supabase
+      .from("tuition_enrollment_assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .eq("status", "active"),
+  ]);
 
-  if (error) throw error;
+  if (chargesResult.error) throw chargesResult.error;
+  if (assignmentsResult.error) throw assignmentsResult.error;
+
+  const chargeRows = (chargesResult.data ?? []) as RawKpiChargeRow[];
+  const outstandingCents = computeOutstandingCentsFromCharges(
+    chargeRows,
+    outstandingPeriod,
+    schoolYearBounds,
+    referenceDate,
+  );
 
   return {
     collectedYtdCents: summaries.reduce((s, f) => s + f.paidYtdCents, 0),
-    outstandingCents: summaries.reduce((s, f) => s + f.balanceDueCents, 0),
+    outstandingCents,
     familiesAtRisk: summaries.filter((f) => f.status === "overdue").length,
-    activeAssignments: activeAssignments ?? 0,
+    activeAssignments: assignmentsResult.count ?? 0,
   };
 }
