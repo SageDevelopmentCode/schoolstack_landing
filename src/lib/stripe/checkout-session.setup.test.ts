@@ -35,8 +35,9 @@ describe("createTuitionSetupCheckoutSession", () => {
     );
 
     assert.equal(result.url, session.url);
-    assert.equal(capturedParams?.mode, "setup");
-    assert.deepEqual(capturedParams?.metadata, {
+    const params = capturedParams as Record<string, unknown> | null;
+    assert.equal(params?.mode, "setup");
+    assert.deepEqual(params?.metadata, {
       payment_type: "tuition_setup",
       organization_id: "org_123",
       family_id: "family_123",

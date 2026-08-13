@@ -72,7 +72,7 @@ function createMockSupabase(options: {
         return filterBuilder;
       },
       then(
-        resolve: (value: { data: unknown; error: null }) => unknown,
+        resolve: (value: unknown) => unknown,
         reject?: (reason?: unknown) => unknown,
       ) {
         if (table === "guardians" && nextFilters.family_id != null) {

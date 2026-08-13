@@ -106,7 +106,8 @@ describe("runTuitionBillingCron", () => {
     assert.equal(summary.autopayDueCandidates, 2);
     assert.equal(summary.autopayLines.length, 2);
     assert.equal(summary.autopayLines[0]?.chargeId, "charge-1");
-    assert.equal(notifiedPayload?.autopaySkipped, 4);
-    assert.equal(notifiedPayload?.autopayDueCandidates, 2);
+    const payload = notifiedPayload as Record<string, unknown> | null;
+    assert.equal(payload?.autopaySkipped, 4);
+    assert.equal(payload?.autopayDueCandidates, 2);
   });
 });
