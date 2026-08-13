@@ -71,6 +71,7 @@ jobs:
         run: npm ci
 
       - name: Resolve Lighthouse pages
+        id: pages
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             PATHS=$(npx tsx scripts/resolve-performance-ci-pages.ts --full)
@@ -78,7 +79,9 @@ jobs:
             PATHS=$(npx tsx scripts/resolve-performance-ci-pages.ts --base origin/${{ github.base_ref }})
           fi
           echo "PERFORMANCE_CI_PAGE_PATHS=$PATHS" >> "$GITHUB_ENV"
-          echo "Resolved Lighthouse pages: $PATHS"
+          PAGE_COUNT=$(echo "$PATHS" | wc -w | tr -d ' ')
+          echo "count=$PAGE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Resolved $PAGE_COUNT Lighthouse page(s): $PATHS"
 
       - name: Install Playwright Chromium
         run: npx playwright install chromium
@@ -119,6 +122,7 @@ jobs:
           ZOHO_SMTP_PASSWORD: ""
 
       - name: Run Lighthouse CI (mobile)
+        if: steps.pages.outputs.count != '0'
         run: npm run performance:ci
         env:
           CI: true
@@ -130,7 +134,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
 
       - name: Upload mobile Lighthouse results to Supabase
-        if: success()
+        if: success() && steps.pages.outputs.count != '0'
         run: npm run performance:ci:upload
         env:
           CI: true
@@ -141,6 +145,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Run Lighthouse CI (desktop)
+        if: steps.pages.outputs.count != '0'
         run: npm run performance:ci
         env:
           CI: true
@@ -152,7 +157,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
 
       - name: Upload desktop Lighthouse results to Supabase
-        if: success()
+        if: success() && steps.pages.outputs.count != '0'
         run: npm run performance:ci:upload
         env:
           CI: true
@@ -163,7 +168,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Upload Lighthouse CI reports
-        if: always()
+        if: always() && steps.pages.outputs.count != '0'
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-ci

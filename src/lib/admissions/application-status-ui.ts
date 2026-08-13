@@ -16,6 +16,8 @@ export const APPLICATION_STATUS_FILTER_ORDER = [
   "withdrawn",
 ] as const;
 
+export const APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL = ["withdrawn"] as const;
+
 export function applicationStatusLabel(status: string): string {
   return APPLICATION_STATUS_LABELS[status] ?? status;
 }

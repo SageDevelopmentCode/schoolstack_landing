@@ -15,6 +15,11 @@ const ADMIN_CI_PATHS = [
   `${SCHOOL_BASE}/admin/admissions/submissions`,
 ] as const;
 
+const TUITION_CI_PATHS = [
+  `${SCHOOL_BASE}/admin/login`,
+  `${SCHOOL_BASE}/admin/my_school/tuition`,
+] as const;
+
 const PARENT_CI_PATHS = [
   `${SCHOOL_BASE}/parent`,
   `${SCHOOL_BASE}/parent/portal`,
@@ -38,6 +43,13 @@ const MARKETING_CHANGE_PATTERNS: RegExp[] = [
   /^src\/components\/sections\//,
 ];
 
+const TUITION_CHANGE_PATTERNS: RegExp[] = [
+  /^src\/components\/school-admin\/tuition\//,
+  /^src\/lib\/tuition\//,
+];
+
+const ORG_SETTINGS_CHANGE_PATTERNS: RegExp[] = [/^src\/lib\/organization-settings\//];
+
 const ADMISSIONS_CHANGE_PATTERNS: RegExp[] = [
   /^src\/app\/school\/[^/]+\/apply\//,
   /^src\/app\/school\/[^/]+\/forms\//,
@@ -47,18 +59,21 @@ const ADMISSIONS_CHANGE_PATTERNS: RegExp[] = [
 const ADMIN_CHANGE_PATTERNS: RegExp[] = [
   /^src\/app\/school\/[^/]+\/admin\//,
   /^src\/components\/school-admin\//,
+  /^src\/components\/admin\//,
+  /^src\/lib\/school-admin\//,
 ];
 
 const PARENT_CHANGE_PATTERNS: RegExp[] = [
   /^src\/app\/school\/[^/]+\/parent\//,
   /^src\/components\/school-parent\//,
+  /^src\/lib\/school-parent\//,
 ];
 
 function matchesAny(file: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(file));
 }
 
-function isAppOrPublicFallback(file: string): boolean {
+function isPerfRelevantAppOrPublicFile(file: string): boolean {
   return file.startsWith("src/") || file.startsWith("public/");
 }
 
@@ -72,9 +87,15 @@ function expandAuthPaths(selected: Set<string>): void {
   const adminAuthPaths = ADMIN_CI_PATHS.filter(
     (path) => path !== `${SCHOOL_BASE}/admin/login`,
   );
+  const tuitionAuthPaths = TUITION_CI_PATHS.filter(
+    (path) => path !== `${SCHOOL_BASE}/admin/login`,
+  );
   const parentAuthPaths = PARENT_CI_PATHS.filter((path) => path !== `${SCHOOL_BASE}/parent`);
 
-  if (adminAuthPaths.some((path) => selected.has(path))) {
+  if (
+    adminAuthPaths.some((path) => selected.has(path)) ||
+    tuitionAuthPaths.some((path) => selected.has(path))
+  ) {
     selected.add(`${SCHOOL_BASE}/admin/login`);
   }
 
@@ -89,6 +110,7 @@ export function resolveCiPagesFromChangedFiles(changedFiles: string[]): string[]
   }
 
   const selected = new Set<string>();
+  let hasPerfRelevantUnmatched = false;
 
   for (const file of changedFiles) {
     const normalized = file.replace(/\\/g, "/");
@@ -97,8 +119,20 @@ export function resolveCiPagesFromChangedFiles(changedFiles: string[]): string[]
       return [...CI_LHCI_PAGE_PATHS];
     }
 
+    if (matchesAny(normalized, TUITION_CHANGE_PATTERNS)) {
+      addPaths(selected, TUITION_CI_PATHS);
+      continue;
+    }
+
     if (matchesAny(normalized, MARKETING_CHANGE_PATTERNS)) {
       addPaths(selected, MARKETING_CI_PATHS);
+      continue;
+    }
+
+    if (matchesAny(normalized, ORG_SETTINGS_CHANGE_PATTERNS)) {
+      addPaths(selected, ADMIN_CI_PATHS);
+      addPaths(selected, PARENT_CI_PATHS);
+      addPaths(selected, ADMISSIONS_CI_PATHS);
       continue;
     }
 
@@ -117,13 +151,17 @@ export function resolveCiPagesFromChangedFiles(changedFiles: string[]): string[]
       continue;
     }
 
-    if (isAppOrPublicFallback(normalized)) {
-      return [...CI_LHCI_PAGE_PATHS];
+    if (isPerfRelevantAppOrPublicFile(normalized)) {
+      hasPerfRelevantUnmatched = true;
     }
   }
 
   if (!selected.size) {
-    return [...CI_LHCI_PAGE_PATHS];
+    if (hasPerfRelevantUnmatched) {
+      return [...CI_LHCI_PAGE_PATHS];
+    }
+
+    return [];
   }
 
   expandAuthPaths(selected);
