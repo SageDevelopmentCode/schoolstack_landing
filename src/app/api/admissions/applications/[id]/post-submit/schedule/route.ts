@@ -4,6 +4,7 @@ import {
   AdmissionsBookingError,
   bookAdmissionsVisit,
   normalizeScheduledDates,
+  normalizeScheduledSlotIds,
 } from "@/lib/admissions/admissions-booking";
 import { formatScheduledVisitWhenLabel } from "@/lib/admissions/admissions-availability";
 import {
@@ -30,6 +31,7 @@ type ScheduleBody = {
   actionId?: string;
   scheduledDate?: string;
   scheduledDates?: string[];
+  slotIds?: string[];
   startTimeSlot?: string;
 };
 
@@ -56,6 +58,9 @@ export async function POST(request: Request, context: RouteContext) {
   const scheduledDates = Array.isArray(body.scheduledDates)
     ? normalizeScheduledDates(body.scheduledDates)
     : undefined;
+  const slotIds = Array.isArray(body.slotIds)
+    ? normalizeScheduledSlotIds(body.slotIds)
+    : undefined;
 
   if (!actionId) {
     return apiError(ROUTE, {
@@ -66,11 +71,11 @@ export async function POST(request: Request, context: RouteContext) {
     });
   }
 
-  if (!scheduledDates?.length && !scheduledDate) {
+  if (!scheduledDates?.length && !slotIds?.length && !scheduledDate) {
     return apiError(ROUTE, {
       request,
       status: 400,
-      error: "scheduledDate or scheduledDates is required.",
+      error: "scheduledDate, scheduledDates, or slotIds is required.",
       code: "invalid_request",
     });
   }
@@ -97,9 +102,10 @@ export async function POST(request: Request, context: RouteContext) {
       admin,
       applicationId,
       actionId,
-      scheduledDate ?? scheduledDates?.[0] ?? "",
+      scheduledDate ?? scheduledDates?.[0] ?? slotIds?.[0] ?? "",
       startTimeSlot,
       scheduledDates,
+      slotIds,
     );
 
     void sendPostSubmitVisitScheduledNotifications(admin, applicationId, booking);
@@ -124,6 +130,7 @@ export async function POST(request: Request, context: RouteContext) {
         scheduledDate: booking.scheduledDate,
         endDate: booking.endDate,
         visitDates: booking.visitDates,
+        observationSlots: booking.observationSlots,
         startTimeSlot: booking.startTimeSlot,
         durationMinutes: booking.durationMinutes,
         visitDayCount: booking.visitDayCount,
@@ -136,6 +143,7 @@ export async function POST(request: Request, context: RouteContext) {
         scheduledDate: booking.scheduledDate,
         endDate: booking.endDate,
         visitDates: booking.visitDates,
+        observationSlots: booking.observationSlots,
         startTimeSlot: booking.startTimeSlot,
         durationMinutes: booking.durationMinutes,
         visitDayCount: booking.visitDayCount,

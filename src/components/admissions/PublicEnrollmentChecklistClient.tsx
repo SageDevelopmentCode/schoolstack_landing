@@ -238,6 +238,7 @@ export default function PublicEnrollmentChecklistClient({
   const resolvedProfile = userProfile ?? {
     email: "",
     displayName: "Preview",
+    profilePhotoUrl: null,
   };
 
   return (
@@ -248,6 +249,7 @@ export default function PublicEnrollmentChecklistClient({
       organizationId={organizationId}
       userEmail={resolvedProfile.email}
       userDisplayName={resolvedProfile.displayName}
+      profilePhotoUrl={resolvedProfile.profilePhotoUrl}
       portalOptions={portalOptions}
       previewMode={previewMode}
       previewHomeHref={backHref}

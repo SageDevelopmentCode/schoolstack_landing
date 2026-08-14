@@ -465,6 +465,7 @@ function ApplicationReadOnlyBody({
         organizationId={organizationId}
         userEmail={userProfile.email}
         userDisplayName={userProfile.displayName}
+        profilePhotoUrl={userProfile.profilePhotoUrl}
         portalOptions={portalOptions}
         previewMode={previewMode}
         previewHomeHref={previewHomeHref}

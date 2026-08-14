@@ -124,7 +124,8 @@ export type FeatureNavConfig = {
 export type ParentOnboardingAutoCompletionType =
   | "billing"
   | "messages"
-  | "committees";
+  | "committees"
+  | "children";
 
 export type ParentOnboardingItem = {
   id: string;
@@ -155,6 +156,7 @@ export type OrganizationSettingsRow = {
   organization_id: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
+  admissions?: import("@/lib/admissions/admissions-org-settings").AdmissionsOrgSettings | Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
 };

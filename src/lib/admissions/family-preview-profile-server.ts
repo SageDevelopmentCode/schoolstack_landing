@@ -28,6 +28,7 @@ export async function getOwnerLinkedPreviewProfile(
     first_name?: string | null;
     last_name?: string | null;
     user_id?: string | null;
+    profile_photo_url?: string | null;
   },
 ): Promise<FamilyUserProfile | null> {
   const userId =
@@ -53,5 +54,11 @@ export async function getOwnerLinkedPreviewProfile(
   const displayName =
     [firstName, lastName].filter(Boolean).join(" ") || loginEmail || "Family";
 
-  return { email: loginEmail, displayName };
+  const profilePhotoUrl =
+    typeof guardian.profile_photo_url === "string" &&
+    guardian.profile_photo_url.trim()
+      ? guardian.profile_photo_url.trim()
+      : null;
+
+  return { email: loginEmail, displayName, profilePhotoUrl };
 }

@@ -52,6 +52,14 @@ export type ApplicationPostSubmitTask = {
     durationMinutes: number;
     visitDayCount?: number;
     visitDates?: string[];
+    observationSlots?: Array<{
+      slotId: string;
+      date: string;
+      startTime: string;
+      endTime: string | null;
+      label: string | null;
+      gradeValues: string[];
+    }>;
     completedManuallyAt?: string;
   };
 };
@@ -99,6 +107,7 @@ export type ChildProfileData = {
 export type FamilyUserProfile = {
   email: string;
   displayName: string;
+  profilePhotoUrl: string | null;
 };
 
 export type FamilyChildOverview = {
@@ -177,7 +186,7 @@ export async function getFamilyUserProfile(
 ): Promise<FamilyUserProfile> {
   const { data: guardian, error } = await supabase
     .from("guardians")
-    .select("first_name, last_name, email")
+    .select("first_name, last_name, email, profile_photo_url")
     .eq("user_id", userId)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -203,7 +212,13 @@ export async function getFamilyUserProfile(
   const displayName =
     [firstName, lastName].filter(Boolean).join(" ") || email || "Account";
 
-  return { email, displayName };
+  const profilePhotoUrl =
+    typeof guardian?.profile_photo_url === "string" &&
+    guardian.profile_photo_url.trim()
+      ? guardian.profile_photo_url.trim()
+      : null;
+
+  return { email, displayName, profilePhotoUrl };
 }
 
 async function getStudentIdsForFamilies(
@@ -399,6 +414,7 @@ export async function listFamilyApplications(
                       durationMinutes: visit.durationMinutes,
                       visitDayCount: visit.visitDayCount,
                       visitDates: visit.visitDates,
+                      observationSlots: visit.observationSlots,
                       completedManuallyAt: visit.completedManuallyAt,
                     }
                   : undefined,

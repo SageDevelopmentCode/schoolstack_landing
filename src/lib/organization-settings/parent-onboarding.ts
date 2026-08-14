@@ -22,6 +22,7 @@ export type ParentOnboardingCompletionStatus = {
   billing: boolean;
   messages: boolean;
   committees: boolean;
+  children: boolean;
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -47,6 +48,18 @@ function normalizeOnboardingItem(
   return { id, label, target, icon };
 }
 
+function backfillDefaultOnboardingItems(
+  items: ParentOnboardingItem[],
+): ParentOnboardingItem[] {
+  const existingIds = new Set(items.map((item) => item.id));
+  const missingDefaults = DEFAULT_PARENT_ONBOARDING_ITEMS.filter(
+    (item) => !existingIds.has(item.id),
+  );
+
+  if (missingDefaults.length === 0) return items;
+  return [...items, ...missingDefaults];
+}
+
 export function mergeParentOnboarding(
   stored: ParentOnboardingConfig | Record<string, unknown> | null | undefined,
 ): ParentOnboardingConfig {
@@ -69,7 +82,7 @@ export function mergeParentOnboarding(
     return { items: structuredClone(DEFAULT_PARENT_ONBOARDING_ITEMS) };
   }
 
-  return { items };
+  return { items: backfillDefaultOnboardingItems(items) };
 }
 
 export function getParentOnboardingItems(
@@ -96,7 +109,12 @@ export function getAutoCompletionType(
   target: string,
 ): ParentOnboardingAutoCompletionType | null {
   if (isCustomOnboardingUrlTarget(target)) return null;
-  if (target === "billing" || target === "messages" || target === "committees") {
+  if (
+    target === "billing" ||
+    target === "messages" ||
+    target === "committees" ||
+    target === "children"
+  ) {
     return target;
   }
   return null;

@@ -86,6 +86,7 @@ export async function GET(request: Request, context: RouteContext) {
       contextRow.action,
       startDate,
       endDate,
+      applicationId,
     );
 
     return NextResponse.json(availability);

@@ -15,6 +15,10 @@ import {
   listFamilyApplications,
   userHasEnrolledAccess,
 } from "@/lib/admissions/parent-portal-access";
+import {
+  getAdmissionsOrgSettings,
+  resolveShadowDaySchedulingMode,
+} from "@/lib/admissions/admissions-org-settings";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { getTeacherPortalHomeHref } from "@/lib/organization-settings/teacher-nav";
@@ -161,6 +165,9 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     org.features.feature_nav?.parent,
   );
 
+  const admissionsSettings = await getAdmissionsOrgSettings(supabase, org.id);
+  const shadowDaySchedulingMode = resolveShadowDaySchedulingMode(admissionsSettings);
+
   return (
     <ApplyDashboard
       branding={org.branding}
@@ -180,6 +187,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}
       userProfile={userProfile}
       portalOptions={portalOptions}
+      shadowDaySchedulingMode={shadowDaySchedulingMode}
     />
   );
 }

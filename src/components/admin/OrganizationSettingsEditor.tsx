@@ -74,6 +74,16 @@ import {
   isCustomOnboardingUrlTarget,
   toCustomOnboardingUrlTarget,
 } from "@/lib/organization-settings/parent-onboarding";
+import {
+  describeShadowDayModeChangeImpact,
+  getShadowDayAvailabilityImpact,
+  parseAdmissionsOrgSettings,
+  resolveShadowDaySchedulingMode,
+  SHADOW_DAY_SCHEDULING_MODE_OPTIONS,
+  SHADOW_DAY_SCHEDULING_QUESTION,
+  type AdmissionsOrgSettings,
+  type ShadowDaySchedulingMode,
+} from "@/lib/admissions/admissions-org-settings";
 import type {
   ApplyAuthEntryOption,
   OrganizationBranding,
@@ -136,6 +146,9 @@ export default function OrganizationSettingsEditor({
       ? mergeFeatures(initialRow.features as unknown as Record<string, unknown>)
       : getDefaultSettings().features,
   );
+  const [admissions, setAdmissions] = useState<AdmissionsOrgSettings>(() =>
+    parseAdmissionsOrgSettings(initialRow?.admissions),
+  );
   const [savedSnapshot, setSavedSnapshot] = useState(() =>
     serializeSettings(
       initialRow
@@ -147,6 +160,9 @@ export default function OrganizationSettingsEditor({
           ) as unknown as Record<string, unknown>)
         : (getDefaultSettings().features as unknown as Record<string, unknown>),
     ),
+  );
+  const [savedAdmissionsSnapshot, setSavedAdmissionsSnapshot] = useState(() =>
+    JSON.stringify(parseAdmissionsOrgSettings(initialRow?.admissions)),
   );
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -187,16 +203,19 @@ export default function OrganizationSettingsEditor({
       const mergedFeatures = initialRow
         ? mergeFeatures(initialRow.features as unknown as Record<string, unknown>)
         : getDefaultSettings().features;
+      const mergedAdmissions = parseAdmissionsOrgSettings(initialRow?.admissions);
 
       setHasRow(!!initialRow);
       setBranding(mergedBranding);
       setFeatures(mergedFeatures);
+      setAdmissions(mergedAdmissions);
       setSavedSnapshot(
         serializeSettings(
           mergedBranding,
           mergedFeatures as unknown as Record<string, unknown>,
         ),
       );
+      setSavedAdmissionsSnapshot(JSON.stringify(mergedAdmissions));
       setSaveMessage(null);
       setError(null);
       setLogoOpen(Boolean(mergedBranding.logo?.src?.trim()));
@@ -209,9 +228,19 @@ export default function OrganizationSettingsEditor({
       serializeSettings(
         branding,
         features as unknown as Record<string, unknown>,
-      ) !== savedSnapshot,
-    [branding, features, savedSnapshot],
+      ) !== savedSnapshot ||
+      JSON.stringify(admissions) !== savedAdmissionsSnapshot,
+    [admissions, branding, features, savedAdmissionsSnapshot, savedSnapshot],
   );
+
+  const savedShadowDayMode = useMemo(
+    () =>
+      resolveShadowDaySchedulingMode(
+        parseAdmissionsOrgSettings(JSON.parse(savedAdmissionsSnapshot)),
+      ),
+    [savedAdmissionsSnapshot],
+  );
+  const currentShadowDayMode = resolveShadowDaySchedulingMode(admissions);
 
   const brandingGroups = useMemo(() => {
     const groups = new Map<string, typeof BRANDING_FIELDS>();
@@ -311,10 +340,34 @@ export default function OrganizationSettingsEditor({
     setError(null);
     setSaveMessage(null);
 
+    if (currentShadowDayMode !== savedShadowDayMode) {
+      try {
+        const impact = await getShadowDayAvailabilityImpact(supabase, organizationId);
+        if (impact.hasData) {
+          const confirmed = window.confirm(
+            `Change how families book shadow days?\n\n${describeShadowDayModeChangeImpact(impact)}`,
+          );
+          if (!confirmed) {
+            setSaving(false);
+            return;
+          }
+        }
+      } catch (impactError) {
+        setSaving(false);
+        setError(
+          impactError instanceof Error
+            ? impactError.message
+            : "Failed to check existing shadow day data.",
+        );
+        return;
+      }
+    }
+
     const payload = {
       organization_id: organizationId,
       branding: branding as unknown as Record<string, unknown>,
       features: features as unknown as Record<string, unknown>,
+      admissions,
     };
 
     const { error: upsertError } = await supabase
@@ -335,9 +388,26 @@ export default function OrganizationSettingsEditor({
         payload.features as Record<string, unknown>,
       ),
     );
+    setSavedAdmissionsSnapshot(JSON.stringify(admissions));
     setSaveMessage("Settings saved.");
     await onSaved?.();
-  }, [supabase, organizationId, branding, features, onSaved]);
+  }, [
+    admissions,
+    branding,
+    currentShadowDayMode,
+    features,
+    onSaved,
+    organizationId,
+    savedShadowDayMode,
+    supabase,
+  ]);
+
+  const setShadowDaySchedulingMode = (mode: ShadowDaySchedulingMode) => {
+    setAdmissions((current) => ({
+      ...current,
+      shadowDaySchedulingMode: mode,
+    }));
+  };
 
   const setPortalFeature = (
     portal: Portal,
@@ -1082,6 +1152,61 @@ export default function OrganizationSettingsEditor({
           targetOptions={parentOnboardingTargetOptions}
           onChange={setOnboardingItems}
         />
+      </section>
+
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
+        <div>
+          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
+            Admissions
+          </h2>
+          <p className="mt-1 text-xs text-admin-muted font-secondary">
+            Platform-level admissions behavior for this school. Schools manage
+            open days in their schedule; this controls what families see when booking.
+          </p>
+        </div>
+
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-medium text-admin-text font-secondary">
+            {SHADOW_DAY_SCHEDULING_QUESTION}
+          </legend>
+          {SHADOW_DAY_SCHEDULING_MODE_OPTIONS.map((option) => {
+            const selected = currentShadowDayMode === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`flex cursor-pointer items-start gap-3 rounded-admin-md border p-3 transition ${
+                  selected
+                    ? "border-accent bg-accent/5"
+                    : "border-admin-border bg-admin-bg hover:bg-admin-surface"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="shadowDaySchedulingMode"
+                  value={option.value}
+                  checked={selected}
+                  onChange={() => setShadowDaySchedulingMode(option.value)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-admin-text font-secondary">
+                    {option.label}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-admin-muted font-secondary">
+                    {option.description}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
+
+        {currentShadowDayMode !== savedShadowDayMode ? (
+          <p className="text-xs text-admin-muted font-secondary">
+            Saving will change the family booking screen. Existing open days and
+            bookings are kept, but the school may need to review grade slots.
+          </p>
+        ) : null}
       </section>
 
       <div className="flex flex-wrap items-center gap-3">

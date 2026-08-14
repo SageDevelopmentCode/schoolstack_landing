@@ -1,11 +1,13 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, LogOut, User } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LogOut } from "lucide-react";
 import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
 import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
+import ParentProfileMenuTrigger from "@/components/school-parent/ParentProfileMenuTrigger";
+import StudentPhoto from "@/components/students/StudentPhoto";
 import {
   detectPortalFromPathname,
   type SchoolPortalOption,
@@ -15,7 +17,11 @@ import {
   CLIENT_AUTH_ACTIVITY_ACTIONS,
   reportAuthActivityAndWait,
 } from "@/lib/activity-auth-client";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import {
+  GuardianProfilePhotoClientError,
+  uploadGuardianProfilePhotoFromParent,
+} from "@/lib/guardians/upload-guardian-profile-photo-client";
+import { parentToast } from "@/lib/school-parent/parent-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -26,21 +32,11 @@ type ApplyPortalNavbarProps = {
   organizationId?: string;
   userEmail: string;
   userDisplayName: string;
+  profilePhotoUrl?: string | null;
   portalOptions?: SchoolPortalOption[];
   previewMode?: boolean;
   previewHomeHref?: string;
 };
-
-function profileInitials(displayName: string): string {
-  const parts = displayName.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return "?";
-}
 
 export default function ApplyPortalNavbar({
   branding,
@@ -49,6 +45,7 @@ export default function ApplyPortalNavbar({
   organizationId,
   userEmail,
   userDisplayName,
+  profilePhotoUrl: initialProfilePhotoUrl = null,
   portalOptions = [],
   previewMode = false,
   previewHomeHref,
@@ -59,7 +56,13 @@ export default function ApplyPortalNavbar({
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(initialProfilePhotoUrl);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setProfilePhotoUrl(initialProfilePhotoUrl);
+  }, [initialProfilePhotoUrl]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -106,7 +109,35 @@ export default function ApplyPortalNavbar({
     }
   };
 
-  const initials = profileInitials(userDisplayName);
+  const handlePhotoUpload = useCallback(
+    async (file: File) => {
+      if (previewMode || !organizationId) return;
+
+      setPhotoUploading(true);
+
+      try {
+        const nextUrl = await uploadGuardianProfilePhotoFromParent(
+          organizationId,
+          file,
+        );
+        setProfilePhotoUrl(nextUrl);
+        parentToast.success("Profile photo updated.");
+      } catch (error) {
+        parentToast.error(
+          error instanceof GuardianProfilePhotoClientError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "Failed to upload photo.",
+        );
+      } finally {
+        setPhotoUploading(false);
+      }
+    },
+    [organizationId, previewMode],
+  );
+
+  const canUploadPhoto = !previewMode && Boolean(organizationId);
   const homeHref =
     previewHomeHref ?? `/school/${schoolSlug}/apply`;
 
@@ -125,29 +156,13 @@ export default function ApplyPortalNavbar({
         </div>
 
         <div className="relative shrink-0" ref={menuRef}>
-          <button
-            type="button"
+          <ParentProfileMenuTrigger
+            displayName={userDisplayName}
+            profilePhotoUrl={profilePhotoUrl}
+            theme={C}
+            menuOpen={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
-            className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-left sm:max-w-[min(240px,60vw)] sm:gap-2 sm:px-3 sm:py-2"
-            style={getAdminButtonStyle(C, "secondary")}
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            aria-label={userDisplayName}
-          >
-            <span
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-              style={{ backgroundColor: C.accentLight, color: C.accent }}
-            >
-              {initials !== "?" ? initials : <User className="h-3.5 w-3.5" />}
-            </span>
-            <span className="hidden min-w-0 flex-1 truncate text-sm font-medium sm:block">
-              {userDisplayName}
-            </span>
-            <ChevronDown
-              className={`h-4 w-4 shrink-0 transition-transform ${menuOpen ? "rotate-180" : ""}`}
-              style={{ color: C.textTertiary }}
-            />
-          </button>
+          />
 
           {menuOpen ? (
             <div
@@ -155,15 +170,35 @@ export default function ApplyPortalNavbar({
               style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
               role="menu"
             >
-              <div className="border-b px-3 py-2.5" style={{ borderColor: C.border }}>
-                <p className="truncate text-sm font-semibold" style={{ color: C.textPrimary }}>
-                  {userDisplayName}
-                </p>
-                {userEmail ? (
-                  <p className="mt-0.5 truncate text-xs" style={{ color: C.textSecondary }}>
-                    {userEmail}
-                  </p>
-                ) : null}
+              <div className="border-b px-3 py-3" style={{ borderColor: C.border }}>
+                <div className="flex items-start gap-3">
+                  <StudentPhoto
+                    name={userDisplayName}
+                    photoUrl={profilePhotoUrl}
+                    size="lg"
+                    theme={C}
+                    editable={canUploadPhoto}
+                    uploading={photoUploading}
+                    showEditHint={canUploadPhoto}
+                    onFileSelect={(file) => void handlePhotoUpload(file)}
+                  />
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <p
+                      className="truncate text-sm font-semibold"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {userDisplayName}
+                    </p>
+                    {userEmail ? (
+                      <p
+                        className="mt-0.5 truncate text-xs"
+                        style={{ color: C.textSecondary }}
+                      >
+                        {userEmail}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
               </div>
               <SchoolPortalSwitcherMenuItems
                 C={C}

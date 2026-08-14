@@ -38,6 +38,7 @@ export default async function SchoolAdminPreviewLayout({
       : Promise.resolve({
           email: "",
           displayName: "School owner (preview)",
+          profilePhotoUrl: null,
         }),
     defaultFamilyId
       ? familyHasEnrolledAccess(supabase, org.id, defaultFamilyId)

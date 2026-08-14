@@ -5,7 +5,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import AdmissionsDatePicker from "@/components/admissions/AdmissionsDatePicker";
 import AdmissionsDateTimePicker from "@/components/admissions/AdmissionsDateTimePicker";
+import AdmissionsObservationSlotPicker from "@/components/admissions/AdmissionsObservationSlotPicker";
+import AdmissionsDateTimePickerSkeleton from "@/components/admissions/AdmissionsDateTimePickerSkeleton";
 import { formatOrganizationTimezoneLabel } from "@/lib/admissions/admissions-availability";
+import type { BookableAvailabilityResult } from "@/lib/admissions/admissions-booking";
+import type { ShadowDaySchedulingMode } from "@/lib/admissions/admissions-org-settings";
 import { isWholeDayPostSubmitAction } from "@/lib/admissions/application-form-schema";
 import type { ApplicationPostSubmitTask } from "@/lib/admissions/parent-portal-access";
 import { resolvedPostSubmitMaxVisitDays } from "@/lib/admissions/post-submit-templates";
@@ -20,7 +24,22 @@ type PostSubmitBookingModalProps = {
   onClose: () => void;
   onBooked: () => void;
   previewMode?: boolean;
+  shadowDaySchedulingMode?: ShadowDaySchedulingMode;
 };
+
+function currentMonthRange(timezone: string): { start: string; end: string } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(new Date());
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const start = `${year}-${String(month).padStart(2, "0")}-01`;
+  const endDay = new Date(year, month, 0).getDate();
+  const end = `${year}-${String(month).padStart(2, "0")}-${String(endDay).padStart(2, "0")}`;
+  return { start, end };
+}
 
 export default function PostSubmitBookingModal({
   C,
@@ -31,10 +50,16 @@ export default function PostSubmitBookingModal({
   onClose,
   onBooked,
   previewMode = false,
+  shadowDaySchedulingMode,
 }: PostSubmitBookingModalProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [shadowAvailabilityMode, setShadowAvailabilityMode] = useState<
+    "whole_day" | "observation_slot" | null
+  >(null);
+  const [modeLoading, setModeLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,16 +77,74 @@ export default function PostSubmitBookingModal({
       queueMicrotask(() => {
         setSelectedDate(null);
         setSelectedDates([]);
+        setSelectedSlotIds([]);
         setSelectedTime(null);
+        setShadowAvailabilityMode(null);
         setSubmitting(false);
         setError(null);
       });
+      return;
     }
-  }, [open]);
+
+    if (!isWholeDay) return;
+
+    if (previewMode) {
+      setShadowAvailabilityMode(
+        shadowDaySchedulingMode && shadowDaySchedulingMode !== "whole_day"
+          ? "observation_slot"
+          : "whole_day",
+      );
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadShadowMode() {
+      setModeLoading(true);
+      setError(null);
+      try {
+        const { start, end } = currentMonthRange(timezone);
+        const params = new URLSearchParams({
+          actionId: task.actionId,
+          start,
+          end,
+        });
+        const response = await fetch(
+          `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`,
+        );
+        const payload = (await response.json()) as BookableAvailabilityResult & {
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Failed to load availability.");
+        }
+        if (!cancelled) {
+          setShadowAvailabilityMode(
+            payload.mode === "observation_slot" ? "observation_slot" : "whole_day",
+          );
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load availability.");
+        }
+      } finally {
+        if (!cancelled) setModeLoading(false);
+      }
+    }
+
+    void loadShadowMode();
+    return () => {
+      cancelled = true;
+    };
+  }, [applicationId, isWholeDay, open, previewMode, shadowDaySchedulingMode, task.actionId, timezone]);
 
   async function handleConfirm() {
     if (isWholeDay) {
-      if (selectedDates.length === 0) return;
+      if (shadowAvailabilityMode === "observation_slot") {
+        if (selectedSlotIds.length === 0) return;
+      } else if (selectedDates.length === 0) {
+        return;
+      }
     } else if (!selectedDate || !selectedTime) {
       return;
     }
@@ -84,10 +167,15 @@ export default function PostSubmitBookingModal({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
             isWholeDay
-              ? {
-                  actionId: task.actionId,
-                  scheduledDates: selectedDates,
-                }
+              ? shadowAvailabilityMode === "observation_slot"
+                ? {
+                    actionId: task.actionId,
+                    slotIds: selectedSlotIds,
+                  }
+                : {
+                    actionId: task.actionId,
+                    scheduledDates: selectedDates,
+                  }
               : {
                   actionId: task.actionId,
                   scheduledDate: selectedDate,
@@ -113,8 +201,16 @@ export default function PostSubmitBookingModal({
   }
 
   const canConfirm = isWholeDay
-    ? selectedDates.length > 0
+    ? shadowAvailabilityMode === "observation_slot"
+      ? selectedSlotIds.length > 0
+      : selectedDates.length > 0
     : Boolean(selectedDate && selectedTime);
+
+  const confirmLabel = isWholeDay
+    ? shadowAvailabilityMode === "observation_slot"
+      ? "Confirm slots"
+      : "Confirm days"
+    : "Confirm time";
 
   return (
     <AnimatePresence>
@@ -167,16 +263,31 @@ export default function PostSubmitBookingModal({
             </div>
 
             {isWholeDay ? (
-              <AdmissionsDatePicker
-                C={C}
-                applicationId={applicationId}
-                actionId={task.actionId}
-                timezone={timezone}
-                timezoneLabel={timezoneLabel}
-                maxVisitDays={maxVisitDays}
-                selectedDates={selectedDates}
-                onDatesChange={setSelectedDates}
-              />
+              modeLoading ? (
+                <AdmissionsDateTimePickerSkeleton C={C} />
+              ) : shadowAvailabilityMode === "observation_slot" ? (
+                <AdmissionsObservationSlotPicker
+                  C={C}
+                  applicationId={applicationId}
+                  actionId={task.actionId}
+                  timezone={timezone}
+                  timezoneLabel={timezoneLabel}
+                  maxVisitDays={maxVisitDays}
+                  selectedSlotIds={selectedSlotIds}
+                  onSlotIdsChange={setSelectedSlotIds}
+                />
+              ) : (
+                <AdmissionsDatePicker
+                  C={C}
+                  applicationId={applicationId}
+                  actionId={task.actionId}
+                  timezone={timezone}
+                  timezoneLabel={timezoneLabel}
+                  maxVisitDays={maxVisitDays}
+                  selectedDates={selectedDates}
+                  onDatesChange={setSelectedDates}
+                />
+              )
             ) : (
               <AdmissionsDateTimePicker
                 C={C}
@@ -211,16 +322,12 @@ export default function PostSubmitBookingModal({
               </button>
               <button
                 type="button"
-                disabled={!canConfirm || submitting}
+                disabled={!canConfirm || submitting || modeLoading}
                 onClick={() => void handleConfirm()}
                 className="rounded-md px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60"
                 style={{ backgroundColor: C.accent }}
               >
-                {submitting
-                  ? "Scheduling…"
-                  : isWholeDay
-                    ? "Confirm days"
-                    : "Confirm time"}
+                {submitting ? "Scheduling…" : confirmLabel}
               </button>
             </div>
           </motion.div>

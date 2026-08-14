@@ -9,6 +9,7 @@ import { POST_SUBMIT_ACTION_TEMPLATES } from "@/lib/admissions/post-submit-templ
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
+import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 
 type ScheduleTourExperienceProps = {
   branding: OrganizationBranding;
@@ -16,10 +17,7 @@ type ScheduleTourExperienceProps = {
   schoolSlug: string;
   organizationId: string;
   timezone: string;
-  userProfile: {
-    email: string;
-    displayName: string;
-  };
+  userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
   previewMode?: boolean;
   previewBasePath?: string;
@@ -99,6 +97,7 @@ export default function ScheduleTourExperience({
       organizationId={organizationId}
       userEmail={userProfile.email}
       userDisplayName={userProfile.displayName}
+      profilePhotoUrl={userProfile.profilePhotoUrl}
       portalOptions={portalOptions}
       previewMode={previewMode}
       previewHomeHref={previewBasePath}

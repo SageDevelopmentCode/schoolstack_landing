@@ -11,12 +11,27 @@ import {
   todayKeyInTimezone,
 } from "./admissions-availability";
 import {
+  getAdmissionsOrgSettings,
+  resolveShadowDaySchedulingMode,
+} from "./admissions-org-settings";
+import {
   ALL_DAY_TIME_SLOT,
   eachDateInRange,
+  getWholeDaySlotIdForDate,
   listBookableObservationDates,
   listObservationDayAvailability,
   listOccupiedObservationDays,
 } from "./admissions-observation-availability";
+import {
+  extractStudentGradeFromResponses,
+  formatObservationSlotLabel,
+  formatObservationSlotTimeLabel,
+  listBookableObservationSlots,
+  listObservationSlotsByIds,
+  listObservationSlotsForDateRange,
+  listOccupiedObservationSlotIds,
+  type ObservationSlot,
+} from "./admissions-observation-slots";
 import {
   isWholeDayPostSubmitAction,
   parseApplicationFormPostSubmitConfig,
@@ -32,6 +47,15 @@ export type AdmissionsSchedulingMode = "time_slot" | "whole_day";
 
 export const MANUAL_COMPLETION_TIME_SLOT = "ADMIN_MANUAL";
 
+export type ScheduledVisitSlotDetail = {
+  slotId: string;
+  date: string;
+  startTime: string;
+  endTime: string | null;
+  label: string | null;
+  gradeValues: string[];
+};
+
 export type ScheduledVisitRecord = {
   id: string;
   organizationId: string;
@@ -45,6 +69,7 @@ export type ScheduledVisitRecord = {
   visitDayCount?: number;
   endDate?: string;
   visitDates?: string[];
+  observationSlots?: ScheduledVisitSlotDetail[];
   status: "scheduled" | "cancelled";
   completedManuallyAt?: string;
   completedManuallyByUserId?: string;
@@ -81,9 +106,25 @@ export type WholeDayAvailabilityResult = {
   maxVisitDays: number;
 };
 
+export type ObservationSlotAvailabilityItem = {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string | null;
+  label: string;
+  gradeValues: string[];
+};
+
+export type ObservationSlotAvailabilityResult = {
+  mode: "observation_slot";
+  bookableSlots: ObservationSlotAvailabilityItem[];
+  maxVisitDays: number;
+};
+
 export type BookableAvailabilityResult =
   | TimeSlotAvailabilityResult
-  | WholeDayAvailabilityResult;
+  | WholeDayAvailabilityResult
+  | ObservationSlotAvailabilityResult;
 
 export class AdmissionsBookingError extends Error {
   code: string;
@@ -126,6 +167,82 @@ function scheduledVisitFromRow(
   };
 }
 
+export function normalizeScheduledSlotIds(slotIds: string[]): string[] {
+  return [...new Set(slotIds.map((id) => id.trim()).filter(Boolean))];
+}
+
+export function validateObservationSlotSelection(
+  selectedSlotIds: string[],
+  maxVisitDays: number,
+  bookableSlots: ObservationSlot[],
+): ObservationSlot[] {
+  const normalized = normalizeScheduledSlotIds(selectedSlotIds);
+
+  if (normalized.length === 0) {
+    throw new AdmissionsBookingError(
+      "Select at least one shadow visit slot.",
+      "invalid_request",
+    );
+  }
+
+  if (normalized.length > maxVisitDays) {
+    throw new AdmissionsBookingError(
+      `You can select up to ${maxVisitDays} slot${maxVisitDays === 1 ? "" : "s"}.`,
+      "invalid_request",
+    );
+  }
+
+  const slotById = new Map(bookableSlots.map((slot) => [slot.id, slot]));
+  const selected: ObservationSlot[] = [];
+
+  for (const slotId of normalized) {
+    const slot = slotById.get(slotId);
+    if (!slot) {
+      throw new AdmissionsBookingError(
+        "One or more selected slots are no longer available. Please review your selection.",
+        "slot_unavailable",
+      );
+    }
+    selected.push(slot);
+  }
+
+  return selected.sort((a, b) => {
+    const dateCompare = a.date.localeCompare(b.date);
+    if (dateCompare !== 0) return dateCompare;
+    return a.startTime.localeCompare(b.startTime);
+  });
+}
+
+export async function loadApplicationStudentGrade(
+  supabase: SupabaseClient,
+  applicationId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("applications")
+    .select("responses")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.responses || typeof data.responses !== "object") return null;
+  return extractStudentGradeFromResponses(
+    data.responses as Record<string, unknown>,
+  );
+}
+
+function mapObservationSlotsToAvailability(
+  slots: ObservationSlot[],
+): ObservationSlotAvailabilityItem[] {
+  return slots.map((slot) => ({
+    id: slot.id,
+    date: slot.date,
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    label: formatObservationSlotLabel(slot),
+    gradeValues: slot.gradeValues,
+  }));
+}
+
 export function normalizeScheduledDates(dates: string[]): string[] {
   return [...new Set(dates.map((date) => date.trim()).filter(Boolean))].sort();
 }
@@ -163,30 +280,88 @@ export function validateWholeDayScheduledDates(
   return normalized;
 }
 
-async function listVisitDatesForVisits(
+type VisitDayRow = {
+  scheduled_visit_id: string;
+  date: string;
+  observation_slot_id: string | null;
+};
+
+async function listVisitDayRowsForVisits(
   supabase: SupabaseClient,
   visitIds: string[],
-): Promise<Map<string, string[]>> {
-  if (visitIds.length === 0) return new Map();
+): Promise<VisitDayRow[]> {
+  if (visitIds.length === 0) return [];
 
   const { data, error } = await supabase
     .from("admissions_scheduled_visit_days")
-    .select("scheduled_visit_id, date")
+    .select("scheduled_visit_id, date, observation_slot_id")
     .in("scheduled_visit_id", visitIds)
     .order("date", { ascending: true });
 
   if (error) throw error;
+  return (data ?? []).map((row) => ({
+    scheduled_visit_id: String(row.scheduled_visit_id),
+    date: String(row.date),
+    observation_slot_id: row.observation_slot_id
+      ? String(row.observation_slot_id)
+      : null,
+  }));
+}
 
+async function listVisitDatesForVisits(
+  supabase: SupabaseClient,
+  visitIds: string[],
+): Promise<Map<string, string[]>> {
+  const rows = await listVisitDayRowsForVisits(supabase, visitIds);
   const datesByVisit = new Map<string, string[]>();
-  for (const row of data ?? []) {
-    const visitId = String(row.scheduled_visit_id);
-    const date = String(row.date);
-    const existing = datesByVisit.get(visitId) ?? [];
-    existing.push(date);
-    datesByVisit.set(visitId, existing);
+
+  for (const row of rows) {
+    const existing = datesByVisit.get(row.scheduled_visit_id) ?? [];
+    existing.push(row.date);
+    datesByVisit.set(row.scheduled_visit_id, existing);
   }
 
   return datesByVisit;
+}
+
+async function listObservationSlotDetailsForVisits(
+  supabase: SupabaseClient,
+  visitIds: string[],
+): Promise<Map<string, ScheduledVisitSlotDetail[]>> {
+  const rows = await listVisitDayRowsForVisits(supabase, visitIds);
+  const slotIds = [
+    ...new Set(
+      rows
+        .map((row) => row.observation_slot_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+
+  if (slotIds.length === 0) return new Map();
+
+  const slots = await listObservationSlotsByIds(supabase, slotIds);
+  const slotById = new Map(slots.map((slot) => [slot.id, slot]));
+  const detailsByVisit = new Map<string, ScheduledVisitSlotDetail[]>();
+
+  for (const row of rows) {
+    if (!row.observation_slot_id) continue;
+    const slot = slotById.get(row.observation_slot_id);
+    if (!slot) continue;
+
+    const detail: ScheduledVisitSlotDetail = {
+      slotId: slot.id,
+      date: slot.date,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      label: slot.label,
+      gradeValues: slot.gradeValues,
+    };
+    const existing = detailsByVisit.get(row.scheduled_visit_id) ?? [];
+    existing.push(detail);
+    detailsByVisit.set(row.scheduled_visit_id, existing);
+  }
+
+  return detailsByVisit;
 }
 
 async function attachVisitDates(
@@ -199,13 +374,21 @@ async function attachVisitDates(
 
   if (wholeDayVisitIds.length === 0) return visits;
 
-  const datesByVisit = await listVisitDatesForVisits(supabase, wholeDayVisitIds);
+  const [datesByVisit, slotDetailsByVisit] = await Promise.all([
+    listVisitDatesForVisits(supabase, wholeDayVisitIds),
+    listObservationSlotDetailsForVisits(supabase, wholeDayVisitIds),
+  ]);
 
   return visits.map((visit) => {
     if (visit.schedulingMode !== "whole_day") return visit;
     const visitDates = datesByVisit.get(visit.id);
-    if (!visitDates || visitDates.length === 0) return visit;
-    return { ...visit, visitDates };
+    const observationSlots = slotDetailsByVisit.get(visit.id);
+    if (!visitDates?.length && !observationSlots?.length) return visit;
+    return {
+      ...visit,
+      visitDates: visitDates ?? visit.visitDates,
+      observationSlots: observationSlots ?? visit.observationSlots,
+    };
   });
 }
 
@@ -391,22 +574,65 @@ export async function getBookableAvailabilityForAction(
   action: PostSubmitAction,
   startDate: string,
   endDate: string,
+  applicationId?: string,
 ): Promise<BookableAvailabilityResult> {
   if (isWholeDayPostSubmitAction(action.type)) {
     const maxVisitDays = resolvedPostSubmitMaxVisitDays(action);
-    const [openDays, occupiedDays] = await Promise.all([
-      listObservationDayAvailability(supabase, organizationId, startDate, endDate),
-      listOccupiedObservationDays(supabase, organizationId, startDate, endDate),
-    ]);
+    const admissionsSettings = await getAdmissionsOrgSettings(
+      supabase,
+      organizationId,
+    );
+    const schedulingMode = resolveShadowDaySchedulingMode(admissionsSettings);
 
-    return {
-      mode: "whole_day",
-      bookableDates: listBookableObservationDates(
-        openDays,
-        occupiedDays,
+    if (schedulingMode === "whole_day") {
+      const [openDays, occupiedDays] = await Promise.all([
+        listObservationDayAvailability(supabase, organizationId, startDate, endDate),
+        listOccupiedObservationDays(supabase, organizationId, startDate, endDate),
+      ]);
+
+      return {
+        mode: "whole_day",
+        bookableDates: listBookableObservationDates(
+          openDays,
+          occupiedDays,
+          startDate,
+          endDate,
+        ),
+        maxVisitDays,
+      };
+    }
+
+    const studentGrade =
+      applicationId != null
+        ? await loadApplicationStudentGrade(supabase, applicationId)
+        : null;
+
+    const [slots, occupiedSlotIds] = await Promise.all([
+      listObservationSlotsForDateRange(
+        supabase,
+        organizationId,
         startDate,
         endDate,
       ),
+      listOccupiedObservationSlotIds(
+        supabase,
+        organizationId,
+        startDate,
+        endDate,
+      ),
+    ]);
+
+    const bookableSlots = listBookableObservationSlots(
+      slots,
+      occupiedSlotIds,
+      studentGrade,
+      startDate,
+      endDate,
+    );
+
+    return {
+      mode: "observation_slot",
+      bookableSlots: mapObservationSlotsToAvailability(bookableSlots),
       maxVisitDays,
     };
   }
@@ -464,6 +690,7 @@ async function bookWholeDayVisit(
     context.action,
     rangeStart,
     rangeEnd,
+    context.applicationId,
   );
 
   if (availability.mode !== "whole_day") {
@@ -514,15 +741,31 @@ async function bookWholeDayVisit(
 
   const visit = scheduledVisitFromRow(data as ScheduledVisitRow, visitDates);
 
-  const { error: daysError } = await supabase
-    .from("admissions_scheduled_visit_days")
-    .insert(
-      visitDates.map((date) => ({
+  const visitDayRows = await Promise.all(
+    visitDates.map(async (date) => {
+      const slotId = await getWholeDaySlotIdForDate(
+        supabase,
+        context.organizationId,
+        date,
+      );
+      if (!slotId) {
+        throw new AdmissionsBookingError(
+          "One or more selected days are no longer available. Please review your selection.",
+          "slot_unavailable",
+        );
+      }
+      return {
         scheduled_visit_id: visit.id,
         organization_id: context.organizationId,
         date,
-      })),
-    );
+        observation_slot_id: slotId,
+      };
+    }),
+  );
+
+  const { error: daysError } = await supabase
+    .from("admissions_scheduled_visit_days")
+    .insert(visitDayRows);
 
   if (daysError) {
     await supabase.from("admissions_scheduled_visits").delete().eq("id", visit.id);
@@ -535,7 +778,125 @@ async function bookWholeDayVisit(
     throw daysError;
   }
 
-  return visit;
+  return attachVisitDates(supabase, [visit]).then(([attached]) => attached ?? visit);
+}
+
+async function bookObservationSlotVisit(
+  supabase: SupabaseClient,
+  context: {
+    organizationId: string;
+    applicationId: string;
+    actionId: string;
+    action: PostSubmitAction;
+  },
+  slotIds: string[],
+): Promise<ScheduledVisitRecord> {
+  const maxVisitDays = resolvedPostSubmitMaxVisitDays(context.action);
+  const normalized = normalizeScheduledSlotIds(slotIds);
+
+  if (normalized.length === 0) {
+    throw new AdmissionsBookingError(
+      "Select at least one shadow visit slot.",
+      "invalid_request",
+    );
+  }
+
+  const slots = await listObservationSlotsByIds(supabase, normalized);
+  const rangeStart = slots.map((slot) => slot.date).sort()[0]!;
+  const rangeEnd = slots.map((slot) => slot.date).sort().at(-1)!;
+
+  const availability = await getBookableAvailabilityForAction(
+    supabase,
+    context.organizationId,
+    context.action,
+    rangeStart,
+    rangeEnd,
+    context.applicationId,
+  );
+
+  if (availability.mode !== "observation_slot") {
+    throw new AdmissionsBookingError(
+      "This scheduling step does not use observation slots.",
+      "invalid_request",
+    );
+  }
+
+  const bookableSlots = await listObservationSlotsByIds(
+    supabase,
+    availability.bookableSlots.map((slot) => slot.id),
+  );
+  const selectedSlots = validateObservationSlotSelection(
+    normalized,
+    maxVisitDays,
+    bookableSlots,
+  );
+
+  const visitDates = selectedSlots.map((slot) => slot.date);
+  const scheduledDate = visitDates[0]!;
+  const endDate = visitDates[visitDates.length - 1]!;
+  const bookedDayCount = selectedSlots.length;
+  const durationMinutes = bookedDayCount * 24 * 60;
+  const firstSlot = selectedSlots[0]!;
+  const startTimeSlot =
+    firstSlot.startTime === ALL_DAY_TIME_SLOT
+      ? ALL_DAY_TIME_SLOT
+      : firstSlot.endTime
+        ? `${firstSlot.startTime} – ${firstSlot.endTime}`
+        : firstSlot.startTime;
+
+  const { data, error } = await supabase
+    .from("admissions_scheduled_visits")
+    .insert({
+      organization_id: context.organizationId,
+      application_id: context.applicationId,
+      post_submit_action_id: context.actionId,
+      action_type: context.action.type,
+      scheduling_mode: "whole_day",
+      scheduled_date: scheduledDate,
+      start_time_slot: startTimeSlot,
+      duration_minutes: durationMinutes,
+      visit_day_count: bookedDayCount,
+      end_date: endDate,
+      status: "scheduled",
+    })
+    .select(VISIT_SELECT_COLUMNS)
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new AdmissionsBookingError(
+        "This step has already been scheduled.",
+        "already_scheduled",
+      );
+    }
+    throw error;
+  }
+
+  const visit = scheduledVisitFromRow(data as ScheduledVisitRow, visitDates);
+
+  const { error: daysError } = await supabase
+    .from("admissions_scheduled_visit_days")
+    .insert(
+      selectedSlots.map((slot) => ({
+        scheduled_visit_id: visit.id,
+        organization_id: context.organizationId,
+        date: slot.date,
+        observation_slot_id: slot.id,
+      })),
+    );
+
+  if (daysError) {
+    await supabase.from("admissions_scheduled_visits").delete().eq("id", visit.id);
+    if (daysError.code === "23505") {
+      throw new AdmissionsBookingError(
+        "One or more selected slots are no longer available. Please review your selection.",
+        "slot_unavailable",
+      );
+    }
+    throw daysError;
+  }
+
+  return attachVisitDates(supabase, [visit]).then(([attached]) => attached ?? visit);
 }
 
 async function bookTimeSlotVisit(
@@ -609,6 +970,7 @@ export async function bookAdmissionsVisit(
   scheduledDate: string,
   startTimeSlot?: string,
   scheduledDates?: string[],
+  slotIds?: string[],
 ): Promise<ScheduledVisitRecord> {
   const context = await loadPostSubmitActionForApplication(
     supabase,
@@ -643,6 +1005,28 @@ export async function bookAdmissionsVisit(
   }
 
   if (isWholeDayPostSubmitAction(context.action.type)) {
+    const admissionsSettings = await getAdmissionsOrgSettings(
+      supabase,
+      context.organizationId,
+    );
+    const schedulingMode = resolveShadowDaySchedulingMode(admissionsSettings);
+
+    if (schedulingMode !== "whole_day") {
+      const normalizedSlotIds = slotIds ? normalizeScheduledSlotIds(slotIds) : [];
+      if (normalizedSlotIds.length === 0) {
+        throw new AdmissionsBookingError(
+          "Select at least one shadow visit slot.",
+          "invalid_request",
+        );
+      }
+
+      return bookObservationSlotVisit(
+        supabase,
+        { ...context, applicationId, actionId },
+        normalizedSlotIds,
+      );
+    }
+
     const dates =
       scheduledDates && scheduledDates.length > 0
         ? scheduledDates

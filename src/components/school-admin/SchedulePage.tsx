@@ -302,7 +302,7 @@ export default function SchedulePage({
                       ) : null}
                     </div>
                     <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
-                      Open whole school days for multi-day student shadow visits.
+                      Configure whole-day, grade-targeted, or grade + time shadow visit slots.
                     </p>
                   </div>
                   <AdmissionsObservationDayAvailabilityEditor
