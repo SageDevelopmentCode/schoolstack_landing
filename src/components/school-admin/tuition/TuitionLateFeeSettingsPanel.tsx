@@ -143,8 +143,10 @@ export default function TuitionLateFeeSettingsPanel({
   const selectedMonthLabel = monthLabelFor(Number(overrideMonth));
 
   useEffect(() => {
-    setOverrideDay(
-      String(matchingOverride?.lateFeeDayOfMonth ?? resolved.lateFeeDayOfMonth),
+    queueMicrotask(() =>
+      setOverrideDay(
+        String(matchingOverride?.lateFeeDayOfMonth ?? resolved.lateFeeDayOfMonth),
+      ),
     );
   }, [matchingOverride, resolved.lateFeeDayOfMonth, overrideYear, overrideMonth]);
 

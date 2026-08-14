@@ -120,7 +120,7 @@ export default function SchoolTeacherHeader({
   const moreActive = more.some((item) => isTeacherNavItemActive(pathname, item));
 
   useEffect(() => {
-    setProfilePhotoUrl(userProfile.profilePhotoUrl);
+    queueMicrotask(() => setProfilePhotoUrl(userProfile.profilePhotoUrl));
   }, [userProfile.profilePhotoUrl]);
 
   const handlePhotoUpload = useCallback(

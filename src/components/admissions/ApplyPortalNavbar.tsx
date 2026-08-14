@@ -61,7 +61,7 @@ export default function ApplyPortalNavbar({
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setProfilePhotoUrl(initialProfilePhotoUrl);
+    queueMicrotask(() => setProfilePhotoUrl(initialProfilePhotoUrl));
   }, [initialProfilePhotoUrl]);
 
   useEffect(() => {

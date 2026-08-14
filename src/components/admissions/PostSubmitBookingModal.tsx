@@ -89,10 +89,12 @@ export default function PostSubmitBookingModal({
     if (!isWholeDay) return;
 
     if (previewMode) {
-      setShadowAvailabilityMode(
-        shadowDaySchedulingMode && shadowDaySchedulingMode !== "whole_day"
-          ? "observation_slot"
-          : "whole_day",
+      queueMicrotask(() =>
+        setShadowAvailabilityMode(
+          shadowDaySchedulingMode && shadowDaySchedulingMode !== "whole_day"
+            ? "observation_slot"
+            : "whole_day",
+        ),
       );
       return;
     }

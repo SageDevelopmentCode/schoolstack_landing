@@ -160,7 +160,7 @@ export default function SchoolParentHeader({
   const canUploadPhoto = !previewMode;
 
   useEffect(() => {
-    setProfilePhotoUrl(userProfile.profilePhotoUrl);
+    queueMicrotask(() => setProfilePhotoUrl(userProfile.profilePhotoUrl));
   }, [userProfile.profilePhotoUrl]);
 
   const handlePhotoUpload = useCallback(

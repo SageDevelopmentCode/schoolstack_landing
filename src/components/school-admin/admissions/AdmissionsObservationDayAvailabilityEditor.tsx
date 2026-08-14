@@ -117,7 +117,9 @@ export default function AdmissionsObservationDayAvailabilityEditor({
   }, [onMonthDayCountChange]);
 
   useEffect(() => {
-    setSlotDraft(createDefaultObservationSlotDraft(includeTime));
+    queueMicrotask(() =>
+      setSlotDraft(createDefaultObservationSlotDraft(includeTime)),
+    );
   }, [includeTime, selectedDate]);
 
   const loadSchedulingMode = useCallback(async () => {
