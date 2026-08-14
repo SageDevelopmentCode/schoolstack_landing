@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importKineoSchoolAdmin = () =>
-  import('@/components/demo/kineoschool/KineoSchoolAdminDashboardDemo')
+  import('@/components/demo/kineoschool/KineoSchoolAdminDashboardDemo') as Promise<DemoModule>
 const importKineoSchoolWebsite = () =>
-  import('@/components/demo/kineoschool/KineoSchoolWebsiteDashboardDemo')
+  import('@/components/demo/kineoschool/KineoSchoolWebsiteDashboardDemo') as Promise<DemoModule>
 const importKineoSchoolParent = () =>
-  import('@/components/demo/kineoschool/KineoSchoolParentDashboardDemo')
+  import('@/components/demo/kineoschool/KineoSchoolParentDashboardDemo') as Promise<DemoModule>
 const importKineoSchoolTeacher = () =>
-  import('@/components/demo/kineoschool/KineoSchoolTeacherDashboardDemo')
+  import('@/components/demo/kineoschool/KineoSchoolTeacherDashboardDemo') as Promise<DemoModule>
 
-type KineoSchoolAdminModule = Awaited<ReturnType<typeof importKineoSchoolAdmin>>
-type KineoSchoolWebsiteModule = Awaited<ReturnType<typeof importKineoSchoolWebsite>>
-type KineoSchoolParentModule = Awaited<ReturnType<typeof importKineoSchoolParent>>
-type KineoSchoolTeacherModule = Awaited<ReturnType<typeof importKineoSchoolTeacher>>
 
-let kineoSchoolAdminPromise: Promise<KineoSchoolAdminModule> | null = null
-let kineoSchoolWebsitePromise: Promise<KineoSchoolWebsiteModule> | null = null
-let kineoSchoolParentPromise: Promise<KineoSchoolParentModule> | null = null
-let kineoSchoolTeacherPromise: Promise<KineoSchoolTeacherModule> | null = null
+let kineoSchoolAdminPromise: Promise<DemoModule> | null = null
+let kineoSchoolWebsitePromise: Promise<DemoModule> | null = null
+let kineoSchoolParentPromise: Promise<DemoModule> | null = null
+let kineoSchoolTeacherPromise: Promise<DemoModule> | null = null
 
 function loadKineoSchoolAdminCached() {
   if (!kineoSchoolAdminPromise) {

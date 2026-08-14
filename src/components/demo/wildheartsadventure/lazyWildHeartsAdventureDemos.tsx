@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importWildHeartsAdmin = () =>
-  import('@/components/demo/wildheartsadventure/WildHeartsAdventureAdminDashboardDemo')
+  import('@/components/demo/wildheartsadventure/WildHeartsAdventureAdminDashboardDemo') as Promise<DemoModule>
 const importWildHeartsWebsite = () =>
-  import('@/components/demo/wildheartsadventure/WildHeartsAdventureWebsiteDashboardDemo')
+  import('@/components/demo/wildheartsadventure/WildHeartsAdventureWebsiteDashboardDemo') as Promise<DemoModule>
 const importWildHeartsParent = () =>
-  import('@/components/demo/wildheartsadventure/WildHeartsAdventureParentDashboardDemo')
+  import('@/components/demo/wildheartsadventure/WildHeartsAdventureParentDashboardDemo') as Promise<DemoModule>
 const importWildHeartsTeacher = () =>
-  import('@/components/demo/wildheartsadventure/WildHeartsAdventureTeacherDashboardDemo')
+  import('@/components/demo/wildheartsadventure/WildHeartsAdventureTeacherDashboardDemo') as Promise<DemoModule>
 
-type WildHeartsAdminModule = Awaited<ReturnType<typeof importWildHeartsAdmin>>
-type WildHeartsWebsiteModule = Awaited<ReturnType<typeof importWildHeartsWebsite>>
-type WildHeartsParentModule = Awaited<ReturnType<typeof importWildHeartsParent>>
-type WildHeartsTeacherModule = Awaited<ReturnType<typeof importWildHeartsTeacher>>
 
-let wildHeartsAdminPromise: Promise<WildHeartsAdminModule> | null = null
-let wildHeartsWebsitePromise: Promise<WildHeartsWebsiteModule> | null = null
-let wildHeartsParentPromise: Promise<WildHeartsParentModule> | null = null
-let wildHeartsTeacherPromise: Promise<WildHeartsTeacherModule> | null = null
+let wildHeartsAdminPromise: Promise<DemoModule> | null = null
+let wildHeartsWebsitePromise: Promise<DemoModule> | null = null
+let wildHeartsParentPromise: Promise<DemoModule> | null = null
+let wildHeartsTeacherPromise: Promise<DemoModule> | null = null
 
 function loadWildHeartsAdminCached() {
   if (!wildHeartsAdminPromise) {

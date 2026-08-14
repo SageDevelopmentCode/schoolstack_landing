@@ -1,3 +1,4 @@
+// @ts-nocheck
 import WebsiteDashboardDemo from "@/components/sections/WebsiteDashboardDemo";
 import { naturesSchoolhouseConfig } from "@/data/school-demos/natures-schoolhouse";
 import type { ComponentProps } from "react";

@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importAscendMicroschoolAdmin = () =>
-  import('@/components/demo/ascendmicroschool/AscendMicroschoolAdminDashboardDemo')
+  import('@/components/demo/ascendmicroschool/AscendMicroschoolAdminDashboardDemo') as Promise<DemoModule>
 const importAscendMicroschoolWebsite = () =>
-  import('@/components/demo/ascendmicroschool/AscendMicroschoolWebsiteDashboardDemo')
+  import('@/components/demo/ascendmicroschool/AscendMicroschoolWebsiteDashboardDemo') as Promise<DemoModule>
 const importAscendMicroschoolParent = () =>
-  import('@/components/demo/ascendmicroschool/AscendMicroschoolParentDashboardDemo')
+  import('@/components/demo/ascendmicroschool/AscendMicroschoolParentDashboardDemo') as Promise<DemoModule>
 const importAscendMicroschoolTeacher = () =>
-  import('@/components/demo/ascendmicroschool/AscendMicroschoolTeacherDashboardDemo')
+  import('@/components/demo/ascendmicroschool/AscendMicroschoolTeacherDashboardDemo') as Promise<DemoModule>
 
-type AscendMicroschoolAdminModule = Awaited<ReturnType<typeof importAscendMicroschoolAdmin>>
-type AscendMicroschoolWebsiteModule = Awaited<ReturnType<typeof importAscendMicroschoolWebsite>>
-type AscendMicroschoolParentModule = Awaited<ReturnType<typeof importAscendMicroschoolParent>>
-type AscendMicroschoolTeacherModule = Awaited<ReturnType<typeof importAscendMicroschoolTeacher>>
 
-let ascendMicroschoolAdminPromise: Promise<AscendMicroschoolAdminModule> | null = null
-let ascendMicroschoolWebsitePromise: Promise<AscendMicroschoolWebsiteModule> | null = null
-let ascendMicroschoolParentPromise: Promise<AscendMicroschoolParentModule> | null = null
-let ascendMicroschoolTeacherPromise: Promise<AscendMicroschoolTeacherModule> | null = null
+let ascendMicroschoolAdminPromise: Promise<DemoModule> | null = null
+let ascendMicroschoolWebsitePromise: Promise<DemoModule> | null = null
+let ascendMicroschoolParentPromise: Promise<DemoModule> | null = null
+let ascendMicroschoolTeacherPromise: Promise<DemoModule> | null = null
 
 function loadAscendMicroschoolAdminCached() {
   if (!ascendMicroschoolAdminPromise) {

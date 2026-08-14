@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importNaturesSchoolhouseAdmin = () =>
-  import('@/components/demo/natureschoolhouse/NaturesSchoolhouseAdminDashboardDemo')
+  import('@/components/demo/natureschoolhouse/NaturesSchoolhouseAdminDashboardDemo') as Promise<DemoModule>
 const importNaturesSchoolhouseWebsite = () =>
-  import('@/components/demo/natureschoolhouse/NaturesSchoolhouseWebsiteDashboardDemo')
+  import('@/components/demo/natureschoolhouse/NaturesSchoolhouseWebsiteDashboardDemo') as Promise<DemoModule>
 const importNaturesSchoolhouseParent = () =>
-  import('@/components/demo/natureschoolhouse/NaturesSchoolhouseParentDashboardDemo')
+  import('@/components/demo/natureschoolhouse/NaturesSchoolhouseParentDashboardDemo') as Promise<DemoModule>
 const importNaturesSchoolhouseTeacher = () =>
-  import('@/components/demo/natureschoolhouse/NaturesSchoolhouseTeacherDashboardDemo')
+  import('@/components/demo/natureschoolhouse/NaturesSchoolhouseTeacherDashboardDemo') as Promise<DemoModule>
 
-type NaturesSchoolhouseAdminModule = Awaited<ReturnType<typeof importNaturesSchoolhouseAdmin>>
-type NaturesSchoolhouseWebsiteModule = Awaited<ReturnType<typeof importNaturesSchoolhouseWebsite>>
-type NaturesSchoolhouseParentModule = Awaited<ReturnType<typeof importNaturesSchoolhouseParent>>
-type NaturesSchoolhouseTeacherModule = Awaited<ReturnType<typeof importNaturesSchoolhouseTeacher>>
 
-let naturesSchoolhouseAdminPromise: Promise<NaturesSchoolhouseAdminModule> | null = null
-let naturesSchoolhouseWebsitePromise: Promise<NaturesSchoolhouseWebsiteModule> | null = null
-let naturesSchoolhouseParentPromise: Promise<NaturesSchoolhouseParentModule> | null = null
-let naturesSchoolhouseTeacherPromise: Promise<NaturesSchoolhouseTeacherModule> | null = null
+let naturesSchoolhouseAdminPromise: Promise<DemoModule> | null = null
+let naturesSchoolhouseWebsitePromise: Promise<DemoModule> | null = null
+let naturesSchoolhouseParentPromise: Promise<DemoModule> | null = null
+let naturesSchoolhouseTeacherPromise: Promise<DemoModule> | null = null
 
 function loadNaturesSchoolhouseAdminCached() {
   if (!naturesSchoolhouseAdminPromise) {

@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importMicahMissionAdmin = () =>
-  import('@/components/demo/micahmission/MicahMissionAdminDashboardDemo')
+  import('@/components/demo/micahmission/MicahMissionAdminDashboardDemo') as Promise<DemoModule>
 const importMicahMissionWebsite = () =>
-  import('@/components/demo/micahmission/MicahMissionWebsiteDashboardDemo')
+  import('@/components/demo/micahmission/MicahMissionWebsiteDashboardDemo') as Promise<DemoModule>
 const importMicahMissionParent = () =>
-  import('@/components/demo/micahmission/MicahMissionParentDashboardDemo')
+  import('@/components/demo/micahmission/MicahMissionParentDashboardDemo') as Promise<DemoModule>
 const importMicahMissionTeacher = () =>
-  import('@/components/demo/micahmission/MicahMissionTeacherDashboardDemo')
+  import('@/components/demo/micahmission/MicahMissionTeacherDashboardDemo') as Promise<DemoModule>
 
-type MicahMissionAdminModule = Awaited<ReturnType<typeof importMicahMissionAdmin>>
-type MicahMissionWebsiteModule = Awaited<ReturnType<typeof importMicahMissionWebsite>>
-type MicahMissionParentModule = Awaited<ReturnType<typeof importMicahMissionParent>>
-type MicahMissionTeacherModule = Awaited<ReturnType<typeof importMicahMissionTeacher>>
 
-let micahMissionAdminPromise: Promise<MicahMissionAdminModule> | null = null
-let micahMissionWebsitePromise: Promise<MicahMissionWebsiteModule> | null = null
-let micahMissionParentPromise: Promise<MicahMissionParentModule> | null = null
-let micahMissionTeacherPromise: Promise<MicahMissionTeacherModule> | null = null
+let micahMissionAdminPromise: Promise<DemoModule> | null = null
+let micahMissionWebsitePromise: Promise<DemoModule> | null = null
+let micahMissionParentPromise: Promise<DemoModule> | null = null
+let micahMissionTeacherPromise: Promise<DemoModule> | null = null
 
 function loadMicahMissionAdminCached() {
   if (!micahMissionAdminPromise) {

@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importTheWoodlandsMicroschoolAdmin = () =>
-  import('@/components/demo/thewoodlandsmicroschool/TheWoodlandsMicroschoolAdminDashboardDemo')
+  import('@/components/demo/thewoodlandsmicroschool/TheWoodlandsMicroschoolAdminDashboardDemo') as Promise<DemoModule>
 const importTheWoodlandsMicroschoolWebsite = () =>
-  import('@/components/demo/thewoodlandsmicroschool/TheWoodlandsMicroschoolWebsiteDashboardDemo')
+  import('@/components/demo/thewoodlandsmicroschool/TheWoodlandsMicroschoolWebsiteDashboardDemo') as Promise<DemoModule>
 const importTheWoodlandsMicroschoolParent = () =>
-  import('@/components/demo/thewoodlandsmicroschool/TheWoodlandsMicroschoolParentDashboardDemo')
+  import('@/components/demo/thewoodlandsmicroschool/TheWoodlandsMicroschoolParentDashboardDemo') as Promise<DemoModule>
 const importTheWoodlandsMicroschoolTeacher = () =>
-  import('@/components/demo/thewoodlandsmicroschool/TheWoodlandsMicroschoolTeacherDashboardDemo')
+  import('@/components/demo/thewoodlandsmicroschool/TheWoodlandsMicroschoolTeacherDashboardDemo') as Promise<DemoModule>
 
-type TheWoodlandsMicroschoolAdminModule = Awaited<ReturnType<typeof importTheWoodlandsMicroschoolAdmin>>
-type TheWoodlandsMicroschoolWebsiteModule = Awaited<ReturnType<typeof importTheWoodlandsMicroschoolWebsite>>
-type TheWoodlandsMicroschoolParentModule = Awaited<ReturnType<typeof importTheWoodlandsMicroschoolParent>>
-type TheWoodlandsMicroschoolTeacherModule = Awaited<ReturnType<typeof importTheWoodlandsMicroschoolTeacher>>
 
-let theWoodlandsMicroschoolAdminPromise: Promise<TheWoodlandsMicroschoolAdminModule> | null = null
-let theWoodlandsMicroschoolWebsitePromise: Promise<TheWoodlandsMicroschoolWebsiteModule> | null = null
-let theWoodlandsMicroschoolParentPromise: Promise<TheWoodlandsMicroschoolParentModule> | null = null
-let theWoodlandsMicroschoolTeacherPromise: Promise<TheWoodlandsMicroschoolTeacherModule> | null = null
+let theWoodlandsMicroschoolAdminPromise: Promise<DemoModule> | null = null
+let theWoodlandsMicroschoolWebsitePromise: Promise<DemoModule> | null = null
+let theWoodlandsMicroschoolParentPromise: Promise<DemoModule> | null = null
+let theWoodlandsMicroschoolTeacherPromise: Promise<DemoModule> | null = null
 
 function loadTheWoodlandsMicroschoolAdminCached() {
   if (!theWoodlandsMicroschoolAdminPromise) {

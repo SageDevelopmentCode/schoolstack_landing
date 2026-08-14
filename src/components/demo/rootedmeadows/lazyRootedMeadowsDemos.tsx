@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importRootedMeadowsAdmin = () =>
-  import('@/components/demo/rootedmeadows/RootedMeadowsAdminDashboardDemo')
+  import('@/components/demo/rootedmeadows/RootedMeadowsAdminDashboardDemo') as Promise<DemoModule>
 const importRootedMeadowsWebsite = () =>
-  import('@/components/demo/rootedmeadows/RootedMeadowsWebsiteDashboardDemo')
+  import('@/components/demo/rootedmeadows/RootedMeadowsWebsiteDashboardDemo') as Promise<DemoModule>
 const importRootedMeadowsParent = () =>
-  import('@/components/demo/rootedmeadows/RootedMeadowsParentDashboardDemo')
+  import('@/components/demo/rootedmeadows/RootedMeadowsParentDashboardDemo') as Promise<DemoModule>
 const importRootedMeadowsTeacher = () =>
-  import('@/components/demo/rootedmeadows/RootedMeadowsTeacherDashboardDemo')
+  import('@/components/demo/rootedmeadows/RootedMeadowsTeacherDashboardDemo') as Promise<DemoModule>
 
-type RootedMeadowsAdminModule = Awaited<ReturnType<typeof importRootedMeadowsAdmin>>
-type RootedMeadowsWebsiteModule = Awaited<ReturnType<typeof importRootedMeadowsWebsite>>
-type RootedMeadowsParentModule = Awaited<ReturnType<typeof importRootedMeadowsParent>>
-type RootedMeadowsTeacherModule = Awaited<ReturnType<typeof importRootedMeadowsTeacher>>
 
-let rootedMeadowsAdminPromise: Promise<RootedMeadowsAdminModule> | null = null
-let rootedMeadowsWebsitePromise: Promise<RootedMeadowsWebsiteModule> | null = null
-let rootedMeadowsParentPromise: Promise<RootedMeadowsParentModule> | null = null
-let rootedMeadowsTeacherPromise: Promise<RootedMeadowsTeacherModule> | null = null
+let rootedMeadowsAdminPromise: Promise<DemoModule> | null = null
+let rootedMeadowsWebsitePromise: Promise<DemoModule> | null = null
+let rootedMeadowsParentPromise: Promise<DemoModule> | null = null
+let rootedMeadowsTeacherPromise: Promise<DemoModule> | null = null
 
 function loadRootedMeadowsAdminCached() {
   if (!rootedMeadowsAdminPromise) {

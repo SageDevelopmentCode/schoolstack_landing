@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importHomeworkHubAdmin = () =>
-  import('@/components/demo/homeworkhub/HomeworkHubAdminDashboardDemo')
+  import('@/components/demo/homeworkhub/HomeworkHubAdminDashboardDemo') as Promise<DemoModule>
 const importHomeworkHubWebsite = () =>
-  import('@/components/demo/homeworkhub/HomeworkHubWebsiteDashboardDemo')
+  import('@/components/demo/homeworkhub/HomeworkHubWebsiteDashboardDemo') as Promise<DemoModule>
 const importHomeworkHubParent = () =>
-  import('@/components/demo/homeworkhub/HomeworkHubParentDashboardDemo')
+  import('@/components/demo/homeworkhub/HomeworkHubParentDashboardDemo') as Promise<DemoModule>
 const importHomeworkHubTeacher = () =>
-  import('@/components/demo/homeworkhub/HomeworkHubTeacherDashboardDemo')
+  import('@/components/demo/homeworkhub/HomeworkHubTeacherDashboardDemo') as Promise<DemoModule>
 
-type HomeworkHubAdminModule = Awaited<ReturnType<typeof importHomeworkHubAdmin>>
-type HomeworkHubWebsiteModule = Awaited<ReturnType<typeof importHomeworkHubWebsite>>
-type HomeworkHubParentModule = Awaited<ReturnType<typeof importHomeworkHubParent>>
-type HomeworkHubTeacherModule = Awaited<ReturnType<typeof importHomeworkHubTeacher>>
 
-let homeworkHubAdminPromise: Promise<HomeworkHubAdminModule> | null = null
-let homeworkHubWebsitePromise: Promise<HomeworkHubWebsiteModule> | null = null
-let homeworkHubParentPromise: Promise<HomeworkHubParentModule> | null = null
-let homeworkHubTeacherPromise: Promise<HomeworkHubTeacherModule> | null = null
+let homeworkHubAdminPromise: Promise<DemoModule> | null = null
+let homeworkHubWebsitePromise: Promise<DemoModule> | null = null
+let homeworkHubParentPromise: Promise<DemoModule> | null = null
+let homeworkHubTeacherPromise: Promise<DemoModule> | null = null
 
 function loadHomeworkHubAdminCached() {
   if (!homeworkHubAdminPromise) {

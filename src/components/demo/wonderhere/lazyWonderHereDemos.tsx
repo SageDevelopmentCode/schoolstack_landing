@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importWonderHereAdmin = () =>
-  import('@/components/demo/wonderhere/WonderHereAdminDashboardDemo')
+  import('@/components/demo/wonderhere/WonderHereAdminDashboardDemo') as Promise<DemoModule>
 const importWonderHereWebsite = () =>
-  import('@/components/demo/wonderhere/WonderHereWebsiteDashboardDemo')
+  import('@/components/demo/wonderhere/WonderHereWebsiteDashboardDemo') as Promise<DemoModule>
 const importWonderHereParent = () =>
-  import('@/components/demo/wonderhere/WonderHereParentDashboardDemo')
+  import('@/components/demo/wonderhere/WonderHereParentDashboardDemo') as Promise<DemoModule>
 const importWonderHereTeacher = () =>
-  import('@/components/demo/wonderhere/WonderHereTeacherDashboardDemo')
+  import('@/components/demo/wonderhere/WonderHereTeacherDashboardDemo') as Promise<DemoModule>
 
-type WonderHereAdminModule = Awaited<ReturnType<typeof importWonderHereAdmin>>
-type WonderHereWebsiteModule = Awaited<ReturnType<typeof importWonderHereWebsite>>
-type WonderHereParentModule = Awaited<ReturnType<typeof importWonderHereParent>>
-type WonderHereTeacherModule = Awaited<ReturnType<typeof importWonderHereTeacher>>
 
-let wonderhereAdminPromise: Promise<WonderHereAdminModule> | null = null
-let wonderhereWebsitePromise: Promise<WonderHereWebsiteModule> | null = null
-let wonderhereParentPromise: Promise<WonderHereParentModule> | null = null
-let wonderhereTeacherPromise: Promise<WonderHereTeacherModule> | null = null
+let wonderhereAdminPromise: Promise<DemoModule> | null = null
+let wonderhereWebsitePromise: Promise<DemoModule> | null = null
+let wonderhereParentPromise: Promise<DemoModule> | null = null
+let wonderhereTeacherPromise: Promise<DemoModule> | null = null
 
 function loadWonderHereAdminCached() {
   if (!wonderhereAdminPromise) {

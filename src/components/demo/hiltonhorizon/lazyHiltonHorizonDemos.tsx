@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importHiltonHorizonAdmin = () =>
-  import('@/components/demo/hiltonhorizon/HiltonHorizonAdminDashboardDemo')
+  import('@/components/demo/hiltonhorizon/HiltonHorizonAdminDashboardDemo') as Promise<DemoModule>
 const importHiltonHorizonWebsite = () =>
-  import('@/components/demo/hiltonhorizon/HiltonHorizonWebsiteDashboardDemo')
+  import('@/components/demo/hiltonhorizon/HiltonHorizonWebsiteDashboardDemo') as Promise<DemoModule>
 const importHiltonHorizonParent = () =>
-  import('@/components/demo/hiltonhorizon/HiltonHorizonParentDashboardDemo')
+  import('@/components/demo/hiltonhorizon/HiltonHorizonParentDashboardDemo') as Promise<DemoModule>
 const importHiltonHorizonTeacher = () =>
-  import('@/components/demo/hiltonhorizon/HiltonHorizonTeacherDashboardDemo')
+  import('@/components/demo/hiltonhorizon/HiltonHorizonTeacherDashboardDemo') as Promise<DemoModule>
 
-type HiltonHorizonAdminModule = Awaited<ReturnType<typeof importHiltonHorizonAdmin>>
-type HiltonHorizonWebsiteModule = Awaited<ReturnType<typeof importHiltonHorizonWebsite>>
-type HiltonHorizonParentModule = Awaited<ReturnType<typeof importHiltonHorizonParent>>
-type HiltonHorizonTeacherModule = Awaited<ReturnType<typeof importHiltonHorizonTeacher>>
 
-let hiltonHorizonAdminPromise: Promise<HiltonHorizonAdminModule> | null = null
-let hiltonHorizonWebsitePromise: Promise<HiltonHorizonWebsiteModule> | null = null
-let hiltonHorizonParentPromise: Promise<HiltonHorizonParentModule> | null = null
-let hiltonHorizonTeacherPromise: Promise<HiltonHorizonTeacherModule> | null = null
+let hiltonHorizonAdminPromise: Promise<DemoModule> | null = null
+let hiltonHorizonWebsitePromise: Promise<DemoModule> | null = null
+let hiltonHorizonParentPromise: Promise<DemoModule> | null = null
+let hiltonHorizonTeacherPromise: Promise<DemoModule> | null = null
 
 function loadHiltonHorizonAdminCached() {
   if (!hiltonHorizonAdminPromise) {

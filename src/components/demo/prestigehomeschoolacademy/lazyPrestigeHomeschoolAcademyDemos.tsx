@@ -2,15 +2,16 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importPrestigeHomeschoolAcademyAdmin = () =>
-  import('@/components/demo/prestigehomeschoolacademy/PrestigeHomeschoolAcademyAdminDashboardDemo')
+  import('@/components/demo/prestigehomeschoolacademy/PrestigeHomeschoolAcademyAdminDashboardDemo') as Promise<DemoModule>
 const importPrestigeHomeschoolAcademyWebsite = () =>
-  import('@/components/demo/prestigehomeschoolacademy/PrestigeHomeschoolAcademyWebsiteDashboardDemo')
+  import('@/components/demo/prestigehomeschoolacademy/PrestigeHomeschoolAcademyWebsiteDashboardDemo') as Promise<DemoModule>
 const importPrestigeHomeschoolAcademyParent = () =>
-  import('@/components/demo/prestigehomeschoolacademy/PrestigeHomeschoolAcademyParentDashboardDemo')
+  import('@/components/demo/prestigehomeschoolacademy/PrestigeHomeschoolAcademyParentDashboardDemo') as Promise<DemoModule>
 const importPrestigeHomeschoolAcademyTeacher = () =>
-  import('@/components/demo/prestigehomeschoolacademy/PrestigeHomeschoolAcademyTeacherDashboardDemo')
+  import('@/components/demo/prestigehomeschoolacademy/PrestigeHomeschoolAcademyTeacherDashboardDemo') as Promise<DemoModule>
 
 type PrestigeHomeschoolAcademyAdminModule = Awaited<
   ReturnType<typeof importPrestigeHomeschoolAcademyAdmin>
@@ -25,13 +26,13 @@ type PrestigeHomeschoolAcademyTeacherModule = Awaited<
   ReturnType<typeof importPrestigeHomeschoolAcademyTeacher>
 >
 
-let prestigeHomeschoolAcademyAdminPromise: Promise<PrestigeHomeschoolAcademyAdminModule> | null =
+let prestigeHomeschoolAcademyAdminPromise: Promise<DemoModule> | null =
   null
-let prestigeHomeschoolAcademyWebsitePromise: Promise<PrestigeHomeschoolAcademyWebsiteModule> | null =
+let prestigeHomeschoolAcademyWebsitePromise: Promise<DemoModule> | null =
   null
-let prestigeHomeschoolAcademyParentPromise: Promise<PrestigeHomeschoolAcademyParentModule> | null =
+let prestigeHomeschoolAcademyParentPromise: Promise<DemoModule> | null =
   null
-let prestigeHomeschoolAcademyTeacherPromise: Promise<PrestigeHomeschoolAcademyTeacherModule> | null =
+let prestigeHomeschoolAcademyTeacherPromise: Promise<DemoModule> | null =
   null
 
 function loadPrestigeHomeschoolAcademyAdminCached() {

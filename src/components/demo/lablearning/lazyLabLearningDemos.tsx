@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importLabLearningAdmin = () =>
-  import('@/components/demo/lablearning/LabLearningAdminDashboardDemo')
+  import('@/components/demo/lablearning/LabLearningAdminDashboardDemo') as Promise<DemoModule>
 const importLabLearningWebsite = () =>
-  import('@/components/demo/lablearning/LabLearningWebsiteDashboardDemo')
+  import('@/components/demo/lablearning/LabLearningWebsiteDashboardDemo') as Promise<DemoModule>
 const importLabLearningParent = () =>
-  import('@/components/demo/lablearning/LabLearningParentDashboardDemo')
+  import('@/components/demo/lablearning/LabLearningParentDashboardDemo') as Promise<DemoModule>
 const importLabLearningTeacher = () =>
-  import('@/components/demo/lablearning/LabLearningTeacherDashboardDemo')
+  import('@/components/demo/lablearning/LabLearningTeacherDashboardDemo') as Promise<DemoModule>
 
-type LabLearningAdminModule = Awaited<ReturnType<typeof importLabLearningAdmin>>
-type LabLearningWebsiteModule = Awaited<ReturnType<typeof importLabLearningWebsite>>
-type LabLearningParentModule = Awaited<ReturnType<typeof importLabLearningParent>>
-type LabLearningTeacherModule = Awaited<ReturnType<typeof importLabLearningTeacher>>
 
-let labLearningAdminPromise: Promise<LabLearningAdminModule> | null = null
-let labLearningWebsitePromise: Promise<LabLearningWebsiteModule> | null = null
-let labLearningParentPromise: Promise<LabLearningParentModule> | null = null
-let labLearningTeacherPromise: Promise<LabLearningTeacherModule> | null = null
+let labLearningAdminPromise: Promise<DemoModule> | null = null
+let labLearningWebsitePromise: Promise<DemoModule> | null = null
+let labLearningParentPromise: Promise<DemoModule> | null = null
+let labLearningTeacherPromise: Promise<DemoModule> | null = null
 
 function loadLabLearningAdminCached() {
   if (!labLearningAdminPromise) {

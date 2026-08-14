@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importLighthouseHomeschoolAdmin = () =>
-  import('@/components/demo/lighthousehomeschool/LighthouseHomeschoolAdminDashboardDemo')
+  import('@/components/demo/lighthousehomeschool/LighthouseHomeschoolAdminDashboardDemo') as Promise<DemoModule>
 const importLighthouseHomeschoolWebsite = () =>
-  import('@/components/demo/lighthousehomeschool/LighthouseHomeschoolWebsiteDashboardDemo')
+  import('@/components/demo/lighthousehomeschool/LighthouseHomeschoolWebsiteDashboardDemo') as Promise<DemoModule>
 const importLighthouseHomeschoolParent = () =>
-  import('@/components/demo/lighthousehomeschool/LighthouseHomeschoolParentDashboardDemo')
+  import('@/components/demo/lighthousehomeschool/LighthouseHomeschoolParentDashboardDemo') as Promise<DemoModule>
 const importLighthouseHomeschoolTeacher = () =>
-  import('@/components/demo/lighthousehomeschool/LighthouseHomeschoolTeacherDashboardDemo')
+  import('@/components/demo/lighthousehomeschool/LighthouseHomeschoolTeacherDashboardDemo') as Promise<DemoModule>
 
-type LighthouseHomeschoolAdminModule = Awaited<ReturnType<typeof importLighthouseHomeschoolAdmin>>
-type LighthouseHomeschoolWebsiteModule = Awaited<ReturnType<typeof importLighthouseHomeschoolWebsite>>
-type LighthouseHomeschoolParentModule = Awaited<ReturnType<typeof importLighthouseHomeschoolParent>>
-type LighthouseHomeschoolTeacherModule = Awaited<ReturnType<typeof importLighthouseHomeschoolTeacher>>
 
-let lighthouseHomeschoolAdminPromise: Promise<LighthouseHomeschoolAdminModule> | null = null
-let lighthouseHomeschoolWebsitePromise: Promise<LighthouseHomeschoolWebsiteModule> | null = null
-let lighthouseHomeschoolParentPromise: Promise<LighthouseHomeschoolParentModule> | null = null
-let lighthouseHomeschoolTeacherPromise: Promise<LighthouseHomeschoolTeacherModule> | null = null
+let lighthouseHomeschoolAdminPromise: Promise<DemoModule> | null = null
+let lighthouseHomeschoolWebsitePromise: Promise<DemoModule> | null = null
+let lighthouseHomeschoolParentPromise: Promise<DemoModule> | null = null
+let lighthouseHomeschoolTeacherPromise: Promise<DemoModule> | null = null
 
 function loadLighthouseHomeschoolAdminCached() {
   if (!lighthouseHomeschoolAdminPromise) {
