@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  ACTIVITY_ACTIONS,
-  logActivityEvent,
-} from "@/lib/activity-log";
+  findWholeDaySlotForDate,
+  listOccupiedObservationSlotIds,
+  toggleWholeDayObservationSlot,
+} from "./admissions-observation-slots";
 
 export const ALL_DAY_TIME_SLOT = "ALL_DAY";
 
@@ -81,9 +82,11 @@ export async function listObservationDayAvailability(
   endDate: string,
 ): Promise<Set<string>> {
   const { data, error } = await supabase
-    .from("admissions_observation_day_availability")
+    .from("admissions_observation_slots")
     .select("date")
     .eq("organization_id", organizationId)
+    .eq("start_time", ALL_DAY_TIME_SLOT)
+    .is("end_time", null)
     .gte("date", startDate)
     .lte("date", endDate);
 
@@ -119,36 +122,7 @@ export async function toggleObservationDay(
   date: string,
   open: boolean,
 ): Promise<void> {
-  if (open) {
-    const { error } = await supabase
-      .from("admissions_observation_day_availability")
-      .insert({
-        organization_id: organizationId,
-        date,
-      });
-    if (error) throw error;
-  } else {
-    const { error } = await supabase
-      .from("admissions_observation_day_availability")
-      .delete()
-      .eq("organization_id", organizationId)
-      .eq("date", date);
-
-    if (error) throw error;
-  }
-
-  void logActivityEvent(supabase, {
-    organizationId,
-    actorType: "school_admin",
-    surface: "school_admin",
-    action: ACTIVITY_ACTIONS.AVAILABILITY_SLOT_TOGGLED,
-    summary: `${open ? "Opened" : "Closed"} observation day on ${date}`,
-    metadata: {
-      date,
-      open,
-      availabilityType: "observation_day",
-    },
-  });
+  await toggleWholeDayObservationSlot(supabase, organizationId, date, open);
 }
 
 export async function listOccupiedObservationDays(
@@ -159,12 +133,63 @@ export async function listOccupiedObservationDays(
 ): Promise<Set<string>> {
   const { data, error } = await supabase
     .from("admissions_scheduled_visit_days")
-    .select("date")
+    .select("date, observation_slot_id")
     .eq("organization_id", organizationId)
     .gte("date", startDate)
     .lte("date", endDate);
 
   if (error) throw error;
 
-  return new Set((data ?? []).map((row) => String(row.date)));
+  const slotIds = (data ?? [])
+    .map((row) => row.observation_slot_id)
+    .filter((value): value is string => Boolean(value))
+    .map(String);
+
+  if (slotIds.length === 0) {
+    return new Set((data ?? []).map((row) => String(row.date)));
+  }
+
+  const { data: slots, error: slotsError } = await supabase
+    .from("admissions_observation_slots")
+    .select("id, date, start_time, end_time")
+    .in("id", slotIds);
+
+  if (slotsError) throw slotsError;
+
+  const wholeDaySlotIds = new Set(
+    (slots ?? [])
+      .filter(
+        (slot) =>
+          String(slot.start_time) === ALL_DAY_TIME_SLOT && slot.end_time == null,
+      )
+      .map((slot) => String(slot.id)),
+  );
+
+  const occupiedDates = new Set<string>();
+  for (const row of data ?? []) {
+    const slotId = row.observation_slot_id ? String(row.observation_slot_id) : null;
+    if (!slotId || wholeDaySlotIds.has(slotId)) {
+      occupiedDates.add(String(row.date));
+    }
+  }
+
+  return occupiedDates;
+}
+
+export async function listOccupiedWholeDaySlotIds(
+  supabase: SupabaseClient,
+  organizationId: string,
+  startDate: string,
+  endDate: string,
+): Promise<Set<string>> {
+  return listOccupiedObservationSlotIds(supabase, organizationId, startDate, endDate);
+}
+
+export async function getWholeDaySlotIdForDate(
+  supabase: SupabaseClient,
+  organizationId: string,
+  date: string,
+): Promise<string | null> {
+  const slot = await findWholeDaySlotForDate(supabase, organizationId, date);
+  return slot?.id ?? null;
 }

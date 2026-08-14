@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listFamilyChildrenForHomeByFamilyId } from "@/lib/admissions/family-preview-access";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { familyHasOpenTuitionInstallments } from "@/lib/tuition/family-checklist-responses";
 import {
@@ -23,6 +24,10 @@ function needsMessagesCheck(items: ParentOnboardingItem[]): boolean {
 
 function needsCommitteesCheck(items: ParentOnboardingItem[]): boolean {
   return items.some((item) => getAutoCompletionType(item.target) === "committees");
+}
+
+function needsChildrenCheck(items: ParentOnboardingItem[]): boolean {
+  return items.some((item) => getAutoCompletionType(item.target) === "children");
 }
 
 async function checkBillingComplete(
@@ -68,6 +73,23 @@ async function checkCommitteesComplete(
   return data !== null;
 }
 
+async function checkChildrenPhotosComplete(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<boolean> {
+  const children = await listFamilyChildrenForHomeByFamilyId(
+    supabase,
+    organizationId,
+    familyId,
+  );
+  const uploadableChildren = children.filter((child) => child.studentId);
+
+  if (uploadableChildren.length === 0) return false;
+
+  return uploadableChildren.some((child) => Boolean(child.profilePhotoUrl?.trim()));
+}
+
 export async function loadParentOnboardingStatus(input: {
   supabase: SupabaseClient;
   organizationId: string;
@@ -79,6 +101,7 @@ export async function loadParentOnboardingStatus(input: {
     billing: false,
     messages: false,
     committees: false,
+    children: false,
   };
 
   const checks: Promise<void>[] = [];
@@ -111,6 +134,18 @@ export async function loadParentOnboardingStatus(input: {
         input.userId,
       ).then((complete) => {
         status.committees = complete;
+      }),
+    );
+  }
+
+  if (needsChildrenCheck(input.items)) {
+    checks.push(
+      checkChildrenPhotosComplete(
+        input.supabase,
+        input.organizationId,
+        input.familyId,
+      ).then((complete) => {
+        status.children = complete;
       }),
     );
   }

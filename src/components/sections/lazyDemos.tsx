@@ -2,21 +2,18 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
-const importAdmin = () => import('./AdminDashboardDemo')
-const importTeacher = () => import('./TeacherDashboardDemo')
-const importParent = () => import('./ParentDashboardDemo')
-const importWebsite = () => import('./WebsiteDashboardDemo')
+const importAdmin = () => import('./AdminDashboardDemo') as Promise<DemoModule>
+const importTeacher = () => import('./TeacherDashboardDemo') as Promise<DemoModule>
+const importParent = () => import('./ParentDashboardDemo') as Promise<DemoModule>
+const importWebsite = () => import('./WebsiteDashboardDemo') as Promise<DemoModule>
 
-type AdminModule = Awaited<ReturnType<typeof importAdmin>>
-type TeacherModule = Awaited<ReturnType<typeof importTeacher>>
-type ParentModule = Awaited<ReturnType<typeof importParent>>
-type WebsiteModule = Awaited<ReturnType<typeof importWebsite>>
 
-let adminPromise: Promise<AdminModule> | null = null
-let teacherPromise: Promise<TeacherModule> | null = null
-let parentPromise: Promise<ParentModule> | null = null
-let websitePromise: Promise<WebsiteModule> | null = null
+let adminPromise: Promise<DemoModule> | null = null
+let teacherPromise: Promise<DemoModule> | null = null
+let parentPromise: Promise<DemoModule> | null = null
+let websitePromise: Promise<DemoModule> | null = null
 
 function loadAdminCached() {
   if (!adminPromise) {

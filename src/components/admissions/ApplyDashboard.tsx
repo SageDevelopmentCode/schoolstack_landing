@@ -24,6 +24,7 @@ import { POST_SUBMIT_ACTION_TEMPLATES } from "@/lib/admissions/post-submit-templ
 import { fireEnrollmentConfetti } from "@/lib/enrollment-confetti";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { ShadowDaySchedulingMode } from "@/lib/admissions/admissions-org-settings";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 
 type ApplyDashboardProps = {
@@ -47,6 +48,7 @@ type ApplyDashboardProps = {
   previewMode?: boolean;
   previewBasePath?: string;
   focusApplicationId?: string | null;
+  shadowDaySchedulingMode?: ShadowDaySchedulingMode;
 };
 
 function formatApplicationDate(
@@ -163,6 +165,7 @@ export default function ApplyDashboard({
   previewMode = false,
   previewBasePath,
   focusApplicationId = null,
+  shadowDaySchedulingMode,
 }: ApplyDashboardProps) {
   const router = useRouter();
   const previewPortalOptions = usePreviewPortalOptions();
@@ -208,6 +211,7 @@ export default function ApplyDashboard({
       organizationId={organizationId}
       userEmail={userProfile.email}
       userDisplayName={userProfile.displayName}
+      profilePhotoUrl={userProfile.profilePhotoUrl}
       portalOptions={resolvedPortalOptions}
       previewMode={previewMode}
       previewHomeHref={previewHomeHref}
@@ -479,6 +483,7 @@ export default function ApplyDashboard({
             applications={applicationsWithTasks}
             onBooked={() => router.refresh()}
             previewMode={previewMode}
+            shadowDaySchedulingMode={shadowDaySchedulingMode}
           />
         ) : null}
     </ApplyPortalPageShell>

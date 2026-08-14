@@ -161,7 +161,7 @@ async function getFamilyPreviewPrimaryGuardian(
 ) {
   const { data: guardians, error } = await supabase
     .from("guardians")
-    .select("id, first_name, last_name, email, user_id, created_at")
+    .select("id, first_name, last_name, email, user_id, profile_photo_url, created_at")
     .eq("organization_id", organizationId)
     .eq("family_id", familyId)
     .order("created_at", { ascending: true });
@@ -229,7 +229,7 @@ export async function getFamilyPreviewProfile(
   );
 
   if (!guardian) {
-    return { email: "", displayName: "Family" };
+    return { email: "", displayName: "Family", profilePhotoUrl: null };
   }
 
   const { getOwnerLinkedPreviewProfile } = await import(
@@ -250,8 +250,13 @@ export async function getFamilyPreviewProfile(
   const email = typeof guardian.email === "string" ? guardian.email.trim() : "";
   const displayName =
     [firstName, lastName].filter(Boolean).join(" ") || email || "Family";
+  const profilePhotoUrl =
+    typeof guardian.profile_photo_url === "string" &&
+    guardian.profile_photo_url.trim()
+      ? guardian.profile_photo_url.trim()
+      : null;
 
-  return { email, displayName };
+  return { email, displayName, profilePhotoUrl };
 }
 
 export async function listFamilyApplicationsForFamilyId(
@@ -343,6 +348,7 @@ export async function listFamilyApplicationsForFamilyId(
                       durationMinutes: visit.durationMinutes,
                       visitDayCount: visit.visitDayCount,
                       visitDates: visit.visitDates,
+                      observationSlots: visit.observationSlots,
                       completedManuallyAt: visit.completedManuallyAt,
                     }
                   : undefined,

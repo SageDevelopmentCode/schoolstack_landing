@@ -110,6 +110,12 @@ export const DEFAULT_PARENT_ONBOARDING_ITEMS: ParentOnboardingItem[] = [
     target: "billing",
   },
   {
+    id: "upload_child_photos",
+    label: "Upload profile pictures for your children",
+    icon: "users",
+    target: "children",
+  },
+  {
     id: "message_teacher",
     label: "Message your teacher",
     icon: "message-square",

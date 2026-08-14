@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importLuffLearningAdmin = () =>
-  import('@/components/demo/lufflearning/LuffLearningAdminDashboardDemo')
+  import('@/components/demo/lufflearning/LuffLearningAdminDashboardDemo') as Promise<DemoModule>
 const importLuffLearningWebsite = () =>
-  import('@/components/demo/lufflearning/LuffLearningWebsiteDashboardDemo')
+  import('@/components/demo/lufflearning/LuffLearningWebsiteDashboardDemo') as Promise<DemoModule>
 const importLuffLearningParent = () =>
-  import('@/components/demo/lufflearning/LuffLearningParentDashboardDemo')
+  import('@/components/demo/lufflearning/LuffLearningParentDashboardDemo') as Promise<DemoModule>
 const importLuffLearningTeacher = () =>
-  import('@/components/demo/lufflearning/LuffLearningTeacherDashboardDemo')
+  import('@/components/demo/lufflearning/LuffLearningTeacherDashboardDemo') as Promise<DemoModule>
 
-type LuffLearningAdminModule = Awaited<ReturnType<typeof importLuffLearningAdmin>>
-type LuffLearningWebsiteModule = Awaited<ReturnType<typeof importLuffLearningWebsite>>
-type LuffLearningParentModule = Awaited<ReturnType<typeof importLuffLearningParent>>
-type LuffLearningTeacherModule = Awaited<ReturnType<typeof importLuffLearningTeacher>>
 
-let luffLearningAdminPromise: Promise<LuffLearningAdminModule> | null = null
-let luffLearningWebsitePromise: Promise<LuffLearningWebsiteModule> | null = null
-let luffLearningParentPromise: Promise<LuffLearningParentModule> | null = null
-let luffLearningTeacherPromise: Promise<LuffLearningTeacherModule> | null = null
+let luffLearningAdminPromise: Promise<DemoModule> | null = null
+let luffLearningWebsitePromise: Promise<DemoModule> | null = null
+let luffLearningParentPromise: Promise<DemoModule> | null = null
+let luffLearningTeacherPromise: Promise<DemoModule> | null = null
 
 function loadLuffLearningAdminCached() {
   if (!luffLearningAdminPromise) {

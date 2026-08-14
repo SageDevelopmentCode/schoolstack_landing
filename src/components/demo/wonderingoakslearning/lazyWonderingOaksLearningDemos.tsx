@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importWonderingOaksAdmin = () =>
-  import('@/components/demo/wonderingoakslearning/WonderingOaksLearningAdminDashboardDemo')
+  import('@/components/demo/wonderingoakslearning/WonderingOaksLearningAdminDashboardDemo') as Promise<DemoModule>
 const importWonderingOaksWebsite = () =>
-  import('@/components/demo/wonderingoakslearning/WonderingOaksLearningWebsiteDashboardDemo')
+  import('@/components/demo/wonderingoakslearning/WonderingOaksLearningWebsiteDashboardDemo') as Promise<DemoModule>
 const importWonderingOaksParent = () =>
-  import('@/components/demo/wonderingoakslearning/WonderingOaksLearningParentDashboardDemo')
+  import('@/components/demo/wonderingoakslearning/WonderingOaksLearningParentDashboardDemo') as Promise<DemoModule>
 const importWonderingOaksTeacher = () =>
-  import('@/components/demo/wonderingoakslearning/WonderingOaksLearningTeacherDashboardDemo')
+  import('@/components/demo/wonderingoakslearning/WonderingOaksLearningTeacherDashboardDemo') as Promise<DemoModule>
 
-type WonderingOaksAdminModule = Awaited<ReturnType<typeof importWonderingOaksAdmin>>
-type WonderingOaksWebsiteModule = Awaited<ReturnType<typeof importWonderingOaksWebsite>>
-type WonderingOaksParentModule = Awaited<ReturnType<typeof importWonderingOaksParent>>
-type WonderingOaksTeacherModule = Awaited<ReturnType<typeof importWonderingOaksTeacher>>
 
-let wonderingOaksAdminPromise: Promise<WonderingOaksAdminModule> | null = null
-let wonderingOaksWebsitePromise: Promise<WonderingOaksWebsiteModule> | null = null
-let wonderingOaksParentPromise: Promise<WonderingOaksParentModule> | null = null
-let wonderingOaksTeacherPromise: Promise<WonderingOaksTeacherModule> | null = null
+let wonderingOaksAdminPromise: Promise<DemoModule> | null = null
+let wonderingOaksWebsitePromise: Promise<DemoModule> | null = null
+let wonderingOaksParentPromise: Promise<DemoModule> | null = null
+let wonderingOaksTeacherPromise: Promise<DemoModule> | null = null
 
 function loadWonderingOaksAdminCached() {
   if (!wonderingOaksAdminPromise) {

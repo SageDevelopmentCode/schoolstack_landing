@@ -18,6 +18,10 @@ import { getEnabledTourAuthEntryOption } from "@/lib/organization-settings/apply
 import { listEnrollmentProgressForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
+import {
+  getAdmissionsOrgSettings,
+  resolveShadowDaySchedulingMode,
+} from "@/lib/admissions/admissions-org-settings";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -116,6 +120,9 @@ export default async function FamilyPreviewApplyPage({
     ).entries(),
   );
 
+  const admissionsSettings = await getAdmissionsOrgSettings(supabase, org.id);
+  const shadowDaySchedulingMode = resolveShadowDaySchedulingMode(admissionsSettings);
+
   return (
     <ApplyDashboard
       branding={org.branding}
@@ -145,6 +152,7 @@ export default async function FamilyPreviewApplyPage({
       previewMode
       previewBasePath={previewBasePath}
       focusApplicationId={focus ?? null}
+      shadowDaySchedulingMode={shadowDaySchedulingMode}
     />
   );
 }

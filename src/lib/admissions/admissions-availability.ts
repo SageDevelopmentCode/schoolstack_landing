@@ -3,6 +3,7 @@ import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
 } from "@/lib/activity-log";
+import { STUDENT_GRADE_OPTIONS } from "./apply-system-fields";
 
 export type AdmissionsAvailabilitySlotKey = `${string}|${string}`;
 
@@ -152,6 +153,13 @@ export function formatScheduledVisitWhenLabel(visit: {
   visitDayCount?: number;
   endDate?: string;
   visitDates?: string[];
+  observationSlots?: Array<{
+    date: string;
+    startTime: string;
+    endTime: string | null;
+    label: string | null;
+    gradeValues: string[];
+  }>;
   completedManuallyAt?: string;
 }): string {
   if (visit.completedManuallyAt) {
@@ -159,6 +167,39 @@ export function formatScheduledVisitWhenLabel(visit: {
   }
 
   if (visit.schedulingMode === "whole_day") {
+    if (visit.observationSlots && visit.observationSlots.length > 0) {
+      const hasTimedSlots = visit.observationSlots.some(
+        (slot) => slot.startTime !== "ALL_DAY",
+      );
+
+      if (hasTimedSlots) {
+        const labels = visit.observationSlots.map((slot) => {
+          const dateLabel = formatDateOnlyLabel(slot.date);
+          const timeLabel =
+            slot.startTime === "ALL_DAY"
+              ? "All day"
+              : slot.endTime
+                ? `${slot.startTime} – ${slot.endTime}`
+                : slot.startTime;
+          const gradeLabel =
+            slot.gradeValues.length > 0
+              ? slot.gradeValues
+                  .map(
+                    (value) =>
+                      STUDENT_GRADE_OPTIONS.find((option) => option.value === value)
+                        ?.label ?? value,
+                  )
+                  .join(", ")
+              : null;
+          const parts = [dateLabel, timeLabel];
+          if (slot.label) parts.push(slot.label);
+          else if (gradeLabel) parts.push(gradeLabel);
+          return parts.join(" · ");
+        });
+        return `${labels.join("; ")} (${formatVisitDayCountLabel(visit.observationSlots.length)})`;
+      }
+    }
+
     const dates =
       visit.visitDates && visit.visitDates.length > 0
         ? visit.visitDates

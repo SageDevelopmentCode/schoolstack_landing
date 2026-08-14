@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importOneAcreFarmAdmin = () =>
-  import('@/components/demo/oneacrefarm/OneAcreFarmAdminDashboardDemo')
+  import('@/components/demo/oneacrefarm/OneAcreFarmAdminDashboardDemo') as Promise<DemoModule>
 const importOneAcreFarmWebsite = () =>
-  import('@/components/demo/oneacrefarm/OneAcreFarmWebsiteDashboardDemo')
+  import('@/components/demo/oneacrefarm/OneAcreFarmWebsiteDashboardDemo') as Promise<DemoModule>
 const importOneAcreFarmParent = () =>
-  import('@/components/demo/oneacrefarm/OneAcreFarmParentDashboardDemo')
+  import('@/components/demo/oneacrefarm/OneAcreFarmParentDashboardDemo') as Promise<DemoModule>
 const importOneAcreFarmTeacher = () =>
-  import('@/components/demo/oneacrefarm/OneAcreFarmTeacherDashboardDemo')
+  import('@/components/demo/oneacrefarm/OneAcreFarmTeacherDashboardDemo') as Promise<DemoModule>
 
-type OneAcreFarmAdminModule = Awaited<ReturnType<typeof importOneAcreFarmAdmin>>
-type OneAcreFarmWebsiteModule = Awaited<ReturnType<typeof importOneAcreFarmWebsite>>
-type OneAcreFarmParentModule = Awaited<ReturnType<typeof importOneAcreFarmParent>>
-type OneAcreFarmTeacherModule = Awaited<ReturnType<typeof importOneAcreFarmTeacher>>
 
-let oneAcreFarmAdminPromise: Promise<OneAcreFarmAdminModule> | null = null
-let oneAcreFarmWebsitePromise: Promise<OneAcreFarmWebsiteModule> | null = null
-let oneAcreFarmParentPromise: Promise<OneAcreFarmParentModule> | null = null
-let oneAcreFarmTeacherPromise: Promise<OneAcreFarmTeacherModule> | null = null
+let oneAcreFarmAdminPromise: Promise<DemoModule> | null = null
+let oneAcreFarmWebsitePromise: Promise<DemoModule> | null = null
+let oneAcreFarmParentPromise: Promise<DemoModule> | null = null
+let oneAcreFarmTeacherPromise: Promise<DemoModule> | null = null
 
 function loadOneAcreFarmAdminCached() {
   if (!oneAcreFarmAdminPromise) {

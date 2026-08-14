@@ -2,15 +2,16 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importSpringRiverSchoolAdmin = () =>
-  import('@/components/demo/springriverschool/SpringRiverSchoolAdminDashboardDemo')
+  import('@/components/demo/springriverschool/SpringRiverSchoolAdminDashboardDemo') as Promise<DemoModule>
 const importSpringRiverSchoolWebsite = () =>
-  import('@/components/demo/springriverschool/SpringRiverSchoolWebsiteDashboardDemo')
+  import('@/components/demo/springriverschool/SpringRiverSchoolWebsiteDashboardDemo') as Promise<DemoModule>
 const importSpringRiverSchoolParent = () =>
-  import('@/components/demo/springriverschool/SpringRiverSchoolParentDashboardDemo')
+  import('@/components/demo/springriverschool/SpringRiverSchoolParentDashboardDemo') as Promise<DemoModule>
 const importSpringRiverSchoolTeacher = () =>
-  import('@/components/demo/springriverschool/SpringRiverSchoolTeacherDashboardDemo')
+  import('@/components/demo/springriverschool/SpringRiverSchoolTeacherDashboardDemo') as Promise<DemoModule>
 
 type SpringRiverSchoolAdminModule = Awaited<
   ReturnType<typeof importSpringRiverSchoolAdmin>
@@ -25,13 +26,13 @@ type SpringRiverSchoolTeacherModule = Awaited<
   ReturnType<typeof importSpringRiverSchoolTeacher>
 >
 
-let springRiverSchoolAdminPromise: Promise<SpringRiverSchoolAdminModule> | null =
+let springRiverSchoolAdminPromise: Promise<DemoModule> | null =
   null
-let springRiverSchoolWebsitePromise: Promise<SpringRiverSchoolWebsiteModule> | null =
+let springRiverSchoolWebsitePromise: Promise<DemoModule> | null =
   null
-let springRiverSchoolParentPromise: Promise<SpringRiverSchoolParentModule> | null =
+let springRiverSchoolParentPromise: Promise<DemoModule> | null =
   null
-let springRiverSchoolTeacherPromise: Promise<SpringRiverSchoolTeacherModule> | null =
+let springRiverSchoolTeacherPromise: Promise<DemoModule> | null =
   null
 
 function loadSpringRiverSchoolAdminCached() {

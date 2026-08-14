@@ -459,7 +459,7 @@ export default function ApplicationFormPostSubmitEditor({
         C={C}
         tone="info"
         question="When are shadow / observation days available?"
-        helper="Open whole school days for multi-day student shadow visits."
+        helper="Configure shadow visit availability — whole days, grade groups, or grade + time windows."
       >
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">

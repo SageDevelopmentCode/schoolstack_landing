@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importCreationAcresAdmin = () =>
-  import('@/components/demo/creationacres/CreationAcresAdminDashboardDemo')
+  import('@/components/demo/creationacres/CreationAcresAdminDashboardDemo') as Promise<DemoModule>
 const importCreationAcresWebsite = () =>
-  import('@/components/demo/creationacres/CreationAcresWebsiteDashboardDemo')
+  import('@/components/demo/creationacres/CreationAcresWebsiteDashboardDemo') as Promise<DemoModule>
 const importCreationAcresParent = () =>
-  import('@/components/demo/creationacres/CreationAcresParentDashboardDemo')
+  import('@/components/demo/creationacres/CreationAcresParentDashboardDemo') as Promise<DemoModule>
 const importCreationAcresTeacher = () =>
-  import('@/components/demo/creationacres/CreationAcresTeacherDashboardDemo')
+  import('@/components/demo/creationacres/CreationAcresTeacherDashboardDemo') as Promise<DemoModule>
 
-type CreationAcresAdminModule = Awaited<ReturnType<typeof importCreationAcresAdmin>>
-type CreationAcresWebsiteModule = Awaited<ReturnType<typeof importCreationAcresWebsite>>
-type CreationAcresParentModule = Awaited<ReturnType<typeof importCreationAcresParent>>
-type CreationAcresTeacherModule = Awaited<ReturnType<typeof importCreationAcresTeacher>>
 
-let creationAcresAdminPromise: Promise<CreationAcresAdminModule> | null = null
-let creationAcresWebsitePromise: Promise<CreationAcresWebsiteModule> | null = null
-let creationAcresParentPromise: Promise<CreationAcresParentModule> | null = null
-let creationAcresTeacherPromise: Promise<CreationAcresTeacherModule> | null = null
+let creationAcresAdminPromise: Promise<DemoModule> | null = null
+let creationAcresWebsitePromise: Promise<DemoModule> | null = null
+let creationAcresParentPromise: Promise<DemoModule> | null = null
+let creationAcresTeacherPromise: Promise<DemoModule> | null = null
 
 function loadCreationAcresAdminCached() {
   if (!creationAcresAdminPromise) {

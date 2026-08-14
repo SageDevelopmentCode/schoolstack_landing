@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importZoeLearningHouseAdmin = () =>
-  import('@/components/demo/zoelearninghouse/ZoeLearningHouseAdminDashboardDemo')
+  import('@/components/demo/zoelearninghouse/ZoeLearningHouseAdminDashboardDemo') as Promise<DemoModule>
 const importZoeLearningHouseWebsite = () =>
-  import('@/components/demo/zoelearninghouse/ZoeLearningHouseWebsiteDashboardDemo')
+  import('@/components/demo/zoelearninghouse/ZoeLearningHouseWebsiteDashboardDemo') as Promise<DemoModule>
 const importZoeLearningHouseParent = () =>
-  import('@/components/demo/zoelearninghouse/ZoeLearningHouseParentDashboardDemo')
+  import('@/components/demo/zoelearninghouse/ZoeLearningHouseParentDashboardDemo') as Promise<DemoModule>
 const importZoeLearningHouseTeacher = () =>
-  import('@/components/demo/zoelearninghouse/ZoeLearningHouseTeacherDashboardDemo')
+  import('@/components/demo/zoelearninghouse/ZoeLearningHouseTeacherDashboardDemo') as Promise<DemoModule>
 
-type ZoeLearningHouseAdminModule = Awaited<ReturnType<typeof importZoeLearningHouseAdmin>>
-type ZoeLearningHouseWebsiteModule = Awaited<ReturnType<typeof importZoeLearningHouseWebsite>>
-type ZoeLearningHouseParentModule = Awaited<ReturnType<typeof importZoeLearningHouseParent>>
-type ZoeLearningHouseTeacherModule = Awaited<ReturnType<typeof importZoeLearningHouseTeacher>>
 
-let zoeLearningHouseAdminPromise: Promise<ZoeLearningHouseAdminModule> | null = null
-let zoeLearningHouseWebsitePromise: Promise<ZoeLearningHouseWebsiteModule> | null = null
-let zoeLearningHouseParentPromise: Promise<ZoeLearningHouseParentModule> | null = null
-let zoeLearningHouseTeacherPromise: Promise<ZoeLearningHouseTeacherModule> | null = null
+let zoeLearningHouseAdminPromise: Promise<DemoModule> | null = null
+let zoeLearningHouseWebsitePromise: Promise<DemoModule> | null = null
+let zoeLearningHouseParentPromise: Promise<DemoModule> | null = null
+let zoeLearningHouseTeacherPromise: Promise<DemoModule> | null = null
 
 function loadZoeLearningHouseAdminCached() {
   if (!zoeLearningHouseAdminPromise) {

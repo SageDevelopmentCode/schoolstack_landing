@@ -3,6 +3,7 @@
 import { type ReactNode, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import SchoolTeacherHeader from "@/components/school-teacher/SchoolTeacherHeader";
+import ParentToaster from "@/components/school-parent/ParentToaster";
 import { isTeacherMessagesPath } from "@/lib/organization-settings/teacher-routes";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -57,6 +58,7 @@ export default function SchoolTeacherBaseline({
       >
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </main>
+      <ParentToaster C={C} />
     </div>
   );
 }

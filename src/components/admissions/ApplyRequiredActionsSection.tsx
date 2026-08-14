@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import ApplyChildTabSelector from "@/components/admissions/ApplyChildTabSelector";
 import PostSubmitBookingModal from "@/components/admissions/PostSubmitBookingModal";
 import PostSubmitStepCard from "@/components/admissions/PostSubmitStepCard";
+import type { ShadowDaySchedulingMode } from "@/lib/admissions/admissions-org-settings";
 import type {
   ApplicationPostSubmitTask,
   FamilyApplication,
@@ -16,6 +17,7 @@ type ApplyRequiredActionsSectionProps = {
   applications: FamilyApplication[];
   onBooked: () => void;
   previewMode?: boolean;
+  shadowDaySchedulingMode?: ShadowDaySchedulingMode;
 };
 
 type BookingTarget = {
@@ -29,6 +31,7 @@ export default function ApplyRequiredActionsSection({
   applications,
   onBooked,
   previewMode = false,
+  shadowDaySchedulingMode,
 }: ApplyRequiredActionsSectionProps) {
   const [bookingTarget, setBookingTarget] = useState<BookingTarget | null>(null);
   const [activeApplicationId, setActiveApplicationId] = useState(
@@ -124,6 +127,7 @@ export default function ApplyRequiredActionsSection({
           onClose={() => setBookingTarget(null)}
           onBooked={onBooked}
           previewMode={previewMode}
+          shadowDaySchedulingMode={shadowDaySchedulingMode}
         />
       ) : null}
     </>

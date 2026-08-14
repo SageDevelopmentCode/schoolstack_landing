@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importParadiseEarthAcademyAdmin = () =>
-  import('@/components/demo/paradiseearthacademy/ParadiseEarthAcademyAdminDashboardDemo')
+  import('@/components/demo/paradiseearthacademy/ParadiseEarthAcademyAdminDashboardDemo') as Promise<DemoModule>
 const importParadiseEarthAcademyWebsite = () =>
-  import('@/components/demo/paradiseearthacademy/ParadiseEarthAcademyWebsiteDashboardDemo')
+  import('@/components/demo/paradiseearthacademy/ParadiseEarthAcademyWebsiteDashboardDemo') as Promise<DemoModule>
 const importParadiseEarthAcademyParent = () =>
-  import('@/components/demo/paradiseearthacademy/ParadiseEarthAcademyParentDashboardDemo')
+  import('@/components/demo/paradiseearthacademy/ParadiseEarthAcademyParentDashboardDemo') as Promise<DemoModule>
 const importParadiseEarthAcademyTeacher = () =>
-  import('@/components/demo/paradiseearthacademy/ParadiseEarthAcademyTeacherDashboardDemo')
+  import('@/components/demo/paradiseearthacademy/ParadiseEarthAcademyTeacherDashboardDemo') as Promise<DemoModule>
 
-type ParadiseEarthAcademyAdminModule = Awaited<ReturnType<typeof importParadiseEarthAcademyAdmin>>
-type ParadiseEarthAcademyWebsiteModule = Awaited<ReturnType<typeof importParadiseEarthAcademyWebsite>>
-type ParadiseEarthAcademyParentModule = Awaited<ReturnType<typeof importParadiseEarthAcademyParent>>
-type ParadiseEarthAcademyTeacherModule = Awaited<ReturnType<typeof importParadiseEarthAcademyTeacher>>
 
-let paradiseEarthAcademyAdminPromise: Promise<ParadiseEarthAcademyAdminModule> | null = null
-let paradiseEarthAcademyWebsitePromise: Promise<ParadiseEarthAcademyWebsiteModule> | null = null
-let paradiseEarthAcademyParentPromise: Promise<ParadiseEarthAcademyParentModule> | null = null
-let paradiseEarthAcademyTeacherPromise: Promise<ParadiseEarthAcademyTeacherModule> | null = null
+let paradiseEarthAcademyAdminPromise: Promise<DemoModule> | null = null
+let paradiseEarthAcademyWebsitePromise: Promise<DemoModule> | null = null
+let paradiseEarthAcademyParentPromise: Promise<DemoModule> | null = null
+let paradiseEarthAcademyTeacherPromise: Promise<DemoModule> | null = null
 
 function loadParadiseEarthAcademyAdminCached() {
   if (!paradiseEarthAcademyAdminPromise) {

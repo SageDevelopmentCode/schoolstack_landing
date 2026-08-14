@@ -2,21 +2,19 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importSagefieldAdmin = () =>
-  import('@/components/demo/sagefield/SagefieldAdminDashboardDemo')
+  import('@/components/demo/sagefield/SagefieldAdminDashboardDemo') as Promise<DemoModule>
 const importSagefieldParent = () =>
-  import('@/components/demo/sagefield/SagefieldParentDashboardDemo')
+  import('@/components/demo/sagefield/SagefieldParentDashboardDemo') as Promise<DemoModule>
 const importSagefieldTeacher = () =>
-  import('@/components/demo/sagefield/SagefieldTeacherDashboardDemo')
+  import('@/components/demo/sagefield/SagefieldTeacherDashboardDemo') as Promise<DemoModule>
 
-type SagefieldAdminModule = Awaited<ReturnType<typeof importSagefieldAdmin>>
-type SagefieldParentModule = Awaited<ReturnType<typeof importSagefieldParent>>
-type SagefieldTeacherModule = Awaited<ReturnType<typeof importSagefieldTeacher>>
 
-let sagefieldAdminPromise: Promise<SagefieldAdminModule> | null = null
-let sagefieldParentPromise: Promise<SagefieldParentModule> | null = null
-let sagefieldTeacherPromise: Promise<SagefieldTeacherModule> | null = null
+let sagefieldAdminPromise: Promise<DemoModule> | null = null
+let sagefieldParentPromise: Promise<DemoModule> | null = null
+let sagefieldTeacherPromise: Promise<DemoModule> | null = null
 
 function loadSagefieldAdminCached() {
   if (!sagefieldAdminPromise) {

@@ -7,6 +7,7 @@ import {
   type AdminScheduledVisit,
   type ScheduledVisitTiming,
 } from "@/lib/admissions/admin-scheduled-visits";
+import { formatGradeValuesLabel } from "@/lib/admissions/admissions-observation-slots";
 import type { PostSubmitActionType } from "@/lib/admissions/application-form-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
@@ -49,6 +50,39 @@ const EMPTY_MESSAGES: Record<TimingFilter, string> = {
   happening: "No visits happening right now.",
   past: "No past visits to show.",
 };
+
+function shadowVisitDetailLabel(visit: AdminScheduledVisit): string | null {
+  if (
+    visit.actionType !== "schedule_observation_day" ||
+    !visit.observationSlots?.length
+  ) {
+    return null;
+  }
+
+  const hasTimedSlots = visit.observationSlots.some(
+    (slot) => slot.startTime !== "ALL_DAY",
+  );
+  const hasGrades = visit.observationSlots.some(
+    (slot) => slot.gradeValues.length > 0,
+  );
+
+  if (!hasTimedSlots && !hasGrades) return null;
+
+  return visit.observationSlots
+    .map((slot) => {
+      const parts: string[] = [];
+      if (slot.gradeValues.length > 0) {
+        parts.push(formatGradeValuesLabel(slot.gradeValues));
+      }
+      if (slot.startTime !== "ALL_DAY") {
+        parts.push(
+          slot.endTime ? `${slot.startTime} – ${slot.endTime}` : slot.startTime,
+        );
+      }
+      return parts.join(" · ");
+    })
+    .join("; ");
+}
 
 function FilterChip({
   active,
@@ -255,6 +289,7 @@ export default function ScheduledVisitsSection({
                 const isSelected = visit.applicationId === selectedApplicationId;
                 const timingStyle = timingBadgeStyle(visit.timing, C);
 
+                const slotDetail = shadowVisitDetailLabel(visit);
                 return (
                   <tr
                     key={visit.id}
@@ -274,6 +309,11 @@ export default function ScheduledVisitsSection({
                   >
                     <td className="px-3 py-3 first:pl-0" style={{ color: C.textPrimary }}>
                       <div className="font-medium">{visit.whenLabel}</div>
+                      {slotDetail ? (
+                        <div className="mt-0.5 text-[11px]" style={{ color: C.textTertiary }}>
+                          {slotDetail}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-3 py-3" style={{ color: C.textPrimary }}>
                       {visit.stepTitle}

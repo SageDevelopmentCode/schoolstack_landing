@@ -5,12 +5,31 @@ import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons
 import ScheduleCalendarShell from "@/components/school-admin/schedule/ScheduleCalendarShell";
 import { useScheduleCalendar } from "@/components/school-admin/schedule/useScheduleCalendar";
 import {
+  createDefaultObservationSlotDraft,
+  ObservationSlotForm,
+  ObservationSlotRow,
+  type ObservationSlotDraft,
+} from "@/components/school-admin/admissions/ObservationSlotEditorParts";
+import {
+  getAdmissionsOrgSettings,
+  resolveShadowDaySchedulingMode,
+  type ShadowDaySchedulingMode,
+} from "@/lib/admissions/admissions-org-settings";
+import { formatDateOnlyLabel } from "@/lib/admissions/admissions-availability";
+import {
   countObservationDaysInMonth,
   listObservationDayAvailability,
   listOccupiedObservationDays,
   toggleObservationDay,
 } from "@/lib/admissions/admissions-observation-availability";
-import { formatDateOnlyLabel } from "@/lib/admissions/admissions-availability";
+import {
+  createObservationSlot,
+  deleteObservationSlot,
+  listObservationSlotsForDateRange,
+  listOccupiedObservationSlotIds,
+  type ObservationSlot,
+} from "@/lib/admissions/admissions-observation-slots";
+import { ALL_DAY_TIME_SLOT } from "@/lib/admissions/admissions-observation-availability";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
@@ -25,6 +44,28 @@ type AdmissionsObservationDayAvailabilityEditorProps = {
   onMonthDayCountChange?: (count: number) => void;
 };
 
+function footerTextForMode(mode: ShadowDaySchedulingMode): string {
+  switch (mode) {
+    case "grade_targeted":
+      return "Add which grades can shadow on each day. Families only see slots for their applicant's grade.";
+    case "grade_and_time":
+      return "Add grade and time windows for each day. Families book the window that matches their applicant's grade.";
+    default:
+      return "Open whole school days for student shadow visits. Families book days based on your form settings.";
+  }
+}
+
+function emptyDayPromptForMode(mode: ShadowDaySchedulingMode): string {
+  switch (mode) {
+    case "grade_targeted":
+      return "No grade slots yet for this day. Add which grades can shadow below.";
+    case "grade_and_time":
+      return "No time slots yet for this day. Add a grade and time window below.";
+    default:
+      return "No slots yet for this day.";
+  }
+}
+
 export default function AdmissionsObservationDayAvailabilityEditor({
   C,
   organizationId,
@@ -34,12 +75,23 @@ export default function AdmissionsObservationDayAvailabilityEditor({
   onMonthDayCountChange,
 }: AdmissionsObservationDayAvailabilityEditorProps) {
   const supabase = useMemo(() => createClient(), []);
+  const [schedulingMode, setSchedulingMode] = useState<ShadowDaySchedulingMode>("whole_day");
+  const [modeLoading, setModeLoading] = useState(true);
   const [openDays, setOpenDays] = useState<Set<string>>(new Set());
   const [bookedDays, setBookedDays] = useState<Set<string>>(new Set());
+  const [monthSlots, setMonthSlots] = useState<ObservationSlot[]>([]);
+  const [occupiedSlotIds, setOccupiedSlotIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [togglingDate, setTogglingDate] = useState<string | null>(null);
+  const [slotSaving, setSlotSaving] = useState(false);
+  const [slotDraft, setSlotDraft] = useState<ObservationSlotDraft>(() =>
+    createDefaultObservationSlotDraft(false),
+  );
   const onMonthDayCountChangeRef = useRef(onMonthDayCountChange);
+
+  const includeTime = schedulingMode === "grade_and_time";
+  const usesGradeSlots = schedulingMode !== "whole_day";
 
   const {
     today,
@@ -64,15 +116,49 @@ export default function AdmissionsObservationDayAvailabilityEditor({
     onMonthDayCountChangeRef.current = onMonthDayCountChange;
   }, [onMonthDayCountChange]);
 
+  useEffect(() => {
+    queueMicrotask(() =>
+      setSlotDraft(createDefaultObservationSlotDraft(includeTime)),
+    );
+  }, [includeTime, selectedDate]);
+
+  const loadSchedulingMode = useCallback(async () => {
+    const settings = await getAdmissionsOrgSettings(supabase, organizationId);
+    setSchedulingMode(resolveShadowDaySchedulingMode(settings));
+  }, [organizationId, supabase]);
+
   const loadMonthDays = useCallback(async () => {
-    const [open, booked] = await Promise.all([
-      listObservationDayAvailability(
+    if (schedulingMode === "whole_day") {
+      const [open, booked] = await Promise.all([
+        listObservationDayAvailability(
+          supabase,
+          organizationId,
+          monthRange.start,
+          monthRange.end,
+        ),
+        listOccupiedObservationDays(
+          supabase,
+          organizationId,
+          monthRange.start,
+          monthRange.end,
+        ),
+      ]);
+      setOpenDays(open);
+      setBookedDays(booked);
+      setMonthSlots([]);
+      setOccupiedSlotIds(new Set());
+      onMonthDayCountChangeRef.current?.(open.size);
+      return;
+    }
+
+    const [slots, occupied] = await Promise.all([
+      listObservationSlotsForDateRange(
         supabase,
         organizationId,
         monthRange.start,
         monthRange.end,
       ),
-      listOccupiedObservationDays(
+      listOccupiedObservationSlotIds(
         supabase,
         organizationId,
         monthRange.start,
@@ -80,10 +166,41 @@ export default function AdmissionsObservationDayAvailabilityEditor({
       ),
     ]);
 
-    setOpenDays(open);
-    setBookedDays(booked);
-    onMonthDayCountChangeRef.current?.(open.size);
-  }, [monthRange.end, monthRange.start, organizationId, supabase]);
+    const openDates = new Set(slots.map((slot) => slot.date));
+    const bookedDates = new Set(
+      slots
+        .filter((slot) => occupied.has(slot.id))
+        .map((slot) => slot.date),
+    );
+
+    setMonthSlots(slots);
+    setOccupiedSlotIds(occupied);
+    setOpenDays(openDates);
+    setBookedDays(bookedDates);
+    onMonthDayCountChangeRef.current?.(slots.length);
+  }, [monthRange.end, monthRange.start, organizationId, schedulingMode, supabase]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function initMode() {
+      setModeLoading(true);
+      try {
+        await loadSchedulingMode();
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load settings.");
+        }
+      } finally {
+        if (!cancelled) setModeLoading(false);
+      }
+    }
+
+    void initMode();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadSchedulingMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,12 +221,21 @@ export default function AdmissionsObservationDayAvailabilityEditor({
       }
     }
 
-    void init();
+    if (!modeLoading) {
+      void init();
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [loadMonthDays]);
+  }, [loadMonthDays, modeLoading]);
+
+  const selectedDateSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return monthSlots
+      .filter((slot) => slot.date === selectedDate)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [monthSlots, selectedDate]);
 
   function handleSelectDate(date: string) {
     setSelectedDate(date);
@@ -157,9 +283,54 @@ export default function AdmissionsObservationDayAvailabilityEditor({
     }
   }
 
+  async function handleAddSlot() {
+    if (!selectedDate || selectedDate < today || readOnly || slotSaving) return;
+
+    setSlotSaving(true);
+    setError(null);
+
+    try {
+      await createObservationSlot(supabase, organizationId, {
+        date: selectedDate,
+        startTime: includeTime ? slotDraft.startTime.trim() : ALL_DAY_TIME_SLOT,
+        endTime: includeTime ? slotDraft.endTime?.trim() ?? null : null,
+        label: slotDraft.label.trim() || null,
+        gradeValues: slotDraft.gradeValues,
+      });
+      setSlotDraft(createDefaultObservationSlotDraft(includeTime));
+      await loadMonthDays();
+      adminToast.success("Shadow slot added");
+    } catch (err) {
+      const message = formatActionError(err, "Failed to add slot.");
+      setError(message);
+      adminToast.error(message);
+    } finally {
+      setSlotSaving(false);
+    }
+  }
+
+  async function handleDeleteSlot(slotId: string) {
+    if (readOnly || slotSaving) return;
+
+    setSlotSaving(true);
+    setError(null);
+
+    try {
+      await deleteObservationSlot(supabase, organizationId, slotId);
+      await loadMonthDays();
+      adminToast.success("Shadow slot removed");
+    } catch (err) {
+      const message = formatActionError(err, "Failed to remove slot.");
+      setError(message);
+      adminToast.error(message);
+    } finally {
+      setSlotSaving(false);
+    }
+  }
+
   const displayError = error ?? timezoneError;
 
-  if (loading) {
+  if (loading || modeLoading) {
     return (
       <SchoolAdminCalendarSkeleton
         C={C}
@@ -186,7 +357,7 @@ export default function AdmissionsObservationDayAvailabilityEditor({
         className={
           compactLayout
             ? "grid w-full gap-4 lg:grid-cols-[3fr_2fr]"
-            : "grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]"
+            : "grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]"
         }
       >
         <ScheduleCalendarShell
@@ -208,7 +379,7 @@ export default function AdmissionsObservationDayAvailabilityEditor({
                   className="inline-block h-3 w-3 rounded"
                   style={{ backgroundColor: C.accentLight, border: `1px solid ${C.accent}` }}
                 />
-                Open for shadow visits
+                {usesGradeSlots ? "Open slots" : "Open for shadow visits"}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span
@@ -257,31 +428,65 @@ export default function AdmissionsObservationDayAvailabilityEditor({
               <p className="py-6 text-center text-xs" style={{ color: C.textTertiary }}>
                 Past dates can&apos;t be edited
               </p>
-            ) : bookedDays.has(selectedDate) ? (
-              <p className="text-xs leading-relaxed" style={{ color: C.warning }}>
-                A family has booked this day for a shadow visit. It can&apos;t be closed
-                until the visit is cancelled.
-              </p>
+            ) : schedulingMode === "whole_day" ? (
+              bookedDays.has(selectedDate) ? (
+                <p className="text-xs leading-relaxed" style={{ color: C.warning }}>
+                  A family has booked this day for a shadow visit. It can&apos;t be closed
+                  until the visit is cancelled.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs leading-relaxed" style={{ color: C.textSecondary }}>
+                    {openDays.has(selectedDate)
+                      ? "This day is open. Families can book shadow visits that include it."
+                      : "This day is closed. Open it to let families book shadow visits."}
+                  </p>
+                  {!readOnly ? (
+                    <button
+                      type="button"
+                      disabled={togglingDate === selectedDate}
+                      onClick={() => void handleToggleDay()}
+                      className="w-full rounded-sm px-3 py-2 text-xs font-medium transition enabled:hover:opacity-90 disabled:opacity-60"
+                      style={getAdminButtonStyle(
+                        C,
+                        openDays.has(selectedDate) ? "neutral" : "primary",
+                      )}
+                    >
+                      {openDays.has(selectedDate) ? "Close this day" : "Open this day"}
+                    </button>
+                  ) : null}
+                </div>
+              )
             ) : (
               <div className="space-y-3">
-                <p className="text-xs leading-relaxed" style={{ color: C.textSecondary }}>
-                  {openDays.has(selectedDate)
-                    ? "This day is open. Families can book shadow visits that include it."
-                    : "This day is closed. Open it to let families book shadow visits."}
-                </p>
+                {selectedDateSlots.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedDateSlots.map((slot) => (
+                      <ObservationSlotRow
+                        key={slot.id}
+                        C={C}
+                        slot={slot}
+                        booked={occupiedSlotIds.has(slot.id)}
+                        readOnly={readOnly}
+                        onDelete={() => void handleDeleteSlot(slot.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs leading-relaxed" style={{ color: C.textTertiary }}>
+                    {emptyDayPromptForMode(schedulingMode)}
+                  </p>
+                )}
+
                 {!readOnly ? (
-                  <button
-                    type="button"
-                    disabled={togglingDate === selectedDate}
-                    onClick={() => void handleToggleDay()}
-                    className="w-full rounded-sm px-3 py-2 text-xs font-medium transition enabled:hover:opacity-90 disabled:opacity-60"
-                    style={getAdminButtonStyle(
-                      C,
-                      openDays.has(selectedDate) ? "neutral" : "primary",
-                    )}
-                  >
-                    {openDays.has(selectedDate) ? "Close this day" : "Open this day"}
-                  </button>
+                  <ObservationSlotForm
+                    C={C}
+                    includeTime={includeTime}
+                    draft={slotDraft}
+                    onDraftChange={setSlotDraft}
+                    onSubmit={() => void handleAddSlot()}
+                    submitting={slotSaving}
+                  />
                 ) : null}
               </div>
             )}
@@ -292,8 +497,7 @@ export default function AdmissionsObservationDayAvailabilityEditor({
               className="border-t px-4 py-2 text-[11px]"
               style={{ borderColor: C.border, color: C.textTertiary }}
             >
-              Open whole school days for student shadow visits. Families book days based on
-              your form settings.
+              {footerTextForMode(schedulingMode)}
             </div>
           ) : null}
         </div>

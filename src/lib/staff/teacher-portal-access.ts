@@ -3,6 +3,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 export type StaffUserProfile = {
   email: string;
   displayName: string;
+  profilePhotoUrl: string | null;
 };
 
 export class TeacherPortalAuthError extends Error {
@@ -65,7 +66,7 @@ export async function getStaffUserProfile(
 ): Promise<StaffUserProfile> {
   const { data: staffMember, error } = await supabase
     .from("staff_members")
-    .select("first_name, last_name, email")
+    .select("first_name, last_name, email, profile_photo_url")
     .eq("user_id", userId)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -91,7 +92,13 @@ export async function getStaffUserProfile(
   const displayName =
     [firstName, lastName].filter(Boolean).join(" ") || email || "Account";
 
-  return { email, displayName };
+  const profilePhotoUrl =
+    typeof staffMember?.profile_photo_url === "string" &&
+    staffMember.profile_photo_url.trim()
+      ? staffMember.profile_photo_url.trim()
+      : null;
+
+  return { email, displayName, profilePhotoUrl };
 }
 
 export async function requireTeacherPortalUser(

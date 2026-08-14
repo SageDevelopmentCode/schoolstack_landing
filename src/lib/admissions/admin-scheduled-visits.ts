@@ -7,8 +7,9 @@ import {
   type AdmissionsAvailabilitySlotKey,
   type ScheduledVisitTiming,
 } from "./admissions-availability";
-import type { AdmissionsSchedulingMode } from "./admissions-booking";
+import type { AdmissionsSchedulingMode, ScheduledVisitSlotDetail } from "./admissions-booking";
 import { buildOccupiedSlotKeys } from "./admissions-booking";
+import { listObservationSlotsByIds } from "./admissions-observation-slots";
 import type { PostSubmitActionType } from "./application-form-schema";
 import { parseApplicationFormPostSubmitConfig } from "./application-form-schema";
 import { extractStudentLabel } from "./application-submissions";
@@ -34,6 +35,7 @@ export type AdminScheduledVisit = {
   durationMinutes: number;
   visitDayCount?: number;
   visitDates?: string[];
+  observationSlots?: ScheduledVisitSlotDetail[];
   timing: ScheduledVisitTiming;
   whenLabel: string;
 };
@@ -131,10 +133,11 @@ export async function listOrgScheduledVisits(
     .map((row) => String(row.id));
 
   const visitDatesById = new Map<string, string[]>();
+  const slotIdsByVisit = new Map<string, string[]>();
   if (wholeDayVisitIds.length > 0) {
     const { data: dayRows, error: dayError } = await supabase
       .from("admissions_scheduled_visit_days")
-      .select("scheduled_visit_id, date")
+      .select("scheduled_visit_id, date, observation_slot_id")
       .in("scheduled_visit_id", wholeDayVisitIds)
       .order("date", { ascending: true });
 
@@ -146,7 +149,35 @@ export async function listOrgScheduledVisits(
       const existing = visitDatesById.get(visitId) ?? [];
       existing.push(date);
       visitDatesById.set(visitId, existing);
+
+      if (dayRow.observation_slot_id) {
+        const slotIds = slotIdsByVisit.get(visitId) ?? [];
+        slotIds.push(String(dayRow.observation_slot_id));
+        slotIdsByVisit.set(visitId, slotIds);
+      }
     }
+  }
+
+  const allSlotIds = [...new Set([...slotIdsByVisit.values()].flat())];
+  const slots = await listObservationSlotsByIds(supabase, allSlotIds);
+  const slotById = new Map(slots.map((slot) => [slot.id, slot]));
+  const observationSlotsByVisit = new Map<string, ScheduledVisitSlotDetail[]>();
+
+  for (const [visitId, slotIds] of slotIdsByVisit) {
+    observationSlotsByVisit.set(
+      visitId,
+      slotIds
+        .map((slotId) => slotById.get(slotId))
+        .filter((slot): slot is NonNullable<typeof slot> => Boolean(slot))
+        .map((slot) => ({
+          slotId: slot.id,
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          label: slot.label,
+          gradeValues: slot.gradeValues,
+        })),
+    );
   }
 
   const visits: AdminScheduledVisit[] = (data ?? []).map((row) => {
@@ -223,6 +254,7 @@ export async function listOrgScheduledVisits(
     const visitDayCount =
       row.visit_day_count != null ? Number(row.visit_day_count) : undefined;
     const visitDates = visitDatesById.get(String(row.id));
+    const observationSlots = observationSlotsByVisit.get(String(row.id));
 
     const visitCore = {
       schedulingMode,
@@ -232,6 +264,7 @@ export async function listOrgScheduledVisits(
       durationMinutes,
       visitDayCount,
       visitDates,
+      observationSlots,
     };
 
     return {
@@ -257,6 +290,7 @@ export async function listOrgScheduledVisits(
       durationMinutes,
       visitDayCount,
       visitDates,
+      observationSlots,
       whenLabel: formatScheduledVisitWhenLabel(visitCore),
       timing: classifyScheduledVisitTiming(visitCore, timezone),
     };

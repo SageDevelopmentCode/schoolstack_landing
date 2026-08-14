@@ -2,15 +2,16 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importArizonaGiftedAcademyAdmin = () =>
-  import('@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyAdminDashboardDemo')
+  import('@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyAdminDashboardDemo') as Promise<DemoModule>
 const importArizonaGiftedAcademyWebsite = () =>
-  import('@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyWebsiteDashboardDemo')
+  import('@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyWebsiteDashboardDemo') as Promise<DemoModule>
 const importArizonaGiftedAcademyParent = () =>
-  import('@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyParentDashboardDemo')
+  import('@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyParentDashboardDemo') as Promise<DemoModule>
 const importArizonaGiftedAcademyTeacher = () =>
-  import('@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyTeacherDashboardDemo')
+  import('@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyTeacherDashboardDemo') as Promise<DemoModule>
 
 type ArizonaGiftedAcademyAdminModule = Awaited<
   ReturnType<typeof importArizonaGiftedAcademyAdmin>
@@ -25,13 +26,13 @@ type ArizonaGiftedAcademyTeacherModule = Awaited<
   ReturnType<typeof importArizonaGiftedAcademyTeacher>
 >
 
-let arizonaGiftedAcademyAdminPromise: Promise<ArizonaGiftedAcademyAdminModule> | null =
+let arizonaGiftedAcademyAdminPromise: Promise<DemoModule> | null =
   null
-let arizonaGiftedAcademyWebsitePromise: Promise<ArizonaGiftedAcademyWebsiteModule> | null =
+let arizonaGiftedAcademyWebsitePromise: Promise<DemoModule> | null =
   null
-let arizonaGiftedAcademyParentPromise: Promise<ArizonaGiftedAcademyParentModule> | null =
+let arizonaGiftedAcademyParentPromise: Promise<DemoModule> | null =
   null
-let arizonaGiftedAcademyTeacherPromise: Promise<ArizonaGiftedAcademyTeacherModule> | null =
+let arizonaGiftedAcademyTeacherPromise: Promise<DemoModule> | null =
   null
 
 function loadArizonaGiftedAcademyAdminCached() {

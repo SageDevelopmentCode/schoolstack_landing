@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importTrueNorthAdmin = () =>
-  import('@/components/demo/truenorth/TrueNorthAdminDashboardDemo')
+  import('@/components/demo/truenorth/TrueNorthAdminDashboardDemo') as Promise<DemoModule>
 const importTrueNorthWebsite = () =>
-  import('@/components/demo/truenorth/TrueNorthWebsiteDashboardDemo')
+  import('@/components/demo/truenorth/TrueNorthWebsiteDashboardDemo') as Promise<DemoModule>
 const importTrueNorthParent = () =>
-  import('@/components/demo/truenorth/TrueNorthParentDashboardDemo')
+  import('@/components/demo/truenorth/TrueNorthParentDashboardDemo') as Promise<DemoModule>
 const importTrueNorthTeacher = () =>
-  import('@/components/demo/truenorth/TrueNorthTeacherDashboardDemo')
+  import('@/components/demo/truenorth/TrueNorthTeacherDashboardDemo') as Promise<DemoModule>
 
-type TrueNorthAdminModule = Awaited<ReturnType<typeof importTrueNorthAdmin>>
-type TrueNorthWebsiteModule = Awaited<ReturnType<typeof importTrueNorthWebsite>>
-type TrueNorthParentModule = Awaited<ReturnType<typeof importTrueNorthParent>>
-type TrueNorthTeacherModule = Awaited<ReturnType<typeof importTrueNorthTeacher>>
 
-let trueNorthAdminPromise: Promise<TrueNorthAdminModule> | null = null
-let trueNorthWebsitePromise: Promise<TrueNorthWebsiteModule> | null = null
-let trueNorthParentPromise: Promise<TrueNorthParentModule> | null = null
-let trueNorthTeacherPromise: Promise<TrueNorthTeacherModule> | null = null
+let trueNorthAdminPromise: Promise<DemoModule> | null = null
+let trueNorthWebsitePromise: Promise<DemoModule> | null = null
+let trueNorthParentPromise: Promise<DemoModule> | null = null
+let trueNorthTeacherPromise: Promise<DemoModule> | null = null
 
 function loadTrueNorthAdminCached() {
   if (!trueNorthAdminPromise) {

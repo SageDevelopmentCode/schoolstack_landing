@@ -33,6 +33,24 @@ const MONTH_OPTIONS = [
   { value: 12, label: "December" },
 ];
 
+function monthLabelFor(month: number): string {
+  return MONTH_OPTIONS.find((option) => option.value === month)?.label ?? String(month);
+}
+
+function formatOrdinalDay(day: number): string {
+  const suffix =
+    day >= 11 && day <= 13
+      ? "th"
+      : day % 10 === 1
+        ? "st"
+        : day % 10 === 2
+          ? "nd"
+          : day % 10 === 3
+            ? "rd"
+            : "th";
+  return `${day}${suffix}`;
+}
+
 function inputStyle(C: ReturnType<typeof buildAdminThemeTokens>): React.CSSProperties {
   return {
     backgroundColor: C.input,
@@ -109,9 +127,28 @@ export default function TuitionLateFeeSettingsPanel({
   const [overrides, setOverrides] = useState<TuitionLateFeeOverride[]>([]);
   const [overrideYear, setOverrideYear] = useState(String(new Date().getFullYear()));
   const [overrideMonth, setOverrideMonth] = useState(String(new Date().getMonth() + 1));
-  const [overrideDay, setOverrideDay] = useState("12");
+  const [overrideDay, setOverrideDay] = useState(String(DEFAULT_LATE_FEE_DAY_OF_MONTH));
 
   const resolved = useMemo(() => resolveTuitionOrgSettings(settings), [settings]);
+
+  const matchingOverride = useMemo(
+    () =>
+      overrides.find(
+        (override) =>
+          override.year === Number(overrideYear) && override.month === Number(overrideMonth),
+      ),
+    [overrides, overrideYear, overrideMonth],
+  );
+
+  const selectedMonthLabel = monthLabelFor(Number(overrideMonth));
+
+  useEffect(() => {
+    queueMicrotask(() =>
+      setOverrideDay(
+        String(matchingOverride?.lateFeeDayOfMonth ?? resolved.lateFeeDayOfMonth),
+      ),
+    );
+  }, [matchingOverride, resolved.lateFeeDayOfMonth, overrideYear, overrideMonth]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -395,7 +432,7 @@ export default function TuitionLateFeeSettingsPanel({
       </button>
 
       <div
-        className={`border-t pt-4 flex flex-col gap-3 ${
+        className={`border-t pt-4 flex flex-col gap-4 ${
           resolved.lateFeeEnabled ? "" : "opacity-50 pointer-events-none"
         }`}
         style={{ borderColor: C.border }}
@@ -405,91 +442,128 @@ export default function TuitionLateFeeSettingsPanel({
             Need a different late fee day for a specific month?
           </p>
           <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
-            For example, use the 12th in August during onboarding, then your usual day
+            For example, use the 15th in August during onboarding, then your usual day
             in other months.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-4">
-          <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-            Which year?
-            <input
-              type="number"
-              value={overrideYear}
-              onChange={(event) => setOverrideYear(event.target.value)}
-              style={inputStyle(C)}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-            Which month?
-            <select
-              value={overrideMonth}
-              onChange={(event) => setOverrideMonth(event.target.value)}
-              style={inputStyle(C)}
-            >
-              {MONTH_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
-            On which day?
-            <input
-              type="number"
-              min={1}
-              max={28}
-              value={overrideDay}
-              onChange={(event) => setOverrideDay(event.target.value)}
-              style={inputStyle(C)}
-            />
-          </label>
-          <div className="flex items-end">
-            <button
-              type="button"
-              onClick={() => void handleAddOverride()}
-              className="text-sm font-medium px-3 py-2 rounded-md w-full"
-              style={{ backgroundColor: C.accentLight, color: C.accent }}
-            >
-              Add month override
-            </button>
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+              Add or edit an override
+            </p>
+            <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+              Choose a month below to add or change its late-fee check day. Saved
+              overrides are listed separately.
+            </p>
           </div>
+
+          <div className="grid gap-3 sm:grid-cols-4">
+            <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
+              Which year?
+              <input
+                type="number"
+                value={overrideYear}
+                onChange={(event) => setOverrideYear(event.target.value)}
+                style={inputStyle(C)}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
+              Which month?
+              <select
+                value={overrideMonth}
+                onChange={(event) => setOverrideMonth(event.target.value)}
+                style={inputStyle(C)}
+              >
+                {MONTH_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm" style={{ color: C.textSecondary }}>
+              Which day should we check for unpaid tuition?
+              <input
+                type="number"
+                min={1}
+                max={28}
+                value={overrideDay}
+                onChange={(event) => setOverrideDay(event.target.value)}
+                style={inputStyle(C)}
+              />
+            </label>
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={() => void handleAddOverride()}
+                className="text-sm font-medium px-3 py-2 rounded-md w-full"
+                style={{ backgroundColor: C.accentLight, color: C.accent }}
+              >
+                {matchingOverride ? "Update override" : "Add override"}
+              </button>
+            </div>
+          </div>
+
+          {matchingOverride ? (
+            <p className="text-xs" style={{ color: C.textTertiary }}>
+              You&apos;re editing the saved override for {selectedMonthLabel} {overrideYear}.
+            </p>
+          ) : null}
         </div>
 
-        {overrides.length > 0 ? (
-          <ul className="flex flex-col gap-2">
-            {overrides.map((override) => {
-              const monthLabel =
-                MONTH_OPTIONS.find((option) => option.value === override.month)?.label ??
-                String(override.month);
-              return (
-                <li
-                  key={override.id}
-                  className="flex items-center justify-between gap-3 text-sm px-3 py-2 rounded-md"
-                  style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
-                >
-                  <span style={{ color: C.textPrimary }}>
-                    {monthLabel} {override.year}: day {override.lateFeeDayOfMonth}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleDeleteOverride(override.id)}
-                    className="p-1 rounded"
-                    style={{ color: C.textTertiary }}
-                    aria-label={`Remove ${monthLabel} ${override.year} override`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-xs" style={{ color: C.textTertiary }}>
-            No month overrides yet. Your default late fee day applies every month.
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+            Saved overrides
           </p>
-        )}
+
+          {overrides.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {overrides.map((override) => {
+                const monthLabel = monthLabelFor(override.month);
+                const differsFromDefault =
+                  override.lateFeeDayOfMonth !== resolved.lateFeeDayOfMonth;
+                return (
+                  <li
+                    key={override.id}
+                    className="flex items-center justify-between gap-3 text-sm px-3 py-2 rounded-md"
+                    style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                  >
+                    <span className="flex flex-col gap-0.5">
+                      <span className="font-medium" style={{ color: C.textPrimary }}>
+                        {monthLabel} {override.year}
+                      </span>
+                      <span style={{ color: C.textSecondary }}>
+                        Check for unpaid tuition on the{" "}
+                        {formatOrdinalDay(override.lateFeeDayOfMonth)}
+                        {differsFromDefault ? (
+                          <span style={{ color: C.textTertiary }}>
+                            {" "}
+                            (your usual day is the{" "}
+                            {formatOrdinalDay(resolved.lateFeeDayOfMonth)})
+                          </span>
+                        ) : null}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteOverride(override.id)}
+                      className="p-1 rounded shrink-0"
+                      style={{ color: C.textTertiary }}
+                      aria-label={`Remove ${monthLabel} ${override.year} override`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-xs" style={{ color: C.textTertiary }}>
+              No month overrides yet. Your default late fee day applies every month.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

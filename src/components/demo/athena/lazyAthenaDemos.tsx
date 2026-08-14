@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importAthenaAdmin = () =>
-  import('@/components/demo/athena/AthenaAdminDashboardDemo')
+  import('@/components/demo/athena/AthenaAdminDashboardDemo') as Promise<DemoModule>
 const importAthenaWebsite = () =>
-  import('@/components/demo/athena/AthenaWebsiteDashboardDemo')
+  import('@/components/demo/athena/AthenaWebsiteDashboardDemo') as Promise<DemoModule>
 const importAthenaParent = () =>
-  import('@/components/demo/athena/AthenaParentDashboardDemo')
+  import('@/components/demo/athena/AthenaParentDashboardDemo') as Promise<DemoModule>
 const importAthenaTeacher = () =>
-  import('@/components/demo/athena/AthenaTeacherDashboardDemo')
+  import('@/components/demo/athena/AthenaTeacherDashboardDemo') as Promise<DemoModule>
 
-type AthenaAdminModule = Awaited<ReturnType<typeof importAthenaAdmin>>
-type AthenaWebsiteModule = Awaited<ReturnType<typeof importAthenaWebsite>>
-type AthenaParentModule = Awaited<ReturnType<typeof importAthenaParent>>
-type AthenaTeacherModule = Awaited<ReturnType<typeof importAthenaTeacher>>
 
-let athenaAdminPromise: Promise<AthenaAdminModule> | null = null
-let athenaWebsitePromise: Promise<AthenaWebsiteModule> | null = null
-let athenaParentPromise: Promise<AthenaParentModule> | null = null
-let athenaTeacherPromise: Promise<AthenaTeacherModule> | null = null
+let athenaAdminPromise: Promise<DemoModule> | null = null
+let athenaWebsitePromise: Promise<DemoModule> | null = null
+let athenaParentPromise: Promise<DemoModule> | null = null
+let athenaTeacherPromise: Promise<DemoModule> | null = null
 
 function loadAthenaAdminCached() {
   if (!athenaAdminPromise) {

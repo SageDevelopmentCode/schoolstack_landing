@@ -2,25 +2,22 @@
 
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
+import type { DemoModule } from '@/components/demo/demo-module-types'
 
 const importAustinMicroSchoolAdmin = () =>
-  import('@/components/demo/austinmicroschool/AustinMicroSchoolAdminDashboardDemo')
+  import('@/components/demo/austinmicroschool/AustinMicroSchoolAdminDashboardDemo') as Promise<DemoModule>
 const importAustinMicroSchoolWebsite = () =>
-  import('@/components/demo/austinmicroschool/AustinMicroSchoolWebsiteDashboardDemo')
+  import('@/components/demo/austinmicroschool/AustinMicroSchoolWebsiteDashboardDemo') as Promise<DemoModule>
 const importAustinMicroSchoolParent = () =>
-  import('@/components/demo/austinmicroschool/AustinMicroSchoolParentDashboardDemo')
+  import('@/components/demo/austinmicroschool/AustinMicroSchoolParentDashboardDemo') as Promise<DemoModule>
 const importAustinMicroSchoolTeacher = () =>
-  import('@/components/demo/austinmicroschool/AustinMicroSchoolTeacherDashboardDemo')
+  import('@/components/demo/austinmicroschool/AustinMicroSchoolTeacherDashboardDemo') as Promise<DemoModule>
 
-type AustinMicroSchoolAdminModule = Awaited<ReturnType<typeof importAustinMicroSchoolAdmin>>
-type AustinMicroSchoolWebsiteModule = Awaited<ReturnType<typeof importAustinMicroSchoolWebsite>>
-type AustinMicroSchoolParentModule = Awaited<ReturnType<typeof importAustinMicroSchoolParent>>
-type AustinMicroSchoolTeacherModule = Awaited<ReturnType<typeof importAustinMicroSchoolTeacher>>
 
-let austinMicroSchoolAdminPromise: Promise<AustinMicroSchoolAdminModule> | null = null
-let austinMicroSchoolWebsitePromise: Promise<AustinMicroSchoolWebsiteModule> | null = null
-let austinMicroSchoolParentPromise: Promise<AustinMicroSchoolParentModule> | null = null
-let austinMicroSchoolTeacherPromise: Promise<AustinMicroSchoolTeacherModule> | null = null
+let austinMicroSchoolAdminPromise: Promise<DemoModule> | null = null
+let austinMicroSchoolWebsitePromise: Promise<DemoModule> | null = null
+let austinMicroSchoolParentPromise: Promise<DemoModule> | null = null
+let austinMicroSchoolTeacherPromise: Promise<DemoModule> | null = null
 
 function loadAustinMicroSchoolAdminCached() {
   if (!austinMicroSchoolAdminPromise) {

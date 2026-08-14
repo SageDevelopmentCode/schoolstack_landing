@@ -1,7 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import ApplyPortalNavbar from "@/components/admissions/ApplyPortalNavbar";
+import ParentToaster from "@/components/school-parent/ParentToaster";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
 import {
@@ -10,6 +12,7 @@ import {
 } from "@/components/admissions/ApplyPortalPageLayout";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
+import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ApplyPortalPageShellProps = {
   branding: OrganizationBranding;
@@ -18,6 +21,7 @@ type ApplyPortalPageShellProps = {
   organizationId?: string;
   userEmail: string;
   userDisplayName: string;
+  profilePhotoUrl?: string | null;
   portalOptions?: SchoolPortalOption[];
   previewMode?: boolean;
   previewHomeHref?: string;
@@ -33,6 +37,7 @@ export default function ApplyPortalPageShell({
   organizationId,
   userEmail,
   userDisplayName,
+  profilePhotoUrl = null,
   portalOptions = [],
   previewMode = false,
   previewHomeHref,
@@ -41,6 +46,7 @@ export default function ApplyPortalPageShell({
   fillHeight = false,
 }: ApplyPortalPageShellProps) {
   const previewPortalOptions = usePreviewPortalOptions();
+  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const resolvedPortalOptions =
     previewMode && previewPortalOptions.length > 0
       ? previewPortalOptions
@@ -56,6 +62,7 @@ export default function ApplyPortalPageShell({
         organizationId={organizationId}
         userEmail={userEmail}
         userDisplayName={userDisplayName}
+        profilePhotoUrl={profilePhotoUrl}
         portalOptions={resolvedPortalOptions}
         previewMode={previewMode}
         previewHomeHref={previewHomeHref}
@@ -68,6 +75,7 @@ export default function ApplyPortalPageShell({
         {children}
       </ApplyPortalPageMain>
     </ApplyPortalPageLayout>
+    <ParentToaster C={C} />
     </NavigationLoadingProvider>
   );
 }

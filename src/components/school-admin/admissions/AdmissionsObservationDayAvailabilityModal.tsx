@@ -72,7 +72,7 @@ export default function AdmissionsObservationDayAvailabilityModal({
                   Shadow / observation days
                 </p>
                 <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-                  Open whole school days for student shadow visits after families apply.
+                  Configure shadow visit slots — whole days, grade groups, or grade + time windows.
                 </p>
               </div>
               <button

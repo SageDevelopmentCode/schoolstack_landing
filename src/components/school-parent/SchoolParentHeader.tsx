@@ -1,11 +1,12 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
-import SchoolParentAvatar from "@/components/school-parent/SchoolParentAvatar";
+import ParentProfileMenuTrigger from "@/components/school-parent/ParentProfileMenuTrigger";
+import StudentPhoto from "@/components/students/StudentPhoto";
 import NavigationLink from "@/components/school/shared/NavigationLink";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
 import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
@@ -38,6 +39,11 @@ import type {
   OrganizationBranding,
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
+import {
+  GuardianProfilePhotoClientError,
+  uploadGuardianProfilePhotoFromParent,
+} from "@/lib/guardians/upload-guardian-profile-photo-client";
+import { parentToast } from "@/lib/school-parent/parent-toast";
 import { createClient } from "@/utils/supabase/client";
 
 type SchoolParentHeaderProps = {
@@ -52,17 +58,6 @@ type SchoolParentHeaderProps = {
   previewBasePath?: string;
   previewParentBasePath?: string;
 };
-
-function profileInitials(displayName: string): string {
-  const parts = displayName.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return "?";
-}
 
 const parentNavFontClass = "font-[family-name:var(--font-poppins)]";
 
@@ -127,6 +122,10 @@ export default function SchoolParentHeader({
   const [moreOpen, setMoreOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(
+    userProfile.profilePhotoUrl,
+  );
+  const [photoUploading, setPhotoUploading] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -158,7 +157,39 @@ export default function SchoolParentHeader({
       : `/school/${slug}/parent/portal`);
   const applicationsHref = previewBasePath ?? `/school/${slug}/apply`;
   const moreActive = more.some((item) => isParentNavItemActive(pathname, item));
-  const initials = profileInitials(userProfile.displayName);
+  const canUploadPhoto = !previewMode;
+
+  useEffect(() => {
+    queueMicrotask(() => setProfilePhotoUrl(userProfile.profilePhotoUrl));
+  }, [userProfile.profilePhotoUrl]);
+
+  const handlePhotoUpload = useCallback(
+    async (file: File) => {
+      if (previewMode) return;
+
+      setPhotoUploading(true);
+
+      try {
+        const nextUrl = await uploadGuardianProfilePhotoFromParent(
+          organizationId,
+          file,
+        );
+        setProfilePhotoUrl(nextUrl);
+        parentToast.success("Profile photo updated.");
+      } catch (error) {
+        parentToast.error(
+          error instanceof GuardianProfilePhotoClientError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "Failed to upload photo.",
+        );
+      } finally {
+        setPhotoUploading(false);
+      }
+    },
+    [organizationId, previewMode],
+  );
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -282,29 +313,41 @@ export default function SchoolParentHeader({
 
         <div className="flex flex-1 justify-end">
           <div className="relative" ref={menuRef}>
-            <button
-              type="button"
+            <ParentProfileMenuTrigger
+              displayName={userProfile.displayName}
+              profilePhotoUrl={profilePhotoUrl}
+              theme={C}
+              menuOpen={menuOpen}
               onClick={() => setMenuOpen((open) => !open)}
-              className="flex items-center gap-2 rounded-full p-0.5 transition-colors hover:bg-gray-50"
-              aria-expanded={menuOpen}
-              aria-haspopup="menu"
-            >
-              <SchoolParentAvatar initials={initials} color={C.accent} size="sm" />
-            </button>
+            />
             {menuOpen ? (
               <div
                 className="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-gray-100 bg-white py-1 shadow-lg"
                 role="menu"
               >
-                <div className="border-b border-gray-100 px-3 py-2.5">
-                  <p className="truncate text-sm font-semibold text-gray-800">
-                    {userProfile.displayName}
-                  </p>
-                  {userProfile.email ? (
-                    <p className="mt-0.5 truncate text-xs text-gray-500">
-                      {userProfile.email}
-                    </p>
-                  ) : null}
+                <div className="border-b border-gray-100 px-3 py-3">
+                  <div className="flex items-start gap-3">
+                    <StudentPhoto
+                      name={userProfile.displayName}
+                      photoUrl={profilePhotoUrl}
+                      size="lg"
+                      theme={C}
+                      editable={canUploadPhoto}
+                      uploading={photoUploading}
+                      showEditHint={canUploadPhoto}
+                      onFileSelect={(file) => void handlePhotoUpload(file)}
+                    />
+                    <div className="min-w-0 flex-1 pt-0.5">
+                      <p className="truncate text-sm font-semibold text-gray-800">
+                        {userProfile.displayName}
+                      </p>
+                      {userProfile.email ? (
+                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                          {userProfile.email}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
                 <SchoolPortalSwitcherMenuItems
                   C={C}

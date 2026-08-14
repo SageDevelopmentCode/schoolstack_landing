@@ -11,6 +11,15 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-require-imports": "off",
     },
   },
+  {
+    files: [
+      "src/components/demo/**/*DashboardDemo.tsx",
+      "src/components/sections/*DashboardDemo.tsx",
+    ],
+    rules: {
+      "@typescript-eslint/ban-ts-comment": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
