@@ -59,13 +59,14 @@ export default function ParentNotificationSettingsPage({
   organizationId,
   branding,
   readOnly = false,
-  initialSettings = null,
+  initialSettings,
 }: ParentNotificationSettingsPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-  const [loading, setLoading] = useState(!initialSettings);
+  const hasInitialData = initialSettings !== undefined;
+  const [loading, setLoading] = useState(!hasInitialData);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<NotificationSettingsResponse | null>(
-    initialSettings,
+    initialSettings ?? null,
   );
   const [emails, setEmails] = useState<string[]>(() =>
     getDisplayNotificationEmails(
@@ -89,16 +90,6 @@ export default function ParentNotificationSettingsPage({
   );
 
   const loadSettings = useCallback(async () => {
-    if (readOnly && initialSettings) {
-      setSettings(initialSettings);
-      applyConfiguredEmails(
-        initialSettings.configuredEmails,
-        initialSettings.loginEmail,
-      );
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     try {
       const response = await fetch(
@@ -123,11 +114,14 @@ export default function ParentNotificationSettingsPage({
     } finally {
       setLoading(false);
     }
-  }, [applyConfiguredEmails, initialSettings, organizationId, readOnly]);
+  }, [applyConfiguredEmails, organizationId]);
 
   useEffect(() => {
-    void loadSettings();
-  }, [loadSettings]);
+    if (hasInitialData) return;
+    queueMicrotask(() => {
+      void loadSettings();
+    });
+  }, [hasInitialData, loadSettings]);
 
   const showFirstEmailInput = !readOnly && emails.length === 0 && !addingNew;
   const canAddEmail =
