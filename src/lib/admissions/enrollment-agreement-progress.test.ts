@@ -4,11 +4,18 @@ import type { EnrollmentContractSection } from "./enrollment-checklist-schema";
 import {
   allAgreementSectionsSigned,
   buildAgreementResponsesPatch,
+  getAgreementInitialSectionIndex,
+  getAgreementPendingResignSectionIndex,
   getAgreementResumeSectionIndex,
+  getAgreementSectionIndexById,
   getAgreementSectionProgressLabel,
+  isAgreementSectionPendingResign,
   mergeAgreementSectionSignature,
   parseAgreementConsentValue,
   parseAgreementSectionSignatures,
+  parseAmendmentNotice,
+  parsePendingResignSectionIds,
+  hasPendingAgreementResign,
 } from "./enrollment-agreement-progress";
 
 const sections: EnrollmentContractSection[] = [
@@ -150,5 +157,102 @@ describe("buildAgreementResponsesPatch", () => {
     const patch = buildAgreementResponsesPatch({}, [], "Jane Doe", "full_use");
     assert.equal(patch.signerName, "Jane Doe");
     assert.equal(patch.consentValue, "full_use");
+  });
+
+  it("clears amendment fields when requested", () => {
+    const patch = buildAgreementResponsesPatch(
+      {
+        amendmentNotice: "Please re-sign",
+        pendingResignSectionIds: ["s2"],
+      },
+      [],
+      "Jane Doe",
+      undefined,
+      { clearAmendment: true, signedContentRevision: 3 },
+    );
+    assert.equal(patch.signerName, "Jane Doe");
+    assert.equal(patch.signedContentRevision, 3);
+    assert.equal("amendmentNotice" in patch, false);
+    assert.equal("pendingResignSectionIds" in patch, false);
+  });
+});
+
+describe("getAgreementPendingResignSectionIndex", () => {
+  it("returns null when no pending sections", () => {
+    assert.equal(getAgreementPendingResignSectionIndex(sections, []), null);
+  });
+
+  it("returns index of first pending section in document order", () => {
+    assert.equal(getAgreementPendingResignSectionIndex(sections, ["s3", "s2"]), 1);
+    assert.equal(getAgreementPendingResignSectionIndex(sections, ["missing"]), null);
+  });
+});
+
+describe("getAgreementSectionIndexById", () => {
+  it("returns section index or null", () => {
+    assert.equal(getAgreementSectionIndexById(sections, "s2"), 1);
+    assert.equal(getAgreementSectionIndexById(sections, "missing"), null);
+  });
+});
+
+describe("isAgreementSectionPendingResign", () => {
+  it("checks pending membership", () => {
+    assert.equal(isAgreementSectionPendingResign("s2", ["s2", "s3"]), true);
+    assert.equal(isAgreementSectionPendingResign("s1", ["s2"]), false);
+  });
+});
+
+describe("getAgreementInitialSectionIndex", () => {
+  it("prefers explicit section id when valid", () => {
+    const signatures = parseAgreementSectionSignatures({
+      sectionSignatures: [
+        { sectionId: "s1", signerName: "Jane", signedAt: "2026-01-01T00:00:00.000Z" },
+      ],
+    });
+    assert.equal(
+      getAgreementInitialSectionIndex(sections, signatures, ["s2"], "s3"),
+      2,
+    );
+  });
+
+  it("prefers pending resign index over resume index", () => {
+    const signatures = parseAgreementSectionSignatures({
+      sectionSignatures: [
+        { sectionId: "s1", signerName: "Jane", signedAt: "2026-01-01T00:00:00.000Z" },
+        { sectionId: "s3", signerName: "Jane", signedAt: "2026-01-03T00:00:00.000Z" },
+      ],
+    });
+    assert.equal(getAgreementInitialSectionIndex(sections, signatures, ["s2"]), 1);
+  });
+
+  it("falls back to resume index when no pending sections", () => {
+    const signatures = parseAgreementSectionSignatures({
+      sectionSignatures: [
+        { sectionId: "s1", signerName: "Jane", signedAt: "2026-01-01T00:00:00.000Z" },
+      ],
+    });
+    assert.equal(getAgreementInitialSectionIndex(sections, signatures, []), 1);
+  });
+});
+
+describe("pending resign parsing", () => {
+  it("parses pending resign section ids", () => {
+    assert.deepEqual(
+      parsePendingResignSectionIds({ pendingResignSectionIds: ["std-2", ""] }),
+      ["std-2"],
+    );
+    assert.deepEqual(parsePendingResignSectionIds({}), []);
+  });
+
+  it("parses amendment notice and pending state", () => {
+    assert.equal(
+      parseAmendmentNotice({ amendmentNotice: " Updated contract " }),
+      "Updated contract",
+    );
+    assert.equal(
+      hasPendingAgreementResign({ pendingResignSectionIds: ["std-2"] }),
+      true,
+    );
+    assert.equal(hasPendingAgreementResign({}), false);
   });
 });

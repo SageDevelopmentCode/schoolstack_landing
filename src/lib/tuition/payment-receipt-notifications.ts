@@ -4,6 +4,7 @@ import {
   sendTuitionPaymentReceiptEmail,
   type TuitionPaymentReceiptLineItem,
 } from "@/lib/emails";
+import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import {
   getPaymentById,
   type PaymentRecord,
@@ -17,19 +18,19 @@ async function resolvePayerContact(
     familyId: string | null;
     payerUserId: string | null;
   },
-): Promise<{ email: string; name: string } | null> {
+): Promise<{ emails: string[]; name: string } | null> {
   if (!input.familyId) return null;
+
+  const emails = await loadFamilyNotificationEmails(admin, input.familyId);
+  if (emails.length === 0) return null;
 
   const { data: family, error: familyError } = await admin
     .from("families")
-    .select("name, primary_email")
+    .select("name")
     .eq("id", input.familyId)
     .maybeSingle();
 
   if (familyError) throw familyError;
-
-  const email = family?.primary_email?.trim();
-  if (!email) return null;
 
   let displayName = String(family?.name ?? "Family");
 
@@ -50,7 +51,7 @@ async function resolvePayerContact(
     }
   }
 
-  return { email, name: displayName };
+  return { emails, name: displayName };
 }
 
 async function getStudentNamesByChargeIds(
@@ -262,20 +263,24 @@ export async function sendTuitionPaymentReceiptNotifications(
       payment.chargedAmountCents ?? payment.amountCents;
     const paidAt = payment.paidAt ?? new Date().toISOString();
 
-    await sendTuitionPaymentReceiptEmail({
-      email: contact.email,
-      name: contact.name,
-      schoolName: org.name,
-      billingUrl: buildBillingUrl(org.slug),
-      paidAt,
-      paymentMethodLabel: paymentMethodLabel(payment, options?.manual),
-      amountCents: payment.amountCents,
-      chargedAmountCents,
-      processingFeeCents: payment.processingFeeCents,
-      studentName,
-      chargeLabel: payment.label ?? "Tuition",
-      lumpSumBreakdown: lumpSumBreakdownFromSettleResult(options?.settleResult),
-    });
+    await Promise.all(
+      contact.emails.map((email) =>
+        sendTuitionPaymentReceiptEmail({
+          email,
+          name: contact.name,
+          schoolName: org.name,
+          billingUrl: buildBillingUrl(org.slug),
+          paidAt,
+          paymentMethodLabel: paymentMethodLabel(payment, options?.manual),
+          amountCents: payment.amountCents,
+          chargedAmountCents,
+          processingFeeCents: payment.processingFeeCents,
+          studentName,
+          chargeLabel: payment.label ?? "Tuition",
+          lumpSumBreakdown: lumpSumBreakdownFromSettleResult(options?.settleResult),
+        }),
+      ),
+    );
   } catch (error) {
     console.error("Tuition payment receipt notification failed:", paymentId, error);
   }
@@ -365,20 +370,24 @@ export async function sendCombinedTuitionPaymentReceiptNotifications(
 
     const paymentMethodType = firstPayment.paymentMethodType;
 
-    await sendTuitionPaymentReceiptEmail({
-      email: contact.email,
-      name: contact.name,
-      schoolName: org.name,
-      billingUrl: buildBillingUrl(org.slug),
-      paidAt,
-      paymentMethodLabel: paymentMethodType
-        ? PAYMENT_METHOD_LABELS[paymentMethodType]
-        : "—",
-      amountCents,
-      chargedAmountCents,
-      processingFeeCents: processingFeeCents > 0 ? processingFeeCents : null,
-      combinedLineItems,
-    });
+    await Promise.all(
+      contact.emails.map((email) =>
+        sendTuitionPaymentReceiptEmail({
+          email,
+          name: contact.name,
+          schoolName: org.name,
+          billingUrl: buildBillingUrl(org.slug),
+          paidAt,
+          paymentMethodLabel: paymentMethodType
+            ? PAYMENT_METHOD_LABELS[paymentMethodType]
+            : "—",
+          amountCents,
+          chargedAmountCents,
+          processingFeeCents: processingFeeCents > 0 ? processingFeeCents : null,
+          combinedLineItems,
+        }),
+      ),
+    );
   } catch (error) {
     console.error(
       "Combined tuition payment receipt notification failed:",

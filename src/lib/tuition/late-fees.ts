@@ -4,6 +4,9 @@ import {
   sendTuitionLateFeeEmail,
 } from "@/lib/emails";
 import {
+  loadFamilyNotificationEmails,
+} from "@/lib/notifications/family-notification-emails";
+import {
   listBillingSplits,
   payerLabelSuffix,
   splitAmountCents,
@@ -447,11 +450,47 @@ export async function applyLateFeesForOrganization(
   for (const [familyId, familyCharges] of createdByFamily) {
     const { data: family, error: familyError } = await supabase
       .from("families")
-      .select("name, primary_email")
+      .select("name, primary_email, notification_emails")
       .eq("id", familyId)
       .maybeSingle();
 
     if (familyError) throw familyError;
+
+    const hasConfiguredEmails =
+      Array.isArray(family?.notification_emails) &&
+      family.notification_emails.length > 0;
+
+    if (hasConfiguredEmails) {
+      const emails = await loadFamilyNotificationEmails(supabase, familyId);
+      if (emails.length === 0) continue;
+
+      const totalCents = familyCharges.reduce(
+        (sum, charge) => sum + charge.amountCents,
+        0,
+      );
+      const chargeLines = familyCharges.map(
+        (charge) => `${charge.label} — ${formatCents(charge.amountCents)}`,
+      );
+
+      const html = buildTuitionLateFeeHtml({
+        familyName: String(family?.name ?? "Family"),
+        schoolName,
+        totalDue: formatCents(totalCents),
+        chargeLines,
+        billingUrl,
+      });
+
+      for (const email of emails) {
+        const result = await sendEmail({
+          to: email,
+          schoolName,
+          html,
+        });
+
+        if (result.ok) notified += 1;
+      }
+      continue;
+    }
 
     const primaryEmail =
       typeof family?.primary_email === "string"

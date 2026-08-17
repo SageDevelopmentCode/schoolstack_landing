@@ -26,10 +26,12 @@ import {
   sendPostSubmitVisitConfirmation,
 } from "@/lib/emails";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
+import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import { SITE_URL } from "@/lib/site";
 
 export type ApplicantContact = {
   email: string;
+  emails: string[];
   firstName?: string;
   lastName?: string;
   displayName: string;
@@ -38,10 +40,15 @@ export type ApplicantContact = {
 export async function resolveApplicantContact(
   admin: SupabaseClient,
   application: {
+    family_id: string | null;
     created_by_user_id: string | null;
     primary_guardian_id: string | null;
   },
 ): Promise<ApplicantContact | null> {
+  let firstName = "";
+  let lastName = "";
+  let displayName = "";
+
   if (application.primary_guardian_id) {
     const { data: guardian, error } = await admin
       .from("guardians")
@@ -50,41 +57,48 @@ export async function resolveApplicantContact(
       .maybeSingle();
 
     if (error) throw error;
-    if (guardian?.email) {
-      const firstName = String(guardian.first_name ?? "").trim();
-      const lastName = String(guardian.last_name ?? "").trim();
-      return {
-        email: String(guardian.email).trim().toLowerCase(),
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
-        displayName: [firstName, lastName].filter(Boolean).join(" ") || guardian.email,
-      };
+    if (guardian) {
+      firstName = String(guardian.first_name ?? "").trim();
+      lastName = String(guardian.last_name ?? "").trim();
+      displayName =
+        [firstName, lastName].filter(Boolean).join(" ") ||
+        String(guardian.email ?? "").trim();
     }
   }
 
-  if (!application.created_by_user_id) {
+  if (!displayName && application.created_by_user_id) {
+    const { data: userData, error: userError } = await admin.auth.admin.getUserById(
+      application.created_by_user_id,
+    );
+
+    if (userError) throw userError;
+    const user = userData.user;
+    if (user) {
+      const metadata = user.user_metadata ?? {};
+      firstName =
+        typeof metadata.first_name === "string" ? metadata.first_name.trim() : "";
+      lastName =
+        typeof metadata.last_name === "string" ? metadata.last_name.trim() : "";
+      displayName =
+        [firstName, lastName].filter(Boolean).join(" ") ||
+        String(user.email ?? "").trim();
+    }
+  }
+
+  const emails = application.family_id
+    ? await loadFamilyNotificationEmails(admin, application.family_id)
+    : [];
+
+  if (emails.length === 0) {
     return null;
   }
 
-  const { data: userData, error: userError } = await admin.auth.admin.getUserById(
-    application.created_by_user_id,
-  );
-
-  if (userError) throw userError;
-  const user = userData.user;
-  if (!user?.email) return null;
-
-  const metadata = user.user_metadata ?? {};
-  const firstName =
-    typeof metadata.first_name === "string" ? metadata.first_name.trim() : "";
-  const lastName =
-    typeof metadata.last_name === "string" ? metadata.last_name.trim() : "";
-
   return {
-    email: user.email.trim().toLowerCase(),
+    email: emails[0],
+    emails,
     firstName: firstName || undefined,
     lastName: lastName || undefined,
-    displayName: [firstName, lastName].filter(Boolean).join(" ") || user.email,
+    displayName: displayName || emails[0],
   };
 }
 
@@ -102,6 +116,7 @@ export async function sendApplicationSubmittedNotifications(
         submitted_at,
         responses,
         organization_id,
+        family_id,
         created_by_user_id,
         primary_guardian_id,
         application_form_versions (title, notification_config),
@@ -195,15 +210,17 @@ export async function sendApplicationSubmittedNotifications(
     ];
 
     if (contact) {
-      notificationTasks.push(
-        sendApplicationSubmittedConfirmation({
-          name: contact.displayName,
-          email: contact.email,
-          schoolName,
-          formTitle,
-          applyDashboardUrl,
-        }),
-      );
+      for (const email of contact.emails) {
+        notificationTasks.push(
+          sendApplicationSubmittedConfirmation({
+            name: contact.displayName,
+            email,
+            schoolName,
+            formTitle,
+            applyDashboardUrl,
+          }),
+        );
+      }
     } else {
       console.warn("Application submitted notifications: no applicant contact", applicationId);
     }
@@ -253,6 +270,7 @@ export async function sendPostSubmitVisitScheduledNotifications(
         id,
         responses,
         organization_id,
+        family_id,
         created_by_user_id,
         primary_guardian_id,
         application_form_versions (post_submit_config)
@@ -328,28 +346,30 @@ export async function sendPostSubmitVisitScheduledNotifications(
         lastName: contact.lastName,
         studentName,
       }),
-      sendPostSubmitVisitConfirmation({
-        name: contact.displayName,
-        email: contact.email,
-        schoolName,
-        stepTitle,
-        scheduledDate: booking.scheduledDate,
-        endDate: booking.endDate,
-        startTimeSlot: booking.startTimeSlot,
-        schedulingMode: booking.schedulingMode,
-        visitDayCount: booking.visitDayCount,
-        timezoneLabel,
-        durationMinutes: booking.durationMinutes,
-        whenLabel: formatScheduledVisitWhenLabel(booking),
-        durationLabel:
-          booking.schedulingMode === "whole_day"
-            ? formatVisitDayCountLabel(
-                booking.visitDayCount ??
-                  Math.max(1, Math.round(booking.durationMinutes / (24 * 60))),
-              )
-            : formatDurationLabel(booking.durationMinutes),
-        applyDashboardUrl,
-      }),
+      ...contact.emails.map((email) =>
+        sendPostSubmitVisitConfirmation({
+          name: contact.displayName,
+          email,
+          schoolName,
+          stepTitle,
+          scheduledDate: booking.scheduledDate,
+          endDate: booking.endDate,
+          startTimeSlot: booking.startTimeSlot,
+          schedulingMode: booking.schedulingMode,
+          visitDayCount: booking.visitDayCount,
+          timezoneLabel,
+          durationMinutes: booking.durationMinutes,
+          whenLabel: formatScheduledVisitWhenLabel(booking),
+          durationLabel:
+            booking.schedulingMode === "whole_day"
+              ? formatVisitDayCountLabel(
+                  booking.visitDayCount ??
+                    Math.max(1, Math.round(booking.durationMinutes / (24 * 60))),
+                )
+              : formatDurationLabel(booking.durationMinutes),
+          applyDashboardUrl,
+        }),
+      ),
     ]);
     await logSettledNotificationFailures(admin, {
       organizationId: application.organization_id,

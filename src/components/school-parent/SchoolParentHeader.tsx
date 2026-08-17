@@ -156,6 +156,9 @@ export default function SchoolParentHeader({
       ? `${previewParentBasePath}/portal`
       : `/school/${slug}/parent/portal`);
   const applicationsHref = previewBasePath ?? `/school/${slug}/apply`;
+  const notificationsHref = previewParentBasePath
+    ? `${previewParentBasePath}/notifications`
+    : `/school/${slug}/parent/notifications`;
   const moreActive = more.some((item) => isParentNavItemActive(pathname, item));
   const canUploadPhoto = !previewMode;
 
@@ -364,6 +367,13 @@ export default function SchoolParentHeader({
                   Your applications
                 </NavigationLink>
                 ) : null}
+                <NavigationLink
+                  href={notificationsHref}
+                  className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Notification settings
+                </NavigationLink>
                 {!previewMode ? (
                   <button
                     type="button"

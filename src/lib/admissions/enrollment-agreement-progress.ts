@@ -68,6 +68,51 @@ export function getAgreementResumeSectionIndex(
   return firstUnsignedIndex;
 }
 
+export function getAgreementSectionIndexById(
+  sections: EnrollmentContractSection[],
+  sectionId: string,
+): number | null {
+  const index = sections.findIndex((section) => section.id === sectionId);
+  return index === -1 ? null : index;
+}
+
+export function getAgreementPendingResignSectionIndex(
+  sections: EnrollmentContractSection[],
+  pendingResignSectionIds: string[],
+): number | null {
+  if (pendingResignSectionIds.length === 0) return null;
+
+  const pendingSet = new Set(pendingResignSectionIds);
+  const index = sections.findIndex((section) => pendingSet.has(section.id));
+  return index === -1 ? null : index;
+}
+
+export function isAgreementSectionPendingResign(
+  sectionId: string,
+  pendingResignSectionIds: string[],
+): boolean {
+  return pendingResignSectionIds.includes(sectionId);
+}
+
+export function getAgreementInitialSectionIndex(
+  sections: EnrollmentContractSection[],
+  signatures: AgreementSectionSignature[],
+  pendingResignSectionIds: string[],
+  explicitSectionId?: string | null,
+): number {
+  if (sections.length === 0) return 0;
+
+  if (explicitSectionId) {
+    const explicitIndex = getAgreementSectionIndexById(sections, explicitSectionId);
+    if (explicitIndex != null) return explicitIndex;
+  }
+
+  const pendingIndex = getAgreementPendingResignSectionIndex(sections, pendingResignSectionIds);
+  if (pendingIndex != null) return pendingIndex;
+
+  return getAgreementResumeSectionIndex(sections, signatures);
+}
+
 export function getAgreementSectionProgressLabel(
   sections: EnrollmentContractSection[],
   signatures: AgreementSectionSignature[],
@@ -88,16 +133,67 @@ export function parseAgreementConsentValue(
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+export function parsePendingResignSectionIds(
+  responses: Record<string, unknown> | null | undefined,
+): string[] {
+  const raw = responses?.pendingResignSectionIds;
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+    .map((entry) => entry.trim());
+}
+
+export function parseAmendmentNotice(
+  responses: Record<string, unknown> | null | undefined,
+): string | null {
+  const value = responses?.amendmentNotice;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+export function parseSignedContentRevision(
+  responses: Record<string, unknown> | null | undefined,
+): number | null {
+  const value = responses?.signedContentRevision;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+export function hasPendingAgreementResign(
+  responses: Record<string, unknown> | null | undefined,
+): boolean {
+  return parsePendingResignSectionIds(responses).length > 0;
+}
+
 export function buildAgreementResponsesPatch(
   existingResponses: Record<string, unknown>,
   sectionSignatures: AgreementSectionSignature[],
   signerName?: string,
   consentValue?: string,
+  options?: {
+    clearAmendment?: boolean;
+    signedContentRevision?: number;
+  },
 ): Record<string, unknown> {
-  return {
+  const next: Record<string, unknown> = {
     ...existingResponses,
     sectionSignatures,
     ...(signerName ? { signerName } : {}),
     ...(consentValue ? { consentValue } : {}),
   };
+
+  if (options?.clearAmendment) {
+    delete next.amendmentNotice;
+    delete next.pendingResignSectionIds;
+  }
+
+  if (options?.signedContentRevision != null) {
+    next.signedContentRevision = options.signedContentRevision;
+  }
+
+  return next;
 }

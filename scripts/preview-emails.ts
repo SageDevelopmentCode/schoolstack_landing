@@ -4,6 +4,7 @@ import {
   buildApplicationSubmittedConfirmationHtml,
   buildDemoBookingConfirmationHtml,
   buildDemoFeedbackConfirmationHtml,
+  buildEnrollmentCompletedConfirmationHtml,
   buildHomepageQuestionConfirmationHtml,
   buildNewMessageEmailHtml,
   buildPaymentReceiptConfirmationHtml,
@@ -103,6 +104,43 @@ const previews = [
       "Thank you",
       "View apply dashboard",
       "Rooted Meadows",
+    ],
+  },
+  {
+    filename: "enrollment-confirmed.html",
+    html: buildEnrollmentCompletedConfirmationHtml({
+      name: "Rachael Sparhawk",
+      schoolName: "Rooted Meadows",
+      studentName: "Olivia Sparhawk",
+      programName: "Grade 1",
+      parentPortalEnabled: true,
+      parentPortalUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/parent/portal",
+    }),
+    checks: [
+      "Enrollment Confirmed",
+      "Welcome, Rachael",
+      "Olivia Sparhawk",
+      "Grade 1",
+      "Open parent portal",
+      "notification settings",
+      "/school/rooted-meadows/parent/portal",
+    ],
+  },
+  {
+    filename: "enrollment-confirmed-apply-fallback.html",
+    html: buildEnrollmentCompletedConfirmationHtml({
+      name: "Maria Lopez",
+      schoolName: "Oak Grove Microschool",
+      studentName: "Sofia Lopez",
+      parentPortalEnabled: false,
+      parentPortalUrl: "https://trymudkitchen.com/school/oak-grove/apply",
+    }),
+    checks: [
+      "Enrollment Confirmed",
+      "View apply dashboard",
+      "apply dashboard",
+      "/school/oak-grove/apply",
     ],
   },
   {

@@ -6,7 +6,11 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    files: ["lighthouserc.js", "scripts/**/*.cjs"],
+    files: [
+      "lighthouserc.js",
+      "scripts/**/*.cjs",
+      "src/test/integration/**/*.cjs",
+    ],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
     },

@@ -12,6 +12,7 @@ import {
   saveAgreementSectionSignature,
   saveChecklistItemDraft,
 } from "@/lib/admissions/enrollment-checklist-materialization";
+import { fireEnrollmentCompletedNotificationsIfNeeded } from "@/lib/admissions/fire-enrollment-completed-notifications";
 import { reportEnrollmentChecklistItemApiFailure } from "@/lib/admissions/enrollment-checklist-operational-errors";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -128,6 +129,11 @@ export async function PATCH(request: Request, context: RouteContext) {
         organizationId,
       });
 
+      fireEnrollmentCompletedNotificationsIfNeeded(
+        admin,
+        result.newlyCompletedEnrollment,
+      );
+
       return NextResponse.json({
         success: true,
         status: result.status,
@@ -158,13 +164,15 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    await completeChecklistItem(admin, {
+    const newlyCompletedEnrollment = await completeChecklistItem(admin, {
       instanceId,
       responses: body.responses,
       signerName: body.signerName,
       actorUserId: user.id,
       organizationId,
     });
+
+    fireEnrollmentCompletedNotificationsIfNeeded(admin, newlyCompletedEnrollment);
 
     return NextResponse.json({ success: true });
   } catch (error) {

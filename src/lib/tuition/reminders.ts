@@ -3,6 +3,7 @@ import {
   buildTuitionDueReminderHtml,
   sendTuitionDueReminderEmail,
 } from "@/lib/emails";
+import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import { formatCents } from "./pricing";
 
 type DueChargeRow = {
@@ -69,13 +70,14 @@ export async function sendTuitionDueReminders(
   for (const [familyId, familyCharges] of byFamily) {
     const { data: family, error: familyError } = await supabase
       .from("families")
-      .select("name, primary_email")
+      .select("name")
       .eq("id", familyId)
       .maybeSingle();
 
     if (familyError) throw familyError;
-    const email = family?.primary_email?.trim();
-    if (!email) continue;
+
+    const emails = await loadFamilyNotificationEmails(supabase, familyId);
+    if (emails.length === 0) continue;
 
     const totalCents = familyCharges.reduce(
       (sum, charge) => sum + Number(charge.amount_cents),
@@ -99,13 +101,15 @@ export async function sendTuitionDueReminders(
       billingUrl,
     });
 
-    const result = await sendEmail({
-      to: email,
-      schoolName,
-      html,
-    });
+    for (const email of emails) {
+      const result = await sendEmail({
+        to: email,
+        schoolName,
+        html,
+      });
 
-    if (result.ok) sent++;
+      if (result.ok) sent++;
+    }
   }
 
   return sent;

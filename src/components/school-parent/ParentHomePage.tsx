@@ -33,6 +33,8 @@ import {
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
+import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
+import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -42,6 +44,7 @@ type ParentHomePageProps = {
   quickActions: ParentQuickAction[];
   onboardingItems?: ResolvedParentOnboardingItem[];
   upcomingEvents?: OrganizationEvent[];
+  enrollmentAmendmentBannerItems?: EnrollmentAgreementAmendmentBannerItem[];
   previewMode?: boolean;
   previewBasePath?: string;
 };
@@ -222,6 +225,7 @@ export default function ParentHomePage({
   quickActions,
   onboardingItems = [],
   upcomingEvents = [],
+  enrollmentAmendmentBannerItems = [],
   previewMode = false,
   previewBasePath,
 }: ParentHomePageProps) {
@@ -268,6 +272,13 @@ export default function ParentHomePage({
             {name}.
           </h1>
         </motion.header>
+
+        {enrollmentAmendmentBannerItems.length > 0 ? (
+          <EnrollmentAgreementAmendmentBanner
+            C={C}
+            items={enrollmentAmendmentBannerItems}
+          />
+        ) : null}
 
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_340px] lg:items-stretch">
           <div className="flex flex-col gap-8">

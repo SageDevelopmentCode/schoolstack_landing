@@ -36,6 +36,10 @@ import {
   hasDuplicateChecklistItemKeys,
   type EnrollmentChecklistTemplate,
 } from "@/lib/admissions/enrollment-checklist-templates";
+import {
+  summarizeEnrollmentDocumentChanges,
+  type EnrollmentDocumentChange,
+} from "@/lib/admissions/enrollment-checklist-document-changes";
 import type { EnrollmentChecklistItem } from "@/lib/admissions/enrollment-checklist-schema";
 import { buildChecklistPreviewItems } from "@/lib/admissions/enrollment-checklist-variants";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
@@ -68,6 +72,7 @@ import ApplicationFormPreview from "./ApplicationFormPreview";
 import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
 import EnrollmentChecklistBuilder from "./EnrollmentChecklistBuilder";
 import EnrollmentChecklistPreview from "./EnrollmentChecklistPreview";
+import EnrollmentChecklistResignConfirmDialog from "./EnrollmentChecklistResignConfirmDialog";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import {
@@ -101,6 +106,49 @@ type ApplicationFormsPageProps = {
 type EditableFormState = EditableFormSnapshot;
 
 type ChecklistEditableState = ChecklistEditableSnapshot;
+
+type PendingChecklistAction = "save" | "publish";
+
+function parseChecklistSavedSnapshot(
+  snapshot: string | null,
+): ChecklistEditableState | null {
+  if (!snapshot) return null;
+  try {
+    return JSON.parse(snapshot) as ChecklistEditableState;
+  } catch {
+    return null;
+  }
+}
+
+async function requestEnrollmentAgreementResignForChanges(
+  templateId: string,
+  documentChanges: EnrollmentDocumentChange[],
+  message?: string,
+): Promise<void> {
+  for (const change of documentChanges) {
+    if (!change.documentTemplateId) continue;
+
+    const response = await fetch(
+      `/api/admissions/enrollment-checklist-templates/${templateId}/request-resign`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentTemplateId: change.documentTemplateId,
+          sectionIds: change.changedSections.map((section) => section.sectionId),
+          message,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+      throw new Error(payload?.error ?? "Failed to request enrollment agreement re-sign.");
+    }
+  }
+}
 
 function isPaymentsSetupError(message: string): boolean {
   const normalized = message.toLowerCase();
@@ -379,6 +427,12 @@ export default function ApplicationFormsPage({
   const [checklistSavedSnapshot, setChecklistSavedSnapshot] = useState<string | null>(
     null,
   );
+  const [checklistResignDialogOpen, setChecklistResignDialogOpen] = useState(false);
+  const [pendingChecklistAction, setPendingChecklistAction] =
+    useState<PendingChecklistAction | null>(null);
+  const [pendingDocumentChanges, setPendingDocumentChanges] = useState<
+    EnrollmentDocumentChange[]
+  >([]);
   const [flowsSidebarOpen, setFlowsSidebarOpen] = useState(false);
   const isApplyDirtyRef = useRef(false);
   const isChecklistDirtyRef = useRef(false);
@@ -933,7 +987,11 @@ export default function ApplicationFormsPage({
     setChecklistEditable((prev) => (prev ? { ...prev, items } : prev));
   };
 
-  const handleChecklistSave = async () => {
+  const persistChecklistSave = async (options?: {
+    requireResign?: boolean;
+    documentChanges?: EnrollmentDocumentChange[];
+    message?: string;
+  }) => {
     if (!selectedChecklist || !checklistEditable || checklistReadOnly) return;
 
     const itemsToSave = ensureUniqueChecklistItemKeys(checklistEditable.items);
@@ -960,6 +1018,15 @@ export default function ApplicationFormsPage({
         selectedChecklist.id,
         itemsToSave,
       );
+
+      if (options?.requireResign && options.documentChanges?.length) {
+        await requestEnrollmentAgreementResignForChanges(
+          selectedChecklist.id,
+          options.documentChanges,
+          options.message,
+        );
+      }
+
       setChecklists((prev) =>
         prev.map((checklist) =>
           checklist.id === updatedTemplate.id ? updatedTemplate : checklist,
@@ -972,7 +1039,13 @@ export default function ApplicationFormsPage({
       };
       setChecklistEditable(nextChecklist);
       setChecklistSavedSnapshot(serializeChecklistEditableState(nextChecklist));
-      adminToast.success(checklistIsPublished ? "Checklist saved" : "Checklist draft saved");
+      adminToast.success(
+        options?.requireResign
+          ? "Checklist saved and families notified to re-sign"
+          : checklistIsPublished
+            ? "Checklist saved"
+            : "Checklist draft saved",
+      );
     } catch (err) {
       const message = formatSupabaseError(err, "Failed to save checklist.");
       setError(message);
@@ -988,7 +1061,60 @@ export default function ApplicationFormsPage({
     }
   };
 
-  const handleChecklistPublish = async () => {
+  const handleChecklistSave = async () => {
+    if (!selectedChecklist || !checklistEditable || checklistReadOnly) return;
+
+    const savedState = parseChecklistSavedSnapshot(checklistSavedSnapshot);
+    const documentChanges = savedState
+      ? summarizeEnrollmentDocumentChanges(
+          savedState.items,
+          checklistEditable.items,
+        )
+      : [];
+
+    if (documentChanges.length > 0) {
+      setPendingDocumentChanges(documentChanges);
+      setPendingChecklistAction("save");
+      setChecklistResignDialogOpen(true);
+      return;
+    }
+
+    await persistChecklistSave();
+  };
+
+  const handleChecklistResignDialogConfirm = async (input: {
+    requireResign: boolean;
+    message?: string;
+  }) => {
+    const action = pendingChecklistAction;
+    const documentChanges = pendingDocumentChanges;
+    setChecklistResignDialogOpen(false);
+    setPendingChecklistAction(null);
+    setPendingDocumentChanges([]);
+
+    if (!action) return;
+
+    if (action === "save") {
+      await persistChecklistSave({
+        requireResign: input.requireResign,
+        documentChanges,
+        message: input.message,
+      });
+      return;
+    }
+
+    await persistChecklistPublish({
+      requireResign: input.requireResign,
+      documentChanges,
+      message: input.message,
+    });
+  };
+
+  const persistChecklistPublish = async (options?: {
+    requireResign?: boolean;
+    documentChanges?: EnrollmentDocumentChange[];
+    message?: string;
+  }) => {
     if (!selectedChecklist || !checklistEditable || !checklistIsDraft) return;
 
     const validationErrors = validateEnrollmentChecklistItems(checklistEditable.items, {
@@ -1018,6 +1144,15 @@ export default function ApplicationFormsPage({
         selectedChecklist.id,
         checklistEditable.items,
       );
+
+      if (options?.requireResign && options.documentChanges?.length) {
+        await requestEnrollmentAgreementResignForChanges(
+          selectedChecklist.id,
+          options.documentChanges,
+          options.message,
+        );
+      }
+
       const published = await publishEnrollmentChecklistTemplate(
         supabase,
         selectedChecklist.id,
@@ -1039,7 +1174,11 @@ export default function ApplicationFormsPage({
       }
       await loadForms();
       setSelection({ kind: "checklist", id: published.id });
-      adminToast.success("Checklist published");
+      adminToast.success(
+        options?.requireResign
+          ? "Checklist published and families notified to re-sign"
+          : "Checklist published",
+      );
     } catch (err) {
       const message = formatSupabaseError(err, "Failed to publish checklist.");
       setError(message);
@@ -1053,6 +1192,27 @@ export default function ApplicationFormsPage({
     } finally {
       setPublishing(false);
     }
+  };
+
+  const handleChecklistPublish = async () => {
+    if (!selectedChecklist || !checklistEditable || !checklistIsDraft) return;
+
+    const savedState = parseChecklistSavedSnapshot(checklistSavedSnapshot);
+    const documentChanges = savedState
+      ? summarizeEnrollmentDocumentChanges(
+          savedState.items,
+          checklistEditable.items,
+        )
+      : [];
+
+    if (documentChanges.length > 0) {
+      setPendingDocumentChanges(documentChanges);
+      setPendingChecklistAction("publish");
+      setChecklistResignDialogOpen(true);
+      return;
+    }
+
+    await persistChecklistPublish();
   };
 
   const handleChecklistUnpublish = async () => {
@@ -1464,6 +1624,21 @@ export default function ApplicationFormsPage({
           editable?.feeConfig ??
           selectedForm?.fee_config ?? { enabled: false }
         }
+      />
+
+      <EnrollmentChecklistResignConfirmDialog
+        C={C}
+        open={checklistResignDialogOpen}
+        documentChanges={pendingDocumentChanges}
+        loading={saving || publishing}
+        onConfirm={handleChecklistResignDialogConfirm}
+        onClose={() => {
+          if (!saving && !publishing) {
+            setChecklistResignDialogOpen(false);
+            setPendingChecklistAction(null);
+            setPendingDocumentChanges([]);
+          }
+        }}
       />
 
       <ConfirmDialog

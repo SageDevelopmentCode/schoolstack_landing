@@ -15,6 +15,8 @@ import {
   getFamilyPreviewProfile,
   listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
+import { buildEnrollmentAgreementAmendmentBannerItems } from "@/lib/admissions/enrollment-agreement-amendment-banner";
+import { listEnrollmentAgreementAmendmentsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
 import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
@@ -110,6 +112,21 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
       features: org.features,
       previewBasePath: previewParentBasePath,
     });
+    const amendmentsByApplicationId = Object.fromEntries(
+      (
+        await listEnrollmentAgreementAmendmentsForApplications(
+          supabase,
+          org.id,
+          familyChildren.map((child) => child.applicationId),
+        )
+      ).entries(),
+    );
+    const enrollmentAmendmentBannerItems = buildEnrollmentAgreementAmendmentBannerItems({
+      schoolSlug: slug,
+      familyChildren,
+      amendmentsByApplicationId,
+      previewBasePath,
+    });
 
     return (
       <SchoolParentPageShell title={pageName}>
@@ -121,6 +138,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
           quickActions={quickActions}
           onboardingItems={onboardingItems}
           upcomingEvents={upcomingEvents}
+          enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
           previewMode
           previewBasePath={previewBasePath}
         />

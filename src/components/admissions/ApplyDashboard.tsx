@@ -9,6 +9,8 @@ import EnrolledFamilyBanner from "@/components/admissions/EnrolledFamilyBanner";
 import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
 import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
 import ApplyRequiredActionsSection from "@/components/admissions/ApplyRequiredActionsSection";
+import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
+import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
@@ -43,6 +45,7 @@ type ApplyDashboardProps = {
   parentPortalEnabled: boolean;
   parentPortalHref?: string;
   enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
+  enrollmentAmendmentBannerItems?: EnrollmentAgreementAmendmentBannerItem[];
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
   previewMode?: boolean;
@@ -160,6 +163,7 @@ export default function ApplyDashboard({
   parentPortalEnabled,
   parentPortalHref,
   enrollmentProgressByApplicationId,
+  enrollmentAmendmentBannerItems = [],
   userProfile,
   portalOptions = [],
   previewMode = false,
@@ -222,6 +226,15 @@ export default function ApplyDashboard({
             schoolName={schoolName}
             parentPortalHref={parentPortalHref}
           />
+        ) : null}
+
+        {enrollmentAmendmentBannerItems.length > 0 ? (
+          <section className="mt-8">
+            <EnrollmentAgreementAmendmentBanner
+              C={C}
+              items={enrollmentAmendmentBannerItems}
+            />
+          </section>
         ) : null}
 
         {upcomingCampusTours.length > 0 ? (

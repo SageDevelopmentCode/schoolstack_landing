@@ -8,6 +8,7 @@ import {
   buildTuitionAutopayFailedHtml,
   sendTuitionAutopayFailedEmail,
 } from "@/lib/emails";
+import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import { formatCents } from "@/lib/tuition/pricing";
 
 export async function notifyAutopaySucceeded(
@@ -96,7 +97,7 @@ export async function notifyAutopayFailed(
   const [{ data: family }, { data: org }] = await Promise.all([
     supabase
       .from("families")
-      .select("name, primary_email")
+      .select("name")
       .eq("id", input.familyId)
       .maybeSingle(),
     supabase
@@ -106,35 +107,12 @@ export async function notifyAutopayFailed(
       .maybeSingle(),
   ]);
 
-  let recipientEmail: string | null = null;
-  if (input.guardianUserId) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("id", input.guardianUserId)
-      .maybeSingle();
-    recipientEmail =
-      typeof profile?.email === "string" ? profile.email.trim() : null;
-  }
+  const recipientEmails = await loadFamilyNotificationEmails(
+    supabase,
+    input.familyId,
+  );
 
-  if (!recipientEmail && input.guardianId) {
-    const { data: guardian } = await supabase
-      .from("guardians")
-      .select("email")
-      .eq("id", input.guardianId)
-      .maybeSingle();
-    recipientEmail =
-      typeof guardian?.email === "string" ? guardian.email.trim() : null;
-  }
-
-  if (!recipientEmail) {
-    recipientEmail =
-      typeof family?.primary_email === "string"
-        ? family.primary_email.trim()
-        : null;
-  }
-
-  if (!recipientEmail) return;
+  if (recipientEmails.length === 0) return;
 
   const schoolName = String(org?.name ?? "Your school");
   const orgSlug = String(org?.slug ?? input.orgSlug);
@@ -150,9 +128,13 @@ export async function notifyAutopayFailed(
     errorMessage: input.errorMessage,
   });
 
-  await sendTuitionAutopayFailedEmail({
-    to: recipientEmail,
-    schoolName,
-    html,
-  });
+  await Promise.all(
+    recipientEmails.map((to) =>
+      sendTuitionAutopayFailedEmail({
+        to,
+        schoolName,
+        html,
+      }),
+    ),
+  );
 }

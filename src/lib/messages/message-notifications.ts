@@ -3,6 +3,7 @@ import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import { sendNewMessageEmail } from "@/lib/emails";
 import { shouldSendMessageEmail } from "@/lib/messages/message-email-debounce";
 import { sendWebPushToUsers } from "@/lib/messages/web-push";
+import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import type { PortalMessage } from "./types";
 
 export type MessageNotificationContext = {
@@ -19,6 +20,7 @@ export type MessageNotificationContext = {
 type Recipient = {
   userId: string;
   email: string | null;
+  familyId?: string;
   portal: "parent" | "teacher" | "admin";
 };
 
@@ -45,10 +47,15 @@ export async function resolveThreadRecipients(
   if (error) throw new Error(error.message);
 
   const recipients = new Map<string, Recipient>();
-  const addRecipient = (userId: string | null | undefined, email: string | null, portal: Recipient["portal"]) => {
+  const addRecipient = (
+    userId: string | null | undefined,
+    email: string | null,
+    portal: Recipient["portal"],
+    familyId?: string,
+  ) => {
     if (!userId || userId === senderUserId) return;
     if (!recipients.has(userId)) {
-      recipients.set(userId, { userId, email, portal });
+      recipients.set(userId, { userId, email, portal, familyId });
     }
   };
 
@@ -65,6 +72,7 @@ export async function resolveThreadRecipients(
           guardian.user_id ? String(guardian.user_id) : null,
           typeof guardian.email === "string" ? guardian.email : null,
           "parent",
+          String(participant.family_id),
         );
       }
     }
@@ -180,6 +188,9 @@ export async function dispatchMessageNotifications(
     recipients.map((recipient) => recipient.userId),
   );
 
+  const familyEmailCache = new Map<string, string[]>();
+  const emailedFamilies = new Set<string>();
+
   await Promise.allSettled(
     recipients.map(async (recipient) => {
       const threadUrl = portalPath(
@@ -188,17 +199,40 @@ export async function dispatchMessageNotifications(
         context.threadId,
       );
 
-      if (recipient.email) {
-        const readState = readStates.get(recipient.userId);
-        const emailDecision = shouldSendMessageEmail({
-          now,
-          lastReadAt: readState?.lastReadAt ?? null,
-          lastEmailNotifiedAt: readState?.lastEmailNotifiedAt ?? null,
-        });
+      const readState = readStates.get(recipient.userId);
+      const emailDecision = shouldSendMessageEmail({
+        now,
+        lastReadAt: readState?.lastReadAt ?? null,
+        lastEmailNotifiedAt: readState?.lastEmailNotifiedAt ?? null,
+      });
 
-        if (emailDecision.send) {
+      if (emailDecision.send) {
+        let emailsToNotify: string[] = [];
+
+        if (recipient.portal === "parent" && recipient.familyId) {
+          if (!emailedFamilies.has(recipient.familyId)) {
+            if (!familyEmailCache.has(recipient.familyId)) {
+              familyEmailCache.set(
+                recipient.familyId,
+                await loadFamilyNotificationEmails(
+                  admin,
+                  recipient.familyId,
+                ),
+              );
+            }
+            emailsToNotify = familyEmailCache.get(recipient.familyId) ?? [];
+            if (emailsToNotify.length > 0) {
+              emailedFamilies.add(recipient.familyId);
+            }
+          }
+        } else if (recipient.email) {
+          emailsToNotify = [recipient.email];
+        }
+
+        let emailed = false;
+        for (const email of emailsToNotify) {
           const result = await sendNewMessageEmail({
-            email: recipient.email,
+            email,
             schoolName: context.schoolName,
             senderName: context.senderName,
             preview,
@@ -206,13 +240,29 @@ export async function dispatchMessageNotifications(
           });
 
           if (result.ok) {
-            await stampMessageEmailNotified(
-              admin,
-              context.threadId,
-              recipient.userId,
-              now.toISOString(),
-            );
+            emailed = true;
           }
+        }
+
+        if (emailed) {
+          const familyRecipientIds = [...recipients.values()]
+            .filter((entry) =>
+              recipient.familyId
+                ? entry.familyId === recipient.familyId
+                : entry.userId === recipient.userId,
+            )
+            .map((entry) => entry.userId);
+
+          await Promise.all(
+            familyRecipientIds.map((userId) =>
+              stampMessageEmailNotified(
+                admin,
+                context.threadId,
+                userId,
+                now.toISOString(),
+              ),
+            ),
+          );
         }
       }
 

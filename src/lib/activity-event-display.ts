@@ -55,6 +55,7 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.CHECKLIST_SAVED]: "saved an enrollment checklist",
   [ACTIVITY_ACTIONS.CHECKLIST_PUBLISHED]: "published an enrollment checklist",
   [ACTIVITY_ACTIONS.CHECKLIST_UNPUBLISHED]: "unpublished an enrollment checklist",
+  [ACTIVITY_ACTIONS.CHECKLIST_RESIGN_REQUESTED]: "requested enrollment agreement re-sign",
   [ACTIVITY_ACTIONS.ENROLLMENT_STARTED]: "started enrollment",
   [ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED]: "completed enrollment",
   [ACTIVITY_ACTIONS.ENROLLMENT_CHECKLIST_ITEM_COMPLETED]:

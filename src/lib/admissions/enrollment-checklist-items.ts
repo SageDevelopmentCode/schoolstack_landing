@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { inlineSectionBodiesEqual } from "./enrollment-checklist-document-changes";
 import type { ApplicationSection } from "./application-form-schema";
 import {
   getEnrollmentChecklistTemplate,
@@ -303,9 +304,52 @@ async function syncDocumentTemplate(
   };
 
   if (existingDocumentTemplateId) {
+    let contentRevision = 1;
+
+    const { data: existingRow, error: existingError } = await supabase
+      .from("document_templates")
+      .select("content, content_revision")
+      .eq("id", existingDocumentTemplateId)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+
+    contentRevision =
+      typeof existingRow?.content_revision === "number"
+        ? existingRow.content_revision
+        : 1;
+
+    if (
+      kind === "inline_sections" &&
+      item.document?.kind === "inline_sections" &&
+      existingRow?.content
+    ) {
+      const existingContent = existingRow.content as Record<string, unknown>;
+      const existingSections = Array.isArray(existingContent.sections)
+        ? existingContent.sections
+            .filter(
+              (section): section is Record<string, unknown> =>
+                typeof section === "object" && section !== null && !Array.isArray(section),
+            )
+            .map((section) => ({
+              id: String(section.id ?? ""),
+              title: String(section.title ?? ""),
+              body: String(section.body ?? ""),
+            }))
+        : [];
+
+      if (
+        !inlineSectionBodiesEqual(existingSections, item.document.sections) ||
+        JSON.stringify(existingContent.consentOptions ?? null) !==
+          JSON.stringify(content.consentOptions ?? null)
+      ) {
+        contentRevision += 1;
+      }
+    }
+
     const { error } = await supabase
       .from("document_templates")
-      .update(payload)
+      .update({ ...payload, content_revision: contentRevision })
       .eq("id", existingDocumentTemplateId);
     if (error) throw error;
     return existingDocumentTemplateId;
