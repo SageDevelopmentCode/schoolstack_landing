@@ -15,7 +15,8 @@ import {
   shouldOfferApplyPortalTourBooking,
 } from "@/lib/admissions/family-tour-booking";
 import { getEnabledTourAuthEntryOption } from "@/lib/organization-settings/apply-auth-entry";
-import { listEnrollmentProgressForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
+import { listEnrollmentProgressForApplications, listEnrollmentAgreementAmendmentsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
+import { buildEnrollmentAgreementAmendmentBannerItemsFromApplications } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import {
@@ -120,6 +121,23 @@ export default async function FamilyPreviewApplyPage({
     ).entries(),
   );
 
+  const amendmentsByApplicationId = Object.fromEntries(
+    (
+      await listEnrollmentAgreementAmendmentsForApplications(
+        supabase,
+        org.id,
+        applications.map((application) => application.id),
+      )
+    ).entries(),
+  );
+  const enrollmentAmendmentBannerItems =
+    buildEnrollmentAgreementAmendmentBannerItemsFromApplications({
+      schoolSlug: slug,
+      applications,
+      amendmentsByApplicationId,
+      previewBasePath,
+    });
+
   const admissionsSettings = await getAdmissionsOrgSettings(supabase, org.id);
   const shadowDaySchedulingMode = resolveShadowDaySchedulingMode(admissionsSettings);
 
@@ -148,6 +166,7 @@ export default async function FamilyPreviewApplyPage({
           : undefined
       }
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}
+      enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
       userProfile={userProfile}
       previewMode
       previewBasePath={previewBasePath}

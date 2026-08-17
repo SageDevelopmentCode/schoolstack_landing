@@ -3,7 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import ApplyAuthPage from "@/components/admissions/ApplyAuthPage";
 import ApplyDashboard from "@/components/admissions/ApplyDashboard";
-import { listEnrollmentProgressForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
+import { listEnrollmentProgressForApplications, listEnrollmentAgreementAmendmentsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
+import { buildEnrollmentAgreementAmendmentBannerItemsFromApplications } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import {
   familyHasScheduledCampusTour,
   listUpcomingCampusToursForFamily,
@@ -159,6 +160,22 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     ).entries(),
   );
 
+  const amendmentsByApplicationId = Object.fromEntries(
+    (
+      await listEnrollmentAgreementAmendmentsForApplications(
+        supabase,
+        org.id,
+        applications.map((application) => application.id),
+      )
+    ).entries(),
+  );
+  const enrollmentAmendmentBannerItems =
+    buildEnrollmentAgreementAmendmentBannerItemsFromApplications({
+      schoolSlug: slug,
+      applications,
+      amendmentsByApplicationId,
+    });
+
   const parentPortalHref = getParentPortalHomeHref(
     slug,
     org.features.parent,
@@ -185,6 +202,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       parentPortalEnabled={org.features.parent.portal}
       parentPortalHref={parentPortalHref ?? undefined}
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}
+      enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
       userProfile={userProfile}
       portalOptions={portalOptions}
       shadowDaySchedulingMode={shadowDaySchedulingMode}

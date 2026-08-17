@@ -43,6 +43,7 @@ export type EnrollmentChecklistExperienceProps = {
   applicationId?: string;
   combinedPaymentCandidates?: CombinedEnrollmentPaymentCandidate[];
   initialItemId?: string;
+  initialSectionId?: string;
   instances?: EnrollmentChecklistItemInstance[];
   onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
   onActiveItemChange?: (templateItemId: string) => void;
@@ -260,6 +261,7 @@ export default function EnrollmentChecklistExperience({
   applicationId,
   combinedPaymentCandidates = [],
   initialItemId,
+  initialSectionId,
   instances = EMPTY_CHECKLIST_INSTANCES,
   onInstancesChange,
   onActiveItemChange,
@@ -405,6 +407,9 @@ export default function EnrollmentChecklistExperience({
           }
           onComplete={mode === "live" ? handleComplete : undefined}
           onPartialProgress={mode === "live" ? handlePartialProgress : undefined}
+          initialSectionId={
+            initialItemId && activeItem?.id === initialItemId ? initialSectionId : undefined
+          }
         />
       </motion.div>
     </AnimatePresence>

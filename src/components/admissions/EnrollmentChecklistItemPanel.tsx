@@ -46,10 +46,13 @@ import {
   getEnrollmentChecklistPdfSignedUrl,
 } from "@/lib/admissions/enrollment-checklist-document-storage";
 import {
-  getAgreementResumeSectionIndex,
+  getAgreementInitialSectionIndex,
+  isAgreementSectionPendingResign,
   mergeAgreementSectionSignature,
   parseAgreementConsentValue,
+  parseAmendmentNotice,
   parseAgreementSectionSignatures,
+  parsePendingResignSectionIds,
   signaturesBySectionId,
 } from "@/lib/admissions/enrollment-agreement-progress";
 import type { AgreementSectionSignature } from "@/lib/admissions/enrollment-checklist-schema";
@@ -78,6 +81,7 @@ type EnrollmentChecklistItemPanelProps = {
   onGoToNextItem?: () => void;
   onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
   onPartialProgress?: (responses: Record<string, unknown>) => Promise<void> | void;
+  initialSectionId?: string;
 };
 
 function buildErrorContext(
@@ -200,6 +204,16 @@ function AlternateAgreementExplainer({
   );
 }
 
+function formatAgreementSignatureDate(signedAt: string): string {
+  const parsed = new Date(signedAt);
+  if (Number.isNaN(parsed.getTime())) return signedAt;
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function DocumentSignInlinePanel({
   C,
   item,
@@ -213,6 +227,7 @@ function DocumentSignInlinePanel({
   onGoToNextItem,
   onComplete,
   onPartialProgress,
+  initialSectionId,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
@@ -226,6 +241,7 @@ function DocumentSignInlinePanel({
   onGoToNextItem?: () => void;
   onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
   onPartialProgress?: (responses: Record<string, unknown>) => Promise<void> | void;
+  initialSectionId?: string;
 }) {
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
   const consentOptions =
@@ -234,6 +250,15 @@ function DocumentSignInlinePanel({
     () => parseAgreementSectionSignatures(existingResponses),
     [existingResponses],
   );
+  const pendingResignSectionIds = useMemo(
+    () => parsePendingResignSectionIds(existingResponses),
+    [existingResponses],
+  );
+  const amendmentNotice = useMemo(
+    () => parseAmendmentNotice(existingResponses),
+    [existingResponses],
+  );
+  const hasAmendmentFlow = pendingResignSectionIds.length > 0;
   const [previewSignatures, setPreviewSignatures] = useState<AgreementSectionSignature[]>([]);
   const [previewCompleted, setPreviewCompleted] = useState(false);
   const isLive = mode === "live";
@@ -246,11 +271,26 @@ function DocumentSignInlinePanel({
   const [sectionIndex, setSectionIndex] = useState(() =>
     instanceStatus === "completed"
       ? Math.max(sections.length - 1, 0)
-      : getAgreementResumeSectionIndex(sections, activeSignatures),
+      : getAgreementInitialSectionIndex(
+          sections,
+          activeSignatures,
+          pendingResignSectionIds,
+          initialSectionId,
+        ),
   );
   const [direction, setDirection] = useState(1);
   const section = sections[sectionIndex];
   const isLastSection = sectionIndex >= sections.length - 1;
+  const isPendingResignSection =
+    section != null &&
+    isAgreementSectionPendingResign(section.id, pendingResignSectionIds);
+  const storedSectionSignature = section ? signatureBySectionId.get(section.id) : undefined;
+  const isReadOnlySignedSection =
+    hasAmendmentFlow &&
+    !isCompleted &&
+    section != null &&
+    storedSectionSignature != null &&
+    !isPendingResignSection;
 
   const expectedSignature = isCompleted
     ? parseStoredSignerName(existingResponses) ||
@@ -284,16 +324,23 @@ function DocumentSignInlinePanel({
   const [error, setError] = useState<string | null>(null);
   const errorContext = buildErrorContext(organizationId, applicationId, instanceId);
   const activeConsent = isLive ? selectedConsent : previewConsent;
-  const needsSignature = !isCompleted;
+  const needsSignature = !isCompleted && !isReadOnlySignedSection;
   const needsConsent =
-    consentOptions.length > 0 && isLastSection && !isCompleted;
+    consentOptions.length > 0 && isLastSection && !isCompleted && !isReadOnlySignedSection;
   const canContinue =
     isCompleted ||
+    isReadOnlySignedSection ||
     ((!needsSignature || Boolean(signature.trim())) &&
       (!needsConsent || Boolean(activeConsent.trim())));
   const isActionDisabled =
     submitting ||
     (isCompleted ? !hasNextIncompleteItem : !canContinue);
+
+  const advanceSection = () => {
+    if (isLastSection) return;
+    setDirection(1);
+    setSectionIndex((idx) => idx + 1);
+  };
 
   const saveCurrentSectionPreview = () => {
     if (!section) return;
@@ -417,6 +464,13 @@ function DocumentSignInlinePanel({
             <h2 className="mt-2 text-lg font-semibold" style={{ color: C.textPrimary }}>
               {section.title}
             </h2>
+            {isPendingResignSection && amendmentNotice ? (
+              <ApplicationStepNotice
+                C={C}
+                body={amendmentNotice}
+                className="mt-4"
+              />
+            ) : null}
             <FormattedDocumentText
               C={C}
               content={section.body}
@@ -448,13 +502,20 @@ function DocumentSignInlinePanel({
             ) : null}
 
             <div className="mt-6">
-              <TypedSignatureField
-                C={C}
-                id={`signature-inline-${item.id}`}
-                value={signature}
-                onChange={setSignature}
-                disabled={isCompleted}
-              />
+              {isReadOnlySignedSection && storedSectionSignature ? (
+                <p className="text-sm" style={{ color: C.textSecondary }}>
+                  Signed by {storedSectionSignature.signerName} on{" "}
+                  {formatAgreementSignatureDate(storedSectionSignature.signedAt)}
+                </p>
+              ) : (
+                <TypedSignatureField
+                  C={C}
+                  id={`signature-inline-${item.id}`}
+                  value={signature}
+                  onChange={setSignature}
+                  disabled={isCompleted}
+                />
+              )}
             </div>
           </motion.div>
         </AnimatePresence>
@@ -490,6 +551,11 @@ function DocumentSignInlinePanel({
                 return;
               }
 
+              if (isReadOnlySignedSection) {
+                advanceSection();
+                return;
+              }
+
               if (!isLive) {
                 saveCurrentSectionPreview();
                 return;
@@ -507,6 +573,8 @@ function DocumentSignInlinePanel({
           >
             {isCompleted ? (
               "Completed"
+            ) : isReadOnlySignedSection ? (
+              "Continue"
             ) : isLastSection ? (
               <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
                 Complete agreement
@@ -1759,6 +1827,7 @@ export default function EnrollmentChecklistItemPanel({
   onGoToNextItem,
   onComplete,
   onPartialProgress,
+  initialSectionId,
 }: EnrollmentChecklistItemPanelProps) {
   const content = useMemo(() => {
     if (isPreviewAlternate) {
@@ -1787,6 +1856,7 @@ export default function EnrollmentChecklistItemPanel({
               onGoToNextItem={onGoToNextItem}
               onComplete={onComplete}
               onPartialProgress={onPartialProgress}
+              initialSectionId={initialSectionId}
             />
           </div>
         </div>
@@ -1839,6 +1909,7 @@ export default function EnrollmentChecklistItemPanel({
             onGoToNextItem={onGoToNextItem}
             onComplete={onComplete}
             onPartialProgress={onPartialProgress}
+            initialSectionId={initialSectionId}
           />
         );
       case "form":

@@ -75,10 +75,21 @@ export default function PublicEnrollmentChecklistClient({
   );
   const activeItemPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [resolvedInitialItemId] = useState(() =>
-    resolveEnrollmentChecklistInitialItemId(checklist.items, checklist.instances, {
-      lastActiveTemplateItemId: checklist.metadata.lastActiveTemplateItemId,
-    }),
+  const itemQueryParam = searchParams.get("item");
+  const sectionQueryParam = searchParams.get("section");
+
+  const resolvedInitialItemId = useMemo(
+    () =>
+      resolveEnrollmentChecklistInitialItemId(checklist.items, instances, {
+        explicitItemId: itemQueryParam ?? undefined,
+        lastActiveTemplateItemId: checklist.metadata.lastActiveTemplateItemId,
+      }),
+    [
+      checklist.items,
+      checklist.metadata.lastActiveTemplateItemId,
+      instances,
+      itemQueryParam,
+    ],
   );
 
   const persistActiveItem = useCallback(
@@ -267,6 +278,7 @@ export default function PublicEnrollmentChecklistClient({
         applicationId={liveChecklist.applicationId}
         combinedPaymentCandidates={combinedPaymentCandidates}
         initialItemId={resolvedInitialItemId ?? undefined}
+        initialSectionId={sectionQueryParam ?? undefined}
         onInstancesChange={previewMode ? undefined : setInstances}
         onActiveItemChange={previewMode ? undefined : persistActiveItem}
         onAllRequiredComplete={previewMode ? undefined : handleAllRequiredComplete}

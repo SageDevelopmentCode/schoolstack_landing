@@ -8,6 +8,8 @@ import {
   buildAgreementResponsesPatch,
   mergeAgreementSectionSignature,
   parseAgreementSectionSignatures,
+  parseAmendmentNotice,
+  parsePendingResignSectionIds,
 } from "./enrollment-agreement-progress";
 import { getEnrollmentChecklistWithItems } from "./enrollment-checklist-items";
 import type {
@@ -1243,6 +1245,184 @@ export async function recomputeChecklistStatus(
   }
 }
 
+export type EnrollmentAgreementAmendment = {
+  applicationId: string;
+  checklistItemInstanceId: string;
+  templateItemId: string;
+  checklistItemLabel: string;
+  amendmentNotice: string;
+  pendingResignSectionIds: string[];
+};
+
+export async function listEnrollmentAgreementAmendmentsForApplications(
+  supabase: SupabaseClient,
+  organizationId: string,
+  applicationIds: string[],
+): Promise<Map<string, EnrollmentAgreementAmendment[]>> {
+  const result = new Map<string, EnrollmentAgreementAmendment[]>();
+  const uniqueIds = [...new Set(applicationIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return result;
+
+  for (const applicationId of uniqueIds) {
+    result.set(applicationId, []);
+  }
+
+  const { data: checklistRows, error: checklistError } = await supabase
+    .from("enrollment_checklists")
+    .select("id, application_id, template_id")
+    .eq("organization_id", organizationId)
+    .in("application_id", uniqueIds);
+
+  if (checklistError) throw checklistError;
+  if (!checklistRows?.length) return result;
+
+  const checklistIds = checklistRows.map((row) => String(row.id));
+  const templateIds = [...new Set(checklistRows.map((row) => String(row.template_id)))];
+
+  const templateLabelByItemId = new Map<string, string>();
+  for (const templateId of templateIds) {
+    const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
+    if (!loaded) continue;
+    for (const item of loaded.items) {
+      templateLabelByItemId.set(item.id, item.label);
+    }
+  }
+
+  const { data: instanceRows, error: instanceError } = await supabase
+    .from("enrollment_checklist_items")
+    .select("id, checklist_id, template_item_id, responses")
+    .eq("organization_id", organizationId)
+    .in("checklist_id", checklistIds);
+
+  if (instanceError) throw instanceError;
+
+  const checklistIdToApplicationId = new Map(
+    checklistRows.map((row) => [String(row.id), String(row.application_id)]),
+  );
+
+  for (const row of instanceRows ?? []) {
+    const responses =
+      row.responses &&
+      typeof row.responses === "object" &&
+      !Array.isArray(row.responses)
+        ? (row.responses as Record<string, unknown>)
+        : {};
+
+    const pendingResignSectionIds = parsePendingResignSectionIds(responses);
+    const amendmentNotice = parseAmendmentNotice(responses);
+    if (pendingResignSectionIds.length === 0 || !amendmentNotice) continue;
+
+    const applicationId = checklistIdToApplicationId.get(String(row.checklist_id));
+    if (!applicationId) continue;
+
+    const templateItemId = String(row.template_item_id);
+    const existing = result.get(applicationId) ?? [];
+    existing.push({
+      applicationId,
+      checklistItemInstanceId: String(row.id),
+      templateItemId,
+      checklistItemLabel:
+        templateLabelByItemId.get(templateItemId) ?? "Enrollment agreement",
+      amendmentNotice,
+      pendingResignSectionIds,
+    });
+    result.set(applicationId, existing);
+  }
+
+  return result;
+}
+
+export async function requestEnrollmentAgreementResign(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    documentTemplateId: string;
+    sectionIds: string[];
+    message?: string;
+  },
+): Promise<{ affectedInstanceCount: number }> {
+  const { organizationId, documentTemplateId, sectionIds, message } = input;
+  const uniqueSectionIds = [...new Set(sectionIds.filter(Boolean))];
+  if (uniqueSectionIds.length === 0) {
+    throw new EnrollmentMaterializationError(
+      "At least one agreement section is required.",
+      "invalid_section",
+      400,
+    );
+  }
+
+  const amendmentNotice =
+    message?.trim() ||
+    "An enrollment agreement section was updated. Please review and re-sign.";
+
+  const { data: templateItems, error: templateItemsError } = await supabase
+    .from("enrollment_checklist_template_items")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("document_template_id", documentTemplateId);
+
+  if (templateItemsError) throw templateItemsError;
+
+  const templateItemIds = (templateItems ?? []).map((row) => String(row.id));
+  if (templateItemIds.length === 0) {
+    return { affectedInstanceCount: 0 };
+  }
+
+  const { data: instances, error: instancesError } = await supabase
+    .from("enrollment_checklist_items")
+    .select("id, checklist_id, responses, status")
+    .eq("organization_id", organizationId)
+    .in("template_item_id", templateItemIds)
+    .eq("status", "completed");
+
+  if (instancesError) throw instancesError;
+
+  let affectedInstanceCount = 0;
+  const affectedChecklistIds = new Set<string>();
+
+  for (const instance of instances ?? []) {
+    const existingResponses =
+      instance.responses &&
+      typeof instance.responses === "object" &&
+      !Array.isArray(instance.responses)
+        ? (instance.responses as Record<string, unknown>)
+        : {};
+
+    const existingSignatures = parseAgreementSectionSignatures(existingResponses);
+    const filteredSignatures = existingSignatures.filter(
+      (signature) => !uniqueSectionIds.includes(signature.sectionId),
+    );
+
+    const nextResponses: Record<string, unknown> = {
+      ...existingResponses,
+      sectionSignatures: filteredSignatures,
+      amendmentNotice,
+      pendingResignSectionIds: uniqueSectionIds,
+    };
+
+    const { error: updateError } = await supabase
+      .from("enrollment_checklist_items")
+      .update({
+        status: "in_progress",
+        completed_at: null,
+        completed_by_user_id: null,
+        responses: nextResponses,
+      })
+      .eq("id", instance.id);
+
+    if (updateError) throw updateError;
+
+    affectedInstanceCount += 1;
+    affectedChecklistIds.add(String(instance.checklist_id));
+  }
+
+  for (const checklistId of affectedChecklistIds) {
+    await recomputeChecklistStatus(supabase, checklistId);
+  }
+
+  return { affectedInstanceCount };
+}
+
 async function finalizeEnrollmentIfComplete(
   supabase: SupabaseClient,
   checklistId: string,
@@ -1488,7 +1668,17 @@ export async function saveAgreementSectionSignature(
     );
   }
 
-  if (instance.status === "completed") {
+  const existingResponses =
+    instance.responses &&
+    typeof instance.responses === "object" &&
+    !Array.isArray(instance.responses)
+      ? (instance.responses as Record<string, unknown>)
+      : {};
+
+  const pendingResignSectionIds = parsePendingResignSectionIds(existingResponses);
+  const isResigningSection = pendingResignSectionIds.includes(sectionId);
+
+  if (instance.status === "completed" && !isResigningSection) {
     throw new EnrollmentMaterializationError(
       "This agreement has already been completed.",
       "already_completed",
@@ -1503,7 +1693,8 @@ export async function saveAgreementSectionSignature(
       type,
       document_templates (
         kind,
-        content
+        content,
+        content_revision
       )
     `,
     )
@@ -1520,8 +1711,8 @@ export async function saveAgreementSectionSignature(
   }
 
   const documentTemplate = templateItem.document_templates as
-    | { kind?: string; content?: unknown }
-    | { kind?: string; content?: unknown }[]
+    | { kind?: string; content?: unknown; content_revision?: number }
+    | { kind?: string; content?: unknown; content_revision?: number }[]
     | null;
   const documentRow = Array.isArray(documentTemplate)
     ? documentTemplate[0]
@@ -1570,13 +1761,6 @@ export async function saveAgreementSectionSignature(
   const checklistRow = Array.isArray(checklist) ? checklist[0] : checklist;
   const checklistId = String(instance.checklist_id);
 
-  const existingResponses =
-    instance.responses &&
-    typeof instance.responses === "object" &&
-    !Array.isArray(instance.responses)
-      ? (instance.responses as Record<string, unknown>)
-      : {};
-
   const existingSignatures = parseAgreementSectionSignatures(existingResponses);
   const sectionSignatures = mergeAgreementSectionSignature(
     existingSignatures,
@@ -1584,6 +1768,13 @@ export async function saveAgreementSectionSignature(
     trimmedSignerName,
   );
   const isComplete = allAgreementSectionsSigned(sections, sectionSignatures);
+  const nextPendingResignSectionIds = isComplete
+    ? []
+    : pendingResignSectionIds.filter((id) => id !== sectionId);
+  const signedContentRevision =
+    typeof documentRow.content_revision === "number"
+      ? documentRow.content_revision
+      : null;
 
   if (isComplete && consentOptions.length > 0) {
     if (
@@ -1598,14 +1789,29 @@ export async function saveAgreementSectionSignature(
     }
   }
 
+  const responsesPatch = buildAgreementResponsesPatch(
+    existingResponses,
+    sectionSignatures,
+    isComplete ? trimmedSignerName : undefined,
+    isComplete && trimmedConsentValue ? trimmedConsentValue : undefined,
+    {
+      clearAmendment: isComplete,
+      signedContentRevision:
+        isComplete && signedContentRevision != null ? signedContentRevision : undefined,
+    },
+  );
+
+  if (nextPendingResignSectionIds.length > 0) {
+    responsesPatch.pendingResignSectionIds = nextPendingResignSectionIds;
+    const existingNotice = parseAmendmentNotice(existingResponses);
+    if (existingNotice) {
+      responsesPatch.amendmentNotice = existingNotice;
+    }
+  }
+
   const patch: Record<string, unknown> = {
     status: isComplete ? "completed" : "in_progress",
-    responses: buildAgreementResponsesPatch(
-      existingResponses,
-      sectionSignatures,
-      isComplete ? trimmedSignerName : undefined,
-      isComplete && trimmedConsentValue ? trimmedConsentValue : undefined,
-    ),
+    responses: responsesPatch,
   };
 
   if (isComplete) {

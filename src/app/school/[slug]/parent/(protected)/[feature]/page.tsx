@@ -10,6 +10,8 @@ import {
   listFamilyChildrenForHome,
 } from "@/lib/admissions/parent-portal-access";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
+import { listEnrollmentAgreementAmendmentsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
+import { buildEnrollmentAgreementAmendmentBannerItems } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
 import { loadParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import { loadParentMessagesPageData } from "@/lib/messages/load-messages-page-data";
@@ -125,6 +127,20 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
             })
           : Promise.resolve([]),
       ]);
+    const amendmentsByApplicationId = Object.fromEntries(
+      (
+        await listEnrollmentAgreementAmendmentsForApplications(
+          supabase,
+          org.id,
+          familyChildren.map((child) => child.applicationId),
+        )
+      ).entries(),
+    );
+    const enrollmentAmendmentBannerItems = buildEnrollmentAgreementAmendmentBannerItems({
+      schoolSlug: slug,
+      familyChildren,
+      amendmentsByApplicationId,
+    });
     const quickActions = buildParentQuickActions(slug, org.features);
 
     return (
@@ -137,6 +153,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           quickActions={quickActions}
           onboardingItems={onboardingItems}
           upcomingEvents={upcomingEvents}
+          enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
         />
       </SchoolParentPageShell>
     );
