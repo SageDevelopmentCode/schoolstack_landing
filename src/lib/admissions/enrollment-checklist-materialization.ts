@@ -41,6 +41,11 @@ import { tryAutoAssignTuitionForEnrollment } from "@/lib/tuition/enrollment-hook
 
 const ENROLLED_STUDENT_STATUS = "active" as const;
 
+export type NewlyCompletedEnrollment = {
+  applicationId: string;
+  enrollmentId: string;
+};
+
 export class EnrollmentMaterializationError extends Error {
   code: string;
   status: number;
@@ -1192,7 +1197,7 @@ export async function listEnrollmentProgressForApplications(
 export async function recomputeChecklistStatus(
   supabase: SupabaseClient,
   checklistId: string,
-): Promise<void> {
+): Promise<NewlyCompletedEnrollment | null> {
   const { data: checklist, error: checklistError } = await supabase
     .from("enrollment_checklists")
     .select("id, template_id, metadata, application_id")
@@ -1200,13 +1205,13 @@ export async function recomputeChecklistStatus(
     .maybeSingle();
 
   if (checklistError) throw checklistError;
-  if (!checklist) return;
+  if (!checklist) return null;
 
   const loaded = await getEnrollmentChecklistWithItems(
     supabase,
     String(checklist.template_id),
   );
-  if (!loaded) return;
+  if (!loaded) return null;
 
   const metadata = parseChecklistMetadata(checklist.metadata);
   const resolutions = metadata.variantResolutions ?? {};
@@ -1241,8 +1246,10 @@ export async function recomputeChecklistStatus(
     .eq("id", checklistId);
 
   if (allComplete) {
-    await finalizeEnrollmentIfComplete(supabase, checklistId);
+    return finalizeEnrollmentIfComplete(supabase, checklistId);
   }
+
+  return null;
 }
 
 export type EnrollmentAgreementAmendment = {
@@ -1426,7 +1433,7 @@ export async function requestEnrollmentAgreementResign(
 async function finalizeEnrollmentIfComplete(
   supabase: SupabaseClient,
   checklistId: string,
-): Promise<void> {
+): Promise<NewlyCompletedEnrollment | null> {
   const { data: checklist, error: checklistError } = await supabase
     .from("enrollment_checklists")
     .select("id, enrollment_id, application_id, organization_id")
@@ -1434,7 +1441,7 @@ async function finalizeEnrollmentIfComplete(
     .maybeSingle();
 
   if (checklistError) throw checklistError;
-  if (!checklist?.enrollment_id) return;
+  if (!checklist?.enrollment_id) return null;
 
   const enrollmentId = String(checklist.enrollment_id);
 
@@ -1445,7 +1452,7 @@ async function finalizeEnrollmentIfComplete(
     .maybeSingle();
 
   if (enrollmentError) throw enrollmentError;
-  if (!enrollment) return;
+  if (!enrollment) return null;
 
   let becameEnrolled = false;
 
@@ -1505,6 +1512,15 @@ async function finalizeEnrollmentIfComplete(
       });
     }
   }
+
+  if (becameEnrolled && checklist.application_id) {
+    return {
+      applicationId: String(checklist.application_id),
+      enrollmentId,
+    };
+  }
+
+  return null;
 }
 
 export async function completeChecklistPaymentFromWebhook(
@@ -1516,7 +1532,7 @@ export async function completeChecklistPaymentFromWebhook(
     checkoutSessionId?: string;
     paymentIntentId?: string;
   },
-): Promise<void> {
+): Promise<NewlyCompletedEnrollment | null> {
   const { instanceId, organizationId, checkoutSessionId, paymentIntentId } = input;
 
   const { data: instance, error: instanceError } = await supabase
@@ -1536,7 +1552,7 @@ export async function completeChecklistPaymentFromWebhook(
   }
 
   if (instance.payment_status === "paid" && instance.status === "completed") {
-    return;
+    return null;
   }
 
   const existingResponses =
@@ -1560,7 +1576,7 @@ export async function completeChecklistPaymentFromWebhook(
 
   if (paymentUpdateError) throw paymentUpdateError;
 
-  await completeChecklistItem(supabase, {
+  return completeChecklistItem(supabase, {
     instanceId,
     actorUserId: input.actorUserId ?? undefined,
     organizationId,
@@ -1618,7 +1634,11 @@ export async function saveAgreementSectionSignature(
     actorUserId?: string;
     organizationId: string;
   },
-): Promise<{ status: ChecklistItemInstanceStatus; responses: Record<string, unknown> }> {
+): Promise<{
+  status: ChecklistItemInstanceStatus;
+  responses: Record<string, unknown>;
+  newlyCompletedEnrollment: NewlyCompletedEnrollment | null;
+}> {
   const { instanceId, sectionId, signerName, consentValue, actorUserId, organizationId } =
     input;
   const trimmedSignerName = signerName.trim();
@@ -1831,7 +1851,7 @@ export async function saveAgreementSectionSignature(
 
   if (updateError) throw updateError;
 
-  await recomputeChecklistStatus(supabase, checklistId);
+  const newlyCompletedEnrollment = await recomputeChecklistStatus(supabase, checklistId);
 
   if (isComplete) {
     void logActivityEvent(supabase, {
@@ -1855,6 +1875,7 @@ export async function saveAgreementSectionSignature(
   return {
     status: isComplete ? "completed" : "in_progress",
     responses: patch.responses as Record<string, unknown>,
+    newlyCompletedEnrollment,
   };
 }
 
@@ -1999,7 +2020,7 @@ export async function completeChecklistItem(
     actorUserId?: string;
     organizationId: string;
   },
-): Promise<void> {
+): Promise<NewlyCompletedEnrollment | null> {
   const { instanceId, responses, signerName, actorUserId, organizationId } = input;
 
   const { data: instance, error: instanceError } = await supabase
@@ -2109,8 +2130,6 @@ export async function completeChecklistItem(
 
   if (updateError) throw updateError;
 
-  await recomputeChecklistStatus(supabase, checklistId);
-
   void logActivityEvent(supabase, {
     organizationId,
     actorType: "parent",
@@ -2127,6 +2146,8 @@ export async function completeChecklistItem(
       templateItemId: instance.template_item_id,
     },
   });
+
+  return recomputeChecklistStatus(supabase, checklistId);
 }
 
 export async function getStartEnrollmentPreview(

@@ -12,6 +12,7 @@ import {
   submitApplicationAfterFeePaid,
 } from "@/lib/admissions/application-submit";
 import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
+import { fireEnrollmentCompletedNotificationsIfNeeded } from "@/lib/admissions/fire-enrollment-completed-notifications";
 import { settleTuitionPayment } from "@/lib/tuition/payment-settlement";
 import {
   sendCombinedTuitionPaymentReceiptNotifications,
@@ -308,12 +309,13 @@ async function handleCombinedEnrollmentChecklistCheckoutCompleted(
           .filter((instanceId): instanceId is string => Boolean(instanceId));
 
   for (const instanceId of instanceIds) {
-    await completeChecklistPaymentFromWebhook(admin, {
+    const newlyCompletedEnrollment = await completeChecklistPaymentFromWebhook(admin, {
       instanceId,
       organizationId,
       checkoutSessionId,
       paymentIntentId,
     });
+    fireEnrollmentCompletedNotificationsIfNeeded(admin, newlyCompletedEnrollment);
   }
 
   if (!newlySucceededAny) {
@@ -379,12 +381,13 @@ async function handleEnrollmentChecklistCheckoutCompleted(
     }
   }
 
-  await completeChecklistPaymentFromWebhook(admin, {
+  const newlyCompletedEnrollment = await completeChecklistPaymentFromWebhook(admin, {
     instanceId: metadata.checklist_item_id as string,
     organizationId: metadata.organization_id as string,
     checkoutSessionId,
     paymentIntentId,
   });
+  fireEnrollmentCompletedNotificationsIfNeeded(admin, newlyCompletedEnrollment);
 
   if (!newlySucceeded) {
     return;

@@ -4,6 +4,7 @@ import {
   sendTuitionInvoiceEmail,
 } from "@/lib/emails";
 import { SITE_URL } from "@/lib/site";
+import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import { getChargeById, markChargeSent } from "./charges";
 import { formatCents } from "./pricing";
 import {
@@ -47,7 +48,7 @@ export async function sendTuitionInvoice(
     await Promise.all([
       supabase
         .from("families")
-        .select("name, primary_email")
+        .select("name")
         .eq("id", charge.familyId)
         .maybeSingle(),
       supabase
@@ -60,11 +61,11 @@ export async function sendTuitionInvoice(
   if (familyError) throw familyError;
   if (orgError) throw orgError;
 
-  const email = family?.primary_email?.trim();
+  const emails = await loadFamilyNotificationEmails(supabase, charge.familyId);
   const orgSlug = String(org?.slug ?? "");
   let emailed = false;
 
-  if (email && orgSlug) {
+  if (emails.length > 0 && orgSlug) {
     const billingUrl = buildTuitionBillingDeepLink(orgSlug, charge.id);
     const html = buildTuitionInvoiceHtml({
       familyName: String(family?.name ?? "Family"),
@@ -75,12 +76,14 @@ export async function sendTuitionInvoice(
       billingUrl,
     });
 
-    const result = await sendTuitionInvoiceEmail({
-      to: email,
-      schoolName: String(org?.name ?? "Your school"),
-      html,
-    });
-    emailed = result.ok;
+    for (const email of emails) {
+      const result = await sendTuitionInvoiceEmail({
+        to: email,
+        schoolName: String(org?.name ?? "Your school"),
+        html,
+      });
+      if (result.ok) emailed = true;
+    }
   }
 
   if (!options?.skip) {
@@ -89,7 +92,7 @@ export async function sendTuitionInvoice(
       amountCents: charge.amountCents,
       chargeLabel: charge.label,
       familyName: family?.name ? String(family.name) : undefined,
-      recipientEmail: email ?? undefined,
+      recipientEmail: emails[0] ?? undefined,
     });
     void logTuitionActivity(supabase, {
       organizationId: charge.organizationId,

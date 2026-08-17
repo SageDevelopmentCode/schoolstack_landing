@@ -4,6 +4,7 @@ import {
   EnrollmentMaterializationError,
   markApplicationAsEnrolled,
 } from "@/lib/admissions/enrollment-checklist-materialization";
+import { fireEnrollmentCompletedNotificationsIfNeeded } from "@/lib/admissions/fire-enrollment-completed-notifications";
 import { apiError } from "@/lib/api/route-errors";
 import {
   requireSchoolAdminUser,
@@ -72,6 +73,8 @@ export async function POST(request: Request, context: RouteContext) {
       note: body.note?.trim() || undefined,
       completeChecklist: body.completeChecklist,
     });
+
+    fireEnrollmentCompletedNotificationsIfNeeded(admin, result);
 
     return NextResponse.json(result);
   } catch (error) {

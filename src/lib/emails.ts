@@ -266,6 +266,71 @@ export async function sendApplicationSubmittedConfirmation(payload: {
   }
 }
 
+export function buildEnrollmentCompletedConfirmationHtml(payload: {
+  name: string;
+  schoolName: string;
+  studentName: string;
+  programName?: string;
+  parentPortalUrl: string;
+  parentPortalEnabled: boolean;
+}): string {
+  const portalLabel = payload.parentPortalEnabled
+    ? "Open parent portal"
+    : "View apply dashboard";
+  const portalCopy = payload.parentPortalEnabled
+    ? "You can now sign in to your parent portal for billing, messages, calendar, and other family updates."
+    : "You can sign in to your apply dashboard to view family details and school updates.";
+
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Student", value: payload.studentName },
+  ];
+  if (payload.programName) {
+    details.push({ label: "Program", value: payload.programName });
+  }
+
+  return composeEmail({
+    preheader: `${payload.studentName} is enrolled at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Enrollment Confirmed")}
+      ${emailHeading(`Welcome, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `${escapeHtml(payload.studentName)} is now enrolled at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailParagraph(portalCopy)}
+      ${emailMutedParagraph(
+        "Family notification emails (applications, billing, messages, and more) go to the addresses in your notification settings. You can update those anytime in the parent portal.",
+      )}
+      ${emailCta({ label: portalLabel, href: payload.parentPortalUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendEnrollmentCompletedConfirmation(payload: {
+  name: string;
+  email: string;
+  schoolName: string;
+  studentName: string;
+  programName?: string;
+  parentPortalUrl: string;
+  parentPortalEnabled: boolean;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildEnrollmentCompletedConfirmationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Enrollment confirmed — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Enrollment completed confirmation email failed:", result.error);
+  }
+}
+
 export function buildApplicationSubmittedOwnerNotificationHtml(payload: {
   schoolName: string;
   formTitle: string;

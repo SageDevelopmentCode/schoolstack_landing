@@ -15,35 +15,39 @@ async function resolvePayerContact(
   input: {
     payerUserId: string | null;
     application: {
+      family_id: string | null;
       created_by_user_id: string | null;
       primary_guardian_id: string | null;
     };
   },
 ): Promise<ApplicantContact | null> {
+  const contact = await resolveApplicantContact(admin, input.application);
+  if (!contact) return null;
+
   if (input.payerUserId) {
     const { data: userData, error: userError } = await admin.auth.admin.getUserById(
       input.payerUserId,
     );
 
-    if (userError) throw userError;
-    const user = userData.user;
-    if (user?.email) {
-      const metadata = user.user_metadata ?? {};
+    if (!userError && userData.user) {
+      const metadata = userData.user.user_metadata ?? {};
       const firstName =
         typeof metadata.first_name === "string" ? metadata.first_name.trim() : "";
       const lastName =
         typeof metadata.last_name === "string" ? metadata.last_name.trim() : "";
-
-      return {
-        email: user.email.trim().toLowerCase(),
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
-        displayName: [firstName, lastName].filter(Boolean).join(" ") || user.email,
-      };
+      const fullName = [firstName, lastName].filter(Boolean).join(" ");
+      if (fullName) {
+        return {
+          ...contact,
+          firstName: firstName || contact.firstName,
+          lastName: lastName || contact.lastName,
+          displayName: fullName,
+        };
+      }
     }
   }
 
-  return resolveApplicantContact(admin, input.application);
+  return contact;
 }
 
 export async function sendPaymentCompletedNotifications(
@@ -63,7 +67,7 @@ export async function sendPaymentCompletedNotifications(
 
     const { data: application, error: applicationError } = await admin
       .from("applications")
-      .select("id, created_by_user_id, primary_guardian_id")
+      .select("id, family_id, created_by_user_id, primary_guardian_id")
       .eq("id", payment.applicationId)
       .maybeSingle();
 
@@ -120,18 +124,20 @@ export async function sendPaymentCompletedNotifications(
         lastName: contact.lastName,
         paidAt,
       }),
-      sendPaymentReceiptConfirmation({
-        name: contact.displayName,
-        email: contact.email,
-        schoolName,
-        label,
-        amountCents: payment.amountCents,
-        chargedAmountCents,
-        processingFeeCents: payment.processingFeeCents,
-        paymentMethodLabel,
-        paidAt,
-        applyDashboardUrl: `${SITE_URL}/school/${schoolSlug}/apply`,
-      }),
+      ...contact.emails.map((email) =>
+        sendPaymentReceiptConfirmation({
+          name: contact.displayName,
+          email,
+          schoolName,
+          label,
+          amountCents: payment.amountCents,
+          chargedAmountCents,
+          processingFeeCents: payment.processingFeeCents,
+          paymentMethodLabel,
+          paidAt,
+          applyDashboardUrl: `${SITE_URL}/school/${schoolSlug}/apply`,
+        }),
+      ),
     ]);
     await logSettledNotificationFailures(admin, {
       organizationId: payment.organizationId,

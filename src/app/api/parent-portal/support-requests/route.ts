@@ -2,8 +2,10 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { notifyAdminSupportRequest } from "@/lib/discord";
 import { sendAdminSupportRequestConfirmation } from "@/lib/emails";
+import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import {
   MAX_SUPPORT_REQUEST_FILE_BYTES,
   MAX_SUPPORT_REQUEST_FILES,
@@ -264,11 +266,27 @@ export async function POST(request: Request) {
   }
 
   try {
-    await sendAdminSupportRequestConfirmation({
-      submitterEmail,
-      schoolName: organization.name,
-      topic,
-    });
+    const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
+    const familyId = familyIds[0];
+    const notificationEmails = familyId
+      ? await loadFamilyNotificationEmails(admin, familyId)
+      : [];
+    const confirmationEmails =
+      notificationEmails.length > 0
+        ? notificationEmails
+        : submitterEmail
+          ? [submitterEmail]
+          : [];
+
+    await Promise.all(
+      confirmationEmails.map((email) =>
+        sendAdminSupportRequestConfirmation({
+          submitterEmail: email,
+          schoolName: organization.name,
+          topic,
+        }),
+      ),
+    );
   } catch (err) {
     console.error("Confirmation email error:", err);
   }
