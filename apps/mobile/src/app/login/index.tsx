@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { LoginFormCard } from '@/components/login-form-card';
+import { SchoolLoginExperience } from '@/components/school-login-experience';
 import { Brand } from '@/constants/theme';
 
 export default function LoginScreen() {
@@ -12,7 +12,7 @@ export default function LoginScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}>
-        <LoginFormCard />
+        <SchoolLoginExperience />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
