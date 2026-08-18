@@ -45,6 +45,13 @@ e2e/.seed-manifest.json
 # vercel
 .vercel
 
+# expo / react native
+.expo/
+apps/mobile/dist/
+apps/mobile/ios/Pods/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
