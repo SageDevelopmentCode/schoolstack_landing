@@ -38,6 +38,8 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="login" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="portal" options={{ animation: 'fade' }} />
+        <Stack.Screen name="platform-admin" options={{ animation: 'fade' }} />
+        <Stack.Screen name="school-admin" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </AuthProvider>
   );

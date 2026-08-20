@@ -138,13 +138,13 @@ export async function resolvePortalForSchool(
 export function getPortalLabel(portalType: PortalType, schoolName?: string | null): string {
   switch (portalType) {
     case 'platform_admin':
-      return 'MudKitchen Admin (placeholder)';
+      return 'MudKitchen Admin';
     case 'school_admin':
-      return `${schoolName ?? 'School'} Admin (placeholder)`;
+      return `${schoolName ?? 'School'} Admin`;
     case 'teacher':
-      return `${schoolName ?? 'School'} Staff Portal (placeholder)`;
+      return `${schoolName ?? 'School'} Staff Portal`;
     case 'parent_apply':
-      return `${schoolName ?? 'School'} Family Portal (placeholder)`;
+      return `${schoolName ?? 'School'} Family Portal`;
   }
 }
 

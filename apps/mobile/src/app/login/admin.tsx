@@ -58,7 +58,7 @@ export default function AdminLoginScreen() {
 
       const portal = await completePlatformAdminSignIn(user.id);
       await setResolvedPortal(portal);
-      router.replace('/portal');
+      router.replace('/platform-admin/organizations');
     } catch (submitError) {
       await supabase.auth.signOut();
       setError(

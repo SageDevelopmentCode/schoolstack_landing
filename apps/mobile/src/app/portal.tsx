@@ -18,12 +18,32 @@ export default function PortalScreen() {
   const { user, portalType, selectedSchool, isLoading, signOut } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && (!user || !portalType)) {
-      router.replace('/login');
+    if (isLoading || !user || !portalType) {
+      if (!isLoading && (!user || !portalType)) {
+        router.replace('/login');
+      }
+      return;
     }
-  }, [isLoading, user, portalType, router]);
+
+    if (portalType === 'platform_admin') {
+      router.replace('/platform-admin/organizations');
+      return;
+    }
+
+    if (portalType === 'school_admin' && selectedSchool) {
+      router.replace(`/school-admin/${selectedSchool.slug}/dashboard`);
+    }
+  }, [isLoading, user, portalType, selectedSchool, router]);
 
   if (isLoading || !user || !portalType) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator color={Brand.accent} />
+      </SafeAreaView>
+    );
+  }
+
+  if (portalType === 'platform_admin' || portalType === 'school_admin') {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color={Brand.accent} />

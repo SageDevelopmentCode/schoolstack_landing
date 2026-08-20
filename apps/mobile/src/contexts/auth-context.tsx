@@ -1,5 +1,5 @@
-import type { Session, User } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
+import type { Session, User } from '@supabase/supabase-js';
 import {
   createContext,
   useCallback,
@@ -17,26 +17,35 @@ import {
   type ResolvedPortal,
 } from '@/lib/auth/resolve-portal';
 import type { LiveOrganization } from '@/lib/organizations';
+import { normalizeStoredOrganization } from '@/lib/organizations';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const PORTAL_TYPE_KEY = 'mobile_auth_portal_type';
 const SELECTED_SCHOOL_KEY = 'mobile_auth_selected_school';
+const PLATFORM_ADMIN_SESSION_KEY = 'mobile_auth_platform_admin_session';
 
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   portalType: PortalType | null;
   selectedSchool: LiveOrganization | null;
+  isPlatformAdminSession: boolean;
   isLoading: boolean;
   setResolvedPortal: (portal: ResolvedPortal) => Promise<void>;
+  enterSchoolAsPlatformAdmin: (school: LiveOrganization) => Promise<void>;
+  exitSchoolAdmin: () => Promise<void>;
   signOut: () => Promise<void>;
   restorePortalState: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-async function persistPortalState(portal: ResolvedPortal) {
+async function persistPortalState(portal: ResolvedPortal, isPlatformAdminSession: boolean) {
   await SecureStore.setItemAsync(PORTAL_TYPE_KEY, portal.portalType);
+  await SecureStore.setItemAsync(
+    PLATFORM_ADMIN_SESSION_KEY,
+    isPlatformAdminSession ? 'true' : 'false',
+  );
   if (portal.school) {
     await SecureStore.setItemAsync(SELECTED_SCHOOL_KEY, JSON.stringify(portal.school));
   } else {
@@ -48,22 +57,25 @@ async function clearPortalState() {
   await Promise.all([
     SecureStore.deleteItemAsync(PORTAL_TYPE_KEY),
     SecureStore.deleteItemAsync(SELECTED_SCHOOL_KEY),
+    SecureStore.deleteItemAsync(PLATFORM_ADMIN_SESSION_KEY),
   ]);
 }
 
 async function readPersistedPortalState(): Promise<{
   portalType: PortalType | null;
   selectedSchool: LiveOrganization | null;
+  isPlatformAdminSession: boolean;
 }> {
-  const [portalType, schoolJson] = await Promise.all([
+  const [portalType, schoolJson, platformAdminSession] = await Promise.all([
     SecureStore.getItemAsync(PORTAL_TYPE_KEY),
     SecureStore.getItemAsync(SELECTED_SCHOOL_KEY),
+    SecureStore.getItemAsync(PLATFORM_ADMIN_SESSION_KEY),
   ]);
 
   let selectedSchool: LiveOrganization | null = null;
   if (schoolJson) {
     try {
-      selectedSchool = JSON.parse(schoolJson) as LiveOrganization;
+      selectedSchool = normalizeStoredOrganization(JSON.parse(schoolJson) as LiveOrganization);
     } catch {
       selectedSchool = null;
     }
@@ -72,6 +84,7 @@ async function readPersistedPortalState(): Promise<{
   return {
     portalType: portalType as PortalType | null,
     selectedSchool,
+    isPlatformAdminSession: platformAdminSession === 'true',
   };
 }
 
@@ -81,12 +94,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [portalType, setPortalType] = useState<PortalType | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<LiveOrganization | null>(null);
+  const [isPlatformAdminSession, setIsPlatformAdminSession] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const restorePortalState = useCallback(async () => {
     const persisted = await readPersistedPortalState();
     setPortalType(persisted.portalType);
     setSelectedSchool(persisted.selectedSchool);
+    setIsPlatformAdminSession(persisted.isPlatformAdminSession);
   }, []);
 
   useEffect(() => {
@@ -124,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!nextSession) {
         setPortalType(null);
         setSelectedSchool(null);
+        setIsPlatformAdminSession(false);
         void clearPortalState();
       }
     });
@@ -135,15 +151,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [restorePortalState, supabase.auth]);
 
   const setResolvedPortal = useCallback(async (portal: ResolvedPortal) => {
+    const platformAdminSession = portal.portalType === 'platform_admin';
     setPortalType(portal.portalType);
     setSelectedSchool(portal.school);
-    await persistPortalState(portal);
+    setIsPlatformAdminSession(platformAdminSession);
+    await persistPortalState(portal, platformAdminSession);
+  }, []);
+
+  const enterSchoolAsPlatformAdmin = useCallback(async (school: LiveOrganization) => {
+    const portal: ResolvedPortal = {
+      portalType: 'school_admin',
+      school,
+    };
+    setPortalType(portal.portalType);
+    setSelectedSchool(portal.school);
+    setIsPlatformAdminSession(true);
+    await persistPortalState(portal, true);
+  }, []);
+
+  const exitSchoolAdmin = useCallback(async () => {
+    const portal: ResolvedPortal = {
+      portalType: 'platform_admin',
+      school: null,
+    };
+    setPortalType(portal.portalType);
+    setSelectedSchool(portal.school);
+    setIsPlatformAdminSession(true);
+    await persistPortalState(portal, true);
   }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setPortalType(null);
     setSelectedSchool(null);
+    setIsPlatformAdminSession(false);
     await clearPortalState();
   }, [supabase.auth]);
 
@@ -153,8 +194,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       portalType,
       selectedSchool,
+      isPlatformAdminSession,
       isLoading,
       setResolvedPortal,
+      enterSchoolAsPlatformAdmin,
+      exitSchoolAdmin,
       signOut,
       restorePortalState,
     }),
@@ -163,8 +207,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       portalType,
       selectedSchool,
+      isPlatformAdminSession,
       isLoading,
       setResolvedPortal,
+      enterSchoolAsPlatformAdmin,
+      exitSchoolAdmin,
       signOut,
       restorePortalState,
     ],
