@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 
-const FLOATING_TAB_BAR_HEIGHT = 88;
+const FLOATING_TAB_BAR_HEIGHT = 56;
 
 function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/submissions\/[^/]+$/.test(pathname)) return null;
@@ -105,11 +105,13 @@ function SchoolAdminLayoutContent() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style="dark" />
-      <SchoolAdminHeader
-        organization={organization}
-        showBackToOrganizations={isPlatformAdminSession && showTabBar}
-        onBackToOrganizations={handleBackToOrganizations}
-      />
+      {isPlatformAdminSession ? (
+        <SchoolAdminHeader
+          organization={organization}
+          showBackToOrganizations={showTabBar}
+          onBackToOrganizations={handleBackToOrganizations}
+        />
+      ) : null}
       <View
         style={[
           styles.content,

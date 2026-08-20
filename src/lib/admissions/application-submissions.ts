@@ -11,6 +11,12 @@ import {
   type EnrollmentProgressSummary,
 } from "./enrollment-checklist-materialization";
 import { listScheduledVisitsForApplications } from "./admissions-booking";
+import {
+  buildApplicationFormSteps,
+  computeApplicationFormStepStatuses,
+  parseApplicationFormStepIndex,
+  summarizeApplicationFormProgress,
+} from "./application-form-steps";
 import { applicationStatusLabel, FEE_STATUS_LABELS } from "./application-status-ui";
 import type { ApplicationFormSchema } from "./application-form-schema";
 import { parseApplicationFormFeeConfig, parseApplicationFormPostSubmitConfig } from "./application-form-schema";
@@ -24,6 +30,12 @@ const STUDENT_NAME_KEYS = [
   "child_name",
   "first_name",
 ];
+
+export type ApplicationProgressSummary = {
+  completed: number;
+  total: number;
+  label: string;
+};
 
 export type AdminApplicationSubmission = {
   id: string;
@@ -39,6 +51,7 @@ export type AdminApplicationSubmission = {
   studentLabel: string | null;
   stepIndex: number;
   totalSteps: number;
+  applicationProgressSummary: ApplicationProgressSummary | null;
   createdAt: string;
   submittedAt: string | null;
   updatedAt: string;
@@ -144,12 +157,29 @@ export function parseDraftProgress(
   };
 }
 
+function computeApplicationProgressSummary(
+  status: string,
+  responses: unknown,
+  schema: ApplicationFormSchema,
+  feeConfig: ReturnType<typeof parseApplicationFormFeeConfig>,
+  feeStatus: string,
+): ApplicationProgressSummary | null {
+  if (status !== "draft") return null;
+
+  const steps = buildApplicationFormSteps(schema, feeConfig);
+  const stepIndex = parseApplicationFormStepIndex(responses);
+  const stepsWithStatus = computeApplicationFormStepStatuses(steps, {
+    applicationStatus: status,
+    stepIndex,
+    feeStatus,
+  });
+  const { completed, total } = summarizeApplicationFormProgress(stepsWithStatus);
+  return { completed, total, label: `${completed}/${total} complete` };
+}
+
 export function formatSubmissionProgress(submission: AdminApplicationSubmission): string {
   if (submission.status === "draft") {
-    if (submission.totalSteps <= 0) {
-      return "Draft";
-    }
-    return `Step ${submission.stepIndex + 1} of ${submission.totalSteps}`;
+    return submission.applicationProgressSummary?.label ?? "Applying";
   }
 
   if (submission.submittedAt) {
@@ -207,7 +237,6 @@ const APPLICATION_SUBMISSION_SELECT = `
   )
 `;
 
-/** List/table payload — omits bulky form schema JSON. */
 const APPLICATION_SUBMISSION_LIST_SELECT = `
   id,
   status,
@@ -220,6 +249,7 @@ const APPLICATION_SUBMISSION_LIST_SELECT = `
   application_form_versions!inner (
     title,
     public_slug,
+    schema,
     fee_config,
     post_submit_config
   ),
@@ -330,6 +360,17 @@ function mapApplicationRowToAdminSubmission(
           ? String(guardianRow.id)
           : null;
 
+    const applicationProgressSummary =
+      applicationStatus === "draft" && schema
+        ? computeApplicationProgressSummary(
+            applicationStatus,
+            row.responses,
+            schema,
+            feeConfig,
+            String(row.fee_status),
+          )
+        : null;
+
     return {
       id: applicationId,
       status: applicationStatus,
@@ -349,6 +390,7 @@ function mapApplicationRowToAdminSubmission(
         (row.responses !== undefined ? extractStudentLabel(responses) : null),
       stepIndex,
       totalSteps,
+      applicationProgressSummary,
       createdAt: String(row.created_at),
       submittedAt: row.submitted_at ? String(row.submitted_at) : null,
       updatedAt: String(row.updated_at),

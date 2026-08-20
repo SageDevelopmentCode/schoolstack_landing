@@ -156,7 +156,6 @@ export function PlatformAdminOrganizationsScreen() {
           data={filteredOrganizations}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             <View style={styles.centered}>
               <ThemedText type="small" style={{ color: theme.textSecondary }}>
@@ -164,8 +163,12 @@ export function PlatformAdminOrganizationsScreen() {
               </ThemedText>
             </View>
           }
-          renderItem={({ item }) => (
-            <OrganizationListItem organization={item} onPress={handleSelectOrganization} />
+          renderItem={({ item, index }) => (
+            <OrganizationListItem
+              organization={item}
+              onPress={handleSelectOrganization}
+              showDivider={index < filteredOrganizations.length - 1}
+            />
           )}
         />
       )}
@@ -210,9 +213,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.four,
-  },
-  separator: {
-    height: Spacing.two,
   },
   centered: {
     flex: 1,

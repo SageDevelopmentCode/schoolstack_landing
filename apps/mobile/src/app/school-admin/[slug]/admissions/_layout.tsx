@@ -15,14 +15,7 @@ export default function AdmissionsLayout() {
         headerTitleStyle: { color: theme.textPrimary },
       }}>
       <Stack.Screen name="submissions" />
-      <Stack.Screen
-        name="submissions/[id]"
-        options={{
-          headerShown: true,
-          title: 'Submission',
-          headerBackTitle: 'Submissions',
-        }}
-      />
+      <Stack.Screen name="submissions/[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }

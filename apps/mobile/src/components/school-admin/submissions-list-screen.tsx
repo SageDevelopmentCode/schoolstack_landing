@@ -100,7 +100,6 @@ export function SubmissionsListScreen({ organizationId, slug }: SubmissionsListS
         data={filteredSubmissions}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           <View style={styles.centered}>
             <ThemedText type="small" style={{ color: theme.textSecondary }}>
@@ -108,8 +107,12 @@ export function SubmissionsListScreen({ organizationId, slug }: SubmissionsListS
             </ThemedText>
           </View>
         }
-        renderItem={({ item }) => (
-          <SubmissionListItem submission={item} onPress={handlePressSubmission} />
+        renderItem={({ item, index }) => (
+          <SubmissionListItem
+            submission={item}
+            onPress={handlePressSubmission}
+            showDivider={index < filteredSubmissions.length - 1}
+          />
         )}
       />
     </View>
@@ -127,9 +130,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.four,
-  },
-  separator: {
-    height: Spacing.two,
   },
   centered: {
     flex: 1,

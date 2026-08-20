@@ -34,7 +34,7 @@ export function SchoolAdminFloatingTabBar({ activeTab, onChange }: SchoolAdminFl
   const insets = useSafeAreaInsets();
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 12 }]}>
+    <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 8 }]}>
       <View
         style={[
           styles.pill,
@@ -59,14 +59,15 @@ export function SchoolAdminFloatingTabBar({ activeTab, onChange }: SchoolAdminFl
               ]}>
               <Ionicons
                 name={active ? tab.iconActive : tab.icon}
-                size={22}
+                size={16}
                 color={active ? theme.accent : theme.textTertiary}
               />
               <ThemedText
                 type="smallBold"
                 style={{
                   color: active ? theme.accent : theme.textTertiary,
-                  fontSize: 11,
+                  fontSize: 9,
+                  lineHeight: 11,
                 }}>
                 {tab.label}
               </ThemedText>
@@ -89,18 +90,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     maxWidth: 360,
-    borderRadius: 28,
+    borderRadius: 22,
     borderWidth: 1,
-    padding: 6,
-    gap: 4,
+    padding: 2,
+    gap: 2,
     ...Platform.select({
       ios: {
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
       },
       android: {
-        elevation: 8,
+        elevation: 4,
       },
     }),
   },
@@ -108,8 +109,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 10,
+    gap: 1,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderRadius: Radius.pill,
   },
   tabPressed: {

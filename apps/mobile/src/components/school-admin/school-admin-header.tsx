@@ -28,61 +28,51 @@ export function SchoolAdminHeader({
           accessibilityLabel="Back to organizations"
           onPress={onBackToOrganizations}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-          <Ionicons name="chevron-back" size={20} color={theme.textSecondary} />
+          <Ionicons name="chevron-back" size={18} color={theme.textSecondary} />
           <ThemedText type="small" style={{ color: theme.textSecondary }}>
             Organizations
           </ThemedText>
         </Pressable>
       ) : null}
 
-      <View style={styles.titleRow}>
-        <OrganizationLogo
-          logoSrc={organization.branding.logoSrc}
-          logoAlt={organization.branding.logoAlt}
-          name={organization.name}
-        />
-        <View style={styles.titleContent}>
-          <ThemedText
-            type="smallBold"
-            numberOfLines={1}
-            style={{ color: theme.textPrimary, fontSize: 16 }}>
-            {organization.name}
-          </ThemedText>
-          <ThemedText type="small" style={{ color: theme.textTertiary, fontSize: 12 }}>
-            School Admin
-          </ThemedText>
-        </View>
-      </View>
+      <OrganizationLogo
+        logoSrc={organization.branding.logoSrc}
+        logoAlt={organization.branding.logoAlt}
+        name={organization.name}
+      />
+
+      <ThemedText
+        type="smallBold"
+        numberOfLines={1}
+        style={[styles.schoolName, { color: theme.textPrimary }]}>
+        {organization.name}
+      </ThemedText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.three,
+    paddingVertical: Spacing.two,
     gap: Spacing.two,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backButton: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
     marginLeft: -4,
+    flexShrink: 0,
   },
   pressed: {
     opacity: 0.7,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  titleContent: {
+  schoolName: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    fontSize: 14,
   },
 });

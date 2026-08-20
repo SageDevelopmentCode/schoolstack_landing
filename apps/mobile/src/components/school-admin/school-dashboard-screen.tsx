@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
-import { AdminCard } from '@/components/admin/admin-card';
+import { AdminSectionDivider } from '@/components/admin/admin-section-divider';
 import { SetupProgressBar } from '@/components/school-admin/setup-progress-bar';
 import { SetupStepTimeline } from '@/components/school-admin/setup-step-timeline';
 import { ThemedText } from '@/components/themed-text';
@@ -99,7 +99,9 @@ export function SchoolDashboardScreen({ organizationId, slug, schoolName }: Scho
         </ThemedText>
       </View>
 
-      <AdminCard>
+      <AdminSectionDivider />
+
+      <View style={styles.section}>
         <SetupProgressBar
           completed={status.completedCount}
           total={status.totalCount}
@@ -113,20 +115,23 @@ export function SchoolDashboardScreen({ organizationId, slug, schoolName }: Scho
         <View style={styles.timelineSection}>
           <SetupStepTimeline items={status.steps} activeItemId={status.firstIncompleteStepId} />
         </View>
-      </AdminCard>
+      </View>
 
       {nextStep ? (
-        <AdminCard>
-          <ThemedText type="badge" style={{ color: theme.accent }}>
-            Next step
-          </ThemedText>
-          <ThemedText type="subtitle" style={[styles.nextTitle, { color: theme.textPrimary }]}>
-            {nextStep.title}
-          </ThemedText>
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {nextStep.description}
-          </ThemedText>
-        </AdminCard>
+        <>
+          <AdminSectionDivider />
+          <View style={styles.section}>
+            <ThemedText type="badge" style={{ color: theme.accent }}>
+              Next step
+            </ThemedText>
+            <ThemedText type="subtitle" style={[styles.nextTitle, { color: theme.textPrimary }]}>
+              {nextStep.title}
+            </ThemedText>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              {nextStep.description}
+            </ThemedText>
+          </View>
+        </>
       ) : null}
     </ScrollView>
   );
@@ -135,7 +140,6 @@ export function SchoolDashboardScreen({ organizationId, slug, schoolName }: Scho
 const styles = StyleSheet.create({
   content: {
     padding: Spacing.four,
-    gap: Spacing.four,
   },
   centered: {
     flex: 1,
@@ -145,6 +149,9 @@ const styles = StyleSheet.create({
   },
   hero: {
     gap: Spacing.two,
+  },
+  section: {
+    gap: Spacing.three,
   },
   timelineSection: {
     marginTop: Spacing.two,

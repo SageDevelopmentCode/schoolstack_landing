@@ -11,5 +11,7 @@ export default function SchoolAdminSubmissionDetailPage() {
     return null;
   }
 
-  return <SubmissionDetailScreen organizationId={selectedSchool.id} applicationId={id} />;
+  return (
+    <SubmissionDetailScreen organizationId={selectedSchool.id} applicationId={id} slug={slug} />
+  );
 }

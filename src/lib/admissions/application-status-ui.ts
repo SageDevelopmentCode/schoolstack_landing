@@ -22,6 +22,11 @@ export function applicationStatusLabel(status: string): string {
   return APPLICATION_STATUS_LABELS[status] ?? status;
 }
 
+export function adminApplicationStatusLabel(status: string): string {
+  if (status === "draft") return "Applying";
+  return applicationStatusLabel(status);
+}
+
 export function applicationStatusBadgeStyle(
   status: string,
   C: AdminThemeTokens,

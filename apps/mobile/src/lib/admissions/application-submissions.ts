@@ -1,13 +1,26 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { EnrollmentProgressSummary } from '@/lib/admissions/enrollment-progress';
+import type { EnrollmentProgressSummary, EnrollmentProgressSummaryTone } from '@/lib/admissions/enrollment-progress';
 import { listEnrollmentProgressForApplications } from '@/lib/admissions/enrollment-progress';
+import {
+  buildApplicationFormSteps,
+  computeApplicationFormStepStatuses,
+  parseApplicationFormStepIndex,
+  summarizeApplicationFormProgress,
+} from '@/lib/admissions/application-form-steps';
+import { applicationStatusLabel, FEE_STATUS_LABELS } from '@/lib/admissions/application-status-ui';
 
 export type PostSubmitSummaryTone = 'complete' | 'scheduled' | 'pending' | 'none';
 
 export type PostSubmitSummary = {
   label: string;
   tone: PostSubmitSummaryTone;
+};
+
+export type ApplicationProgressSummary = {
+  completed: number;
+  total: number;
+  label: string;
 };
 
 export type AdminApplicationSubmission = {
@@ -24,6 +37,7 @@ export type AdminApplicationSubmission = {
   studentLabel: string | null;
   stepIndex: number;
   totalSteps: number;
+  applicationProgressSummary: ApplicationProgressSummary | null;
   createdAt: string;
   submittedAt: string | null;
   updatedAt: string;
@@ -89,6 +103,7 @@ const APPLICATION_SUBMISSION_LIST_SELECT = `
   application_form_versions!inner (
     title,
     public_slug,
+    schema,
     fee_config,
     post_submit_config
   ),
@@ -130,10 +145,12 @@ type PostSubmitConfig = {
 
 type FeeConfig = {
   enabled: boolean;
+  label?: string;
 };
 
 type FormSchema = {
-  sections: unknown[];
+  sections: Array<{ id: string; title: string }>;
+  acknowledgments?: Array<{ id: string; label: string }>;
 };
 
 function parseStringRecord(value: unknown): Record<string, string> {
@@ -156,7 +173,10 @@ function parseStringRecord(value: unknown): Record<string, string> {
 function parseFeeConfig(raw: unknown): FeeConfig {
   if (!raw || typeof raw !== 'object') return { enabled: false };
   const record = raw as Record<string, unknown>;
-  return { enabled: Boolean(record.enabled) };
+  return {
+    enabled: Boolean(record.enabled),
+    label: typeof record.label === 'string' ? record.label : undefined,
+  };
 }
 
 function parsePostSubmitConfig(raw: unknown): PostSubmitConfig {
@@ -232,12 +252,29 @@ function parseDraftProgress(
   };
 }
 
+function computeApplicationProgressSummary(
+  status: string,
+  responses: unknown,
+  schema: FormSchema,
+  feeConfig: FeeConfig,
+  feeStatus: string,
+): ApplicationProgressSummary | null {
+  if (status !== 'draft') return null;
+
+  const steps = buildApplicationFormSteps(schema, feeConfig);
+  const stepIndex = parseApplicationFormStepIndex(responses);
+  const stepsWithStatus = computeApplicationFormStepStatuses(steps, {
+    applicationStatus: status,
+    stepIndex,
+    feeStatus,
+  });
+  const { completed, total } = summarizeApplicationFormProgress(stepsWithStatus);
+  return { completed, total, label: `${completed}/${total} complete` };
+}
+
 export function formatSubmissionProgress(submission: AdminApplicationSubmission): string {
   if (submission.status === 'draft') {
-    if (submission.totalSteps <= 0) {
-      return 'Draft';
-    }
-    return `Step ${submission.stepIndex + 1} of ${submission.totalSteps}`;
+    return submission.applicationProgressSummary?.label ?? 'Applying';
   }
 
   if (submission.submittedAt) {
@@ -360,6 +397,17 @@ function mapApplicationRowToAdminSubmission(
         ? String(guardianRow.id)
         : null;
 
+  const applicationProgressSummary =
+    applicationStatus === 'draft' && schema
+      ? computeApplicationProgressSummary(
+          applicationStatus,
+          row.responses,
+          schema,
+          feeConfig,
+          String(row.fee_status),
+        )
+      : null;
+
   return {
     id: applicationId,
     status: applicationStatus,
@@ -375,6 +423,7 @@ function mapApplicationRowToAdminSubmission(
       studentFromTable ?? (row.responses !== undefined ? extractStudentLabel(responses) : null),
     stepIndex,
     totalSteps,
+    applicationProgressSummary,
     createdAt: String(row.created_at),
     submittedAt: row.submitted_at ? String(row.submitted_at) : null,
     updatedAt: String(row.updated_at),
@@ -463,4 +512,247 @@ export async function getOrgApplicationSubmissionById(
 
 export function submissionHasFeeBadges(submission: AdminApplicationSubmission): boolean {
   return submission.feeEnabled && submission.feeStatus !== 'not_required';
+}
+
+export type FamilyAdmissionTimelineEvent = {
+  id: string;
+  kind: 'created' | 'submitted' | 'fee_paid' | 'draft' | 'enrollment';
+  applicationId: string;
+  applicationStatus: string;
+  title: string;
+  subtitle?: string;
+  occurredAt: string;
+  statusLabel?: string;
+  progressLabel?: string;
+  enrollmentProgress?: { completed: number; total: number };
+  studentLabel: string | null;
+  programName: string | null;
+  applicationBadgeStatus?: string;
+  enrollmentTone?: EnrollmentProgressSummaryTone;
+};
+
+function enrollmentChecklistStatusLabel(status: string): string {
+  switch (status) {
+    case 'completed':
+      return 'Completed';
+    case 'in_progress':
+      return 'In progress';
+    case 'not_started':
+      return 'Not started';
+    default:
+      return status.replace(/_/g, ' ');
+  }
+}
+
+function formatEnrollmentProgressLabel(summary: EnrollmentProgressSummary | null): string {
+  if (!summary || summary.total === 0) {
+    return 'No required items';
+  }
+  return `${summary.completed}/${summary.total} required items`;
+}
+
+export async function resolveApplicationFamilyId(
+  supabase: SupabaseClient,
+  organizationId: string,
+  applicationId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('applications')
+    .select('family_id, primary_guardian_id')
+    .eq('organization_id', organizationId)
+    .eq('id', applicationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  if (data.family_id) return String(data.family_id);
+  if (!data.primary_guardian_id) return null;
+
+  const { data: guardian, error: guardianError } = await supabase
+    .from('guardians')
+    .select('family_id')
+    .eq('id', data.primary_guardian_id)
+    .maybeSingle();
+
+  if (guardianError) throw guardianError;
+  return guardian?.family_id ? String(guardian.family_id) : null;
+}
+
+async function listApplicationSubmissionsForFamily(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<AdminApplicationSubmission[]> {
+  const { data: guardians, error: guardiansError } = await supabase
+    .from('guardians')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('family_id', familyId);
+
+  if (guardiansError) throw guardiansError;
+
+  const guardianIds = (guardians ?? []).map((row) => String(row.id));
+
+  let query = supabase
+    .from('applications')
+    .select(APPLICATION_SUBMISSION_SELECT)
+    .eq('organization_id', organizationId)
+    .order('updated_at', { ascending: false });
+
+  if (guardianIds.length > 0) {
+    query = query.or(`family_id.eq.${familyId},primary_guardian_id.in.(${guardianIds.join(',')})`);
+  } else {
+    query = query.eq('family_id', familyId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return mapApplicationRowsToAdminSubmissions(
+    supabase,
+    organizationId,
+    (data ?? []) as Record<string, unknown>[],
+  );
+}
+
+export async function listFamilyAdmissionHistory(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<FamilyAdmissionTimelineEvent[]> {
+  const applications = await listApplicationSubmissionsForFamily(
+    supabase,
+    organizationId,
+    familyId,
+  );
+  if (applications.length === 0) return [];
+
+  const applicationIds = applications.map((application) => application.id);
+
+  const { data: checklistRows, error: checklistError } = await supabase
+    .from('enrollment_checklists')
+    .select(
+      `
+      id,
+      application_id,
+      status,
+      created_at,
+      updated_at,
+      enrollment_checklist_templates ( name )
+    `,
+    )
+    .eq('organization_id', organizationId)
+    .in('application_id', applicationIds);
+
+  if (checklistError) throw checklistError;
+
+  const checklistByApplicationId = new Map(
+    (checklistRows ?? []).map((row) => [String(row.application_id), row]),
+  );
+
+  const events: FamilyAdmissionTimelineEvent[] = [];
+
+  for (const application of applications) {
+    const { studentLabel, programName } = application;
+
+    events.push({
+      id: `${application.id}-created`,
+      kind: 'created',
+      applicationId: application.id,
+      applicationStatus: application.status,
+      title: 'Application created',
+      subtitle: application.formTitle,
+      occurredAt: application.createdAt,
+      studentLabel,
+      programName,
+    });
+
+    if (application.status === 'draft') {
+      events.push({
+        id: `${application.id}-draft`,
+        kind: 'draft',
+        applicationId: application.id,
+        applicationStatus: application.status,
+        title: 'In progress',
+        subtitle: application.formTitle,
+        occurredAt: application.updatedAt,
+        progressLabel: application.applicationProgressSummary?.label,
+        statusLabel: applicationStatusLabel('draft'),
+        applicationBadgeStatus: 'draft',
+        studentLabel,
+        programName,
+      });
+    }
+
+    if (application.submittedAt) {
+      const hasChecklist = checklistByApplicationId.has(application.id);
+      const displayStatus =
+        application.status === 'enrolling' && hasChecklist
+          ? 'submitted'
+          : application.status;
+
+      events.push({
+        id: `${application.id}-submitted`,
+        kind: 'submitted',
+        applicationId: application.id,
+        applicationStatus: application.status,
+        title: 'Submitted',
+        subtitle: application.formTitle,
+        occurredAt: application.submittedAt,
+        statusLabel: applicationStatusLabel(displayStatus),
+        applicationBadgeStatus: displayStatus,
+        studentLabel,
+        programName,
+      });
+    }
+
+    if (
+      application.feeEnabled &&
+      (application.feeStatus === 'paid' || application.feeStatus === 'waived')
+    ) {
+      events.push({
+        id: `${application.id}-fee`,
+        kind: 'fee_paid',
+        applicationId: application.id,
+        applicationStatus: application.status,
+        title: FEE_STATUS_LABELS[application.feeStatus] ?? 'Fee paid',
+        subtitle: application.formTitle,
+        occurredAt: application.submittedAt ?? application.updatedAt,
+        studentLabel,
+        programName,
+      });
+    }
+
+    const checklistRow = checklistByApplicationId.get(application.id);
+    if (checklistRow) {
+      const template = checklistRow.enrollment_checklist_templates as
+        | { name?: string }
+        | Array<{ name?: string }>
+        | null;
+      const templateRow = Array.isArray(template) ? template[0] : template;
+      const checklistStatus = String(checklistRow.status);
+      const summary = application.enrollmentSummary ?? null;
+
+      events.push({
+        id: String(checklistRow.id),
+        kind: 'enrollment',
+        applicationId: application.id,
+        applicationStatus: application.status,
+        title: String(templateRow?.name ?? 'Enrollment checklist'),
+        occurredAt: String(checklistRow.created_at ?? checklistRow.updated_at),
+        statusLabel: enrollmentChecklistStatusLabel(checklistStatus),
+        progressLabel: formatEnrollmentProgressLabel(summary),
+        enrollmentProgress: summary
+          ? { completed: summary.completed, total: summary.total }
+          : undefined,
+        enrollmentTone: summary?.tone ?? 'not_started',
+        studentLabel,
+        programName,
+      });
+    }
+  }
+
+  return events.sort(
+    (left, right) => new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime(),
+  );
 }

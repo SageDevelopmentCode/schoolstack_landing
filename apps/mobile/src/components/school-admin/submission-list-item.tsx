@@ -4,89 +4,93 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import {
+  adminApplicationStatusLabel,
   applicationStatusBadgeStyle,
-  applicationStatusLabel,
-  enrollmentProgressBadgeStyle,
 } from '@/lib/admissions/application-status-ui';
-import {
-  formatShortDate,
-  formatSubmissionProgress,
-  type AdminApplicationSubmission,
-} from '@/lib/admissions/application-submissions';
-import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
-import { Radius, Spacing } from '@/constants/theme';
+import { formatShortDate, type AdminApplicationSubmission } from '@/lib/admissions/application-submissions';
+import { Spacing } from '@/constants/theme';
 
 type SubmissionListItemProps = {
   submission: AdminApplicationSubmission;
   onPress: (submission: AdminApplicationSubmission) => void;
+  showDivider?: boolean;
 };
 
-export function SubmissionListItem({ submission, onPress }: SubmissionListItemProps) {
+function footerProgressLabel(submission: AdminApplicationSubmission): string | null {
+  if (submission.status === 'draft' && submission.applicationProgressSummary) {
+    return submission.applicationProgressSummary.label;
+  }
+  if (submission.status === 'enrolling' && submission.enrollmentSummary) {
+    return submission.enrollmentSummary.label;
+  }
+  return null;
+}
+
+export function SubmissionListItem({
+  submission,
+  onPress,
+  showDivider = true,
+}: SubmissionListItemProps) {
   const theme = useAdminTheme();
+  const progressLabel = footerProgressLabel(submission);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => onPress(submission)}
-      style={({ pressed }) => [
-        styles.card,
-        {
-          backgroundColor: theme.surface,
-          borderColor: theme.border,
-        },
-        adminCardShadow(theme),
-        pressed && styles.cardPressed,
-      ]}>
-      <View style={styles.headerRow}>
-        <ThemedText
-          type="smallBold"
-          numberOfLines={1}
-          style={[styles.studentName, { color: theme.textPrimary }]}>
-          {submission.studentLabel ?? 'Unnamed student'}
-        </ThemedText>
-        <StatusBadge
-          label={applicationStatusLabel(submission.status)}
-          colors={applicationStatusBadgeStyle(submission.status, theme)}
-        />
-      </View>
-
-      <ThemedText type="small" numberOfLines={1} style={{ color: theme.textSecondary }}>
-        {submission.guardianName ?? 'No contact'}
-      </ThemedText>
-      {submission.contactEmail ? (
-        <ThemedText type="small" numberOfLines={1} style={{ color: theme.textTertiary }}>
-          {submission.contactEmail}
-        </ThemedText>
-      ) : null}
-
-      <View style={styles.metaRow}>
-        <ThemedText type="small" style={{ color: theme.textSecondary }}>
-          {formatSubmissionProgress(submission)}
-        </ThemedText>
-        {submission.enrollmentSummary ? (
+    <View>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => onPress(submission)}
+        style={({ pressed }) => [
+          styles.row,
+          pressed && { backgroundColor: theme.elevated },
+        ]}>
+        <View style={styles.headerRow}>
+          <ThemedText
+            type="smallBold"
+            numberOfLines={1}
+            style={[styles.studentName, { color: theme.textPrimary }]}>
+            {submission.studentLabel ?? 'Unnamed student'}
+          </ThemedText>
           <StatusBadge
-            label={submission.enrollmentSummary.label}
-            colors={enrollmentProgressBadgeStyle(submission.enrollmentSummary.tone, theme)}
+            label={adminApplicationStatusLabel(submission.status)}
+            colors={applicationStatusBadgeStyle(submission.status, theme)}
           />
-        ) : null}
-      </View>
+        </View>
 
-      <ThemedText type="small" style={{ color: theme.textTertiary }}>
-        Updated {formatShortDate(submission.updatedAt)}
-      </ThemedText>
-    </Pressable>
+        <ThemedText type="small" numberOfLines={1}>
+          <ThemedText type="small" style={{ color: theme.textTertiary }}>
+            Parent ·{' '}
+          </ThemedText>
+          <ThemedText type="small" style={{ color: theme.textSecondary }}>
+            {submission.guardianName ?? 'No contact'}
+          </ThemedText>
+        </ThemedText>
+
+        <View style={styles.footerRow}>
+          <ThemedText type="small" style={{ color: theme.textTertiary }}>
+            Updated {formatShortDate(submission.updatedAt)}
+          </ThemedText>
+          {progressLabel ? (
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              {progressLabel}
+            </ThemedText>
+          ) : null}
+        </View>
+      </Pressable>
+      {showDivider ? (
+        <View style={[styles.divider, { backgroundColor: theme.border }]} />
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    padding: Spacing.three,
+  row: {
+    paddingVertical: Spacing.three,
     gap: 6,
   },
-  cardPressed: {
-    opacity: 0.85,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    width: '100%',
   },
   headerRow: {
     flexDirection: 'row',
@@ -97,11 +101,10 @@ const styles = StyleSheet.create({
   studentName: {
     flex: 1,
   },
-  metaRow: {
+  footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.two,
-    marginTop: 4,
   },
 });

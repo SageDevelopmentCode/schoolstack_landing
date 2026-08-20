@@ -16,7 +16,7 @@ import {
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/admissions/applications/[id]/start-enrollment";
 
@@ -25,8 +25,7 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(_request);
   const { id: applicationId } = await context.params;
 
   try {
@@ -111,8 +110,7 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const { id: applicationId } = await context.params;
 
   let body: { variantResolutions?: VariantResolutionMap };

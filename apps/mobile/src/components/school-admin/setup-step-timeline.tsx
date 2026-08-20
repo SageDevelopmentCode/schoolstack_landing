@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentSpaced: {
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   titleRow: {
     flexDirection: 'row',

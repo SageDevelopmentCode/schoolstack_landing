@@ -12,7 +12,7 @@ type SubmissionStatusFiltersProps = {
 
 const FILTER_OPTIONS = [
   { id: 'all', label: 'All' },
-  { id: 'draft', label: 'Draft' },
+  { id: 'draft', label: 'Applying' },
   { id: 'enrolling', label: 'Enrolling' },
   { id: 'enrolled', label: 'Enrolled' },
   { id: 'withdrawn', label: 'Withdrawn' },
