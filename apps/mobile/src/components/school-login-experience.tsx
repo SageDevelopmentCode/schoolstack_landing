@@ -352,7 +352,11 @@ export function SchoolLoginExperience() {
           <MudKitchenLogo size="md" style={styles.logo} />
         ) : null}
 
-        <ThemedText type="title" style={styles.heading}>
+        <ThemedText
+          testID="school-login-heading"
+          accessibilityLabel="Sign in to your school"
+          type="title"
+          style={styles.heading}>
           {heading}
         </ThemedText>
 

@@ -87,6 +87,7 @@ jobs:
           echo "EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321" >> "$GITHUB_ENV"
           echo "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
           echo "EXPO_PUBLIC_SITE_URL=http://10.0.2.2:3100" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_E2E=1" >> "$GITHUB_ENV"
           echo "DISABLE_OUTBOUND_EMAIL=1" >> "$GITHUB_ENV"
           echo "CI=true" >> "$GITHUB_ENV"
 
@@ -212,6 +213,7 @@ jobs:
           echo "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
           echo "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
           echo "EXPO_PUBLIC_SITE_URL=http://127.0.0.1:3100" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_E2E=1" >> "$GITHUB_ENV"
           echo "DISABLE_OUTBOUND_EMAIL=1" >> "$GITHUB_ENV"
           echo "CI=true" >> "$GITHUB_ENV"
 

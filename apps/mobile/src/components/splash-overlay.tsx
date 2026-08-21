@@ -5,14 +5,21 @@ import { StyleSheet } from 'react-native';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Brand } from '@/constants/theme';
+import { isMobileE2e } from '@/lib/e2e';
 
 const SPLASH_FALLBACK_MS = 2000;
 
 export function SplashOverlay() {
-  const [visible, setVisible] = useState(true);
-  const opacity = useSharedValue(1);
+  const [visible, setVisible] = useState(!isMobileE2e);
+  const opacity = useSharedValue(isMobileE2e ? 0 : 1);
 
   useEffect(() => {
+    if (isMobileE2e) {
+      void SplashScreen.hideAsync();
+      setVisible(false);
+      return;
+    }
+
     const fallbackTimer = setTimeout(() => {
       setVisible(false);
     }, SPLASH_FALLBACK_MS);

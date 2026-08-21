@@ -12,11 +12,11 @@ import { MudKitchenLogo } from '@/components/mudkitchen-logo';
 import { PrimaryButton } from '@/components/primary-button';
 import { INTRO_SLIDE_INTERVAL_MS, INTRO_SLIDES } from '@/constants/intro-slides';
 import { Spacing } from '@/constants/theme';
+import { isMobileE2e } from '@/lib/e2e';
 
-const isCi = process.env.CI === 'true';
-const logoEntering = isCi ? undefined : FadeInDown.duration(500);
-const copyEntering = isCi ? undefined : FadeInUp.duration(500).delay(120);
-const ctaEntering = isCi ? undefined : FadeInUp.duration(500).delay(240);
+const logoEntering = isMobileE2e ? undefined : FadeInDown.duration(500);
+const copyEntering = isMobileE2e ? undefined : FadeInUp.duration(500).delay(120);
+const ctaEntering = isMobileE2e ? undefined : FadeInUp.duration(500).delay(240);
 
 export default function IntroScreen() {
   const router = useRouter();
@@ -35,7 +35,7 @@ export default function IntroScreen() {
         slides={INTRO_SLIDES}
         activeIndex={activeIndex}
         onIndexChange={handleIndexChange}
-        autoAdvanceMs={INTRO_SLIDE_INTERVAL_MS}
+        autoAdvanceMs={isMobileE2e ? undefined : INTRO_SLIDE_INTERVAL_MS}
       />
 
       <View style={[styles.overlay, { paddingTop: insets.top + 12 }]}>
@@ -63,6 +63,8 @@ export default function IntroScreen() {
 
           <Animated.View entering={ctaEntering} style={styles.ctaDock}>
             <PrimaryButton
+              testID="intro-login-cta"
+              accessibilityLabel="Log in to continue"
               appearance="native"
               variant="clay"
               trailingIcon

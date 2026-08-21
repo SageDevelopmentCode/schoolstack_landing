@@ -5,14 +5,14 @@ import { PageDots } from '@/components/page-dots';
 import { ThemedText } from '@/components/themed-text';
 import { INTRO_SLIDES } from '@/constants/intro-slides';
 import { Brand, Spacing } from '@/constants/theme';
+import { isMobileE2e } from '@/lib/e2e';
 
 type IntroSlideCopyProps = {
   activeIndex: number;
 };
 
-const isCi = process.env.CI === 'true';
-const slideEntering = isCi ? undefined : FadeIn.duration(350);
-const slideExiting = isCi ? undefined : FadeOut.duration(250);
+const slideEntering = isMobileE2e ? undefined : FadeIn.duration(350);
+const slideExiting = isMobileE2e ? undefined : FadeOut.duration(250);
 
 export function IntroSlideCopy({ activeIndex }: IntroSlideCopyProps) {
   const slide = INTRO_SLIDES[activeIndex];
