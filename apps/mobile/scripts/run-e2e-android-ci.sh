@@ -9,14 +9,9 @@ bash "$script_dir/assert-mobile-e2e-env.sh"
 cd "$mobile_dir"
 export NODE_PATH="./node_modules:../../node_modules"
 
+bash "$script_dir/build-android-debug-ci.sh"
+
 APK="android/app/build/outputs/apk/debug/app-debug.apk"
-if [[ ! -f "$APK" ]]; then
-  echo "Debug APK not found; running expo prebuild and Gradle assembleDebug..."
-  npx expo prebuild --platform android
-  (cd android && ./gradlew assembleDebug --no-daemon)
-else
-  echo "Using cached debug APK at $APK"
-fi
 
 adb wait-for-device
 

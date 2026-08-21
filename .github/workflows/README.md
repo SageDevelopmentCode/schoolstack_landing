@@ -93,8 +93,12 @@ iOS E2E runs on `macos-15-intel` (not `macos-latest`) because local Supabase req
 
 **Native build caching**
 
-- **Android:** `actions/cache` keyed on `package-lock.json`, `apps/mobile/package.json`, and `apps/mobile/app.json` — caches Gradle deps and the debug APK so [`run-e2e-android-ci.sh`](../../apps/mobile/scripts/run-e2e-android-ci.sh) skips `expo prebuild` + `assembleDebug` on cache hit
+- **Android:** `actions/cache` keyed on `package-lock.json`, `apps/mobile/package.json`, and `apps/mobile/app.json` (with `restore-keys: mobile-android-e2e-` for partial hits) — caches Gradle deps and the debug APK so [`build-android-debug-ci.sh`](../../apps/mobile/scripts/build-android-debug-ci.sh) skips `expo prebuild` + `assembleDebug` on cache hit. The APK is built in a dedicated pre-emulator step (not inside `android-emulator-runner`); [`run-e2e-android-ci.sh`](../../apps/mobile/scripts/run-e2e-android-ci.sh) only installs the APK and runs Maestro.
 - **iOS:** same key inputs cache `apps/mobile/ios/build` (DerivedData) so [`run-e2e-ios-ci.sh`](../../apps/mobile/scripts/run-e2e-ios-ci.sh) skips `xcodebuild` when a `.app` is present
+
+**Troubleshooting Gradle download failures (Android Maestro CI)**
+
+If the Android job fails with `Connection reset` downloading `gradle-9.3.1-bin.zip` from `services.gradle.org`, that is usually a transient network error on a **cache miss** (first run after dependency changes, or cache key bump). Re-run the workflow — partial Gradle layers may resume via `restore-keys`. Cold Android builds still take ~20–25 min; with cache hit, ~8–12 min.
 
 **Colima bootstrap (iOS only, push to `main`)**
 

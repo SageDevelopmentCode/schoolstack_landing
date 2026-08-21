@@ -105,6 +105,7 @@ Password: `E2eTestPassword123!`
 | Platform admin login fails | Seed creates `e2e-platform-admin@schoolstack.test`; re-run seed |
 | Metro not running | Start Expo with `.env.e2e.local` sourced |
 | Android cannot reach host | Use `10.0.2.2`, not `127.0.0.1`, in `.env.e2e.local` |
+| CI: `Connection reset` downloading `gradle-9.3.1-bin.zip` | Transient network on cache miss — re-run workflow; CI builds APK in a dedicated step with retries before the emulator starts |
 
 ## More detail
 

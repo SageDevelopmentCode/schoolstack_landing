@@ -138,6 +138,41 @@ jobs:
             apps/mobile/android/.gradle
             apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
           key: mobile-android-e2e-${{ hashFiles('package-lock.json', 'apps/mobile/package.json', 'apps/mobile/app.json') }}
+          restore-keys: |
+            mobile-android-e2e-
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Prepare Android native project
+        id: android-prebuild
+        working-directory: apps/mobile
+        env:
+          NODE_PATH: "./node_modules:../../node_modules"
+        run: |
+          if [[ -f android/app/build/outputs/apk/debug/app-debug.apk ]]; then
+            echo "skip_build=true" >> "$GITHUB_OUTPUT"
+            echo "Using cached debug APK"
+          else
+            echo "skip_build=false" >> "$GITHUB_OUTPUT"
+            if [[ ! -d android ]]; then
+              npx expo prebuild --platform android
+            fi
+          fi
+
+      - name: Set up Gradle
+        if: steps.android-prebuild.outputs.skip_build != 'true'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+          build-root-directory: apps/mobile/android
+
+      - name: Build Android debug APK
+        if: steps.android-prebuild.outputs.skip_build != 'true'
+        working-directory: apps/mobile
+        env:
+          NODE_PATH: "./node_modules:../../node_modules"
+        run: bash scripts/build-android-debug-ci.sh
 
       - name: Run Maestro E2E on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
