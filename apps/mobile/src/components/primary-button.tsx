@@ -66,6 +66,7 @@ export function PrimaryButton({
   disabled,
   onPressIn,
   onPressOut,
+  testID,
   ...rest
 }: PrimaryButtonProps) {
   const { backgroundColor, labelColor } = getButtonColors(variant);
@@ -107,6 +108,8 @@ export function PrimaryButton({
         ]}
         {...rest}>
         <View
+          testID={testID}
+          collapsable={false}
           style={[
             styles.fill,
             { backgroundColor },
@@ -135,6 +138,7 @@ export function PrimaryButton({
         },
         typeof style === 'function' ? style({ pressed, hovered: false }) : style,
       ]}
+      testID={testID}
       {...rest}>
       <ButtonLabel
         label={label}

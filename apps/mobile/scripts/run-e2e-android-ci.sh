@@ -36,6 +36,7 @@ set -a
 # shellcheck disable=SC1091
 source .env.e2e.ci
 set +a
+cp .env.e2e.ci .env.local
 
 metro_pid=""
 cleanup() {
