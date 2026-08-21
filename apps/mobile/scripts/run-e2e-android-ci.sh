@@ -13,7 +13,20 @@ bash "$script_dir/build-android-debug-ci.sh"
 
 APK="android/app/build/outputs/apk/debug/app-debug.apk"
 
-adb wait-for-device
+wait_for_emulator_ready() {
+  adb wait-for-device
+  for i in {1..60}; do
+    if [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]] \
+      && adb shell pm list packages >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "Emulator not ready after 120s" >&2
+  exit 1
+}
+
+wait_for_emulator_ready
 
 # android-emulator-runner sets disable-animations: true; Reanimated entering
 # animations and the splash fade need animator scale restored for Maestro visibility.
@@ -25,6 +38,8 @@ adb install -r "$APK"
 adb reverse tcp:8081 tcp:8081
 adb reverse tcp:3100 tcp:3100
 adb reverse tcp:54321 tcp:54321
+
+wait_for_emulator_ready
 
 cat > .env.e2e.ci <<EOF
 EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}
@@ -104,7 +119,27 @@ run_maestro() {
   fi
 }
 
-if ! run_maestro; then
+is_transient_adb_failure() {
+  local log_file="$1"
+  grep -qiE 'device offline|Device server died' "$log_file"
+}
+
+maestro_ok=false
+for attempt in 1 2; do
+  maestro_log="/tmp/maestro-run-${attempt}.log"
+  if run_maestro 2>&1 | tee "$maestro_log"; then
+    maestro_ok=true
+    break
+  fi
+  if [[ "$attempt" -eq 1 ]] && is_transient_adb_failure "$maestro_log"; then
+    echo "Maestro hit transient ADB failure; waiting for emulator and retrying..." >&2
+    wait_for_emulator_ready
+    continue
+  fi
+  break
+done
+
+if [[ "$maestro_ok" != true ]]; then
   echo "Maestro failed; capturing adb logcat..." >&2
   adb logcat -d > /tmp/adb-logcat.log 2>&1 || true
   exit 1

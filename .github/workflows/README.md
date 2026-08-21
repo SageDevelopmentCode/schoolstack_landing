@@ -80,9 +80,9 @@ The [mobile.yml](./mobile.yml) workflow:
 | Event | Lint/typecheck/Jest | Android Maestro | iOS Maestro |
 |-------|---------------------|-----------------|-------------|
 | PR / push when `apps/mobile/**` changes | Yes | PR to `main` only | Push to `main` only |
-| Maestro scope | — | PR: 3 smoke flows; main: all 11 | Full suite (11 flows) |
+| Maestro scope | — | PR: 2 smoke flows; main: all 11 | Full suite (11 flows) |
 
-Smoke flows on PRs: `intro-to-login`, `school-admin-logged-in`, `dashboard`. Full suite covers intro, school admin login/dashboard, admissions list/detail/filter, tab navigation, students, platform admin login/enter-school.
+Smoke flows on PRs: `school-admin-logged-in`, `dashboard` (both include `intro-to-login` via `runFlow`). Full suite covers intro, school admin login/dashboard, admissions list/detail/filter, tab navigation, students, platform admin login/enter-school.
 
 **Expected CI timing (approximate)**
 

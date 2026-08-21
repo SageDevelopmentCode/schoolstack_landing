@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      MAESTRO_FLOWS: ${{ github.event_name == 'pull_request' && 'intro-to-login.yaml school-admin-logged-in.yaml dashboard.yaml' || '.maestro' }}
+      MAESTRO_FLOWS: ${{ github.event_name == 'pull_request' && 'school-admin-logged-in.yaml dashboard.yaml' || '.maestro' }}
 
     steps:
       - uses: actions/checkout@v4
