@@ -1,13 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius } from '@/constants/theme';
 
-export type SchoolAdminTab = 'dashboard' | 'admissions';
+export type SchoolAdminTab = 'dashboard' | 'admissions' | 'students';
 
 type SchoolAdminFloatingTabBarProps = {
   activeTab: SchoolAdminTab;
@@ -27,6 +26,12 @@ const TABS: {
     icon: 'document-text-outline',
     iconActive: 'document-text',
   },
+  {
+    id: 'students',
+    label: 'Students',
+    icon: 'people-outline',
+    iconActive: 'people',
+  },
 ];
 
 export function SchoolAdminFloatingTabBar({ activeTab, onChange }: SchoolAdminFloatingTabBarProps) {
@@ -35,15 +40,7 @@ export function SchoolAdminFloatingTabBar({ activeTab, onChange }: SchoolAdminFl
 
   return (
     <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 8 }]}>
-      <View
-        style={[
-          styles.pill,
-          {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-          },
-          adminCardShadow(theme),
-        ]}>
+      <View style={styles.pill}>
         {TABS.map((tab) => {
           const active = activeTab === tab.id;
           return (
@@ -59,15 +56,15 @@ export function SchoolAdminFloatingTabBar({ activeTab, onChange }: SchoolAdminFl
               ]}>
               <Ionicons
                 name={active ? tab.iconActive : tab.icon}
-                size={16}
+                size={20}
                 color={active ? theme.accent : theme.textTertiary}
               />
               <ThemedText
                 type="smallBold"
                 style={{
                   color: active ? theme.accent : theme.textTertiary,
-                  fontSize: 9,
-                  lineHeight: 11,
+                  fontSize: 10,
+                  lineHeight: 12,
                 }}>
                 {tab.label}
               </ThemedText>
@@ -90,27 +87,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     maxWidth: 360,
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 2,
-    gap: 2,
-    ...Platform.select({
-      ios: {
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    gap: 8,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 1,
-    paddingVertical: 4,
+    gap: 2,
+    paddingVertical: 8,
     paddingHorizontal: 8,
     borderRadius: Radius.pill,
   },

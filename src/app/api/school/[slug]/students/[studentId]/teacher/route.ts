@@ -9,8 +9,8 @@ import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/school/[slug]/students/[studentId]/teacher";
 
@@ -38,8 +38,7 @@ async function resolveOrganizationId(
 
 export async function PATCH(request: Request, context: RouteContext) {
   const { slug, studentId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   try {
     let body: PatchTeacherBody;

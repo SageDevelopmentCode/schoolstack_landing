@@ -1,3 +1,4 @@
+import type { EnrollmentProgressSummaryTone } from '@/lib/admissions/enrollment-progress';
 import type { MobileAdminTheme } from '@/lib/organization-settings/build-admin-theme';
 
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
@@ -58,6 +59,10 @@ export function applicationStatusBadgeStyle(
     case 'enrolled':
       return { backgroundColor: theme?.successBg ?? '#E2EDD9', color: theme?.success ?? '#4A6B52' };
     case 'draft':
+      return {
+        backgroundColor: theme?.warningBg ?? '#FDF3E3',
+        color: theme?.warning ?? '#D97706',
+      };
     case 'enrolling':
       return { backgroundColor: theme?.infoBg ?? '#E8F0FA', color: theme?.info ?? '#3B6FA0' };
     case 'declined':
@@ -78,6 +83,38 @@ export function applicationStatusBadgeStyle(
         color: theme?.textSecondary ?? '#6D6257',
       };
   }
+}
+
+export function adminCombinedStatusProgressLabel(
+  status: string,
+  applicationProgressSummary: { completed: number; total: number } | null,
+  enrollmentSummary: { completed: number; total: number } | null,
+): string {
+  const statusLabel = adminApplicationStatusLabel(status);
+  if (status === 'draft' && applicationProgressSummary) {
+    return `${statusLabel} • ${applicationProgressSummary.completed}/${applicationProgressSummary.total}`;
+  }
+  if (status === 'enrolling' && enrollmentSummary) {
+    return `${statusLabel} • ${enrollmentSummary.completed}/${enrollmentSummary.total}`;
+  }
+  return statusLabel;
+}
+
+export function adminCombinedStatusProgressBadgeStyle(
+  status: string,
+  enrollmentSummary: { tone: EnrollmentProgressSummaryTone } | null,
+  theme?: MobileAdminTheme,
+): StatusBadgeColors {
+  if (status === 'draft') {
+    return {
+      backgroundColor: theme?.warningBg ?? '#FDF3E3',
+      color: theme?.warning ?? '#D97706',
+    };
+  }
+  if (status === 'enrolling' && enrollmentSummary) {
+    return enrollmentProgressBadgeStyle(enrollmentSummary.tone, theme);
+  }
+  return applicationStatusBadgeStyle(status, theme);
 }
 
 export function applicationProgressBadgeStyle(

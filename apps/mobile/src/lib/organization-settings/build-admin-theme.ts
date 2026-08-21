@@ -45,7 +45,7 @@ export function buildMobileAdminTheme(branding: OrganizationBranding): MobileAdm
   const structure = resolveSchoolAdminStructureColors(colors);
 
   return {
-    bg: structure.bg,
+    bg: SCHOOL_ADMIN_LIGHT_NEUTRALS.bg,
     surface: SCHOOL_ADMIN_LIGHT_NEUTRALS.surface,
     elevated: SCHOOL_ADMIN_LIGHT_NEUTRALS.elevated,
     input: SCHOOL_ADMIN_LIGHT_NEUTRALS.input,

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
 import { SubmissionListItem } from '@/components/school-admin/submission-list-item';
+import { ADMIN_LIST_HORIZONTAL_PADDING, AdminListSeparator } from '@/components/school-admin/admin-list-layout';
 import { SubmissionStatusFilters } from '@/components/school-admin/submission-status-filters';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
@@ -100,6 +101,7 @@ export function SubmissionsListScreen({ organizationId, slug }: SubmissionsListS
         data={filteredSubmissions}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={AdminListSeparator}
         ListEmptyComponent={
           <View style={styles.centered}>
             <ThemedText type="small" style={{ color: theme.textSecondary }}>
@@ -107,12 +109,8 @@ export function SubmissionsListScreen({ organizationId, slug }: SubmissionsListS
             </ThemedText>
           </View>
         }
-        renderItem={({ item, index }) => (
-          <SubmissionListItem
-            submission={item}
-            onPress={handlePressSubmission}
-            showDivider={index < filteredSubmissions.length - 1}
-          />
+        renderItem={({ item }) => (
+          <SubmissionListItem submission={item} onPress={handlePressSubmission} />
         )}
       />
     </View>
@@ -124,11 +122,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   filters: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
     paddingTop: Spacing.two,
   },
   listContent: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
     paddingBottom: Spacing.four,
   },
   centered: {

@@ -5,7 +5,7 @@ import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import { resolveOrganizationAssetUrl } from '@/lib/resolve-asset-url';
 
 export const DEFAULT_BRANDING_COLORS = {
-  bg: '#F8FAFC',
+  bg: '#FFFFFF',
   border: '#E2E8F0',
   borderStrong: '#CBD5E1',
   accent: '#827096',

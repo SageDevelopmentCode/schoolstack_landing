@@ -68,3 +68,28 @@ export async function markApplicationEnrolled(applicationId: string): Promise<vo
     body: {},
   });
 }
+
+export type StaffMemberRecord = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  employmentStatus: 'active' | 'inactive' | 'on_leave';
+};
+
+export async function fetchStaffMembers(slug: string): Promise<StaffMemberRecord[]> {
+  const payload = await fetchSchoolAdminApi<{ staffMembers?: StaffMemberRecord[] }>(
+    `/api/school/${slug}/staff`,
+  );
+  return payload.staffMembers ?? [];
+}
+
+export async function assignStudentTeacher(
+  slug: string,
+  studentId: string,
+  staffMemberId: string | null,
+): Promise<{ assignedTeacherId: string | null; assignedTeacherName: string | null }> {
+  return fetchSchoolAdminApi(`/api/school/${slug}/students/${studentId}/teacher`, {
+    method: 'PATCH',
+    body: { staffMemberId },
+  });
+}

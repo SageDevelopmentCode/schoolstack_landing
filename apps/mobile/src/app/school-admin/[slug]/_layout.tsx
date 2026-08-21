@@ -14,10 +14,12 @@ import { useAuth } from '@/contexts/auth-context';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 
-const FLOATING_TAB_BAR_HEIGHT = 56;
+const FLOATING_TAB_BAR_HEIGHT = 68;
 
 function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/submissions\/[^/]+$/.test(pathname)) return null;
+  if (/\/students\/[^/]+$/.test(pathname)) return null;
+  if (pathname.includes('/students')) return 'students';
   if (pathname.includes('/admissions/submissions')) return 'admissions';
   if (pathname.includes('/dashboard')) return 'dashboard';
   return null;
@@ -84,6 +86,10 @@ function SchoolAdminLayoutContent() {
     if (!slug) return;
     if (tab === 'dashboard') {
       router.replace(`/school-admin/${slug}/dashboard`);
+      return;
+    }
+    if (tab === 'students') {
+      router.replace(`/school-admin/${slug}/students`);
       return;
     }
     router.replace(`/school-admin/${slug}/admissions/submissions`);
