@@ -196,6 +196,21 @@ export default function ApplicationSubmissionsPage({
     }
   }, [loadLoginStatus, organizationId, supabase]);
 
+  const handleSubmissionUpdated = useCallback(
+    (update?: { status: AdminApplicationSubmission["status"] }) => {
+      if (update && selectedId) {
+        setSubmissions((prev) =>
+          prev.map((row) =>
+            row.id === selectedId ? { ...row, status: update.status } : row,
+          ),
+        );
+        return;
+      }
+      void loadSubmissions();
+    },
+    [loadSubmissions, selectedId],
+  );
+
   useEffect(() => {
     if (hasInitialData) {
       // Defer Auth Admin fan-out so SSR TTFB stays lean.
@@ -640,7 +655,7 @@ export default function ApplicationSubmissionsPage({
             schoolName={schoolName}
             schoolSlug={slug}
             onClose={() => setSelectedId(null)}
-            onSubmissionUpdated={loadSubmissions}
+            onSubmissionUpdated={handleSubmissionUpdated}
             onSelectSubmission={setSelectedId}
           />
         ) : null}

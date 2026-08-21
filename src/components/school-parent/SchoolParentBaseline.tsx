@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
 import ParentToaster from "@/components/school-parent/ParentToaster";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
+import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import {
@@ -63,11 +64,11 @@ export default function SchoolParentBaseline({
   const isMessagesPage = isParentMessagesPath(pathname);
   const isFixedLayoutPage =
     isMessagesPage || isParentBillingPath(pathname);
+  const messagesEnabled = Boolean(features.parent?.messages);
   const showHelpButton =
     !previewMode && isParentHelpPage(pathname, slug) && !isMessagesPage;
 
-  return (
-    <NavigationLoadingProvider>
+  const shell = (
     <div
       className={
         previewMode
@@ -135,6 +136,20 @@ export default function SchoolParentBaseline({
 
       <ParentToaster C={C} helpButtonVisible={showHelpButton} />
     </div>
-    </NavigationLoadingProvider>
   );
+
+  const wrappedShell = (
+    <MessagesRefreshProvider
+      organizationId={organizationId}
+      enabled={messagesEnabled && !previewMode}
+    >
+      {shell}
+    </MessagesRefreshProvider>
+  );
+
+  if (previewMode) {
+    return wrappedShell;
+  }
+
+  return <NavigationLoadingProvider>{wrappedShell}</NavigationLoadingProvider>;
 }

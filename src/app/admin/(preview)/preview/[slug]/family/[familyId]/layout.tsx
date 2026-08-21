@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import FamilyPreviewShell from "@/components/admin/FamilyPreviewShell";
 import { PreviewPortalOptionsProvider } from "@/components/admin/PreviewPortalOptionsProvider";
 import {
-  familyHasEnrolledAccess,
   familyPreviewParentBasePath,
-  getFamilyPreviewProfile,
 } from "@/lib/admissions/family-preview-access";
+import {
+  familyHasEnrolledAccess,
+  getFamilyPreviewProfile,
+} from "@/lib/admissions/family-preview-server-cache";
 import { listPreviewPortalOptions } from "@/lib/admissions/preview-portal-options";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";

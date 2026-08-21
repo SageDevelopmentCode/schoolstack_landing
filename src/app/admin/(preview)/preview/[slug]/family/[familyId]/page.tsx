@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ApplyDashboard from "@/components/admissions/ApplyDashboard";
 import {
-  familyHasEnrolledAccess,
   familyPreviewBasePath,
   familyPreviewParentBasePath,
-  getFamilyPreviewProfile,
   listFamilyApplicationsForFamilyId,
 } from "@/lib/admissions/family-preview-access";
+import {
+  familyHasEnrolledAccess,
+  getFamilyPreviewProfile,
+} from "@/lib/admissions/family-preview-server-cache";
 import {
   familyHasScheduledCampusTour,
   listUpcomingCampusToursForFamily,

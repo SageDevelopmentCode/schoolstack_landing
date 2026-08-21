@@ -38,6 +38,7 @@ import { createClient } from "@/utils/supabase/client";
 import AdminPageContentShell from "@/components/school-admin/AdminPageContentShell";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
 import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
+import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
 import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 
@@ -646,6 +647,10 @@ export default function SchoolAdminBaseline({
   };
 
   return (
+    <MessagesRefreshProvider
+      organizationId={organizationId}
+      enabled={messagesEnabled && !previewMode}
+    >
     <NavigationLoadingProvider>
     <div
       className="flex h-dvh w-full overflow-hidden"
@@ -705,5 +710,6 @@ export default function SchoolAdminBaseline({
       </main>
     </div>
     </NavigationLoadingProvider>
+    </MessagesRefreshProvider>
   );
 }

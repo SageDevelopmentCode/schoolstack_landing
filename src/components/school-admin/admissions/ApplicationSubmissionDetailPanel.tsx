@@ -34,6 +34,8 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
+type SubmissionStatusUpdate = { status: AdminApplicationSubmission["status"] };
+
 type ApplicationSubmissionDetailPanelProps = {
   submission: AdminApplicationSubmission;
   organizationId: string;
@@ -41,7 +43,7 @@ type ApplicationSubmissionDetailPanelProps = {
   schoolName: string;
   schoolSlug: string;
   onClose: () => void;
-  onSubmissionUpdated?: () => void;
+  onSubmissionUpdated?: (update?: SubmissionStatusUpdate) => void;
   onSelectSubmission?: (applicationId: string) => void;
 };
 
@@ -248,7 +250,7 @@ export default function ApplicationSubmissionDetailPanel({
               }
               onStatusChanged={(status) => {
                 setCurrentStatus(status);
-                onSubmissionUpdated?.();
+                onSubmissionUpdated?.({ status });
                 void loadDetail();
               }}
             />
@@ -259,7 +261,7 @@ export default function ApplicationSubmissionDetailPanel({
               currentStatus={currentStatus}
               onStatusChanged={(status) => {
                 setCurrentStatus(status);
-                onSubmissionUpdated?.();
+                onSubmissionUpdated?.({ status });
                 void loadDetail();
               }}
             />
@@ -280,7 +282,7 @@ export default function ApplicationSubmissionDetailPanel({
             applicationId={submission.id}
             steps={detail.postSubmitSteps}
             onStepUpdated={() => {
-              onSubmissionUpdated?.();
+              onSubmissionUpdated?.({ status: currentStatus });
               void loadDetail();
             }}
           />
@@ -499,7 +501,7 @@ export default function ApplicationSubmissionDetailPanel({
         onStarted={() => {
           setCurrentStatus("enrolling");
           setHasChecklist(true);
-          onSubmissionUpdated?.();
+          onSubmissionUpdated?.({ status: "enrolling" });
           void loadDetail();
         }}
       />

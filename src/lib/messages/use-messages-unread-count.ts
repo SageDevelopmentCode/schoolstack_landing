@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useMessagesRefresh } from "@/lib/messages/messages-refresh-context";
 
 export function useMessagesUnreadCount(
   apiBasePath: string,
@@ -9,6 +10,7 @@ export function useMessagesUnreadCount(
   enabled = true,
 ) {
   const [unreadCount, setUnreadCount] = useState(0);
+  const messagesRefresh = useMessagesRefresh();
 
   const fetchUnreadCount = useCallback(async () => {
     if (!enabled || !organizationId) return;
@@ -30,11 +32,11 @@ export function useMessagesUnreadCount(
   }, [fetchUnreadCount]);
 
   useEffect(() => {
-    if (!enabled) return undefined;
-    const handleFocus = () => void fetchUnreadCount();
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [enabled, fetchUnreadCount]);
+    if (!enabled || !messagesRefresh) return undefined;
+    return messagesRefresh.subscribeMessagesUpdated(() => {
+      void fetchUnreadCount();
+    });
+  }, [enabled, fetchUnreadCount, messagesRefresh]);
 
   return { unreadCount, refreshUnreadCount: fetchUnreadCount };
 }

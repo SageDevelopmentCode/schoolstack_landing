@@ -11,7 +11,8 @@ import {
   threadDetailFromContact,
   threadDetailFromSummary,
 } from "@/lib/messages/thread-placeholders";
-import { useMessageRealtime } from "@/lib/messages/use-message-realtime";
+import { useMessagesRefresh } from "@/lib/messages/messages-refresh-context";
+import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
 import { registerWebPushSubscription } from "@/lib/messages/web-push-client";
 import type {
   MessageContact,
@@ -432,13 +433,24 @@ export default function MessagesInboxLayout({
     [activeThreadId, loadThread],
   );
 
-  useMessageRealtime({
-    organizationId: api.organizationId,
-    activeThreadId,
-    enabled: !readOnly,
-    onThreadMessage,
-    onInboxChange: loadInbox,
-  });
+  const messagesRefresh = useMessagesRefresh();
+  const realtimeConnected = messagesRefresh?.realtimeConnected ?? false;
+
+  useEffect(() => {
+    if (!messagesRefresh || readOnly) return undefined;
+    return messagesRefresh.registerInboxConsumer({
+      activeThreadId,
+      onInboxChange: loadInbox,
+      onThreadMessage,
+    });
+  }, [activeThreadId, loadInbox, messagesRefresh, onThreadMessage, readOnly]);
+
+  const pollInbox = useCallback(() => {
+    void loadInbox();
+    if (activeThreadId) void loadThread(activeThreadId, { silent: true });
+  }, [activeThreadId, loadInbox, loadThread]);
+
+  useVisibilityPolling(pollInbox, 300_000, !readOnly && !realtimeConnected);
 
   useEffect(() => {
     if (!initialInbox) {
@@ -447,28 +459,6 @@ export default function MessagesInboxLayout({
       });
     }
   }, [initialInbox, loadInbox]);
-
-  useEffect(() => {
-    if (readOnly) return undefined;
-
-    const interval = window.setInterval(() => {
-      void loadInbox();
-      if (activeThreadId) void loadThread(activeThreadId, { silent: true });
-    }, 60_000);
-
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        void loadInbox();
-        if (activeThreadId) void loadThread(activeThreadId, { silent: true });
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [activeThreadId, loadInbox, loadThread, readOnly]);
 
   useEffect(() => {
     const threadParam = searchParams.get("thread");

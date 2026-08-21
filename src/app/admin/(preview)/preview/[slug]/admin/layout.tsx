@@ -2,11 +2,11 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import SchoolAdminPreviewLayoutClient from "@/components/admin/SchoolAdminPreviewLayoutClient";
+import { findOwnerLinkedFamilyId } from "@/lib/admissions/family-preview-access";
 import {
   familyHasEnrolledAccess,
-  findOwnerLinkedFamilyId,
   getFamilyPreviewProfile,
-} from "@/lib/admissions/family-preview-access";
+} from "@/lib/admissions/family-preview-server-cache";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 

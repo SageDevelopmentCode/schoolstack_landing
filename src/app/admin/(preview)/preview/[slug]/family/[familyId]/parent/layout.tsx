@@ -3,11 +3,13 @@ import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
 import {
-  familyHasEnrolledAccess,
   familyPreviewBasePath,
   familyPreviewParentBasePath,
-  getFamilyPreviewProfile,
 } from "@/lib/admissions/family-preview-access";
+import {
+  familyHasEnrolledAccess,
+  getFamilyPreviewProfile,
+} from "@/lib/admissions/family-preview-server-cache";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";

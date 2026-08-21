@@ -11,6 +11,7 @@ import type {
   OrganizationBranding,
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
+import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
 
 type SchoolTeacherBaselineProps = {
   slug: string;
@@ -33,11 +34,16 @@ export default function SchoolTeacherBaseline({
 }: SchoolTeacherBaselineProps) {
   const pathname = usePathname();
   const isMessagesPage = isTeacherMessagesPath(pathname);
+  const messagesEnabled = Boolean(features.teacher?.messages);
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const bodyFont =
     branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
 
   return (
+    <MessagesRefreshProvider
+      organizationId={organizationId}
+      enabled={messagesEnabled}
+    >
     <div
       className="flex h-dvh w-full flex-col overflow-hidden bg-white"
       style={{ fontFamily: bodyFont, color: C.textPrimary }}
@@ -60,5 +66,6 @@ export default function SchoolTeacherBaseline({
       </main>
       <ParentToaster C={C} />
     </div>
+    </MessagesRefreshProvider>
   );
 }

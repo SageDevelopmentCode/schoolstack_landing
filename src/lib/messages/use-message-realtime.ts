@@ -5,18 +5,18 @@ import { createClient } from "@/utils/supabase/client";
 
 type UseMessageRealtimeOptions = {
   organizationId: string;
-  activeThreadId: string | null;
   enabled?: boolean;
   onThreadMessage: (threadId: string) => void;
   onInboxChange: () => void;
+  onConnectionChange?: (connected: boolean) => void;
 };
 
 export function useMessageRealtime({
   organizationId,
-  activeThreadId,
   enabled = true,
   onThreadMessage,
   onInboxChange,
+  onConnectionChange,
 }: UseMessageRealtimeOptions) {
   useEffect(() => {
     if (!enabled || !organizationId) return undefined;
@@ -38,9 +38,7 @@ export function useMessageRealtime({
           );
           if (!threadId) return;
           onInboxChange();
-          if (activeThreadId && threadId === activeThreadId) {
-            onThreadMessage(threadId);
-          }
+          onThreadMessage(threadId);
         },
       )
       .on(
@@ -55,16 +53,22 @@ export function useMessageRealtime({
           onInboxChange();
         },
       )
-      .subscribe();
+      .subscribe((status: string) => {
+        if (!onConnectionChange) return;
+        if (status === "SUBSCRIBED") {
+          onConnectionChange(true);
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          onConnectionChange(false);
+        }
+      });
 
     return () => {
+      onConnectionChange?.(false);
       void supabase.removeChannel(channel);
     };
-  }, [
-    activeThreadId,
-    enabled,
-    onInboxChange,
-    onThreadMessage,
-    organizationId,
-  ]);
+  }, [enabled, onConnectionChange, onInboxChange, onThreadMessage, organizationId]);
 }

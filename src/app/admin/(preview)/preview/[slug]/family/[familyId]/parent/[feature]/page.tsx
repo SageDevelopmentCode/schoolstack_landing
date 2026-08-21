@@ -1,10 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import ParentHomePage from "@/components/school-parent/ParentHomePage";
-import ParentBillingPage from "@/components/school-parent/billing/ParentBillingPage";
-import ParentCommitteesPage from "@/components/school-parent/committees/ParentCommitteesPage";
-import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
+import nextDynamic from "next/dynamic";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
 import {
@@ -12,9 +9,9 @@ import {
   familyPreviewParentBasePath,
   familyPreviewParentPath,
   getFamilyPreviewGuardianUserId,
-  getFamilyPreviewProfile,
   listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
+import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { buildEnrollmentAgreementAmendmentBannerItems } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import { listEnrollmentAgreementAmendmentsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
 import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
@@ -30,10 +27,25 @@ import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
 import { loadParentCalendarPreviewData } from "@/lib/school-events/load-parent-calendar-preview-data";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
-import ParentCalendarPage from "@/components/school-parent/calendar/ParentCalendarPage";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+
+const ParentHomePage = nextDynamic(
+  () => import("@/components/school-parent/ParentHomePage"),
+);
+const ParentBillingPage = nextDynamic(
+  () => import("@/components/school-parent/billing/ParentBillingPage"),
+);
+const ParentCommitteesPage = nextDynamic(
+  () => import("@/components/school-parent/committees/ParentCommitteesPage"),
+);
+const ParentMessagesPage = nextDynamic(
+  () => import("@/components/school-parent/ParentMessagesPage"),
+);
+const ParentCalendarPage = nextDynamic(
+  () => import("@/components/school-parent/calendar/ParentCalendarPage"),
+);
 
 export const dynamic = "force-dynamic";
 

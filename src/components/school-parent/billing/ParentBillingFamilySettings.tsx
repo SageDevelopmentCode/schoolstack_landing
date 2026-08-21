@@ -38,7 +38,7 @@ export default function ParentBillingFamilySettings({
 
       <div
         className="flex items-center justify-between gap-4 rounded-xl px-4 py-3"
-        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, boxShadow: C.shadowCard }}
       >
         <div className="min-w-0">
           <p className="text-sm font-medium" style={{ color: C.textPrimary }}>

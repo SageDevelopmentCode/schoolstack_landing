@@ -52,30 +52,36 @@ export default function ApplyPortalPageShell({
       ? previewPortalOptions
       : portalOptions;
 
-  return (
-    <NavigationLoadingProvider>
-    <ApplyPortalPageLayout branding={branding}>
-      <ApplyPortalNavbar
-        branding={branding}
-        schoolName={schoolName}
-        schoolSlug={schoolSlug}
-        organizationId={organizationId}
-        userEmail={userEmail}
-        userDisplayName={userDisplayName}
-        profilePhotoUrl={profilePhotoUrl}
-        portalOptions={resolvedPortalOptions}
-        previewMode={previewMode}
-        previewHomeHref={previewHomeHref}
-      />
-      <ApplyPortalPageMain
-        branding={branding}
-        fullBleed={fullBleed}
-        fillHeight={fillHeight}
-      >
-        {children}
-      </ApplyPortalPageMain>
-    </ApplyPortalPageLayout>
-    <ParentToaster C={C} />
-    </NavigationLoadingProvider>
+  const shell = (
+    <>
+      <ApplyPortalPageLayout branding={branding}>
+        <ApplyPortalNavbar
+          branding={branding}
+          schoolName={schoolName}
+          schoolSlug={schoolSlug}
+          organizationId={organizationId}
+          userEmail={userEmail}
+          userDisplayName={userDisplayName}
+          profilePhotoUrl={profilePhotoUrl}
+          portalOptions={resolvedPortalOptions}
+          previewMode={previewMode}
+          previewHomeHref={previewHomeHref}
+        />
+        <ApplyPortalPageMain
+          branding={branding}
+          fullBleed={fullBleed}
+          fillHeight={fillHeight}
+        >
+          {children}
+        </ApplyPortalPageMain>
+      </ApplyPortalPageLayout>
+      <ParentToaster C={C} />
+    </>
   );
+
+  if (previewMode) {
+    return shell;
+  }
+
+  return <NavigationLoadingProvider>{shell}</NavigationLoadingProvider>;
 }
