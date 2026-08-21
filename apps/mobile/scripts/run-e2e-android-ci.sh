@@ -8,13 +8,17 @@ bash "$script_dir/assert-mobile-e2e-env.sh"
 
 cd "$mobile_dir"
 
-npx expo prebuild --platform android
-cd android
-./gradlew assembleDebug --no-daemon
-cd ..
+APK="android/app/build/outputs/apk/debug/app-debug.apk"
+if [[ ! -f "$APK" ]]; then
+  echo "Debug APK not found; running expo prebuild and Gradle assembleDebug..."
+  npx expo prebuild --platform android
+  (cd android && ./gradlew assembleDebug --no-daemon)
+else
+  echo "Using cached debug APK at $APK"
+fi
 
 adb wait-for-device
-adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r "$APK"
 adb reverse tcp:8081 tcp:8081
 adb reverse tcp:3100 tcp:3100
 adb reverse tcp:54321 tcp:54321
@@ -42,4 +46,16 @@ for i in {1..60}; do
   sleep 2
 done
 
-maestro test .maestro
+maestro_flows=()
+if [[ "${MAESTRO_FLOWS:-.maestro}" == ".maestro" ]]; then
+  maestro test .maestro
+else
+  for flow in ${MAESTRO_FLOWS}; do
+    if [[ "$flow" == .maestro/* ]]; then
+      maestro_flows+=("$flow")
+    else
+      maestro_flows+=(".maestro/$flow")
+    fi
+  done
+  maestro test "${maestro_flows[@]}"
+fi

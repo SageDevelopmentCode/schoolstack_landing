@@ -54,6 +54,8 @@ jobs:
       )
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      MAESTRO_FLOWS: ${{ github.event_name == 'pull_request' && 'intro-to-login.yaml school-admin-logged-in.yaml dashboard.yaml' || '.maestro' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -68,7 +70,10 @@ jobs:
           version: 2.110.0
 
       - name: Start local Supabase
-        run: supabase start
+        run: >
+          supabase start
+          -x studio -x vector -x logflare
+          -x inbucket -x storage -x realtime
 
       - name: Reset database
         run: supabase db reset
@@ -123,6 +128,16 @@ jobs:
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
+      - name: Cache Android native build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            apps/mobile/android/.gradle
+            apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          key: mobile-android-e2e-${{ hashFiles('package-lock.json', 'apps/mobile/package.json', 'apps/mobile/app.json') }}
+
       - name: Run Maestro E2E on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -146,12 +161,13 @@ jobs:
   mobile-e2e-ios:
     needs: changes
     if: |
-      needs.changes.outputs.mobile == 'true' && (
-        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-        (github.event_name == 'pull_request' && github.base_ref == 'main')
-      )
+      needs.changes.outputs.mobile == 'true' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
     runs-on: macos-15-intel
     timeout-minutes: 60
+    env:
+      MAESTRO_FLOWS: .maestro
 
     steps:
       - uses: actions/checkout@v4
@@ -165,9 +181,21 @@ jobs:
         with:
           version: 2.110.0
 
-      - name: Start Colima and Supabase
-        timeout-minutes: 35
-        run: bash scripts/ci/start-supabase-colima.sh
+      - name: Start Colima
+        timeout-minutes: 10
+        run: bash scripts/ci/start-supabase-colima.sh colima
+
+      - name: Start Supabase via Colima
+        timeout-minutes: 20
+        run: bash scripts/ci/start-supabase-colima.sh supabase
+
+      - name: Upload Colima diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-colima-diagnostics
+          path: /tmp/colima-bootstrap-diagnostics.log
+          retention-days: 7
 
       - name: Reset database
         run: supabase db reset
@@ -210,46 +238,14 @@ jobs:
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
+      - name: Cache iOS native build
+        uses: actions/cache@v4
+        with:
+          path: apps/mobile/ios/build
+          key: mobile-ios-e2e-${{ hashFiles('package-lock.json', 'apps/mobile/package.json', 'apps/mobile/app.json') }}
+
       - name: Build and run Maestro E2E on iOS simulator
-        run: |
-          set -euo pipefail
-
-          cd apps/mobile
-          npx expo prebuild --platform ios
-
-          xcodebuild \
-            -workspace ios/MudKitchen.xcworkspace \
-            -scheme MudKitchen \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -derivedDataPath ios/build \
-            CODE_SIGNING_ALLOWED=NO
-
-          SIMULATOR_ID="$(
-            xcrun simctl list devices available | grep -E 'iPhone [0-9]+' | head -1 | sed -E 's/.* \(([0-9A-F-]+)\).*/\1/'
-          )"
-          if [[ -z "$SIMULATOR_ID" ]]; then
-            echo "No available iPhone simulator found"
-            xcrun simctl list devices available
-            exit 1
-          fi
-
-          xcrun simctl boot "$SIMULATOR_ID" || true
-          open -a Simulator
-
-          APP_PATH="$(find ios/build/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' | head -1)"
-          if [[ -z "$APP_PATH" ]]; then
-            echo "Built .app not found"
-            find ios/build -name '*.app'
-            exit 1
-          fi
-
-          xcrun simctl install booted "$APP_PATH"
-
-          npx expo start --dev-client --port 8081 > /tmp/expo-metro.log 2>&1 &
-          sleep 20
-
-          maestro test .maestro
+        run: bash apps/mobile/scripts/run-e2e-ios-ci.sh
 
       - name: Upload Maestro debug output
         if: failure()
@@ -276,7 +272,7 @@ jobs:
 
   notify-e2e:
     needs: [mobile-e2e, mobile-e2e-ios]
-    if: failure()
+    if: always() && (needs.mobile-e2e.result == 'failure' || needs.mobile-e2e-ios.result == 'failure')
     uses: ./.github/workflows/discord-notify.yml
     secrets:
       DISCORD_CI_ALERTS_WEBHOOK_URL: ${{ secrets.DISCORD_CI_ALERTS_WEBHOOK_URL }}
