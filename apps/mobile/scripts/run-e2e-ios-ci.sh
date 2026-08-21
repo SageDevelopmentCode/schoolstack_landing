@@ -7,6 +7,7 @@ mobile_dir="$(cd "$script_dir/.." && pwd)"
 bash "$script_dir/assert-mobile-e2e-env.sh"
 
 cd "$mobile_dir"
+export NODE_PATH="./node_modules:../../node_modules"
 
 APP_PATH="$(find ios/build/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' 2>/dev/null | head -1 || true)"
 if [[ -z "$APP_PATH" ]]; then

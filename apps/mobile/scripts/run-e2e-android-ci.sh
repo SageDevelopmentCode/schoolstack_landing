@@ -7,6 +7,7 @@ mobile_dir="$(cd "$script_dir/.." && pwd)"
 bash "$script_dir/assert-mobile-e2e-env.sh"
 
 cd "$mobile_dir"
+export NODE_PATH="./node_modules:../../node_modules"
 
 APK="android/app/build/outputs/apk/debug/app-debug.apk"
 if [[ ! -f "$APK" ]]; then
