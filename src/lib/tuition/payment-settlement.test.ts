@@ -308,8 +308,9 @@ describe("settleTuitionPayment", () => {
               if (filters.charge_type) {
                 rows = rows.filter((row) => row.charge_type === filters.charge_type);
               }
-              if (Array.isArray(filters.status__in)) {
-                rows = rows.filter((row) => filters.status__in.includes(row.status));
+              const statusIn = filters.status__in;
+              if (Array.isArray(statusIn)) {
+                rows = rows.filter((row) => statusIn.includes(row.status));
               }
               resolve({ data: rows, error: null });
               return;
