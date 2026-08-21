@@ -82,6 +82,16 @@ The [mobile.yml](./mobile.yml) workflow:
 
 iOS E2E runs on `macos-15-intel` (not `macos-latest`) because local Supabase requires Docker via Colima, which needs nested virtualization unsupported on Apple Silicon GitHub runners.
 
+**Colima bootstrap (iOS only)**
+
+The `mobile-e2e-ios` job runs [`scripts/ci/start-supabase-colima.sh`](../../scripts/ci/start-supabase-colima.sh) before `supabase db reset`:
+
+- Starts Colima with **virtiofs** (not sshfs), 8 GB RAM, and 100 GB disk — sshfs is unstable under parallel Supabase image pulls on CI
+- Symlinks `~/.colima/default/docker.sock` → `/var/run/docker.sock` and sets `DOCKER_HOST` there (required by Supabase CLI 2.110+ for the vector/analytics container)
+- Waits for `docker info` readiness, then retries `supabase start` up to 3 times with Colima restart on failure
+
+Both Android and iOS E2E jobs pin Supabase CLI **2.110.0**.
+
 **Local reproduction**
 
 ```bash

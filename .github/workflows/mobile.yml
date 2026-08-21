@@ -65,7 +65,7 @@ jobs:
 
       - uses: supabase/setup-cli@v3
         with:
-          version: 2.109.1
+          version: 2.110.0
 
       - name: Start local Supabase
         run: supabase start
@@ -112,6 +112,17 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
       - name: Run Maestro E2E on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -120,27 +131,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          script: |
-            set -euo pipefail
-
-            curl -Ls "https://get.maestro.mobile.dev" | bash
-            echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
-
-            cd apps/mobile
-            npx expo prebuild --platform android --non-interactive
-            cd android
-            ./gradlew assembleDebug --no-daemon
-            cd ..
-
-            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-            adb reverse tcp:8081 tcp:8081
-            adb reverse tcp:3100 tcp:3100
-            adb reverse tcp:54321 tcp:54321
-
-            npx expo start --dev-client --port 8081 --non-interactive > /tmp/expo-metro.log 2>&1 &
-            sleep 15
-
-            maestro test .maestro
+          script: bash apps/mobile/scripts/run-e2e-android-ci.sh
 
       - name: Upload Maestro debug output
         if: failure()
@@ -170,20 +161,12 @@ jobs:
           node-version: "24"
           cache: npm
 
-      - name: Start Colima for Supabase
-        run: |
-          brew install colima docker jq
-          colima start --runtime docker --mount-type sshfs --cpu 4 --memory 8
-          echo "DOCKER_HOST=unix://${HOME}/.colima/default/docker.sock" >> "$GITHUB_ENV"
-          docker info
-          sleep 10
-
       - uses: supabase/setup-cli@v3
         with:
           version: 2.110.0
 
-      - name: Start local Supabase
-        run: supabase start
+      - name: Start Colima and Supabase
+        run: bash scripts/ci/start-supabase-colima.sh
 
       - name: Reset database
         run: supabase db reset
