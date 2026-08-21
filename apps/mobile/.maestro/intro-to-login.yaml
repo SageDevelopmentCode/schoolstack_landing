@@ -7,6 +7,5 @@ appId: com.mudkitchen.schoolstack.mobile
     timeout: 30000
 - tapOn: 'Log in to continue'
 - extendedWaitUntil:
-    visible:
-      id: school-login-heading
+    visible: 'Sign in to your school'
     timeout: 30000
