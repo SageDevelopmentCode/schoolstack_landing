@@ -166,6 +166,7 @@ jobs:
           version: 2.110.0
 
       - name: Start Colima and Supabase
+        timeout-minutes: 35
         run: bash scripts/ci/start-supabase-colima.sh
 
       - name: Reset database
@@ -214,7 +215,7 @@ jobs:
           set -euo pipefail
 
           cd apps/mobile
-          npx expo prebuild --platform ios --non-interactive
+          npx expo prebuild --platform ios
 
           xcodebuild \
             -workspace ios/MudKitchen.xcworkspace \
@@ -245,7 +246,7 @@ jobs:
 
           xcrun simctl install booted "$APP_PATH"
 
-          npx expo start --dev-client --port 8081 --non-interactive > /tmp/expo-metro.log 2>&1 &
+          npx expo start --dev-client --port 8081 > /tmp/expo-metro.log 2>&1 &
           sleep 20
 
           maestro test .maestro
@@ -258,6 +259,7 @@ jobs:
           path: |
             /tmp/next-dev.log
             /tmp/expo-metro.log
+            /tmp/colima-bootstrap-diagnostics.log
           retention-days: 7
 
   notify-checks:

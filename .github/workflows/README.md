@@ -88,8 +88,16 @@ The `mobile-e2e-ios` job runs [`scripts/ci/start-supabase-colima.sh`](../../scri
 
 - Starts Colima with **virtiofs** (not sshfs), 8 GB RAM, and 100 GB disk — sshfs is unstable under parallel Supabase image pulls on CI
 - Installs pinned **Lima** + **Colima** binaries (Colima requires Lima; `brew install colima` alone is not used so versions stay pinned)
-- Symlinks `~/.colima/default/docker.sock` → `/var/run/docker.sock` and sets `DOCKER_HOST` there (required by Supabase CLI 2.110+ for the vector/analytics container)
-- Waits for `docker info` readiness, then retries `supabase start` up to 3 times with Colima restart on failure
+- Symlinks `~/.colima/default/docker.sock` → `/var/run/docker.sock` and sets `DOCKER_HOST` there (required by Supabase CLI 2.110+)
+- Tunes the guest Docker daemon (`max-concurrent-downloads: 2`, `max-download-attempts: 5`) to reduce parallel pull load
+- Disables analytics in CI and starts with `-x studio,vector,logflare` (mobile E2E does not need Studio or log ingestion)
+- Pre-pulls heavy images (`postgres`, `gotrue`, `kong`, `postgrest`) sequentially with retries before `supabase start`
+- Wraps each `supabase start` in a 20-minute timeout and retries up to 3 times with Colima restart on failure or hang
+- The Colima step has a 35-minute workflow timeout; on failure, `/tmp/colima-bootstrap-diagnostics.log` is uploaded with the Maestro artifact
+
+**Troubleshooting `unexpected EOF` / hung Supabase start**
+
+If the iOS job stalls on image pulls with `unexpected EOF`, that is a transient Docker registry transport error inside Colima — not a Supabase config bug. Cancel and re-run the workflow (partial layers may resume). If it persists, check the `colima-bootstrap-diagnostics.log` artifact for guest-agent or OOM warnings.
 
 Both Android and iOS E2E jobs pin Supabase CLI **2.110.0**.
 

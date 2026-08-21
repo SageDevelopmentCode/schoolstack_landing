@@ -8,7 +8,7 @@ bash "$script_dir/assert-mobile-e2e-env.sh"
 
 cd "$mobile_dir"
 
-npx expo prebuild --platform android --non-interactive
+npx expo prebuild --platform android
 cd android
 ./gradlew assembleDebug --no-daemon
 cd ..
@@ -27,7 +27,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-npx expo start --dev-client --port 8081 --non-interactive > /tmp/expo-metro.log 2>&1 &
+npx expo start --dev-client --port 8081 > /tmp/expo-metro.log 2>&1 &
 metro_pid=$!
 
 for i in {1..60}; do
