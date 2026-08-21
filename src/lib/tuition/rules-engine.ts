@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { upsertRuleAdjustment } from "./adjustments";
-import { regenerateFutureCharges } from "./charge-generator";
 import { rowToAdjustmentRule } from "./row-mappers";
 import {
   ACTIVITY_ACTIONS,
@@ -297,8 +296,6 @@ export async function evaluateAndApplyRulesForAssignment(
       priority: rule.priority,
     });
   }
-
-  await regenerateFutureCharges(supabase, assignmentId);
 }
 
 export async function evaluateRulesForOrganization(

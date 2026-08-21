@@ -42,20 +42,40 @@ describe("buildLateFeeTriggerDate", () => {
 });
 
 describe("buildLateFeeKey", () => {
-  it("includes guardian id when present", () => {
+  it("uses assignment id, period, and guardian for stable dedup", () => {
     assert.equal(
-      buildLateFeeKey("charge-1", 2026, 8, "guardian-a"),
-      "charge-1:2026:8:guardian-a",
+      buildLateFeeKey("assign-1", 2026, 8, "guardian-a"),
+      "assign-1:2026:8:guardian-a",
     );
   });
 
   it("uses family suffix when guardian is null", () => {
-    assert.equal(buildLateFeeKey("charge-1", 2026, 8, null), "charge-1:2026:8:family");
+    assert.equal(buildLateFeeKey("assign-1", 2026, 8, null), "assign-1:2026:8:family");
   });
 });
 
 describe("parseExistingLateFeeKeys", () => {
-  it("extracts source charge period keys with guardian id", () => {
+  it("extracts assignment-based keys when assignmentId is present", () => {
+    const keys = parseExistingLateFeeKeys([
+      {
+        metadata: {
+          assignmentId: "assign-1",
+          sourceChargeId: "charge-1",
+          periodYear: 2026,
+          periodMonth: 8,
+          guardianId: "guardian-a",
+        },
+      },
+      { metadata: {} },
+    ]);
+
+    assert.deepEqual(
+      keys,
+      new Set([buildLateFeeKey("assign-1", 2026, 8, "guardian-a"), "charge-1:2026:8:guardian-a"]),
+    );
+  });
+
+  it("extracts legacy source charge period keys with guardian id", () => {
     const keys = parseExistingLateFeeKeys([
       {
         metadata: {
@@ -68,10 +88,7 @@ describe("parseExistingLateFeeKeys", () => {
       { metadata: {} },
     ]);
 
-    assert.deepEqual(
-      keys,
-      new Set([buildLateFeeKey("charge-1", 2026, 8, "guardian-a")]),
-    );
+    assert.equal(keys.has("charge-1:2026:8:guardian-a"), true);
   });
 
   it("includes legacy keys when guardian id is missing", () => {
@@ -86,7 +103,7 @@ describe("parseExistingLateFeeKeys", () => {
     ]);
 
     assert.equal(keys.has("charge-1:2026:8"), true);
-    assert.equal(keys.has(buildLateFeeKey("charge-1", 2026, 8, null)), true);
+    assert.equal(keys.has("charge-1:2026:8:family"), true);
   });
 });
 
@@ -115,6 +132,7 @@ describe("buildLateFeeDraftsForSource", () => {
   it("creates one draft for a guardian-specific source charge", () => {
     const drafts = buildLateFeeDraftsForSource({
       sourceChargeId: "charge-1",
+      assignmentId: "assign-1",
       sourceGuardianId: "guardian-a",
       periodYear: 2026,
       periodMonth: 8,
@@ -131,6 +149,7 @@ describe("buildLateFeeDraftsForSource", () => {
   it("splits across guardians when source charge is family-level", () => {
     const drafts = buildLateFeeDraftsForSource({
       sourceChargeId: "charge-1",
+      assignmentId: "assign-1",
       sourceGuardianId: null,
       periodYear: 2026,
       periodMonth: 8,
@@ -153,6 +172,7 @@ describe("buildLateFeeDraftsForSource", () => {
   it("creates a single family-level draft when no splits exist", () => {
     const drafts = buildLateFeeDraftsForSource({
       sourceChargeId: "charge-1",
+      assignmentId: "assign-1",
       sourceGuardianId: null,
       periodYear: 2026,
       periodMonth: 8,
