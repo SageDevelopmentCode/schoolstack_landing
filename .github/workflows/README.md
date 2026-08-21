@@ -87,6 +87,7 @@ iOS E2E runs on `macos-15-intel` (not `macos-latest`) because local Supabase req
 The `mobile-e2e-ios` job runs [`scripts/ci/start-supabase-colima.sh`](../../scripts/ci/start-supabase-colima.sh) before `supabase db reset`:
 
 - Starts Colima with **virtiofs** (not sshfs), 8 GB RAM, and 100 GB disk — sshfs is unstable under parallel Supabase image pulls on CI
+- Installs pinned **Lima** + **Colima** binaries (Colima requires Lima; `brew install colima` alone is not used so versions stay pinned)
 - Symlinks `~/.colima/default/docker.sock` → `/var/run/docker.sock` and sets `DOCKER_HOST` there (required by Supabase CLI 2.110+ for the vector/analytics container)
 - Waits for `docker info` readiness, then retries `supabase start` up to 3 times with Colima restart on failure
 

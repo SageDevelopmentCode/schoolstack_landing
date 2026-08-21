@@ -5,6 +5,7 @@
 set -euo pipefail
 
 COLIMA_VERSION="${COLIMA_VERSION:-v0.9.1}"
+LIMA_VERSION="${LIMA_VERSION:-v1.2.1}"
 COLIMA_CPU="${COLIMA_CPU:-4}"
 COLIMA_MEMORY="${COLIMA_MEMORY:-8}"
 COLIMA_DISK="${COLIMA_DISK:-100}"
@@ -12,6 +13,7 @@ SUPABASE_START_ATTEMPTS="${SUPABASE_START_ATTEMPTS:-3}"
 
 colima_start_args=(
   --runtime docker
+  --arch x86_64
   --vm-type vz
   --mount-type virtiofs
   --cpu "$COLIMA_CPU"
@@ -30,6 +32,18 @@ clean_docker_config() {
   mv /tmp/docker-config.json "$HOME/.docker/config.json"
 }
 
+install_lima() {
+  if command -v limactl >/dev/null 2>&1; then
+    limactl --version
+    return 0
+  fi
+
+  echo "Installing Lima ${LIMA_VERSION}..."
+  curl -fsSL \
+    "https://github.com/lima-vm/lima/releases/download/${LIMA_VERSION}/lima-${LIMA_VERSION:1}-$(uname -s)-$(uname -m).tar.gz" \
+    | sudo tar Cxzvm /usr/local
+}
+
 install_colima() {
   if command -v colima >/dev/null 2>&1; then
     colima version
@@ -38,16 +52,17 @@ install_colima() {
 
   echo "Installing Colima ${COLIMA_VERSION}..."
   tmp_dir="$(mktemp -d)"
-  trap 'rm -rf "$tmp_dir"' RETURN
   curl -fsSL \
     "https://github.com/abiosoft/colima/releases/download/${COLIMA_VERSION}/colima-$(uname)-$(uname -m)" \
     -o "${tmp_dir}/colima"
   chmod +x "${tmp_dir}/colima"
   sudo install "${tmp_dir}/colima" /usr/local/bin/colima
+  rm -rf "$tmp_dir"
 }
 
 install_dependencies() {
   brew install docker jq
+  install_lima
   install_colima
 }
 
