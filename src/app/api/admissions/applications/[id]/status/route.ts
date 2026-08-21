@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   activityActionForStatusChange,
@@ -20,7 +19,7 @@ import {
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/admissions/applications/[id]/status";
 
@@ -34,8 +33,7 @@ type StatusUpdateBody = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const { id: applicationId } = await context.params;
 
   let body: StatusUpdateBody;
@@ -186,9 +184,8 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 }
 
-export async function GET(_request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+export async function GET(request: Request, context: RouteContext) {
+  const supabase = await createClientFromRequest(request);
   const { id: applicationId } = await context.params;
 
   try {
@@ -202,7 +199,7 @@ export async function GET(_request: Request, context: RouteContext) {
     if (error) throw error;
     if (!application) {
       return apiError(ROUTE, {
-        request: _request,
+        request,
         status: 404,
         error: "Application not found.",
         code: "not_found",
@@ -237,7 +234,7 @@ export async function GET(_request: Request, context: RouteContext) {
   } catch (error) {
     if (error instanceof SchoolAdminAuthError) {
       return apiError(ROUTE, {
-        request: _request,
+        request,
         status: error.status,
         error: error.message,
         code: error.code,
@@ -246,7 +243,7 @@ export async function GET(_request: Request, context: RouteContext) {
     }
 
     return apiError(ROUTE, {
-      request: _request,
+      request,
       status: 500,
       error: "Failed to load application status.",
       code: "internal_error",

@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { chargeRemainingCents } from "./billing-splits";
 import {
+  billingPeriodFromDueDate,
   previewInstallmentRedistribution,
   previewTuitionPaymentRedistribution,
   redistributeOpenInstallments,
+  settleTuitionPayment,
 } from "./payment-settlement";
 
 describe("chargeRemainingCents", () => {
@@ -157,5 +159,179 @@ describe("redistributeOpenInstallments", () => {
     assert.equal(updates.length, 2);
     const totalRemaining = updates.reduce((sum, row) => sum + row.amount_cents, 0);
     assert.equal(totalRemaining, 68000);
+  });
+});
+
+describe("billingPeriodFromDueDate", () => {
+  it("derives year and month from due date", () => {
+    assert.deepEqual(billingPeriodFromDueDate("2026-08-01"), {
+      year: 2026,
+      month: 8,
+    });
+  });
+});
+
+describe("settleTuitionPayment", () => {
+  it("voids open late fees for the same billing period when tuition is fully paid", async () => {
+    const voidedLateFeeIds: string[] = [];
+    const charges = [
+      {
+        id: "tuition-aug",
+        organization_id: "org-1",
+        assignment_id: "assign-1",
+        family_id: "family-1",
+        guardian_id: null,
+        label: "Aug Tuition",
+        base_amount_cents: 60000,
+        amount_cents: 60000,
+        paid_cents: 0,
+        due_date: "2026-08-01",
+        status: "sent",
+        charge_type: "tuition",
+        installment_number: 1,
+        paid_at: null,
+        sent_at: null,
+        metadata: {},
+        created_at: "",
+        updated_at: "",
+      },
+      {
+        id: "late-fee-aug",
+        organization_id: "org-1",
+        assignment_id: "assign-1",
+        family_id: "family-1",
+        guardian_id: null,
+        label: "Late fee — August 2026",
+        base_amount_cents: 5000,
+        amount_cents: 5000,
+        paid_cents: 0,
+        due_date: "2026-08-15",
+        status: "sent",
+        charge_type: "late_fee",
+        installment_number: null,
+        paid_at: null,
+        sent_at: null,
+        metadata: {
+          periodYear: 2026,
+          periodMonth: 8,
+        },
+        created_at: "",
+        updated_at: "",
+      },
+      {
+        id: "late-fee-sep",
+        organization_id: "org-1",
+        assignment_id: "assign-1",
+        family_id: "family-1",
+        guardian_id: null,
+        label: "Late fee — September 2026",
+        base_amount_cents: 5000,
+        amount_cents: 5000,
+        paid_cents: 0,
+        due_date: "2026-09-10",
+        status: "sent",
+        charge_type: "late_fee",
+        installment_number: null,
+        paid_at: null,
+        sent_at: null,
+        metadata: {
+          periodYear: 2026,
+          periodMonth: 9,
+        },
+        created_at: "",
+        updated_at: "",
+      },
+    ];
+
+    const supabase = {
+      from(table: string) {
+        const filters: Record<string, unknown> = {};
+        const builder = {
+          select() {
+            return builder;
+          },
+          eq(column: string, value: unknown) {
+            filters[column] = value;
+            return builder;
+          },
+          in(column: string, values: unknown[]) {
+            filters[`${column}__in`] = values;
+            return builder;
+          },
+          update(patch: Record<string, unknown>) {
+            return {
+              eq(column: string, value: unknown) {
+                if (table === "tuition_charges" && column === "id") {
+                  const charge = charges.find((row) => row.id === value);
+                  if (charge) Object.assign(charge, patch);
+                }
+                return {
+                  select() {
+                    return {
+                      async single() {
+                        const charge = charges.find((row) => row.id === value);
+                        return { data: charge, error: null };
+                      },
+                    };
+                  },
+                };
+              },
+              in(column: string, ids: unknown[]) {
+                if (table === "tuition_charges" && column === "id") {
+                  for (const id of ids) {
+                    const charge = charges.find((row) => row.id === id);
+                    if (charge) {
+                      Object.assign(charge, patch);
+                      voidedLateFeeIds.push(String(id));
+                    }
+                  }
+                }
+                return Promise.resolve({ error: null });
+              },
+            };
+          },
+          maybeSingle: async () => {
+            if (table === "tuition_charges" && filters.id) {
+              return {
+                data: charges.find((row) => row.id === filters.id) ?? null,
+                error: null,
+              };
+            }
+            return { data: null, error: null };
+          },
+          then(resolve: (value: { data: typeof charges; error: null }) => void) {
+            if (table === "tuition_charges") {
+              let rows = charges;
+              if (filters.assignment_id) {
+                rows = rows.filter((row) => row.assignment_id === filters.assignment_id);
+              }
+              if (filters.charge_type) {
+                rows = rows.filter((row) => row.charge_type === filters.charge_type);
+              }
+              const statusIn = filters.status__in;
+              if (Array.isArray(statusIn)) {
+                rows = rows.filter((row) => statusIn.includes(row.status));
+              }
+              resolve({ data: rows, error: null });
+              return;
+            }
+            resolve({ data: [], error: null });
+          },
+        };
+        return builder;
+      },
+    };
+
+    const result = await settleTuitionPayment(supabase as never, {
+      chargeId: "tuition-aug",
+      amountCents: 60000,
+    });
+
+    assert.equal(result.charge.status, "paid");
+    assert.deepEqual(voidedLateFeeIds, ["late-fee-aug"]);
+    assert.equal(
+      charges.find((row) => row.id === "late-fee-sep")?.status,
+      "sent",
+    );
   });
 });

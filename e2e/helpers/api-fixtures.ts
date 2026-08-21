@@ -89,3 +89,22 @@ export async function prepareBootstrapResumeFixture(
 
   if (error) throw error;
 }
+
+export async function ensureApplicationStatus(
+  applicationId: string,
+  status: string,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("applications")
+    .update({ status })
+    .eq("id", applicationId);
+
+  if (error) throw error;
+}
+
+export async function ensureAlphaChildSubmittedFixture(
+  manifest: E2eSeedManifest,
+): Promise<void> {
+  await ensureApplicationStatus(manifest.applications.alphaChild, "submitted");
+}

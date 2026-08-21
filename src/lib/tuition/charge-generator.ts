@@ -312,6 +312,17 @@ export async function regenerateFutureCharges(
     ),
   );
 
+  const { data: chargesToVoid, error: chargesToVoidError } = await supabase
+    .from("tuition_charges")
+    .select("id")
+    .eq("assignment_id", assignmentId)
+    .in("status", ["scheduled", "sent", "overdue"])
+    .neq("charge_type", "late_fee");
+
+  if (chargesToVoidError) throw chargesToVoidError;
+
+  const voidedTuitionIds = (chargesToVoid ?? []).map((charge) => String(charge.id));
+
   const { error: voidError } = await supabase
     .from("tuition_charges")
     .update({ status: "void" })
@@ -320,6 +331,40 @@ export async function regenerateFutureCharges(
     .neq("charge_type", "late_fee");
 
   if (voidError) throw voidError;
+
+  if (voidedTuitionIds.length > 0) {
+    const voidedTuitionIdSet = new Set(voidedTuitionIds);
+    const { data: openLateFees, error: openLateFeesError } = await supabase
+      .from("tuition_charges")
+      .select("id, metadata")
+      .eq("assignment_id", assignmentId)
+      .eq("charge_type", "late_fee")
+      .in("status", ["scheduled", "sent", "overdue"]);
+
+    if (openLateFeesError) throw openLateFeesError;
+
+    const orphanLateFeeIds = (openLateFees ?? [])
+      .filter((charge) => {
+        const metadata = charge.metadata;
+        if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+          return false;
+        }
+        const sourceChargeId = (metadata as Record<string, unknown>).sourceChargeId;
+        return (
+          typeof sourceChargeId === "string" && voidedTuitionIdSet.has(sourceChargeId)
+        );
+      })
+      .map((charge) => String(charge.id));
+
+    if (orphanLateFeeIds.length > 0) {
+      const { error: voidLateFeeError } = await supabase
+        .from("tuition_charges")
+        .update({ status: "void" })
+        .in("id", orphanLateFeeIds);
+
+      if (voidLateFeeError) throw voidLateFeeError;
+    }
+  }
 
   const toInsert = drafts.filter((draft) => !lockedKeys.has(chargeDraftLockKey(draft)));
 

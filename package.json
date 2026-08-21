@@ -2,6 +2,9 @@
   "name": "schoollayer_landing",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "tsx scripts/dev-with-stripe.ts",
     "dev:next": "next dev",
@@ -11,7 +14,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:errors": "eslint --quiet",
-    "test": "tsx --require ./src/test/integration/mock-server-only.cjs --test src/lib/admissions/admissions-observation-booking.test.ts src/lib/admissions/admin-submission-fee-badges.test.ts src/lib/admissions/application-form-validation.test.ts src/lib/admissions/application-form-schema.test.ts src/lib/admissions/application-submit.test.ts src/lib/admissions/enrollment-agreement-progress.test.ts src/lib/admissions/enrollment-checklist-progress.test.ts src/lib/admissions/enrollment-checklist-templates.test.ts src/lib/admissions/enrollment-completed-notifications.test.ts src/lib/admissions/enrollment-payment-summary.test.ts src/lib/admissions/family-guardians-remove.test.ts src/lib/admissions/family-tour-booking.test.ts src/lib/admissions/guardian-role-label.test.ts src/lib/admissions/mark-application-enrolled.test.ts src/lib/admissions/parent-portal-login-status.test.ts src/lib/auth/portal-switcher.test.ts src/lib/activity-event-display.test.ts src/lib/activity-funnel.test.ts src/lib/school-admin/admissions-setup-status.test.ts src/lib/school-admin/activity-notifications.test.ts src/lib/stripe/application-payments-admin-bypass.test.ts src/lib/stripe/application-payments-checkout-details.test.ts src/lib/stripe/pending-checkout-session.test.ts src/lib/stripe/connect-status.test.ts src/lib/stripe/dashboard-link.test.ts src/lib/stripe/checkout-session.setup.test.ts src/lib/tuition/pricing.test.ts src/lib/tuition/rate-tiers.test.ts src/lib/tuition/setup-wizard.test.ts src/lib/tuition/charge-generator.test.ts src/lib/tuition/charge-generator-rate-plan.test.ts src/lib/tuition/billing-splits.test.ts src/lib/tuition/tuition-checkout-line-item.test.ts src/lib/tuition/tuition-payment-receipt-detail.test.ts src/lib/tuition/payment-receipt-email.test.ts src/lib/tuition/payment-settlement.test.ts src/lib/tuition/parent-billing-summary.test.ts src/lib/tuition/send-invoice.test.ts src/lib/tuition/assignments.test.ts src/lib/tuition/rules-engine.test.ts src/lib/tuition/reminders.test.ts src/lib/tuition/billing-cron.test.ts src/lib/tuition/autopay-status.test.ts src/lib/tuition/autopay-cron-report.test.ts src/lib/tuition/tuition-activity.test.ts src/lib/tuition/autopay.test.ts src/lib/staff/staff-members.test.ts src/lib/committees/calendar-utils.test.ts src/lib/committees/resource-file-storage.test.ts",
+    "test": "tsx --require ./src/test/integration/mock-server-only.cjs --test src/lib/admissions/admissions-observation-booking.test.ts src/lib/admissions/admin-submission-fee-badges.test.ts src/lib/admissions/application-form-validation.test.ts src/lib/admissions/application-form-schema.test.ts src/lib/admissions/application-submit.test.ts src/lib/admissions/enrollment-agreement-progress.test.ts src/lib/admissions/enrollment-checklist-progress.test.ts src/lib/admissions/enrollment-checklist-templates.test.ts src/lib/admissions/enrollment-completed-notifications.test.ts src/lib/admissions/enrollment-payment-summary.test.ts src/lib/admissions/family-guardians-remove.test.ts src/lib/admissions/family-tour-booking.test.ts src/lib/admissions/guardian-role-label.test.ts src/lib/admissions/mark-application-enrolled.test.ts src/lib/admissions/parent-portal-login-status.test.ts src/lib/auth/portal-switcher.test.ts src/lib/activity-event-display.test.ts src/lib/activity-funnel.test.ts src/lib/school-admin/admissions-setup-status.test.ts src/lib/school-admin/activity-notifications.test.ts src/lib/stripe/application-payments-admin-bypass.test.ts src/lib/stripe/application-payments-checkout-details.test.ts src/lib/stripe/pending-checkout-session.test.ts src/lib/stripe/connect-status.test.ts src/lib/stripe/dashboard-link.test.ts src/lib/stripe/checkout-session.setup.test.ts src/lib/tuition/pricing.test.ts src/lib/tuition/rate-tiers.test.ts src/lib/tuition/setup-wizard.test.ts src/lib/tuition/charge-generator.test.ts src/lib/tuition/charge-generator-rate-plan.test.ts src/lib/tuition/billing-splits.test.ts src/lib/tuition/late-fees.test.ts src/lib/tuition/tuition-checkout-line-item.test.ts src/lib/tuition/tuition-payment-receipt-detail.test.ts src/lib/tuition/payment-receipt-email.test.ts src/lib/tuition/payment-settlement.test.ts src/lib/tuition/parent-billing-summary.test.ts src/lib/tuition/send-invoice.test.ts src/lib/tuition/assignments.test.ts src/lib/tuition/rules-engine.test.ts src/lib/tuition/reminders.test.ts src/lib/tuition/billing-cron.test.ts src/lib/tuition/autopay-status.test.ts src/lib/tuition/autopay-cron-report.test.ts src/lib/tuition/tuition-activity.test.ts src/lib/tuition/autopay.test.ts src/lib/staff/staff-members.test.ts src/lib/committees/calendar-utils.test.ts src/lib/committees/resource-file-storage.test.ts",
     "test:integration": "tsx --require ./src/test/integration/mock-server-only.cjs --test --test-concurrency=1 src/lib/stripe/webhook-handlers.integration.test.ts src/app/api/stripe/webhook/route.integration.test.ts src/lib/stripe/checkout-session.test.ts",
     "test:integration:setup": "supabase db reset",
     "test:e2e": "playwright test",
@@ -28,7 +31,18 @@
     "performance:ci:mobile": "PERFORMANCE_FORM_FACTOR=mobile lhci autorun",
     "performance:ci:desktop": "PERFORMANCE_FORM_FACTOR=desktop lhci autorun",
     "performance:ci:prepare": "tsx scripts/prepare-performance-ci.ts",
-    "performance:ci:upload": "tsx scripts/upload-lhci-results.ts"
+    "performance:ci:upload": "tsx scripts/upload-lhci-results.ts",
+    "mobile": "npm run start --workspace @schoolstack/mobile",
+    "mobile:ios": "npm run ios --workspace @schoolstack/mobile",
+    "mobile:android": "npm run android --workspace @schoolstack/mobile",
+    "mobile:lint": "npm run lint:errors --workspace @schoolstack/mobile",
+    "mobile:typecheck": "npm run typecheck --workspace @schoolstack/mobile",
+    "mobile:test": "npm run test --workspace @schoolstack/mobile",
+    "mobile:test:e2e": "npm run test:e2e --workspace @schoolstack/mobile",
+    "mobile:test:e2e:ios": "npm run test:e2e:ios:run --workspace @schoolstack/mobile",
+    "mobile:test:e2e:android": "npm run test:e2e:android:run --workspace @schoolstack/mobile",
+    "mobile:e2e:env": "bash apps/mobile/scripts/print-e2e-env.sh",
+    "seed:e2e": "tsx e2e/seed-only.ts"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.63.0",
@@ -78,6 +92,10 @@
     "typescript": "^5"
   },
   "overrides": {
-    "lighthouse": "12.8.2"
+    "lighthouse": "12.8.2",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-test-renderer": "19.2.4",
+    "expo-router": "57.0.14"
   }
 }

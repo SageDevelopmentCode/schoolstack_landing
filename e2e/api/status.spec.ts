@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { AUTH_STATE_PATHS } from "../fixtures/constants";
+import { ensureAlphaChildSubmittedFixture } from "../helpers/api-fixtures";
 import { getSeedManifest } from "../helpers/seed-manifest";
+
+test.beforeEach(async () => {
+  await ensureAlphaChildSubmittedFixture(getSeedManifest());
+});
 
 test("status GET returns 403 for non-admin user", async ({ playwright, baseURL }) => {
   const manifest = getSeedManifest();
@@ -49,14 +54,7 @@ test("status PATCH updates application status for school admin", async ({
   request,
 }) => {
   const manifest = getSeedManifest();
-
-  const getResponse = await request.get(
-    `/api/admissions/applications/${manifest.applications.alphaChild}/status`,
-  );
-  const current = await getResponse.json();
-
-  const nextStatus =
-    current.status === "submitted" ? "under_review" : "submitted";
+  const nextStatus = "under_review";
 
   const response = await request.patch(
     `/api/admissions/applications/${manifest.applications.alphaChild}/status`,

@@ -63,6 +63,7 @@ export type LateFeeDraft = {
   guardianId: string | null;
   metadata: {
     sourceChargeId: string;
+    assignmentId: string;
     periodYear: number;
     periodMonth: number;
     guardianId: string | null;
@@ -115,6 +116,15 @@ export function lateFeeGuardianKey(guardianId: string | null | undefined): strin
 }
 
 export function buildLateFeeKey(
+  assignmentId: string,
+  year: number,
+  month: number,
+  guardianId?: string | null,
+): string {
+  return `${assignmentId}:${year}:${month}:${lateFeeGuardianKey(guardianId)}`;
+}
+
+function buildLegacyLateFeeKey(
   sourceChargeId: string,
   year: number,
   month: number,
@@ -134,18 +144,33 @@ export function parseExistingLateFeeKeys(
     }
     const record = charge.metadata as Record<string, unknown>;
     if (
-      typeof record.sourceChargeId === "string" &&
-      typeof record.periodYear === "number" &&
-      typeof record.periodMonth === "number"
+      typeof record.periodYear !== "number" ||
+      typeof record.periodMonth !== "number"
     ) {
-      const guardianId =
-        typeof record.guardianId === "string"
-          ? record.guardianId
-          : record.guardianId === null
-            ? null
-            : undefined;
+      continue;
+    }
+
+    const guardianId =
+      typeof record.guardianId === "string"
+        ? record.guardianId
+        : record.guardianId === null
+          ? null
+          : undefined;
+
+    if (typeof record.assignmentId === "string") {
       keys.add(
         buildLateFeeKey(
+          record.assignmentId,
+          record.periodYear,
+          record.periodMonth,
+          guardianId,
+        ),
+      );
+    }
+
+    if (typeof record.sourceChargeId === "string") {
+      keys.add(
+        buildLegacyLateFeeKey(
           record.sourceChargeId,
           record.periodYear,
           record.periodMonth,
@@ -165,6 +190,7 @@ export function parseExistingLateFeeKeys(
 
 export function buildLateFeeDraftsForSource(input: {
   sourceChargeId: string;
+  assignmentId: string;
   sourceGuardianId: string | null;
   periodYear: number;
   periodMonth: number;
@@ -176,6 +202,7 @@ export function buildLateFeeDraftsForSource(input: {
   const baseLabel = `Late fee — ${periodLabel}`;
   const baseMetadata = {
     sourceChargeId: input.sourceChargeId,
+    assignmentId: input.assignmentId,
     periodYear: input.periodYear,
     periodMonth: input.periodMonth,
   };
@@ -377,6 +404,7 @@ export async function applyLateFeesForOrganization(
 
       const drafts = buildLateFeeDraftsForSource({
         sourceChargeId: String(row.id),
+        assignmentId: String(row.assignment_id),
         sourceGuardianId: row.guardian_id ? String(row.guardian_id) : null,
         periodYear: period.year,
         periodMonth: period.month,
@@ -387,7 +415,7 @@ export async function applyLateFeesForOrganization(
 
       for (const draft of drafts) {
         const key = buildLateFeeKey(
-          draft.metadata.sourceChargeId,
+          draft.metadata.assignmentId,
           draft.metadata.periodYear,
           draft.metadata.periodMonth,
           draft.guardianId,

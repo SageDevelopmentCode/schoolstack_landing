@@ -1,0 +1,15 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: school-admin-logged-in.yaml
+- tapOn: 'Admissions'
+- extendedWaitUntil:
+    visible: 'Alpha Child'
+    timeout: 30000
+- tapOn: 'Students'
+- extendedWaitUntil:
+    visible: 'Search students'
+    timeout: 30000
+- tapOn: 'Dashboard'
+- extendedWaitUntil:
+    visible: 'Dashboard'
+    timeout: 30000

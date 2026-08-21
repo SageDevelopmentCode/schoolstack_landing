@@ -84,7 +84,7 @@ test("status filter narrows the submissions table", async ({ page }) => {
 
 test("admin can change application status", async ({ page }) => {
   await gotoSubmissions(page);
-  await openSubmissionByStudent(page, "Beta Child");
+  await openSubmissionByStudent(page, "Alpha Child");
 
   await page.getByRole("button", { name: "Mark under review" }).click();
 
@@ -94,8 +94,8 @@ test("admin can change application status", async ({ page }) => {
 
   await closeSubmissionDetail(page);
 
-  const betaRow = page.getByRole("row", { name: /Beta Child/ });
-  await expect(betaRow.getByText("Under review", { exact: true })).toBeVisible();
+  const alphaRow = page.getByRole("row", { name: /Alpha Child/ });
+  await expect(alphaRow.getByText("Under review", { exact: true })).toBeVisible();
 });
 
 test("admin can download application PDF", async ({ page }) => {

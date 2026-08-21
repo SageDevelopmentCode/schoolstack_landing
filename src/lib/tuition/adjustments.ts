@@ -161,6 +161,25 @@ export async function revokeAdjustment(
   return adjustment;
 }
 
+function ruleAdjustmentValuesMatch(
+  existing: Record<string, unknown>,
+  input: {
+    adjustmentType: AdjustmentType;
+    valuePercent?: number | null;
+    valueCents?: number | null;
+    reason: string;
+    priority?: number;
+  },
+): boolean {
+  return (
+    String(existing.adjustment_type) === input.adjustmentType &&
+    (existing.value_percent ?? null) === (input.valuePercent ?? null) &&
+    (existing.value_cents ?? null) === (input.valueCents ?? null) &&
+    String(existing.reason) === input.reason &&
+    Number(existing.priority ?? 0) === (input.priority ?? 0)
+  );
+}
+
 export async function upsertRuleAdjustment(
   supabase: SupabaseClient,
   input: {
@@ -185,6 +204,10 @@ export async function upsertRuleAdjustment(
   if (existingError) throw existingError;
 
   if (existing) {
+    if (ruleAdjustmentValuesMatch(existing, input)) {
+      return rowToAdjustment(existing);
+    }
+
     const { data, error } = await supabase
       .from("tuition_adjustments")
       .update({

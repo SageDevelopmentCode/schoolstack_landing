@@ -11,7 +11,7 @@ import ApplicationSubmissionDetailPanel from "./ApplicationSubmissionDetailPanel
 import SubmissionFeeBadges from "./SubmissionFeeBadges";
 import {
   applicationStatusBadgeStyle,
-  applicationStatusLabel,
+  adminApplicationStatusLabel,
   APPLICATION_STATUS_FILTER_ORDER,
   APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL,
 } from "@/lib/admissions/application-status-ui";
@@ -334,7 +334,7 @@ export default function ApplicationSubmissionsPage({
                 <FilterChip
                   key={status}
                   active={statusFilter === status}
-                  label={applicationStatusLabel(status)}
+                  label={adminApplicationStatusLabel(status)}
                   count={statusCounts[status]}
                   onClick={() => changeStatusFilter(status)}
                   C={C}
@@ -527,7 +527,7 @@ export default function ApplicationSubmissionsPage({
                           className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
                           style={statusStyle}
                         >
-                          {applicationStatusLabel(submission.status)}
+                          {adminApplicationStatusLabel(submission.status)}
                         </span>
                       </td>
                       {showEnrollmentColumn ? (

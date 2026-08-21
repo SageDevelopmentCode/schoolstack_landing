@@ -5,6 +5,56 @@ import { rowToCharge } from "./row-mappers";
 import type { TuitionBillingAccountMetadata, TuitionCharge } from "./types";
 
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
+const OPEN_LATE_FEE_STATUSES = ["scheduled", "sent", "overdue"] as const;
+
+export function billingPeriodFromDueDate(dueDate: string): {
+  year: number;
+  month: number;
+} {
+  const date = new Date(`${dueDate}T00:00:00Z`);
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+  };
+}
+
+async function voidOpenLateFeesForPaidTuitionPeriod(
+  supabase: SupabaseClient,
+  charge: TuitionCharge,
+): Promise<void> {
+  if (charge.chargeType !== "tuition") return;
+
+  const { year, month } = billingPeriodFromDueDate(charge.dueDate);
+
+  const { data: openLateFees, error } = await supabase
+    .from("tuition_charges")
+    .select("id, metadata")
+    .eq("assignment_id", charge.assignmentId)
+    .eq("charge_type", "late_fee")
+    .in("status", [...OPEN_LATE_FEE_STATUSES]);
+
+  if (error) throw error;
+
+  const orphanLateFeeIds = (openLateFees ?? [])
+    .filter((row) => {
+      const metadata = row.metadata;
+      if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+        return false;
+      }
+      const record = metadata as Record<string, unknown>;
+      return record.periodYear === year && record.periodMonth === month;
+    })
+    .map((row) => String(row.id));
+
+  if (orphanLateFeeIds.length === 0) return;
+
+  const { error: voidError } = await supabase
+    .from("tuition_charges")
+    .update({ status: "void" })
+    .in("id", orphanLateFeeIds);
+
+  if (voidError) throw voidError;
+}
 
 export type InstallmentChargeBalance = {
   amountCents: number;
@@ -298,6 +348,12 @@ export async function settleTuitionPayment(
 
   if (updateError) throw updateError;
 
+  const settledCharge = rowToCharge(updatedRow);
+
+  if (isFullyPaid && settledCharge.chargeType === "tuition") {
+    await voidOpenLateFeesForPaidTuitionPeriod(supabase, settledCharge);
+  }
+
   if (input.paymentId) {
     const { error: paymentError } = await supabase
       .from("application_payments")
@@ -318,7 +374,7 @@ export async function settleTuitionPayment(
   }
 
   return {
-    charge: rowToCharge(updatedRow),
+    charge: settledCharge,
     appliedCents,
     surplusCents,
     redistributed,

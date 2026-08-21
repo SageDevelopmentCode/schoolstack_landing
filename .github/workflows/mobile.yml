@@ -1,0 +1,325 @@
+name: Mobile
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.filter.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            mobile:
+              - 'apps/mobile/**'
+              - 'package-lock.json'
+              - '.github/workflows/mobile.yml'
+
+  mobile-checks:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint mobile app
+        run: npm run lint:errors --workspace @schoolstack/mobile
+
+      - name: Typecheck mobile app
+        run: npm run typecheck --workspace @schoolstack/mobile
+
+      - name: Run mobile unit tests
+        run: npm run test --workspace @schoolstack/mobile
+
+  mobile-e2e:
+    needs: changes
+    if: |
+      needs.changes.outputs.mobile == 'true' && (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'pull_request' && github.base_ref == 'main')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MAESTRO_FLOWS: ${{ github.event_name == 'pull_request' && 'school-admin-logged-in.yaml dashboard.yaml' || '.maestro' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.110.0
+
+      - name: Start local Supabase
+        run: >
+          supabase start
+          -x studio -x vector -x logflare
+          -x inbucket -x storage -x realtime
+
+      - name: Reset database
+        run: supabase db reset
+
+      - name: Load local Supabase keys
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.SERVICE_ROLE_KEY')" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3100" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SITE_URL=http://10.0.2.2:3100" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_E2E=1" >> "$GITHUB_ENV"
+          echo "DISABLE_OUTBOUND_EMAIL=1" >> "$GITHUB_ENV"
+          echo "CI=true" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Seed E2E database
+        run: npm run seed:e2e
+
+      - name: Start Next.js dev server
+        run: npm run dev:next -- -p 3100 > /tmp/next-dev.log 2>&1 &
+
+      - name: Wait for Next.js
+        run: |
+          for i in {1..60}; do
+            if curl -sf http://127.0.0.1:3100 > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Next.js did not start in time"
+          cat /tmp/next-dev.log || true
+          exit 1
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Android native build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            apps/mobile/android
+          key: mobile-android-e2e-${{ hashFiles('package-lock.json', 'apps/mobile/package.json', 'apps/mobile/app.json') }}
+          restore-keys: |
+            mobile-android-e2e-
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Prepare Android native project
+        id: android-prebuild
+        working-directory: apps/mobile
+        env:
+          NODE_PATH: "./node_modules:../../node_modules"
+        run: |
+          if [[ -f android/app/build/outputs/apk/debug/app-debug.apk ]]; then
+            echo "skip_build=true" >> "$GITHUB_OUTPUT"
+            echo "Using cached debug APK"
+          else
+            echo "skip_build=false" >> "$GITHUB_OUTPUT"
+            if [[ ! -d android ]]; then
+              npx expo prebuild --platform android
+            fi
+          fi
+
+      - name: Set up Gradle
+        if: steps.android-prebuild.outputs.skip_build != 'true'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+          build-root-directory: apps/mobile/android
+
+      - name: Build Android debug APK
+        if: steps.android-prebuild.outputs.skip_build != 'true'
+        working-directory: apps/mobile
+        env:
+          NODE_PATH: "./node_modules:../../node_modules"
+        run: bash scripts/build-android-debug-ci.sh
+
+      - name: Run Maestro E2E on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: bash apps/mobile/scripts/run-e2e-android-ci.sh
+
+      - name: Upload Maestro debug output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-maestro-debug-android
+          path: |
+            /tmp/next-dev.log
+            /tmp/expo-metro.log
+            /tmp/adb-logcat.log
+            /home/runner/.maestro/tests
+          retention-days: 7
+          if-no-files-found: ignore
+
+  mobile-e2e-ios:
+    needs: changes
+    if: |
+      needs.changes.outputs.mobile == 'true' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+    runs-on: macos-15-intel
+    timeout-minutes: 60
+    env:
+      MAESTRO_FLOWS: .maestro
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.110.0
+
+      - name: Start Colima
+        timeout-minutes: 10
+        run: bash scripts/ci/start-supabase-colima.sh colima
+
+      - name: Start Supabase via Colima
+        timeout-minutes: 20
+        run: bash scripts/ci/start-supabase-colima.sh supabase
+
+      - name: Upload Colima diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-colima-diagnostics
+          path: /tmp/colima-bootstrap-diagnostics.log
+          retention-days: 7
+
+      - name: Reset database
+        run: supabase db reset
+
+      - name: Load local Supabase keys
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.SERVICE_ROLE_KEY')" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3100" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SITE_URL=http://127.0.0.1:3100" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_E2E=1" >> "$GITHUB_ENV"
+          echo "DISABLE_OUTBOUND_EMAIL=1" >> "$GITHUB_ENV"
+          echo "CI=true" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Seed E2E database
+        run: npm run seed:e2e
+
+      - name: Start Next.js dev server
+        run: npm run dev:next -- -p 3100 > /tmp/next-dev.log 2>&1 &
+
+      - name: Wait for Next.js
+        run: |
+          for i in {1..60}; do
+            if curl -sf http://127.0.0.1:3100 > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Next.js did not start in time"
+          cat /tmp/next-dev.log || true
+          exit 1
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Cache iOS native build
+        uses: actions/cache@v4
+        with:
+          path: apps/mobile/ios/build
+          key: mobile-ios-e2e-${{ hashFiles('package-lock.json', 'apps/mobile/package.json', 'apps/mobile/app.json') }}
+
+      - name: Build and run Maestro E2E on iOS simulator
+        run: bash apps/mobile/scripts/run-e2e-ios-ci.sh
+
+      - name: Upload Maestro debug output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-maestro-debug-ios
+          path: |
+            /tmp/next-dev.log
+            /tmp/expo-metro.log
+            /tmp/ios-simulator.log
+            /tmp/colima-bootstrap-diagnostics.log
+            /Users/runner/.maestro/tests
+          retention-days: 7
+          if-no-files-found: ignore
+
+  notify-checks:
+    needs: mobile-checks
+    if: failure()
+    uses: ./.github/workflows/discord-notify.yml
+    secrets:
+      DISCORD_CI_ALERTS_WEBHOOK_URL: ${{ secrets.DISCORD_CI_ALERTS_WEBHOOK_URL }}
+    with:
+      title: "Mobile checks failed"
+      details_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      branch: ${{ github.ref_name }}
+      commit_sha: ${{ github.sha }}
+
+  notify-e2e:
+    needs: [mobile-e2e, mobile-e2e-ios]
+    if: always() && (needs.mobile-e2e.result == 'failure' || needs.mobile-e2e-ios.result == 'failure')
+    uses: ./.github/workflows/discord-notify.yml
+    secrets:
+      DISCORD_CI_ALERTS_WEBHOOK_URL: ${{ secrets.DISCORD_CI_ALERTS_WEBHOOK_URL }}
+    with:
+      title: "Mobile E2E failed"
+      details_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      branch: ${{ github.ref_name }}
+      commit_sha: ${{ github.sha }}

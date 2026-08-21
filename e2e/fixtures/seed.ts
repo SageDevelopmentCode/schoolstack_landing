@@ -12,6 +12,7 @@ import {
   E2E_NONADMIN_EMAIL,
   E2E_OTHER_PARENT_EMAIL,
   E2E_PARENT_EMAIL,
+  E2E_PLATFORM_ADMIN_EMAIL,
   E2E_STAFF_EMAIL,
   E2E_TEST_PASSWORD,
   TEST_ORG_SLUG,
@@ -862,6 +863,17 @@ export async function seedE2eDatabase(): Promise<void> {
     email: E2E_STAFF_EMAIL,
     password: E2E_TEST_PASSWORD,
   });
+  const platformAdminUserId = await ensureAuthUser(admin, {
+    email: E2E_PLATFORM_ADMIN_EMAIL,
+    password: E2E_TEST_PASSWORD,
+  });
+
+  const { error: platformAdminProfileError } = await admin.from("profiles").upsert({
+    id: platformAdminUserId,
+    email: E2E_PLATFORM_ADMIN_EMAIL,
+    role: "admin",
+  });
+  if (platformAdminProfileError) throw platformAdminProfileError;
 
   runDbQuery(`
     insert into public.organization_settings (organization_id, branding, features)
@@ -1022,6 +1034,12 @@ export async function seedE2eDatabase(): Promise<void> {
     studentName: "Beta Child",
     formContext,
   });
+
+  const { error: betaReviewStatusError } = await admin
+    .from("applications")
+    .update({ status: "under_review" })
+    .eq("id", betaChildApplicationId);
+  if (betaReviewStatusError) throw betaReviewStatusError;
 
   const enrollTargetApplicationId = await seedAdditionalSubmittedApplication(admin, {
     organizationId,
