@@ -5,6 +5,7 @@
     "specs",
     "e2e",
     "playwright.config.ts",
+    "apps",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.integration.test.ts"

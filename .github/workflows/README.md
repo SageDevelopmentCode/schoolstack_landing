@@ -78,7 +78,9 @@ The [mobile.yml](./mobile.yml) workflow:
 **When it runs**
 
 - **Pull requests / pushes:** lint, typecheck, and Jest when `apps/mobile/**` or `package-lock.json` changes
-- **Pull requests to `main`:** Android (Ubuntu) + iOS (macOS) Maestro E2E with local Supabase + Next.js on port 3100 (11 flows: intro, school admin login/dashboard, admissions list/detail/filter, tab navigation, students, platform admin login/enter-school)
+- **Pull requests to `main`:** Android (Ubuntu) + iOS (`macos-15-intel`) Maestro E2E with local Supabase + Next.js on port 3100 (11 flows: intro, school admin login/dashboard, admissions list/detail/filter, tab navigation, students, platform admin login/enter-school)
+
+iOS E2E runs on `macos-15-intel` (not `macos-latest`) because local Supabase requires Docker via Colima, which needs nested virtualization unsupported on Apple Silicon GitHub runners.
 
 **Local reproduction**
 

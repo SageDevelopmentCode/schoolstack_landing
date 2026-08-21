@@ -159,7 +159,7 @@ jobs:
         (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
         (github.event_name == 'pull_request' && github.base_ref == 'main')
       )
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     timeout-minutes: 60
 
     steps:
@@ -173,12 +173,14 @@ jobs:
       - name: Start Colima for Supabase
         run: |
           brew install colima docker jq
-          colima start --cpu 4 --memory 8 --disk 60
+          colima start --runtime docker --mount-type sshfs --cpu 4 --memory 8
           echo "DOCKER_HOST=unix://${HOME}/.colima/default/docker.sock" >> "$GITHUB_ENV"
+          docker info
+          sleep 10
 
       - uses: supabase/setup-cli@v3
         with:
-          version: 2.109.1
+          version: 2.110.0
 
       - name: Start local Supabase
         run: supabase start
