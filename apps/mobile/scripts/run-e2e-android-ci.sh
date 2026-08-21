@@ -49,16 +49,35 @@ cleanup() {
 }
 trap cleanup EXIT
 
+dump_metro_diagnostics() {
+  echo "----- expo-metro.log -----" >&2
+  cat /tmp/expo-metro.log || true
+  echo "----- curl 127.0.0.1:8081/status -----" >&2
+  curl -v --max-time 2 "http://127.0.0.1:8081/status" || true
+  echo "----- listeners on 8081 -----" >&2
+  ss -lntp 2>/dev/null | grep 8081 || lsof -nP -iTCP:8081 -sTCP:LISTEN || true
+}
+
+# Skip React Native DevTools Electron install (chrome-sandbox fails on GHA Ubuntu).
+# Force IPv4 so --host localhost binds 127.0.0.1, matching adb reverse and the wait curl.
+export EXPO_UNSTABLE_HEADLESS=1
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--dns-result-order=ipv4first"
+
 npx expo start --port 8081 --host localhost > /tmp/expo-metro.log 2>&1 &
 metro_pid=$!
 
 for i in {1..60}; do
-  if curl -sf "http://127.0.0.1:8081/status" >/dev/null; then
+  if ! kill -0 "$metro_pid" 2>/dev/null; then
+    echo "Metro process exited before becoming ready" >&2
+    dump_metro_diagnostics
+    exit 1
+  fi
+  if curl -sf --max-time 2 "http://127.0.0.1:8081/status" >/dev/null; then
     break
   fi
   if [[ "$i" -eq 60 ]]; then
     echo "Metro did not start in time" >&2
-    cat /tmp/expo-metro.log || true
+    dump_metro_diagnostics
     exit 1
   fi
   sleep 2
