@@ -10,7 +10,7 @@ import {
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { View } from 'react-native';
+import { LogBox, View } from 'react-native';
 
 import { SplashOverlay } from '@/components/splash-overlay';
 import { AuthProvider } from '@/contexts/auth-context';
@@ -18,6 +18,10 @@ import { Brand } from '@/constants/theme';
 import { isMobileE2e } from '@/lib/e2e';
 
 SplashScreen.preventAutoHideAsync();
+
+if (isMobileE2e) {
+  LogBox.ignoreAllLogs();
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({

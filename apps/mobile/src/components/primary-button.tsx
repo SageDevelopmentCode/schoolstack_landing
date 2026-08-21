@@ -34,27 +34,36 @@ function ButtonLabel({
   labelColor,
   isNative,
   trailingIcon,
+  hideFromAccessibility,
 }: {
   label: string;
   labelColor: string;
   isNative: boolean;
   trailingIcon: boolean;
+  hideFromAccessibility?: boolean;
 }) {
   const textStyle = [
     isNative ? styles.labelNative : styles.labelMarketing,
     { color: labelColor },
   ];
+  const a11yProps = hideFromAccessibility ? { accessible: false as const } : {};
 
   if (trailingIcon) {
     return (
-      <View style={styles.contentRow}>
-        <Text style={textStyle}>{label}</Text>
+      <View style={styles.contentRow} {...a11yProps}>
+        <Text style={textStyle} {...a11yProps}>
+          {label}
+        </Text>
         <Ionicons name="chevron-forward" size={20} color={labelColor} />
       </View>
     );
   }
 
-  return <Text style={textStyle}>{label}</Text>;
+  return (
+    <Text style={textStyle} {...a11yProps}>
+      {label}
+    </Text>
+  );
 }
 
 export function PrimaryButton({
@@ -67,6 +76,7 @@ export function PrimaryButton({
   onPressIn,
   onPressOut,
   testID,
+  accessibilityLabel,
   ...rest
 }: PrimaryButtonProps) {
   const { backgroundColor, labelColor } = getButtonColors(variant);
@@ -97,6 +107,8 @@ export function PrimaryButton({
     return (
       <AnimatedPressable
         accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessible
         disabled={disabled}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
@@ -109,6 +121,8 @@ export function PrimaryButton({
         {...rest}>
         <View
           testID={testID}
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
           collapsable={false}
           style={[
             styles.fill,
@@ -120,6 +134,7 @@ export function PrimaryButton({
             labelColor={labelColor}
             isNative={isNative}
             trailingIcon={trailingIcon}
+            hideFromAccessibility
           />
         </View>
       </AnimatedPressable>
