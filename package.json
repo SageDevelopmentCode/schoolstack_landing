@@ -34,7 +34,15 @@
     "performance:ci:upload": "tsx scripts/upload-lhci-results.ts",
     "mobile": "npm run start --workspace @schoolstack/mobile",
     "mobile:ios": "npm run ios --workspace @schoolstack/mobile",
-    "mobile:android": "npm run android --workspace @schoolstack/mobile"
+    "mobile:android": "npm run android --workspace @schoolstack/mobile",
+    "mobile:lint": "npm run lint:errors --workspace @schoolstack/mobile",
+    "mobile:typecheck": "npm run typecheck --workspace @schoolstack/mobile",
+    "mobile:test": "npm run test --workspace @schoolstack/mobile",
+    "mobile:test:e2e": "npm run test:e2e --workspace @schoolstack/mobile",
+    "mobile:test:e2e:ios": "npm run test:e2e:ios:run --workspace @schoolstack/mobile",
+    "mobile:test:e2e:android": "npm run test:e2e:android:run --workspace @schoolstack/mobile",
+    "mobile:e2e:env": "bash apps/mobile/scripts/print-e2e-env.sh",
+    "seed:e2e": "tsx e2e/seed-only.ts"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.63.0",
@@ -87,6 +95,7 @@
     "lighthouse": "12.8.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-test-renderer": "19.2.4",
     "expo-router": "57.0.14"
   }
 }

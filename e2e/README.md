@@ -2,7 +2,7 @@
 
 End-to-end tests run against **local Supabase only** — never production. Stripe is not used.
 
-For agent workflows, see [`.agents/skills/e2e-local/SKILL.md`](../.agents/skills/e2e-local/SKILL.md). Schema DDL must live in `supabase/migrations/` — see [`.agents/skills/supabase-migrations/SKILL.md`](../.agents/skills/supabase-migrations/SKILL.md).
+For agent workflows, see [`.agents/skills/e2e-local/SKILL.md`](../.agents/skills/e2e-local/SKILL.md). Mobile Maestro E2E: [`.agents/skills/mobile-e2e-local/SKILL.md`](../.agents/skills/mobile-e2e-local/SKILL.md). Schema DDL must live in `supabase/migrations/` — see [`.agents/skills/supabase-migrations/SKILL.md`](../.agents/skills/supabase-migrations/SKILL.md).
 
 `globalSetup` seeds the database; the `setup` project signs in test users and writes `e2e/.auth/` before authenticated tests run.
 
@@ -44,6 +44,13 @@ npm run test:e2e:ui      # interactive mode
 | `api-admin` | Admissions status API routes | `e2e-admin@schoolstack.test` |
 
 Seeded password (local only): `E2eTestPassword123!` — override via `.env.e2e.local`.
+
+| Email | Role |
+|-------|------|
+| `e2e-admin@schoolstack.test` | School org admin |
+| `e2e-platform-admin@schoolstack.test` | Platform admin (`profiles.role = admin`) |
+| `e2e-parent@schoolstack.test` | Parent/guardian |
+| `e2e-nonadmin@schoolstack.test` | Authenticated, no admin access |
 
 ## Safety
 

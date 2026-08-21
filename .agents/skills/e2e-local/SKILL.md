@@ -77,6 +77,7 @@ Uses `.env.e2e.local` when present. Does not call Stripe's API — fixtures and 
 | Email | Role |
 |-------|------|
 | `e2e-admin@schoolstack.test` | School admin with membership |
+| `e2e-platform-admin@schoolstack.test` | Platform admin (`profiles.role = admin`) |
 | `e2e-parent@schoolstack.test` | Parent/guardian |
 | `e2e-nonadmin@schoolstack.test` | Authenticated, no admin access |
 
@@ -100,6 +101,7 @@ Password: `E2eTestPassword123!` (override via `E2E_TEST_PASSWORD` in `.env.e2e.l
 ## More detail
 
 - Human docs: `e2e/README.md`
+- Mobile Maestro E2E: [`.agents/skills/mobile-e2e-local/SKILL.md`](../mobile-e2e-local/SKILL.md)
 - CI workflows: `.github/workflows/e2e.yml`, `.github/workflows/integration.yml`, `.github/workflows/performance.yml`
 
 ## Lighthouse performance CI (local)

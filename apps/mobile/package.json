@@ -35,7 +35,12 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.2",
+    "eslint-config-expo": "~57.0.0",
+    "jest": "^29.7.0",
+    "jest-expo": "~57.0.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -43,7 +48,17 @@
     "android": "NODE_PATH=./node_modules:../../node_modules expo start --android",
     "ios": "NODE_PATH=./node_modules:../../node_modules expo start --ios",
     "web": "NODE_PATH=./node_modules:../../node_modules expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "lint:errors": "expo lint -- --quiet",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:e2e": "maestro test .maestro",
+    "test:e2e:android:build": "expo prebuild --platform android --non-interactive && cd android && ./gradlew assembleDebug",
+    "test:e2e:ios": "maestro test .maestro",
+    "test:e2e:ios:build": "expo prebuild --platform ios --non-interactive && xcodebuild -workspace ios/MudKitchen.xcworkspace -scheme MudKitchen -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO",
+    "test:e2e:ios:run": "bash scripts/run-e2e-ios.sh",
+    "test:e2e:android:run": "bash scripts/run-e2e-android.sh"
   },
   "private": true,
   "expo": {

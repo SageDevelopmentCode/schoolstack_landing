@@ -8,9 +8,11 @@
     "scheme": "schoolstack",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.mudkitchen.schoolstack.mobile",
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.mudkitchen.schoolstack.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#F7F1E7",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

@@ -1,0 +1,18 @@
+appId: com.mudkitchen.schoolstack.mobile
+env:
+  E2E_ADMIN_EMAIL: e2e-admin@schoolstack.test
+  E2E_TEST_PASSWORD: E2eTestPassword123!
+---
+- runFlow: intro-to-login.yaml
+- tapOn: 'Rooted Meadows Waldorf School'
+- tapOn: 'Use password instead'
+- tapOn:
+    text: 'Email'
+- inputText: ${E2E_ADMIN_EMAIL}
+- tapOn:
+    text: 'Password'
+- inputText: ${E2E_TEST_PASSWORD}
+- tapOn: 'Sign in'
+- extendedWaitUntil:
+    visible: 'Dashboard'
+    timeout: 30000

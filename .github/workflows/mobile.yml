@@ -1,0 +1,300 @@
+name: Mobile
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.filter.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            mobile:
+              - 'apps/mobile/**'
+              - 'package-lock.json'
+              - '.github/workflows/mobile.yml'
+
+  mobile-checks:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint mobile app
+        run: npm run lint:errors --workspace @schoolstack/mobile
+
+      - name: Typecheck mobile app
+        run: npm run typecheck --workspace @schoolstack/mobile
+
+      - name: Run mobile unit tests
+        run: npm run test --workspace @schoolstack/mobile
+
+  mobile-e2e:
+    needs: changes
+    if: |
+      needs.changes.outputs.mobile == 'true' && (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'pull_request' && github.base_ref == 'main')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.109.1
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Reset database
+        run: supabase db reset
+
+      - name: Load local Supabase keys
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.SERVICE_ROLE_KEY')" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3100" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SITE_URL=http://10.0.2.2:3100" >> "$GITHUB_ENV"
+          echo "DISABLE_OUTBOUND_EMAIL=1" >> "$GITHUB_ENV"
+          echo "CI=true" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Seed E2E database
+        run: npm run seed:e2e
+
+      - name: Start Next.js dev server
+        run: npm run dev:next -- -p 3100 > /tmp/next-dev.log 2>&1 &
+
+      - name: Wait for Next.js
+        run: |
+          for i in {1..60}; do
+            if curl -sf http://127.0.0.1:3100 > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Next.js did not start in time"
+          cat /tmp/next-dev.log || true
+          exit 1
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Run Maestro E2E on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            set -euo pipefail
+
+            curl -Ls "https://get.maestro.mobile.dev" | bash
+            echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+            cd apps/mobile
+            npx expo prebuild --platform android --non-interactive
+            cd android
+            ./gradlew assembleDebug --no-daemon
+            cd ..
+
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb reverse tcp:8081 tcp:8081
+            adb reverse tcp:3100 tcp:3100
+            adb reverse tcp:54321 tcp:54321
+
+            npx expo start --dev-client --port 8081 --non-interactive > /tmp/expo-metro.log 2>&1 &
+            sleep 15
+
+            maestro test .maestro
+
+      - name: Upload Maestro debug output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-maestro-debug-android
+          path: |
+            /tmp/next-dev.log
+            /tmp/expo-metro.log
+          retention-days: 7
+
+  mobile-e2e-ios:
+    needs: changes
+    if: |
+      needs.changes.outputs.mobile == 'true' && (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'pull_request' && github.base_ref == 'main')
+      )
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Start Colima for Supabase
+        run: |
+          brew install colima docker jq
+          colima start --cpu 4 --memory 8 --disk 60
+          echo "DOCKER_HOST=unix://${HOME}/.colima/default/docker.sock" >> "$GITHUB_ENV"
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.109.1
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Reset database
+        run: supabase db reset
+
+      - name: Load local Supabase keys
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.SERVICE_ROLE_KEY')" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3100" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status --output json | jq -r '.PUBLISHABLE_KEY // .ANON_KEY')" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_SITE_URL=http://127.0.0.1:3100" >> "$GITHUB_ENV"
+          echo "DISABLE_OUTBOUND_EMAIL=1" >> "$GITHUB_ENV"
+          echo "CI=true" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Seed E2E database
+        run: npm run seed:e2e
+
+      - name: Start Next.js dev server
+        run: npm run dev:next -- -p 3100 > /tmp/next-dev.log 2>&1 &
+
+      - name: Wait for Next.js
+        run: |
+          for i in {1..60}; do
+            if curl -sf http://127.0.0.1:3100 > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Next.js did not start in time"
+          cat /tmp/next-dev.log || true
+          exit 1
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Build and run Maestro E2E on iOS simulator
+        run: |
+          set -euo pipefail
+
+          cd apps/mobile
+          npx expo prebuild --platform ios --non-interactive
+
+          xcodebuild \
+            -workspace ios/MudKitchen.xcworkspace \
+            -scheme MudKitchen \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO
+
+          SIMULATOR_ID="$(
+            xcrun simctl list devices available | grep -E 'iPhone [0-9]+' | head -1 | sed -E 's/.* \(([0-9A-F-]+)\).*/\1/'
+          )"
+          if [[ -z "$SIMULATOR_ID" ]]; then
+            echo "No available iPhone simulator found"
+            xcrun simctl list devices available
+            exit 1
+          fi
+
+          xcrun simctl boot "$SIMULATOR_ID" || true
+          open -a Simulator
+
+          APP_PATH="$(find ios/build/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' | head -1)"
+          if [[ -z "$APP_PATH" ]]; then
+            echo "Built .app not found"
+            find ios/build -name '*.app'
+            exit 1
+          fi
+
+          xcrun simctl install booted "$APP_PATH"
+
+          npx expo start --dev-client --port 8081 --non-interactive > /tmp/expo-metro.log 2>&1 &
+          sleep 20
+
+          maestro test .maestro
+
+      - name: Upload Maestro debug output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-maestro-debug-ios
+          path: |
+            /tmp/next-dev.log
+            /tmp/expo-metro.log
+          retention-days: 7
+
+  notify-checks:
+    needs: mobile-checks
+    if: failure()
+    uses: ./.github/workflows/discord-notify.yml
+    secrets:
+      DISCORD_CI_ALERTS_WEBHOOK_URL: ${{ secrets.DISCORD_CI_ALERTS_WEBHOOK_URL }}
+    with:
+      title: "Mobile checks failed"
+      details_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      branch: ${{ github.ref_name }}
+      commit_sha: ${{ github.sha }}
+
+  notify-e2e:
+    needs: [mobile-e2e, mobile-e2e-ios]
+    if: failure()
+    uses: ./.github/workflows/discord-notify.yml
+    secrets:
+      DISCORD_CI_ALERTS_WEBHOOK_URL: ${{ secrets.DISCORD_CI_ALERTS_WEBHOOK_URL }}
+    with:
+      title: "Mobile E2E failed"
+      details_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      branch: ${{ github.ref_name }}
+      commit_sha: ${{ github.sha }}

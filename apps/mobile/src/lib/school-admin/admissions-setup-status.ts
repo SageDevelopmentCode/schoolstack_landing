@@ -43,23 +43,23 @@ type AdmissionsSetupRawData = {
   hasSubmissions: boolean;
 };
 
-function computeProgramsStepStatus(hasPrograms: boolean): AdmissionsSetupStepStatus {
+export function computeProgramsStepStatus(hasPrograms: boolean): AdmissionsSetupStepStatus {
   return hasPrograms ? 'completed' : 'not_started';
 }
 
-function computeStripeStepStatus(account: OrganizationPaymentAccount | null): AdmissionsSetupStepStatus {
+export function computeStripeStepStatus(account: OrganizationPaymentAccount | null): AdmissionsSetupStepStatus {
   if (!account?.stripeConnectAccountId) return 'not_started';
   if (isPaymentReady(account)) return 'completed';
   return 'in_progress';
 }
 
-function computeApplyFormStepStatus(status: 'none' | 'draft' | 'published'): AdmissionsSetupStepStatus {
+export function computeApplyFormStepStatus(status: 'none' | 'draft' | 'published'): AdmissionsSetupStepStatus {
   if (status === 'published') return 'completed';
   if (status === 'draft') return 'in_progress';
   return 'not_started';
 }
 
-function computeChecklistStepStatus(
+export function computeChecklistStepStatus(
   status: 'none' | 'draft' | 'published',
   itemCount: number,
 ): AdmissionsSetupStepStatus {
@@ -68,7 +68,7 @@ function computeChecklistStepStatus(
   return 'not_started';
 }
 
-function computeGoLiveStepStatus(
+export function computeGoLiveStepStatus(
   applyFormPublished: boolean,
   checklistPublished: boolean,
   hasSubmissions: boolean,

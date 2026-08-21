@@ -14,6 +14,8 @@ export const E2E_NONADMIN_EMAIL =
   process.env.E2E_NONADMIN_EMAIL ?? "e2e-nonadmin@schoolstack.test";
 export const E2E_STAFF_EMAIL =
   process.env.E2E_STAFF_EMAIL ?? "e2e-staff@schoolstack.test";
+export const E2E_PLATFORM_ADMIN_EMAIL =
+  process.env.E2E_PLATFORM_ADMIN_EMAIL ?? "e2e-platform-admin@schoolstack.test";
 export const E2E_TEST_PASSWORD =
   process.env.E2E_TEST_PASSWORD ?? "E2eTestPassword123!";
 

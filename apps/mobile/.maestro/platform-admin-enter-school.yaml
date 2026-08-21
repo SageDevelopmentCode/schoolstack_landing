@@ -1,0 +1,7 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: platform-admin-login.yaml
+- tapOn: 'Rooted Meadows Waldorf School'
+- extendedWaitUntil:
+    visible: 'Dashboard'
+    timeout: 30000

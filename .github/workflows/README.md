@@ -4,7 +4,8 @@
 
 | Workflow | Trigger | What it runs |
 |----------|---------|--------------|
-| [lint.yml](./lint.yml) | PR / push to `main` | `npm run lint:errors` |
+| [lint.yml](./lint.yml) | PR / push | `npm run lint:errors`, typecheck, unit tests (web) |
+| [mobile.yml](./mobile.yml) | PR / push when `apps/mobile/**` changes | Mobile lint, typecheck, Jest; Maestro E2E on PRs to `main` |
 | [e2e.yml](./e2e.yml) | PR / push to `main` | Playwright E2E with local Supabase |
 | [performance.yml](./performance.yml) | PR / push to `main` | Lighthouse CI — PRs audit changed pages only; `main` runs the full suite. Skipped when a PR only changes docs/SQL/migrations. |
 
@@ -70,9 +71,28 @@ PERFORMANCE_FORM_FACTOR=desktop npm run performance:ci:upload
 
 Assertions start at **warn** level (performance score ≥ 60, LCP ≤ 5s, etc.) so baselines can be established before tightening to hard failures.
 
+## Mobile CI
+
+The [mobile.yml](./mobile.yml) workflow:
+
+**When it runs**
+
+- **Pull requests / pushes:** lint, typecheck, and Jest when `apps/mobile/**` or `package-lock.json` changes
+- **Pull requests to `main`:** Android (Ubuntu) + iOS (macOS) Maestro E2E with local Supabase + Next.js on port 3100 (11 flows: intro, school admin login/dashboard, admissions list/detail/filter, tab navigation, students, platform admin login/enter-school)
+
+**Local reproduction**
+
+```bash
+npm run mobile:lint
+npm run mobile:typecheck
+npm run mobile:test
+```
+
+Maestro E2E locally: see [`apps/mobile/README.md`](../../apps/mobile/README.md) and [`.agents/skills/mobile-e2e-local/SKILL.md`](../../.agents/skills/mobile-e2e-local/SKILL.md). No `.env.e2e.local` is required for CI; create one only for local Maestro runs (`npm run mobile:e2e:env -- ios`).
+
 ## Discord failure alerts
 
-Lint, E2E, Performance CI, and failed Vercel deploy checks post to Discord when they fail.
+Lint, E2E, Mobile CI, Performance CI, and failed Vercel deploy checks post to Discord when they fail.
 
 ### Setup (one-time)
 
@@ -114,10 +134,11 @@ Common signals:
 | Workflow | When it alerts |
 |----------|----------------|
 | [lint.yml](./lint.yml) | Lint job fails |
+| [mobile.yml](./mobile.yml) | Mobile checks or Maestro E2E (Android/iOS) fails |
 | [e2e.yml](./e2e.yml) | E2E job fails |
 | [performance.yml](./performance.yml) | Lighthouse CI job fails |
 | [vercel-discord.yml](./vercel-discord.yml) | Vercel GitHub check fails |
 
-All four call the reusable [discord-notify.yml](./discord-notify.yml) workflow.
+All five call the reusable [discord-notify.yml](./discord-notify.yml) workflow.
 
 Alerts are **failure-only** (no message on green builds).

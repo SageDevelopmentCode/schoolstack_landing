@@ -1,0 +1,8 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: school-admin-logged-in.yaml
+- tapOn: 'Students'
+- extendedWaitUntil:
+    visible: 'Search students'
+    timeout: 30000
+- assertVisible: 'No enrolled students yet.'
