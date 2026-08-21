@@ -156,7 +156,10 @@ jobs:
           path: |
             /tmp/next-dev.log
             /tmp/expo-metro.log
+            /tmp/adb-logcat.log
+            /home/runner/.maestro/tests
           retention-days: 7
+          if-no-files-found: ignore
 
   mobile-e2e-ios:
     needs: changes
@@ -255,8 +258,11 @@ jobs:
           path: |
             /tmp/next-dev.log
             /tmp/expo-metro.log
+            /tmp/ios-simulator.log
             /tmp/colima-bootstrap-diagnostics.log
+            /Users/runner/.maestro/tests
           retention-days: 7
+          if-no-files-found: ignore
 
   notify-checks:
     needs: mobile-checks

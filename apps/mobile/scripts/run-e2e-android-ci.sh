@@ -19,10 +19,27 @@ else
 fi
 
 adb wait-for-device
+
+# android-emulator-runner sets disable-animations: true; Reanimated entering
+# animations and the splash fade need animator scale restored for Maestro visibility.
+adb shell settings put global animator_duration_scale 1
+adb shell settings put global transition_animation_scale 1
+adb shell settings put global window_animation_scale 1
+
 adb install -r "$APK"
 adb reverse tcp:8081 tcp:8081
 adb reverse tcp:3100 tcp:3100
 adb reverse tcp:54321 tcp:54321
+
+cat > .env.e2e.ci <<EOF
+EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+EXPO_PUBLIC_SITE_URL=${EXPO_PUBLIC_SITE_URL}
+EOF
+set -a
+# shellcheck disable=SC1091
+source .env.e2e.ci
+set +a
 
 metro_pid=""
 cleanup() {
@@ -32,7 +49,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-npx expo start --dev-client --port 8081 > /tmp/expo-metro.log 2>&1 &
+npx expo start --port 8081 --host localhost > /tmp/expo-metro.log 2>&1 &
 metro_pid=$!
 
 for i in {1..60}; do
@@ -47,16 +64,27 @@ for i in {1..60}; do
   sleep 2
 done
 
-maestro_flows=()
-if [[ "${MAESTRO_FLOWS:-.maestro}" == ".maestro" ]]; then
-  maestro test .maestro
-else
-  for flow in ${MAESTRO_FLOWS}; do
-    if [[ "$flow" == .maestro/* ]]; then
-      maestro_flows+=("$flow")
-    else
-      maestro_flows+=(".maestro/$flow")
-    fi
-  done
-  maestro test "${maestro_flows[@]}"
+echo "Warming Android bundle..."
+curl -sf "http://127.0.0.1:8081/index.bundle?platform=android&dev=true&minify=false" >/dev/null
+
+run_maestro() {
+  maestro_flows=()
+  if [[ "${MAESTRO_FLOWS:-.maestro}" == ".maestro" ]]; then
+    maestro test .maestro
+  else
+    for flow in ${MAESTRO_FLOWS}; do
+      if [[ "$flow" == .maestro/* ]]; then
+        maestro_flows+=("$flow")
+      else
+        maestro_flows+=(".maestro/$flow")
+      fi
+    done
+    maestro test "${maestro_flows[@]}"
+  fi
+}
+
+if ! run_maestro; then
+  echo "Maestro failed; capturing adb logcat..." >&2
+  adb logcat -d > /tmp/adb-logcat.log 2>&1 || true
+  exit 1
 fi

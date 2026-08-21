@@ -13,6 +13,11 @@ import { PrimaryButton } from '@/components/primary-button';
 import { INTRO_SLIDE_INTERVAL_MS, INTRO_SLIDES } from '@/constants/intro-slides';
 import { Spacing } from '@/constants/theme';
 
+const isCi = process.env.CI === 'true';
+const logoEntering = isCi ? undefined : FadeInDown.duration(500);
+const copyEntering = isCi ? undefined : FadeInUp.duration(500).delay(120);
+const ctaEntering = isCi ? undefined : FadeInUp.duration(500).delay(240);
+
 export default function IntroScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -34,7 +39,7 @@ export default function IntroScreen() {
       />
 
       <View style={[styles.overlay, { paddingTop: insets.top + 12 }]}>
-        <Animated.View entering={FadeInDown.duration(500)}>
+        <Animated.View entering={logoEntering}>
           <MudKitchenLogo variant="dark" size="sm" style={styles.logo} />
         </Animated.View>
 
@@ -52,11 +57,11 @@ export default function IntroScreen() {
               paddingHorizontal: Spacing.four,
             },
           ]}>
-          <Animated.View entering={FadeInUp.duration(500).delay(120)} style={styles.copyArea}>
+          <Animated.View entering={copyEntering} style={styles.copyArea}>
             <IntroSlideCopy activeIndex={activeIndex} />
           </Animated.View>
 
-          <Animated.View entering={FadeInUp.duration(500).delay(240)} style={styles.ctaDock}>
+          <Animated.View entering={ctaEntering} style={styles.ctaDock}>
             <PrimaryButton
               appearance="native"
               variant="clay"

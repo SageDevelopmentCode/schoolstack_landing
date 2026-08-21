@@ -6,11 +6,17 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 
 
 import { Brand } from '@/constants/theme';
 
+const SPLASH_FALLBACK_MS = 2000;
+
 export function SplashOverlay() {
   const [visible, setVisible] = useState(true);
   const opacity = useSharedValue(1);
 
   useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      setVisible(false);
+    }, SPLASH_FALLBACK_MS);
+
     SplashScreen.hideAsync().then(() => {
       opacity.value = withTiming(0, { duration: 450 }, (finished) => {
         if (finished) {
@@ -18,6 +24,10 @@ export function SplashOverlay() {
         }
       });
     });
+
+    return () => {
+      clearTimeout(fallbackTimer);
+    };
   }, [opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({

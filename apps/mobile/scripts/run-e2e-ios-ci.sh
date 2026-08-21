@@ -46,6 +46,16 @@ open -a Simulator
 
 xcrun simctl install booted "$APP_PATH"
 
+cat > .env.e2e.ci <<EOF
+EXPO_PUBLIC_SUPABASE_URL=${EXPO_PUBLIC_SUPABASE_URL}
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+EXPO_PUBLIC_SITE_URL=${EXPO_PUBLIC_SITE_URL}
+EOF
+set -a
+# shellcheck disable=SC1091
+source .env.e2e.ci
+set +a
+
 metro_pid=""
 cleanup() {
   if [[ -n "$metro_pid" ]]; then
@@ -54,7 +64,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-npx expo start --dev-client --port 8081 > /tmp/expo-metro.log 2>&1 &
+npx expo start --port 8081 --host localhost > /tmp/expo-metro.log 2>&1 &
 metro_pid=$!
 
 for i in {1..30}; do
@@ -69,16 +79,27 @@ for i in {1..30}; do
   sleep 2
 done
 
-maestro_flows=()
-if [[ "${MAESTRO_FLOWS:-.maestro}" == ".maestro" ]]; then
-  maestro test .maestro
-else
-  for flow in ${MAESTRO_FLOWS}; do
-    if [[ "$flow" == .maestro/* ]]; then
-      maestro_flows+=("$flow")
-    else
-      maestro_flows+=(".maestro/$flow")
-    fi
-  done
-  maestro test "${maestro_flows[@]}"
+echo "Warming iOS bundle..."
+curl -sf "http://127.0.0.1:8081/index.bundle?platform=ios&dev=true&minify=false" >/dev/null
+
+run_maestro() {
+  maestro_flows=()
+  if [[ "${MAESTRO_FLOWS:-.maestro}" == ".maestro" ]]; then
+    maestro test .maestro
+  else
+    for flow in ${MAESTRO_FLOWS}; do
+      if [[ "$flow" == .maestro/* ]]; then
+        maestro_flows+=("$flow")
+      else
+        maestro_flows+=(".maestro/$flow")
+      fi
+    done
+    maestro test "${maestro_flows[@]}"
+  fi
+}
+
+if ! run_maestro; then
+  echo "Maestro failed; capturing simulator log..." >&2
+  xcrun simctl spawn booted log show --last 5m > /tmp/ios-simulator.log 2>&1 || true
+  exit 1
 fi

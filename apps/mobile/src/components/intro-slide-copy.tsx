@@ -10,6 +10,10 @@ type IntroSlideCopyProps = {
   activeIndex: number;
 };
 
+const isCi = process.env.CI === 'true';
+const slideEntering = isCi ? undefined : FadeIn.duration(350);
+const slideExiting = isCi ? undefined : FadeOut.duration(250);
+
 export function IntroSlideCopy({ activeIndex }: IntroSlideCopyProps) {
   const slide = INTRO_SLIDES[activeIndex];
 
@@ -17,8 +21,8 @@ export function IntroSlideCopy({ activeIndex }: IntroSlideCopyProps) {
     <View style={styles.container}>
       <Animated.View
         key={activeIndex}
-        entering={FadeIn.duration(350)}
-        exiting={FadeOut.duration(250)}
+        entering={slideEntering}
+        exiting={slideExiting}
         style={styles.copy}>
         <ThemedText type="title" style={styles.headline}>
           {slide.headlineLead}
