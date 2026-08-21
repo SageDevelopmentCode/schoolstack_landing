@@ -84,7 +84,12 @@ for i in {1..60}; do
 done
 
 echo "Warming Android bundle..."
-curl -sf "http://127.0.0.1:8081/index.bundle?platform=android&dev=true&minify=false" >/dev/null
+bundle_url="http://127.0.0.1:8081/.expo/.virtual-metro-entry.bundle?platform=android&dev=true&minify=false"
+if ! curl -sf --max-time 180 "$bundle_url" >/dev/null; then
+  echo "Failed to warm Android bundle from $bundle_url" >&2
+  dump_metro_diagnostics
+  exit 1
+fi
 
 run_maestro() {
   maestro_flows=()
