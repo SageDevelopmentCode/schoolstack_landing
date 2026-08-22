@@ -8,8 +8,44 @@ cd "$mobile_dir"
 export NODE_PATH="./node_modules:../../node_modules"
 
 APK="android/app/build/outputs/apk/debug/app-debug.apk"
+APK_STAMP="${APK}.e2e-stamp"
 GRADLE_FILE="android/app/build.gradle"
 EMBED_MARKER="schoolstackE2eEmbedBundle"
+
+# Must match hashFiles inputs in .github/workflows/mobile.yml Android cache key.
+compute_e2e_apk_cache_key() {
+  if [[ -n "${E2E_APK_CACHE_KEY:-}" ]]; then
+    printf '%s' "$E2E_APK_CACHE_KEY"
+    return
+  fi
+
+  local repo_root
+  repo_root="$(cd "$mobile_dir/../.." && pwd)"
+  (
+    cd "$repo_root"
+    {
+      [[ -f package-lock.json ]] && cat package-lock.json
+      [[ -f apps/mobile/package.json ]] && cat apps/mobile/package.json
+      [[ -f apps/mobile/app.json ]] && cat apps/mobile/app.json
+      if [[ -d apps/mobile/src ]]; then
+        find apps/mobile/src -type f | LC_ALL=C sort | while read -r file; do
+          cat "$file"
+        done
+      fi
+      if [[ -d apps/mobile/.maestro ]]; then
+        find apps/mobile/.maestro -type f | LC_ALL=C sort | while read -r file; do
+          cat "$file"
+        done
+      fi
+      [[ -f apps/mobile/scripts/build-android-debug-ci.sh ]] && cat apps/mobile/scripts/build-android-debug-ci.sh
+    } | sha256sum | awk '{print $1}'
+  )
+}
+
+apk_cache_is_valid() {
+  [[ -f "$APK" && -f "$APK_STAMP" ]] \
+    && [[ "$(tr -d '\r\n' < "$APK_STAMP")" == "$(compute_e2e_apk_cache_key)" ]]
+}
 
 write_e2e_env_file() {
   if [[ -z "${EXPO_PUBLIC_SUPABASE_URL:-}" ]]; then
@@ -64,9 +100,14 @@ gradle_file.write_text(text.replace(needle, insert, 1))
 PY
 }
 
-if [[ -f "$APK" ]]; then
-  echo "Using cached debug APK at $APK"
+if apk_cache_is_valid; then
+  echo "Using cached debug APK at $APK (stamp matches)"
   exit 0
+fi
+
+if [[ -f "$APK" ]]; then
+  echo "Stale debug APK at $APK; rebuilding..."
+  rm -f "$APK" "$APK_STAMP"
 fi
 
 if [[ ! -d android ]]; then
@@ -95,4 +136,5 @@ if [[ ! -f "$APK" ]]; then
   exit 1
 fi
 
+compute_e2e_apk_cache_key > "$APK_STAMP"
 echo "Built debug APK with embedded E2E bundle at $APK"
