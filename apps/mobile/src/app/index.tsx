@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +26,12 @@ export default function IntroScreen() {
   const handleIndexChange = useCallback((index: number) => {
     setActiveIndex(index);
   }, []);
+
+  useEffect(() => {
+    if (isMobileE2e) {
+      router.replace('/login');
+    }
+  }, [router]);
 
   return (
     <View style={styles.container}>

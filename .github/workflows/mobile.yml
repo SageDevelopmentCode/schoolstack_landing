@@ -136,7 +136,7 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
             apps/mobile/android
-          key: mobile-android-e2e-${{ hashFiles('package-lock.json', 'apps/mobile/package.json', 'apps/mobile/app.json') }}
+          key: mobile-android-e2e-${{ hashFiles('package-lock.json', 'apps/mobile/package.json', 'apps/mobile/app.json', 'apps/mobile/src/**', 'apps/mobile/.maestro/**', 'apps/mobile/scripts/build-android-debug-ci.sh') }}
           restore-keys: |
             mobile-android-e2e-
 

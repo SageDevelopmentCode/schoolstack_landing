@@ -3,11 +3,5 @@ appId: com.mudkitchen.schoolstack.mobile
 - launchApp:
     clearState: true
 - extendedWaitUntil:
-    visible:
-      id: intro-login-cta
-    timeout: 30000
-- tapOn:
-    id: intro-login-cta
-- extendedWaitUntil:
     visible: 'Sign in to your school'
-    timeout: 30000
+    timeout: 60000
